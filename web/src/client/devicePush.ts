@@ -58,6 +58,7 @@ type SelectedConfiguration =
       providerKey: 'unifiedpush';
       vapidPublicKey: string;
       notificationReferenceVersion?: 1;
+      wishDatePreviewVersion?: 1;
       localeVersion?: 1;
     }
   | {
@@ -345,6 +346,9 @@ function selectConfiguration(
         ...(available.unifiedPush.notificationReferenceVersion === 1
           ? { notificationReferenceVersion: 1 as const }
           : {}),
+        ...(available.unifiedPush.wishDatePreviewVersion === 1
+          ? { wishDatePreviewVersion: 1 as const }
+          : {}),
       }
     : null;
   // An active transport keeps its ownership. A failure must not silently
@@ -620,6 +624,15 @@ export function useDevicePush({
                           )
                             subscription.notificationReferenceVersion = 1;
                           else delete subscription.notificationReferenceVersion;
+                          if (
+                            configuration.current?.providerKey !==
+                              'unifiedpush' ||
+                            configuration.current.wishDatePreviewVersion !==
+                              1 ||
+                            subscription.notificationReferenceVersion !== 1 ||
+                            subscription.wishDatePreviewVersion !== 1
+                          )
+                            delete subscription.wishDatePreviewVersion;
                           if (
                             configuration.current?.providerKey !==
                               'unifiedpush' ||

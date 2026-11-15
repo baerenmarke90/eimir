@@ -9,6 +9,7 @@ DETAIL = "/api/v1/spaces/{spaceId}/plans/{planId}"
 WISH_COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
 WISH_DETAIL = f"{WISH_COLLECTION}/{{wishId}}"
 WISH_COMPLETE = f"{WISH_DETAIL}/complete"
+WISH_DATE_PROPOSAL = f"{WISH_DETAIL}/date-proposal"
 CONVERT = f"{WISH_DETAIL}/plan"
 LIFECYCLE = (
     f"{DETAIL}/schedule",
@@ -75,6 +76,11 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         CONVERT,
         f"{WISH_DETAIL}/repeat",
         f"{WISH_DETAIL}/reminder",
+        WISH_DATE_PROPOSAL,
+        *(
+            f"{WISH_DATE_PROPOSAL}/{{proposalId}}/{command}"
+            for command in ("accept", "counter", "decline", "withdraw")
+        ),
     }
     assert plan_paths == {
         COLLECTION,

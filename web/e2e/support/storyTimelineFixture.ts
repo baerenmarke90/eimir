@@ -10,6 +10,7 @@ import de from '../../src/i18n/locales/de';
 import { fulfillDefaultAppIcon } from './appIcon';
 import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillEmptyPlanComments } from './planComments';
+import { fulfillNoWishDateProposal } from './productContext';
 
 export const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 export const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -182,6 +183,7 @@ export async function installMocks(
   const currentUserName = options.asPartner ? 'Alex' : 'Lea Sommer';
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillNoWishDateProposal(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;

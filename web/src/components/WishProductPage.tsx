@@ -1,8 +1,5 @@
 import './FreeComposer.css';
 import './PageComposerDetail.css';
-import { TaskBackButton } from './TaskBackButton';
-import { ContextTagList } from './ContextTagList';
-import type { ContextTagEditorHandle } from './ContextTagEditor';
 import {
   onlineManager,
   useIsMutating,
@@ -44,6 +41,8 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { ContextTagList } from './ContextTagList';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
@@ -54,11 +53,13 @@ import {
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
+import { useWishCompletion } from './useWishCompletion';
 import { WishComposer } from './WishComposer';
+import { WishDateProposalAction } from './WishDateProposalAction';
 import { WishJourneyPath } from './WishJourney';
 import { WishReminderAction } from './WishReminderAction';
-import { useWishCompletion } from './useWishCompletion';
 import { WishRepeatSheet } from './WishRepeatSheet';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
@@ -577,6 +578,26 @@ export function WishProductPage({
           spaceId={spaceId}
           wishId={wish.id}
           api={apis.wishes}
+        />
+      ) : null}
+      {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+        <WishDateProposalAction
+          key={JSON.stringify([apiBaseUrl, accountId, spaceId, wish.id])}
+          accountId={accountId}
+          apiBaseUrl={apiBaseUrl}
+          api={apis.wishes}
+          online={online}
+          spaceId={spaceId}
+          wishId={wish.id}
+          writesPending={writesPending}
+          onAccept={(planId) =>
+            navigate(planDetailPath(planId), {
+              replace: true,
+              state: resolveOrigin(originKey)
+                ? { taskOriginKey: originKey }
+                : undefined,
+            })
+          }
         />
       ) : null}
       <div className="planning-detail-grid">

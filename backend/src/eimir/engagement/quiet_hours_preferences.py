@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 from eimir.engagement.quiet_hours import QuietHoursWindow
 from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
@@ -34,6 +34,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.PARTNER_CHECK_IN,
         NotificationKind.COMMENT_CREATED,
         NotificationKind.PHOTO_REACTION,
+        *WISH_DATE_NOTICE_KINDS,
     }
 )
 

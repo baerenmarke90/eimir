@@ -199,8 +199,8 @@
     },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11,
-      "reason": "Feature-owned #1790 F2 Wish journey and #812 personal reminder acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
+      "baselineTests": 12,
+      "reason": "Feature-owned Wish journey (#1790 F2), personal reminder (#812) and date proposal (#1910) acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",

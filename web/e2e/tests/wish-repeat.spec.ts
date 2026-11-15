@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -9,8 +11,7 @@ import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import fs from 'node:fs';
-import path from 'node:path';
+import { fulfillNoWishDateProposal } from '../support/productContext';
 
 /*
  * #1816: a completed wish can be experienced again. The repeat is a new wish
@@ -111,6 +112,7 @@ async function installMocks(page: Page): Promise<RepeatState> {
     unexpected: [],
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillNoWishDateProposal(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;

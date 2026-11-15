@@ -353,6 +353,9 @@ ALLOWED_LOCALIZED_TEXTS = (
     "%1$s hat den Termin „%2$s“ geändert.",
     "%1$s hat einen Termin abgesagt.",
     "%1$s möchte mit dir Wünsche auswählen.",
+    # Exact #1910 native localized push copy.
+    "%1$s schlägt einen Termin vor",
+    "%1$s schlägt einen anderen Termin vor",
     "Es gibt neue Kommentare für dich.",
     "Dein Datentransfer ist bereit.",
     "Dein Datentransfer ist abgeschlossen.",

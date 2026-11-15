@@ -153,6 +153,46 @@ def test_recipient_language_requires_its_own_capability(monkeypatch, version):  
     assert not provider.accepts_endpoint(json.dumps(subscription))
 
 
+def test_wish_date_preview_is_encrypted_only_for_compatible_endpoint(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    subscription = json.loads(_subscription())
+    subscription["notificationReferenceVersion"] = 1
+    captured = {}
+    monkeypatch.setattr(unified_push, "webpush", lambda **kwargs: captured.update(kwargs))
+    provider = _provider()
+    preview = {
+        "kind": "WISH_DATE_PROPOSED",
+        "headline": "Alex suggested a date",
+        "title": "Stadium tour",
+        "appointmentStart": "2026-12-21T14:00:00+01:00",
+    }
+    reference = {
+        "id": "36d5fcb0-416e-4f55-a3fb-9d9ba4df07d0",
+        "kind": preview["kind"],
+        "wishDatePreview": json.dumps(preview),
+    }
+    for version in (0, 1):
+        subscription["wishDatePreviewVersion"] = version
+        provider.send(
+            idempotency_key="synthetic-wish-date-send",
+            endpoint=json.dumps(subscription),
+            notification_reference=reference,
+            generic_presentation_key=push.GENERIC_PRESENTATION_KEY,
+        )
+        assert captured["content_encoding"] == "aes128gcm"
+        wake = json.loads(captured["data"])
+        assert wake["notificationId"] == reference["id"]
+        assert wake.get("wishDatePreview") == (preview if version else None)
+    reference["kind"] = "COMMENT_CREATED"
+    with pytest.raises(push.PushProviderError) as error:
+        provider.send(
+            idempotency_key="synthetic-comment-send",
+            endpoint=json.dumps(subscription),
+            notification_reference=reference,
+            generic_presentation_key=push.GENERIC_PRESENTATION_KEY,
+        )
+    assert error.value.code == "PUSH_PREVIEW_INVALID"
+
+
 def test_expired_subscription_is_permanent_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     provider = _provider()
 

@@ -54,6 +54,20 @@ export function isPartnerGestureKind(kind: string): kind is PartnerGestureKind {
   return (PARTNER_GESTURE_KINDS as readonly string[]).includes(kind);
 }
 
+const WISH_DATE_RECEIPT_KINDS = [
+  'WISH_DATE_PROPOSED',
+  'WISH_DATE_COUNTERED',
+  'WISH_DATE_ACCEPTED',
+] as const;
+
+export type WishDateReceiptKind = (typeof WISH_DATE_RECEIPT_KINDS)[number];
+
+export function isWishDateReceiptKind(
+  kind: string,
+): kind is WishDateReceiptKind {
+  return (WISH_DATE_RECEIPT_KINDS as readonly string[]).includes(kind);
+}
+
 export const PARTNER_GESTURE_RECEIPT_EVENT = 'eimir:partner-gesture-receipt';
 
 export interface PartnerGestureReceiptRequest {

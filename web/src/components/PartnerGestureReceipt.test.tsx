@@ -23,6 +23,7 @@ import { dashboardQueryKey } from '../client/dashboardQueries';
 import { reportNotificationWake } from '../client/foregroundNotifications';
 import {
   isPartnerGestureKind,
+  isWishDateReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   receiptScope,
   requestPartnerGestureReceipt,
@@ -33,6 +34,7 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import coupleExperiences from '../i18n/locales/coupleExperiences';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import wishDateProposal from '../i18n/locales/wishDateProposal';
 import wishSelection from '../i18n/locales/wishSelection';
 import { NotificationMotion } from './NotificationMotion';
 import {
@@ -189,6 +191,55 @@ afterEach(() => {
 });
 
 describe('ForegroundNotificationHost', () => {
+  it('keeps the Vibe motion and opens the exact shared Wish proposal', async () => {
+    const openNotification = vi.fn();
+    setup({ unreadCount: 1, openNotification });
+    const proposal = gesture(
+      'proposal-1',
+      NotificationKind.WISH_DATE_PROPOSED,
+      {
+        createdAt: new Date(Date.now() + 1),
+        appointmentStart: new Date('2026-11-21T14:00:00Z'),
+        targetType: 'WISH',
+        targetId: 'wish-123',
+        target: {
+          title: 'Stadionführung',
+          targetType: 'WISH',
+          targetId: 'wish-123',
+        },
+      },
+    );
+    const concealed = {
+      ...proposal,
+      id: 'concealed',
+      createdAt: new Date(proposal.createdAt.getTime() + 1),
+      target: { ...proposal.target!, concealed: true },
+    };
+    notifications.getNotifications.mockResolvedValue(page(proposal, concealed));
+    await act(async () =>
+      reportNotificationWake({
+        accountId: ACCOUNT,
+        apiBaseUrl: 'https://eimir.test',
+        spaceId: SPACE,
+      }),
+    );
+    const incoming = screen.getByTestId('partner-gesture-receipt');
+    expect(incoming.getAttribute('data-variant')).toBe('calm-ring');
+    expect(incoming.querySelector('[data-glyph="calendar"]')).not.toBeNull();
+    expect(incoming.textContent).toContain(
+      wishDateProposal.receipt.proposed.replace('{{name}}', 'Ronja'),
+    );
+    expect(incoming.textContent).toContain('Stadionführung');
+    expect(openNotification).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: wishDateProposal.review }),
+    );
+    expect(openNotification).toHaveBeenCalledExactlyOnceWith(
+      proposal.id,
+      proposal.sourceEventId,
+    );
+  });
+
   it('does not read or replay anything at app start', async () => {
     setup({ unreadCount: 3 });
     await act(async () => undefined);
@@ -255,7 +306,7 @@ describe('ForegroundNotificationHost', () => {
 
   it('assigns distinguishable animation names to each ordinary kind', () => {
     const kinds = Object.values(NotificationKind).filter(
-      (kind) => !isPartnerGestureKind(kind),
+      (kind) => !isPartnerGestureKind(kind) && !isWishDateReceiptKind(kind),
     );
     const { container } = render(
       kinds.map((kind) => <NotificationMotion key={kind} kind={kind} />),

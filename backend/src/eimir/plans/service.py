@@ -161,6 +161,7 @@ def _record(
     event_type: EventType,
     *,
     due_at: datetime | None = None,
+    notify_partner: bool = True,
 ) -> None:
     """Record an event without plan title or description (M3-D13)."""
     if event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}:
@@ -184,7 +185,8 @@ def _record(
                     )
                     .limit(1)
                 )
-                if event_type
+                if notify_partner
+                and event_type
                 in {
                     EventType.PLAN_CREATED,
                     EventType.PLAN_SCHEDULED,
@@ -953,6 +955,7 @@ def convert_wish_to_plan(
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
     planned_until: date | None = None,
+    accepted_proposal_id: UUID | None = None,
 ) -> WishToPlanResult:
     """Convert one wish into exactly one Plan atomically and idempotently."""
     resolved_place_id = _resolve_place(session, context, place_id)
@@ -1011,10 +1014,18 @@ def convert_wish_to_plan(
             wish_service.WISH_HAS_ACTIVE_PLAN,
         ) from error
 
-    _record(session, plan, context.account_id, EventType.PLAN_CREATED)
+    _record(
+        session,
+        plan,
+        context.account_id,
+        EventType.PLAN_CREATED,
+        notify_partner=accepted_proposal_id is None,
+    )
     _flush(session)
 
-    wish_service.plan_created(session, wish, context.account_id)
+    wish_service.plan_created(
+        session, wish, context.account_id, accepted_proposal_id=accepted_proposal_id
+    )
     if status == PlanStatus.PLANNED:
         reminder_runtime.reconcile_space(session, context.space_id)
     return WishToPlanResult(wish=wish, plan=plan, created=True)

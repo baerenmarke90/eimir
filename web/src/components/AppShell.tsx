@@ -48,6 +48,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { PartnerGestureReceiptHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
@@ -405,6 +406,17 @@ function AuthenticatedAppShell({
           </div>
         ) : null}
 
+        {spaceId && accessToken ? (
+          <PartnerGestureReceiptHost
+            key={`${account.id}:${spaceId}`}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+            unreadCount={unreadCount}
+            suppressed={isFocusedTask}
+          />
+        ) : null}
         <Snackbar />
       </div>
     </ShellUtilitiesContext.Provider>

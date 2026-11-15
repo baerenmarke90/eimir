@@ -13,6 +13,10 @@ import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
+import {
+  receiptScope,
+  requestPartnerGestureReceipt,
+} from './partnerGestureReceipt';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { postSnackbar } from './snackbar';
 import {
@@ -456,6 +460,11 @@ export function useDevicePush({
           navigateRef.current(
             notificationPath(item) ?? MORE_NOTIFICATIONS_ROUTE,
           );
+          // A deliberately opened gesture may show its calm receipt once.
+          requestPartnerGestureReceipt({
+            scope: receiptScope(accountId, requestedSpace),
+            item,
+          });
         })
         .catch(() => {
           if (
@@ -471,7 +480,7 @@ export function useDevicePush({
           }
         });
     },
-    [key, notificationsApi, queryClient],
+    [accountId, key, notificationsApi, queryClient],
   );
 
   useEffect(() => {

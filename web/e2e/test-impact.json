@@ -411,6 +411,8 @@
     "partner-quick-actions.spec.ts": {
       "roots": [
         "web/src/components/PartnerQuickActions.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/client/partnerGestureReceipt.ts",
         "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"

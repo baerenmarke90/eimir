@@ -690,10 +690,13 @@ function RecapReader({
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
       `${STORY_RECAPS_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
     );
-  const returnsToWir =
-    resolveOrigin(
-      (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
-    )?.to === '/today';
+  const originPath = resolveOrigin(
+    (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
+  )?.to;
+  const returnsToWir = originPath === '/today';
+  // The Discover lead (#1907 F4) opens the reader from Momente itself.
+  const returnsToMomente =
+    originPath === '/story' || originPath?.startsWith('/story?') === true;
   return (
     <div
       className="page recap-reader"
@@ -702,7 +705,13 @@ function RecapReader({
     >
       <div className="recap-reader-top">
         <TaskBackButton onClick={back}>
-          {t(returnsToWir ? 'navigation.today' : 'recaps.back')}
+          {t(
+            returnsToWir
+              ? 'navigation.today'
+              : returnsToMomente
+                ? 'navigation.story'
+                : 'recaps.back',
+          )}
         </TaskBackButton>
         {value ? (
           <span>{recapPeriodLabel(value, resolvedLocale())}</span>

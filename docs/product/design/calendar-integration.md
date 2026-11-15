@@ -64,3 +64,57 @@ app plus DOM composition with existing components (the documented fallback of
   the native bridge receives UTC-midnight start and an end N≥1 whole days later.
 - Timed: exact UTC instants; cross-midnight and DST changes are preserved.
 - One-time copy: never described as synchronisation; no account needed.
+
+## PR B – automatic sync (Pro)
+
+### Reviewed baseline
+
+Settings index (`/more/settings`, `SettingsIndex`), the media category with the
+Immich (`PhotoSourceSettingsPanel`) and Google account panels as the existing
+pattern for a personal external connection (consent sheet, Pro mark, calm
+Free explanation linking the shared Pro paywall), `ProPaywallPage` contexts,
+`useSpaceCapability`, `ShortTaskSheet`, `UiState`/`ProblemState`, Plan detail
+(`PlanProductPage`) with `PlanCalendarAction`.
+
+### Generated visual reference
+
+![Compact reference: settings index, new Kalender entry, Pro empty state, connected state](references/calendar-integration/sync-compact-reference.png)
+
+1 current settings index; 2 the new "Kalender" category after "Medienquellen";
+3 Pro state without a connection: one-sentence purpose, the shared calendar
+heading (`calendarSync.sharedHeading`), CalDAV and Google Calendar as two full-width choices, a note that
+the one-time handoff stays free; 4 connected: the shared calendar name as the
+focal point, provider and who connected it, a status pill, an attention block
+for an externally changed event with two deliberate choices, the single
+primary action `calendarSync.actions.syncNow` and quiet pause and end actions.
+Composed from the real running app (mocked API, 390 px, Light) plus
+DOM composition; the lead line under the heading is a leftover of the media
+page and is replaced by the category intro (`calendarSync.settingsIntro`).
+
+### Mobile Interaction Contract
+
+| Concern | Contract |
+| --- | --- |
+| Outcome | Plans appear in the calendar the couple already uses, without copying them by hand. |
+| Relationship value | One shared source of "when"; less coordination effort, more time together. No pressure, no streaks. |
+| Placement / template | New Settings category "Kalender" (`/more/settings/calendar`), utility template like the other settings categories (R5 calm utility). No new tab, no dashboard. |
+| Primary Compact state | Not connected: purpose → provider choice. Connected: calendar name → provider/sponsor → status → attention (if any) → sync now (`calendarSync.actions.syncNow`) → pause/end. |
+| Dominant action | Not connected: choose a provider. Connected: sync now (`calendarSync.actions.syncNow`). Destructive/secondary actions are tertiary. |
+| Immediate vs. disclosed | Status and conflicts immediate; server address, username and app password only inside the CalDAV sheet; technical error detail never shown (fixed localized reasons). |
+| Pattern | CalDAV: one `ShortTaskSheet` task (address → username → app password → consent → `calendarSync.caldav.check`), then a single-choice calendar list (radio group) with `calendarSync.choose.confirm`. Google: an OAuth handoff in the system browser (PR B2). |
+| Loading | Calm `UiState` line; connect/check shows a pending button state and blocks duplicate submission. |
+| Empty | Pro without connection: provider choice. Free: one calm value explanation with Pro mark and a link to the shared paywall (`/more/pro?context=calendar`); nothing else is requested from providers. |
+| Error | Localized reasons for wrong credentials, no calendar found, not writable, unreachable/timeout, blocked address, TLS; input stays in the sheet. |
+| Offline | Settings read stays visible from cache where available; actions are disabled with the existing offline notice. Sync itself runs on the server independent of devices. |
+| Success | `calendarSync.connected.title` with `calendarSync.connected.body` and the connected state; success only after the server confirmed the target. |
+| Status vocabulary | `calendarSync.status.*`: synced, running, broken (connection interrupted), attention (attention needed), paused, proPaused. |
+| Plan detail | Below the one-time handoff action, one quiet line from `calendarSync.plan.*` (in the shared calendar / being transferred / changed in the calendar with a link to the calendar settings). Only when a target exists. |
+| Privacy / relationship | Credentials and the connection label are visible only to the sponsor; the partner sees calendar name, provider, sponsor name and status and may pause or end sync. Discreet Plans sync only list title and time. |
+| Large text / narrow | Single column, wrapping labels, 44 px targets, 320 px reflow, 200 % text. |
+| Motion | Status pill cross-fades on change; sheet motion as existing; reduced motion removes translation. |
+| Expanded | Same order in the bounded reading width; no table or columns. |
+| Typing avoidance | Typing only where unavoidable (CalDAV address/credentials); `type="url"`, `autocomplete="username"`/`current-password`, no keyboard before the sheet opens; Google needs no typing. |
+| Browser-only controls | None; the Google handoff uses the system browser on Android and a popup/redirect on the Web. |
+
+Why a list: the calendar choice is a single-select of the person's own
+calendars (radio group), a bounded utility decision, not a record table.

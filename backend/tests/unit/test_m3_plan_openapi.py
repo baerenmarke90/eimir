@@ -90,6 +90,9 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/plans/{targetId}",
         "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans",
         "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans/{targetId}",
+        # Calendar sync state of one Plan (#1895); read-only plus conflict choice.
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve",
     }
 
 

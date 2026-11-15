@@ -219,6 +219,11 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| defusedxml | 0.7.1 | PyPI | PSFL |
+
+`defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
+entity expansion, external entities or DTD retrieval. It has no runtime
+dependencies, sends no data and is replaceable by a hardened stdlib parser.
 
 The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 `hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.

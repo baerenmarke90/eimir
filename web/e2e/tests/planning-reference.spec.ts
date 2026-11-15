@@ -732,15 +732,18 @@ test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
   await installMocks(page);
   await signIn(page);
 
-  const centerOf = async (selector: string) => {
+  // expect.poll aborts on the first thrown error instead of retrying, so a view
+  // that re-renders between resolving the element and measuring it (the map
+  // tab settling into its error state) must count as "not centered yet".
+  const offCenter = async (selector: string) => {
     const box = await page.locator(`${selector}:visible`).first().boundingBox();
-    if (!box) throw new Error(`${selector} must be laid out.`);
-    return box.x + box.width / 2;
+    if (!box) return Number.POSITIVE_INFINITY;
+    return Math.abs(box.x + box.width / 2 - 960);
   };
   const expectCentered = async (selector: string) => {
     await expect
-      .poll(async () => Math.abs((await centerOf(selector)) - 960), {
-        message: `${selector} is centered in the window`,
+      .poll(() => offCenter(selector), {
+        message: `${selector} is laid out and centered in the window`,
       })
       .toBeLessThanOrEqual(1);
   };

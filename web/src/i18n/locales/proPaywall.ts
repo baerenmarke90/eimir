@@ -76,6 +76,25 @@ const proPaywall = {
         },
       },
     },
+    calendar: {
+      title: 'Gemeinsam planen. Automatisch synchronisieren.',
+      description:
+        'Eure Pläne erscheinen in dem Kalender, den ihr schon teilt – ohne sie abzutippen.',
+      benefits: {
+        first: {
+          title: 'Euer gemeinsamer Kalender',
+          body: 'Neue und geänderte Pläne landen einmal in dem Kalender, den ihr beide nutzt.',
+        },
+        second: {
+          title: 'CalDAV oder Google',
+          body: 'Verbindet einen kompatiblen CalDAV-Kalender oder Google Kalender.',
+        },
+        third: {
+          title: 'Sicher abgestimmt',
+          body: 'Änderungen im Kalender werden nie ungefragt überschrieben.',
+        },
+      },
+    },
     games: {
       title: 'Mehr besondere Momente miteinander.',
       description:

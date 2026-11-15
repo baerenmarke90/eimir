@@ -15,6 +15,7 @@ MODEL_MODULES = (
     "eimir.attachments.binding",
     "eimir.attachments.models",
     "eimir.auth.recent_auth_models",
+    "eimir.calendar_sync.models",
     "eimir.chapters.models",
     "eimir.collections.models",
     "eimir.comments.models",

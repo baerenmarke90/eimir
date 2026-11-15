@@ -15,6 +15,7 @@ from eimir.api.v1 import (
     appearance,
     attachments,
     auth,
+    calendar_sync,
     chapter_relations,
     chapters,
     collections,
@@ -93,6 +94,7 @@ normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
 normal_router.include_router(video.router)
 normal_router.include_router(photo_sources.router)
+normal_router.include_router(calendar_sync.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)

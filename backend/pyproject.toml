@@ -42,6 +42,9 @@ dependencies = [
     "oauthlib>=4.0.1,<5",
     # Standard JWE encrypted device previews; never implement JOSE framing here.
     "joserfc==1.7.7",
+    # Untrusted CalDAV multistatus XML (#1895): parse without entity expansion
+    # or external resources instead of hardening the stdlib parser by hand.
+    "defusedxml>=0.7.1",
 ]
 
 [dependency-groups]

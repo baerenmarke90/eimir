@@ -80,6 +80,7 @@ import {
 } from './PageComposer';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarAction } from './PlanCalendarAction';
+import { PlanCalendarSyncLine } from './PlanCalendarSyncLine';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
@@ -670,6 +671,16 @@ export function PlanProductPage({
             <PlanCalendarAction
               plan={calendar.plan}
               location={calendar.location}
+            />
+          ) : null}
+          {!isEditing && apiBaseUrl && accessToken && accountId ? (
+            <PlanCalendarSyncLine
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={accountId}
+              spaceId={plan.spaceId}
+              planId={plan.id}
+              planVersion={plan.version}
             />
           ) : null}
           {plan.status === 'COMPLETED' ? (

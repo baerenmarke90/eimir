@@ -1,6 +1,7 @@
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
+import calendarSync from './locales/calendarSync';
 import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
@@ -68,6 +69,7 @@ export const germanResources = {
   onceMessages,
   memoryMap,
   calendarPlan,
+  calendarSync,
   planFiles,
   gentlePrompts,
   coupleExperiences,

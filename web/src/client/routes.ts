@@ -153,6 +153,7 @@ export const PRO_PAYWALL_CONTEXTS = [
   'recaps',
   'memoryMap',
   'photoSources',
+  'calendar',
   'games',
   'general',
 ] as const;
@@ -176,6 +177,7 @@ export const SETTINGS_CATEGORY_IDS = [
   'memories',
   'appearance',
   'media',
+  'calendar',
   'data',
   'account',
 ] as const;
@@ -191,6 +193,7 @@ export const SETTINGS_CATEGORY_ROUTES = {
   memories: `${MORE_SETTINGS_ROUTE}/memories`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
   media: `${MORE_SETTINGS_ROUTE}/media`,
+  calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
 } as const satisfies Record<SettingsCategoryId, string>;

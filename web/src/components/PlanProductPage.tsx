@@ -47,9 +47,9 @@ import {
   dateOnlyInput,
   loadAllPlaces,
   localCalendarDateInput,
-  localDateTimeInput,
   planningIfMatch,
   planScheduleDateInput,
+  planScheduleEndInput,
   planScheduleFromInputs,
   planScheduleTimeInput,
   type SharedPlanningApis,
@@ -799,9 +799,7 @@ export function PlanProductPage({
                     idPrefix="plan-schedule"
                     defaultDate={planScheduleDateInput(editingPlan ?? plan)}
                     defaultTime={planScheduleTimeInput(editingPlan ?? plan)}
-                    defaultEnd={localDateTimeInput(
-                      (editingPlan ?? plan).plannedEnd,
-                    )}
+                    defaultEnd={planScheduleEndInput(editingPlan ?? plan)}
                     includeEnd
                   />
                 ) : (

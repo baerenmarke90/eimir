@@ -134,7 +134,13 @@ export function planScheduleFromInputs(
 
   if (!timeValue) {
     const plannedOn = dateFromInput(dateValue);
-    return plannedOn ? { plannedOn } : undefined;
+    if (!plannedOn) return undefined;
+    // A date-only end is a plain calendar day; the same day means one day.
+    const plannedUntil =
+      /^\d{4}-\d{2}-\d{2}$/.test(endValue) && endValue > dateValue
+        ? dateFromInput(endValue)
+        : undefined;
+    return plannedUntil ? { plannedOn, plannedUntil } : { plannedOn };
   }
 
   const plannedStart = dateTimeFromInput(`${dateValue}T${timeValue}`);
@@ -149,6 +155,17 @@ export function planScheduleDateInput(
 ): string {
   if (plan.plannedOn) return dateOnlyInput(plan.plannedOn);
   return localDateTimeInput(plan.plannedStart).slice(0, 10);
+}
+
+/**
+ * Product end input: the inclusive last calendar day of a multi-day date-only
+ * Plan (YYYY-MM-DD), or the local end instant of a timed Plan.
+ */
+export function planScheduleEndInput(
+  plan: Pick<PlanDetail, 'plannedOn' | 'plannedUntil' | 'plannedEnd'>,
+): string {
+  if (plan.plannedOn) return dateOnlyInput(plan.plannedUntil);
+  return localDateTimeInput(plan.plannedEnd);
 }
 
 /** Product time input. Absence is semantically meaningful and must stay empty. */

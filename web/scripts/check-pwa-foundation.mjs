@@ -441,6 +441,89 @@ await dispatchWorkerEvent('push', {
 });
 assert(displayed.length === 2, 'Malformed push references must stay silent.');
 
+const wishDatePreview = {
+  kind: 'WISH_DATE_PROPOSED',
+  headline: 'Lea suggested a date',
+  title: 'Stadium tour',
+  appointmentStart: '2099-12-21T14:00:00+01:00',
+};
+await dispatchWorkerEvent('push', {
+  data: {
+    json: () => ({
+      type: 'wake',
+      ...pushReference,
+      locale: 'en',
+      wishDatePreview,
+    }),
+  },
+});
+assert(
+  displayed.at(-1).title === wishDatePreview.headline &&
+    displayed.at(-1).body.includes('Stadium tour') &&
+    displayed.at(-1).body.includes(
+      new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(wishDatePreview.appointmentStart)),
+    ) &&
+    Object.keys(displayed.at(-1).data).length === 2,
+  'A current, explicitly supported Wish date push shows localized details and retains only click references.',
+);
+await dispatchWorkerEvent('push', {
+  data: {
+    json: () => ({
+      type: 'wake',
+      ...pushReference,
+      locale: 'en',
+      wishDatePreview: { ...wishDatePreview, kind: 'COMMENT_CREATED' },
+    }),
+  },
+});
+assert(
+  displayed.at(-1).title === 'eimir.' &&
+    displayed.at(-1).body === 'You have new messages.',
+  'Only the reviewed Wish date kinds can use the public appointment presentation.',
+);
+let retiredPreviewClosed = false;
+serviceWorkerContext.self.registration.showNotification = async () => {
+  browserBinding = null;
+};
+serviceWorkerContext.self.registration.getNotifications = async ({ tag }) => {
+  assert(
+    tag === `eimir-push:${browserNotificationId}`,
+    'Only the queued notification can be retired.',
+  );
+  return [
+    {
+      data: pushReference,
+      close() {
+        retiredPreviewClosed = true;
+      },
+    },
+    {
+      data: { activationId: 'replacement' },
+      close() {
+        throw new Error('Retired the replacement activation');
+      },
+    },
+  ];
+};
+await dispatchWorkerEvent('push', {
+  data: {
+    json: () => ({
+      type: 'wake',
+      ...pushReference,
+      locale: 'en',
+      wishDatePreview,
+    }),
+  },
+});
+assert(
+  retiredPreviewClosed,
+  'Concurrent sign-out must retire a displayed Wish date preview.',
+);
+browserBinding = { activationId: browserActivationId };
+
 browserClients = [
   ['stale', 'ignored'],
   ['current', 'received'],

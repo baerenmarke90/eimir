@@ -367,7 +367,24 @@ The canonical dataset is created through normal domain services and currently in
 - Activity and in-app Notification projections;
 - generated M4-C Reminder examples for ImportantDate, birthday, relationship anniversary, and
   planned Plan rules;
-- one manual Reminder plus recipient-specific mute/rule-preference examples.
+- one manual Reminder plus recipient-specific mute/rule-preference examples;
+- recent-feature examples from `backend/src/eimir/demo/feature_examples.py` (see below).
+
+### Recent-feature examples
+
+A new canonical Space and every reset also receive examples for features that
+the original scenario predates. They use ordinary domain services and are
+relative to the reference date:
+
+| Feature | Canonical content |
+| --- | --- |
+| Occasion marks on Moments (#1907 F2) | Both personas have a birthday (Lea's is a few weeks ahead, Alex's a few weeks back). One Memory falls on the last relationship anniversary, one on Alex's last birthday. |
+| Partner distance and map connection on Wir (#1907 H1) | Both personas share distance and map indefinitely with a fictional position in two neighboring cities. A viewer's own distance still needs that viewer's device position and permission; the seed never fabricates it. The partner snapshot ages like any other and is refreshed by the next reset. |
+| Shopping lists (#1808) | One shopping list with a finished earlier trip (so suggestions exist), open entries from both personas and two entries already in the cart. |
+| Multi-day date-only Plans (#1895) | One Plan from a Friday two to three weeks after the reference date through the Sunday. |
+| Date proposal from a Wish (#1911) | Alex proposes a Saturday-morning date for one of his open Wishes; Lea has not answered. The proposal always lies in the future, also for a past reference date. |
+
+Like the story relations, these examples are not backfilled by `ensure`.
 
 These authored tags and Place relations are seeded only for a new canonical Space or
 an intentional reset. The idempotent `ensure` operation never overwrites visitor-edited

@@ -24,6 +24,8 @@ const photoSources = {
   continue: 'Weiter zur Auswahl',
   waiting:
     'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
+  nothingChosen:
+    'Keine Fotos ausgewählt. Du kannst Google Fotos jederzeit wieder öffnen.',
   progress: 'Fotos werden übernommen …',
   retryImport: 'Erneut versuchen',
   waitingMedia:

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from eimir.config import Environment
 from eimir.core import clock
+from eimir.demo.feature_examples import ensure_feature_examples
 from eimir.demo.finalize import ensure_story_structure
 from eimir.demo.presentation import normalize_demo_content
 from eimir.demo.reminders import ensure_reminder_examples
@@ -79,6 +80,11 @@ def _ensure_product_examples(
     )
     _ensure_pro_entitlement(session, result)
     _ensure_demo_quote_preferences(session, result)
+    if result.created:
+        # Like the story structure, only a new canonical Space or a reset gets
+        # these, so ``ensure`` never restores content a visitor removed. After
+        # the Pro grant: partner location is a Pro capability.
+        ensure_feature_examples(session, result, reference_date=reference_date)
 
 
 def create_demo_space(

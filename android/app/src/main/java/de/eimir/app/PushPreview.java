@@ -37,7 +37,7 @@ public final class PushPreview {
         digest = value.getBoolean("digest");
     }
 
-    private static String label(String value, int maximum) {
+    static String label(String value, int maximum) {
         if (value.codePointCount(0, value.length()) > maximum) throw new IllegalArgumentException();
         for (int index = 0; index < value.length();) {
             int point = value.codePointAt(index);

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import navigation from '../../src/i18n/locales/navigation';
 import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
@@ -15,6 +16,7 @@ import {
   ACCOUNT_ID,
   SPACE_ID,
   captureScreenshot,
+  getTimelineItems,
   installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -334,6 +336,42 @@ async function setup(
           retrospective: null,
           thinkingOfYouAvailableAt: null,
           sharedStorySummary: { memories: 2, heartMoments: 1, milestones: 0 },
+        },
+      });
+    }
+    // Momente reads the same viewer day as Wir, so its Discover selection and
+    // Dashboard day follow this spec's clock instead of the shared fixture.
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/dashboard') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: {
+          space: {
+            spaceId: SPACE_ID,
+            partner: { id: 'partner', displayName: 'Alex' },
+          },
+          viewerLocalDate: '2026-10-30',
+          relationshipDuration: null,
+          recentShared: [],
+          upcoming: [],
+          retrospective: null,
+        },
+      });
+    }
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/discover') &&
+      method === 'GET'
+    ) {
+      const items = getTimelineItems();
+      return route.fulfill({
+        json: {
+          selectionDate: '2026-10-30',
+          lead: items[0] ?? null,
+          items: items.slice(1),
+          leadContext: null,
         },
       });
     }
@@ -1415,7 +1453,7 @@ for (const [width, theme] of [
   [430, 'dark'],
   [1280, 'dark'],
 ] as const) {
-  test(`Momente links to the recap library, keeps Momente active and returns at ${width} ${theme}`, async ({
+  test(`Momente leads with a new recap until it is opened and returns at ${width} ${theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 844 });
@@ -1425,15 +1463,19 @@ for (const [width, theme] of [
       theme,
     );
     const state = await setup(page, { start: 'momente' });
-    const entry = page.locator('.couple-experience-links a.recap-entry');
-    await expect(entry).toBeVisible();
-    await expect(entry).toContainText(copy.shortTitle);
-    await expect(entry).toContainText(copy.entryAction);
-    await expect(entry.locator('img')).toBeVisible();
-    await entry
-      .locator('img')
-      .evaluate((img: HTMLImageElement) => img.decode());
-    await entry.evaluate((element) =>
+    // #1907 F4: two permanent experiences; the story overview lives on Wir
+    // and More, and the new recap leads only until it is opened.
+    const group = page.locator('.couple-experience-links');
+    const rows = group.locator('.couple-experience-list > li');
+    await expect(rows).toHaveCount(2);
+    await expect(group.locator('a[href="/story/our-story"]')).toHaveCount(0);
+    const lead = group.locator('a.recap-lead-card');
+    await expect(lead).toBeVisible();
+    await expect(lead).toContainText(copy.discoverNew);
+    await expect(lead).toContainText(copy.shortTitle);
+    await expect(lead.locator('img')).toBeVisible();
+    await lead.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+    await group.evaluate((element) =>
       element.scrollIntoView({ block: 'center' }),
     );
     await captureScreenshot(
@@ -1446,41 +1488,6 @@ for (const [width, theme] of [
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
-    // The library opens under Momente, so that tab stays selected.
-    await entry.click();
-    await expect(page).toHaveURL(/\/story\/recaps$/);
-    await expect(
-      page.getByRole('heading', { name: copy.shortTitle }),
-    ).toBeVisible();
-    const navLink = (href: string) =>
-      page
-        .locator(
-          `.mobile-bottom-nav a[href="${href}"], .shell-nav a[href="${href}"]`,
-        )
-        .filter({ visible: true });
-    if (width < 1280) {
-      await expect(navLink('/story')).toHaveAttribute('aria-current', 'page');
-      await expect(navLink('/more')).not.toHaveAttribute(
-        'aria-current',
-        'page',
-      );
-    }
-    const featured = page.locator('.recap-cover-featured');
-    await expect(featured.locator('img')).toBeVisible();
-    await featured
-      .locator('img')
-      .evaluate((img: HTMLImageElement) => img.decode());
-    await captureScreenshot(
-      page,
-      info,
-      `recaps-momente-library-${width}-${theme}.png`,
-    );
-    // Back returns to Momente, where the entry came from.
-    await page
-      .getByRole('button', { name: new RegExp(taskBoundary.back) })
-      .click();
-    await expect(page).toHaveURL(/\/story$/);
-    await expect(page.locator('.momente-discover-page')).toBeVisible();
     expect(
       (
         await new AxeBuilder({ page })
@@ -1488,10 +1495,75 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
+    await lead.click();
+    await expect(page).toHaveURL(
+      // The reader starts playback and drops its one-time play request.
+      new RegExp(`${recapDetailPath('october')}$`),
+    );
+    // The immersive reader names Momente as its Back destination and
+    // returns there, where the card no longer leads.
+    const back = page.getByRole('button', {
+      name: navigation.story,
+      exact: true,
+    });
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    await expect(rows).toHaveCount(2);
+    await expect(lead).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-after-${width}-${theme}.png`,
+    );
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
   });
 }
+
+test('with motion the opened recap card collapses away after return', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await setup(page, { start: 'momente' });
+  const lead = page.locator('.couple-experience-links a.recap-lead-card');
+  await expect(lead).toBeVisible();
+  await lead.click();
+  await expect(page).toHaveURL(new RegExp(`${recapDetailPath('october')}$`));
+  await page
+    .getByRole('button', { name: navigation.story, exact: true })
+    .click();
+  await expect(page.locator('.momente-discover-page')).toBeVisible();
+  // The card may play its short collapse, but it must not stay.
+  await expect(page.locator('.recap-lead')).toHaveCount(0);
+  await expect(page.locator('.couple-experience-list > li')).toHaveCount(2);
+});
+
+test('Free keeps both Discover experiences with Pro marks at 360 with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const state = await setup(page, { start: 'momente', pro: false });
+  const group = page.locator('.couple-experience-links');
+  const rows = group.locator('.couple-experience-list > li');
+  await expect(rows).toHaveCount(2);
+  for (const row of await rows.all())
+    await expect(row.locator('.pro-mark')).toBeVisible();
+  await page.addStyleTag({
+    content: 'html { font-size: 200% !important; }',
+  });
+  await group.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await captureScreenshot(page, info, 'recaps-momente-free-360-large.png');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(state.unexpected).toEqual([]);
+});
 
 test('the former More addresses of the recap library and reader redirect with their query', async ({
   page,

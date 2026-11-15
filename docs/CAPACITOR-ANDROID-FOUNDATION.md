@@ -26,6 +26,7 @@ web/ (Vite + TypeScript)
   - `appName`: `'eimir.'`
   - `webDir`: `'dist'`
   - `android.path`: `'../android'`
+  - `android.minWebViewVersion`: `111` (the supported WebView floor; see [Supported WebView and browser floor](#supported-webview-and-browser-floor-1613))
   - `server.androidScheme`: `'https'` (`https://localhost` inside WebView)
   - `plugins.CapacitorHttp.enabled`: `true` (native cross-origin HTTP bridge)
 - **API Base Requirement (Fail-Closed)**:
@@ -128,7 +129,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.5.2** and
+The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.0** and
 JDK **21**. Gradle 9.8.1 and later contain the fixes for three advisories also repaired
 in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
@@ -143,7 +144,7 @@ later according to the
 The Capacitor project documents AGP 8.13.0 for
 [Capacitor 8](https://capacitorjs.com/docs/updating/8-0) and AGP 9.2.1 with
 Gradle 9.5.1 only in the [unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
-AGP 9.4.0 on Capacitor 8.5.2 is therefore a pairing Capacitor does not
+AGP 9.4.0 on Capacitor 8.6.0 is therefore a pairing Capacitor does not
 document. It is accepted for this repository because the wrapper builds and
 passes its own gates on it (debug APK, unsigned release APK/AAB, lint, unit
 tests, Android launcher tests under strict dependency verification), and the
@@ -449,7 +450,7 @@ death, and this policy cannot establish the root cause of an unlogged device
 crash.
 
 Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
-and Capacitor 8.5.2's existing `BridgeActivity`/`Bridge` lifecycle own the
+and Capacitor 8.6.0's existing `BridgeActivity`/`Bridge` lifecycle own the
 implementation. No new dependency, service, account, data egress or cost.
 `RuntimeRecoveryTest` exercises real non-crash termination through
 `WebViewRenderProcess.terminate()` on API 29+, healthy return and real
@@ -461,6 +462,45 @@ rearming. Physical Pixel acceptance remains separate from emulator evidence.
 Bundled-interface readiness is required before native return screenshots on
 modern providers. The stock API 28 image still ships Chromium 69 and cannot
 parse the existing product bundle; its pre-existing native adapter/frame/crash
-coverage is not bundled Web-product acceptance. This exact legacy fixture is
-classified explicitly, not treated as a successful UI result. Provisioning a
-supported provider and extending that acceptance is tracked in [#1613](https://github.com/baerenmarke90/eimir/issues/1613).
+coverage is not bundled Web-product acceptance. It is classified by the
+product's WebView floor (below), not treated as a successful UI result.
+
+## Supported WebView and browser floor (#1613)
+
+Product Owner decision of 2026-11-15 ([#1613](https://github.com/baerenmarke90/eimir/issues/1613)):
+eimir. sets a minimum supported WebView version. It does not provision a newer
+WebView on the stock API 28 emulator image. Google distributes Android System
+WebView updates through Google Play, and there is no official checksum-published
+standalone package. On real devices with
+Google Play, Play keeps the WebView current; devices without Play depend on
+their vendor's WebView updates.
+
+| Surface | Supported floor | Where it is set |
+| --- | --- | --- |
+| Android app (Capacitor WebView) | Android System WebView / Chromium **111** | `android.minWebViewVersion` in `web/capacitor.config.ts` |
+| Web / PWA | Chrome and Edge 111, Firefox 114, Safari and iOS 16.4 | `build.target` in `web/vite.config.ts` |
+| Android OS | API 26 (`minSdkVersion`) | `android/variables.gradle` |
+
+- **Source of the floor.** The values equal Vite 8's `baseline-widely-available`
+  build target. They are pinned in `build.target`, so a toolchain upgrade cannot
+  move them silently; pinning produced a byte-identical bundle on 2026-11-15.
+  The newest platform features the product relies on stay within this floor:
+  for example `color-mix()` (Chromium 111), `:has()`, container queries and
+  dynamic viewport units in CSS, and `Intl.Segmenter`, `Object.hasOwn` and
+  `Array.prototype.at` in JavaScript. The hand-written `public/` scripts need at
+  most Chromium 85. `text-wrap` is progressive enhancement. Raising the floor
+  is a product decision: change all three places together.
+- **SDK level is not a browser capability.** An API level says nothing about
+  the installed WebView. Capacitor's `Bridge.isMinimumWebViewInstalled()`
+  compares the actual provider's major version with `android.minWebViewVersion`.
+- **Below the floor.** Capacitor logs `System WebView is not supported` and
+  loads the app anyway. No in-app update notice is configured yet:
+  `server.errorPath` is unset, and showing one is a separate product decision.
+- **Native acceptance lanes.** API 36 and 37.1 run with providers above the
+  floor and must reach the bundled interface (`RuntimeRecoveryTest` waits for it
+  whenever `isMinimumWebViewInstalled()` is true). The stock API 28 image
+  (Chromium 69) is the explicit native-only legacy lane. It keeps its native
+  adapter, launcher, frame, real crash/recovery, picker, privacy, signing and
+  source checks, and it is not counted as Web-product acceptance. If the
+  configured floor were missing, the API 28 lane would have to show the bundled
+  interface and fail, so the classification cannot pass silently.

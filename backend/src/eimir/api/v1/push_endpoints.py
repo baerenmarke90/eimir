@@ -78,6 +78,7 @@ class PushEndpointRegistrationResult(ApiModel):
 class UnifiedPushConfiguration(ApiModel):
     locale_version: Literal[1] = 1
     notification_reference_version: Literal[1] = 1
+    wish_date_preview_version: Literal[1] = 1
     provider_key: str
     vapid_public_key: str
 

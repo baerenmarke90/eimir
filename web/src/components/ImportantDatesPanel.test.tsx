@@ -10,7 +10,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import {
   afterEach,
   beforeAll,
@@ -23,15 +23,19 @@ import {
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
+import { DiscreetTitleMode } from '../api/generated/models/DiscreetTitleMode';
 import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import { PlanStatus } from '../api/generated/models/PlanStatus';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import {
   occasionHolidayPreferenceKey,
   saveOccasionHolidayPreference,
 } from '../client/occasionHolidayPreferences';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import discreetPlans from '../i18n/locales/discreetPlans';
 import importantDates from '../i18n/locales/importantDates';
 import taskSheets from '../i18n/locales/taskSheets';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
@@ -1148,5 +1152,200 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       'Only date',
       null,
     );
+  });
+});
+
+describe('ImportantDatesPanel plans in the calendar (#1907 F3)', () => {
+  function plan(
+    id: string,
+    title: string,
+    schedule: Partial<PlanDetail>,
+  ): PlanDetail {
+    return {
+      id,
+      spaceId: 'space-1',
+      title,
+      description: null,
+      status: PlanStatus.PLANNED,
+      plannedOn: null,
+      plannedUntil: null,
+      plannedStart: null,
+      plannedEnd: null,
+      discreet: false,
+      version: 1,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      updatedAt: new Date('2026-01-02T00:00:00Z'),
+      ...schedule,
+    } as PlanDetail;
+  }
+
+  const picnic = plan('plan-picnic', 'Picnic by the lake', {
+    plannedOn: utcDay(2026, 6, 20),
+  });
+  const cinema = plan('plan-cinema', 'Cinema night', {
+    plannedStart: new Date(2026, 6, 4, 20, 0, 0),
+  });
+  const secret = plan('plan-secret', 'Secret surprise', {
+    plannedOn: utcDay(2026, 7, 10),
+    discreet: true,
+    discreetTitleMode: DiscreetTitleMode.PREVIEW,
+    previewTitle: 'Evening out',
+  });
+  const trip = plan('plan-trip', 'Coast trip', {
+    plannedOn: utcDay(2026, 7, 30),
+    plannedUntil: utcDay(2026, 8, 2),
+  });
+
+  function LocationProbe() {
+    const location = useLocation();
+    return <output data-testid="location">{location.pathname}</output>;
+  }
+
+  function renderWithPlans(plans: PlanDetail[], dates: ImportantDateView[]) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    return render(
+      <MemoryRouter initialEntries={['/plan#dates']}>
+        <QueryClientProvider client={queryClient}>
+          <ImportantDatesPanel
+            peopleApi={createMockPeopleApi(dates)}
+            spaceId="space-1"
+            people={[]}
+            plans={plans}
+          />
+          <LocationProbe />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  function planRows(): HTMLAnchorElement[] {
+    return Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a.occasion-plan-card'),
+    );
+  }
+
+  it('lists a dated Plan with its own symbol and a bar on its day', async () => {
+    renderWithPlans([picnic], []);
+    await waitFor(() => expect(planRows()).toHaveLength(1));
+
+    // Plans alone still open the calendar, without an occasion lead card.
+    expect(document.querySelector('button.occasions-next')).toBeNull();
+    expect(screen.queryByText(importantDates.emptyTitle)).toBeNull();
+    expect(sheetTitle()).toBe(monthAndYearFormat.format(utcDay(2026, 6, 1)));
+
+    const [row] = planRows();
+    expect(row.getAttribute('href')).toBe('/plan/plans/plan-picnic');
+    expect(row.textContent).toContain('Picnic by the lake');
+    expect(
+      within(row).getByRole('img', { name: importantDates.planKind }),
+    ).toBeTruthy();
+    expect(row.querySelector('.important-date-meta')?.textContent).toMatch(
+      / · Plan$/,
+    );
+
+    const [day] = occasionDayButtons();
+    expect(day.textContent).toBe('20');
+    expect(day.getAttribute('aria-label')).toBe(
+      `${detailDateFormat.format(utcDay(2026, 6, 20))}: Plan: Picnic by the lake`,
+    );
+    expect(day.getAttribute('aria-haspopup')).toBeNull();
+    expect(day.querySelector('.occasions-grid-marks i.is-plan')).toBeTruthy();
+    expect(bandMonth(2026, 6).querySelector('i.is-plan')).toBeTruthy();
+    expect(bandMonth(2026, 6).getAttribute('aria-label')).toMatch(/, 1$/);
+  });
+
+  it('opens the Plan detail from its row and from its day', async () => {
+    renderWithPlans([picnic], []);
+    await waitFor(() => expect(planRows()).toHaveLength(1));
+    fireEvent.click(planRows()[0]);
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/plan/plans/plan-picnic',
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('opens the day from the grid on the Plan when no occasion shares it', async () => {
+    renderWithPlans([picnic], []);
+    await waitFor(() => expect(planRows()).toHaveLength(1));
+    fireEvent.click(occasionDayButtons()[0]);
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/plan/plans/plan-picnic',
+    );
+  });
+
+  it('puts the occasion first on a day it shares with a Plan', async () => {
+    const shared = importantDate('date-shared', 'Our day', {
+      date: utcDay(2026, 6, 20),
+      relatedPersonId: null,
+      repeats: DateRepeat.NONE,
+    });
+    renderWithPlans([picnic], [shared]);
+    await findOccasionRow(/Our day/);
+    const rows = Array.from(
+      document.querySelectorAll('.occasions-sheet .important-date-card'),
+    );
+    expect(rows.map((row) => row.tagName)).toEqual(['BUTTON', 'A']);
+
+    const [day] = occasionDayButtons();
+    expect(day.getAttribute('aria-label')).toBe(
+      `${detailDateFormat.format(utcDay(2026, 6, 20))}: Our day, Plan: Picnic by the lake`,
+    );
+    expect(day.querySelectorAll('.occasions-grid-marks i')).toHaveLength(2);
+    fireEvent.click(day);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe('/plan');
+  });
+
+  it('shows only the list title of a discreet Plan, with the lock', async () => {
+    renderWithPlans([secret], []);
+    await waitFor(() => expect(planRows()).toHaveLength(1));
+    const [row] = planRows();
+    expect(row.textContent).toContain('Evening out');
+    expect(document.body.textContent).not.toContain('Secret surprise');
+    expect(
+      within(row).getByRole('img', { name: discreetPlans.lockLabel }),
+    ).toBeTruthy();
+    expect(occasionDayButtons()[0].getAttribute('aria-label')).toContain(
+      'Plan: Evening out',
+    );
+  });
+
+  it('marks every day of a multi-day Plan and lists it in each month it touches', async () => {
+    renderWithPlans([cinema, trip], []);
+    await waitFor(() => expect(planRows()).toHaveLength(2));
+    expect(sheetTitle()).toBe(monthAndYearFormat.format(utcDay(2026, 7, 1)));
+    expect(planRows().map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Cinema night'),
+      expect.stringContaining('Coast trip'),
+    ]);
+    expect(occasionDayButtons().map((day) => day.textContent)).toEqual([
+      '4',
+      '30',
+      '31',
+    ]);
+
+    fireEvent.click(bandMonth(2026, 8));
+    await waitFor(() => expect(planRows()).toHaveLength(1));
+    expect(planRows()[0].textContent).toContain('Coast trip');
+    // The row still names the Plan's own first day.
+    expect(planRows()[0].querySelector('time')?.getAttribute('dateTime')).toBe(
+      '2026-07-30',
+    );
+    expect(occasionDayButtons().map((day) => day.textContent)).toEqual([
+      '1',
+      '2',
+    ]);
+  });
+
+  it('leaves out a Plan whose last day has passed', async () => {
+    const past = plan('plan-past', 'Last spring', {
+      plannedOn: utcDay(2026, 5, 1),
+    });
+    renderWithPlans([past], [date]);
+    await findOccasionRow(new RegExp(date.label));
+    expect(planRows()).toHaveLength(0);
+    expect(document.body.textContent).not.toContain('Last spring');
   });
 });

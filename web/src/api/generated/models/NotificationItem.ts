@@ -65,6 +65,12 @@ export interface NotificationItem {
      * @type {Date}
      * @memberof NotificationItem
      */
+    appointmentStart?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof NotificationItem
+     */
     createdAt: Date;
     /**
      * 
@@ -139,6 +145,7 @@ export function NotificationItemFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'actor': json['actor'] === undefined ? undefined : json['actor'] === null ? null : AuthorSummaryFromJSON(json['actor']),
         'actorId': json['actorId'],
+        'appointmentStart': json['appointmentStart'] === undefined ? undefined : json['appointmentStart'] === null ? null : (new Date(json['appointmentStart'])),
         'createdAt': (new Date(json['createdAt'])),
         'id': json['id'],
         'kind': NotificationKindFromJSON(json['kind']),
@@ -163,6 +170,7 @@ export function NotificationItemToJSONTyped(value?: NotificationItem | null, ign
         
         'actor': AuthorSummaryToJSON(value['actor']),
         'actorId': value['actorId'],
+        'appointmentStart': value['appointmentStart'] == null ? value['appointmentStart'] : value['appointmentStart'].toISOString(),
         'createdAt': value['createdAt'].toISOString(),
         'id': value['id'],
         'kind': NotificationKindToJSON(value['kind']),

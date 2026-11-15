@@ -14,7 +14,10 @@ import { cssDurationMilliseconds } from '../client/cssDuration';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
 import './PlaceMapPicker.css';
+import { ConnectionOverlay, type MapConnection } from './placeMapConnection';
 import { googleLikeStyle } from './placeMapStyle';
+
+export type { MapConnection } from './placeMapConnection';
 
 // The CSP forbids blob workers, so MapLibre runs its first-party worker file.
 setWorkerUrl(workerUrl);
@@ -168,6 +171,7 @@ export default function PlaceMapCanvas({
   onUserMotionChange,
   areas,
   showAreasRequest = 0,
+  connection,
   ariaLabel,
 }: {
   value?: MapPoint;
@@ -182,6 +186,8 @@ export default function PlaceMapCanvas({
   areas?: readonly MapArea[];
   /** Increment to frame all areas again (an explicit "show us"). */
   showAreasRequest?: number;
+  /** A decorative connection between two of the areas (#1907 H1). */
+  connection?: MapConnection;
   ariaLabel?: string;
 }) {
   const { t } = useTranslation();
@@ -222,6 +228,10 @@ export default function PlaceMapCanvas({
   const framePadding = useRef<number | typeof AREA_PADDING>(40);
   const areasRef = useRef(areas);
   areasRef.current = areas;
+  const connectionRef = useRef(connection);
+  connectionRef.current = connection;
+  const connectionOverlay = useRef<ConnectionOverlay | null>(null);
+  const placeConnection = useRef<(() => void) | null>(null);
   const markers = useRef(
     new Map<
       string,
@@ -271,6 +281,36 @@ export default function PlaceMapCanvas({
       }
     };
     map.on('zoom', sizeAreas);
+    // The connection follows the areas on every camera change.
+    const drawConnection = () => {
+      const current = connectionRef.current;
+      const from = current && areaEntries.current.get(current.from);
+      const to = current && areaEntries.current.get(current.to);
+      if (!current || !from || !to) {
+        connectionOverlay.current?.remove();
+        connectionOverlay.current = null;
+        return;
+      }
+      connectionOverlay.current ??= new ConnectionOverlay(
+        map.getCanvasContainer(),
+        map.getCanvas(),
+      );
+      connectionOverlay.current.update(
+        current,
+        map.project(lngLat(from.area)),
+        map.project(lngLat(to.area)),
+        { width: element.clientWidth, height: element.clientHeight },
+      );
+    };
+    placeConnection.current = drawConnection;
+    map.on('move', drawConnection);
+    map.on('resize', drawConnection);
+    // Decorative motion holds while hidden and plays again on return.
+    const visibilityChanged = () => {
+      if (document.hidden) connectionOverlay.current?.pause();
+      else connectionOverlay.current?.play();
+    };
+    document.addEventListener('visibilitychange', visibilityChanged);
     // A missing tile (HTTP 404) is an empty area; aborted requests are
     // ordinary pan/zoom cancellation. Everything else is a real outage.
     map.on('error', (event: ErrorEvent) => {
@@ -383,6 +423,10 @@ export default function PlaceMapCanvas({
       for (const event of ['pointerdown', 'wheel', 'keydown'])
         element.removeEventListener(event, interrupt);
       motion?.removeEventListener('change', motionChanged);
+      document.removeEventListener('visibilitychange', visibilityChanged);
+      connectionOverlay.current?.remove();
+      connectionOverlay.current = null;
+      placeConnection.current = null;
       map.remove();
       markers.current.clear();
       areaEntries.current.clear();
@@ -550,6 +594,15 @@ export default function PlaceMapCanvas({
       updateFrame.current?.();
     }
   }, [areas, t]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Area and locale changes move or recreate the connection's ends.
+  useEffect(() => {
+    placeConnection.current?.();
+  }, [connection, areas, t]);
+
+  useEffect(() => {
+    if (connection?.playRequest) connectionOverlay.current?.play();
+  }, [connection?.playRequest]);
 
   // An explicit "show us" frames the areas again, with reduced-motion snap.
   useEffect(() => {

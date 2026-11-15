@@ -2,7 +2,9 @@ import type { CSSProperties } from 'react';
 import type { NotificationKind } from '../api/generated/models/NotificationKind';
 import {
   isPartnerGestureKind,
+  isWishDateReceiptKind,
   type PartnerGestureKind,
+  type WishDateReceiptKind,
 } from '../client/partnerGestureReceipt';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './NotificationMotion.css';
@@ -14,7 +16,7 @@ type NotificationMotionSpec = {
 };
 
 const motions: Record<
-  Exclude<NotificationKind, PartnerGestureKind>,
+  Exclude<NotificationKind, PartnerGestureKind | WishDateReceiptKind>,
   NotificationMotionSpec
 > = {
   ONCE_MESSAGE_RECEIVED: { icon: 'nachrichten', motion: 'message-unfold' },
@@ -48,7 +50,7 @@ const motions: Record<
 type MotionStyle = CSSProperties & { '--notification-animation'?: string };
 
 export function NotificationMotion({ kind }: { kind: NotificationKind }) {
-  if (isPartnerGestureKind(kind)) return null;
+  if (isPartnerGestureKind(kind) || isWishDateReceiptKind(kind)) return null;
   const { icon, motion, accent }: NotificationMotionSpec = motions[kind] ?? {
     icon: 'benachrichtigungen',
     motion: '',

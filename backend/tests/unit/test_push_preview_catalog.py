@@ -13,7 +13,7 @@ from joserfc.jwk import OctKey
 from sqlalchemy.orm import Session
 
 from eimir.engagement import fcm_push, push_preview
-from eimir.engagement.models import Notification, NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, Notification, NotificationKind
 
 CATALOG = Path(__file__).resolve().parents[3] / (
     "android/app/src/androidTest/assets/push-preview-catalog.json"
@@ -23,7 +23,13 @@ CATALOG = Path(__file__).resolve().parents[3] / (
 def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions() -> None:
     fixture = json.loads(CATALOG.read_text())
     cases = fixture["cases"]
-    kinds = {kind.value for kind in NotificationKind} - push_preview.NEUTRAL_ONLY_KINDS
+    # Wish date notices must have a validated appointment before public presentation.
+    # PushPreviewTest exercises their dedicated encrypted date detail path.
+    kinds = (
+        {kind.value for kind in NotificationKind}
+        - push_preview.NEUTRAL_ONLY_KINDS
+        - WISH_DATE_NOTICE_KINDS
+    )
     for title in ("", "Unser Spaziergang"):
         assert kinds <= {
             case["payload"]["kind"] for case in cases if case["payload"]["title"] == title

@@ -1,5 +1,23 @@
 import type { Route } from '@playwright/test';
 
+/** Unrelated Wish journeys have no active date exchange. */
+export async function fulfillNoWishDateProposal(
+  route: Route,
+): Promise<boolean> {
+  const request = route.request();
+  const pathname = new URL(request.url()).pathname;
+  if (
+    request.method() !== 'GET' ||
+    !/^\/api\/v1\/spaces\/[^/]+\/wishes\/[^/]+\/date-proposal$/.test(pathname)
+  )
+    return false;
+  await route.fulfill({
+    json: { canPropose: false, proposal: null },
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+  return true;
+}
+
 /** Narrow defaults for unrelated journeys; feature journeys override them explicitly. */
 export async function fulfillDefaultProductContext(
   route: Route,

@@ -16,7 +16,7 @@ from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.engagement import presentation, service, thinking
+from eimir.engagement import presentation, service, thinking, wish_date_notice
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -66,6 +66,7 @@ class NotificationItem(ApiModel):
     target_type: EngagementTarget | None
     target_id: UUID | None
     target: ActivityTargetPresentation | None = None
+    appointment_start: datetime | None = None
     created_at: datetime
     read_at: datetime | None
 
@@ -442,6 +443,9 @@ def _notification_item(
         target_type=EngagementTarget(item.target_type) if item.target_type is not None else None,
         target_id=item.target_id,
         target=target_presentation,
+        appointment_start=wish_date_notice.appointment_start(
+            item, concealed=bool(target_presentation and target_presentation.concealed)
+        ),
         created_at=item.created_at,
         read_at=item.read_at,
     )

@@ -23,6 +23,7 @@ import {
   fulfillUnconfiguredPhotoSources,
 } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -339,6 +340,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         capabilities: ['core'],
       });
     }
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });

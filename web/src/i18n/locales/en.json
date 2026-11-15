@@ -1298,6 +1298,9 @@
       "PARTNER_KISS": "{{name}} sends you a kiss.",
       "PARTNER_KISS_ANON": "Your partner sends you a kiss.",
       "PARTNER_CHECK_IN": "{{name}} asks how you are.",
+      "WISH_DATE_PROPOSED": "{{name}} suggested a date",
+      "WISH_DATE_COUNTERED": "{{name}} suggested a different date",
+      "WISH_DATE_ACCEPTED": "{{name}} accepted the date",
       "PARTNER_CHECK_IN_ANON": "Your partner asks how you are.",
       "REMINDER_DUE_WITH_TARGET": "Reminder: {{target}}",
       "REMINDER_DUE": "A reminder is coming up"
@@ -1580,32 +1583,9 @@
     "accountTitle": "My account",
     "accountName": "Display name",
     "premium": {
-      "eyebrow": "Premium",
       "title": "eimir. Pro",
-      "badge": "Pro",
-      "gamesTitle": "Games, insights and personal extras.",
-      "gamesBody": "Pro adds games, deeper insights, a saying of the day and additional personal partner actions to your shared world. Your ordinary memories, wishes, plans and Thinking of you remain independent of it.",
-      "action": "Explore Pro",
-      "detailsTitle": "One subscription for both of you",
-      "detailsBody": "One Pro subscription applies to your shared space and unlocks its included Pro features for both of you. Your existing content and free relationship features remain available independently.",
-      "features": {
-        "experiences": {
-          "title": "Games and shared experiences",
-          "body": "Play together, capture happy moments or send each other a trip through time."
-        },
-        "history": {
-          "title": "Recaps, insights and memory map",
-          "body": "Explore your story on the map, in recaps and through deeper insights into your time together."
-        },
-        "personal": {
-          "title": "Quotes and personal appearance",
-          "body": "A quote for your day, additional app icons and personal extras for your Us page."
-        },
-        "photos": {
-          "title": "Connected photo services",
-          "body": "Choose photos from your connected Immich or Google Photos too. Photos from your own devices remain free to use."
-        }
-      }
+      "rowInactive": "All Pro features and prices for both of you",
+      "rowActive": "Pro is active for both of you"
     },
     "relationshipTitle": "Your relationship",
     "relationshipIntro": "Where your story began, for anniversaries and your time together.",
@@ -1841,6 +1821,9 @@
     "listTitle": "Your special days",
     "emptyTitle": "No special day captured yet",
     "monthEmpty": "Nothing coming up this month.",
+    "planKind": "Plan",
+    "planMeta": "{{schedule}} · Plan",
+    "planEntryLabel": "Plan: {{title}}",
     "emptyBody": "Capture days you want to remember or keep track of together here.",
     "dateValue": "{{date}}",
     "linkedPerson": "For {{name}}",
@@ -2366,6 +2349,7 @@
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
     "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",
+    "nothingChosen": "No photos chosen. You can open Google Photos again any time.",
     "progress": "Importing photos …",
     "retryImport": "Try again",
     "waitingMedia": "Google Photos is open. Choose your photos and videos there. This page continues automatically afterwards.",
@@ -2804,8 +2788,7 @@
     "pro": "Pro",
     "lead": "Your story. Told anew.",
     "intro": "Your monthly and yearly recaps. From your shared moments.",
-    "entryAction": "View recap",
-    "entryPending": "Being put together for you",
+    "discoverNew": "New recap",
     "profileLink": "Discover your monthly and yearly recaps",
     "months": "Months",
     "years": "Years",
@@ -3421,6 +3404,37 @@
     "preparing": "Preparing …",
     "saving": "Saving …",
     "offline": "Not saved yet. Connect to the internet and try again."
+  },
+  "wishDateProposal": {
+    "action": "Suggest a date",
+    "counter": "Suggest another date",
+    "send": "Send suggestion",
+    "sendCounter": "Send new suggestion",
+    "accept": "Works for me",
+    "decline": "Not this time",
+    "withdraw": "Withdraw suggestion",
+    "incoming": "Date suggestion from {{name}}",
+    "incomingAnonymous": "A date suggestion for you two",
+    "counterFrom": "New date suggestion from {{name}}",
+    "counterAnonymous": "A new date suggestion",
+    "waiting": "Your date suggestion",
+    "waitingForReply": "Your suggestion is waiting for a reply.",
+    "sent": "Your suggestion was sent.",
+    "declined": "Your Wish stays open.",
+    "withdrawn": "You withdrew the suggestion.",
+    "loading": "Loading date suggestion …",
+    "offline": "Date suggestions need a connection.",
+    "when": "Date and time",
+    "invalid": "Choose a valid date and time in the future.",
+    "sameTime": "Choose a different date or time for your suggestion.",
+    "changed": "The suggestion has changed. Check the current details.",
+    "review": "View suggestion",
+    "openPlan": "View Plan",
+    "receipt": {
+      "proposed": "{{name}} suggests a date",
+      "countered": "{{name}} suggests another date",
+      "accepted": "{{name}} accepted the date"
+    }
   },
   "wishJourney": {
     "stages": {
@@ -4775,6 +4789,14 @@
     "distanceOpenMap": "View on the map",
     "distanceShareShort": "Share location",
     "distanceNearShort": "Very close",
+    "distanceAroundCorner": "You're just around the corner",
+    "distanceAroundCornerShort": "Close by",
+    "distanceStonesThrow": "Just a stone's throw between you",
+    "distanceStonesThrowShort": "Stone's throw",
+    "distanceNotFar": "You're not far from each other",
+    "distanceNotFarShort": "Not far",
+    "distanceShortTrip": "Just a short trip between you",
+    "distanceShortTripShort": "Short trip",
     "distanceOwnMissing": "Your location is missing",
     "distanceOwnMissingAction": "Turn on",
     "distanceOwnMissingLabel": "Your location is missing. Only you see this hint. Turn on",
@@ -4797,7 +4819,9 @@
     "mapUnavailableBody": "An approximate area appears here only while it is shared.",
     "mapAreaDescription": "{{partner}} is somewhere in an area with a {{radius}} radius. As of: {{time}}.",
     "mapOwnDescription": "Your own approximate location is marked for you only.",
-    "mapPeopleLabel": "The two of you on the map"
+    "mapPeopleLabel": "The two of you on the map",
+    "mapConnectionLine": "A line on the map connects you and {{partner}}.",
+    "mapConnectionNear": "A heart on the map shows that you are close to each other."
   },
   "wirCheckIn": {
     "ownPrompt": "How are you?",
@@ -5332,5 +5356,16 @@
       "paused": "Calendar sync paused",
       "review": "View"
     }
+  },
+  "occasionMarks": {
+    "anniversary_ordinal_one": "On your {{count}}st anniversary",
+    "anniversary_ordinal_two": "On your {{count}}nd anniversary",
+    "anniversary_ordinal_few": "On your {{count}}rd anniversary",
+    "anniversary_ordinal_other": "On your {{count}}th anniversary",
+    "relationshipStart": "On the day it all began",
+    "ownBirthday": "On your birthday",
+    "partnerBirthday": "On {{name}}'s birthday",
+    "more_one": "and one more occasion",
+    "more_other": "and {{count}} more occasions"
   }
 }

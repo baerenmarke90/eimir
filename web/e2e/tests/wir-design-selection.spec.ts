@@ -289,8 +289,8 @@ async function expectSharedAlbumComposition(page: Page) {
   const storyBox = await story.boundingBox();
   for (const portrait of await portraits.all()) {
     const box = await portrait.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.y ?? 0).toBeGreaterThan(storyBox?.y ?? Number.MAX_VALUE);
   }
   const stamp = page.locator('.today-agenda-list .shared-album-date-stamp');
@@ -339,12 +339,9 @@ async function alignedVisibilityControls(page: Page) {
     );
   // The shared couple hero is fixed and has no visibility switch.
   expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
-  // Bounds are single-precision: at a fractional page offset a 44 px target
-  // can measure 43.9999, so the comparison allows a hundredth of a pixel.
-  const minimumTarget = 44 - 0.01;
   for (const target of targets) {
-    expect(target.width).toBeGreaterThanOrEqual(minimumTarget);
-    expect(target.height).toBeGreaterThanOrEqual(minimumTarget);
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
     expect(target.overlapsLabel).toBe(false);
   }
 }
@@ -755,29 +752,26 @@ test('failure keeps the draft and confirmed retry changes the visible design', a
   expect(f.unexpected).toEqual([]);
 });
 
-test('quote and statistics order survives pointer release, keyboard movement and reload', async ({
-  page,
-}, info) => {
-  await page.setViewportSize({ width: 390, height: 900 });
-  const state = await fixture(page);
-  let order = [...DASHBOARD_MODULE_KEYS];
-  const orders: string[][] = [];
+// Serves the personal module order and the quote preference for the Wir
+// settings journeys, recording every saved order.
+async function routeModuleOrder(page: Page) {
+  const saved = { order: [...DASHBOARD_MODULE_KEYS], writes: [] as string[][] };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/dashboard/preferences/order')) {
-      order = route.request().postDataJSON().moduleKeys;
-      orders.push([...order]);
+      saved.order = route.request().postDataJSON().moduleKeys;
+      saved.writes.push([...saved.order]);
       return route.fulfill({
         json: {
-          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+          items: saved.order.map((moduleKey) => ({ moduleKey, visible: true })),
         },
       });
     }
     if (path.endsWith('/dashboard/preferences'))
       return route.fulfill({
         json: {
-          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+          items: saved.order.map((moduleKey) => ({ moduleKey, visible: true })),
         },
       });
     if (path.endsWith('/daily-quote/preferences'))
@@ -792,6 +786,16 @@ test('quote and statistics order survives pointer release, keyboard movement and
       });
     return route.fallback();
   });
+  return saved;
+}
+
+test('quote and statistics order survives pointer release, keyboard movement and reload', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const state = await fixture(page);
+  const saved = await routeModuleOrder(page);
+  const orders = saved.writes;
   await signIn(page);
   await page.goto('/more/settings/today');
   await expect(page.locator('.dashboard-module-configure')).toHaveCount(0);
@@ -823,8 +827,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
   await expect.poll(() => orders.length).toBe(1);
-  expect(order.indexOf('daily_quote')).toBeGreaterThan(
-    order.indexOf('keepsake'),
+  expect(saved.order.indexOf('daily_quote')).toBeGreaterThan(
+    saved.order.indexOf('keepsake'),
   );
   const statisticsGrip = page
     .locator('[data-sortable-item-id="shared_story_summary"]')
@@ -850,13 +854,43 @@ test('quote and statistics order survives pointer release, keyboard movement and
     // The fixed couple hero keeps its stored slot but is not sortable; partner
     // distance (#1792) keeps its slot but is not listed for this Space.
   ).toEqual(
-    order.filter(
+    saved.order.filter(
       (key) => key !== 'relationship_presence' && key !== 'partner_distance',
     ),
   );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
+  await page.locator('.product-shell a[href="/today"]:visible').click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  await expect(page.locator('.daily-quote-card')).toBeVisible();
+  expect(
+    await page
+      .locator('.today-section-moment')
+      .evaluate((node) =>
+        Boolean(
+          node.compareDocumentPosition(
+            document.querySelector('.daily-quote-card')!,
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ),
+  ).toBe(true);
+  await page.reload();
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  expect(state.unexpected).toEqual([]);
+});
+
+// Separate from the ordering journey (#1597, #1607): visibility controls stay
+// aligned and the settings page reflows across Compact and Expanded themes.
+test('module visibility controls stay aligned and reflow at 360 light, 430 dark and 1280 dark', async ({
+  page,
+}, info) => {
+  const state = await fixture(page);
+  await routeModuleOrder(page);
+  await signIn(page);
+  await page.goto('/more/settings/today');
+  await expect(page.locator('.dashboard-module-option').first()).toBeVisible();
   for (const [width, theme] of [
     [360, 'light'],
     [430, 'dark'],
@@ -875,23 +909,6 @@ test('quote and statistics order survives pointer release, keyboard movement and
       },
     );
   }
-  await page.locator('.product-shell a[href="/today"]:visible').click();
-  await expect(page).toHaveURL(/\/today$/);
-  await expect(page.locator('.shared-story-summary')).toBeVisible();
-  await expect(page.locator('.daily-quote-card')).toBeVisible();
-  expect(
-    await page
-      .locator('.today-section-moment')
-      .evaluate((node) =>
-        Boolean(
-          node.compareDocumentPosition(
-            document.querySelector('.daily-quote-card')!,
-          ) & Node.DOCUMENT_POSITION_FOLLOWING,
-        ),
-      ),
-  ).toBe(true);
-  await page.reload();
-  await expect(page.locator('.shared-story-summary')).toBeVisible();
   expect(state.unexpected).toEqual([]);
 });
 

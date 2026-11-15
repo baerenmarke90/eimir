@@ -9,11 +9,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { Configuration } from '../client/apiConfiguration';
 import { authorDisplayName } from '../client/authorPresentation';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   NOTIFICATION_WAKE_EVENT,
@@ -21,11 +22,16 @@ import {
   notificationArrivalKey,
   selectArrivedNotification,
 } from '../client/foregroundNotifications';
-import { createM4ProductApis, type M4ProductApis } from '../client/m4Product';
+import {
+  createM4ProductApis,
+  type M4ProductApis,
+  notificationPath,
+} from '../client/m4Product';
 import { ProfilesApi } from '../client/mediaApis';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import {
   isPartnerGestureKind,
+  isWishDateReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
@@ -41,7 +47,9 @@ import {
 } from '../client/spaceConfiguration';
 import { useSpaceCapability } from '../client/spaceEntitlement';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import { wishDateProposalQueryKey } from '../client/wishDateProposal';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { NotificationMotion } from './NotificationMotion';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
@@ -73,7 +81,33 @@ function receiptCopy(
   t: TFunction,
   nameOf: NameOf,
   accountId: string,
+  locale?: string,
 ) {
+  if (isWishDateReceiptKind(item.kind)) {
+    const accepted = item.kind === 'WISH_DATE_ACCEPTED';
+    const message = accepted
+      ? 'accepted'
+      : item.kind === 'WISH_DATE_COUNTERED'
+        ? 'countered'
+        : 'proposed';
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const date = item.appointmentStart
+      ? new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(item.appointmentStart)
+      : null;
+    return {
+      variant: { motion: 'calm-ring', reply: 'WISH_DATE' } as const,
+      title: t(`wishDateProposal.receipt.${message}`, { name }),
+      detail:
+        item.target?.title && date ? `${item.target.title} · ${date}` : null,
+      reply: t(
+        accepted ? 'wishDateProposal.openPlan' : 'wishDateProposal.review',
+      ),
+    };
+  }
   if (!isPartnerGestureKind(item.kind)) {
     return {
       variant: null,
@@ -166,12 +200,12 @@ function NotificationReceipt({
   onHoldChange,
   openNotification,
 }: NotificationReceiptProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const client = useQueryClient();
   const nameOf = useActorName();
   const titleId = useId();
-  const copy = receiptCopy(item, t, nameOf, accountId);
+  const copy = receiptCopy(item, t, nameOf, accountId, i18n.resolvedLanguage);
   const [replied, setReplied] = useState(false);
   const [pointerInside, setPointerInside] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
@@ -216,7 +250,7 @@ function NotificationReceipt({
   };
 
   let reply: { label: string; run: () => void; pro?: boolean } | null = null;
-  if (!variant) {
+  if (!variant || variant.reply === 'WISH_DATE') {
     if (openNotification) {
       reply = {
         label: copy.reply,
@@ -350,7 +384,12 @@ function NotificationReceipt({
             </span>
           )}
           {variant ? (
-            <span className="partner-gesture-receipt-glyph">
+            <span
+              className="partner-gesture-receipt-glyph"
+              data-glyph={
+                variant.reply === 'WISH_DATE' ? 'calendar' : undefined
+              }
+            >
               {variant.motion === 'heart-pulse' ? (
                 <Heart />
               ) : variant.motion === 'kiss' ? (
@@ -358,6 +397,8 @@ function NotificationReceipt({
                   <Heart />
                   <Heart />
                 </span>
+              ) : variant.reply === 'WISH_DATE' ? (
+                <EimirIcon name="kalender" />
               ) : (
                 '?'
               )}
@@ -450,8 +491,12 @@ export function ForegroundNotificationHost({
   suppressed,
   openNotification,
 }: ForegroundNotificationHostProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nameOf = useActorName();
+  const client = useQueryClient();
+  const location = useLocation();
+  const pathname = useRef(location.pathname);
+  pathname.current = location.pathname;
   const scope = receiptScope(accountId, spaceId);
   const apis = useMemo(
     () => createM4ProductApis(apiBaseUrl, accessToken),
@@ -502,8 +547,35 @@ export function ForegroundNotificationHost({
   const show = useCallback(
     (item: NotificationItem) => {
       markHandled(notificationArrivalKey(item));
+      if (isWishDateReceiptKind(item.kind)) {
+        const wishId =
+          item.targetType === 'WISH' ? (item.targetId ?? undefined) : undefined;
+        void client.invalidateQueries({
+          queryKey: wishDateProposalQueryKey(
+            apiBaseUrl,
+            accountId,
+            spaceId,
+            wishId,
+          ),
+        });
+        if (item.kind === 'WISH_DATE_ACCEPTED') {
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.wishes(spaceId),
+          });
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.plans(spaceId),
+          });
+        }
+        if (notificationPath(item)?.split('#')[0] === pathname.current) return;
+      }
       if (taskOwnsScreen(suppressedRef.current)) return;
-      const copy = receiptCopy(item, t, nameOf, accountId);
+      const copy = receiptCopy(
+        item,
+        t,
+        nameOf,
+        accountId,
+        i18n.resolvedLanguage,
+      );
       setEntry(item);
       setHold(false);
       setOpen(true);
@@ -511,7 +583,16 @@ export function ForegroundNotificationHost({
         copy.detail ? `${copy.title}. ${copy.detail}` : copy.title,
       );
     },
-    [accountId, markHandled, nameOf, t],
+    [
+      accountId,
+      apiBaseUrl,
+      client,
+      i18n.resolvedLanguage,
+      markHandled,
+      nameOf,
+      spaceId,
+      t,
+    ],
   );
 
   const close = useCallback(() => {

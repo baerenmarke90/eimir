@@ -30,6 +30,7 @@ import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
+import occasionMarks from './locales/occasionMarks';
 import offlinePage from './locales/offlinePage';
 import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
@@ -61,6 +62,7 @@ import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
+import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
@@ -86,6 +88,7 @@ export const germanResources = {
   wirDesign,
   wishSelection,
   wishJourney,
+  wishDateProposal,
   wishRepeat,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
@@ -100,6 +103,7 @@ export const germanResources = {
   games,
   experiences,
   importantDates,
+  occasionMarks,
   legal,
   m5s3,
   m5s5,

@@ -203,8 +203,8 @@
     },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11,
-      "reason": "Feature-owned #1790 F2 Wish journey and #812 personal reminder acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
+      "baselineTests": 12,
+      "reason": "Feature-owned Wish journey (#1790 F2), personal reminder (#812) and date proposal (#1910) acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -407,7 +407,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 19,
+      "baselineTests": 22,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
@@ -607,6 +607,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6,
       "reason": "Feature-owned acceptance for remembering the Google account in Settings > Medienquellen (#1467): link and disconnect with the exact If-Match token, a rejected address explained, a stale write reloaded instead of overwritten, hidden when the import is unavailable, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
+    },
+    "occasion-memory-mark.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
     }
   }
 }

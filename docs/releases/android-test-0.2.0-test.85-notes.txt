@@ -5,8 +5,8 @@ eimir. Android 0.2.0-test.85
 - Plan a weekend or a trip without times as one plan with a last day, and hand it to your calendar as a single all-day event.
 - Sync your plans automatically into one shared calendar with eimir. Pro, through CalDAV or Google Calendar, see which calendar is connected by name, switch to another one, and stay in the same tab while you allow Google.
 - See notifications as a small animated banner while eimir. is open.
-- Go back with the Android Back gesture the same way everywhere: editors no longer leave a duplicate detail page behind.
+- Go back with the Android Back gesture the same way everywhere: editors no longer leave a duplicate detail page behind, and switching between Activity and spaces keeps a logical way back.
 - Start Wir without the "saved overview" hint interrupting the start animation, and see Planen, Momente and the Wir portraits centered in wide windows.
 
-The product changes come from main at 5f658d353aca641a1c58419f18a2826e4b8d32f7.
+The product changes come from main at 4627030ed27f91696a5a127ab3fcb45a7cb17efd.
 Install over test.84 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 85.

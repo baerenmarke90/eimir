@@ -100,7 +100,8 @@
 
 .partner-avatar-img.is-loaded + .partner-avatar-initials {
   visibility: hidden;
-  transition: visibility 0s linear var(--duration-context);
+  transition-property: visibility;
+  transition-delay: var(--duration-context);
 }
 
 /* Sizes */

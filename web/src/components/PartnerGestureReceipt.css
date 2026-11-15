@@ -326,6 +326,10 @@
   fill: currentColor;
 }
 
+.partner-gesture-receipt-glyph[data-glyph="calendar"] svg {
+  fill: none;
+}
+
 .partner-gesture-receipt[data-variant="kiss"] .partner-gesture-receipt-glyph {
   width: 38px;
   border-color: transparent;

@@ -54,6 +54,23 @@ export function isPartnerGestureKind(kind: string): kind is PartnerGestureKind {
   return (PARTNER_GESTURE_KINDS as readonly string[]).includes(kind);
 }
 
+export function isWishDateReceiptKind(kind: string): boolean {
+  return (
+    kind === 'WISH_DATE_PROPOSED' ||
+    kind === 'WISH_DATE_COUNTERED' ||
+    kind === 'WISH_DATE_ACCEPTED'
+  );
+}
+
+export function isPartnerReceipt(item: NotificationItem): boolean {
+  return (
+    isPartnerGestureKind(item.kind) ||
+    (isWishDateReceiptKind(item.kind) &&
+      item.target?.concealed !== true &&
+      Boolean(item.appointmentStart && item.target?.title))
+  );
+}
+
 /**
  * The newest unread gesture from the partner that arrived after this shell
  * instance started and was never handled. Anything older stays only in the
@@ -73,7 +90,7 @@ export function selectArrivedGesture(
 ): NotificationItem | null {
   let newest: NotificationItem | null = null;
   for (const item of items) {
-    if (!isPartnerGestureKind(item.kind)) continue;
+    if (!isPartnerReceipt(item)) continue;
     if (item.readAt || handled.has(item.id)) continue;
     if (item.actorId === accountId || item.actor?.id === accountId) continue;
     if (item.createdAt.getTime() <= notBefore) continue;
@@ -83,6 +100,14 @@ export function selectArrivedGesture(
 }
 
 export const PARTNER_GESTURE_RECEIPT_EVENT = 'eimir:partner-gesture-receipt';
+export const PARTNER_RECEIPT_REFRESH_EVENT = 'eimir:partner-receipt-refresh';
+
+/** A verified provider wake carries no notification content into the shell. */
+export function requestPartnerReceiptRefresh(scope: string): void {
+  window.dispatchEvent(
+    new CustomEvent(PARTNER_RECEIPT_REFRESH_EVENT, { detail: scope }),
+  );
+}
 
 export interface PartnerGestureReceiptRequest {
   /** `${accountId}:${spaceId}` of the shell that resolved the item. */

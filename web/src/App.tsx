@@ -348,6 +348,7 @@ function AuthenticatedApp({
   const browserPush = useBrowserPush({
     accountId: account.id,
     apiBaseUrl,
+    spaceId,
     notificationsApi: m4Apis.notifications,
     queryClient,
     openNotification: devicePush.openNotification,

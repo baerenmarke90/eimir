@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import {
   type KeyboardEvent,
@@ -9,19 +9,31 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { Configuration } from '../client/apiConfiguration';
 import { authorDisplayName } from '../client/authorPresentation';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
-import { createM4ProductApis, type M4ProductApis } from '../client/m4Product';
+import {
+  createM4ProductApis,
+  type M4ProductApis,
+  notificationPath,
+} from '../client/m4Product';
 import { ProfilesApi } from '../client/mediaApis';
 import {
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from '../client/notificationQueries';
+import {
   isPartnerGestureKind,
+  isPartnerReceipt,
+  isWishDateReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
+  PARTNER_RECEIPT_REFRESH_EVENT,
   type PartnerGestureReceiptRequest,
   receiptScope,
   selectArrivedGesture,
@@ -35,7 +47,9 @@ import {
 } from '../client/spaceConfiguration';
 import { useSpaceCapability } from '../client/spaceEntitlement';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import { wishDateProposalQueryKey } from '../client/wishDateProposal';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
 import { isModalLayerActive } from './useModalLifecycle';
@@ -61,7 +75,35 @@ function Heart() {
 
 type NameOf = (item: NotificationItem) => string | null;
 
-function receiptCopy(item: NotificationItem, t: TFunction, nameOf: NameOf) {
+function receiptCopy(
+  item: NotificationItem,
+  t: TFunction,
+  nameOf: NameOf,
+  locale: string | undefined,
+) {
+  if (isWishDateReceiptKind(item.kind)) {
+    if (!item.appointmentStart || !item.target?.title) return null;
+    const accepted = item.kind === 'WISH_DATE_ACCEPTED';
+    const message = accepted
+      ? 'accepted'
+      : item.kind === 'WISH_DATE_COUNTERED'
+        ? 'countered'
+        : 'proposed';
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const date = new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(item.appointmentStart);
+    return {
+      variant: { motion: 'calm-ring', reply: 'WISH_DATE' } as const,
+      title: t(`wishDateProposal.receipt.${message}`, { name }),
+      detail: `${item.target.title} · ${date}`,
+      reply: t(
+        accepted ? 'wishDateProposal.openPlan' : 'wishDateProposal.review',
+      ),
+    };
+  }
   if (!isPartnerGestureKind(item.kind)) return null;
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];
   const name = nameOf(item);
@@ -130,8 +172,8 @@ interface PartnerGestureReceiptProps {
 }
 
 /**
- * The shared presentation for all three partner gestures. The gesture kind
- * selects copy, glyph, motion variant and the allowed reply; presentation,
+ * The shared presentation for partner gestures and Wish appointments. The
+ * kind selects copy, glyph, motion variant and the allowed action; presentation,
  * accessibility, lifecycle and dismissal are identical.
  */
 export function PartnerGestureReceipt({
@@ -145,12 +187,12 @@ export function PartnerGestureReceipt({
   onExitComplete,
   onHoldChange,
 }: PartnerGestureReceiptProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const client = useQueryClient();
   const nameOf = useActorName();
   const titleId = useId();
-  const copy = receiptCopy(item, t, nameOf);
+  const copy = receiptCopy(item, t, nameOf, i18n.resolvedLanguage);
   const [replied, setReplied] = useState(false);
   const [pointerInside, setPointerInside] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
@@ -167,9 +209,35 @@ export function PartnerGestureReceipt({
     enabled: false,
     capability: PARTNER_QUICK_ACTIONS_CAPABILITY,
   });
+  const appointment = useMutation({
+    networkMode: 'always',
+    mutationFn: async (trigger: HTMLButtonElement) => {
+      const opened = await apis.notifications.openNotification({
+        spaceId,
+        notificationId: item.id,
+      });
+      const destination = notificationPath(opened);
+      if (!destination)
+        throw new Error('No authorized appointment destination.');
+      if (
+        !trigger.isConnected ||
+        !trigger.closest('aside[data-presence="open"]')
+      )
+        return;
+      void client.invalidateQueries({
+        queryKey: notificationUnreadCountQueryKey(spaceId),
+      });
+      void client.invalidateQueries({
+        queryKey: notificationsListQueryKey(spaceId),
+      });
+      onClose();
+      if (!taskOwnsScreen(false)) navigate(destination);
+    },
+  });
 
-  const replyBusy = replied && gesture.isPending;
-  const replyFailed = replied && Boolean(gesture.error);
+  const replyBusy = appointment.isPending || (replied && gesture.isPending);
+  const replyFailed =
+    appointment.isError || (replied && Boolean(gesture.error));
   const hold = pointerInside || focusInside || replyBusy || replyFailed;
   useEffect(() => {
     onHoldChange(hold);
@@ -195,8 +263,17 @@ export function PartnerGestureReceipt({
     gesture.send(action);
   };
 
-  let reply: { label: string; run: () => void; pro?: boolean } | null = null;
-  if (variant.reply === 'THINKING') {
+  let reply: {
+    label: string;
+    run: (trigger: HTMLButtonElement) => void;
+    pro?: boolean;
+  } | null = null;
+  if (variant.reply === 'WISH_DATE') {
+    reply = {
+      label: copy.reply,
+      run: (trigger) => appointment.mutate(trigger),
+    };
+  } else if (variant.reply === 'THINKING') {
     if (
       gesturesEnabled &&
       !coolingDown(gesture.cooldowns.THINKING) &&
@@ -233,7 +310,7 @@ export function PartnerGestureReceipt({
     };
   }
 
-  const status = !replied
+  const gestureStatus = !replied
     ? null
     : gesture.pendingAction
       ? {
@@ -265,6 +342,11 @@ export function PartnerGestureReceipt({
               ),
             }
           : null;
+  const status = appointment.isError
+    ? { tone: 'error', text: t('wishDateProposal.openError') }
+    : appointment.isPending
+      ? { tone: 'pending', text: t('m5s3.wish.loading') }
+      : gestureStatus;
   const showReply =
     reply && (!replied || status?.tone === 'error' || status === null);
 
@@ -313,7 +395,10 @@ export function PartnerGestureReceipt({
           ) : (
             <span className="partner-gesture-receipt-placeholder" />
           )}
-          <span className="partner-gesture-receipt-glyph">
+          <span
+            className="partner-gesture-receipt-glyph"
+            data-glyph={variant.reply === 'WISH_DATE' ? 'calendar' : undefined}
+          >
             {variant.motion === 'heart-pulse' ? (
               <Heart />
             ) : variant.motion === 'kiss' ? (
@@ -321,6 +406,8 @@ export function PartnerGestureReceipt({
                 <Heart />
                 <Heart />
               </span>
+            ) : variant.reply === 'WISH_DATE' ? (
+              <EimirIcon name="kalender" />
             ) : (
               '?'
             )}
@@ -345,8 +432,8 @@ export function PartnerGestureReceipt({
                 type="button"
                 className="partner-gesture-receipt-reply"
                 aria-disabled={replyBusy || undefined}
-                onClick={() => {
-                  if (!replyBusy) reply.run();
+                onClick={(event) => {
+                  if (!replyBusy) reply.run(event.currentTarget);
                 }}
               >
                 {variant.motion === 'calm-ring' ? null : <Heart />}
@@ -386,7 +473,7 @@ interface PartnerGestureReceiptHostProps {
   accessToken: string;
   accountId: string;
   spaceId: string;
-  /** The shell's existing unread count; the only arrival signal. */
+  /** The shell's existing unread count, in addition to a verified device wake. */
   unreadCount: number | undefined;
   /** A focused task route is active. */
   suppressed: boolean;
@@ -406,8 +493,12 @@ export function PartnerGestureReceiptHost({
   unreadCount,
   suppressed,
 }: PartnerGestureReceiptHostProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nameOf = useActorName();
+  const client = useQueryClient();
+  const location = useLocation();
+  const pathname = useRef(location.pathname);
+  pathname.current = location.pathname;
   const scope = receiptScope(accountId, spaceId);
   const apis = useMemo(
     () => createM4ProductApis(apiBaseUrl, accessToken),
@@ -438,6 +529,7 @@ export function PartnerGestureReceiptHost({
   const notBefore = useRef(Date.now());
   const handled = useRef(new Set<string>());
   const previousCount = useRef<number | undefined>(undefined);
+  const fetchingArrival = useRef(false);
 
   const [entry, setEntry] = useState<NotificationItem | null>(null);
   const [open, setOpen] = useState(false);
@@ -456,15 +548,45 @@ export function PartnerGestureReceiptHost({
   const show = useCallback(
     (item: NotificationItem) => {
       markHandled(item.id);
+      if (isWishDateReceiptKind(item.kind)) {
+        const wishId =
+          item.targetType === 'WISH' ? (item.targetId ?? undefined) : undefined;
+        void client.invalidateQueries({
+          queryKey: wishDateProposalQueryKey(
+            apiBaseUrl,
+            accountId,
+            spaceId,
+            wishId,
+          ),
+        });
+        if (item.kind === 'WISH_DATE_ACCEPTED') {
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.wishes(spaceId),
+          });
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.plans(spaceId),
+          });
+        }
+        if (notificationPath(item)?.split('#')[0] === pathname.current) return;
+      }
       if (taskOwnsScreen(suppressedRef.current)) return;
-      const copy = receiptCopy(item, t, nameOf);
+      const copy = receiptCopy(item, t, nameOf, i18n.resolvedLanguage);
       if (!copy) return;
       setEntry(item);
       setHold(false);
       setOpen(true);
       setAnnouncement(`${copy.title}. ${copy.detail}`);
     },
-    [markHandled, nameOf, t],
+    [
+      accountId,
+      apiBaseUrl,
+      client,
+      i18n.resolvedLanguage,
+      markHandled,
+      nameOf,
+      spaceId,
+      t,
+    ],
   );
 
   const close = useCallback(() => {
@@ -472,26 +594,19 @@ export function PartnerGestureReceiptHost({
     setAnnouncement('');
   }, []);
 
-  // Arrival: only an increase of the existing unread count, in the focused
-  // window, triggers one read of the newest page. No polling of its own.
-  useEffect(() => {
-    if (unreadCount === undefined) return;
-    const previous = previousCount.current;
-    previousCount.current = unreadCount;
-    if (previous === undefined || unreadCount <= previous) return;
+  const readArrival = useCallback(() => {
+    if (fetchingArrival.current) return;
     if (!windowOwnsAttention() || taskOwnsScreen(suppressedRef.current)) {
-      // Whatever arrived until now stays in the Notification Center; it never
-      // turns into a delayed interruption later.
       notBefore.current = Date.now();
       return;
     }
-    const requestedScope = scope;
+    fetchingArrival.current = true;
     void apis.notifications
       .getNotifications({ spaceId, limit: ARRIVAL_PAGE_SIZE })
       .then((page) => {
         if (
           !live.current.mounted ||
-          live.current.scope !== requestedScope ||
+          live.current.scope !== scope ||
           !windowOwnsAttention()
         )
           return;
@@ -501,11 +616,30 @@ export function PartnerGestureReceiptHost({
           handled: handled.current,
         });
         for (const item of page.items)
-          if (isPartnerGestureKind(item.kind)) markHandled(item.id);
+          if (isPartnerReceipt(item)) markHandled(item.id);
         if (arrived) show(arrived);
       })
-      .catch(() => undefined);
-  }, [accountId, apis, markHandled, scope, show, spaceId, unreadCount]);
+      .catch(() => undefined)
+      .finally(() => {
+        fetchingArrival.current = false;
+      });
+  }, [accountId, apis, markHandled, scope, show, spaceId]);
+
+  useEffect(() => {
+    if (unreadCount === undefined) return;
+    const previous = previousCount.current;
+    previousCount.current = unreadCount;
+    if (previous !== undefined && unreadCount > previous) readArrival();
+  }, [readArrival, unreadCount]);
+
+  useEffect(() => {
+    function onWake(event: Event) {
+      if ((event as CustomEvent<string>).detail === scope) readArrival();
+    }
+    window.addEventListener(PARTNER_RECEIPT_REFRESH_EVENT, onWake);
+    return () =>
+      window.removeEventListener(PARTNER_RECEIPT_REFRESH_EVENT, onWake);
+  }, [readArrival, scope]);
 
   // Push open: the item was already resolved through the authorized API.
   useEffect(() => {

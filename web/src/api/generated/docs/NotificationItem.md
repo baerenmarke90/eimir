@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `actor` | [AuthorSummary](AuthorSummary.md)
 `actorId` | string
+`appointmentStart` | Date
 `createdAt` | Date
 `id` | string
 `kind` | [NotificationKind](NotificationKind.md)
@@ -26,6 +27,7 @@ import type { NotificationItem } from ''
 const example = {
   "actor": null,
   "actorId": null,
+  "appointmentStart": null,
   "createdAt": null,
   "id": null,
   "kind": null,

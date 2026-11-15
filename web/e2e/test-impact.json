@@ -584,6 +584,8 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
+        "web/src/components/WishDateProposalAction.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]

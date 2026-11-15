@@ -24,12 +24,14 @@ import {
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   receiptScope,
   requestPartnerGestureReceipt,
+  requestPartnerReceiptRefresh,
 } from '../client/partnerGestureReceipt';
 import { ClientProblemError } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import wishDateProposal from '../i18n/locales/wishDateProposal';
 import {
   PARTNER_GESTURE_RECEIPT_VISIBLE_MS,
   PartnerGestureReceiptHost,
@@ -37,6 +39,7 @@ import {
 
 const notifications = {
   getNotifications: vi.fn(),
+  openNotification: vi.fn(),
   sendThinkingOfYou: vi.fn(),
   sendPartnerQuickAction: vi.fn(),
 };
@@ -80,7 +83,7 @@ function LocationProbe() {
   const location = useLocation();
   return (
     <div data-testid="location">
-      {`${location.pathname}|${JSON.stringify(location.state)}`}
+      {`${location.pathname}${location.hash}|${JSON.stringify(location.state)}`}
     </div>
   );
 }
@@ -159,6 +162,7 @@ beforeEach(() => {
   clock = Date.now();
   vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   notifications.getNotifications.mockReset();
+  notifications.openNotification.mockReset();
   notifications.sendThinkingOfYou.mockReset();
   notifications.sendPartnerQuickAction.mockReset();
   onlineManager.setOnline(true);
@@ -181,6 +185,45 @@ afterEach(() => {
 });
 
 describe('PartnerGestureReceiptHost', () => {
+  it('uses the Vibe motion and opens the authorized incoming Wish proposal', async () => {
+    const proposal = gesture('proposal-1', 'WISH_DATE_PROPOSED', {
+      appointmentStart: new Date('2026-11-21T14:00:00Z'),
+      targetType: 'WISH',
+      targetId: 'wish-123',
+      target: {
+        title: 'Stadionführung',
+        targetType: 'WISH',
+        targetId: 'wish-123',
+      },
+    });
+    notifications.getNotifications.mockResolvedValue(page(proposal));
+    notifications.openNotification.mockResolvedValue(proposal);
+    setup({ unreadCount: 1 });
+    act(() => requestPartnerReceiptRefresh(receiptScope(ACCOUNT, SPACE)));
+    const incoming = await screen.findByTestId('partner-gesture-receipt');
+    expect(incoming.getAttribute('data-variant')).toBe('calm-ring');
+    expect(incoming.querySelector('[data-glyph="calendar"]')).not.toBeNull();
+    expect(incoming.textContent).toContain('Ronja schlägt einen Termin vor');
+    expect(incoming.textContent).toContain('Stadionführung');
+    expect(notifications.openNotification).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: wishDateProposal.review }),
+      );
+    });
+    await waitFor(() =>
+      expect(notifications.openNotification).toHaveBeenCalledWith({
+        spaceId: SPACE,
+        notificationId: proposal.id,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toContain(
+        '/plan/wishes/wish-123#terminvorschlag',
+      ),
+    );
+  });
+
   it('does not read or replay anything at app start', async () => {
     setup({ unreadCount: 3 });
     await act(async () => undefined);

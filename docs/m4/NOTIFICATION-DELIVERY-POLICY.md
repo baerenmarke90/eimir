@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v11)
+## Current module workflow (v12)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -15,6 +15,12 @@ Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.
 
+The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
+uses immediate delivery for deliberate proposals, counters and acceptance.
+This is the scoped exception to neutral system copy. Source authorization
+and validation precede delivery, provider-facing relationship content stays
+encrypted, and device notification settings govern display.
+
 New UnifiedPush clients explicitly advertise reference-routing version 1.
 Only those subscriptions receive a canonical Notification ID inside the
 encrypted wake. Legacy subscriptions retain exactly the old one-field wake,
@@ -24,11 +30,10 @@ boundary. Fresh authenticated resolution and the editor/account/Space guards
 own navigation. The following v2 text is historical foundation for the unchanged
 gesture/comment/reminder semantics, not the complete current kind catalog.
 
-The closed v2 catalog began with #515's first runtime slices; this document
-describes the current policy, not the complete notification-policy feature.
-`backend/src/eimir/engagement/notification_policy.py` is the versioned,
-closed delivery-class catalog for the five currently persisted
-`NotificationKind` values. An unknown kind fails closed for push. Domain
+The closed v2 catalog began with #515's first runtime slices and covered five
+`NotificationKind` values. The current delivery-class catalog is
+`backend/src/eimir/engagement/notification_policy.py`.
+An unknown kind fails closed for push. Domain
 privacy/authorization, recipient derivation and module gates remain
 authoritative ahead of delivery decisions.
 
@@ -72,15 +77,12 @@ A delivery already queued before a later policy change is
 re-evaluated before calling the provider; a blocked delivery terminates with
 the technical `PUSH_POLICY_BLOCKED` code and cannot replay on reenable.
 
-The only push preview remains `notification.generic`. The catalog explicitly
-disallows sender names, event categories, titles, and non-neutral lock-screen
-copy for each kind. Provider presentation is constructed centrally from only
-the canonical notification ID and kind. A catalog edit requesting a richer
-preview fails closed at both enqueue and provider-send boundaries until the
-transport and stricter domain rules have been reviewed and implemented. Never
-pass recipient-controlled plaintext, actor name, target title,
-unrevealed-surprise hint or private content to a provider. The
-existing Notification API read path rechecks current authorization.
+The baseline provider presentation is `notification.generic`. The catalog
+keeps neutral presentation for ordinary kinds. `notification.wish_date` is
+limited to the three deliberate Wish date events under the current workflow
+above. An arbitrary catalog edit requesting richer presentation fails closed
+at enqueue and provider-send boundaries. The existing Notification API read
+path rechecks current authorization.
 No new provider, broker, job queue or storage is needed; the existing Outbox,
 PushDelivery and PostgreSQL Job Queue are reused. External libraries,
 WebSocket and secondary preference stores are unsuitable for this catalog.
@@ -91,8 +93,8 @@ the authenticated endpoint API and a configured-only
 [UnifiedPush backend sender](./UNIFIEDPUSH-TRANSPORT.md); the Capacitor device
 lifecycle, FCM and real-device acceptance of Push delivery and tap routing are
 not delivered, so a green backend test is not live-device acceptance. Do not infer that a new notification class enables email, a
-foreground banner or a richer lock-screen preview. #1211 retains the current
-badge/preview/Center, and #1212 rejects motion from unread-count polling.
+foreground banner or a richer lock-screen preview. The scoped approvals in
+#1211 and #1212 require a fresh authorized notice before showing a receipt.
 Later deliveries must intersect the #515 class, the #638 recipient channel
 choice, domain privacy/module rules and technical channel availability.
 In particular, a comment digest cannot silently enable a new push channel
@@ -120,6 +122,7 @@ without classification; the existing signal/reminder integration paths
 preserve generic immediate push and idempotency; an integration regression
 checks that a DIGESTIBLE comment neither enqueues an individual push nor
 passes a stale queued delivery to the provider. A policy test verifies that
-every current kind uses the neutral preview and a catalog change asking for
-sender names is blocked, while existing immediate-provider handoffs remain
-generic. No UI change or screenshot is claimed in these backend-only slices.
+the three approved Wish date events are the only catalog-level exception to
+the neutral policy. Existing immediate-provider handoffs stay generic unless
+the transport has an independently reviewed device preview. This historic
+foundation has no UI acceptance evidence.

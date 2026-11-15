@@ -43,6 +43,12 @@ export interface UnifiedPushConfiguration {
      * @memberof UnifiedPushConfiguration
      */
     vapidPublicKey: string;
+    /**
+     * 
+     * @type {UnifiedPushConfigurationWishDatePreviewVersionEnum}
+     * @memberof UnifiedPushConfiguration
+     */
+    wishDatePreviewVersion?: UnifiedPushConfigurationWishDatePreviewVersionEnum;
 }
 
 
@@ -61,6 +67,14 @@ export const UnifiedPushConfigurationNotificationReferenceVersionEnum = {
     NUMBER_1: 1
 } as const;
 export type UnifiedPushConfigurationNotificationReferenceVersionEnum = typeof UnifiedPushConfigurationNotificationReferenceVersionEnum[keyof typeof UnifiedPushConfigurationNotificationReferenceVersionEnum];
+
+/**
+ * @export
+ */
+export const UnifiedPushConfigurationWishDatePreviewVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type UnifiedPushConfigurationWishDatePreviewVersionEnum = typeof UnifiedPushConfigurationWishDatePreviewVersionEnum[keyof typeof UnifiedPushConfigurationWishDatePreviewVersionEnum];
 
 
 /**
@@ -86,6 +100,7 @@ export function UnifiedPushConfigurationFromJSONTyped(json: any, ignoreDiscrimin
         'notificationReferenceVersion': json['notificationReferenceVersion'] == null ? undefined : json['notificationReferenceVersion'],
         'providerKey': json['providerKey'],
         'vapidPublicKey': json['vapidPublicKey'],
+        'wishDatePreviewVersion': json['wishDatePreviewVersion'] == null ? undefined : json['wishDatePreviewVersion'],
     };
 }
 
@@ -104,6 +119,7 @@ export function UnifiedPushConfigurationToJSONTyped(value?: UnifiedPushConfigura
         'notificationReferenceVersion': value['notificationReferenceVersion'],
         'providerKey': value['providerKey'],
         'vapidPublicKey': value['vapidPublicKey'],
+        'wishDatePreviewVersion': value['wishDatePreviewVersion'],
     };
 }
 

@@ -12,6 +12,12 @@ Owning issue: [#455](https://github.com/baerenmarke90/eimir/issues/455)
 (receipt part only; the global sender entry is unchanged). Related: #1206
 (quick actions), #515 (notification policy), #1790 (everyday closeness).
 
+The [Wish date proposal follow-up](../notification-workflow.md#wish-date-exchange-presentation-1910)
+reuses this receipt's presentation, timing and suppression rules. It puts a
+calendar badge on the check-in variant's calm arrival. Its action opens the
+proposal or confirmed Plan and never sends a reply on the recipient's behalf.
+Ordinary check-in status updates remain silent.
+
 ## Scope
 
 - One shared presentation primitive, `PartnerGestureReceipt`, for the existing
@@ -91,20 +97,23 @@ the shared `AuthorAvatar` with its initials fallback.
 **Foreground arrival.** There is no realtime notification transport. The
 receipt reuses the existing signals only:
 
-1. The shell's existing unread-count query (30-s refresh, focus refresh, and
-   the native push `wake` invalidation) is observed.
-2. Only an **increase** after the first observed value, in the visible and
-   focused window, triggers one read of the newest notification page
-   (`limit: 5`) through the existing authorized list endpoint. Tab switches,
-   focus without an increase and decreases cause no request.
-3. Only an unread gesture item from the partner, created after this shell
-   instance started and never handled before, qualifies. The newest one wins;
-   older qualifying items of the same read are marked handled and stay only in
-   the Notification Center.
+1. The shell observes the existing unread-count query. It refreshes every
+   30 seconds and on focus. An **increase** after the first observed value
+   can trigger one read of the newest notification page (`limit: 5`)
+   through the existing authorized list endpoint.
+2. A wake from the current native activation or a bound browser Wish date
+   wake can trigger the same read even when the unread count stays unchanged.
+   Reads require a visible, focused window and current Account and Space.
+   The wake supplies the signal, and the authorized response supplies the content.
+3. An unread gesture or Wish date notice from the partner qualifies only if
+   it is newer than the shell's arrival boundary and has not been handled.
+   The newest one wins. Other eligible items from the same read stay in the
+   Notification Center.
 
-So arrival latency is up to the existing 30-s refresh, or immediate when a
-native push wake reaches the foreground app. This is a documented limit, not a
-simulated realtime feature.
+A wake can reach the focused app without waiting for the next refresh.
+Without a wake, a notice can trigger the receipt on the next unread-count
+increase, usually within the refresh interval. Items that leave the count
+unchanged still appear in the Notification Center.
 
 **Push open.** Opening a push still resolves the item through
 `openNotification` and navigates exactly as before. For a gesture item, the
@@ -174,9 +183,9 @@ not a product regression.
 
 Known limits, documented instead of simulated:
 
-- **No realtime transport.** Arrival follows the existing 30-s unread-count
-  refresh, focus refresh and native push wake. A receipt can therefore appear
-  up to about 30 s after sending when push is off.
+- **No realtime transport.** Arrival follows the existing unread-count
+  refresh and the scoped foreground wakes documented above. Without a wake
+  or a count increase, an item stays in the Notification Center.
 - **Native foreground push.** This slice does not change how the Android app
   presents a push while it is in the foreground; the receipt only adds the
   in-app moment after the existing wake refresh.

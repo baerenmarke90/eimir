@@ -10,6 +10,7 @@ Name | Type
 `notificationReferenceVersion` | number
 `providerKey` | string
 `vapidPublicKey` | string
+`wishDatePreviewVersion` | number
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "notificationReferenceVersion": null,
   "providerKey": null,
   "vapidPublicKey": null,
+  "wishDatePreviewVersion": null,
 } satisfies UnifiedPushConfiguration
 
 console.log(example)

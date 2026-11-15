@@ -5166,6 +5166,13 @@
       "confirm": "Use as shared calendar",
       "saving": "Setting up …"
     },
+    "google": {
+      "confirmTitle": "Is this your Google account?",
+      "confirmBody": "{{label}} – eimir. writes your shared plans into a calendar of this account that you choose next.",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "waiting": "Sign in with Google and allow access. Then continue here."
+    },
     "connected": {
       "title": "Calendar connected",
       "body": "Your shared plans can now be synced automatically."
@@ -5223,6 +5230,8 @@
       "CALENDAR_RATE_LIMITED": "The calendar service asks for a short break. Try again in a moment.",
       "CALENDAR_TARGET_CHANGED": "The settings were just changed. We loaded the current state.",
       "CALENDAR_CONNECTION_LIMIT": "You already connected several calendars. Remove one first.",
+      "CALENDAR_GOOGLE_UNAVAILABLE": "Google Calendar is not set up on this eimir. right now.",
+      "CALENDAR_GOOGLE_EXPIRED": "The Google sign-in expired. Please connect Google Calendar again.",
       "fallback": "That didn’t work. Please try again."
     },
     "plan": {

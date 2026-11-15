@@ -10,6 +10,7 @@ import productTour from '../../src/i18n/locales/productTour';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -366,6 +367,7 @@ async function installDiscoverApiMocks(
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

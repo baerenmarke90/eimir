@@ -6,6 +6,7 @@ import { mockEmptyPartnerNickname } from './partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillEmptyPlanComments } from './planComments';
 import { fulfillNoWishDateProposal } from './productContext';
+import { fulfillNoOccasionSources } from './occasionSources';
 
 /*
  * Mocked API for the Pro date inspiration journey. The catalog response is
@@ -498,6 +499,7 @@ export async function installDateIdeaMocks(
     )
       return page_([]);
 
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${pathname}${url.search}`);
     return json(
       {

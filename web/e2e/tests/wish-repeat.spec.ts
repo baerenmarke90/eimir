@@ -12,6 +12,7 @@ import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishDateProposal } from '../support/productContext';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 /*
  * #1816: a completed wish can be experienced again. The repeat is a new wish
@@ -303,6 +304,7 @@ async function installMocks(page: Page): Promise<RepeatState> {
         { ETag: '"1"' },
       );
 
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${pathname}`);
     return json(
       {

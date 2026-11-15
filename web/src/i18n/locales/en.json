@@ -2369,6 +2369,7 @@
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
     "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",
+    "nothingChosen": "No photos chosen. You can open Google Photos again any time.",
     "progress": "Importing photos …",
     "retryImport": "Try again",
     "waitingMedia": "Google Photos is open. Choose your photos and videos there. This page continues automatically afterwards.",

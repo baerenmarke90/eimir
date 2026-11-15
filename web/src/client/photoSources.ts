@@ -74,6 +74,33 @@ export async function openPhotoBrowser(url: string, popup: Window | null) {
   }
 }
 
+/**
+ * Android app: whether the person closed Google's browser and is back in
+ * eimir. Google's photo picker cannot return to the app by itself, and the
+ * browser may also report "finished" when it is merely hidden, so the signal
+ * only counts while eimir. is visible again. Always false on the Web.
+ */
+export function watchPhotoBrowserReturn(signal: AbortSignal): () => boolean {
+  if (!isCapacitorNative() || signal.aborted) return () => false;
+  let finished = false;
+  const hidden = () => {
+    if (document.visibilityState === 'hidden') finished = false;
+  };
+  const listener = Browser.addListener('browserFinished', () => {
+    finished = true;
+  }).catch(() => null);
+  document.addEventListener('visibilitychange', hidden);
+  signal.addEventListener(
+    'abort',
+    () => {
+      document.removeEventListener('visibilitychange', hidden);
+      void listener.then((handle) => handle?.remove()).catch(() => {});
+    },
+    { once: true },
+  );
+  return () => finished && document.visibilityState === 'visible';
+}
+
 export async function closePhotoBrowser(popup: Window | null) {
   popup?.close();
   if (isCapacitorNative()) await Browser.close().catch(() => {});

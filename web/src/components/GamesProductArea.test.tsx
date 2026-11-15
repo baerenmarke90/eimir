@@ -65,11 +65,10 @@ function renderGames(
   return render(strictMode ? <StrictMode>{ui}</StrictMode> : ui);
 }
 
-function expectGameEntries(): void {
+function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.moments.title)).toBeTruthy();
   expect(screen.getByText(games.entries.wishes.title)).toBeTruthy();
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
-  expect(screen.getByText(games.entries.paarMinutes.title)).toBeTruthy();
 }
 
 function expectGameStatus(status: string, count: number): void {
@@ -120,7 +119,7 @@ describe('GamesProductArea', () => {
         ),
       ).toHaveLength(1);
       fireEvent.click(screen.getByRole('button', { name: games.whoOfUs.back }));
-      expectGameEntries();
+      expectThreeGameEntries();
       expect(
         view.container.querySelectorAll(
           '.subpage-back-slot .task-back-control',
@@ -136,8 +135,8 @@ describe('GamesProductArea', () => {
     renderGames(entitlement([]));
 
     await screen.findByText(games.entries.moments.title);
-    expectGameEntries();
-    expectGameStatus(games.status.premium, 4);
+    expectThreeGameEntries();
+    expectGameStatus(games.status.premium, 3);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -150,11 +149,6 @@ describe('GamesProductArea', () => {
         name: new RegExp(games.entries.perspective.title),
       }),
     ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: new RegExp(games.entries.paarMinutes.title),
-      }),
-    ).toBeNull();
   });
 
   it('opens all implemented sofa games without rendering an unlocked Premium panel', async () => {
@@ -163,10 +157,10 @@ describe('GamesProductArea', () => {
     const momentsLink = await screen.findByRole('link', {
       name: new RegExp(games.entries.moments.title),
     });
-    expectGameEntries();
+    expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expectGameStatus(games.status.comingSoon, 0);
-    expectGameStatus(games.status.playNow, 4);
+    expectGameStatus(games.status.playNow, 3);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);

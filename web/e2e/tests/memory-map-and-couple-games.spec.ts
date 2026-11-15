@@ -35,21 +35,6 @@ async function expectSecondaryProIcons(page: Page) {
   }
 }
 
-async function mockProGames(page: Page) {
-  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
-    route.fulfill({
-      json: {
-        spaceId: SPACE_ID,
-        tier: 'PREMIUM',
-        status: 'ACTIVE',
-        effectiveUntil: null,
-        isInGracePeriod: false,
-        capabilities: ['games.couple'],
-      },
-    }),
-  );
-}
-
 async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
   const sheet = page.getByRole('dialog', { name: mapCopy.title });
   const map = sheet.locator('.place-map-viewport');
@@ -499,11 +484,22 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('existing Pro games keep their home alongside Paar Minuten', async ({
+test('three Pro games retain their existing independent home', async ({
   page,
 }, info) => {
   await installMocks(page);
-  await mockProGames(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        spaceId: SPACE_ID,
+        tier: 'PREMIUM',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['games.couple'],
+      },
+    }),
+  );
   await page.route(`**/api/v1/spaces/${SPACE_ID}`, (route) =>
     route.fulfill({
       json: {
@@ -518,158 +514,19 @@ test('existing Pro games keep their home alongside Paar Minuten', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(4).fill(gameCopy.status.playNow),
-  );
-  await expect(page.locator('.games-shelf h2')).toHaveText(
-    Object.values(gameCopy.entries).map((entry) => entry.title),
+    Array(3).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {
-    animations: 'disabled',
-  });
-  await page.evaluate(() => {
-    window.scrollTo({ top: document.documentElement.scrollHeight });
-  });
-  await captureScreenshot(page, info, 'games-390-light-scrolled.png', {
-    animations: 'disabled',
+    fullPage: true,
   });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await captureScreenshot(page, info, 'games-1280-dark.png', {
     fullPage: true,
-    animations: 'disabled',
   });
   await page.setViewportSize({ width: 390, height: 844 });
 });
-
-for (const [width, theme] of [
-  [320, 'light'],
-  [360, 'light'],
-  [390, 'light'],
-  [390, 'dark'],
-  [430, 'light'],
-  [1280, 'dark'],
-] as const) {
-  test(`Paar Minuten opens, reveals, advances and returns at ${width}px ${theme}`, async ({
-    page,
-  }, info) => {
-    await installMocks(page);
-    await mockProGames(page);
-    await page.setViewportSize({ width, height: 844 });
-    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    await signIn(page);
-    await page.goto('/games');
-    const open = page.getByRole('button', {
-      name: new RegExp(gameCopy.entries.paarMinutes.title),
-    });
-    await expect(open).toBeVisible();
-    if (width === 320) {
-      await page.addStyleTag({
-        content: 'html { font-size: 200% !important; }',
-      });
-    }
-    await open.click();
-
-    const deck = gameCopy.paarMinutes;
-    const filmHeading = page.getByRole('heading', {
-      level: 2,
-      name: deck.formats.film.title,
-    });
-    const prompt = page.locator('.paar-minutes-prompt');
-    const next = page.getByRole('button', { name: deck.next, exact: true });
-    const reveal = page.getByRole('button', { name: deck.reveal, exact: true });
-    await expect(filmHeading).toBeFocused();
-    await expect(page.getByText(deck.formats.film.rules)).toBeVisible();
-    const openingPrompt = await prompt.innerText();
-    const film = Object.values(deck.rounds).find(
-      (round) => round.prompt === openingPrompt,
-    );
-    if (!film || !('answer' in film)) {
-      throw new Error('The opening round must be a localized film clue.');
-    }
-    const answer = page.getByRole('heading', { level: 3, name: film.answer });
-    await expect(answer).toHaveCount(0);
-    await expect(
-      page.locator('.subpage-back-slot .task-back-control'),
-    ).toHaveCount(1);
-    const fits = await page
-      .locator('.paar-minutes-game')
-      .evaluate((element) => {
-        const bounds = element.getBoundingClientRect();
-        return (
-          bounds.left >= 0 &&
-          bounds.right <= window.innerWidth &&
-          element.scrollWidth <= element.clientWidth + 1
-        );
-      });
-    expect(fits).toBe(true);
-    expect((await reveal.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-    await captureScreenshot(page, info, `paar-minuten-${width}-${theme}.png`, {
-      animations: 'disabled',
-    });
-    if (width === 320) {
-      await reveal.scrollIntoViewIfNeeded();
-      await captureScreenshot(page, info, 'paar-minuten-320-light-action.png', {
-        animations: 'disabled',
-      });
-    }
-
-    await reveal.press('Enter');
-    await expect(answer).toBeFocused();
-    await expect(prompt).toHaveText(openingPrompt);
-    await expect(reveal).toHaveCount(0);
-    if (width === 390 || width === 1280) {
-      await captureScreenshot(
-        page,
-        info,
-        `paar-minuten-revealed-${width}-${theme}.png`,
-        { animations: 'disabled' },
-      );
-    }
-    if (width === 390 && theme === 'light') {
-      const axe = await new AxeBuilder({ page })
-        .include('.paar-minutes-game')
-        .analyze();
-      expect(axe.violations).toEqual([]);
-    }
-
-    await next.press('Enter');
-    await expect(
-      page.getByRole('heading', { level: 2, name: deck.formats.story.title }),
-    ).toBeFocused();
-    await expect(answer).toHaveCount(0);
-
-    if (width === 390 && theme === 'light') {
-      await captureScreenshot(page, info, 'paar-minuten-story-390-light.png', {
-        animations: 'disabled',
-      });
-      const formats = Object.values(deck.formats);
-      const localizedPrompts = Object.values(deck.rounds).map(
-        (round) => round.prompt,
-      );
-      const visitedPrompts = new Set([openingPrompt]);
-      for (let offset = 1; offset < localizedPrompts.length; offset += 1) {
-        const format = formats[offset % formats.length];
-        await expect(
-          page.getByRole('heading', { level: 2, name: format.title }),
-        ).toBeFocused();
-        await expect(page.getByText(deck.answer, { exact: true })).toHaveCount(
-          0,
-        );
-        visitedPrompts.add(await prompt.innerText());
-        await next.click();
-      }
-      expect(visitedPrompts).toEqual(new Set(localizedPrompts));
-      await expect(filmHeading).toBeFocused();
-      await expect(prompt).toHaveText(openingPrompt);
-      await expect(answer).toHaveCount(0);
-      await expect(reveal).toBeVisible();
-    }
-
-    await page.getByRole('button', { name: deck.back }).click();
-    await expect(open).toBeFocused();
-  });
-}
 
 for (const kind of ['happiness', 'timeTravel'] as const) {
   for (const [width, theme] of [

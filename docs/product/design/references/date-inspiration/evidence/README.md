@@ -27,5 +27,11 @@ idea through the prefilled Plan composer; closing an unchanged prefill saves
 nothing and needs no prompt; catalog failure → retry; active Pro on the
 paywall; axe (WCAG 2.2 AA tags) on Compact and Expanded states.
 
+## Editorial revision 1.1.0
+
+The 390 px Dark capture shows the revised outings category, the count of 200
+ideas, and the first editorial image in the existing Date Ideas screen.
+[Editorial catalog 1.1.0 browser capture](editorial-1.1.0-390-dark.webp)
+
 Not covered here: a physical Android device run (no wrapper or native change),
 a real billing provider (none exists yet) and Product Owner acceptance.

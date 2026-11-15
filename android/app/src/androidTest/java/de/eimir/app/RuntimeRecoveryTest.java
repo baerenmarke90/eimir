@@ -13,7 +13,6 @@ import android.app.ActivityManager;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -48,12 +47,11 @@ public class RuntimeRecoveryTest {
     }
 
     private void ready(LauncherActivity activity) throws Exception {
-        PackageInfo provider = WebView.getCurrentWebViewPackage();
-        boolean legacyNativeFixture = Build.VERSION.SDK_INT == 28 && provider != null
-            && provider.versionName != null && provider.versionName.startsWith("69.");
-        if (!legacyNativeFixture) awaitBundledInterface(activity);
-        // The stock API 28/Chromium 69 image cannot parse the existing Web bundle.
-        // Preserve that lane's native adapter/frame assertions; it is not Web UI acceptance.
+        // Capacitor compares the provider with the product's documented WebView
+        // floor (android.minWebViewVersion, #1613). Below it, as on the stock
+        // API 28/Chromium 69 image, the bundle cannot run: keep the native
+        // adapter/frame assertions, which are not Web UI acceptance.
+        if (activity.getBridge().isMinimumWebViewInstalled()) awaitBundledInterface(activity);
         CountDownLatch frame = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> activity.getBridge().getWebView().postVisualStateCallback(
             1, new WebView.VisualStateCallback() {

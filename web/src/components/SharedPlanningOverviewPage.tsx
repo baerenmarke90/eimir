@@ -1317,6 +1317,7 @@ export function SharedPlanningOverviewPage({
             createActionContainer={occasionActionHost}
             peopleApi={peopleApi}
             profilesApi={profilesApi}
+            plansApi={apis.plans}
             spaceId={spaceId}
             accountId={accountId}
             apiBaseUrl={apiBaseUrl}

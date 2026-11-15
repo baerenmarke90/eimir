@@ -26,6 +26,7 @@ import {
   requestPartnerGestureReceipt,
 } from '../client/partnerGestureReceipt';
 import { ClientProblemError } from '../client/problemDetails';
+import { proPaywallPath } from '../client/routes';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
@@ -456,7 +457,7 @@ describe('PartnerGestureReceiptHost', () => {
     fireEvent.click(reply);
     expect(notifications.sendPartnerQuickAction).not.toHaveBeenCalled();
     expect(screen.getByTestId('location').textContent).toContain(
-      '/more/settings/account',
+      proPaywallPath(),
     );
   });
 

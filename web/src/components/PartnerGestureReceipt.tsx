@@ -28,7 +28,7 @@ import {
 } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { PARTNER_QUICK_ACTIONS_CAPABILITY } from '../client/partnerQuickActions';
-import { DEFAULT_APP_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
+import { DEFAULT_APP_ROUTE, proPaywallPath } from '../client/routes';
 import {
   type SpaceConfigurationSnapshot,
   spaceConfigurationQueryKey,
@@ -208,13 +208,13 @@ export function PartnerGestureReceipt({
       if (!coolingDown(gesture.cooldowns.KISS))
         reply = { label: copy.reply, run: () => send('KISS') };
     } else if (gesturesEnabled && capability.data === false) {
-      // The existing, restrained Pro discovery: no send, no paywall.
+      // The same Pro discovery as the quick actions: no send, no new paywall.
       reply = {
         label: copy.reply,
         pro: true,
         run: () => {
           onClose();
-          navigate(PRO_INFORMATION_ROUTE);
+          navigate(proPaywallPath());
         },
       };
     }

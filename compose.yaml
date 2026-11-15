@@ -26,7 +26,7 @@
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
         "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS": "[]",
-        "EIMIR_CALENDAR_SYNC_ENABLED": "true",
+        "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
         "EIMIR_CURSOR_SIGNING_KEY": "${EIMIR_CURSOR_SIGNING_KEY:?Set the existing instance value in Arcane}",
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
         "EIMIR_DEMO_MODE": "false",
@@ -36,8 +36,8 @@
         "EIMIR_ENCRYPTION_AT_REST": "required",
         "EIMIR_ENCRYPTION_KEYS": "${EIMIR_ENCRYPTION_KEYS:?Set the existing instance value in Arcane}",
         "EIMIR_ENVIRONMENT": "production",
-        "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "",
-        "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
         "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS": "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}",
@@ -90,7 +90,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0c5520053f6533d0987a92ee9c52321c5a5290b291956a4d882aeda76d4a4d1b",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:eff82002c4c11c20123d7ca068948aac8217222e31dd4de3908278b1d6fa3c5c",
       "networks": {
         "app": {
           "aliases": [
@@ -139,7 +139,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0c5520053f6533d0987a92ee9c52321c5a5290b291956a4d882aeda76d4a4d1b",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:eff82002c4c11c20123d7ca068948aac8217222e31dd4de3908278b1d6fa3c5c",
       "networks": {
         "app": null
       },
@@ -179,7 +179,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:3711192da373430e35f6527c91d2ff59e0fdd88f851b2c8ccbfe666beadd44b4",
+      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:6a8c5204848bd839b597495dafbf5b542cc8d6546c83b40fd531e514fa189435",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -218,7 +218,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:a395d90d3560fc2d410a7d7c32fb9793ac61c9f6cb147561cb327a87856f143a",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:161fb836a1d0b8dc02082aa4dbde3a93cffbf8a1e9eedc62cb4e0c7d01dc78bb",
       "networks": {
         "app": {},
         "proxy": {
@@ -249,7 +249,7 @@
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
         "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS": "[]",
-        "EIMIR_CALENDAR_SYNC_ENABLED": "true",
+        "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
         "EIMIR_CURSOR_SIGNING_KEY": "${EIMIR_CURSOR_SIGNING_KEY:?Set the existing instance value in Arcane}",
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
         "EIMIR_DEMO_MODE": "false",
@@ -259,8 +259,8 @@
         "EIMIR_ENCRYPTION_AT_REST": "required",
         "EIMIR_ENCRYPTION_KEYS": "${EIMIR_ENCRYPTION_KEYS:?Set the existing instance value in Arcane}",
         "EIMIR_ENVIRONMENT": "production",
-        "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "",
-        "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
         "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS": "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}",
@@ -300,7 +300,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0c5520053f6533d0987a92ee9c52321c5a5290b291956a4d882aeda76d4a4d1b",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:eff82002c4c11c20123d7ca068948aac8217222e31dd4de3908278b1d6fa3c5c",
       "networks": {
         "app": null
       },

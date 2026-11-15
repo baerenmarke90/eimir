@@ -114,7 +114,7 @@ page and is replaced by the category intro (`calendarSync.settingsIntro`).
 | Motion | Status pill cross-fades on change; sheet motion as existing; reduced motion removes translation. |
 | Expanded | Same order in the bounded reading width; no table or columns. |
 | Typing avoidance | Typing only where unavoidable (CalDAV address/credentials); `type="url"`, `autocomplete="username"`/`current-password`, no keyboard before the sheet opens; Google needs no typing. |
-| Browser-only controls | None; the Google handoff uses the system browser on Android and a popup/redirect on the Web. |
+| Browser-only controls | None; the Google handoff uses the system browser on Android and the same tab on the Web. |
 
 Why a list: the calendar choice is a single-select of the person's own
 calendars (radio group), a bounded utility decision, not a record table.
@@ -122,10 +122,11 @@ calendars (radio group), a bounded utility decision, not a record table.
 ### PR B2 – Google Calendar consent
 
 Google appears as the second provider choice of reference panel 3 once the
-operator configured the OAuth client. Choosing it opens Google's consent in a
-separate window (Web) or the system browser (Android app) through the shared,
-host-allowlisted opener; a blocked popup falls back to the same tab, and the
-localized return page links back to the calendar settings. Back in eimir., one
+operator configured the OAuth client. Choosing it opens Google's consent in
+the same tab (Web, corrected 2026-11-15: the server redirects back to the
+calendar settings with a fixed outcome) or the system browser (Android app)
+through the shared, host-allowlisted opener, where the localized return page
+links back to the calendar settings. Back in eimir., one
 confirmation block (`calendarSync.google.confirmTitle`) shows the Google
 account address with a primary confirm and a quiet cancel; only then the
 existing calendar-choice sheet opens. This explicit confirmation is a

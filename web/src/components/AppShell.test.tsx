@@ -169,7 +169,7 @@ describe('AppShell', () => {
 
   it.each([
     ['/today', '/today'],
-    ['/today/activity', '/today'],
+    ['/today/activity', '/more'],
     ['/story', '/story'],
     ['/plan', '/plan'],
     ['/plan/wishes/wish-1', '/plan'],
@@ -194,7 +194,7 @@ describe('AppShell', () => {
     ['/story', '/plan'],
     ['/story', '/more'],
     ['/more/people', '/today'],
-    ['/today/activity', '/story'],
+    ['/today/activity', '/today'],
   ])('does not mark %s as inside the %s destination', (route, sibling) => {
     const inactive = navigationLinkFor(renderShell(route), sibling);
 

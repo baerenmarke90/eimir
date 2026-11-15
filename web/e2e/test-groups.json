@@ -510,6 +510,10 @@
       "disposition": "FULL_REGRESSION",
       "reason": "Feature-owned secondary navigation, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
+    "activity-navigation-return.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "reason": "Feature-owned #1907 A2 Activity/More navigation: More highlight and Back target for Activity, scope switches without Back steps in Activity and Places, and Wir recent-trace return; selected through its entry roots, not added to the always-run core."
+    },
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13,

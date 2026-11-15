@@ -26,11 +26,9 @@ import {
   readableActivityItems,
   useActivityQuery,
 } from '../client/activityQueries';
-import { authorDisplayName } from '../client/authorPresentation';
 import { assertOnlineWrite } from '../client/connectivity';
 import { concealedTitle } from '../client/discreetPlans';
 import {
-  engagementTargetPath,
   type M4ProductApis,
   notificationPath,
   opaqueNextCursor,
@@ -439,16 +437,17 @@ export function ActivityProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scope = searchParams.get('scope') === 'own' ? 'own' : 'shared';
   function setScope(next: 'own' | 'shared') {
     const search = new URLSearchParams(searchParams);
     if (next === 'own') search.set('scope', next);
     else search.delete('scope');
-    setSearchParams(search);
+    // A scope switch is not a Back step, and the entry keeps its task origin
+    // so the shell Back still returns to where Activity was opened (#1907 A2).
+    setSearchParams(search, { replace: true, state: location.state });
   }
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
   const activityQuery = useActivityQuery(
     apis.activity,
     spaceId,
@@ -539,13 +538,6 @@ export function ActivityProductPage({
                   profilesApi={profilesApi}
                   spaceId={spaceId}
                   currentAccountId={currentAccountId}
-                  onOpen={(event, path) => {
-                    if (!isPlainPrimaryClick(event)) return;
-                    const taskOriginKey = captureOrigin();
-                    if (!taskOriginKey) return;
-                    event.preventDefault();
-                    void navigate(path, { state: { taskOriginKey } });
-                  }}
                 />
               ))}
             </ul>

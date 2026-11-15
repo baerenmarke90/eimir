@@ -229,7 +229,8 @@ export function PlacesOverviewPage({
           const params = new URLSearchParams(searchParams);
           if (next === 'ACTIVE') params.delete('scope');
           else params.set('scope', next);
-          setSearchParams(params);
+          // Like Lists, a scope switch is not a Back step (#1907 A2).
+          setSearchParams(params, { replace: true, state: location.state });
         }}
       />
       <section className="planning-subsection">

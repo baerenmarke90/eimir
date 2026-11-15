@@ -413,6 +413,8 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
+| com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
 | com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
@@ -445,6 +447,24 @@ non-authoritative Kotlin client and are not part of server data continuity.
 contains no server sender private key. The Google Services plugin activates only
 when that configured build input is present. Official distribution and Firebase
 project/package alignment are separate from server credential installation.
+
+### Store billing (2026-11-15, #1525)
+
+`@capgo/native-purchases` is used unmodified as the native store sheet bridge:
+Google Play Billing Library 9.1.0 on Android and StoreKit 2 on iOS (prepared,
+not yet connected). It was selected over a hand-written plugin, RevenueCat and
+`cordova-plugin-purchase` because it covers both stores behind one Capacitor
+interface, lets the backend acknowledge purchases
+(`autoAcknowledgePurchases: false`) and sends nothing to a third-party billing
+service. Only the opaque purchase reference (`appAccountToken`, sent to Google
+as the obfuscated account ID) and the selected base plan reach the store. The
+MPL notice and source location ship in
+`web/public/licenses/capgo-native-purchases-NOTICE.txt`; the complete license
+is the existing `mediabunny-MPL-2.0.txt` text. The Play Billing Library is a
+Google SDK component distributed under the Android SDK license; its artifacts
+are pinned in the strict Gradle verification metadata. Purchase verification
+runs on the eimir. Cloud backend with the already adopted `google-auth` and
+`httpx`; no new backend dependency is added.
 
 ## iOS — Capacitor wrapper runtime
 

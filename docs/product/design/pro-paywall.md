@@ -49,18 +49,33 @@ transitions without hiding information.
 
 ## Prices and billing channel
 
-`web/src/client/proBilling.ts` holds the Product Owner target prices
-(EUR 7.99 monthly, EUR 59.99 yearly per Space, about 37% saving; superseding
-#876) as `source: 'reference'`. A connected provider must supply its own
-offers (`source: 'provider'`), which then replace the reference values; the
-client never invents a chargeable price.
+Purchases are in-app only (Product Owner, 2026-11-15, #1525). The runtime
+platform decides the channel, never the viewport width:
 
-`currentBillingChannel()` returns `unavailable` for both runtime platforms
-because no production adapter exists yet (Web would use Stripe, the native
-Android app Google Play Billing; a browser checkout must never appear in the
-native app). In that state the paywall shows the product information and the
-note `proPaywall.unavailableTitle`, and offers **no** purchase or restore
-button, no simulated confirmation and no local unlock.
+| Runtime | Channel (`useBillingChannel`) | Paywall |
+| --- | --- | --- |
+| Android app, eimir. Cloud with Play configured | Google Play (`storeBilling.ts`) | live store prices, purchase, restore, manage |
+| Android app, store unreachable or offer incomplete | `unavailable`, `reason: 'store'` | note `proPaywall.storeUnavailableTitle` + retry; no purchase |
+| Android app, Self-Hosted or Play not configured | `unavailable` | note `proPaywall.unavailableTitle`; no purchase |
+| Browser (any operating model), iOS app before launch | `unavailable` | note `proPaywall.unavailableTitle`; no purchase |
+
+`web/src/client/proBilling.ts` keeps the Product Owner target prices
+(EUR 7.99 monthly, EUR 59.99 yearly per Space) as `source: 'reference'`
+product information. When Google Play answers, its offers
+(`source: 'provider'`) replace them, including the customer's currency and an
+eligible free trial (`proPaywall.plans.trial.*`, shown only when Google offers
+it). While the store loads, the reference prices stay visible with the status
+`proPaywall.loadingOffers` and no purchase action. The client never invents a
+chargeable price; there is no simulated confirmation and no local unlock.
+
+Purchase flow: the backend binds the sponsor Account and the Space to an
+opaque purchase reference (`POST /spaces/{spaceId}/billing/purchases`); the
+Play sheet opens with that reference; the app hands the purchase token to the
+backend (`POST .../billing/google-play/purchases`), which verifies it with
+Google, records the Space grant and acknowledges the purchase. The store note
+`proPaywall.storeNote` states that payment runs through Google Play and covers
+the shared Space. An active Space sees `proPaywall.manage`, which opens Google
+Play's own subscription management.
 
 ## Entitlement status
 
@@ -76,7 +91,7 @@ withdraws a capability; a confirmed purchase invalidates the read once).
 - **Unknown** (read failed or pending): plan information stays visible, a
   neutral status note with retry is shown, nothing claims active or inactive.
 
-## Purchase outcomes and return (for the future adapter)
+## Purchase outcomes and return
 
 `ProPurchaseOutcome` is the complete state set a provider flow must map to:
 
@@ -90,6 +105,13 @@ withdraws a capability; a confirmed purchase invalidates the read once).
 | `failed` | Payment failed, nothing unlocked (alert) | Stay |
 | `network` | No connection, try again (alert) | Stay |
 | `expired` | Access expired, content intact (alert) | Stay |
+| `nothingToRestore` | No purchase found, nothing charged (alert) | Stay |
+
+Google Play mapping: start conflict `BILLING_SPACE_ALREADY_PREMIUM` →
+`partnerActive`; store `USER_CANCELED` → `cancelled`; pending payment →
+`pending`; `ITEM_ALREADY_OWNED` → restore; store network codes → `network`;
+backend unreachable after the store took the payment → `pending` (the
+notification completes it); other errors → `failed`.
 
 Return uses browser history when the paywall was opened inside the app and
 otherwise the context's home (`/plan#wishes`, recaps, map, account settings,
@@ -97,7 +119,7 @@ games, More). The result message receives focus for screen readers.
 
 ## Privacy, downgrade and Free
 
-Only the selected plan identifier would reach a provider adapter; no Space
+Only the opaque purchase reference and the selected base plan reach Google Play; no Space
 content, names or relationship data. Downgrade never deletes or hides content;
 Wishes and Plans (including those created from date ideas) stay Free/Core and
 never show a paywall. Security, privacy, export and accessibility are never
@@ -111,9 +133,10 @@ implementation rather than generated before implementation (no image model in
 this session) — a documented deviation for Product Owner review. Runtime
 captures: [evidence](references/date-inspiration/evidence/README.md).
 
-## Follow-up (separate task)
+## Open points
 
-Connecting Stripe (Web) and Google Play Billing (Android) adapters, the
-backend receipt/webhook reconciliation into Space grants, restore flows and
-store price localization. Until then Pro is granted through the existing
-admin and Self-Hosted license paths.
+The Play Console catalog, license testers, service account and Pub/Sub
+notifications still need the verified developer account; no real purchase has
+run on a device yet ([setup](../../operations/google-play-billing.md)). Apple
+In-App Purchase follows at the iOS launch; Self-Hosted Pro keeps the signed
+offline license path.

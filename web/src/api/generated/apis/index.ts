@@ -5,6 +5,7 @@ export * from './ActivityApi';
 export * from './AppearanceApi';
 export * from './AttachmentsApi';
 export * from './AuthApi';
+export * from './BillingApi';
 export * from './CalendarSyncApi';
 export * from './ChapterRelationsApi';
 export * from './ChaptersApi';

@@ -182,6 +182,19 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    # Store billing (#1525) owns its purchase flow in test_billing_google_play;
+    # here every route joins the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/billing/channels"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/purchases",
+        body={"store": "GOOGLE_PLAY", "plan": "yearly"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/google-play/purchases",
+        body={"purchaseToken": "matrix-token"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),

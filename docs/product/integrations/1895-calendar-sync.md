@@ -72,6 +72,6 @@ a foreign calendar.
 | --- | --- |
 | Adapter behaviour against CalDAV response styles (relative/absolute hrefs, missing ETag, missing privilege set, well-known redirect) | Automated (fixtures) |
 | Google Calendar API behaviour (ids, ETags, cancelled ids, rate limits, refresh, revoke) | Automated (API double) |
-| Live CalDAV server (Radicale/Nextcloud/SOGo/Baïkal) | **Not yet verified** |
+| Live CalDAV server | Radicale 3.5.4: protocol check passed locally (discovery, listing, conditional create/update/delete, 412 semantics, full-URL fallback; transport shimmed for loopback). Nextcloud/Sabre, SOGo, Baïkal: **not yet verified** |
 | Live Google account with the operator's OAuth client | **Not yet verified**; requires the Google setup above |
 | Android app consent via system browser | Not verified on a device |

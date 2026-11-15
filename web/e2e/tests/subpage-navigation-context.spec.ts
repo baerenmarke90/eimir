@@ -319,9 +319,9 @@ for (const [width, theme, large] of [
     await expect(page).toHaveURL(/\/story$/);
     await page.goto('/more/settings/appearance');
     await expect(
-      page.locator('.subpage-back-slot .task-back-control'),
+      page.locator('.page-heading-title-row .task-back-control'),
     ).toHaveCount(1);
-    await page.locator('.subpage-back-slot .task-back-control').click();
+    await page.locator('.page-heading-title-row .task-back-control').click();
     await expect(page).toHaveURL(/\/more\/settings$/);
   });
 }

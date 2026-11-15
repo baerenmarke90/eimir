@@ -1,10 +1,10 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
-import copy from '../../src/i18n/locales/wishSelection';
 import planning from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import copy from '../../src/i18n/locales/wishSelection';
 import localizedFixtures from '../fixtures/locales/de';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -394,7 +394,7 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     1,
   );
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.task-back-control').click();
   await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
   await expect(
     page.getByRole('tab', {

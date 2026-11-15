@@ -39,3 +39,9 @@ and the contextual "plan for this day" action from the reader are unchanged.
 - Compact 360/390/430 px, 320 px reflow, 200 % text, Light and Dark, reduced motion,
   keyboard focus and Expanded.
 - No new data, endpoint, entitlement or managed cost.
+
+## Implementation evidence
+
+Captured by the browser journey in `web/e2e/tests/people-important-dates-mobile-first.spec.ts`
+on CI run 43757532311 (PR head `2416bc371`, merged with `main`): `10-impl-november-390-light.png`,
+`11-impl-december-390-light.png`, `12-impl-december-390-dark.png`, `13-impl-december-1280-dark.png`.

@@ -4102,6 +4102,29 @@
     "cooldown": "Available again later.",
     "sendError": "Sending could not be confirmed. Please try again."
   },
+  "partnerGestureReceipt": {
+    "label": "Gesture from {{name}}",
+    "labelAnon": "Gesture from your partner",
+    "close": "Close",
+    "thinking": {
+      "title": "{{name}} is thinking of you right now",
+      "titleAnon": "Someone is thinking of you right now",
+      "detail": "A small hello, just for you.",
+      "reply": "Send one back"
+    },
+    "kiss": {
+      "title": "A kiss from {{name}}",
+      "titleAnon": "A kiss for you",
+      "detail": "For you.",
+      "reply": "Send a kiss back"
+    },
+    "checkIn": {
+      "title": "{{name}} would like to know how you are",
+      "titleAnon": "Your partner would like to know how you are",
+      "detail": "Only if you feel like it.",
+      "reply": "Share how you feel"
+    }
+  },
   "comments": {
     "kicker": "Conversation",
     "write": "Write a comment",

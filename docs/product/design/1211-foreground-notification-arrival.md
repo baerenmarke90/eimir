@@ -5,6 +5,8 @@
 remains authoritative: relationship content leads; notification meaning comes
 before read management.
 
+> **Update (2026-11-15, #455):** the Product Owner approved one transient foreground surface for the three partner gestures only. Its contract, which keeps the gates below, is [Partner gesture receipt](partner-gesture-receipt.md). No other kind gains a banner.
+
 ## Decision
 
 **Narrow the present experience to the existing unread indicator, preview and

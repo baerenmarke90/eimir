@@ -8,6 +8,8 @@ notification surface is justified. This review specifies **which visible
 transitions, if any, warrant motion**; it does not create new event delivery,
 UI, keyframes or notification priorities.
 
+> **Update (2026-11-15, #455):** the Product Owner approved the expressive one-shot motion of the [partner gesture receipt](partner-gesture-receipt.md), with two new gesture duration tokens. All other rows below are unchanged.
+
 ## Critical product/UX decision
 
 **No new global incoming-event animation is approved now.** The current

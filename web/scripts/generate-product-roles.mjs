@@ -199,6 +199,8 @@ declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
 declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
+declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -297,6 +299,8 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-map-stack: ${value('motion.duration.instant')};
     --duration-controls-return: ${value('motion.duration.instant')};
     --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-gesture-moment: ${value('motion.duration.instant')};
+    --duration-gesture-sequence: ${value('motion.duration.instant')};
   }
 }
 

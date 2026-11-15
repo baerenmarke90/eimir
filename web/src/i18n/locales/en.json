@@ -5034,6 +5034,24 @@
           }
         }
       },
+      "calendar": {
+        "title": "Plan together. Sync automatically.",
+        "description": "Your plans appear in the calendar you already share – without copying them by hand.",
+        "benefits": {
+          "first": {
+            "title": "Your shared calendar",
+            "body": "New and changed plans land once in the calendar you both use."
+          },
+          "second": {
+            "title": "CalDAV or Google",
+            "body": "Connect a compatible CalDAV calendar or Google Calendar."
+          },
+          "third": {
+            "title": "Safe by design",
+            "body": "Changes made in the calendar are never overwritten without asking."
+          }
+        }
+      },
       "general": {
         "title": "More possibilities for your shared story.",
         "description": "eimir. Pro adds ideas, recaps and special experiences to your shared home.",
@@ -5113,5 +5131,109 @@
     },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"
+  },
+  "calendarSync": {
+    "settingsTitle": "Connect calendar",
+    "settingsIntro": "Connect your calendar to sync shared plans automatically and find free time for each other.",
+    "sharedHeading": "Shared calendar",
+    "pro": "Pro",
+    "sharedIntro": "Choose a calendar you both already use. New and changed plans appear there automatically – once, for both of you.",
+    "handoffStaysFree": "“Add to calendar” for single plans stays free.",
+    "proRequired": "Automatic sync is part of eimir. Pro and covers both of you.",
+    "unavailable": "Calendar sync is not set up on this eimir.",
+    "loadFailed": "The calendar settings could not be loaded.",
+    "providers": {
+      "CALDAV": "CalDAV",
+      "CALDAV_hint": "For compatible calendars such as Nextcloud, SOGo, Radicale or Baïkal",
+      "GOOGLE": "Google Calendar",
+      "GOOGLE_hint": "Secure sign-in directly with Google"
+    },
+    "caldav": {
+      "sheetTitle": "Connect CalDAV",
+      "privateConnection": "The credentials belong only to your account. Your partner never sees them.",
+      "address": "Server address",
+      "addressHint": "The address of your calendar server or of one calendar, starting with https://.",
+      "username": "Username",
+      "password": "Password or app password",
+      "passwordHint": "A dedicated app password is safer and can be revoked at any time.",
+      "consent": "Connect this calendar access to my eimir. account",
+      "check": "Check connection",
+      "checking": "Checking the connection …"
+    },
+    "choose": {
+      "title": "Which calendar should it be?",
+      "readOnly": "read-only",
+      "confirm": "Use as shared calendar",
+      "saving": "Setting up …"
+    },
+    "connected": {
+      "title": "Calendar connected",
+      "body": "Your shared plans can now be synced automatically."
+    },
+    "target": {
+      "via": "{{provider}} · connected by {{name}}",
+      "viaYou": "{{provider}} · connected by you",
+      "synced_one": "{{count}} plan is in your calendar.",
+      "synced_other": "{{count}} plans are in your calendar.",
+      "kept_one": "{{count}} event stayed in the calendar because it was changed there.",
+      "kept_other": "{{count}} events stayed in the calendar because they were changed there.",
+      "lastSuccess": "Last synced: {{time}}"
+    },
+    "status": {
+      "synced": "Synced",
+      "running": "Syncing",
+      "broken": "Connection interrupted",
+      "attention": "Attention needed",
+      "paused": "Paused",
+      "proPaused": "Paused until you have eimir. Pro again",
+      "calendarGone": "The calendar can no longer be reached or written to.",
+      "brokenHint": "The credentials are no longer accepted. Reconnect the calendar.",
+      "brokenPartner": "{{name}} needs to renew the connection. You can end the sync at any time."
+    },
+    "conflict": {
+      "EVENT_CHANGED": "“{{title}}” was changed in the calendar. eimir. won’t overwrite it without asking.",
+      "EVENT_MISSING": "“{{title}}” was deleted in the calendar. eimir. won’t recreate it without asking.",
+      "unknownPlan": "A plan",
+      "overwrite": "Match with eimir.",
+      "detach": "Stop syncing"
+    },
+    "actions": {
+      "syncNow": "Sync now",
+      "pause": "Pause",
+      "resume": "Resume",
+      "end": "End sync",
+      "endConfirm": "Sync ends for both of you. Events already transferred stay in the calendar.",
+      "endConfirmAction": "End",
+      "keepSyncing": "Keep syncing",
+      "disconnect": "Remove access",
+      "disconnectHint": "Removes your saved credentials. Events in the calendar stay.",
+      "reconnect": "Reconnect",
+      "changeCalendar": "Choose another calendar",
+      "connectAnother": "Connect another calendar"
+    },
+    "errors": {
+      "CALENDAR_AUTH_FAILED": "Username or password is not correct. Check them or create a new app password.",
+      "CALENDAR_NOT_FOUND": "No calendar was found at this address. Try the full calendar address.",
+      "CALENDAR_NOT_WRITABLE": "eimir. may not write to this calendar.",
+      "CALENDAR_ADDRESS_INVALID": "Please enter a full address starting with https://.",
+      "CALENDAR_TARGET_BLOCKED": "This address cannot be reached for security reasons.",
+      "CALENDAR_TLS_INVALID": "The connection is not secure: the server’s certificate is not trusted.",
+      "CALENDAR_UNREACHABLE": "The calendar server can’t be reached right now. Try again later.",
+      "CALENDAR_TIMEOUT": "The calendar server took too long. Try again later.",
+      "CALENDAR_RATE_LIMITED": "The calendar service asks for a short break. Try again in a moment.",
+      "CALENDAR_TARGET_CHANGED": "The settings were just changed. We loaded the current state.",
+      "CALENDAR_CONNECTION_LIMIT": "You already connected several calendars. Remove one first.",
+      "fallback": "That didn’t work. Please try again."
+    },
+    "plan": {
+      "SYNCED": "In your shared calendar",
+      "PENDING": "Being transferred to your calendar",
+      "FAILED": "Could not be transferred",
+      "CONFLICT": "Changed in the calendar",
+      "DETACHED": "No longer synced",
+      "KEPT": "Kept in the calendar",
+      "paused": "Calendar sync paused",
+      "review": "View"
+    }
   }
 }

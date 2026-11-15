@@ -315,6 +315,13 @@ class Settings(IdentityCompatibleSettings):
     # an Account is eligible only when one of its verified addresses is listed here.
     google_photos_test_account_emails: list[str] = Field(default_factory=list)
 
+    # Automatic Plan calendar sync (#1895). Credentials are encrypted at rest,
+    # so the feature is only offered with EIMIR_ENCRYPTION_AT_REST=required.
+    calendar_sync_enabled: bool = True
+    # Self-Hosted only: exact host names of private CalDAV servers (LAN, VPN)
+    # that may resolve to non-public addresses. Loopback stays blocked.
+    calendar_caldav_private_hosts: list[str] = Field(default_factory=list)
+
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
     # must not be valid for "evil.example".
@@ -536,6 +543,18 @@ class Settings(IdentityCompatibleSettings):
             if connection.id == connection_id:
                 return connection
         return None
+
+    @model_validator(mode="after")
+    def calendar_private_hosts_are_self_hosted(self) -> Self:
+        if self.calendar_caldav_private_hosts and self.deployment is Deployment.CLOUD:
+            raise ValueError(
+                "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS is a Self-Hosted option; the Cloud "
+                "never admits private network targets."
+            )
+        self.calendar_caldav_private_hosts = sorted(
+            {host.strip().lower().rstrip(".") for host in self.calendar_caldav_private_hosts} - {""}
+        )
+        return self
 
     @model_validator(mode="after")
     def demo_mode_matches_environment(self) -> Self:

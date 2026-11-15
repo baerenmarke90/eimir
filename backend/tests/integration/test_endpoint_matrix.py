@@ -264,6 +264,57 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         verification_template="/api/v1/spaces/{spaceId}/photo-sources",
     ),
+    # Own connections, Pro and provider behaviour are exercised in test_calendar_sync.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/calendar-sync"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/caldav",
+        body={
+            "url": "https://calendar.example.org/dav/",
+            "username": "synthetic",
+            "password": "synthetic-password",
+            "consent": True,
+        },
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/calendars",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}",
+        fixture_aliases={"connectionId": "memoryId"},
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        body={
+            "connectionId": "00000000-0000-7000-8000-000000000001",
+            "calendarRef": "/dav/calendars/synthetic/shared/",
+        },
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/pause", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/resume", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/sync"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve",
+        body={"action": "DETACH"},
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/photo-selections",

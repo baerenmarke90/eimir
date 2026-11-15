@@ -197,6 +197,12 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     except ValueError:
         return
 
+    # Calendar sync (#1895) reads the current Plan later in its own job, so it
+    # only schedules work here and never depends on notification eligibility.
+    from eimir.calendar_sync import service as calendar_sync
+
+    calendar_sync.on_outbox_event(session, event, event_type)
+
     # Lock all actor/recipient Accounts in deterministic order before any
     # projection. This serializes stale Outbox work with deletion acceptance
     # and makes accepted deletion a hard boundary for new activity,

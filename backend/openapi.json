@@ -873,6 +873,240 @@
         "title": "AuthorSummary",
         "type": "object"
       },
+      "CalDavConnectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "password": {
+            "format": "password",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "url": {
+            "maxLength": 512,
+            "minLength": 10,
+            "title": "Url",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "username",
+          "password",
+          "consent"
+        ],
+        "title": "CalDavConnectionCreate",
+        "type": "object"
+      },
+      "CalendarConflictResolution": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "OVERWRITE",
+              "DETACH",
+              "DISMISS"
+            ],
+            "title": "Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "CalendarConflictResolution",
+        "type": "object"
+      },
+      "CalendarConflictView": {
+        "properties": {
+          "planId": {
+            "format": "uuid",
+            "title": "Planid",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "EVENT_CHANGED",
+              "EVENT_MISSING"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId",
+          "reason"
+        ],
+        "title": "CalendarConflictView",
+        "type": "object"
+      },
+      "CalendarConnectionCreated": {
+        "properties": {
+          "calendars": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarOption"
+            },
+            "title": "Calendars",
+            "type": "array"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/CalendarConnectionView"
+          }
+        },
+        "required": [
+          "connection",
+          "calendars"
+        ],
+        "title": "CalendarConnectionCreated",
+        "type": "object"
+      },
+      "CalendarConnectionView": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Shown only to the connecting person.",
+            "title": "Label",
+            "type": "string"
+          },
+          "service": {
+            "enum": [
+              "CALDAV",
+              "GOOGLE"
+            ],
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "BROKEN"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "service",
+          "label",
+          "status"
+        ],
+        "title": "CalendarConnectionView",
+        "type": "object"
+      },
+      "CalendarList": {
+        "properties": {
+          "calendars": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarOption"
+            },
+            "title": "Calendars",
+            "type": "array"
+          }
+        },
+        "required": [
+          "calendars"
+        ],
+        "title": "CalendarList",
+        "type": "object"
+      },
+      "CalendarOption": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ref": {
+            "description": "Opaque provider calendar reference.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "writable": {
+            "title": "Writable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ref",
+          "name",
+          "writable"
+        ],
+        "title": "CalendarOption",
+        "type": "object"
+      },
+      "CalendarSyncView": {
+        "properties": {
+          "available": {
+            "description": "The instance offers calendar sync at all.",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "canSync": {
+            "description": "The Space has eimir. Pro for automatic sync.",
+            "title": "Cansync",
+            "type": "boolean"
+          },
+          "connections": {
+            "description": "Only the caller's own connections.",
+            "items": {
+              "$ref": "#/components/schemas/CalendarConnectionView"
+            },
+            "title": "Connections",
+            "type": "array"
+          },
+          "services": {
+            "items": {
+              "enum": [
+                "CALDAV",
+                "GOOGLE"
+              ],
+              "type": "string"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpaceCalendarTargetView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetToken": {
+            "title": "Targettoken",
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "canSync",
+          "services",
+          "connections",
+          "targetToken"
+        ],
+        "title": "CalendarSyncView",
+        "type": "object"
+      },
       "CapabilitiesView": {
         "properties": {
           "expiresInSeconds": {
@@ -8534,6 +8768,67 @@
         "title": "PlaceUpdate",
         "type": "object"
       },
+      "PlanCalendarSyncView": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "enum": [
+              "NOT_SYNCED",
+              "PENDING",
+              "SYNCED",
+              "CONFLICT",
+              "DETACHED",
+              "FAILED",
+              "KEPT"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "syncedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncedat"
+          },
+          "targetStatus": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACTIVE",
+                  "PAUSED",
+                  "SUSPENDED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetstatus"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PlanCalendarSyncView",
+        "type": "object"
+      },
       "PlanComplete": {
         "additionalProperties": false,
         "properties": {
@@ -13920,6 +14215,133 @@
           "accountCreated"
         ],
         "title": "SignupSessionView",
+        "type": "object"
+      },
+      "SpaceCalendarTargetSave": {
+        "additionalProperties": false,
+        "properties": {
+          "calendarRef": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Calendarref",
+            "type": "string"
+          },
+          "connectionId": {
+            "format": "uuid",
+            "title": "Connectionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "calendarRef"
+        ],
+        "title": "SpaceCalendarTargetSave",
+        "type": "object"
+      },
+      "SpaceCalendarTargetView": {
+        "properties": {
+          "calendarName": {
+            "title": "Calendarname",
+            "type": "string"
+          },
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarConflictView"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "connectionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The sponsoring connection; only for the sponsor.",
+            "title": "Connectionid"
+          },
+          "failedCount": {
+            "title": "Failedcount",
+            "type": "integer"
+          },
+          "keptCount": {
+            "title": "Keptcount",
+            "type": "integer"
+          },
+          "lastSuccessAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastsuccessat"
+          },
+          "pendingCount": {
+            "title": "Pendingcount",
+            "type": "integer"
+          },
+          "service": {
+            "enum": [
+              "CALDAV",
+              "GOOGLE"
+            ],
+            "title": "Service",
+            "type": "string"
+          },
+          "sponsor": {
+            "$ref": "#/components/schemas/AuthorSummary"
+          },
+          "sponsoredByMe": {
+            "title": "Sponsoredbyme",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "SUSPENDED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "statusReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statusreason"
+          },
+          "syncedCount": {
+            "title": "Syncedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "service",
+          "calendarName",
+          "sponsor",
+          "sponsoredByMe",
+          "status",
+          "syncedCount",
+          "pendingCount",
+          "failedCount",
+          "keptCount",
+          "conflicts"
+        ],
+        "title": "SpaceCalendarTargetView",
         "type": "object"
       },
       "SpaceConfigurationUpdate": {
@@ -22242,6 +22664,903 @@
         "summary": "Create Attachment Read Access",
         "tags": [
           "attachments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync": {
+      "get": {
+        "operationId": "getCalendarSync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Calendar Sync",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/connections/caldav": {
+      "post": {
+        "operationId": "connectCalDavCalendar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalDavConnectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarConnectionCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Connect Caldav",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}": {
+      "delete": {
+        "operationId": "removeCalendarConnection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Remove Connection",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/calendars": {
+      "get": {
+        "operationId": "listConnectionCalendars",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "List Connection Calendars",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}": {
+      "get": {
+        "operationId": "getPlanCalendarSync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanCalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Plan Sync",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve": {
+      "post": {
+        "operationId": "resolvePlanCalendarConflict",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarConflictResolution"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanCalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Resolve Conflict",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/sync": {
+      "post": {
+        "operationId": "requestCalendarSync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Request Sync",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/target": {
+      "delete": {
+        "operationId": "endCalendarSyncTarget",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "End Target",
+        "tags": [
+          "calendar-sync"
+        ]
+      },
+      "put": {
+        "operationId": "setCalendarSyncTarget",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceCalendarTargetSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Set Target",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/target/pause": {
+      "post": {
+        "operationId": "pauseCalendarSyncTarget",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Pause Target",
+        "tags": [
+          "calendar-sync"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/calendar-sync/target/resume": {
+      "post": {
+        "operationId": "resumeCalendarSyncTarget",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Resume Target",
+        "tags": [
+          "calendar-sync"
         ]
       }
     },

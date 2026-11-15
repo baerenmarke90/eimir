@@ -1,5 +1,12 @@
 import { useQueries } from '@tanstack/react-query';
-import { type RefObject, useId, useMemo, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import type { CalendarOption } from '../api/generated/models/CalendarOption';
@@ -8,6 +15,8 @@ import { Configuration } from '../client/apiConfiguration';
 import {
   calendarSyncErrorKey,
   calendarSyncStatus,
+  openGoogleConsent,
+  prepareGoogleConsent,
   useCalendarSync,
 } from '../client/calendarSync';
 import { isClientOnline } from '../client/connectivity';
@@ -46,8 +55,24 @@ export function CalendarSyncSettings(props: Props) {
   const [message, setMessage] = useState('');
   const [problem, setProblem] = useState('');
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [awaitingGoogle, setAwaitingGoogle] = useState(false);
   const inFlight = useRef(false);
   const trigger = useRef<HTMLButtonElement>(null);
+
+  // The consent happens in another window; read the result when people return.
+  useEffect(() => {
+    if (!awaitingGoogle) return;
+    const back = () => {
+      if (document.visibilityState === 'visible')
+        void refresh().catch(() => {});
+    };
+    window.addEventListener('focus', back);
+    document.addEventListener('visibilitychange', back);
+    return () => {
+      window.removeEventListener('focus', back);
+      document.removeEventListener('visibilitychange', back);
+    };
+  }, [awaitingGoogle, refresh]);
 
   async function run(action: () => Promise<CalendarSyncView | void>) {
     if (inFlight.current) return;
@@ -94,6 +119,42 @@ export function CalendarSyncSettings(props: Props) {
   const openConnections = view.connections.filter(
     (connection) => connection.status === 'ACTIVE',
   );
+  const pendingGoogle = view.connections.filter(
+    (connection) => connection.status === 'PENDING',
+  );
+
+  async function startGoogle() {
+    // Open the window inside the click so browsers do not block it.
+    const popup = prepareGoogleConsent();
+    await run(async () => {
+      try {
+        const started = await api.startGoogleCalendarConnection({
+          spaceId: props.spaceId,
+        });
+        await openGoogleConsent(started.authorizationUrl, popup);
+        setAwaitingGoogle(true);
+      } catch (failure) {
+        popup?.close();
+        throw failure;
+      }
+    });
+  }
+
+  async function confirmGoogle(connectionId: string) {
+    await run(async () => {
+      const confirmed = await api.confirmCalendarConnection({
+        spaceId: props.spaceId,
+        connectionId,
+      });
+      setAwaitingGoogle(false);
+      setStep({
+        kind: 'choose',
+        connectionId: confirmed.connection.id,
+        calendars: confirmed.calendars,
+      });
+      await refresh().catch(() => {});
+    });
+  }
 
   async function chooseFrom(connectionId: string) {
     await run(async () => {
@@ -133,11 +194,57 @@ export function CalendarSyncSettings(props: Props) {
           confirmEnd={confirmEnd}
           setConfirmEnd={setConfirmEnd}
           run={run}
-          onReconnect={() => setStep({ kind: 'credentials' })}
+          onReconnect={() =>
+            target.service === 'GOOGLE'
+              ? void startGoogle()
+              : setStep({ kind: 'credentials' })
+          }
         />
       ) : view.canSync ? (
         <>
           <p>{t('calendarSync.sharedIntro')}</p>
+          {pendingGoogle.map((connection) => (
+            <section
+              key={connection.id}
+              className="calendar-sync-confirm"
+              aria-label={t('calendarSync.google.confirmTitle')}
+            >
+              <strong>{t('calendarSync.google.confirmTitle')}</strong>
+              <p>
+                {t('calendarSync.google.confirmBody', {
+                  label: connection.label,
+                })}
+              </p>
+              <div className="calendar-sync-row">
+                <button
+                  type="button"
+                  disabled={busy || offline}
+                  onClick={() => void confirmGoogle(connection.id)}
+                >
+                  {t('calendarSync.google.confirm')}
+                </button>
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await api.removeCalendarConnection({
+                        spaceId: props.spaceId,
+                        connectionId: connection.id,
+                      });
+                      return api.getCalendarSync({ spaceId: props.spaceId });
+                    })
+                  }
+                >
+                  {t('calendarSync.google.cancel')}
+                </button>
+              </div>
+            </section>
+          ))}
+          {awaitingGoogle && pendingGoogle.length === 0 ? (
+            <p role="status">{t('calendarSync.google.waiting')}</p>
+          ) : null}
           {openConnections.map((connection) => (
             <button
               key={connection.id}
@@ -162,7 +269,11 @@ export function CalendarSyncSettings(props: Props) {
               type="button"
               className="calendar-sync-choice"
               disabled={busy || offline}
-              onClick={() => setStep({ kind: 'credentials' })}
+              onClick={() =>
+                provider === 'GOOGLE'
+                  ? void startGoogle()
+                  : setStep({ kind: 'credentials' })
+              }
             >
               <span>
                 <strong>{t(`calendarSync.providers.${provider}`)}</strong>

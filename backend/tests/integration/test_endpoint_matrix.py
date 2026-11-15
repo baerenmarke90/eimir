@@ -282,6 +282,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/calendars",
         fixture_aliases={"connectionId": "memoryId"},
     ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/connections/google"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}",

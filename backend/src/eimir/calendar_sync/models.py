@@ -45,6 +45,8 @@ class CalendarProviderKind(StrEnum):
 
 
 class ConnectionStatus(StrEnum):
+    PENDING = "PENDING"
+    """Returned from an OAuth consent; the signed-in person must still confirm it."""
     ACTIVE = "ACTIVE"
     BROKEN = "BROKEN"
     """Credentials were rejected or the grant was revoked; the sponsor must reconnect."""
@@ -101,7 +103,7 @@ class CalendarConnection(IdMixin, TimestampMixin, VersionMixin, Base):
 
     __table_args__ = (
         CheckConstraint("provider IN ('CALDAV', 'GOOGLE')", name="provider_is_known"),
-        CheckConstraint("status IN ('ACTIVE', 'BROKEN')", name="status_is_known"),
+        CheckConstraint("status IN ('PENDING', 'ACTIVE', 'BROKEN')", name="status_is_known"),
         Index("ix_calendar_connections_account_id", "account_id"),
     )
 
@@ -183,3 +185,31 @@ class PlanCalendarLink(IdMixin, TimestampMixin, Base):
         ),
         Index("ix_plan_calendar_links_space_plan", "space_id", "plan_id"),
     )
+
+
+class CalendarOAuthPayload(ProtectedPayload):
+    account_id: UUID
+    space_id: UUID
+    code_verifier: str = Field(repr=False)
+    client_binding: str = Field(repr=False)
+
+
+class CalendarOAuthTransaction(IdMixin, Base):
+    """One short-lived Google consent attempt; consumed exactly once by the callback."""
+
+    __tablename__ = "calendar_oauth_transactions"
+
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("spaces.id", ondelete="CASCADE"), nullable=False
+    )
+    state_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    crypto_version: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=2)
+    payload: Mapped[CalendarOAuthPayload] = mapped_column(
+        ProtectedPayloadJSON(CalendarOAuthPayload), nullable=False
+    )
+
+    __table_args__ = (Index("ix_calendar_oauth_transactions_account_id", "account_id"),)

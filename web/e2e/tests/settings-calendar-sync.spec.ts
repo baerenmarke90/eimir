@@ -26,6 +26,9 @@ interface CalendarScenario {
   status: 'ACTIVE' | 'PAUSED' | 'SUSPENDED';
   conflict: boolean;
   rejectCredentials: boolean;
+  google: boolean;
+  googlePending: boolean;
+  provider: 'CALDAV' | 'GOOGLE';
   requests: { method: string; path: string; body: unknown }[];
 }
 
@@ -38,6 +41,9 @@ function scenario(overrides: Partial<CalendarScenario> = {}): CalendarScenario {
     status: 'ACTIVE',
     conflict: false,
     rejectCredentials: false,
+    google: false,
+    googlePending: false,
+    provider: 'CALDAV',
     requests: [],
     ...overrides,
   };
@@ -46,7 +52,7 @@ function scenario(overrides: Partial<CalendarScenario> = {}): CalendarScenario {
 function view(state: CalendarScenario) {
   const target = state.targetSet
     ? {
-        service: 'CALDAV',
+        service: state.provider,
         calendarName: 'Unser Kalender',
         sponsor: {
           id: state.sponsoredByMe ? ACCOUNT_ID : 'partner',
@@ -69,15 +75,18 @@ function view(state: CalendarScenario) {
   return {
     available: true,
     canSync: state.canSync,
-    services: ['CALDAV'],
+    services: state.google ? ['CALDAV', 'GOOGLE'] : ['CALDAV'],
     connections:
       state.connected && state.sponsoredByMe
         ? [
             {
               id: CONNECTION_ID,
-              service: 'CALDAV',
-              label: 'anna · dav.example.org',
-              status: 'ACTIVE',
+              service: state.provider,
+              label:
+                state.provider === 'GOOGLE'
+                  ? 'anna@gmail.example'
+                  : 'anna · dav.example.org',
+              status: state.googlePending ? 'PENDING' : 'ACTIVE',
             },
           ]
         : [],
@@ -148,6 +157,39 @@ async function installApiMocks(
         },
         201,
       );
+      return;
+    }
+    if (method === 'POST' && pathname === `${sync}/connections/google`) {
+      await fulfillJson(
+        {
+          authorizationUrl:
+            'https://accounts.google.com/o/oauth2/v2/auth?state=e2e-state',
+        },
+        201,
+      );
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname === `${sync}/connections/${CONNECTION_ID}/confirm`
+    ) {
+      state.googlePending = false;
+      await fulfillJson({
+        connection: {
+          id: CONNECTION_ID,
+          service: 'GOOGLE',
+          label: 'anna@gmail.example',
+          status: 'ACTIVE',
+        },
+        calendars: [
+          { ref: 'anna@gmail.example', name: 'Anna', writable: true },
+          {
+            ref: 'shared@group.calendar.google.com',
+            name: 'Unser Kalender',
+            writable: true,
+          },
+        ],
+      });
       return;
     }
     if (method === 'PUT' && pathname === `${sync}/target`) {
@@ -492,4 +534,66 @@ test('rejected credentials are explained without losing the entered address', as
     'https://dav.example.org/',
   );
   await expectNoHorizontalOverflow(page);
+});
+
+test('Google Calendar connects through consent, explicit account confirmation and calendar choice', async ({
+  page,
+  context,
+}, testInfo) => {
+  const state = scenario({ google: true });
+  await context.route('https://accounts.google.com/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<title>Google</title>' }),
+  );
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openCalendarSettings(page, state);
+  const popupPromise = context.waitForEvent('page');
+  await page
+    .getByRole('button', {
+      name: new RegExp(calendarSync.providers.GOOGLE_hint),
+    })
+    .click();
+  const popup = await popupPromise;
+  await expect.poll(() => popup.url()).toContain('accounts.google.com');
+  await expect(page.getByText(calendarSync.google.waiting)).toBeVisible();
+
+  // Consent finished elsewhere: the server now holds a pending connection.
+  state.connected = true;
+  state.googlePending = true;
+  state.provider = 'GOOGLE';
+  await popup.close();
+  await page.bringToFront();
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  const confirmCard = page.getByRole('region', {
+    name: calendarSync.google.confirmTitle,
+  });
+  await expect(confirmCard).toContainText('anna@gmail.example');
+  await captureScreenshot(
+    page,
+    testInfo,
+    'calendar-sync-google-confirm-390-light.png',
+  );
+  await confirmCard
+    .getByRole('button', { name: calendarSync.google.confirm })
+    .click();
+
+  const chooser = page.getByRole('dialog', { name: calendarSync.choose.title });
+  await chooser.getByRole('radio', { name: 'Unser Kalender' }).check();
+  await chooser
+    .getByRole('button', { name: calendarSync.choose.confirm })
+    .click();
+  await expect(
+    page.getByText(
+      calendarSync.target.viaYou.replace(
+        '{{provider}}',
+        calendarSync.providers.GOOGLE,
+      ),
+    ),
+  ).toBeVisible();
+  expect(
+    state.requests.find((entry) => entry.path === '/target')?.body,
+  ).toEqual({
+    connectionId: CONNECTION_ID,
+    calendarRef: 'shared@group.calendar.google.com',
+  });
 });

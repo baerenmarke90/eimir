@@ -286,12 +286,16 @@ test('keyboard moves and zooms the section; cancelling uploads nothing', async (
   const before = await photo.boundingBox();
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
+  // Panzoom applies each pan and zoom in the next animation frame; a read
+  // before that frame still reports the previous transform.
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const moved = await photo.boundingBox();
   if (!before || !moved) throw new Error('Missing photo geometry');
   expect(moved.x).toBeLessThan(before.x - 20);
 
   // The photo can never leave a gap inside the frame.
   for (let step = 0; step < 30; step++) await page.keyboard.press('ArrowLeft');
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const frame = await stage.boundingBox();
   const edge = await photo.boundingBox();
   if (!frame || !edge) throw new Error('Missing crop geometry');
@@ -306,6 +310,7 @@ test('keyboard moves and zooms the section; cancelling uploads nothing', async (
   await page.keyboard.press('End');
   await expect(zoom).toHaveValue('4');
   await expect(zoom).toHaveAttribute('aria-valuetext', /400/);
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const zoomed = await photo.boundingBox();
   if (!zoomed) throw new Error('Missing zoomed geometry');
   expect(zoomed.height).toBeGreaterThan(frame.height * 3.9);

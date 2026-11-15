@@ -1181,6 +1181,7 @@ export function SharedPlanningOverviewPage({
             apiBaseUrl={apiBaseUrl}
             accountId={accountId}
             spaceId={spaceId}
+            active={activeSegment === 'wishes'}
           />
         ) : null}
         {(wishes.isLoading && !wishes.data) || assemblingWishes ? (

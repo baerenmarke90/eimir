@@ -58,8 +58,7 @@ async function openFromWishes(
     name: new RegExp(dateIdeas.composerHintAction),
   });
   await expect(entry).toBeVisible();
-  if (capture)
-    await captureScreenshot(page, capture.info, capture.name);
+  if (capture) await captureScreenshot(page, capture.info, capture.name);
   await entry.click();
   await expect(page).toHaveURL(/\/plan\/ideas$/);
   await expect(

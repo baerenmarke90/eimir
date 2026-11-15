@@ -31,11 +31,14 @@ export function WishSelectionEntry({
   apiBaseUrl = '',
   accountId,
   spaceId,
+  active = true,
 }: {
   api?: WishSelectionsApi;
   apiBaseUrl?: string;
   accountId?: string;
   spaceId: string;
+  /** Hidden planning panels stay mounted; read the round only when visible. */
+  active?: boolean;
 }) {
   const { t } = useTranslation();
   const { captureOrigin } = useTaskOrigin();
@@ -47,7 +50,7 @@ export function WishSelectionEntry({
         spaceId,
         locale: resolvedLocale(),
       }),
-    enabled: Boolean(api && accountId),
+    enabled: Boolean(api && accountId && active),
     retry: false,
     staleTime: 30_000,
     gcTime: 0,

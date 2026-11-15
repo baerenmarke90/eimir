@@ -12,6 +12,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
 
 /*
  * #1790 F2: a wish's journey (wished, planned, experienced, remembered) is
@@ -441,6 +442,7 @@ async function installMocks(
       return page_([]);
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillNoWishSelectionRound(route)) return;
     state.unexpected.push(`${method} ${pathname}`);
     return json(
       {

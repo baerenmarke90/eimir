@@ -34,6 +34,15 @@ export function dateIdeasQueryKey(
   return ['date-ideas', accountId, spaceId, locale] as const;
 }
 
+/** Image bytes share the catalog scope, so a downgrade removes them too. */
+export function dateIdeaImageQueryKey(
+  accountId: string,
+  spaceId: string,
+  imageId: string,
+) {
+  return ['date-ideas', accountId, spaceId, 'image', imageId] as const;
+}
+
 /** Every protected catalog response of one Account/Space, any locale. */
 export function dateIdeasScopeKey(accountId: string, spaceId: string) {
   return ['date-ideas', accountId, spaceId] as const;

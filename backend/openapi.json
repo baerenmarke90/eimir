@@ -3088,6 +3088,10 @@
             "title": "Id",
             "type": "string"
           },
+          "image": {
+            "$ref": "#/components/schemas/DateIdeaImage",
+            "description": "The idea's own image, otherwise its category image."
+          },
           "minutes": {
             "description": "Editorial time budget in minutes.",
             "title": "Minutes",
@@ -3129,7 +3133,8 @@
           "wishTitle",
           "planTitle",
           "prerequisites",
-          "contentLocale"
+          "contentLocale",
+          "image"
         ],
         "title": "DateIdea",
         "type": "object"
@@ -3204,6 +3209,36 @@
         ],
         "title": "DateIdeaCategory",
         "type": "string"
+      },
+      "DateIdeaImage": {
+        "description": "Editorial image; fetch the bytes from `getDateIdeaImage` with `id`.",
+        "properties": {
+          "alt": {
+            "description": "Alternative text in the idea's `contentLocale`.",
+            "title": "Alt",
+            "type": "string"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "width",
+          "height",
+          "alt"
+        ],
+        "title": "DateIdeaImage",
+        "type": "object"
       },
       "DateIdeaLabel": {
         "properties": {
@@ -26233,6 +26268,91 @@
           }
         },
         "summary": "List Date Ideas",
+        "tags": [
+          "date-ideas"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}": {
+      "get": {
+        "description": "One editorial catalog image (WebP). Protected like the catalog itself.",
+        "operationId": "getDateIdeaImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "imageId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^(eimir-date-\\d{3}|category-[a-z_]+)$",
+              "title": "Imageid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DATE_IDEA_IMAGE_NOT_FOUND` or `SPACE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Date Idea Image",
         "tags": [
           "date-ideas"
         ]

@@ -89,6 +89,7 @@ export * from './DashboardView';
 export * from './DateIdea';
 export * from './DateIdeaCatalog';
 export * from './DateIdeaCategory';
+export * from './DateIdeaImage';
 export * from './DateIdeaLabel';
 export * from './DateIdeaPlaceType';
 export * from './DateRepeat';

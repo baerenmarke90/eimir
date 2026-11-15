@@ -754,6 +754,7 @@
       "roots": [
         "web/src/components/DateIdeasPage.tsx",
         "web/src/components/DateIdeasEntry.tsx",
+        "web/src/components/DateIdeaImage.tsx",
         "web/src/client/dateIdeas.ts",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",

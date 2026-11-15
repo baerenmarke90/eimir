@@ -79,6 +79,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
     ).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(state.catalogRequests).toBe(0);
+    expect(state.imageRequests).toEqual([]);
     await captureScreenshot(page, info, 'date-inspiration-free-390-light.png');
 
     await page.getByRole('link', { name: dateIdeas.locked.action }).click();
@@ -149,6 +150,13 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       .click();
     const target = idea(page, FIRST.title);
     await expect(target).toBeVisible();
+    // The idea's own image, loaded through the protected API, with alt text.
+    const picture = target.getByRole('img', { name: FIRST.image.alt });
+    await expect(picture).toBeVisible();
+    await expect
+      .poll(() => picture.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBe(1200);
+    expect(state.imageRequests).toContain('eimir-date-001');
     const count = await page.getByRole('article').count();
     expect(count).toBeGreaterThan(0);
     expect(count).toBeLessThan(200);

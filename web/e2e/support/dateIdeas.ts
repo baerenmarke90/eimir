@@ -50,6 +50,51 @@ const catalogFile = JSON.parse(
   ),
 ) as CatalogFile;
 
+type ImageEntry = {
+  file: string;
+  width: number;
+  height: number;
+  alt: LocalizedLabel;
+};
+const imageManifest = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../../backend/src/eimir/date_ideas/data/images.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+) as {
+  imagesByIdeaId: Record<string, ImageEntry>;
+  imagesByCategory: Record<string, ImageEntry>;
+};
+
+function imageFor(id: string, category: string, locale: 'de' | 'en') {
+  const entry =
+    imageManifest.imagesByIdeaId[id] ??
+    imageManifest.imagesByCategory[category];
+  return {
+    id: entry.file.replace(/^images\//, '').replace(/\.webp$/, ''),
+    width: entry.width,
+    height: entry.height,
+    alt: entry.alt[locale],
+  };
+}
+
+function imageBytes(imageId: string): Buffer | null {
+  if (!/^(eimir-date-\d{3}|category-[a-z_]+)$/.test(imageId)) return null;
+  try {
+    return readFileSync(
+      new URL(
+        `../../../backend/src/eimir/date_ideas/data/images/${imageId}.webp`,
+        import.meta.url,
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function catalogIdeas(locale: 'de' | 'en' = 'de') {
   return catalogFile.ideas.map((idea) => ({
     id: idea.id,
@@ -59,6 +104,7 @@ export function catalogIdeas(locale: 'de' | 'en' = 'de') {
     budgetEurForTwo: idea.budgetEurForTwo,
     ...idea.copy[locale],
     contentLocale: locale,
+    image: imageFor(idea.id, idea.category, locale),
   }));
 }
 
@@ -81,6 +127,7 @@ export type DateIdeasState = {
   /** Fail catalog reads with this status (e.g. 503) when set. */
   catalogFailure: number | null;
   catalogRequests: number;
+  imageRequests: string[];
   wishCreates: {
     body: Record<string, unknown>;
     idempotencyKey: string | null;
@@ -148,6 +195,7 @@ export async function installDateIdeaMocks(
     pro: options.pro,
     catalogFailure: null,
     catalogRequests: 0,
+    imageRequests: [],
     wishCreates: [],
     conversions: [],
     createdPlans: [],
@@ -366,6 +414,22 @@ export async function installDateIdeaMocks(
         200,
         { 'Cache-Control': 'private, no-store' },
       );
+    }
+    const imageMatch = pathname.match(
+      new RegExp(`^${space}/date-ideas/images/([^/]+)$`),
+    );
+    if (method === 'GET' && imageMatch) {
+      state.imageRequests.push(imageMatch[1]);
+      if (!state.pro) return proRequired();
+      const bytes = imageBytes(imageMatch[1]);
+      if (!bytes)
+        return json({ code: 'DATE_IDEA_IMAGE_NOT_FOUND', status: 404 }, 404);
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/webp',
+        headers: { 'Cache-Control': 'private, no-store' },
+        body: bytes,
+      });
     }
     if (method === 'POST' && pathname === `${space}/wishes`) {
       const body = request.postDataJSON() as Record<string, unknown>;

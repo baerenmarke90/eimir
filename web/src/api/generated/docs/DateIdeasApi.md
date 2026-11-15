@@ -4,8 +4,83 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**getDateIdeaImage**](DateIdeasApi.md#getdateideaimage) | **GET** /api/v1/spaces/{spaceId}/date-ideas/images/{imageId} | Get Date Idea Image |
 | [**listDateIdeas**](DateIdeasApi.md#listdateideas) | **GET** /api/v1/spaces/{spaceId}/date-ideas | List Date Ideas |
 
+
+
+## getDateIdeaImage
+
+> Blob getDateIdeaImage(imageId, spaceId)
+
+Get Date Idea Image
+
+One editorial catalog image (WebP). Protected like the catalog itself.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DateIdeasApi,
+} from '';
+import type { GetDateIdeaImageRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DateIdeasApi();
+
+  const body = {
+    // string
+    imageId: imageId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetDateIdeaImageRequest;
+
+  try {
+    const data = await api.getDateIdeaImage(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **imageId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**Blob**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `image/webp`, `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Space lacks the Pro capability &#x60;planning.date_inspiration&#x60;. |  -  |
+| **404** | &#x60;DATE_IDEA_IMAGE_NOT_FOUND&#x60; or &#x60;SPACE_NOT_FOUND&#x60;. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## listDateIdeas

@@ -25,6 +25,12 @@ function idea(id: string, overrides: Partial<DateIdea> = {}): DateIdea {
     planTitle: `Plan ${id}`,
     prerequisites: [],
     contentLocale: 'de',
+    image: {
+      id: `category-${'food_drink'}`,
+      width: 1200,
+      height: 800,
+      alt: `Alt ${id}`,
+    },
     ...overrides,
   };
 }

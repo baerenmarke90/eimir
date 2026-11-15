@@ -14,13 +14,17 @@ import { DateIdeasPage } from './DateIdeasPage';
 const env = vi.hoisted(() => ({
   allowed: true as boolean,
   listDateIdeas: vi.fn(),
+  getDateIdeaImage: vi.fn(),
 }));
 
 vi.mock('../client/dateIdeas', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../client/dateIdeas')>();
   return {
     ...actual,
-    createDateIdeasApi: () => ({ listDateIdeas: env.listDateIdeas }),
+    createDateIdeasApi: () => ({
+      listDateIdeas: env.listDateIdeas,
+      getDateIdeaImage: env.getDateIdeaImage,
+    }),
     useDateInspirationCapability: () => ({
       data: env.allowed,
       isPending: false,
@@ -43,6 +47,12 @@ function idea(id: string, overrides: Partial<DateIdea> = {}): DateIdea {
     planTitle: `Plan ${id}`,
     prerequisites: [],
     contentLocale: 'de',
+    image: {
+      id: `category-${'food_drink'}`,
+      width: 1200,
+      height: 800,
+      alt: `Alt ${id}`,
+    },
     ...overrides,
   };
 }
@@ -97,6 +107,12 @@ function renderPage(client = new QueryClient()) {
 beforeEach(() => {
   env.allowed = true;
   env.listDateIdeas.mockReset();
+  env.getDateIdeaImage.mockReset();
+  env.getDateIdeaImage.mockResolvedValue(
+    new Blob(['webp'], { type: 'image/webp' }),
+  );
+  URL.createObjectURL = vi.fn(() => 'blob:date-idea');
+  URL.revokeObjectURL = vi.fn();
 });
 
 describe('DateIdeasPage', () => {
@@ -112,7 +128,37 @@ describe('DateIdeasPage', () => {
         .getAttribute('href'),
     ).toBe('/more/pro?context=dateIdeas');
     expect(env.listDateIdeas).not.toHaveBeenCalled();
+    expect(env.getDateIdeaImage).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows each idea image from the protected API with its alt text', async () => {
+    env.listDateIdeas.mockResolvedValue(
+      catalog([
+        idea('eimir-date-001', {
+          image: {
+            id: 'eimir-date-001',
+            width: 1200,
+            height: 800,
+            alt: 'Snacks on a blanket',
+          },
+        }),
+        idea('eimir-date-004'),
+      ]),
+    );
+    renderPage();
+    const image = await screen.findByRole('img', {
+      name: 'Snacks on a blanket',
+    });
+    expect(image.getAttribute('src')).toBe('blob:date-idea');
+    expect(env.getDateIdeaImage).toHaveBeenCalledWith(
+      { spaceId: 'space-1', imageId: 'eimir-date-001' },
+      expect.anything(),
+    );
+    expect(env.getDateIdeaImage).toHaveBeenCalledWith(
+      { spaceId: 'space-1', imageId: 'category-food_drink' },
+      expect.anything(),
+    );
   });
 
   it('drops cached protected catalog data once the capability is gone', () => {

@@ -76,6 +76,15 @@ collection, not a record table.
 - Filters: category, `maxMinutes` and `maxBudget` as inclusive upper bounds
   (presets 20/30/45/60 minutes, free/5/10/20 EUR; 0 EUR means free) and place
   home/out, where no place filter means anywhere. All combine with AND.
+- Images: the editorial image handoff (`eimir-date-ideas.images.v1.json`,
+  25 WebP files, 1200×800) is bundled with the backend. Each idea shows its
+  own image when the manifest has one, otherwise its category image; alt texts
+  come from the manifest in the idea's content locale. Images are served only
+  by the Pro-gated `GET /spaces/{id}/date-ideas/images/{imageId}`
+  (`private, no-store`), held in the Account/Space query cache with the catalog
+  (removed on downgrade) and loaded when a card nears the viewport inside a
+  reserved 3:2 frame. `scripts/date_ideas_catalog.py validate-images|import-images`
+  checks a new image handoff against the catalog version, categories and files.
 - Locale: an unsupported locale uses the complete default (German) entry;
   fields of two languages are never combined.
 - Adoption: the client prefills the existing composers. "Save as wish" uses

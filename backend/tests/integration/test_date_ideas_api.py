@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from eimir.core.clock import now
 from eimir.date_ideas.catalog import get_catalog
+from eimir.date_ideas.images import get_images
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import (
     Capability,
@@ -112,6 +113,12 @@ def test_listing_is_localized_and_filters_use_inclusive_bounds(
         "planTitle": first.plan_title,
         "prerequisites": list(first.prerequisites),
         "contentLocale": "en",
+        "image": {
+            "id": first.id,
+            "width": 1200,
+            "height": 800,
+            "alt": get_images().manifest.images_by_idea_id[first.id].alt.en,
+        },
     }
     assert [label["id"] for label in english["placeTypes"]] == ["home", "out"]
     assert len(english["categories"]) == 10
@@ -198,3 +205,39 @@ def test_adopted_ideas_are_ordinary_free_wishes_and_plans_after_downgrade(
         headers={**auth(token), "Idempotency-Key": str(uuid4())},
     )
     assert direct.status_code == 201
+
+
+def _image(client, space_id, token, image_id):  # type: ignore[no-untyped-def]
+    return client.get(
+        f"/api/v1/spaces/{space_id}/date-ideas/images/{image_id}", headers=auth(token)
+    )
+
+
+def test_idea_images_are_protected_like_the_catalog(client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    free = _image(client, space_id, couple["token_a"], "eimir-date-001")
+    assert free.status_code == 403
+    assert free.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+    assert free.headers["content-type"].startswith("application/")
+
+    _grant(session, space_id, couple["anna"].id)
+    listing = _ideas(client, space_id, couple["token_b"], locale="en").json()
+    by_id = {idea["id"]: idea for idea in listing["ideas"]}
+    assert by_id["eimir-date-001"]["image"]["id"] == "eimir-date-001"
+    assert by_id["eimir-date-004"]["image"]["id"] == "category-food_drink"
+    assert by_id["eimir-date-001"]["image"]["width"] == 1200
+    assert by_id["eimir-date-001"]["image"]["alt"].startswith("Three snacks")
+
+    for token in (couple["token_a"], couple["token_b"]):
+        image = _image(client, space_id, token, "category-nature")
+        assert image.status_code == 200
+        assert image.headers["content-type"] == "image/webp"
+        assert image.headers["cache-control"] == "private, no-store"
+        assert image.content[:4] == b"RIFF" and image.content[8:12] == b"WEBP"
+
+    missing = _image(client, space_id, couple["token_a"], "category-unknown")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "DATE_IDEA_IMAGE_NOT_FOUND"
+    for malformed in ("..%2Fcatalog", "EIMIR-DATE-001", "eimir-date-1"):
+        assert _image(client, space_id, couple["token_a"], malformed).status_code in {404, 422}
+    assert _image(client, space_id, couple["token_outsider"], "category-nature").status_code == 404

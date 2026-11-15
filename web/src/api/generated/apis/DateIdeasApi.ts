@@ -34,6 +34,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 
+export interface GetDateIdeaImageRequest {
+    imageId: string;
+    spaceId: string;
+}
+
 export interface ListDateIdeasRequest {
     spaceId: string;
     locale?: string | null;
@@ -47,6 +52,61 @@ export interface ListDateIdeasRequest {
  * 
  */
 export class DateIdeasApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getDateIdeaImage without sending the request
+     */
+    async getDateIdeaImageRequestOpts(requestParameters: GetDateIdeaImageRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['imageId'] == null) {
+            throw new runtime.RequiredError(
+                'imageId',
+                'Required parameter "imageId" was null or undefined when calling getDateIdeaImage().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getDateIdeaImage().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}`;
+        urlPath = urlPath.replace('{imageId}', encodeURIComponent(String(requestParameters['imageId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * One editorial catalog image (WebP). Protected like the catalog itself.
+     * Get Date Idea Image
+     */
+    async getDateIdeaImageRaw(requestParameters: GetDateIdeaImageRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Blob>> {
+        const requestOptions = await this.getDateIdeaImageRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.BlobApiResponse(response);
+    }
+
+    /**
+     * One editorial catalog image (WebP). Protected like the catalog itself.
+     * Get Date Idea Image
+     */
+    async getDateIdeaImage(requestParameters: GetDateIdeaImageRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Blob> {
+        const response = await this.getDateIdeaImageRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for listDateIdeas without sending the request

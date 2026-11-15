@@ -11,12 +11,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Path, Query, Response
 from pydantic import Field
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.core.errors import NotFoundError
 from eimir.date_ideas import service
 from eimir.date_ideas.catalog import (
     BUDGET_MAX,
@@ -25,6 +26,7 @@ from eimir.date_ideas.catalog import (
     DateIdeaPlaceType,
     IdeaFilter,
 )
+from eimir.date_ideas.images import IMAGE_ID_PATTERN, get_images
 from eimir.entitlements.models import Capability
 
 router = APIRouter(tags=["date-ideas"])
@@ -33,6 +35,15 @@ router = APIRouter(tags=["date-ideas"])
 class DateIdeaLabel(ApiModel):
     id: str
     label: str = Field(description="Label in the response `locale`.")
+
+
+class DateIdeaImage(ApiModel):
+    """Editorial image; fetch the bytes from `getDateIdeaImage` with `id`."""
+
+    id: str
+    width: int
+    height: int
+    alt: str = Field(description="Alternative text in the idea's `contentLocale`.")
 
 
 class DateIdea(ApiModel):
@@ -51,6 +62,7 @@ class DateIdea(ApiModel):
     plan_title: str = Field(description="Editable prefill for the Plan composer.")
     prerequisites: list[str]
     content_locale: str = Field(description="Locale of all texts of this idea.")
+    image: DateIdeaImage = Field(description="The idea's own image, otherwise its category image.")
 
 
 class DateIdeaCatalog(ApiModel):
@@ -101,6 +113,7 @@ def list_date_ideas(
         Capability.PLANNING_DATE_INSPIRATION.value,
         lock_grants=False,
     )
+    images = get_images()
     listing = service.list_date_ideas(
         locale=locale,
         idea_filter=IdeaFilter(
@@ -129,7 +142,57 @@ def list_date_ideas(
                 plan_title=idea.plan_title,
                 prerequisites=list(idea.prerequisites),
                 content_locale=idea.content_locale,
+                image=DateIdeaImage(
+                    **vars(images.for_idea(idea.id, idea.category, idea.content_locale))
+                ),
             )
             for idea in listing.ideas
         ],
+    )
+
+
+DATE_IDEA_IMAGE_NOT_FOUND = "DATE_IDEA_IMAGE_NOT_FOUND"
+
+
+@router.get(
+    "/spaces/{spaceId}/date-ideas/images/{imageId}",
+    operation_id="getDateIdeaImage",
+    response_class=Response,
+    responses={
+        200: {"content": {"image/webp": {"schema": {"type": "string", "format": "binary"}}}},
+        **problem_responses(
+            401,
+            403,
+            404,
+            422,
+            descriptions={
+                403: (
+                    "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability "
+                    "`planning.date_inspiration`."
+                ),
+                404: "`DATE_IDEA_IMAGE_NOT_FOUND` or `SPACE_NOT_FOUND`.",
+            },
+        ),
+    },
+)
+def get_date_idea_image(
+    authorization: Authorization,
+    session: DbSession,
+    image_id: Annotated[str, Path(alias="imageId", pattern=IMAGE_ID_PATTERN, max_length=64)],
+) -> Response:
+    """One editorial catalog image (WebP). Protected like the catalog itself."""
+    ensure_capability(
+        session,
+        authorization.space_id,
+        Capability.PLANNING_DATE_INSPIRATION.value,
+        lock_grants=False,
+    )
+    data = get_images().read(image_id)
+    if data is None:
+        raise NotFoundError("Date idea image not found.", DATE_IDEA_IMAGE_NOT_FOUND)
+    # Not stored by shared or browser caches, so a downgrade leaves no copy.
+    return Response(
+        content=data,
+        media_type="image/webp",
+        headers={"Cache-Control": "private, no-store"},
     )

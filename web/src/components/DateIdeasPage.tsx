@@ -42,6 +42,7 @@ import { withdrawSpaceCapability } from '../client/spaceEntitlement';
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
+import { DateIdeaImage } from './DateIdeaImage';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
@@ -441,105 +442,114 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                 tabIndex={-1}
               >
                 <article aria-labelledby={titleId}>
-                  <p className="date-idea-category">
-                    {categoryLabels.get(idea.category)}
-                  </p>
-                  <h2 id={titleId} lang={textLang}>
-                    {idea.title}
-                  </h2>
-                  <p className="date-idea-description" lang={textLang}>
-                    {idea.description}
-                  </p>
-                  <ul
-                    className="date-idea-facts"
-                    aria-label={t('dateIdeas.card.detailsLabel')}
-                  >
-                    <li>
-                      {t('dateIdeas.card.duration', {
-                        value: formatMinutes(idea.minutes, locale),
-                      })}
-                    </li>
-                    <li>
-                      {idea.budgetEurForTwo > 0
-                        ? t('dateIdeas.card.budget', {
-                            value: formatEuros(idea.budgetEurForTwo, locale),
-                          })
-                        : t('dateIdeas.card.budgetFree')}
-                    </li>
-                    <li>{placeLabels.get(idea.placeType)}</li>
-                  </ul>
-                  {idea.prerequisites.length ? (
-                    <p className="date-idea-requirements" lang={textLang}>
-                      {t('dateIdeas.card.requirements', {
-                        items: listFormat.format(idea.prerequisites),
-                      })}
+                  <DateIdeaImage
+                    api={api}
+                    accountId={accountId}
+                    spaceId={spaceId}
+                    image={idea.image}
+                    lang={textLang}
+                  />
+                  <div className="date-idea-body">
+                    <p className="date-idea-category">
+                      {categoryLabels.get(idea.category)}
                     </p>
-                  ) : null}
-                  <div className="date-idea-actions">
-                    {savedWishId ? (
-                      <Link
-                        className="button-link secondary-link date-idea-saved"
-                        to={wishDetailPath(savedWishId)}
+                    <h2 id={titleId} lang={textLang}>
+                      {idea.title}
+                    </h2>
+                    <p className="date-idea-description" lang={textLang}>
+                      {idea.description}
+                    </p>
+                    <ul
+                      className="date-idea-facts"
+                      aria-label={t('dateIdeas.card.detailsLabel')}
+                    >
+                      <li>
+                        {t('dateIdeas.card.duration', {
+                          value: formatMinutes(idea.minutes, locale),
+                        })}
+                      </li>
+                      <li>
+                        {idea.budgetEurForTwo > 0
+                          ? t('dateIdeas.card.budget', {
+                              value: formatEuros(idea.budgetEurForTwo, locale),
+                            })
+                          : t('dateIdeas.card.budgetFree')}
+                      </li>
+                      <li>{placeLabels.get(idea.placeType)}</li>
+                    </ul>
+                    {idea.prerequisites.length ? (
+                      <p className="date-idea-requirements" lang={textLang}>
+                        {t('dateIdeas.card.requirements', {
+                          items: listFormat.format(idea.prerequisites),
+                        })}
+                      </p>
+                    ) : null}
+                    <div className="date-idea-actions">
+                      {savedWishId ? (
+                        <Link
+                          className="button-link secondary-link date-idea-saved"
+                          to={wishDetailPath(savedWishId)}
+                          aria-describedby={titleId}
+                          onClick={(event) => {
+                            if (!plainActivation(event)) return;
+                            event.preventDefault();
+                            open(idea, wishDetailPath(savedWishId), {});
+                          }}
+                        >
+                          <EimirIcon name="check" />
+                          {t('dateIdeas.card.saved')}
+                        </Link>
+                      ) : (
+                        <Link
+                          className="button-link secondary-link date-idea-save"
+                          to={WISH_CREATE_ROUTE}
+                          aria-describedby={titleId}
+                          onClick={(event) => {
+                            if (!plainActivation(event)) return;
+                            event.preventDefault();
+                            open(idea, WISH_CREATE_ROUTE, {
+                              planningCreateDraft: {
+                                title: idea.wishTitle,
+                                description: idea.description,
+                                dateIdeaId: idea.id,
+                              },
+                            });
+                          }}
+                        >
+                          <EimirIcon name="wuensche" />
+                          {t('dateIdeas.card.save')}
+                        </Link>
+                      )}
+                      <AddActionLink
+                        icon="kalender"
+                        className="date-idea-plan"
+                        label={t('dateIdeas.card.plan')}
                         aria-describedby={titleId}
+                        to={
+                          savedWishId
+                            ? wishDetailPath(savedWishId)
+                            : PLAN_CREATE_ROUTE
+                        }
                         onClick={(event) => {
                           if (!plainActivation(event)) return;
                           event.preventDefault();
-                          open(idea, wishDetailPath(savedWishId), {});
+                          const draft = {
+                            title: idea.planTitle,
+                            description: idea.description,
+                          };
+                          // A Wish saved from this idea continues through the
+                          // canonical Wish-to-Plan conversion (with If-Match).
+                          if (savedWishId)
+                            open(idea, wishDetailPath(savedWishId), {
+                              planningConvertDraft: draft,
+                            });
+                          else
+                            open(idea, PLAN_CREATE_ROUTE, {
+                              planningCreateDraft: draft,
+                            });
                         }}
-                      >
-                        <EimirIcon name="check" />
-                        {t('dateIdeas.card.saved')}
-                      </Link>
-                    ) : (
-                      <Link
-                        className="button-link secondary-link date-idea-save"
-                        to={WISH_CREATE_ROUTE}
-                        aria-describedby={titleId}
-                        onClick={(event) => {
-                          if (!plainActivation(event)) return;
-                          event.preventDefault();
-                          open(idea, WISH_CREATE_ROUTE, {
-                            planningCreateDraft: {
-                              title: idea.wishTitle,
-                              description: idea.description,
-                              dateIdeaId: idea.id,
-                            },
-                          });
-                        }}
-                      >
-                        <EimirIcon name="wuensche" />
-                        {t('dateIdeas.card.save')}
-                      </Link>
-                    )}
-                    <AddActionLink
-                      icon="kalender"
-                      className="date-idea-plan"
-                      label={t('dateIdeas.card.plan')}
-                      aria-describedby={titleId}
-                      to={
-                        savedWishId
-                          ? wishDetailPath(savedWishId)
-                          : PLAN_CREATE_ROUTE
-                      }
-                      onClick={(event) => {
-                        if (!plainActivation(event)) return;
-                        event.preventDefault();
-                        const draft = {
-                          title: idea.planTitle,
-                          description: idea.description,
-                        };
-                        // A Wish saved from this idea continues through the
-                        // canonical Wish-to-Plan conversion (with If-Match).
-                        if (savedWishId)
-                          open(idea, wishDetailPath(savedWishId), {
-                            planningConvertDraft: draft,
-                          });
-                        else
-                          open(idea, PLAN_CREATE_ROUTE, {
-                            planningCreateDraft: draft,
-                          });
-                      }}
-                    />
+                      />
+                    </div>
                   </div>
                 </article>
               </li>

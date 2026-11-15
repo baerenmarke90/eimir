@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DateIdeaImage } from './DateIdeaImage';
+import {
+    DateIdeaImageFromJSON,
+    DateIdeaImageFromJSONTyped,
+    DateIdeaImageToJSON,
+    DateIdeaImageToJSONTyped,
+} from './DateIdeaImage';
 import type { DateIdeaCategory } from './DateIdeaCategory';
 import {
     DateIdeaCategoryFromJSON,
@@ -65,6 +72,12 @@ export interface DateIdea {
      */
     id: string;
     /**
+     * The idea's own image, otherwise its category image.
+     * @type {DateIdeaImage}
+     * @memberof DateIdea
+     */
+    image: DateIdeaImage;
+    /**
      * Editorial time budget in minutes.
      * @type {number}
      * @memberof DateIdea
@@ -113,6 +126,7 @@ export function instanceOfDateIdea(value: object): value is DateIdea {
     if (!('contentLocale' in value) || value['contentLocale'] === undefined) return false;
     if (!('description' in value) || value['description'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('image' in value) || value['image'] === undefined) return false;
     if (!('minutes' in value) || value['minutes'] === undefined) return false;
     if (!('placeType' in value) || value['placeType'] === undefined) return false;
     if (!('planTitle' in value) || value['planTitle'] === undefined) return false;
@@ -137,6 +151,7 @@ export function DateIdeaFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'contentLocale': json['contentLocale'],
         'description': json['description'],
         'id': json['id'],
+        'image': DateIdeaImageFromJSON(json['image']),
         'minutes': json['minutes'],
         'placeType': DateIdeaPlaceTypeFromJSON(json['placeType']),
         'planTitle': json['planTitle'],
@@ -162,6 +177,7 @@ export function DateIdeaToJSONTyped(value?: DateIdea | null, ignoreDiscriminator
         'contentLocale': value['contentLocale'],
         'description': value['description'],
         'id': value['id'],
+        'image': DateIdeaImageToJSON(value['image']),
         'minutes': value['minutes'],
         'placeType': DateIdeaPlaceTypeToJSON(value['placeType']),
         'planTitle': value['planTitle'],

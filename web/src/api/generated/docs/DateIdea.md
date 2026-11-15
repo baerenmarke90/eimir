@@ -12,6 +12,7 @@ Name | Type
 `contentLocale` | string
 `description` | string
 `id` | string
+`image` | [DateIdeaImage](DateIdeaImage.md)
 `minutes` | number
 `placeType` | [DateIdeaPlaceType](DateIdeaPlaceType.md)
 `planTitle` | string
@@ -31,6 +32,7 @@ const example = {
   "contentLocale": null,
   "description": null,
   "id": null,
+  "image": null,
   "minutes": null,
   "placeType": null,
   "planTitle": null,

@@ -3,6 +3,7 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import {
   formatCompactCalendarDate,
+  formatCompactCalendarRange,
   formatCompactWeekdayDate,
 } from './formatRecency';
 import { i18n, resolvedLocale } from '../i18n';
@@ -38,10 +39,20 @@ export function planStatusWord(
 }
 
 export function planScheduleLabel(
-  plan: Pick<PlanDetail, 'plannedOn' | 'plannedStart' | 'plannedEnd'>,
+  plan: Pick<PlanDetail, 'plannedOn' | 'plannedStart' | 'plannedEnd'> &
+    Partial<Pick<PlanDetail, 'plannedUntil'>>,
   locale = resolvedLocale(),
 ): string | null {
-  if (plan.plannedOn) return formatCompactCalendarDate(plan.plannedOn, locale);
+  if (plan.plannedOn) {
+    // A multi-day date-only Plan reads as one period, never as its first day.
+    if (plan.plannedUntil && plan.plannedUntil > plan.plannedOn)
+      return formatCompactCalendarRange(
+        plan.plannedOn,
+        plan.plannedUntil,
+        locale,
+      );
+    return formatCompactCalendarDate(plan.plannedOn, locale);
+  }
   if (plan.plannedStart) {
     const formatTime = (value: Date) =>
       new Intl.DateTimeFormat(locale, {
@@ -79,7 +90,8 @@ export function planPillLabel(
   plan: Pick<
     PlanDetail,
     'status' | 'plannedOn' | 'plannedStart' | 'plannedEnd'
-  >,
+  > &
+    Partial<Pick<PlanDetail, 'plannedUntil'>>,
 ): string {
   const statusWord = planStatusWord(t, plan);
   const date = planScheduleLabel(plan);

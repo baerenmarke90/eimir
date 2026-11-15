@@ -186,6 +186,24 @@ export function formatCompactWeekdayDate(
 }
 
 /**
+ * Compact inclusive period of two OpenAPI `date` carriers, e.g. "Fr., 20. –
+ * So., 22. Nov.". Like {@link formatCompactCalendarDate}, it reads only the
+ * encoded UTC calendar components.
+ */
+export function formatCompactCalendarRange(
+  start: Date,
+  end: Date,
+  locale = resolvedLocale(),
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).formatRange(start, end);
+}
+
+/**
  * Compact weekday + date for an OpenAPI `date` carrier.
  *
  * Generated TypeScript models represent a date as a Date at UTC midnight.

@@ -1295,9 +1295,10 @@ test('a foreground Wish invitation opens the private favorites directly', async 
     ),
   );
   await banner.hover();
-  await expect(
-    banner.locator('[data-motion="wish-fan"] > span').first(),
-  ).toHaveCSS('animation-name', 'notification-wish-fan');
+  // Partner-caused notices share the calm receipt: badge on the avatar, no waves.
+  await expect(banner).toHaveAttribute('data-variant', 'calm-ring');
+  await expect(banner.locator('[data-glyph="icon"] svg')).toBeVisible();
+  await expect(banner.locator('.partner-gesture-receipt-wave')).toHaveCount(0);
   expect(opens).toBe(0);
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1338,7 +1339,8 @@ test('the Wish result shows its own symbol with reduced motion', async ({
     coupleExperiences.notifications.WISH_SELECTION_READY,
   );
   await banner.hover();
-  const symbol = banner.locator('[data-motion="wish-match"] > span').first();
+  await expect(banner).toHaveAttribute('data-variant', 'calm-ring');
+  const symbol = banner.locator('[data-glyph="icon"]');
   await expect(symbol).toBeVisible();
   await expect(symbol).toHaveCSS('animation-name', 'none');
   await expectNoHorizontalOverflow(page);

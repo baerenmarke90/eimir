@@ -144,7 +144,7 @@ app. The Wish date exchange adds no separate private-preview setting and no Emai
 
 The in-app receipt uses the shared foreground banner
 [#1912](design/partner-gesture-receipt.md) at the top of the current screen. Its
-avatar, three one-shot waves and calendar badge follow the check-in motion from
+avatar, soft breath and calendar badge follow the calm receipt from
 #455. The receipt uses a stable authorized entry, leaves focus and active tasks
 alone and shows the settled state immediately with reduced motion. Timeout or
 dismissal leaves the proposal and the Center's read state alone.

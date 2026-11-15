@@ -4537,10 +4537,11 @@
         "properties": {
           "returnTo": {
             "default": "page",
-            "description": "web: Google returns to the calendar settings in the same browser tab; page: a short return page for the system browser of the app.",
+            "description": "web: Google returns to the calendar settings in the same browser tab; app: the system browser hands the outcome back to the eimir. Android app; page: a short return page (kept for older app builds).",
             "enum": [
               "web",
-              "page"
+              "page",
+              "app"
             ],
             "title": "Returnto",
             "type": "string"

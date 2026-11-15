@@ -406,11 +406,12 @@ class GoogleCalendarStart(ApiModel):
 
 class GoogleCalendarStartRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
-    return_to: Literal["web", "page"] = Field(
+    return_to: Literal["web", "page", "app"] = Field(
         default="page",
         description=(
             "web: Google returns to the calendar settings in the same browser tab; "
-            "page: a short return page for the system browser of the app."
+            "app: the system browser hands the outcome back to the eimir. Android app; "
+            "page: a short return page (kept for older app builds)."
         ),
     )
 
@@ -472,6 +473,12 @@ def google_callback(
         # Same tab: back to the settings, which show the confirmation directly.
         return RedirectResponse(
             f"{back}?calendarGoogle={outcome}", status_code=303, headers=_HEADERS
+        )
+    if return_to == "app":
+        # The app's own callback: it closes the browser and opens the settings.
+        # Only the fixed outcome travels; the signed-in person still confirms.
+        return RedirectResponse(
+            f"{google.APP_RETURN_URL}?calendarGoogle={outcome}", status_code=303, headers=_HEADERS
         )
     page = (
         f"<!doctype html><html lang={locale}><meta charset=utf-8>"

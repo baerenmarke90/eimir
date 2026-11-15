@@ -194,7 +194,8 @@ class CalendarOAuthPayload(ProtectedPayload):
     code_verifier: str = Field(repr=False)
     client_binding: str = Field(repr=False)
     return_to: str = "page"
-    """``web`` returns to the settings page in the same tab; ``page`` shows a return page."""
+    """``web``: same tab back to the settings; ``app``: back into the Android app; ``page``: a
+    return page (older app builds)."""
 
 
 class CalendarOAuthTransaction(IdMixin, Base):

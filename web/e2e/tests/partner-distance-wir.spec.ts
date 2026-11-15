@@ -601,6 +601,8 @@ test('both sharing nearby: a heart instead of a line', async ({
     mapPosition: { latitude: 50.955, longitude: 6.985 },
   });
   await openMapFromWir(page, copy.distanceNear);
+  // Nearby never shows a number, not even on the map.
+  await expect(page.locator('.partner-map-between-km')).toHaveCount(0);
   await expect(connection(page)).toHaveClass(/\bis-near\b/);
   await expect(
     connection(page).locator('.place-map-connection-heart'),
@@ -625,6 +627,16 @@ test('both sharing regionally: a solid arc with a shorter trip', async ({
     mapPosition: { latitude: 51.23, longitude: 6.78 },
   });
   await openMapFromWir(page, copy.distanceShortTrip);
+  // The map keeps the kilometres below the words (#1907 H4).
+  await expect(page.locator('.partner-map-between')).toContainText(
+    copy.distanceShortTrip,
+  );
+  await expect(page.locator('.partner-map-between-km')).toHaveText('25–50 km');
+  await captureScreenshot(
+    page.locator('.partner-map-sheet'),
+    info,
+    'partner-map-sheet-km-25-50-390.png',
+  );
   await expect(connection(page)).toHaveClass(/\bis-regional\b/);
   await expect(
     connection(page).locator('.place-map-connection-glow'),

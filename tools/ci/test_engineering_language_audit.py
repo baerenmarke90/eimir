@@ -18,6 +18,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "web/e2e/fixtures/locales/de.ts",
             "web/src/api/generated/models/index.ts",
             "web/public/offline-language.js",
+            "web/public/webview-unsupported.js",
             "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)

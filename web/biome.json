@@ -32,5 +32,26 @@
       "quoteStyle": "single",
       "trailingCommas": "all"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["public/webview-unsupported.js"],
+      "javascript": {
+        "formatter": {
+          "trailingCommas": "es5"
+        }
+      },
+      "linter": {
+        "rules": {
+          "complexity": {
+            "useArrowFunction": "off",
+            "useOptionalChain": "off"
+          },
+          "suspicious": {
+            "noPrototypeBuiltins": "off"
+          }
+        }
+      }
+    }
+  ]
 }

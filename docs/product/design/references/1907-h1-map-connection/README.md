@@ -69,8 +69,8 @@ basemap):
 
 The Product Owner did not perceive the motion on a device. Findings: the arc
 drew in while the basemap was still loading, the 11 px glow was easy to miss
-and hid under the avatars at both ends. Decision: "Nur deutlicher" (clearer,
-still self-ending after three round trips; no permanent loop).
+and hid under the avatars at both ends. Decision: make it clearer while keeping it
+self-ending after three round trips (no permanent loop).
 
 - The connection appears and starts only once the basemap has drawn
   (MapLibre `idle`, with a 2.5 s fallback for a slow or failing basemap).

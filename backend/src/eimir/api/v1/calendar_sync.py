@@ -34,12 +34,12 @@ router = APIRouter(tags=["calendar-sync"])
 _HEADERS = {"Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer"}
 _MAX_CONNECTIONS = 5
 
-ProviderKind = Literal["CALDAV", "GOOGLE"]
+ServiceKind = Literal["CALDAV", "GOOGLE"]
 
 
 class CalendarConnectionView(ApiModel):
     id: UUID
-    provider: ProviderKind
+    service: ServiceKind
     label: str = Field(description="Shown only to the connecting person.")
     status: Literal["ACTIVE", "BROKEN"]
 
@@ -56,7 +56,7 @@ class CalendarConflictView(ApiModel):
 
 
 class SpaceCalendarTargetView(ApiModel):
-    provider: ProviderKind
+    service: ServiceKind
     calendar_name: str
     sponsor: AuthorSummary
     sponsored_by_me: bool
@@ -76,7 +76,7 @@ class SpaceCalendarTargetView(ApiModel):
 class CalendarSyncView(ApiModel):
     available: bool = Field(description="The instance offers calendar sync at all.")
     can_sync: bool = Field(description="The Space has eimir. Pro for automatic sync.")
-    providers: list[ProviderKind]
+    services: list[ServiceKind]
     connections: list[CalendarConnectionView] = Field(
         description="Only the caller's own connections."
     )
@@ -126,7 +126,7 @@ class PlanCalendarSyncView(ApiModel):
 def _connection_view(row: CalendarConnection) -> CalendarConnectionView:
     return CalendarConnectionView(
         id=row.id,
-        provider=row.provider,  # type: ignore[arg-type]
+        service=row.provider,  # type: ignore[arg-type]
         label=row.payload.label,
         status=row.status,  # type: ignore[arg-type]
     )
@@ -144,7 +144,7 @@ def _view(session: DbSession, authorization: Authorization) -> CalendarSyncView:
     target_view = None
     if summary is not None and target is not None:
         target_view = SpaceCalendarTargetView(
-            provider=target.provider,  # type: ignore[arg-type]
+            service=target.provider,  # type: ignore[arg-type]
             calendar_name=target.payload.calendar_name,
             sponsor=resolve_author_summary(
                 session, target.sponsor_account_id, resource="Calendar sponsor"
@@ -168,7 +168,7 @@ def _view(session: DbSession, authorization: Authorization) -> CalendarSyncView:
     return CalendarSyncView(
         available=available,
         can_sync=available and has_capability(session, authorization.space_id, service.CAPABILITY),
-        providers=["CALDAV"],
+        services=["CALDAV"],
         connections=[
             _connection_view(row)
             for row in (

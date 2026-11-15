@@ -54,10 +54,10 @@ export interface CalendarSyncView {
     connections: Array<CalendarConnectionView>;
     /**
      * 
-     * @type {Array<CalendarSyncViewProvidersEnum>}
+     * @type {Array<CalendarSyncViewServicesEnum>}
      * @memberof CalendarSyncView
      */
-    providers: Array<CalendarSyncViewProvidersEnum>;
+    services: Array<CalendarSyncViewServicesEnum>;
     /**
      * 
      * @type {SpaceCalendarTargetView}
@@ -76,11 +76,11 @@ export interface CalendarSyncView {
 /**
  * @export
  */
-export const CalendarSyncViewProvidersEnum = {
+export const CalendarSyncViewServicesEnum = {
     CALDAV: 'CALDAV',
     GOOGLE: 'GOOGLE'
 } as const;
-export type CalendarSyncViewProvidersEnum = typeof CalendarSyncViewProvidersEnum[keyof typeof CalendarSyncViewProvidersEnum];
+export type CalendarSyncViewServicesEnum = typeof CalendarSyncViewServicesEnum[keyof typeof CalendarSyncViewServicesEnum];
 
 
 /**
@@ -90,7 +90,7 @@ export function instanceOfCalendarSyncView(value: object): value is CalendarSync
     if (!('available' in value) || value['available'] === undefined) return false;
     if (!('canSync' in value) || value['canSync'] === undefined) return false;
     if (!('connections' in value) || value['connections'] === undefined) return false;
-    if (!('providers' in value) || value['providers'] === undefined) return false;
+    if (!('services' in value) || value['services'] === undefined) return false;
     if (!('targetToken' in value) || value['targetToken'] === undefined) return false;
     return true;
 }
@@ -108,7 +108,7 @@ export function CalendarSyncViewFromJSONTyped(json: any, ignoreDiscriminator: bo
         'available': json['available'],
         'canSync': json['canSync'],
         'connections': ((json['connections'] as Array<any>).map(CalendarConnectionViewFromJSON)),
-        'providers': json['providers'],
+        'services': json['services'],
         'target': json['target'] === undefined ? undefined : json['target'] === null ? null : SpaceCalendarTargetViewFromJSON(json['target']),
         'targetToken': json['targetToken'],
     };
@@ -128,7 +128,7 @@ export function CalendarSyncViewToJSONTyped(value?: CalendarSyncView | null, ign
         'available': value['available'],
         'canSync': value['canSync'],
         'connections': ((value['connections'] as Array<any>).map(CalendarConnectionViewToJSON)),
-        'providers': value['providers'],
+        'services': value['services'],
         'target': SpaceCalendarTargetViewToJSON(value['target']),
         'targetToken': value['targetToken'],
     };

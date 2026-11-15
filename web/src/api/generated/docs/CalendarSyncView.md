@@ -9,7 +9,7 @@ Name | Type
 `available` | boolean
 `canSync` | boolean
 `connections` | [Array&lt;CalendarConnectionView&gt;](CalendarConnectionView.md)
-`providers` | Array&lt;string&gt;
+`services` | Array&lt;string&gt;
 `target` | [SpaceCalendarTargetView](SpaceCalendarTargetView.md)
 `targetToken` | string
 
@@ -23,7 +23,7 @@ const example = {
   "available": null,
   "canSync": null,
   "connections": null,
-  "providers": null,
+  "services": null,
   "target": null,
   "targetToken": null,
 } satisfies CalendarSyncView

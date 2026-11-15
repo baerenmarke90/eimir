@@ -13,7 +13,7 @@ Name | Type
 `keptCount` | number
 `lastSuccessAt` | Date
 `pendingCount` | number
-`provider` | string
+`service` | string
 `sponsor` | [AuthorSummary](AuthorSummary.md)
 `sponsoredByMe` | boolean
 `status` | string
@@ -34,7 +34,7 @@ const example = {
   "keptCount": null,
   "lastSuccessAt": null,
   "pendingCount": null,
-  "provider": null,
+  "service": null,
   "sponsor": null,
   "sponsoredByMe": null,
   "status": null,

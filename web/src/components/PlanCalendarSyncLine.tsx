@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { Configuration } from '../client/apiConfiguration';
 import { calendarSyncApi } from '../client/calendarSync';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { SETTINGS_CATEGORY_ROUTES } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -25,7 +31,29 @@ export function PlanCalendarSyncLine(props: {
     () => calendarSyncApi(props.apiBaseUrl, props.accessToken),
     [props.apiBaseUrl, props.accessToken],
   );
+  const loadEntitlement = useMemo(
+    () =>
+      entitlementLoader(
+        new EntitlementsApi(
+          new Configuration({
+            basePath: props.apiBaseUrl,
+            headers: { Authorization: `Bearer ${props.accessToken}` },
+          }),
+        ),
+        props.spaceId,
+      ),
+    [props.apiBaseUrl, props.accessToken, props.spaceId],
+  );
+  // Reuses the session's single entitlement read; Free Spaces never ask for
+  // a sync state they cannot have, so opening a Plan costs no extra request.
+  const capability = useSpaceCapability({
+    accountId: props.accountId,
+    spaceId: props.spaceId,
+    load: loadEntitlement,
+    capability: 'integration.external_sync',
+  });
   const query = useQuery({
+    enabled: capability.data === true,
     queryKey: [
       'calendar-sync-plan',
       props.apiBaseUrl,

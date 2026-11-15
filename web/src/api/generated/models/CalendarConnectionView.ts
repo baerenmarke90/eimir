@@ -33,10 +33,10 @@ export interface CalendarConnectionView {
     label: string;
     /**
      * 
-     * @type {CalendarConnectionViewProviderEnum}
+     * @type {CalendarConnectionViewServiceEnum}
      * @memberof CalendarConnectionView
      */
-    provider: CalendarConnectionViewProviderEnum;
+    service: CalendarConnectionViewServiceEnum;
     /**
      * 
      * @type {CalendarConnectionViewStatusEnum}
@@ -49,11 +49,11 @@ export interface CalendarConnectionView {
 /**
  * @export
  */
-export const CalendarConnectionViewProviderEnum = {
+export const CalendarConnectionViewServiceEnum = {
     CALDAV: 'CALDAV',
     GOOGLE: 'GOOGLE'
 } as const;
-export type CalendarConnectionViewProviderEnum = typeof CalendarConnectionViewProviderEnum[keyof typeof CalendarConnectionViewProviderEnum];
+export type CalendarConnectionViewServiceEnum = typeof CalendarConnectionViewServiceEnum[keyof typeof CalendarConnectionViewServiceEnum];
 
 /**
  * @export
@@ -71,7 +71,7 @@ export type CalendarConnectionViewStatusEnum = typeof CalendarConnectionViewStat
 export function instanceOfCalendarConnectionView(value: object): value is CalendarConnectionView {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('label' in value) || value['label'] === undefined) return false;
-    if (!('provider' in value) || value['provider'] === undefined) return false;
+    if (!('service' in value) || value['service'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
     return true;
 }
@@ -88,7 +88,7 @@ export function CalendarConnectionViewFromJSONTyped(json: any, ignoreDiscriminat
         
         'id': json['id'],
         'label': json['label'],
-        'provider': json['provider'],
+        'service': json['service'],
         'status': json['status'],
     };
 }
@@ -106,7 +106,7 @@ export function CalendarConnectionViewToJSONTyped(value?: CalendarConnectionView
         
         'id': value['id'],
         'label': value['label'],
-        'provider': value['provider'],
+        'service': value['service'],
         'status': value['status'],
     };
 }

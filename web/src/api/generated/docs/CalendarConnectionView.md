@@ -8,7 +8,7 @@ Name | Type
 ------------ | -------------
 `id` | string
 `label` | string
-`provider` | string
+`service` | string
 `status` | string
 
 ## Example
@@ -20,7 +20,7 @@ import type { CalendarConnectionView } from ''
 const example = {
   "id": null,
   "label": null,
-  "provider": null,
+  "service": null,
   "status": null,
 } satisfies CalendarConnectionView
 

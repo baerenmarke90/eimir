@@ -78,10 +78,10 @@ export interface SpaceCalendarTargetView {
     pendingCount: number;
     /**
      * 
-     * @type {SpaceCalendarTargetViewProviderEnum}
+     * @type {SpaceCalendarTargetViewServiceEnum}
      * @memberof SpaceCalendarTargetView
      */
-    provider: SpaceCalendarTargetViewProviderEnum;
+    service: SpaceCalendarTargetViewServiceEnum;
     /**
      * 
      * @type {AuthorSummary}
@@ -118,11 +118,11 @@ export interface SpaceCalendarTargetView {
 /**
  * @export
  */
-export const SpaceCalendarTargetViewProviderEnum = {
+export const SpaceCalendarTargetViewServiceEnum = {
     CALDAV: 'CALDAV',
     GOOGLE: 'GOOGLE'
 } as const;
-export type SpaceCalendarTargetViewProviderEnum = typeof SpaceCalendarTargetViewProviderEnum[keyof typeof SpaceCalendarTargetViewProviderEnum];
+export type SpaceCalendarTargetViewServiceEnum = typeof SpaceCalendarTargetViewServiceEnum[keyof typeof SpaceCalendarTargetViewServiceEnum];
 
 /**
  * @export
@@ -144,7 +144,7 @@ export function instanceOfSpaceCalendarTargetView(value: object): value is Space
     if (!('failedCount' in value) || value['failedCount'] === undefined) return false;
     if (!('keptCount' in value) || value['keptCount'] === undefined) return false;
     if (!('pendingCount' in value) || value['pendingCount'] === undefined) return false;
-    if (!('provider' in value) || value['provider'] === undefined) return false;
+    if (!('service' in value) || value['service'] === undefined) return false;
     if (!('sponsor' in value) || value['sponsor'] === undefined) return false;
     if (!('sponsoredByMe' in value) || value['sponsoredByMe'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
@@ -169,7 +169,7 @@ export function SpaceCalendarTargetViewFromJSONTyped(json: any, ignoreDiscrimina
         'keptCount': json['keptCount'],
         'lastSuccessAt': json['lastSuccessAt'] === undefined ? undefined : json['lastSuccessAt'] === null ? null : (new Date(json['lastSuccessAt'])),
         'pendingCount': json['pendingCount'],
-        'provider': json['provider'],
+        'service': json['service'],
         'sponsor': AuthorSummaryFromJSON(json['sponsor']),
         'sponsoredByMe': json['sponsoredByMe'],
         'status': json['status'],
@@ -196,7 +196,7 @@ export function SpaceCalendarTargetViewToJSONTyped(value?: SpaceCalendarTargetVi
         'keptCount': value['keptCount'],
         'lastSuccessAt': value['lastSuccessAt'] == null ? value['lastSuccessAt'] : value['lastSuccessAt'].toISOString(),
         'pendingCount': value['pendingCount'],
-        'provider': value['provider'],
+        'service': value['service'],
         'sponsor': AuthorSummaryToJSON(value['sponsor']),
         'sponsoredByMe': value['sponsoredByMe'],
         'status': value['status'],

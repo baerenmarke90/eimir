@@ -4,7 +4,7 @@ import { ClientProblemError } from './problemDetails';
 import { calendarSyncErrorKey, calendarSyncStatus } from './calendarSync';
 
 const target: SpaceCalendarTargetView = {
-  provider: 'CALDAV',
+  service: 'CALDAV',
   calendarName: 'Unser Kalender',
   sponsor: { id: 'a', displayName: 'Anna' },
   sponsoredByMe: true,

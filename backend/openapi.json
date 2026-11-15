@@ -985,12 +985,12 @@
             "title": "Label",
             "type": "string"
           },
-          "provider": {
+          "service": {
             "enum": [
               "CALDAV",
               "GOOGLE"
             ],
-            "title": "Provider",
+            "title": "Service",
             "type": "string"
           },
           "status": {
@@ -1004,7 +1004,7 @@
         },
         "required": [
           "id",
-          "provider",
+          "service",
           "label",
           "status"
         ],
@@ -1071,7 +1071,7 @@
             "title": "Connections",
             "type": "array"
           },
-          "providers": {
+          "services": {
             "items": {
               "enum": [
                 "CALDAV",
@@ -1079,7 +1079,7 @@
               ],
               "type": "string"
             },
-            "title": "Providers",
+            "title": "Services",
             "type": "array"
           },
           "target": {
@@ -1100,7 +1100,7 @@
         "required": [
           "available",
           "canSync",
-          "providers",
+          "services",
           "connections",
           "targetToken"
         ],
@@ -14289,12 +14289,12 @@
             "title": "Pendingcount",
             "type": "integer"
           },
-          "provider": {
+          "service": {
             "enum": [
               "CALDAV",
               "GOOGLE"
             ],
-            "title": "Provider",
+            "title": "Service",
             "type": "string"
           },
           "sponsor": {
@@ -14330,7 +14330,7 @@
           }
         },
         "required": [
-          "provider",
+          "service",
           "calendarName",
           "sponsor",
           "sponsoredByMe",

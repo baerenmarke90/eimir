@@ -46,7 +46,7 @@ function scenario(overrides: Partial<CalendarScenario> = {}): CalendarScenario {
 function view(state: CalendarScenario) {
   const target = state.targetSet
     ? {
-        provider: 'CALDAV',
+        service: 'CALDAV',
         calendarName: 'Unser Kalender',
         sponsor: {
           id: state.sponsoredByMe ? ACCOUNT_ID : 'partner',
@@ -69,13 +69,13 @@ function view(state: CalendarScenario) {
   return {
     available: true,
     canSync: state.canSync,
-    providers: ['CALDAV'],
+    services: ['CALDAV'],
     connections:
       state.connected && state.sponsoredByMe
         ? [
             {
               id: CONNECTION_ID,
-              provider: 'CALDAV',
+              service: 'CALDAV',
               label: 'anna · dav.example.org',
               status: 'ACTIVE',
             },
@@ -137,7 +137,7 @@ async function installApiMocks(
         {
           connection: {
             id: CONNECTION_ID,
-            provider: 'CALDAV',
+            service: 'CALDAV',
             label: 'anna · dav.example.org',
             status: 'ACTIVE',
           },

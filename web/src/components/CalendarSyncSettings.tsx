@@ -148,14 +148,14 @@ export function CalendarSyncSettings(props: Props) {
             >
               <span>
                 <strong>
-                  {t(`calendarSync.providers.${connection.provider}`)}
+                  {t(`calendarSync.providers.${connection.service}`)}
                 </strong>
                 <span>{connection.label}</span>
               </span>
               <span aria-hidden="true">›</span>
             </button>
           ))}
-          {view.providers.map((provider) => (
+          {view.services.map((provider) => (
             <button
               key={provider}
               ref={provider === 'CALDAV' ? trigger : undefined}
@@ -254,7 +254,7 @@ function TargetState(
   const { api, spaceId, view, busy, ifMatch, run } = props;
   const target = view.target!;
   const status = calendarSyncStatus(target);
-  const provider = t(`calendarSync.providers.${target.provider}`);
+  const provider = t(`calendarSync.providers.${target.service}`);
   const plansApi = useMemo(
     () =>
       new PlansApi(

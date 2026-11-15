@@ -289,8 +289,8 @@ async function expectSharedAlbumComposition(page: Page) {
   const storyBox = await story.boundingBox();
   for (const portrait of await portraits.all()) {
     const box = await portrait.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.y ?? 0).toBeGreaterThan(storyBox?.y ?? Number.MAX_VALUE);
   }
   const stamp = page.locator('.today-agenda-list .shared-album-date-stamp');
@@ -339,12 +339,9 @@ async function alignedVisibilityControls(page: Page) {
     );
   // The shared couple hero is fixed and has no visibility switch.
   expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
-  // Bounds are single-precision: at a fractional page offset a 44 px target
-  // can measure 43.9999, so the comparison allows a hundredth of a pixel.
-  const minimumTarget = 44 - 0.01;
   for (const target of targets) {
-    expect(target.width).toBeGreaterThanOrEqual(minimumTarget);
-    expect(target.height).toBeGreaterThanOrEqual(minimumTarget);
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
     expect(target.overlapsLabel).toBe(false);
   }
 }

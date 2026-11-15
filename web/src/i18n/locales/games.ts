@@ -26,63 +26,133 @@ const games = {
     paarMinutes: {
       role: 'Loslegen',
       title: 'Paar Minuten',
-      description: 'Kleine Spiele für zwischendurch. Ein Handy reicht.',
+      description: 'Vier kurze Spiele für zwei. Ein Handy reicht.',
     },
   },
   paarMinutes: {
     back: 'Zurück zu Spielen',
-    progress: '{{current}} von {{total}} · {{minutes}} Min.',
-    materials: 'Ihr braucht: {{items}}',
-    next: 'Nächste Karte',
-    restart: 'Zur ersten Karte',
-    cards: {
-      invented: {
-        title: 'Eine ist erfunden',
-        items: 'nichts',
+    duration: '{{minutes}} Min.',
+    next: 'Nächste Runde',
+    reveal: 'Auflösen',
+    answer: 'Lösung',
+    formats: {
+      film: {
+        title: 'Schlechte Filmbeschreibung',
         rules:
-          'Erzähl drei Dinge über dich: Zwei stimmen, eins ist erfunden. Die andere Person rät, was du dir ausgedacht hast. Danach tauscht ihr die Rollen.',
-      },
-      wrongNumber: {
-        title: 'Falsch verbunden',
-        items: 'nichts',
-        rules:
-          'Stell schnelle Fragen wie „Was steht im Kühlschrank?“ Die Antwort muss völlig unpassend sein, etwa „Ein Ruderboot!“ Nach drei Fragen tauscht ihr die Rollen.',
-      },
-      missing: {
-        title: 'Was fehlt?',
-        items: 'fünf kleine Gegenstände',
-        rules:
-          'Legt fünf Dinge vor euch. Eine Person prägt sie sich ein und dreht sich um. Die andere nimmt ein Teil weg. Ratet, was fehlt, und tauscht dann die Rollen.',
-      },
-      doodle: {
-        title: 'Mach mein Gekritzel fertig',
-        items: 'Papier und einen Stift',
-        rules:
-          'Kritzel drei Linien oder Formen aufs Papier. Die andere Person macht daraus ein Bild. Erzählt euch, was ihr in den Formen gesehen habt, und tauscht die Rollen.',
+          'Ratet gemeinsam, welcher Film gemeint ist. Wenn ihr euch entschieden habt, deckt den Titel auf.',
       },
       story: {
-        title: 'Ein Satz von dir',
-        items: 'nichts',
+        title: 'Wie ging das aus?',
         rules:
-          'Beginnt mit „Im Brief stand nur: Komm allein.“ Ergänzt abwechselnd je einen Satz. Wenn ihr beide dreimal dran wart, findet gemeinsam ein Ende.',
+          'Erzähl eine wahre Geschichte von früher bis kurz vor die Auflösung. Die andere Person tippt, wie sie ausging. Dann erzählst du den echten Schluss.',
       },
-      mime: {
-        title: 'Ganz ohne Worte',
-        items: 'nichts',
+      match: {
+        title: 'Gleicher Gedanke',
         rules:
-          'Spiel stumm etwas Alltägliches vor, zum Beispiel eine Orange schälen oder nasse Socken ausziehen. Die andere Person rät, was du darstellst. Dann wechselt ihr.',
+          'Sagt auf drei gleichzeitig je ein Wort. Sind die Wörter verschieden, sucht beide ein neues Wort, das eure letzten Antworten verbindet. Dafür habt ihr zwei Versuche.',
       },
-      lastStone: {
-        title: 'Der letzte Stein',
-        items: 'zwölf Münzen, Steine oder getrocknete Bohnen',
+      choice: {
+        title: 'Dein Tipp',
         rules:
-          'Legt alle zwölf Teile aus. Nehmt abwechselnd eins, zwei oder drei weg. Wer das letzte nimmt, gewinnt. In der nächsten Runde beginnt die andere Person.',
+          'Eine Person wählt im Kopf. Die andere versucht, die Wahl zu erraten. Dann nennt ihr auf drei gleichzeitig eure Antworten. Bei der nächsten Tipprunde tauscht ihr.',
       },
-      blindTaste: {
-        title: 'Was war das für ein Bissen?',
-        items: 'drei vertraute Snacks',
-        rules:
-          'Sucht die Snacks zusammen aus und prüft die Zutaten. Eine Person schaut weg, während die andere ihr ein kleines Stück anbietet. Ratet, was es war, und tauscht, wenn ihr beide mögt.',
+    },
+    rounds: {
+      homeAlone: {
+        prompt:
+          'Ein Achtjähriger übernimmt die Haussicherheit, weil seine Familie ohne ihn verreist.',
+        answer: 'Kevin – Allein zu Haus',
+      },
+      ratatouille: {
+        prompt:
+          'Ein Pariser Spitzenrestaurant hängt von einem Koch ab, der sich vor dem Gesundheitsamt in einer Kochmütze verstecken müsste.',
+        answer: 'Ratatouille',
+      },
+      findingNemo: {
+        prompt:
+          'Ein Vater sucht seinen Sohn im halben Ozean. Die einzige Mitreisende, die den Weg weiß, vergisst immer wieder, warum sie unterwegs sind.',
+        answer: 'Findet Nemo',
+      },
+      groundhogDay: {
+        prompt:
+          'Ein schlecht gelaunter Wettermoderator meldet jeden Morgen dasselbe Wetter. Das liegt daran, dass es jedes Mal derselbe Morgen ist.',
+        answer: 'Und täglich grüßt das Murmeltier',
+      },
+      jurassicPark: {
+        prompt:
+          'Ein Freizeitpark hat einen Stromausfall. Ausgerechnet die Attraktionen verlassen als Erste ihre Gehege.',
+        answer: 'Jurassic Park',
+      },
+      backToTheFuture: {
+        prompt:
+          'Ein Teenager muss dafür sorgen, dass seine Mutter mit seinem Vater zum Schulball geht. Sie würde aber lieber mit ihm hin.',
+        answer: 'Zurück in die Zukunft',
+      },
+      wrongPlace: {
+        prompt:
+          'Einmal, als dir viel zu spät aufgefallen ist, dass du im falschen Zug, Raum oder auf der falschen Feier warst.',
+      },
+      dinnerSave: {
+        prompt:
+          'Ein Gericht, das kurz vor dem Servieren plötzlich einen Plan B brauchte.',
+      },
+      oddPurchase: {
+        prompt:
+          'Ein Kauf, der sich zu Hause als etwas ganz anderes herausstellte.',
+      },
+      surpriseInvite: {
+        prompt:
+          'Eine spontane Einladung, aus der ein ganz anderer Abend wurde.',
+      },
+      familyHabit: {
+        prompt:
+          'Etwas, das bei euch zu Hause für dich völlig normal war, bis du bei Freunden zu Besuch warst.',
+      },
+      misheardSong: {
+        prompt: 'Ein Lied, dessen Refrain du jahrelang falsch verstanden hast.',
+      },
+      hotelNight: {
+        prompt: 'Welcher Gegenstand rettet jede noch so schlechte Hotelnacht?',
+      },
+      summer: {
+        prompt: 'Was riecht für euch sofort nach Sommer?',
+      },
+      sundaySound: {
+        prompt: 'Welches Geräusch passt zu einem richtig guten Sonntagmorgen?',
+      },
+      trainSnack: {
+        prompt: 'Welcher Snack gehört zu einer langen Zugfahrt?',
+      },
+      sleptThrough: {
+        prompt:
+          'Ein Wort für den Moment, in dem ihr beide merkt, dass ihr vor dem Film eingeschlafen seid.',
+      },
+      strangeKitchen: {
+        prompt: 'Was würdet ihr in einer fremden Küche als Erstes suchen?',
+      },
+      hotelRoom: {
+        prompt:
+          'Hotelzimmer mit Meerblick und Baustelle ab sieben oder Zimmer zum Innenhof mit Frühstück bis zwölf?',
+      },
+      concert: {
+        prompt:
+          'Deine Lieblingsband in der letzten Reihe im Trockenen sehen oder bei Regen ganz vorne stehen?',
+      },
+      sleepIn: {
+        prompt:
+          'Im Urlaub richtig ausschlafen oder früh raus und die Stadt eine Stunde fast für dich allein haben?',
+      },
+      bistro: {
+        prompt:
+          'Am ersten Abend in einer fremden Stadt essen, wo du die Karte kaum verstehst, oder gleich dein Lieblingsgericht von zu Hause finden?',
+      },
+      museum: {
+        prompt:
+          'Zwei Stunden allein durchs Museum streifen oder eine halbe Stunde mit jemandem verbringen, der die ganze Geschichte hinter einem einzigen Bild kennt?',
+      },
+      cinema: {
+        prompt:
+          'Im Kino einen Film wiedersehen, den du mitsprechen kannst, oder einen neuen von deinem Lieblingsregisseur ohne Trailer oder Vorwissen?',
       },
     },
   },

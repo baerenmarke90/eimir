@@ -1,5 +1,7 @@
 # Paar Minuten: mobile interaction contract
 
+The revised gameplay and comparison are recorded in the [rounds preflight](rounds-preflight.md). This document records the initial preflight.
+
 Baseline: GitHub `main` at `146708719e469f1d86656e632c7c4145ee1bc3c3`.
 Reviewed the real `/games` screen through the existing Playwright journey at
 390 px (Light) and 1280 px (Dark). "Our moments", "Wish detective" and

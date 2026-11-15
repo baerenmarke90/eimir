@@ -550,7 +550,7 @@ for (const [width, theme] of [
   [430, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`Paar Minuten opens, advances and returns at ${width}px ${theme}`, async ({
+  test(`Paar Minuten opens, reveals, advances and returns at ${width}px ${theme}`, async ({
     page,
   }, info) => {
     await installMocks(page);
@@ -571,10 +571,24 @@ for (const [width, theme] of [
     await open.click();
 
     const deck = gameCopy.paarMinutes;
-    const card = page.getByRole('region', { name: deck.cards.invented.title });
-    const next = page.getByRole('button', { name: deck.next });
-    await expect(card.getByText(deck.cards.invented.rules)).toBeVisible();
-    await expect(card.getByRole('heading')).toBeFocused();
+    const filmHeading = page.getByRole('heading', {
+      level: 2,
+      name: deck.formats.film.title,
+    });
+    const prompt = page.locator('.paar-minutes-prompt');
+    const next = page.getByRole('button', { name: deck.next, exact: true });
+    const reveal = page.getByRole('button', { name: deck.reveal, exact: true });
+    await expect(filmHeading).toBeFocused();
+    await expect(page.getByText(deck.formats.film.rules)).toBeVisible();
+    const openingPrompt = await prompt.innerText();
+    const film = Object.values(deck.rounds).find(
+      (round) => round.prompt === openingPrompt,
+    );
+    if (!film || !('answer' in film)) {
+      throw new Error('The opening round must be a localized film clue.');
+    }
+    const answer = page.getByRole('heading', { level: 3, name: film.answer });
+    await expect(answer).toHaveCount(0);
     await expect(
       page.locator('.subpage-back-slot .task-back-control'),
     ).toHaveCount(1);
@@ -589,35 +603,67 @@ for (const [width, theme] of [
         );
       });
     expect(fits).toBe(true);
-    expect((await next.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    expect((await reveal.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     await captureScreenshot(page, info, `paar-minuten-${width}-${theme}.png`, {
       animations: 'disabled',
     });
     if (width === 320) {
-      await next.scrollIntoViewIfNeeded();
+      await reveal.scrollIntoViewIfNeeded();
       await captureScreenshot(page, info, 'paar-minuten-320-light-action.png', {
         animations: 'disabled',
       });
     }
 
-    await next.press('Enter');
-    await expect(
-      page.getByRole('heading', { name: deck.cards.wrongNumber.title }),
-    ).toBeFocused();
-
+    await reveal.press('Enter');
+    await expect(answer).toBeFocused();
+    await expect(prompt).toHaveText(openingPrompt);
+    await expect(reveal).toHaveCount(0);
+    if (width === 390 || width === 1280) {
+      await captureScreenshot(
+        page,
+        info,
+        `paar-minuten-revealed-${width}-${theme}.png`,
+        { animations: 'disabled' },
+      );
+    }
     if (width === 390 && theme === 'light') {
       const axe = await new AxeBuilder({ page })
         .include('.paar-minutes-game')
         .analyze();
       expect(axe.violations).toEqual([]);
-      for (const rules of Object.values(deck.cards).slice(2)) {
-        await next.click();
+    }
+
+    await next.press('Enter');
+    await expect(
+      page.getByRole('heading', { level: 2, name: deck.formats.story.title }),
+    ).toBeFocused();
+    await expect(answer).toHaveCount(0);
+
+    if (width === 390 && theme === 'light') {
+      await captureScreenshot(page, info, 'paar-minuten-story-390-light.png', {
+        animations: 'disabled',
+      });
+      const formats = Object.values(deck.formats);
+      const localizedPrompts = Object.values(deck.rounds).map(
+        (round) => round.prompt,
+      );
+      const visitedPrompts = new Set([openingPrompt]);
+      for (let offset = 1; offset < localizedPrompts.length; offset += 1) {
+        const format = formats[offset % formats.length];
         await expect(
-          page.getByRole('heading', { name: rules.title }),
+          page.getByRole('heading', { level: 2, name: format.title }),
         ).toBeFocused();
+        await expect(page.getByText(deck.answer, { exact: true })).toHaveCount(
+          0,
+        );
+        visitedPrompts.add(await prompt.innerText());
+        await next.click();
       }
-      await page.getByRole('button', { name: deck.restart }).click();
-      await expect(card.getByRole('heading')).toBeFocused();
+      expect(visitedPrompts).toEqual(new Set(localizedPrompts));
+      await expect(filmHeading).toBeFocused();
+      await expect(prompt).toHaveText(openingPrompt);
+      await expect(answer).toHaveCount(0);
+      await expect(reveal).toBeVisible();
     }
 
     await page.getByRole('button', { name: deck.back }).click();

@@ -3048,55 +3048,111 @@
       "paarMinutes": {
         "role": "Get playing",
         "title": "A Few for Two",
-        "description": "Quick games for two. One phone is enough."
+        "description": "Four quick games for two. One phone is enough."
       }
     },
     "paarMinutes": {
       "back": "Back to Games",
-      "progress": "{{current}} of {{total}} · {{minutes}} min",
-      "materials": "You'll need: {{items}}",
-      "next": "Next card",
-      "restart": "Back to the first card",
-      "cards": {
-        "invented": {
-          "title": "One is made up",
-          "items": "nothing",
-          "rules": "Tell your partner three things about yourself: two are true and one is made up. They guess which one you invented. Then swap roles."
-        },
-        "wrongNumber": {
-          "title": "Wrong answers only",
-          "items": "nothing",
-          "rules": "Ask quick questions like “What’s in the fridge?” Your partner answers with something that makes no sense, like “A rowing boat!” Swap roles after three questions."
-        },
-        "missing": {
-          "title": "What's missing?",
-          "items": "five small objects",
-          "rules": "Set out five small things you can find nearby. One of you takes a good look and turns away while the other removes one. Guess what’s missing, then swap roles."
-        },
-        "doodle": {
-          "title": "Finish my doodle",
-          "items": "paper and a pen",
-          "rules": "Draw three random lines or shapes. Pass the paper over and let your partner turn them into a picture. Show each other what you saw in the shapes, then swap roles."
+      "duration": "{{minutes}} min",
+      "next": "Next round",
+      "reveal": "Reveal title",
+      "answer": "Answer",
+      "formats": {
+        "film": {
+          "title": "Bad film synopsis",
+          "rules": "Guess the film together. Once you’ve picked a title, tap to find out if you got it."
         },
         "story": {
-          "title": "One sentence each",
-          "items": "nothing",
-          "rules": "Start with “A letter arrived with one instruction: come alone.” Take turns adding a sentence. When you’ve both had three turns, find an ending together."
+          "title": "What happened next?",
+          "rules": "Tell a true story from your past and stop just before the ending. Let your partner guess how it turned out, then tell them what really happened."
         },
-        "mime": {
-          "title": "Silent scenes",
-          "items": "nothing",
-          "rules": "Act out something ordinary without speaking, like peeling an orange or taking off wet socks. Your partner guesses what it is. Then swap roles."
+        "match": {
+          "title": "Same thought",
+          "rules": "On three, each say one word. If they’re different, each think of a new word that connects the two you just said. You get two more tries to land on the same word."
         },
-        "lastStone": {
-          "title": "The last stone",
-          "items": "12 coins, stones, or dried beans",
-          "rules": "Set out all 12 pieces. Take turns removing one, two, or three. Whoever takes the last piece wins. In the next round, let the other person go first."
+        "choice": {
+          "title": "Your pick, my guess",
+          "rules": "One of you picks silently. The other guesses their choice. On three, say both answers aloud. Swap roles the next time you play this format."
+        }
+      },
+      "rounds": {
+        "homeAlone": {
+          "prompt": "An eight-year-old takes over home security when his family goes on holiday without him.",
+          "answer": "Home Alone"
         },
-        "blindTaste": {
-          "title": "What’s that bite?",
-          "items": "three familiar snacks",
-          "rules": "Agree on the snacks first and check the ingredients. One of you looks away or closes their eyes while the other offers a small piece. Guess which one it was, then swap if you both want to."
+        "ratatouille": {
+          "prompt": "A top Paris restaurant is saved by a chef who would have to hide from the health inspector in a chef’s hat.",
+          "answer": "Ratatouille"
+        },
+        "findingNemo": {
+          "prompt": "A father crosses half the ocean to find his son. His only travelling companion knows the way but keeps forgetting why they’re going.",
+          "answer": "Finding Nemo"
+        },
+        "groundhogDay": {
+          "prompt": "A grumpy weatherman gives the same forecast every morning. It’s the same morning every time.",
+          "answer": "Groundhog Day"
+        },
+        "jurassicPark": {
+          "prompt": "A theme park loses power. The main attractions are the first things out of their enclosures.",
+          "answer": "Jurassic Park"
+        },
+        "backToTheFuture": {
+          "prompt": "A teenager needs his mum to go to the school dance with his dad. Unfortunately, she’d rather go with him.",
+          "answer": "Back to the Future"
+        },
+        "wrongPlace": {
+          "prompt": "A time you realised far too late you were on the wrong train, in the wrong room or at the wrong party."
+        },
+        "dinnerSave": {
+          "prompt": "A dish that suddenly needed a plan B just before you served it."
+        },
+        "oddPurchase": {
+          "prompt": "A purchase that turned out to be something completely different when you got home."
+        },
+        "surpriseInvite": {
+          "prompt": "A last-minute invitation that turned into a very different evening."
+        },
+        "familyHabit": {
+          "prompt": "Something you thought every family did until you stayed at a friend’s place."
+        },
+        "misheardSong": {
+          "prompt": "A song whose chorus you misheard for years."
+        },
+        "hotelNight": {
+          "prompt": "What one thing can save even the worst night in a hotel?"
+        },
+        "summer": {
+          "prompt": "What smells like summer the second you catch it?"
+        },
+        "sundaySound": {
+          "prompt": "What sound belongs on a really good Sunday morning?"
+        },
+        "trainSnack": {
+          "prompt": "Which snack belongs on a long train journey?"
+        },
+        "sleptThrough": {
+          "prompt": "One word for the moment you both realise you fell asleep during the film."
+        },
+        "strangeKitchen": {
+          "prompt": "What’s the first thing you’d look for in an unfamiliar kitchen?"
+        },
+        "hotelRoom": {
+          "prompt": "A sea-view hotel room with construction starting at seven, or a courtyard room with breakfast until noon?"
+        },
+        "concert": {
+          "prompt": "See your favourite band from the back and stay dry, or stand right up front in the rain?"
+        },
+        "sleepIn": {
+          "prompt": "Sleep in on holiday, or get up early and have the city almost to yourself for an hour?"
+        },
+        "bistro": {
+          "prompt": "First night in a new city: try a place where you barely understand the menu, or go straight for your favourite meal from home?"
+        },
+        "museum": {
+          "prompt": "Roam through a museum on your own for two hours, or spend half an hour with someone who knows the whole story behind one painting?"
+        },
+        "cinema": {
+          "prompt": "See a film you can quote by heart at the cinema, or go in cold to a new one by your favourite director?"
         }
       }
     },

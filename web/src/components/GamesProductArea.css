@@ -36,12 +36,38 @@
   color: var(--color-text);
 }
 
-.paar-minutes-card > :is(h2, p) {
+.paar-minutes-card > :is(h2, p),
+.paar-minutes-answer > :is(h3, p) {
   margin: 0;
 }
 
-.paar-minutes-materials {
+.paar-minutes-instructions,
+.paar-minutes-answer > p {
   color: var(--color-text-secondary);
+}
+
+.paar-minutes-prompt {
+  font-size: 1.125em;
+  font-weight: 550;
+  line-height: 1.55;
+}
+
+.paar-minutes-answer {
+  display: grid;
+  gap: var(--space-1);
+  border-block-start: var(--border-surface-width) solid
+    var(--color-border-subtle);
+  padding-block-start: var(--space-3);
+}
+
+.paar-minutes-answer h3 {
+  font: var(--font-personal-heading);
+  font-size: 1.125em;
+}
+
+.paar-minutes-actions {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .paar-minutes-card .games-entry-status {

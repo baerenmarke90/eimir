@@ -3,25 +3,75 @@ import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { TaskBackButton } from './TaskBackButton';
 
-const CARDS = [
-  { id: 'invented', minutes: 3 },
-  { id: 'wrongNumber', minutes: 2 },
-  { id: 'missing', minutes: 4 },
-  { id: 'doodle', minutes: 5 },
-  { id: 'story', minutes: 3 },
-  { id: 'mime', minutes: 3 },
-  { id: 'lastStone', minutes: 3 },
-  { id: 'blindTaste', minutes: 5 },
+const FORMATS = [
+  { id: 'film', minutes: 2 },
+  { id: 'story', minutes: 4 },
+  { id: 'match', minutes: 2 },
+  { id: 'choice', minutes: 3 },
 ] as const;
 
-function focusCardHeading(heading: HTMLHeadingElement | null): void {
+const ROUND_GROUPS = [
+  {
+    film: 'homeAlone',
+    story: 'wrongPlace',
+    match: 'hotelNight',
+    choice: 'concert',
+  },
+  {
+    film: 'ratatouille',
+    story: 'dinnerSave',
+    match: 'summer',
+    choice: 'hotelRoom',
+  },
+  {
+    film: 'findingNemo',
+    story: 'oddPurchase',
+    match: 'sundaySound',
+    choice: 'bistro',
+  },
+  {
+    film: 'groundhogDay',
+    story: 'surpriseInvite',
+    match: 'trainSnack',
+    choice: 'sleepIn',
+  },
+  {
+    film: 'jurassicPark',
+    story: 'familyHabit',
+    match: 'sleptThrough',
+    choice: 'museum',
+  },
+  {
+    film: 'backToTheFuture',
+    story: 'misheardSong',
+    match: 'strangeKitchen',
+    choice: 'cinema',
+  },
+] as const;
+
+const ROUND_COUNT = FORMATS.length * ROUND_GROUPS.length;
+
+function focusHeading(heading: HTMLHeadingElement | null): void {
   heading?.focus();
 }
 
 export function PaarMinutesGamePanel({ onExit }: { onExit: () => void }) {
   const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
-  const card = CARDS[index];
+  const [index, setIndex] = useState(
+    () => Math.floor(Math.random() * ROUND_GROUPS.length) * FORMATS.length,
+  );
+  const [revealed, setRevealed] = useState(false);
+  const group = ROUND_GROUPS[Math.floor(index / FORMATS.length)];
+  const format = FORMATS[index % FORMATS.length];
+  const roundId = group[format.id];
+  const roundKey = `games.paarMinutes.rounds.${roundId}`;
+  const filmRound = format.id === 'film';
+  const canReveal = filmRound && !revealed;
+
+  function nextRound() {
+    setRevealed(false);
+    setIndex((current) => (current + 1) % ROUND_COUNT);
+  }
 
   return (
     <div className="paar-minutes-game">
@@ -37,40 +87,57 @@ export function PaarMinutesGamePanel({ onExit }: { onExit: () => void }) {
         className="paar-minutes-card"
         aria-labelledby="paar-minutes-card"
       >
-        <p className="games-entry-status" id="paar-minutes-card-progress">
-          {t('games.paarMinutes.progress', {
-            current: index + 1,
-            total: CARDS.length,
-            minutes: card.minutes,
+        <p className="games-entry-status" id="paar-minutes-card-duration">
+          {t('games.paarMinutes.duration', {
+            minutes: format.minutes,
           })}
         </p>
         <h2
-          key={card.id}
+          key={roundId}
           id="paar-minutes-card"
-          ref={focusCardHeading}
+          ref={focusHeading}
           tabIndex={-1}
-          aria-describedby="paar-minutes-card-progress"
+          aria-describedby="paar-minutes-card-duration"
         >
-          {t(`games.paarMinutes.cards.${card.id}.title`)}
+          {t(`games.paarMinutes.formats.${format.id}.title`)}
         </h2>
-        <p className="paar-minutes-materials">
-          {t('games.paarMinutes.materials', {
-            items: t(`games.paarMinutes.cards.${card.id}.items`),
-          })}
+        <p className="paar-minutes-instructions">
+          {t(`games.paarMinutes.formats.${format.id}.rules`)}
         </p>
-        <p>{t(`games.paarMinutes.cards.${card.id}.rules`)}</p>
+        <p className="paar-minutes-prompt">{t(`${roundKey}.prompt`)}</p>
+        {filmRound && revealed ? (
+          <div className="paar-minutes-answer">
+            <p id="paar-minutes-answer-label">
+              {t('games.paarMinutes.answer')}
+            </p>
+            <h3
+              ref={focusHeading}
+              tabIndex={-1}
+              aria-describedby="paar-minutes-answer-label"
+            >
+              {t(`${roundKey}.answer`)}
+            </h3>
+          </div>
+        ) : null}
       </section>
-      <button
-        className="primary"
-        type="button"
-        onClick={() => setIndex((current) => (current + 1) % CARDS.length)}
-      >
-        {t(
-          index < CARDS.length - 1
-            ? 'games.paarMinutes.next'
-            : 'games.paarMinutes.restart',
-        )}
-      </button>
+      <div className="paar-minutes-actions">
+        {canReveal ? (
+          <button
+            className="primary"
+            type="button"
+            onClick={() => setRevealed(true)}
+          >
+            {t('games.paarMinutes.reveal')}
+          </button>
+        ) : null}
+        <button
+          className={canReveal ? 'tertiary' : 'primary'}
+          type="button"
+          onClick={nextRound}
+        >
+          {t('games.paarMinutes.next')}
+        </button>
+      </div>
     </div>
   );
 }

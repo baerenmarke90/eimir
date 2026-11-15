@@ -203,7 +203,7 @@ one round per Space, two to five candidates and the existing reveal rules.
   candidate stores the persistent catalog ID (`eimir-date-001` …) and a content
   revision: the SHA-256 of that idea's full catalog entry (both locales and
   structured facts). A database check enforces exactly one reference per type.
-- The additive migration (`0133`) turns every existing row into a `WISH`
+- The additive migration (`0135`) turns every existing row into a `WISH`
   candidate; stored rounds, selections and API clients keep working. The key
   moves to the already unique `(round_id, position)`.
 - A removed idea or a changed revision makes the round `NEEDS_IDEAS`: publishing

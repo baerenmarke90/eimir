@@ -54,14 +54,20 @@ def test_story_contract_is_privacy_safe_and_deterministic() -> None:
         if operation["operationId"] == "getStoryTimeline"
     )
 
-    assert timeline["query"] == ["type", "year", "order", "cursor", "limit"]
+    assert timeline["query"] == ["type", "year", "order", "cursor", "limit", "includeChapters"]
     assert "q" not in timeline["query"]
     assert story["heartMomentVisibility"] == "SHARED_ONLY"
     assert story["fullTextQuery"] is False
     assert story["sortTuple"] == ["effectiveDate", "createdAt", "kindRank", "id"]
     assert story["cursor"]["opaque"] is True
     assert story["cursor"]["integrityProtected"] is True
-    assert set(story["cursor"]["binds"]) == {"spaceId", "type", "year", "order"}
+    assert set(story["cursor"]["binds"]) == {
+        "spaceId",
+        "type",
+        "year",
+        "order",
+        "includeChapters",
+    }
 
 
 def test_internal_privacy_and_storage_fields_are_not_client_contract_fields() -> None:

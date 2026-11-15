@@ -4,6 +4,114 @@ import {
   type DailyVibe as DailyVibeValue,
 } from '../api/generated/models/DailyVibe';
 
+/**
+ * The single source of the duotone vibe faces (#1790, Product Owner decision
+ * 2026-11-13). Contour and features follow `currentColor`; warm and cool
+ * accents come from the identity tokens so they adapt to Light and Dark.
+ * Accents only clarify a face: the localized vibe label always accompanies
+ * the glyph, which stays decorative for assistive technology.
+ */
+const warmFill = 'var(--identity-icon-warm-fill)';
+const coolFill = 'var(--identity-icon-cool-fill)';
+
+function Dot({ cx, cy, r = 0.9 }: { cx: number; cy: number; r?: number }) {
+  return <circle cx={cx} cy={cy} r={r} fill="currentColor" stroke="none" />;
+}
+
+function vibeFace(value: DailyVibeValue): ReactNode {
+  switch (value) {
+    case DailyVibe.VERY_GOOD:
+      return (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <circle
+            cx="7.4"
+            cy="13.3"
+            r="1.35"
+            fill={warmFill}
+            stroke="none"
+            opacity=".55"
+          />
+          <circle
+            cx="16.6"
+            cy="13.3"
+            r="1.35"
+            fill={warmFill}
+            stroke="none"
+            opacity=".55"
+          />
+          <path d="M8.3 10q.85-1.3 1.7 0m4 0q.85-1.3 1.7 0M8.8 13.6h6.4a3.2 3.2 0 0 1-6.4 0Z" />
+        </>
+      );
+    case DailyVibe.GOOD:
+      return (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M8.3 10.4h1.9m3.6 0h1.9M9.4 14.4q2.6 1.9 5.2 0" />
+          <path className="accent" d="M18.4 3.2v2.2m-1.1-1.1h2.2" />
+        </>
+      );
+    case DailyVibe.OKAY:
+      return (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <Dot cx={9.2} cy={10.2} />
+          <Dot cx={14.8} cy={10.2} />
+          <path className="accent" d="M9 15h6" />
+        </>
+      );
+    case DailyVibe.STRESSED:
+      return (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8.2 9 2 1.1m5.6-1.1-2 1.1M8.6 15.2l1.35-.9 1.35.9 1.35-.9 1.35.9 1.35-.9" />
+          <path className="accent" d="m19.6 7 1.6-.9m-1 3.4 1.8.2" />
+        </>
+      );
+    case DailyVibe.SAD:
+      return (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <Dot cx={9.2} cy={10.2} />
+          <Dot cx={14.8} cy={10.2} />
+          <path d="M9 16q3-2.6 6 0" />
+          <path
+            d="M15.4 12.1c.55.85.95 1.45.95 1.95a.95.95 0 0 1-1.9 0c0-.5.4-1.1.95-1.95Z"
+            fill={coolFill}
+            stroke="none"
+          />
+        </>
+      );
+    case DailyVibe.NEEDS_CONNECTION:
+      return (
+        <>
+          <path d="M19.1 8.6A8.5 8.5 0 1 1 13.9 3.7" />
+          <Dot cx={9.2} cy={10.6} />
+          <Dot cx={14.8} cy={10.6} />
+          <path d="M9.4 14.6q2.6 1.7 5.2 0" />
+          <path
+            d="M18.6 7.4s-2.6-1.6-2.6-3.3a1.35 1.35 0 0 1 2.6-.6 1.35 1.35 0 0 1 2.6.6c0 1.7-2.6 3.3-2.6 3.3Z"
+            fill={warmFill}
+            stroke="none"
+          />
+        </>
+      );
+    case DailyVibe.NEEDS_SPACE:
+      return (
+        <>
+          <path d="M19.4 9.2A8.5 8.5 0 1 1 13.5 3.6" />
+          <path d="M8.2 10.6q1 .9 2 0m3.6 0q1 .9 2 0M10.4 14.8h3.2" />
+          <path
+            d="M21.2 5.9a2.6 2.6 0 0 1-3.2-3.2 2.7 2.7 0 1 0 3.2 3.2Z"
+            fill={coolFill}
+            stroke="none"
+          />
+        </>
+      );
+  }
+  return null;
+}
+
 export function DailyVibeIcon({
   value,
   className = '',
@@ -11,73 +119,20 @@ export function DailyVibeIcon({
   value: DailyVibeValue;
   className?: string;
 }) {
-  const common = {
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.8,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  };
-
-  let shape: ReactNode = null;
-  switch (value) {
-    case DailyVibe.GOOD:
-      shape = (
-        <>
-          <circle cx="12" cy="12" r="3.2" />
-          <path d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.8 5.8l1.5 1.5M16.7 16.7l1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5" />
-        </>
-      );
-      break;
-    case DailyVibe.OKAY:
-      shape = (
-        <>
-          <circle cx="12" cy="12" r="7.4" />
-          <path d="M8.6 12h6.8" />
-        </>
-      );
-      break;
-    case DailyVibe.STRESSED:
-      shape = (
-        <>
-          <path d="M4.5 13c2.2-6.1 4.1 6.1 6.3 0s4.1 6.1 6.3 0 2.4-1.8 2.4-1.8" />
-          <path d="M6.2 8.1 7.6 5.8M16.4 18.2l1.4-2.3" />
-        </>
-      );
-      break;
-    case DailyVibe.SAD:
-      shape = (
-        <>
-          <path d="M5.2 10.4c1.9-4.3 11.7-4.3 13.6 0" />
-          <path d="M8.2 16.1c2.3-2.2 5.3-2.2 7.6 0" />
-          <path d="M17.7 11.9c0 1.7-1.2 2.9-1.2 2.9s-1.2-1.2-1.2-2.9a1.2 1.2 0 0 1 2.4 0Z" />
-        </>
-      );
-      break;
-    case DailyVibe.NEEDS_CONNECTION:
-      shape = (
-        <path d="M12 20s-7-4.3-7-10a4.1 4.1 0 0 1 7-2.9A4.1 4.1 0 0 1 19 10c0 5.7-7 10-7 10Z" />
-      );
-      break;
-    case DailyVibe.NEEDS_SPACE:
-      shape = (
-        <>
-          <circle cx="12" cy="12" r="5.1" />
-          <path d="M12 3.1v2M12 18.9v2M3.1 12h2M18.9 12h2" />
-        </>
-      );
-      break;
-  }
-
   return (
     <svg
-      className={`daily-vibe-icon ${className}`.trim()}
+      className={`eimir-icon daily-vibe-icon ${className}`.trim()}
       viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.65}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
+      focusable="false"
       data-vibe-icon={value}
-      {...common}
     >
-      {shape}
+      {vibeFace(value)}
     </svg>
   );
 }

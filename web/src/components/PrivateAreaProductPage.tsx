@@ -1,11 +1,26 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import {
+  Link,
+  matchPath,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
+import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import type { ProfilesApi } from '../client/mediaApis';
+import {
+  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
+  PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
 import { useTranslation } from '../i18n';
+import {
+  ContextualCreateMenu,
+  type ContextualCreateTarget,
+} from './ContextualCreateMenu';
 import { EimirIcon } from './EimirIcon';
 import {
   GiftIdeaCreatePage,
@@ -13,13 +28,14 @@ import {
   GiftIdeaEditPage,
   GiftIdeasListPage,
 } from './GiftIdeasPage';
+import { PrivateAreaFrame } from './PrivateAreaLayout';
+import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import {
   PrivateCollectionCreatePage,
   PrivateCollectionDetailPage,
   PrivateCollectionEditPage,
   PrivateCollectionsListPage,
 } from './PrivateCollectionsPage';
-import { PrivateAreaBackToMore, PrivateAreaFrame } from './PrivateAreaLayout';
 import {
   PrivateNoteCreatePage,
   PrivateNoteDetailPage,
@@ -35,38 +51,49 @@ const destinations = [
     icon: 'notes',
     href: PRIVATE_NOTES_PATH,
     title: 'privateArea.notes.title',
-    intro: 'privateArea.notes.intro',
   },
   {
     key: 'gifts',
     icon: 'geschenk',
     href: PRIVATE_GIFT_IDEAS_PATH,
     title: 'privateArea.gifts.title',
-    intro: 'privateArea.gifts.intro',
   },
   {
     key: 'collections',
     icon: 'listen',
     href: PRIVATE_COLLECTIONS_PATH,
     title: 'privateArea.collections.title',
-    intro: 'privateArea.collections.intro',
+  },
+  {
+    key: 'partner-notes',
+    icon: 'profil',
+    href: PRIVATE_PARTNER_NOTES_PATH,
+    title: 'privateArea.partnerNotes.title',
   },
 ] as const;
+
+const createTargets = [
+  {
+    to: `${PRIVATE_NOTES_PATH}/new`,
+    labelKey: 'privateArea.notes.add',
+    icon: 'notes',
+  },
+  {
+    to: `${PRIVATE_GIFT_IDEAS_PATH}/new`,
+    labelKey: 'privateArea.gifts.add',
+    icon: 'geschenk',
+  },
+  {
+    to: `${PRIVATE_COLLECTIONS_PATH}/new`,
+    labelKey: 'privateArea.collections.add',
+    icon: 'listen',
+  },
+] as const satisfies readonly ContextualCreateTarget[];
 
 function PrivateAreaOverview() {
   const { t } = useTranslation();
   return (
     <div className="private-area-reference-overview">
-      <PrivateAreaBackToMore />
-      <section className="private-area-privacy-banner" role="note">
-        <span className="private-area-privacy-banner-icon" aria-hidden="true">
-          <EimirIcon name="nurfuer" />
-        </span>
-        <div>
-          <strong>{t('privateArea.privacyLabel')}</strong>
-          <p>{t('privateArea.entry.privacy')}</p>
-        </div>
-      </section>
       <nav
         className="private-area-destination-nav"
         aria-label={t('privateArea.navigation.aria')}
@@ -83,13 +110,6 @@ function PrivateAreaOverview() {
                 </span>
                 <span className="private-area-destination-copy">
                   <strong>{t(destination.title)}</strong>
-                  <span>{t(destination.intro)}</span>
-                </span>
-                <span
-                  className="private-area-destination-chevron"
-                  aria-hidden="true"
-                >
-                  ›
                 </span>
               </Link>
             </li>
@@ -104,20 +124,55 @@ export function PrivateAreaProductPage({
   api,
   accountId,
   spaceId,
+  profilesApi,
+  spacesApi,
 }: {
   api: PrivateAreaApi;
   accountId: string;
   spaceId: string;
+  profilesApi?: ProfilesApi;
+  spacesApi?: SpacesApi;
 }) {
   const props = { api, accountId, spaceId };
   const { pathname } = useLocation();
   const isOverview =
-    pathname === '/more/private' || pathname === '/more/private/';
+    pathname === PRIVATE_AREA_ROOT_PATH ||
+    pathname === `${PRIVATE_AREA_ROOT_PATH}/`;
+  const isGiftEditor = Boolean(
+    matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/new`, pathname) ||
+      matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
+  );
 
   return (
-    <PrivateAreaFrame showNavigation={!isOverview}>
+    <PrivateAreaFrame
+      showNavigation={!isOverview}
+      editorFirst={isGiftEditor}
+      overviewAction={
+        isOverview ? (
+          <ContextualCreateMenu
+            labelKey="privateArea.createAction"
+            targets={createTargets}
+            taskItemKey="private-area-create"
+            floating
+          />
+        ) : undefined
+      }
+    >
       <Routes>
         <Route index element={<PrivateAreaOverview />} />
+        {profilesApi && spacesApi ? (
+          <Route
+            path="partner-notes"
+            element={
+              <PrivatePartnerNotesPage
+                profilesApi={profilesApi}
+                spacesApi={spacesApi}
+                accountId={accountId}
+                spaceId={spaceId}
+              />
+            }
+          />
+        ) : null}
         <Route path="notes" element={<PrivateNotesListPage {...props} />} />
         <Route
           path="notes/new"

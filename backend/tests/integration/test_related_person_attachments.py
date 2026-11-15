@@ -130,22 +130,21 @@ class TestRelatedPersonAvatar:
         )
         assert read_access.status_code == 200
 
-    def test_private_person_avatar_is_not_readable_by_partner(
+    def test_rejected_private_person_does_not_share_unbound_photo(
         self, client, couple, session
     ) -> None:  # type: ignore[no-untyped-def]
         attachment_id = ready_attachment(client, couple, session)
-        created = client.post(
+        response = client.post(
             f"{base_path(couple['space'].id)}/related-persons",
             json={
-                "displayName": "Private Doctor",
+                "displayName": "Doctor",
                 "relationship": "OTHER",
                 "visibility": "PRIVATE",
                 "avatarAttachmentId": attachment_id,
             },
             headers=auth(couple["token_a"]),
-        ).json()
-
-        # Owner Anna can read
+        )
+        assert response.status_code == 422
         assert (
             client.get(
                 f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
@@ -153,21 +152,9 @@ class TestRelatedPersonAvatar:
             ).status_code
             == 200
         )
-
-        # Partner Ben is rejected with 404 (privacy absence)
         assert (
             client.get(
                 f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
-                headers=auth(couple["token_b"]),
-            ).status_code
-            == 404
-        )
-
-        # Partner Ben read-access descriptor is rejected with 404
-        assert (
-            client.post(
-                f"{base_path(couple['space'].id)}/attachments/{attachment_id}/read-access",
-                json={"parentType": "RELATED_PERSON", "parentId": created["id"]},
                 headers=auth(couple["token_b"]),
             ).status_code
             == 404

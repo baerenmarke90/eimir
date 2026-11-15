@@ -14,10 +14,20 @@
 
 import * as runtime from '../runtime';
 import {
+    type ContentVisibility,
+    ContentVisibilityFromJSON,
+    ContentVisibilityToJSON,
+} from '../models/ContentVisibility';
+import {
     type DiscoverSelection,
     DiscoverSelectionFromJSON,
     DiscoverSelectionToJSON,
 } from '../models/DiscoverSelection';
+import {
+    type MediaGalleryPage,
+    MediaGalleryPageFromJSON,
+    MediaGalleryPageToJSON,
+} from '../models/MediaGalleryPage';
 import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
@@ -49,6 +59,13 @@ import {
     StoryViewReceiptToJSON,
 } from '../models/StoryViewReceipt';
 
+export interface GetMediaGalleryRequest {
+    spaceId: string;
+    visibility?: ContentVisibility;
+    cursor?: string | null;
+    limit?: number;
+}
+
 export interface GetSharedPhotosRequest {
     spaceId: string;
     cursor?: string | null;
@@ -66,6 +83,7 @@ export interface GetStoryTimelineRequest {
     order?: StoryOrder;
     cursor?: string | null;
     limit?: number;
+    includeChapters?: boolean;
 }
 
 export interface RecordStoryViewRequest {
@@ -73,10 +91,73 @@ export interface RecordStoryViewRequest {
     storyViewReceipt: StoryViewReceipt;
 }
 
+export interface RenewStoryDiscoverRequest {
+    spaceId: string;
+}
+
 /**
  * 
  */
 export class StoryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getMediaGallery without sending the request
+     */
+    async getMediaGalleryRequestOpts(requestParameters: GetMediaGalleryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getMediaGallery().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['visibility'] != null) {
+            queryParameters['visibility'] = requestParameters['visibility'];
+        }
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/media`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Browse ready media bound to shared entries or to the caller\'s private entries.
+     * Get Media Gallery
+     */
+    async getMediaGalleryRaw(requestParameters: GetMediaGalleryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MediaGalleryPage>> {
+        const requestOptions = await this.getMediaGalleryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MediaGalleryPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Browse ready media bound to shared entries or to the caller\'s private entries.
+     * Get Media Gallery
+     */
+    async getMediaGallery(requestParameters: GetMediaGalleryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MediaGalleryPage> {
+        const response = await this.getMediaGalleryRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getSharedPhotos without sending the request
@@ -161,7 +242,7 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Only deliberate renewal changes the selected references during that local day.
      * Get Story Discover
      */
     async getStoryDiscoverRaw(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DiscoverSelection>> {
@@ -172,7 +253,7 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Only deliberate renewal changes the selected references during that local day.
      * Get Story Discover
      */
     async getStoryDiscover(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DiscoverSelection> {
@@ -211,6 +292,10 @@ export class StoryApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['includeChapters'] != null) {
+            queryParameters['includeChapters'] = requestParameters['includeChapters'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -301,6 +386,53 @@ export class StoryApi extends runtime.BaseAPI {
      */
     async recordStoryView(requestParameters: RecordStoryViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.recordStoryViewRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for renewStoryDiscover without sending the request
+     */
+    async renewStoryDiscoverRequestOpts(requestParameters: RenewStoryDiscoverRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling renewStoryDiscover().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/discover/renew`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Deliberately renew the caller\'s finite selection; no source content is changed.
+     * Renew Story Discover
+     */
+    async renewStoryDiscoverRaw(requestParameters: RenewStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DiscoverSelection>> {
+        const requestOptions = await this.renewStoryDiscoverRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DiscoverSelectionFromJSON(jsonValue));
+    }
+
+    /**
+     * Deliberately renew the caller\'s finite selection; no source content is changed.
+     * Renew Story Discover
+     */
+    async renewStoryDiscover(requestParameters: RenewStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DiscoverSelection> {
+        const response = await this.renewStoryDiscoverRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
 }

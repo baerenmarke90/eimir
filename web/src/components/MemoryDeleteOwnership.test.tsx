@@ -30,6 +30,7 @@ import * as snackbar from '../client/snackbar';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { MemoryProductPage } from './MemoryProductPage';
 
 const key = authorSummaryQueryKeys.memory('space-1', 'memory-1');
@@ -134,6 +135,10 @@ function setup() {
                   />
                 }
               />
+              <Route
+                path="/story/memories/:memoryId"
+                element={<h1>Memory detail</h1>}
+              />
               <Route path="/story" element={<h1>Timeline</h1>} />
               <Route path="/away" element={<h1>Another task</h1>} />
             </Routes>
@@ -204,7 +209,8 @@ describe('Memory delete response and task ownership', () => {
       'memory-1',
     );
     expect(s.client.getQueryData(key)).toBeUndefined();
-    expect(s.path()).toBe('/story');
+    // Leaving first releases the editor's history entry.
+    await waitFor(() => expect(s.path()).toBe('/story'));
     expect(s.toast).toHaveBeenCalledTimes(1);
   });
   it('admits only one synchronous confirmation', async () => {
@@ -465,8 +471,15 @@ describe('Memory delete response and task ownership', () => {
   }
   it('restores global pending protection after a real leave and return without reviving navigation ownership', async () => {
     const s = setup();
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole('textbox', { name: de.memory.titleLabel }),
+      ' — later draft',
+    );
     await s.start();
-    await s.leave();
+    await user.click(screen.getByRole('link', { name: taskBoundary.back }));
+    await screen.findByRole('heading', { name: 'Memory detail' });
+    expect(s.path()).toBe('/story/memories/memory-1');
     await userEvent
       .setup()
       .click(screen.getByRole('link', { name: 'Return to first editor' }));
@@ -502,7 +515,7 @@ describe('Memory delete response and task ownership', () => {
       name: memoryProduct.save,
     });
     expect(save.hasAttribute('disabled')).toBe(true);
-    const form = save.closest('form');
+    const form = (save as HTMLButtonElement).form;
     if (!form) throw new Error('The Memory save action has no form');
     fireEvent.submit(form);
     expect(s.update).not.toHaveBeenCalled();
@@ -521,5 +534,46 @@ describe('Memory delete response and task ownership', () => {
     await act(async () =>
       s.updateResponse.reject(new ClientProblemError('server', 503)),
     );
+  });
+});
+
+describe('Memory save response ownership for sensitive-media editing', () => {
+  it('does not publish a late save into a replacement Account read', async () => {
+    const s = setup();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: memoryProduct.save }));
+    await waitFor(() => expect(s.update).toHaveBeenCalledTimes(1));
+    s.switchScope({ accountId: 'account-2' });
+    const replacement = {
+      ...memory,
+      title: 'Replacement access snapshot',
+      version: 99,
+      capabilities: { ...memory.capabilities, canEdit: false },
+    };
+    act(() =>
+      s.client.setQueryData(key, { value: replacement, source: 'network' }),
+    );
+    await act(async () =>
+      s.updateResponse.resolve({ ...memory, title: 'Late save', version: 2 }),
+    );
+    await waitFor(() => expect(s.client.isMutating()).toBe(0));
+    expect(s.client.getQueryData(key)).toEqual({
+      value: replacement,
+      source: 'network',
+    });
+    expect(s.path()).toBe('/story/memories/memory-1/edit');
+  });
+
+  it('does not navigate away from a later task after a save response', async () => {
+    const s = setup();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: memoryProduct.save }));
+    await waitFor(() => expect(s.update).toHaveBeenCalledTimes(1));
+    await s.leave();
+    await act(async () => s.updateResponse.resolve({ ...memory, version: 2 }));
+    await waitFor(() => expect(s.client.isMutating()).toBe(0));
+    expect(s.path()).toBe('/away');
   });
 });

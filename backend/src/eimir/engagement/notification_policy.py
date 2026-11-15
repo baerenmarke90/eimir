@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 2
+POLICY_VERSION = 11
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -59,19 +59,61 @@ class PushPresentation:
 class NotificationPolicy:
     delivery_class: DeliveryClass
     preview: PushPreviewPolicy
+    immediate_push: bool = False
 
     @property
     def push_immediately(self) -> bool:
-        return self.delivery_class is DeliveryClass.IMMEDIATE
+        return self.immediate_push or self.delivery_class is DeliveryClass.IMMEDIATE
 
 
 # Explicit, closed catalog: a new kind cannot silently inherit a push channel.
-# DIGESTIBLE events remain in the Notification Center until an approved digest
-# exists; there is no one-off push fallback.
+# DIGESTIBLE is the Email baseline. Explicit immediate_push overrides permit
+# the reviewed comment Push path without changing Email frequency.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
+        NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.GENTLE_PROMPT: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.REMINDER_CREATED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.TRANSFER_READY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.TRANSFER_COMPLETED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.TRANSFER_FAILED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.VIDEO_PROCESSING_FAILED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.PLAN_CREATED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.PLAN_CHANGED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.PLAN_CANCELLED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.WISH_SELECTION_SHARED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.WISH_SELECTION_READY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.PHOTO_REACTION: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.PARTNER_JOINED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
-            DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW
+            DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -81,6 +123,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.REMINDER_DUE: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
     }
 )
 
@@ -131,14 +176,21 @@ def push_choice_allowed(kind: str) -> bool:
 
 
 def _external_choice_allowed(kind: str) -> bool:
-    """Both external channels share the current reviewed kind eligibility."""
+    """Return the reviewed baseline for external delivery."""
     policy = for_kind(kind)
     return policy is not None and (policy.push_immediately or digest_kind_allowed(kind))
 
 
 def email_choice_allowed(kind: str) -> bool:
     """Expose only reviewed immediate or digest Email kinds as a choice."""
-    return _external_choice_allowed(kind)
+    return kind not in {
+        NotificationKind.GENTLE_PROMPT.value,
+        NotificationKind.ONCE_MESSAGE_RECEIVED.value,
+        NotificationKind.PHOTO_REACTION.value,
+        NotificationKind.PLAN_CREATED.value,
+        NotificationKind.PARTNER_JOINED.value,
+        NotificationKind.WISH_REMINDER_DUE.value,
+    } and _external_choice_allowed(kind)
 
 
 def digest_window(at: datetime) -> tuple[datetime, datetime]:

@@ -56,6 +56,7 @@ const empty = {
   nextCursor: null,
 };
 const methods = {
+  plan: 'listPlanComments',
   memory: 'listMemoryComments',
   heartMoment: 'listHeartMomentComments',
   milestone: 'listMilestoneComments',
@@ -124,14 +125,14 @@ function setup(kind: CommentParentKind = 'memory') {
   };
 }
 async function deleteButton() {
-  await userEvent.setup().click(screen.getByLabelText(copy.edit));
+  await userEvent.setup().click(screen.getByLabelText(copy.moreActions));
   return screen.getByRole<HTMLButtonElement>('button', { name: copy.delete });
 }
 async function submit() {
   fireEvent.click(await deleteButton());
 }
 
-describe.each(['memory', 'heartMoment', 'milestone'] as const)(
+describe.each(['memory', 'heartMoment', 'milestone', 'plan'] as const)(
   '%s comment delete admission',
   (kind) => {
     it('admits one synchronous double activation with the original If-Match', async () => {

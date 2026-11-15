@@ -60,6 +60,32 @@ afterEach(() => {
 });
 
 describe('SpaceOffboardingPanel', () => {
+  it('closes on system Back and releases its entry before the export detour (#1907)', async () => {
+    const onOpenDataExport = vi.fn();
+    renderPanel({ onOpenDataExport });
+    fireEvent.click(
+      screen.getByRole('button', { name: spaceOffboarding.action }),
+    );
+    await waitFor(() =>
+      expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
+    );
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(
+      screen.getByRole('button', { name: spaceOffboarding.action }),
+    );
+    await waitFor(() =>
+      expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: spaceOffboarding.exportBefore }),
+    );
+    await waitFor(() => expect(onOpenDataExport).toHaveBeenCalledTimes(1));
+    expect(window.history.state?.__eimirEditorEntry).toBeUndefined();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('keeps self-service Space exit unavailable in Demo mode', () => {
     const leaveSpy = vi.spyOn(
       SpacesApi.prototype,

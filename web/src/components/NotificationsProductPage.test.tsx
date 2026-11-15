@@ -80,7 +80,7 @@ describe('Notifications Product Experience', () => {
     expect(html).toContain('Alex');
     expect(html).toContain('Konzert im Herbst');
     expect(html).toContain('href="/plan/plans/plan-123"');
-    expect(html).toContain('activity-card-chevron');
+    expect(html).not.toContain('activity-card-chevron');
     expect(html).not.toContain('button-link secondary-link');
     expect(html).not.toContain('>Öffnen<');
   });

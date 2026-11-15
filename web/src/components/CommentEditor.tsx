@@ -3,7 +3,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import {
@@ -38,6 +38,10 @@ export function CommentEditor({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
   const client = useQueryClient();
   const captureOwnership = useTaskActivation(true);
   const [draft, setDraft] = useState(comment.body);
@@ -130,6 +134,7 @@ export function CommentEditor({
           {t('comments.inputLabel')}
         </label>
         <textarea
+          ref={inputRef}
           id={`${parentKind}-${comment.id}-edit`}
           name="editedComment"
           rows={3}

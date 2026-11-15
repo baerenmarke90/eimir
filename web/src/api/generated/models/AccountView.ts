@@ -27,10 +27,34 @@ export interface AccountView {
     displayName: string;
     /**
      * 
+     * @type {boolean}
+     * @memberof AccountView
+     */
+    gentlePromptsEnabled?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof AccountView
      */
     id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AccountView
+     */
+    languagePreference?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof AccountView
+     */
+    languageVersion?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof AccountView
+     */
+    locale?: string;
 }
 
 /**
@@ -53,7 +77,11 @@ export function AccountViewFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'displayName': json['displayName'],
+        'gentlePromptsEnabled': json['gentlePromptsEnabled'] == null ? undefined : json['gentlePromptsEnabled'],
         'id': json['id'],
+        'languagePreference': json['languagePreference'] == null ? undefined : json['languagePreference'],
+        'languageVersion': json['languageVersion'] == null ? undefined : json['languageVersion'],
+        'locale': json['locale'] == null ? undefined : json['locale'],
     };
 }
 
@@ -69,7 +97,11 @@ export function AccountViewToJSONTyped(value?: AccountView | null, ignoreDiscrim
     return {
         
         'displayName': value['displayName'],
+        'gentlePromptsEnabled': value['gentlePromptsEnabled'],
         'id': value['id'],
+        'languagePreference': value['languagePreference'],
+        'languageVersion': value['languageVersion'],
+        'locale': value['locale'],
     };
 }
 

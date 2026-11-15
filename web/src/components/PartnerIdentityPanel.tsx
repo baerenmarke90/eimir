@@ -1,3 +1,5 @@
+import { EditPencilIcon } from './ListEntryActions';
+import { AddActionContent } from './AddAction';
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../client/mediaApis';
@@ -182,7 +184,21 @@ export function PartnerIdentityPanel({
           <button
             ref={editButtonRef}
             type="button"
-            className="button secondary"
+            className={
+              currentNickname
+                ? 'list-entry-icon-button content-edit-action'
+                : 'add-action'
+            }
+            aria-label={
+              currentNickname
+                ? t('profiles.nickname.edit')
+                : t('profiles.nickname.add')
+            }
+            title={
+              currentNickname
+                ? t('profiles.nickname.edit')
+                : t('profiles.nickname.add')
+            }
             disabled={nicknameQuery.isLoading || Boolean(nicknameQuery.error)}
             onClick={() => {
               setNicknameDraft(currentNickname ?? '');
@@ -192,9 +208,11 @@ export function PartnerIdentityPanel({
               requestAnimationFrame(() => nicknameInputRef.current?.focus());
             }}
           >
-            {currentNickname
-              ? t('profiles.nickname.edit')
-              : t('profiles.nickname.add')}
+            {currentNickname ? (
+              <EditPencilIcon className="list-entry-icon" />
+            ) : (
+              <AddActionContent label={t('profiles.nickname.add')} />
+            )}
           </button>
         </div>
         <p className="field-help">{t('profiles.nickname.privateHelp')}</p>

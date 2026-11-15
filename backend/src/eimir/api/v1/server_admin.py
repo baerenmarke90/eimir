@@ -967,10 +967,9 @@ def grant_server_admin_space_entitlement(
 ) -> ServerAdminSpaceEntitlementView:
     """Record a manual Premium grant for a Space (V1 launch entitlement source).
 
-    This is the only entitlement source implemented for the first launch;
-    Google Play/Stripe/Self-Hosted-license adapters are deliberately out of
-    scope until a real launch channel requires them (docs/m6/
-    ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized
+    The operator path for beta testers, support and promotions. Paid Google
+    Play purchases arrive through the store adapter in `eimir.billing`
+    instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
 

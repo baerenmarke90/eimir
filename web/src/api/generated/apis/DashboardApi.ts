@@ -43,8 +43,26 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type RelationshipPassportView,
+    RelationshipPassportViewFromJSON,
+    RelationshipPassportViewToJSON,
+} from '../models/RelationshipPassportView';
+import {
+    type StoryLifelineView,
+    StoryLifelineViewFromJSON,
+    StoryLifelineViewToJSON,
+} from '../models/StoryLifelineView';
 
 export interface GetDashboardRequest {
+    spaceId: string;
+}
+
+export interface GetRelationshipPassportRequest {
+    spaceId: string;
+}
+
+export interface GetStoryLifelineRequest {
     spaceId: string;
 }
 
@@ -112,6 +130,100 @@ export class DashboardApi extends runtime.BaseAPI {
      */
     async getDashboard(requestParameters: GetDashboardRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardView> {
         const response = await this.getDashboardRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getRelationshipPassport without sending the request
+     */
+    async getRelationshipPassportRequestOpts(requestParameters: GetRelationshipPassportRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getRelationshipPassport().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/relationship-passport`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return the Pro presentation without gating any underlying Core data.
+     * Get Relationship Passport
+     */
+    async getRelationshipPassportRaw(requestParameters: GetRelationshipPassportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RelationshipPassportView>> {
+        const requestOptions = await this.getRelationshipPassportRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RelationshipPassportViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return the Pro presentation without gating any underlying Core data.
+     * Get Relationship Passport
+     */
+    async getRelationshipPassport(requestParameters: GetRelationshipPassportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RelationshipPassportView> {
+        const response = await this.getRelationshipPassportRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getStoryLifeline without sending the request
+     */
+    async getStoryLifelineRequestOpts(requestParameters: GetStoryLifelineRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getStoryLifeline().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/story-lifeline`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return the shared Story bucketed by week for the Pro Wir lifeline.
+     * Get Story Lifeline
+     */
+    async getStoryLifelineRaw(requestParameters: GetStoryLifelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StoryLifelineView>> {
+        const requestOptions = await this.getStoryLifelineRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => StoryLifelineViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return the shared Story bucketed by week for the Pro Wir lifeline.
+     * Get Story Lifeline
+     */
+    async getStoryLifeline(requestParameters: GetStoryLifelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryLifelineView> {
+        const response = await this.getStoryLifelineRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

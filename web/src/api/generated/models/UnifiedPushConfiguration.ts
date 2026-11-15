@@ -21,6 +21,18 @@ import { mapValues } from '../runtime';
 export interface UnifiedPushConfiguration {
     /**
      * 
+     * @type {UnifiedPushConfigurationLocaleVersionEnum}
+     * @memberof UnifiedPushConfiguration
+     */
+    localeVersion?: UnifiedPushConfigurationLocaleVersionEnum;
+    /**
+     * 
+     * @type {UnifiedPushConfigurationNotificationReferenceVersionEnum}
+     * @memberof UnifiedPushConfiguration
+     */
+    notificationReferenceVersion?: UnifiedPushConfigurationNotificationReferenceVersionEnum;
+    /**
+     * 
      * @type {string}
      * @memberof UnifiedPushConfiguration
      */
@@ -32,6 +44,24 @@ export interface UnifiedPushConfiguration {
      */
     vapidPublicKey: string;
 }
+
+
+/**
+ * @export
+ */
+export const UnifiedPushConfigurationLocaleVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type UnifiedPushConfigurationLocaleVersionEnum = typeof UnifiedPushConfigurationLocaleVersionEnum[keyof typeof UnifiedPushConfigurationLocaleVersionEnum];
+
+/**
+ * @export
+ */
+export const UnifiedPushConfigurationNotificationReferenceVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type UnifiedPushConfigurationNotificationReferenceVersionEnum = typeof UnifiedPushConfigurationNotificationReferenceVersionEnum[keyof typeof UnifiedPushConfigurationNotificationReferenceVersionEnum];
+
 
 /**
  * Check if a given object implements the UnifiedPushConfiguration interface.
@@ -52,6 +82,8 @@ export function UnifiedPushConfigurationFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
+        'localeVersion': json['localeVersion'] == null ? undefined : json['localeVersion'],
+        'notificationReferenceVersion': json['notificationReferenceVersion'] == null ? undefined : json['notificationReferenceVersion'],
         'providerKey': json['providerKey'],
         'vapidPublicKey': json['vapidPublicKey'],
     };
@@ -68,6 +100,8 @@ export function UnifiedPushConfigurationToJSONTyped(value?: UnifiedPushConfigura
 
     return {
         
+        'localeVersion': value['localeVersion'],
+        'notificationReferenceVersion': value['notificationReferenceVersion'],
         'providerKey': value['providerKey'],
         'vapidPublicKey': value['vapidPublicKey'],
     };

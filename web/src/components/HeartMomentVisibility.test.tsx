@@ -50,6 +50,12 @@ function deferred<T>() {
 
 const clients: QueryClient[] = [];
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   vi.stubGlobal('matchMedia', () => ({
     matches: false,
     addEventListener() {},
@@ -85,6 +91,28 @@ function setup() {
     accountId?: string;
     spaceId?: string;
   }) {
+    const page = (mode: 'detail' | 'edit') => (
+      <HeartMomentProductPage
+        mode={mode}
+        apis={
+          {
+            heartMoments: { changeHeartMomentVisibility: change },
+            comments: {
+              listHeartMomentComments: async () => ({
+                items: [],
+                hasMore: false,
+              }),
+            },
+            story: { recordStoryView: async () => undefined },
+          } as unknown as ReferenceApis
+        }
+        apiBaseUrl="https://example.test"
+        accessToken="token"
+        spaceId={spaceId}
+        currentAccountId={accountId}
+        loadAttachment={async () => 'blob:visibility-test-photo'}
+      />
+    );
     return (
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/story/heart-moments/heart-1']}>
@@ -92,28 +120,11 @@ function setup() {
             <Routes>
               <Route
                 path="/story/heart-moments/:heartMomentId"
-                element={
-                  <HeartMomentProductPage
-                    mode="detail"
-                    apis={
-                      {
-                        heartMoments: { changeHeartMomentVisibility: change },
-                        comments: {
-                          listHeartMomentComments: async () => ({
-                            items: [],
-                            hasMore: false,
-                          }),
-                        },
-                        story: { recordStoryView: async () => undefined },
-                      } as unknown as ReferenceApis
-                    }
-                    apiBaseUrl="https://example.test"
-                    accessToken="token"
-                    spaceId={spaceId}
-                    currentAccountId={accountId}
-                    loadAttachment={async () => 'blob:visibility-test-photo'}
-                  />
-                }
+                element={page('detail')}
+              />
+              <Route
+                path="/story/heart-moments/:heartMomentId/edit"
+                element={page('edit')}
               />
             </Routes>
           </TaskOriginProvider>
@@ -122,12 +133,23 @@ function setup() {
     );
   }
   const view = render(<Application />);
-  async function start() {
-    await userEvent.setup().click(
+  async function privateChoice() {
+    const user = userEvent.setup();
+    const edit = screen.queryByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    if (edit) await user.click(edit);
+    await user.click(
       screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
+        name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
       }),
     );
+    return screen.getByRole('radio', {
+      name: storyProducts.heartMomentProduct.visibilityPrivate,
+    });
+  }
+  async function start() {
+    await userEvent.setup().click(await privateChoice());
     await waitFor(() => expect(change).toHaveBeenCalledTimes(1));
   }
   async function settle(success: boolean) {
@@ -148,6 +170,7 @@ function setup() {
     change,
     invalidate,
     revoke,
+    privateChoice,
     start,
     settle,
     switchScope: (scope: { accountId?: string; spaceId?: string }) =>
@@ -158,9 +181,7 @@ function setup() {
 describe('HeartMoment visibility response ownership', () => {
   it('admits only one synchronous submission for the displayed version', async () => {
     const state = setup();
-    const button = screen.getByRole('button', {
-      name: storyProducts.heartMomentProduct.makePrivate,
-    });
+    const button = await state.privateChoice();
     act(() => {
       button.click();
       button.click();
@@ -173,11 +194,7 @@ describe('HeartMoment visibility response ownership', () => {
   it('settles an offline attempt without a queued privacy write on reconnect', async () => {
     const state = setup();
     onlineManager.setOnline(false);
-    await userEvent.setup().click(
-      screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
-      }),
-    );
+    await userEvent.setup().click(await state.privateChoice());
     await waitFor(() => expect(state.client.isMutating()).toBe(0));
     expect(state.change).not.toHaveBeenCalled();
     await act(async () => {
@@ -196,11 +213,7 @@ describe('HeartMoment visibility response ownership', () => {
       const cancel = vi
         .spyOn(state.client, 'cancelQueries')
         .mockImplementationOnce(() => cancellation.promise);
-      await userEvent.setup().click(
-        screen.getByRole('button', {
-          name: storyProducts.heartMomentProduct.makePrivate,
-        }),
-      );
+      await userEvent.setup().click(await state.privateChoice());
       await waitFor(() => expect(cancel).toHaveBeenCalled());
       act(() => {
         state.client.removeQueries({ queryKey: KEY, exact: true });
@@ -224,11 +237,7 @@ describe('HeartMoment visibility response ownership', () => {
     const cancel = vi
       .spyOn(state.client, 'cancelQueries')
       .mockImplementationOnce(() => cancellation.promise);
-    await userEvent.setup().click(
-      screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
-      }),
-    );
+    await userEvent.setup().click(await state.privateChoice());
     await waitFor(() => expect(cancel).toHaveBeenCalled());
     const otherKey = authorSummaryQueryKeys.heartMoment('space-2', 'heart-1');
     act(() =>
@@ -335,7 +344,7 @@ describe('HeartMoment visibility response ownership', () => {
       );
       const newer = state.client.getQueryData(KEY);
       const currentAction = await screen.findByRole('button', {
-        name: storyProducts.heartMomentProduct.makeShared,
+        name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityPrivate}`,
       });
       await waitFor(() =>
         expect(currentAction.hasAttribute('disabled')).toBe(false),

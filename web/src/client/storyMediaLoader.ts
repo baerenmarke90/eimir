@@ -1,17 +1,22 @@
 import type { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
-import type { ReferenceApis } from './referenceFlow';
+import type { ReadDescriptor } from '../api/generated/models/ReadDescriptor';
 import {
-  captureMediaCacheLease,
   assertMediaCacheLease,
+  captureMediaCacheLease,
   evictAuthorizedMedia,
   loadCachedMediaBlob,
+  consumeAuthorizedMediaPreview,
+  readStoredMediaBlob,
 } from './authorizedMediaCache';
+import type { OwnedObjectUrl } from './objectUrlResource';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
+import type { ReferenceApis } from './referenceFlow';
+import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
-  'MEMORY' | 'HEART_MOMENT'
+  'MEMORY' | 'HEART_MOMENT' | 'PLAN'
 >;
 
 type StoryMediaLoaderOptions = {
@@ -27,14 +32,14 @@ type StoryMediaLoaderOptions = {
  * STREAM descriptors reuse the configured generated API client so its bearer
  * token and base path remain authoritative.
  */
-export async function loadAuthorizedStoryImage(
+async function loadAuthorizedStoryBlob(
   apis: ReferenceApis,
   spaceId: string,
-  parentType: StoryMediaParentType,
+  parentType: StoryMediaParentType | 'NONE',
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
-): Promise<string> {
+): Promise<{ blob: Blob; variant: 'original' | 'thumbnail' }> {
   const parentIdentity = ['attachment', parentType, parentId];
   const lease = captureMediaCacheLease(
     apis.attachments,
@@ -46,24 +51,52 @@ export async function loadAuthorizedStoryImage(
     attachmentId,
     attachmentReadRequest: {
       parentType,
-      parentId,
+      parentId: parentType === 'NONE' ? undefined : parentId,
       ...(options.variant ? { variant: options.variant } : {}),
     },
   };
   try {
-    const descriptor = options.signal
-      ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
-          signal: options.signal,
-        })
-      : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+    const requestDescriptor = async (signal?: AbortSignal) =>
+      signal
+        ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
+            signal,
+          })
+        : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+    let descriptor: ReadDescriptor | undefined;
+    const identity = [
+      ...parentIdentity,
+      attachmentId,
+      options.variant ?? 'original',
+    ];
+    const storedRead = consumeAuthorizedMediaPreview(lease, identity)
+      ? undefined
+      : readStoredMediaBlob(lease, identity);
+    if (storedRead)
+      [descriptor] = await Promise.all([
+        requestDescriptor(options.signal),
+        storedRead,
+      ]);
+
+    // Every existing image consumer remains bounded when its source becomes a
+    // video. Playback has a distinct grant path; image caches own posters only.
+    if (descriptor?.mediaType === 'VIDEO' && options.variant !== 'thumbnail')
+      return loadAuthorizedStoryBlob(
+        apis,
+        spaceId,
+        parentType,
+        parentId,
+        attachmentId,
+        { ...options, variant: 'thumbnail' },
+      );
 
     const blob = await loadCachedMediaBlob(
       lease,
-      [...parentIdentity, attachmentId, options.variant ?? 'original'],
+      identity,
       async (signal) => {
-        if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
+        const access = descriptor ?? (await requestDescriptor(signal));
+        if (access.method === ReadDescriptorMethodEnum.SIGNED_URL) {
           const fetchApi = options.fetchApi ?? fetch;
-          const response = await fetchApi(descriptor.url, { signal });
+          const response = await fetchApi(access.url, { signal });
           if (!response.ok) {
             throw Object.assign(
               new Error(`Story media load failed: ${response.status}`),
@@ -85,10 +118,11 @@ export async function loadAuthorizedStoryImage(
         }
       },
       options.signal,
+      storedRead,
     );
 
     assertMediaCacheLease(lease);
-    return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+    return { blob, variant: options.variant ?? 'original' };
   } catch (error) {
     const problem = await normalizeClientError(error);
     if (
@@ -100,4 +134,64 @@ export async function loadAuthorizedStoryImage(
     }
     throw error;
   }
+}
+
+/** Compatibility adapter for callers that still own a single string URL. */
+export async function loadAuthorizedStoryImage(
+  apis: ReferenceApis,
+  spaceId: string,
+  parentType: StoryMediaParentType | 'NONE',
+  parentId: string,
+  attachmentId: string,
+  options: StoryMediaLoaderOptions = {},
+): Promise<string> {
+  const { blob } = await loadAuthorizedStoryBlob(
+    apis,
+    spaceId,
+    parentType,
+    parentId,
+    attachmentId,
+    options,
+  );
+  return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+}
+
+/** Reuse a decoded URL after authorization; views release handles, never shared URLs. */
+export async function loadAuthorizedStoryImageResource(
+  apis: ReferenceApis,
+  spaceId: string,
+  parentType: StoryMediaParentType | 'NONE',
+  parentId: string,
+  attachmentId: string,
+  options: StoryMediaLoaderOptions = {},
+): Promise<OwnedObjectUrl> {
+  const lease = captureMediaCacheLease(apis.attachments, spaceId, [
+    'attachment',
+    parentType,
+    parentId,
+  ]);
+  const { blob, variant } = await loadAuthorizedStoryBlob(
+    apis,
+    spaceId,
+    parentType,
+    parentId,
+    attachmentId,
+    options,
+  );
+  options.signal?.throwIfAborted();
+  assertMediaCacheLease(lease);
+  const key = JSON.stringify([
+    lease.scope.id,
+    spaceId,
+    'attachment',
+    parentType,
+    parentId,
+    attachmentId,
+    variant,
+  ]);
+  return acquireMediaObjectUrl(
+    key,
+    blob,
+    variant === 'thumbnail' ? 'preview' : 'original',
+  );
 }

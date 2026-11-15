@@ -1,0 +1,78 @@
+{
+  "capturedOn": "2026-10-21",
+  "sourceRevisionAtManifest": "d25cb137d701c41ec9206fd1bb099bca4fd8e9f8",
+  "testType": "Synthetic headless Chromium component/page presentation QA; no live account, native bridge, push provider, phone or user-browser session",
+  "route": "/more/settings/notifications in MemoryRouter",
+  "components": [
+    "actual SettingsPage",
+    "actual NotificationSettingsPanel",
+    "actual reminder and quiet-hours components",
+    "actual shared product-main/product-shell CSS classes; authenticated AppShell/header/navigation not mounted"
+  ],
+  "data": "Synthetic preferences, synthetic Account and API prototype methods; outgoing application fetch blocked",
+  "runtime": "Playwright1.62.1; Vite8.2.2 before security update; self-hosted product fonts",
+  "cases": 19,
+  "testResults": "6 viewport/theme tests with18states plus1accessibility test;7tests passed",
+  "viewportWidths": [
+    320,
+    390,
+    430
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "states": [
+    "off",
+    "on",
+    "error"
+  ],
+  "text200Case": {
+    "width": 320,
+    "theme": "dark",
+    "fontSize": "32px",
+    "reducedMotion": true
+  },
+  "horizontalOverflowCases": 0,
+  "scopedAxeViolations": 0,
+  "axeScope": ".notification-device-push only",
+  "screenshots": [
+    "320-dark-error.png",
+    "320-dark-off.png",
+    "320-dark-on.png",
+    "320-dark-text200-reduced-motion-off.png",
+    "320-light-error.png",
+    "320-light-off.png",
+    "320-light-on.png",
+    "390-dark-error.png",
+    "390-dark-off.png",
+    "390-dark-on.png",
+    "390-light-error.png",
+    "390-light-off.png",
+    "390-light-on.png",
+    "430-dark-error.png",
+    "430-dark-off.png",
+    "430-dark-on.png",
+    "430-light-error.png",
+    "430-light-off.png",
+    "430-light-on.png"
+  ],
+  "sourceFileSha256": {
+    "web/src/components/NotificationSettingsPanel.tsx": "77209c17e23dea8c2cfae7e815d4a212736006dd72a619ab8200082f16a0cdaa",
+    "web/src/components/NotificationSettingsPanel.css": "dcd92b9705443d65b443b6ba0e59d3a80dcedd573c7206e8a087b99dfef30550",
+    "web/src/components/SettingsPage.tsx": "b8e7ae74c57a3e404ab7815ae1cee31477e2b00fce9cbcdebe0f808eb7ebc849",
+    "web/src/components/SettingsPage.css": "239b0514b335a49c80feeaf70270409ce0aa9a53c14beb8aa76f8ff73dbd3d76",
+    "web/src/i18n/locales/notificationSettings.ts": "84c21f3001417654a2945429248caba99df3854e26bbc26dca76796160716459",
+    "web/src/product-reflow.css": "ea7b607e8e2734b4c6bfac201cf62ae81b26a391458047bf970deacd79c7d9d4",
+    "web/src/styles.css": "93fd0229564bebb4434b736c159bf8f8bc7517c7c6b9421ead92c48bf9fde612",
+    "web/src/theme.css": "871e125208d9fe3f5a850690450ec24619b8f0bbb3bb92d57ea250d54d1d3878"
+  },
+  "limitations": [
+    "CUA returned no browsers; known browser2 and newIAB tab unavailable. No user browser used.",
+    "No FCM/UnifiedPush delivery, permission dialog, authenticated API, process restoration or physical-device acceptance claimed.",
+    "The viewport1000px screenshot height is a browser layout fixture, not a measured phone screen.",
+    "200% means CSS root font size32px, following existing repository reflow tests; no OS font or personal phone setting changed.",
+    "Reduced-motion media matched and visible push controls remained operable with0s computed animation/transition duration; no full app navigation animation audited.",
+    "This is validation of the existing composition and longer provider-transparency text, not a new generated product reference or whole-product acceptance."
+  ]
+}

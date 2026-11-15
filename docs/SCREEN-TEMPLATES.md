@@ -44,6 +44,11 @@ surfaces MAY place the primary content before secondary title/metadata treatment
 when that better communicates the human meaning. Privacy, permission, and
 critical system state remain visible where they affect the action.
 
+Every secondary page has one icon-only chevron button at the upper left, supplied
+automatically by the shared shell. Use the shared task Back components to retain
+page-specific exit guards and destinations. This applies to future secondary
+pages without maintaining a separate route opt-in list; primary roots have none.
+
 On Compact, a Floating Action Button-like action is used only when it is unambiguous, frequent, and cannot be confused with Bottom Navigation.
 
 ## 3. Template: Today

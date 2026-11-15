@@ -2,8 +2,8 @@
 
 Two concerns define the domain behavior of this slice.
 
-M3-D01: a wish belongs to the couple. Unlike Memory and Milestone, the partner
-may update or delete it without having created it. `createdBy` is attribution,
+M3-D01: a wish belongs to the couple. The partner may update or delete it
+without having created it. `createdBy` is attribution,
 not an ACL. The proof is therefore not merely that Anna may act, but that Ben
 may act while `createdBy` still remains Anna.
 
@@ -85,11 +85,17 @@ class TestCrud:
         client,
         couple,
     ) -> None:
-        created = create_wish(client, couple)
+        description = "A cabin by the lake.\nBring warm blankets."
+        created = client.post(
+            path(couple["space"].id),
+            json={**body(), "description": f"  {description}  "},
+            headers=auth(couple["token_a"]),
+        )
         assert created.status_code == 201
         wish = created.json()
         assert UUID(wish["id"]).version == 7
         assert wish["title"] == "Nordlichter sehen"
+        assert wish["description"] == description
         assert wish["status"] == "OPEN"
         assert wish["createdBy"] == str(couple["anna"].id)
         assert wish["creator"]["displayName"] == "Anna"
@@ -102,9 +108,10 @@ class TestCrud:
         assert created.headers["ETag"] == '"1"'
 
         read_response = client.get(
-            f"{path(couple['space'].id)}/{wish['id']}", headers=auth(couple["token_a"])
+            f"{path(couple['space'].id)}/{wish['id']}", headers=auth(couple["token_b"])
         )
         assert read_response.status_code == 200
+        assert read_response.json()["description"] == description
         assert read_response.headers["ETag"] == '"1"'
 
         updated = client.patch(
@@ -114,12 +121,22 @@ class TestCrud:
         )
         assert updated.status_code == 200
         assert updated.json()["title"] == "Nordlichter in Tromsoe sehen"
+        assert updated.json()["description"] == description
         assert updated.json()["version"] == 2
         assert updated.headers["ETag"] == '"2"'
 
+        cleared = client.patch(
+            f"{path(couple['space'].id)}/{wish['id']}",
+            json={"description": None},
+            headers=if_match(couple["token_b"], 2),
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["description"] is None
+        assert cleared.headers["ETag"] == '"3"'
+
         deleted = client.delete(
             f"{path(couple['space'].id)}/{wish['id']}",
-            headers=if_match(couple["token_a"], 2),
+            headers=if_match(couple["token_a"], 3),
         )
         assert deleted.status_code == 204
         afterwards = client.get(
@@ -141,6 +158,7 @@ class TestCrud:
 
         page = client.get(path(couple["space"].id), headers=auth(couple["token_a"])).json()
         assert [entry["id"] for entry in page["items"]] == [second["id"], first["id"]]
+        assert all(entry["description"] is None for entry in page["items"])
         assert page["hasMore"] is False
         assert page["nextCursor"] is None
 
@@ -238,29 +256,6 @@ class TestSharedWriting:
             "canDelete": True,
             "canComment": False,
         }
-
-    def test_memory_remains_author_only(  # type: ignore[no-untyped-def]
-        self,
-        client,
-        couple,
-    ) -> None:
-        """Countercheck the new write rule.
-
-        Collaborative writing is a property of the M3 planning domains, not a
-        new default. Memory author-only behavior must remain unchanged.
-        """
-        memory = client.post(
-            f"/api/v1/spaces/{couple['space'].id}/memories",
-            json={"title": "Nur von Anna", "body": "Text", "happenedOn": "2025-06-13"},
-            headers=auth(couple["token_a"]),
-        ).json()
-
-        response = client.patch(
-            f"/api/v1/spaces/{couple['space'].id}/memories/{memory['id']}",
-            json={"title": "Von Ben geaendert"},
-            headers=if_match(couple["token_b"], 1),
-        )
-        assert response.status_code == 403
 
 
 class TestStatus:

@@ -1,5 +1,29 @@
 # Notification delivery classification: #515 foundation
 
+## Current module workflow (v11)
+
+The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
+now owns cross-domain admission. It extends the historical foundation below.
+Accepted invitations notify the inviter. New Plans for today or tomorrow use
+the existing reminder preference and coalesce with nearby standard start
+reminders on each endpoint. Personal Wish reminders notify only their owners
+at the chosen time. Imminent Plan changes and cancellations, shared Wish-round
+invitations and results, and owner-only transfer outcomes use neutral immediate
+delivery. Photo reactions use the recipient's existing comment Push preference
+and Quiet Hours.
+Daily question sets, quotes, presence and Vibe submissions,
+rediscovery, ordinary edits and local games stay silent. Existing comments,
+recipient consent and quiet hours remain effective; no daily summary is added.
+
+New UnifiedPush clients explicitly advertise reference-routing version 1.
+Only those subscriptions receive a canonical Notification ID inside the
+encrypted wake. Legacy subscriptions retain exactly the old one-field wake,
+so upgrading the backend does not disable notifications in older installed apps.
+There is still no relationship plaintext, actor name or category on the provider
+boundary. Fresh authenticated resolution and the editor/account/Space guards
+own navigation. The following v2 text is historical foundation for the unchanged
+gesture/comment/reminder semantics, not the complete current kind catalog.
+
 The closed v2 catalog began with #515's first runtime slices; this document
 describes the current policy, not the complete notification-policy feature.
 `backend/src/eimir/engagement/notification_policy.py` is the versioned,

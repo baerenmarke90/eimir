@@ -2,15 +2,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import type { M4ProductApis } from '../client/m4Product';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import type { M4ProductApis } from '../client/m4Product';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import {
   rememberRetrospectiveDismissal,
   retrospectiveDismissalToken,
 } from '../client/todayRetrospectiveDismissal';
-import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import m5s5 from '../i18n/locales/m5s5';
 import { TodayPage } from './TodayPage';
 
@@ -22,6 +22,7 @@ const memory = {
   createdAt: new Date('2025-11-01T10:00:00Z'),
   scheduledAt: null,
   previewAttachmentId: null as string | null,
+  previewIsSensitive: false,
 };
 
 const wish = {
@@ -45,6 +46,8 @@ function dashboard(photo = false, viewerLocalDate = new Date('2026-10-23')) {
     retrospective: {
       ...memory,
       previewAttachmentId: photo ? 'attachment-1' : null,
+      previewIsSensitive: false,
+      previewHasThumbnail: photo,
     },
     thinkingOfYouAvailableAt: null,
   };
@@ -72,22 +75,22 @@ function renderToday({
   photo = false,
   hideModule = false,
   viewerLocalDate = new Date('2026-10-23'),
+  overrides = {},
 }: {
   accountId?: string;
   spaceId?: string;
   photo?: boolean;
   hideModule?: boolean;
   viewerLocalDate?: Date;
+  overrides?: Record<string, unknown>;
 } = {}) {
-  const data = dashboard(photo, viewerLocalDate);
+  const data = { ...dashboard(photo, viewerLocalDate), ...overrides };
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   client.setQueryData(['m5-s5', 'dashboard', spaceId], data);
   client.setQueryData(dashboardPreferencesQueryKey(accountId, spaceId), {
-    items: hideModule
-      ? [{ moduleKey: 'relationship_signal', visible: false }]
-      : [],
+    items: hideModule ? [{ moduleKey: 'retrospective', visible: false }] : [],
   });
   const apis = {
     dashboard: {
@@ -95,7 +98,7 @@ function renderToday({
       listDashboardModulePreferences: () =>
         Promise.resolve({
           items: hideModule
-            ? [{ moduleKey: 'relationship_signal', visible: false }]
+            ? [{ moduleKey: 'retrospective', visible: false }]
             : [],
         }),
     },
@@ -105,7 +108,8 @@ function renderToday({
     },
   } as unknown as M4ProductApis;
 
-  return render(
+  const loadImage = vi.fn(async () => 'blob:http://localhost/authorized');
+  const rendered = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/today']}>
         <TaskOriginProvider accountId={accountId} spaceId={spaceId}>
@@ -117,9 +121,7 @@ function renderToday({
                   apis={apis}
                   spaceId={spaceId}
                   account={{ id: accountId, displayName: 'Alex' }}
-                  loadMemoryImage={() =>
-                    Promise.resolve('blob:http://localhost/authorized')
-                  }
+                  loadMemoryImage={loadImage}
                 />
               }
             />
@@ -129,12 +131,64 @@ function renderToday({
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return { ...rendered, loadImage };
 }
 
 beforeEach(() => window.localStorage.clear());
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+});
+
+describe('Today #1790 C2 rediscovery wording', () => {
+  const rediscovery = {
+    placeName: 'Lake Phoenix',
+    chapterTitle: 'Summer holiday',
+    excerpt: 'We just drove off',
+    excerptTruncated: true,
+    photoCount: 4,
+    videoCount: 0,
+    partOfDay: 'AFTERNOON',
+  };
+
+  it('never shows a bare date as the title of an untitled entry', async () => {
+    const overrides = {
+      retrospective: { ...memory, titleOrText: '' },
+      retrospectiveRediscovery: rediscovery,
+    };
+    const first = renderToday({ overrides });
+    const title = await waitFor(() => {
+      const node = document.querySelector('.today-retrospective-title');
+      expect(node?.textContent).toBeTruthy();
+      return node?.textContent ?? '';
+    });
+    expect(title).not.toBe('23. Oktober 2025');
+    // The date moves to the secondary line.
+    expect(
+      document.querySelector('.today-retrospective-date time')?.textContent,
+    ).toBe('23. Oktober 2025');
+    first.unmount();
+
+    // Reload on the same day keeps the same wording.
+    renderToday({ overrides });
+    await waitFor(() => {
+      expect(
+        document.querySelector('.today-retrospective-title')?.textContent,
+      ).toBe(title);
+    });
+  });
+
+  it('keeps an authored title and varies the secondary line', async () => {
+    renderToday({ overrides: { retrospectiveRediscovery: rediscovery } });
+    expect(await screen.findByText('Our early trip together')).not.toBeNull();
+    const variant = document.querySelector(
+      '.today-retrospective-date .rediscovery-variant',
+    );
+    expect(variant?.textContent).toBeTruthy();
+    expect(
+      document.querySelector('.today-retrospective-date time')?.textContent,
+    ).toBe('23. Oktober 2025');
+  });
 });
 
 describe('Today #452 retrospective presentation and dismissal', () => {
@@ -152,13 +206,26 @@ describe('Today #452 retrospective presentation and dismissal', () => {
       }),
     ).not.toBeNull();
     expect(
-      screen.getByRole('link', { name: /Erinnerung ansehen/i }),
+      screen
+        .getByRole('link', { name: /Erinnerung ansehen/i })
+        .classList.contains('button-link'),
+    ).toBe(true);
+    expect(
+      screen.getByRole('heading', {
+        name: m5s5.today.living.retrospectiveLabel,
+      }),
     ).not.toBeNull();
+    expect(
+      document.querySelector(
+        '.today-section-retrospective .today-living-retrospective',
+      ),
+    ).not.toBeNull();
+    expect(screen.getByText('A new shared wish')).not.toBeNull();
     expect(screen.getByText('23. Oktober 2025')).not.toBeNull();
   });
 
   it('uses the authorized MemoryPreview for media without a second image API', async () => {
-    renderToday({ photo: true });
+    const { loadImage } = renderToday({ photo: true });
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).not.toBeNull();
     await waitFor(() => {
@@ -168,9 +235,15 @@ describe('Today #452 retrospective presentation and dismissal', () => {
         ),
       ).not.toBeNull();
     });
+    expect(loadImage).toHaveBeenCalledWith(
+      'history-2025',
+      'attachment-1',
+      expect.any(AbortSignal),
+      'thumbnail',
+    );
   });
 
-  it('dismisses only the retrospective, reveals fallback, and survives remount', async () => {
+  it('dismisses only rediscovery, preserves the contextual module, and survives remount', async () => {
     const user = userEvent.setup();
     const first = renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
@@ -209,7 +282,8 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     cleanup();
     renderToday({ hideModule: true });
     expect(screen.queryByText('Our early trip together')).toBeNull();
-    expect(document.querySelector('.today-section-living')).toBeNull();
+    expect(document.querySelector('.today-section-retrospective')).toBeNull();
+    expect(document.querySelector('.today-section-living')).not.toBeNull();
   });
 
   it('uses the server calendar to restore and expire a dismissed retrospective', async () => {

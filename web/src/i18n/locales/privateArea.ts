@@ -2,6 +2,7 @@ const privateArea = {
   eyebrow: 'Für mich',
   intro: 'In eimir. nicht mit deinem Partner geteilt.',
   privacyLabel: 'Nur für mich',
+  createAction: 'Privaten Eintrag hinzufügen',
   backToMore: '← Zurück zu Mehr',
   backToHub: '← Zurück zu Nur für mich',
   backToSearch: '← Zurück zur Suche',
@@ -49,6 +50,10 @@ const privateArea = {
     pinnedLabel: 'Oben anheften',
     pinned: 'Angeheftet',
     noBody: 'Keine weiteren Notizen.',
+  },
+  partnerNotes: {
+    title: 'Notizen über meinen Partner',
+    shortTitle: 'Partnernotizen',
   },
   gifts: {
     title: 'Geschenkideen',

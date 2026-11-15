@@ -11,10 +11,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
-import { DASHBOARD_MODULE_CATALOG } from '../client/dashboardModules';
+import experienceCopy from '../i18n/locales/coupleExperiences';
+import {
+  DASHBOARD_MODULE_CATALOG,
+  DASHBOARD_MODULE_KEYS,
+} from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import m5s5 from '../i18n/locales/m5s5';
+import dailyQuote from '../i18n/locales/dailyQuote';
+import partnerLocation from '../i18n/locales/partnerLocation';
+import relationshipReflections from '../i18n/locales/relationshipReflections';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 
 const ACCOUNT_ID = 'account-1';
@@ -48,22 +55,35 @@ function renderPanel(
     updateDashboardModuleOrder,
   } as unknown as DashboardApi;
 
-  return {
-    queryClient,
-    dashboardApi,
-    ...render(
-      <QueryClientProvider client={queryClient}>
-        <DashboardSettingsPanel
-          dashboardApi={dashboardApi}
-          accountId={ACCOUNT_ID}
-          spaceId={SPACE_ID}
-        />
-      </QueryClientProvider>,
-    ),
-  };
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <DashboardSettingsPanel
+        dashboardApi={dashboardApi}
+        accountId={ACCOUNT_ID}
+        spaceId={SPACE_ID}
+      />
+    </QueryClientProvider>,
+  );
+  // Existing Upcoming facet tests deliberately exercise the advanced options.
+  // The product defaults to these controls being collapsed.
+  fireEvent.click(screen.getByText(profileIdentity.dashboardMoreOptions));
+  return { queryClient, dashboardApi, ...view };
+}
+
+function moduleCheckbox(key: string): HTMLInputElement {
+  const input = document.getElementById(`dashboard-visible-${key}`);
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error(`Missing dashboard visibility control: ${key}`);
+  }
+  return input;
 }
 
 function moduleLabel(moduleKey: string): string {
+  if (moduleKey === 'shared_experience') return experienceCopy.incoming.title;
+  if (moduleKey === 'daily_quote') return dailyQuote.title;
+  if (moduleKey === 'partner_distance') return partnerLocation.wirModuleLabel;
+  if (moduleKey === 'shared_story_summary')
+    return relationshipReflections.passport.wirStatisticsTitle;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
   if (!entry) throw new Error(`Unknown module key: ${moduleKey}`);
   const path = entry.labelKey.split('.').slice(1);
@@ -96,7 +116,9 @@ describe('DashboardSettingsPanel', () => {
     await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
     const desired = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
       .moduleKeys as string[];
-    expect(desired.indexOf('keepsake')).toBe(2);
+    expect(desired.indexOf('keepsake')).toBe(
+      DASHBOARD_MODULE_KEYS.indexOf('keepsake') + 1,
+    );
     expect(document.activeElement).toBe(grip);
 
     fireEvent.click(
@@ -685,15 +707,63 @@ describe('DashboardSettingsPanel', () => {
   });
 
   describe('module visibility (#817)', () => {
-    it('lists every registered module with an accessible checkbox, all shown by default', () => {
+    it('keeps the shared identity visible and not draggable despite legacy overrides', () => {
+      renderPanel(vi.fn(), {
+        items: [
+          { moduleKey: 'relationship_presence', visible: false },
+          { moduleKey: 'keepsake', visible: true },
+        ],
+      } as DashboardModulePreferenceList);
+      expect(
+        screen.getByText(profileIdentity.dashboardSharedFixed),
+      ).not.toBeNull();
+      expect(
+        screen.getByText(profileIdentity.dashboardAlwaysVisible),
+      ).not.toBeNull();
+      expect(
+        document.getElementById('dashboard-visible-relationship_presence'),
+      ).toBeNull();
+      expect(
+        screen.queryByRole('button', {
+          name: `${moduleLabel('relationship_presence')} verschieben`,
+        }),
+      ).toBeNull();
+    });
+
+    it('lists personal modules with an accessible checkbox, all shown by default', () => {
       renderPanel(vi.fn());
 
-      for (const entry of DASHBOARD_MODULE_CATALOG) {
+      for (const entry of DASHBOARD_MODULE_CATALOG.filter(
+        (entry) =>
+          entry.key !== 'relationship_presence' &&
+          entry.key !== 'shared_story_summary' &&
+          entry.key !== 'daily_quote',
+      )) {
         const checkbox = screen.getByRole('checkbox', {
           name: moduleLabel(entry.key),
         }) as HTMLInputElement;
         expect(checkbox.checked).toBe(true);
       }
+    });
+
+    it('names the month module consistently in the list and its controls', () => {
+      renderPanel(vi.fn());
+
+      const label = 'Euer Monat';
+      expect(screen.getByText(label, { selector: 'label' })).not.toBeNull();
+      expect(screen.getByRole('checkbox', { name: label })).not.toBeNull();
+      expect(
+        screen.getByRole('button', { name: `${label} verschieben` }),
+      ).not.toBeNull();
+    });
+
+    it('omits the temporarily retired story statistics control', () => {
+      renderPanel(vi.fn());
+      expect(
+        screen.queryByRole('checkbox', {
+          name: moduleLabel('shared_story_summary'),
+        }),
+      ).toBeNull();
     });
 
     it('reflects a hidden module from the loaded preferences', () => {
@@ -707,13 +777,17 @@ describe('DashboardSettingsPanel', () => {
         ],
       } as unknown as DashboardModulePreferenceList);
 
+      expect(moduleCheckbox('keepsake').checked).toBe(false);
       expect(
-        (
-          screen.getByRole('checkbox', {
-            name: moduleLabel('keepsake'),
-          }) as HTMLInputElement
-        ).checked,
-      ).toBe(false);
+        screen.getByText(
+          profileIdentity.dashboardHiddenTitle.replace('{{count}}', '1'),
+        ),
+      ).not.toBeNull();
+      expect(
+        screen.queryByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
+      ).toBeNull();
     });
 
     it('persists hiding one module immediately without touching another', async () => {
@@ -774,13 +848,7 @@ describe('DashboardSettingsPanel', () => {
       });
 
       await waitFor(() => {
-        expect(
-          (
-            screen.getByRole('checkbox', {
-              name: moduleLabel('keepsake'),
-            }) as HTMLInputElement
-          ).disabled,
-        ).toBe(true);
+        expect(moduleCheckbox('keepsake').disabled).toBe(true);
       });
       expect(
         (
@@ -807,13 +875,7 @@ describe('DashboardSettingsPanel', () => {
       );
 
       await waitFor(() =>
-        expect(
-          (
-            screen.getByRole('checkbox', {
-              name: moduleLabel('keepsake'),
-            }) as HTMLInputElement
-          ).checked,
-        ).toBe(true),
+        expect(moduleCheckbox('keepsake').checked).toBe(true),
       );
       screen.getByRole('alert');
     });
@@ -840,10 +902,10 @@ describe('DashboardSettingsPanel', () => {
       fireEvent.click(keepsake);
       fireEvent.click(recent);
       await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
-      expect(keepsake.checked).toBe(false);
-      expect(recent.checked).toBe(false);
-      expect(keepsake.disabled).toBe(true);
-      expect(recent.disabled).toBe(true);
+      expect(moduleCheckbox('keepsake').checked).toBe(false);
+      expect(moduleCheckbox('recent_shared').checked).toBe(false);
+      expect(moduleCheckbox('keepsake').disabled).toBe(true);
+      expect(moduleCheckbox('recent_shared').disabled).toBe(true);
 
       await act(async () => {
         resolveByModule.get('recent_shared')?.({
@@ -851,9 +913,11 @@ describe('DashboardSettingsPanel', () => {
           visible: false,
         });
       });
-      await waitFor(() => expect(recent.disabled).toBe(false));
-      expect(keepsake.disabled).toBe(true);
-      expect(keepsake.checked).toBe(false);
+      await waitFor(() =>
+        expect(moduleCheckbox('recent_shared').disabled).toBe(false),
+      );
+      expect(moduleCheckbox('keepsake').disabled).toBe(true);
+      expect(moduleCheckbox('keepsake').checked).toBe(false);
 
       await act(async () => {
         resolveByModule.get('keepsake')?.({
@@ -861,7 +925,9 @@ describe('DashboardSettingsPanel', () => {
           visible: false,
         });
       });
-      await waitFor(() => expect(keepsake.disabled).toBe(false));
+      await waitFor(() =>
+        expect(moduleCheckbox('keepsake').disabled).toBe(false),
+      );
       const cached = queryClient.getQueryData<DashboardModulePreferenceList>(
         dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
       );
@@ -908,8 +974,10 @@ describe('DashboardSettingsPanel', () => {
       await act(async () => {
         resolveWrite?.({ moduleKey: 'keepsake', visible: false });
       });
-      await waitFor(() => expect(keepsake.disabled).toBe(false));
-      expect(keepsake.checked).toBe(true);
+      await waitFor(() =>
+        expect(moduleCheckbox('keepsake').disabled).toBe(false),
+      );
+      expect(moduleCheckbox('keepsake').checked).toBe(true);
       expect(
         queryClient
           .getQueryData<DashboardModulePreferenceList>(key)

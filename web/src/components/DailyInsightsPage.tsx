@@ -7,12 +7,11 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import {
-  dailyInsightsEntitlementQueryKey,
+  DAILY_INSIGHTS_CAPABILITY,
   dailyInsightsQueryKey,
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
-  loadDailyInsightsCapability,
 } from '../client/dailyInsights';
 import {
   addDays,
@@ -36,13 +35,17 @@ import {
   MORE_INSIGHTS_ROUTE,
   settingsCategoryPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
+import { TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
 import {
   formatDayMonth,
   formatMonthYear,
-  Handwriting,
   InsightIcon,
   type InsightPerson,
   ProMark,
@@ -50,6 +53,10 @@ import {
 import { PatternsView, RecapView, WeekView } from './DailyInsightsViews';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import {
+  ClearWeeklyInsightFeedback,
+  WeeklyInsightCard,
+} from './WeeklyInsightCard';
 
 export type DailyInsightsViewId = 'week' | 'patterns' | 'recap';
 
@@ -61,6 +68,7 @@ interface DailyInsightsPageProps {
   entitlementApi: EntitlementsApi;
   dashboardApi: DashboardApi;
   profilesApi?: ProfilesApi;
+  apiBaseUrl?: string;
 }
 
 const NAV_ITEMS = [
@@ -122,7 +130,7 @@ function PeriodPicker({
   );
 }
 
-function GateCard() {
+function GateCard({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <section
@@ -137,9 +145,10 @@ function GateCard() {
       <p className="insight-gate-reassurance">
         {t('dailyInsights.gate.keptNote')}
       </p>
-      <Link className="insight-link" to={appRoutePath('today')}>
+      {children}
+      <TaskBackLink to={appRoutePath('today')}>
         {t('dailyInsights.gate.back')}
-      </Link>
+      </TaskBackLink>
     </section>
   );
 }
@@ -176,18 +185,22 @@ export function DailyInsightsPage({
   entitlementApi,
   dashboardApi,
   profilesApi,
+  apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
 
-  const capabilityQuery = useQuery({
-    queryKey: dailyInsightsEntitlementQueryKey(account.id, spaceId),
-    queryFn: ({ signal }) =>
-      loadDailyInsightsCapability(entitlementApi, spaceId, signal),
-    retry: false,
-    gcTime: 0,
-    refetchOnMount: 'always',
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capabilityQuery = useSpaceCapability({
+    accountId: account.id,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_INSIGHTS_CAPABILITY,
   });
   const capable = capabilityQuery.data === true;
 
@@ -335,12 +348,6 @@ export function DailyInsightsPage({
       : view === 'recap'
         ? t('dailyInsights.recap.subtitle')
         : t('dailyInsights.week.subtitle');
-  const accent =
-    view === 'patterns'
-      ? t('dailyInsights.patterns.handwriting')
-      : view === 'recap'
-        ? t('dailyInsights.recap.handwriting')
-        : t('dailyInsights.week.handwriting');
 
   let picker: ReactNode = null;
   if (monday !== null && view !== 'patterns') {
@@ -383,7 +390,15 @@ export function DailyInsightsPage({
       />
     );
   } else if (gated) {
-    body = <GateCard />;
+    body = (
+      <GateCard>
+        <ClearWeeklyInsightFeedback
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={dailyCheckInsApi}
+          spaceId={spaceId}
+        />
+      </GateCard>
+    );
   } else if (isInsightsContextUnavailable(anchorQuery.error)) {
     body = (
       <UiState
@@ -436,6 +451,16 @@ export function DailyInsightsPage({
         />
       ) : (
         <WeekView
+          weeklyReview={
+            <WeeklyInsightCard
+              key={`${apiBaseUrl}:${account.id}:${spaceId}:${monday}`}
+              api={dailyCheckInsApi}
+              instance={apiBaseUrl}
+              accountId={account.id}
+              spaceId={spaceId}
+              monday={monday}
+            />
+          }
           key={monday}
           days={current}
           people={people}
@@ -455,7 +480,6 @@ export function DailyInsightsPage({
       <header className="insight-header">
         <div className="insight-header-top">
           <ProMark />
-          <Handwriting>{accent}</Handwriting>
         </div>
         <h1>{title}</h1>
         <p className="insight-subtitle">{subtitle}</p>

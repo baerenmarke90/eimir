@@ -61,6 +61,7 @@ const dailyInsights = {
     dayGroup: 'Tage der Woche',
   },
   lanes: {
+    VERY_GOOD: 'Sehr gut',
     GOOD: 'Gut',
     OKAY: 'Okay',
     NEEDS_CONNECTION: 'Nähe',
@@ -96,7 +97,7 @@ const dailyInsights = {
   },
   patterns: {
     title: 'Muster entdecken',
-    subtitle: 'Was euch im Monat aufgefallen ist.',
+    subtitle: 'Vibe & Energie im Monatsverlauf.',
     handwriting: 'Tiefere Einblicke. Für noch mehr Wir.',
     monthPicker: 'Monat wählen',
     previous: 'Vorheriger Monat',
@@ -135,7 +136,7 @@ const dailyInsights = {
   },
   recap: {
     title: 'Wochenrückblick',
-    subtitle: 'Ein Blick auf eure Woche.',
+    subtitle: 'Vibe & Energie im Überblick.',
     handwriting: 'Gemeinsame Momente zählen.',
     proSubline: 'Noch mehr Einblicke.',
     heroLabel: 'Eure Woche in einem Satz',

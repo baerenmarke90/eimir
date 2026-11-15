@@ -8,7 +8,7 @@
   max-height: calc(100dvh - var(--space-4) - env(safe-area-inset-top, 0px));
   margin: 0 auto;
   padding: 0;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-sheet-top) var(--radius-sheet-top) 0 0;
   background: var(--color-surface-raised);
   color: var(--color-text);
@@ -250,7 +250,7 @@
     height: 44px;
     padding: 0;
     place-items: center;
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-surface-width) solid var(--color-border-subtle);
     background: var(--color-surface-subtle);
     color: var(--color-text);
     margin-inline: 0;

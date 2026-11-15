@@ -6,7 +6,7 @@ const taskBoundary = {
   pending:
     'Wird gespeichert. Bitte bleib kurz hier, bis dein Moment bestätigt ist.',
   failedPhotos:
-    'Ein Foto ist noch nicht bereit. Versuche es erneut oder entferne es, bevor du speicherst.',
+    'Eine Aufnahme ist noch nicht bereit. Versuche den Upload erneut oder entferne sie, bevor du speicherst.',
   offline:
     'Noch nicht gespeichert. Deine Eingaben bleiben hier. Versuche es erneut, wenn du wieder online bist.',
   uncertainTitle: 'Die Bestätigung fehlt',

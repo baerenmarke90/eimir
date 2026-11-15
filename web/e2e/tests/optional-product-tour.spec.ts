@@ -160,11 +160,13 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.getByRole('button', { name: productTour.next }).click();
   await expect(page).toHaveURL(/\/plan$/);
   await page.getByRole('button', { name: productTour.next }).click();
+  await expect(page).toHaveURL(/\/story$/);
   await page.getByRole('button', { name: productTour.openCreate }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.goto('/more');
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
   await expect(
     page.getByRole('heading', { name: productTour.invite.title }),
   ).toHaveCount(0);
@@ -175,7 +177,8 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'dark'));
   await page.reload();
-  await page.goto('/more');
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
   await page.getByRole('button', { name: productTour.replay }).click();
   await expect(
     page.getByRole('heading', { name: productTour.today.title }),
@@ -206,7 +209,8 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   });
   await page.setViewportSize({ width: 430, height: 932 });
   await page.reload();
-  await page.goto('/more');
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
   await page.getByRole('button', { name: productTour.replay }).click();
   await expect(
     page.getByRole('heading', { name: productTour.today.title }),
@@ -227,17 +231,7 @@ test('ordinary More destinations remain usable while the first invitation is vis
     page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
-  await quickCreate.click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(quickCreate).toBeFocused();
-  await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
-  ).toBeVisible();
+  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
 
   await page.setViewportSize({ width: 320, height: 700 });
   await page.emulateMedia({ reducedMotion: 'reduce' });

@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   type RefObject,
@@ -8,8 +9,6 @@ import {
   useState,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../client/mediaApis';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -17,18 +16,18 @@ import { PreferenceCategory } from '../api/generated/models/PreferenceCategory';
 import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment';
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
-import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
 import { Configuration } from '../client/apiConfiguration';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { settingsCategoryPath } from '../client/routes';
-import { normalizeClientError } from '../client/problemDetails';
+import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   CATEGORIES,
   type ProfilePreferenceDraft,
-  SENTIMENTS,
   profilePreferenceCreateFromDraft,
   profilePreferenceUpdateFromDraft,
+  SENTIMENTS,
 } from '../client/profilePreferenceDraft';
 import {
   calculateNextAnniversary,
@@ -36,8 +35,12 @@ import {
   formatAnniversaryDetail,
   formatRelationshipDuration,
 } from '../client/relationshipPreview';
+import { settingsCategoryPath } from '../client/routes';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { DestinationIcon } from './DestinationIcon';
+import { NativeDateInput } from './NativeDateField';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -177,13 +180,9 @@ export function RelationshipSettingsSection({
   );
   const serverShowDuration =
     profileQuery.data?.showRelationshipDuration ?? false;
-  const serverDurationMode =
-    profileQuery.data?.durationDisplayMode ?? DurationDisplayMode.YEARS_MONTHS;
 
   const [startedOn, setStartedOn] = useState(serverStartedOn);
   const [showDuration, setShowDuration] = useState(serverShowDuration);
-  const [durationMode, setDurationMode] =
-    useState<SpaceProfileView['durationDisplayMode']>(serverDurationMode);
 
   useEffect(() => {
     if (profileQuery.data) {
@@ -191,28 +190,18 @@ export function RelationshipSettingsSection({
         relationshipDateInput(profileQuery.data.relationshipStartedOn),
       );
       setShowDuration(profileQuery.data.showRelationshipDuration ?? false);
-      setDurationMode(
-        profileQuery.data.durationDisplayMode ??
-          DurationDisplayMode.YEARS_MONTHS,
-      );
     }
   }, [profileQuery.data]);
 
   const isDirty = useMemo(() => {
     if (!profileQuery.data) return false;
-    return (
-      startedOn !== serverStartedOn ||
-      showDuration !== serverShowDuration ||
-      durationMode !== serverDurationMode
-    );
+    return startedOn !== serverStartedOn || showDuration !== serverShowDuration;
   }, [
     profileQuery.data,
     startedOn,
     showDuration,
-    durationMode,
     serverStartedOn,
     serverShowDuration,
-    serverDurationMode,
   ]);
 
   const calculatedDuration = useMemo(() => {
@@ -224,8 +213,9 @@ export function RelationshipSettingsSection({
   }, [startedOn]);
 
   const currentDurationText = useMemo(() => {
-    return formatRelationshipDuration(calculatedDuration, durationMode, t);
-  }, [calculatedDuration, durationMode, t]);
+    const text = formatRelationshipDuration(calculatedDuration, t);
+    return calculatedDuration ? `❤️ ${text}` : text;
+  }, [calculatedDuration, t]);
 
   const nextAnniversaryText = useMemo(() => {
     return formatAnniversaryDetail(nextAnniversary, t, formatDateOnly);
@@ -235,11 +225,9 @@ export function RelationshipSettingsSection({
     mutationFn: async ({
       relationshipStartedOn,
       showRelationshipDuration,
-      durationDisplayMode,
     }: {
       relationshipStartedOn: Date | null;
       showRelationshipDuration: boolean;
-      durationDisplayMode: SpaceProfileView['durationDisplayMode'];
     }) => {
       if (!profileQuery.data) return null;
       try {
@@ -250,7 +238,8 @@ export function RelationshipSettingsSection({
             relationshipStartedOn,
             showRelationshipDuration,
             durationDisplayMode:
-              durationDisplayMode ?? DurationDisplayMode.YEARS_MONTHS,
+              profileQuery.data.durationDisplayMode ??
+              DurationDisplayMode.YEARS_MONTHS,
           },
         });
       } catch (error) {
@@ -266,7 +255,12 @@ export function RelationshipSettingsSection({
           queryKey: ['space-profile', spaceId],
         });
       }
-      await invalidateDashboard(queryClient, spaceId);
+      await Promise.all([
+        invalidateDashboard(queryClient, spaceId),
+        queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.space(spaceId),
+        }),
+      ]);
     },
   });
 
@@ -279,7 +273,6 @@ export function RelationshipSettingsSection({
         ? new Date(`${startedOn}T00:00:00.000Z`)
         : null,
       showRelationshipDuration: showDuration,
-      durationDisplayMode: durationMode,
     });
   }
 
@@ -316,10 +309,9 @@ export function RelationshipSettingsSection({
             <label htmlFor="relationship-started-on">
               {t('profiles.relationshipStartLabel')}
             </label>
-            <input
+            <NativeDateInput
               id="relationship-started-on"
               name="relationshipStartedOn"
-              type="date"
               value={startedOn}
               onChange={(e) => {
                 setStartedOn(e.target.value);
@@ -344,30 +336,6 @@ export function RelationshipSettingsSection({
               <small>{t('profiles.relationshipDurationHelp')}</small>
             </span>
           </label>
-
-          <div className="field-group">
-            <label htmlFor="relationship-duration-mode">
-              {t('profiles.relationshipModeLabel')}
-            </label>
-            <select
-              id="relationship-duration-mode"
-              name="durationDisplayMode"
-              value={durationMode}
-              onChange={(e) => {
-                setDurationMode(
-                  e.target.value as SpaceProfileView['durationDisplayMode'],
-                );
-                setSaved(false);
-              }}
-            >
-              <option value={DurationDisplayMode.YEARS_MONTHS}>
-                {t('profiles.relationshipModeYearsMonths')}
-              </option>
-              <option value={DurationDisplayMode.DAYS}>
-                {t('profiles.relationshipModeDays')}
-              </option>
-            </select>
-          </div>
 
           {/* Relationship Preview Card */}
           <div className="relationship-preview-card">
@@ -458,6 +426,15 @@ export function PreferenceDialog({
   if (isOpen) renderedPreferenceRef.current = preference;
   const renderedPreference = renderedPreferenceRef.current;
   const { present, presenceState, completeExit } = useOverlayPresence(isOpen);
+  // System Back closes the dialog instead of leaving the profile; a pending
+  // save or delete keeps it open, as the close button does not apply then.
+  useEditorHistoryEntry({
+    isActive: isOpen,
+    isDirty: false,
+    isCloseBlocked: pending || deletePending,
+    onClose: onCancel,
+    onDiscardRequested: onCancel,
+  });
 
   useModalLifecycle({
     active: present,
@@ -698,6 +675,7 @@ export function PreferenceManager({
   intro,
   emptyTitle,
   emptyBody,
+  floatingAdd = false,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
@@ -708,6 +686,7 @@ export function PreferenceManager({
   intro: string;
   emptyTitle: string;
   emptyBody: string;
+  floatingAdd?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -807,11 +786,12 @@ export function PreferenceManager({
       <div className="profile-preferences-header">
         <div>
           <h2 id={`profile-manager-${visibility}`}>{title}</h2>
-          <p className="profile-section-intro">{intro}</p>
+          {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
-        <button
-          type="button"
-          className="secondary compact-action"
+        <AddActionButton
+          floating={floatingAdd}
+          label={triggerButtonLabel}
+          aria-haspopup="dialog"
           onClick={(e) => {
             triggerElementRef.current = e.currentTarget;
             setEditing(null);
@@ -819,10 +799,7 @@ export function PreferenceManager({
             saveMutation.reset();
             deleteMutation.reset();
           }}
-        >
-          <AddIcon />
-          <span>{triggerButtonLabel}</span>
-        </button>
+        />
       </div>
 
       {savedMessage ? (
@@ -1035,25 +1012,28 @@ export function PrivatePartnerNotesSection({
   partnerId,
   partnerName,
   items,
+  showPrivacyNotice = true,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
   partnerId: string;
   partnerName: string;
   items: ProfilePreferenceView[];
+  showPrivacyNotice?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <div className="private-partner-notes-wrapper">
-      <PrivatePartnerNotesPrivacyNotice />
+      {showPrivacyNotice ? <PrivatePartnerNotesPrivacyNotice /> : null}
       <PreferenceManager
+        floatingAdd
         profilesApi={profilesApi}
         spaceId={spaceId}
         accountId={partnerId}
         visibility={ProfileVisibility.PRIVATE_PARTNER_NOTE}
         items={items}
         title={t('profiles.privateTitle', { name: partnerName })}
-        intro={t('profiles.privateIntro')}
+        intro=""
         emptyTitle={t('profiles.emptyPrivateTitle')}
         emptyBody={t('profiles.emptyPrivateBody')}
       />
@@ -1138,15 +1118,6 @@ export function ProfilePreferencesSection({
       )
     : [];
 
-  const privatePartnerNotes =
-    preferencesQuery.data && partner
-      ? preferencesQuery.data.filter(
-          (pref) =>
-            pref.accountId === partner.id &&
-            pref.visibility === ProfileVisibility.PRIVATE_PARTNER_NOTE,
-        )
-      : [];
-
   return (
     <div className="profile-preferences-section">
       {preferencesQuery.isLoading ? (
@@ -1168,7 +1139,10 @@ export function ProfilePreferencesSection({
       ) : null}
 
       {partner ? (
-        <>
+        <details className="profile-partner-disclosure">
+          <summary>
+            {t('profiles.partnerSection', { name: partnerName })}
+          </summary>
           <div className="profile-partner-block">
             <PartnerIdentityPanel
               key={`${account.id}:${spaceId}:${partner.id}`}
@@ -1184,16 +1158,7 @@ export function ProfilePreferencesSection({
               partnerName={partnerName}
             />
           </div>
-          {preferencesQuery.data ? (
-            <PrivatePartnerNotesSection
-              profilesApi={profilesApi}
-              spaceId={spaceId}
-              partnerId={partner.id}
-              partnerName={partnerName}
-              items={privatePartnerNotes}
-            />
-          ) : null}
-        </>
+        </details>
       ) : null}
     </div>
   );

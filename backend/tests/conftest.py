@@ -100,9 +100,11 @@ def engine() -> Iterator[Engine]:
     from eimir.attachments import binding as _binding  # noqa: F401
     from eimir.attachments import models as _attachments  # noqa: F401
     from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
+    from eimir.calendar_sync import models as _calendar_sync  # noqa: F401
     from eimir.chapters import models as _chapters  # noqa: F401
     from eimir.collections import models as _collections  # noqa: F401
     from eimir.comments import models as _comments  # noqa: F401
+    from eimir.context_tags import models as _context_tags  # noqa: F401
     from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
     from eimir.dashboard import models as _dashboard  # noqa: F401
     from eimir.db.base import Base
@@ -113,22 +115,28 @@ def engine() -> Iterator[Engine]:
     from eimir.heart_moments import models as _heart_moments  # noqa: F401
     from eimir.identity import models as _identity  # noqa: F401
     from eimir.jobs import models as _jobs  # noqa: F401
+    from eimir.legal import models as _legal  # noqa: F401
     from eimir.memories import models as _memories  # noqa: F401
     from eimir.milestones import models as _milestones  # noqa: F401
+    from eimir.once_messages import models as _once_messages  # noqa: F401
     from eimir.outbox import models as _outbox  # noqa: F401
     from eimir.people import models as _people  # noqa: F401
+    from eimir.photo_sources import models as _photo_sources  # noqa: F401
     from eimir.places import models as _places  # noqa: F401
     from eimir.plans import models as _plans  # noqa: F401
+    from eimir.presence import models as _presence  # noqa: F401
     from eimir.private_collections import models as _private_collections  # noqa: F401
     from eimir.private_notes import models as _private_notes  # noqa: F401
     from eimir.profiles import models as _profiles  # noqa: F401
     from eimir.quotes import models as _quotes  # noqa: F401
+    from eimir.recaps import models as _recaps  # noqa: F401
     from eimir.relations import models as _relations  # noqa: F401
     from eimir.relationship import models as _relationship  # noqa: F401
     from eimir.reminders import models as _reminders  # noqa: F401
     from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
     from eimir.story import view_models as _story_views  # noqa: F401
     from eimir.transfer import models as _transfer  # noqa: F401
+    from eimir.wish_selections import models as _wish_selections  # noqa: F401
     from eimir.wishes import models as _wishes  # noqa: F401
 
     # Test probe for owner/privacy authorization. It deliberately exists only
@@ -223,6 +231,33 @@ def make_space(session: Session, founder):  # type: ignore[no-untyped-def]
     from eimir.relationship.service import create_space
 
     return create_space(session, founder)
+
+
+def make_space_without_daily_context(session: Session, founder):  # type: ignore[no-untyped-def]
+    """Create a Space in the state existing Spaces keep after #1790.
+
+    New Spaces start with both daily check-in dimensions on and the founder's time zone.
+    Spaces created before that keep the stored v1 state: daily check-in dimensions off
+    and no shared daily time zone. A bulk UPDATE leaves the row version at its
+    initial value, exactly like a row read from that earlier state.
+    """
+    from sqlalchemy import update
+
+    from eimir.relationship.models import SpaceConfiguration
+
+    space = make_space(session, founder)
+    session.execute(
+        update(SpaceConfiguration)
+        .where(SpaceConfiguration.space_id == space.id)
+        .values(
+            vibe_check_enabled=False,
+            energy_check_in_enabled=False,
+            daily_context_timezone=None,
+        )
+        .execution_options(synchronize_session="fetch")
+    )
+    session.flush()
+    return space
 
 
 def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]

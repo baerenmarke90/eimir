@@ -7,9 +7,15 @@ Direct Plan creation with an optional atomic schedule.  Lifecycle state remains 
 
 Name | Type
 ------------ | -------------
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
+`coverAttachmentId` | string
+`coverIsSensitive` | boolean
 `description` | string
+`fileAttachmentIds` | Array&lt;string&gt;
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
+`selectedCoverAttachmentId` | string
+`tags` | Array&lt;string&gt;
 `title` | string
 
 ## Example
@@ -19,9 +25,15 @@ import type { PlanCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "attachments": null,
+  "coverAttachmentId": null,
+  "coverIsSensitive": null,
   "description": null,
+  "fileAttachmentIds": null,
   "placeId": null,
   "schedule": null,
+  "selectedCoverAttachmentId": null,
+  "tags": null,
   "title": null,
 } satisfies PlanCreate
 

@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `expiresAt` | Date
+`mediaType` | [MediaType](MediaType.md)
 `method` | string
 `url` | string
 
@@ -18,6 +19,7 @@ import type { ReadDescriptor } from ''
 // TODO: Update the object below with actual values
 const example = {
   "expiresAt": null,
+  "mediaType": null,
   "method": null,
   "url": null,
 } satisfies ReadDescriptor

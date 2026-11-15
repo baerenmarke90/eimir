@@ -4,6 +4,15 @@ import {
   type ObjectUrlSource,
   type OwnedObjectUrl,
 } from './objectUrlResource';
+import { subscribeMediaObjectUrlRevocations } from './sharedMediaObjectUrls';
+
+/** A shown resource whose shared object URL was revoked (denied or wiped). */
+export class RevokedObjectUrlError extends Error {
+  constructor() {
+    super('The media object URL was revoked.');
+    this.name = 'RevokedObjectUrlError';
+  }
+}
 
 interface ResourceEntry {
   resourceId: string;
@@ -101,7 +110,22 @@ export function useObjectUrlResources(
 
   useEffect(() => {
     mountedRef.current = true;
+    // A revoked shared URL must also leave this (possibly kept) view.
+    const unsubscribe = subscribeMediaObjectUrlRevocations((revoked) => {
+      let changed = false;
+      for (const entry of entriesRef.current.values()) {
+        if (entry.status !== 'ready' || !entry.resource) continue;
+        if (!revoked.has(entry.resource.url)) continue;
+        entry.resource.dispose();
+        entry.resource = null;
+        entry.status = 'error';
+        entry.error = new RevokedObjectUrlError();
+        changed = true;
+      }
+      if (changed) setState((current) => ({ ...current }));
+    });
     return () => {
+      unsubscribe();
       mountedRef.current = false;
       for (const entry of entriesRef.current.values()) {
         disposeEntry(entry);

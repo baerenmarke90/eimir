@@ -76,10 +76,25 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     birthday: Mapped[date | None] = mapped_column(Date)
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
+    language_preference: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="auto", server_default="auto"
+    )
+    language_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Europe/Berlin")
     quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
     quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))
+    gentle_prompts_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    photo_locations_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    photo_locations_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -356,6 +371,8 @@ class SignupProof(IdMixin, OneTimeTokenMixin, Base):
 
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
+    accepted_terms_version: Mapped[str | None] = mapped_column(String(64))
+    """Terms version accepted in the signup form; applied only if an Account is created."""
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_signup_proofs_token_hash"),

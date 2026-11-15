@@ -7,7 +7,11 @@
 Name | Type
 ------------ | -------------
 `displayName` | string
+`gentlePromptsEnabled` | boolean
 `id` | string
+`languagePreference` | string
+`languageVersion` | number
+`locale` | string
 
 ## Example
 
@@ -17,7 +21,11 @@ import type { AccountView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "displayName": null,
+  "gentlePromptsEnabled": null,
   "id": null,
+  "languagePreference": null,
+  "languageVersion": null,
+  "locale": null,
 } satisfies AccountView
 
 console.log(example)

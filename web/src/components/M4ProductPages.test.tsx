@@ -13,6 +13,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SearchPage } from '../api/generated/models/SearchPage';
 import type { M4ProductApis } from '../client/m4Product';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
+import contextTags from '../i18n/locales/contextTags';
 import { ActivityProductPage, SearchProductPage } from './M4ProductPages';
 
 afterEach(() => {
@@ -30,7 +32,10 @@ function Probe() {
   return null;
 }
 
-function renderSearch(searchSpaceContent: (q: string) => Promise<SearchPage>) {
+function renderSearch(
+  searchSpaceContent: (q: string) => Promise<SearchPage>,
+  selectedTag?: string,
+) {
   const apis = {
     search: {
       searchSpaceContent: (params: { q: string }) =>
@@ -42,7 +47,13 @@ function renderSearch(searchSpaceContent: (q: string) => Promise<SearchPage>) {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/search']}>
+      <MemoryRouter
+        initialEntries={[
+          selectedTag
+            ? { pathname: '/search', state: { selectedTag } }
+            : '/search',
+        ]}
+      >
         <TaskOriginProvider accountId="account-1" spaceId="space-1">
           <Probe />
           <SearchProductPage apis={apis} spaceId="space-1" />
@@ -164,6 +175,102 @@ describe('SearchProductPage origin/return (#966)', () => {
   });
 });
 
+describe('SearchProductPage exact authored tags', () => {
+  it('opens all matching kinds without disclosing the tag in the route URL', async () => {
+    const searchSpaceContent = vi.fn(
+      async (_q: string): Promise<SearchPage> => ({
+        items: [
+          {
+            id: 'mem-1',
+            type: 'MEMORY',
+            title: 'Our memories',
+            excerpt: null,
+            occurredOn: new Date('2026-05-01T00:00:00Z'),
+            parentId: null,
+            scope: 'SHARED',
+          },
+          {
+            id: 'heart-1',
+            type: 'HEART_MOMENT',
+            title: 'Our special moment',
+            excerpt: null,
+            occurredOn: new Date('2026-05-02T00:00:00Z'),
+            parentId: null,
+            scope: 'SHARED',
+          },
+          {
+            id: 'plan-1',
+            type: 'PLAN',
+            title: 'Our plan',
+            excerpt: null,
+            occurredOn: null,
+            parentId: null,
+            scope: 'SHARED',
+          },
+          {
+            id: 'wish-1',
+            type: 'WISH',
+            title: 'Our wish',
+            excerpt: null,
+            occurredOn: null,
+            parentId: null,
+            scope: 'SHARED',
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    renderSearch(searchSpaceContent, 'Our trip');
+    expect(await screen.findByText('Our special moment')).toBeTruthy();
+    expect(screen.getByText('Our plan')).toBeTruthy();
+    expect(screen.getByText('Our wish')).toBeTruthy();
+    expect(searchSpaceContent).toHaveBeenCalledWith('tag:Our trip');
+    expect(probeLocation.pathname).toBe('/search');
+    expect(probeLocation.search).toBe('');
+    expect(screen.queryByRole('searchbox')).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: contextTags.searchAll }));
+    expect(screen.getByRole('searchbox')).toBeTruthy();
+    expect(screen.queryByText('Our special moment')).toBeNull();
+    expect(probeLocation.search).toBe('');
+  });
+
+  it('restores the exact tag query after returning from a search result', async () => {
+    const searchSpaceContent = vi.fn(
+      async (_q: string): Promise<SearchPage> => ({
+        items: [
+          {
+            id: 'mem-1',
+            type: 'MEMORY',
+            title: 'A tagged memory',
+            excerpt: null,
+            occurredOn: null,
+            parentId: null,
+            scope: 'SHARED',
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    renderSearch(searchSpaceContent, 'Our trip');
+    await screen.findByText('A tagged memory');
+    let key: string | null = null;
+    await act(async () => {
+      key = probeOrigin.captureOrigin();
+      probeNavigate('/story/memories/mem-1', {
+        state: { taskOriginKey: key },
+      });
+    });
+    expect(probeOrigin.resolveOrigin(key)?.searchQuery).toBe('tag:Our trip');
+    await act(async () => probeOrigin.requestReturn(key));
+    expect(probeLocation.pathname).toBe('/search');
+    expect(probeLocation.search).toBe('');
+    expect(screen.getByText('Tag: Our trip')).toBeTruthy();
+    expect(await screen.findByText('A tagged memory')).toBeTruthy();
+  });
+});
+
 describe('ActivityProductPage task origin (#1084)', () => {
   it('captures Activity before canonical target navigation and restores it on Back', async () => {
     const user = userEvent.setup();
@@ -179,5 +286,39 @@ describe('ActivityProductPage task origin (#1084)', () => {
 
     await act(async () => probeOrigin.requestReturn(key));
     expect(probeLocation.pathname).toBe('/today/activity');
+  });
+});
+
+describe('Search discreet plans (#1790 F3)', () => {
+  it('shows the list title, lock and neutral lines for a concealed hit', async () => {
+    const searchSpaceContent = vi.fn(
+      async (_q: string): Promise<SearchPage> => ({
+        items: [
+          {
+            id: 'plan-1',
+            type: 'PLAN',
+            title: null,
+            excerpt: null,
+            occurredOn: null,
+            parentId: null,
+            scope: 'SHARED',
+            concealed: true,
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    const user = userEvent.setup();
+    renderSearch(searchSpaceContent);
+    await user.type(screen.getByLabelText(/Suchbegriff/i), 'hotel');
+    await user.click(screen.getByRole('button', { name: /^Suchen$/i }));
+
+    expect(
+      await screen.findByText(i18n.t('discreetPlans.fallbackTitle')),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: i18n.t('discreetPlans.lockLabel') }),
+    ).toBeTruthy();
+    expect(document.querySelector('.discreet-lines')).toBeTruthy();
   });
 });

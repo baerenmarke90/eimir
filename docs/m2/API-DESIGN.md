@@ -101,6 +101,7 @@ G2 filters:
 - `order`: `DESC` by default, alternatively `ASC`.
 - `cursor`: opaque.
 - `limit`: default `50`, maximum `100`.
+- `includeChapters`: optional boolean, default `false` (#1635). The unfiltered diary may opt into `chapterMarkers`, at authored `startOn` only. Markers share the complete keyset cursor and combined page limit, contribute only their start year, and never extend `StoryKind`, Discover, photo flows or relation choices. A type-filtered timeline excludes markers.
 
 `q` is **not** part of the M2/G2 contract and remains M4 Search.
 
@@ -159,7 +160,7 @@ interface MemoryAttachmentSet {
 }
 ```
 
-`authorId`, `spaceId`, `version`, and Capabilities are not writable. Partners read shared Memories; Update/Delete remain author-only.
+`authorId`, `spaceId`, `version`, and Capabilities are not writable. Partners may read and update shared Memories under the explicit PO #1603 amendment (2026-11-02). Delete remains author-only. Private visibility and immutable authorship are unchanged.
 
 ### HeartMoment
 

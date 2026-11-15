@@ -12,6 +12,7 @@ Name | Type
 `createdAt` | Date
 `displayName` | string
 `id` | string
+`note` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
 `showBirthdayOnDashboard` | boolean
 `updatedAt` | Date
@@ -31,6 +32,7 @@ const example = {
   "createdAt": null,
   "displayName": null,
   "id": null,
+  "note": null,
   "relationship": null,
   "showBirthdayOnDashboard": null,
   "updatedAt": null,

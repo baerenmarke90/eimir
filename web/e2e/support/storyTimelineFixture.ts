@@ -1,4 +1,3 @@
-import { fulfillDefaultAppIcon } from './appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -8,6 +7,9 @@ import {
   type TestInfo,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from './appIcon';
+import { fulfillUnconfiguredPhotoSources } from './photoSources';
+import { fulfillEmptyPlanComments } from './planComments';
 
 export const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 export const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -54,7 +56,7 @@ export async function captureScreenshot(
   target: Page | Locator,
   testInfo: TestInfo,
   fileName: string,
-  options?: { fullPage?: boolean },
+  options?: { fullPage?: boolean; animations?: 'disabled' | 'allow' },
 ): Promise<void> {
   const outputPath = testInfo.outputPath(fileName);
   await target.screenshot({ path: outputPath, ...options });
@@ -86,6 +88,7 @@ export function getTimelineItems() {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -112,6 +115,7 @@ export function getTimelineItems() {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -179,6 +183,8 @@ export async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -357,6 +363,16 @@ export async function installMocks(
         items,
         hasMore: false,
         nextCursor: null,
+      });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
       });
       return;
     }

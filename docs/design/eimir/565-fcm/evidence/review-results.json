@@ -1,0 +1,488 @@
+[
+  {
+    "width": 320,
+    "theme": "light",
+    "state": "off",
+    "screenshot": "320-light-off.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "state": "on",
+    "screenshot": "320-light-on.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "state": "error",
+    "screenshot": "320-light-error.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "state": "off",
+    "screenshot": "320-dark-off.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "state": "on",
+    "screenshot": "320-dark-on.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "state": "error",
+    "screenshot": "320-dark-error.png",
+    "layout": {
+      "viewport": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "paragraphWidth": 288,
+      "paragraphScrollWidth": 288,
+      "paragraphHeight": 123.984375,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "off",
+    "screenshot": "390-light-off.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "on",
+    "screenshot": "390-light-on.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "error",
+    "screenshot": "390-light-error.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "off",
+    "screenshot": "390-dark-off.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "on",
+    "screenshot": "390-dark-on.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "error",
+    "screenshot": "390-dark-error.png",
+    "layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "paragraphWidth": 350,
+      "paragraphScrollWidth": 350,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 350,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "light",
+    "state": "off",
+    "screenshot": "430-light-off.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "light",
+    "state": "on",
+    "screenshot": "430-light-on.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "light",
+    "state": "error",
+    "screenshot": "430-light-error.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "light",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "dark",
+    "state": "off",
+    "screenshot": "430-dark-off.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "dark",
+    "state": "on",
+    "screenshot": "430-dark-on.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät deaktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  },
+  {
+    "width": 430,
+    "theme": "dark",
+    "state": "error",
+    "screenshot": "430-dark-error.png",
+    "layout": {
+      "viewport": 430,
+      "documentWidth": 430,
+      "bodyWidth": 430,
+      "paragraphWidth": 390,
+      "paragraphScrollWidth": 390,
+      "paragraphHeight": 99.1875,
+      "fontFamily": "\"Instrument Sans\", Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "24.8px",
+      "text": "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+      "theme": "dark",
+      "buttons": [
+        {
+          "text": "Auf diesem Gerät aktivieren",
+          "width": 390,
+          "height": 44
+        }
+      ]
+    },
+    "axeViolations": 0
+  }
+]

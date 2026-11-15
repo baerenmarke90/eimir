@@ -20,7 +20,7 @@ provider_jwks = base.provider_jwks
 provider = base.provider
 account_context = base.account_context
 
-ANDROID_REDIRECT = "de.sidebyside.app://recent-authentication/oidc"
+ANDROID_REDIRECT = "de.eimir.app://recent-authentication/oidc"
 
 
 def _settings(*, android_redirect_uri: str | None) -> Settings:

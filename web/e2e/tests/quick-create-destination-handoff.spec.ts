@@ -1,7 +1,10 @@
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import composer from '../../src/i18n/locales/composer';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -32,6 +35,8 @@ async function installProductMocks(page: Page): Promise<void> {
   let savedMilestone: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -307,19 +312,53 @@ async function assertNothingUnexpectedlyFocused(page: Page): Promise<void> {
   expect(activeTag).not.toBe('TEXTAREA');
 }
 
-async function openQuickCreateAndChoose(
-  page: Page,
-  actionLabel: string,
-): Promise<void> {
-  await page.getByRole('button', { name: navigation.newContent }).click();
-  await expect(
-    page.getByRole('dialog', { name: navigation.quickCreateTitle }),
-  ).toBeVisible();
-  await page.getByText(actionLabel, { exact: true }).click();
+async function openContextualCreate(page: Page, action: string): Promise<void> {
+  if (
+    action === navigation.quickCreatePlan ||
+    action === navigation.quickCreateWish
+  ) {
+    await page
+      .getByRole('link', { name: navigation.plan, exact: true })
+      .click();
+    const wish = action === navigation.quickCreateWish;
+    if (wish) {
+      await page
+        .getByRole('tab', { name: m5s3.overview.segmentWishes })
+        .click();
+    }
+    await page
+      .getByRole('link', {
+        name: wish ? m5s3.overview.addWish : m5s3.overview.addPlan,
+      })
+      .click();
+    return;
+  }
+  if (
+    action === navigation.quickCreatePrivateNote ||
+    action === navigation.quickCreateGiftIdea
+  ) {
+    const note = action === navigation.quickCreatePrivateNote;
+    await page.goto(note ? '/more/private/notes' : '/more/private/gift-ideas');
+    await page
+      .getByRole('link', {
+        name: note ? privateArea.notes.add : privateArea.gifts.add,
+      })
+      .click();
+    return;
+  }
+  await page.getByRole('button', { name: de.story.addMoment }).click();
+  const sheet = page.getByRole('dialog', { name: de.story.addMoment });
+  await sheet
+    .getByRole('link', {
+      name:
+        action === navigation.quickCreateMemory ? composer.diaryEntry : action,
+      exact: true,
+    })
+    .click();
 }
 
-test.describe('Quick Create -> Wish / Plan: open the focused task without forcing focus', () => {
-  test('390x844: Wish opens the task, no forced focus/keyboard, Back returns to Today', async ({
+test.describe('Planning add actions: open the focused task without forcing focus', () => {
+  test('390x844: Wish opens the task, no forced focus/keyboard, Back returns to Wishes', async ({
     page,
   }) => {
     await installProductMocks(page);
@@ -327,7 +366,7 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreateWish);
+    await openContextualCreate(page, navigation.quickCreateWish);
 
     await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -339,7 +378,10 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await assertNothingUnexpectedlyFocused(page);
 
     await page.goBack();
-    await expect(page).toHaveURL(/\/today$/);
+    await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
   });
 
   test('390x844: Plan opens the composer, and does not autofocus the title or the place picker', async ({
@@ -350,7 +392,7 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePlan);
+    await openContextualCreate(page, navigation.quickCreatePlan);
 
     await expect(page).toHaveURL(/\/plan\/plans\/new$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -359,7 +401,11 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await expect(titleInput).toBeVisible();
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
-    await expect(page.locator('#planning-create-place')).not.toBeFocused();
+    await expect(
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
+    ).not.toBeFocused();
   });
 
   test('a normal /plan visit without Quick Create does not force focus into either composer', async ({
@@ -386,7 +432,7 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreateWish);
+    await openContextualCreate(page, navigation.quickCreateWish);
 
     const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeVisible();
@@ -406,43 +452,46 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePlan);
+    await openContextualCreate(page, navigation.quickCreatePlan);
 
-    const titleInput = page.locator('#planning-create-title');
-    await expect(titleInput).toBeInViewport();
-    await expect(titleInput).not.toBeFocused();
-  });
-
-  test('1440 Expanded: the desktop popover opens the Wish composer without forcing focus', async ({
-    page,
-  }) => {
-    await installProductMocks(page);
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/today');
-    await signIn(page);
-
-    await page.getByRole('button', { name: navigation.newContent }).click();
-    await expect(
-      page.getByRole('menu', { name: navigation.quickCreateTitle }),
-    ).toBeVisible();
-    await page
-      .getByRole('menuitem', { name: navigation.quickCreateWish })
-      .click();
-
-    await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
     const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
   });
 });
 
-test.describe('Quick Create -> dedicated /new routes: land at the correct start position', () => {
+async function expectMemoryMediaBeforeAuthoredContent(page: Page) {
+  const title = page.getByLabel(de.memory.titleLabelOptional);
+  const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+  const media = page.locator('.immersive-create-media');
+  await expect(title).toBeVisible();
+  await expect(title).toBeInViewport();
+  await expect(title).toBeEnabled();
+  await expect(title).not.toBeFocused();
+  await expect(media).toBeVisible();
+  await expect(media).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+  // #1730 places the media entry before title and prose while keeping route
+  // entry at the top and all authored fields reachable without autofocus.
+  const [titleBox, bodyBox, mediaBox] = await Promise.all([
+    title.boundingBox(),
+    body.boundingBox(),
+    media.boundingBox(),
+  ]);
+  if (!titleBox || !bodyBox || !mediaBox)
+    throw new Error('The Memory authored fields and media must be rendered.');
+  expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleBox.y);
+  expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
+}
+
+test.describe('Creation entry points and dedicated routes: land at the correct start position', () => {
   const dedicatedDestinations = [
     {
       action: () => navigation.quickCreateMemory,
       urlPattern: /\/story\/memories\/new$/,
       heading: () => de.memory.heading,
-      primaryFieldSelector: '#title',
+      primaryFieldSelector: '#body',
     },
     {
       action: () => navigation.quickCreateHeartMoment,
@@ -479,7 +528,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await page.goto('/today');
       await signIn(page);
 
-      await openQuickCreateAndChoose(page, destination.action());
+      await openContextualCreate(page, destination.action());
 
       await expect(page).toHaveURL(destination.urlPattern);
       await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -495,6 +544,10 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await expect(primaryField).toBeInViewport();
       await expect(primaryField).not.toBeFocused();
       await assertNothingUnexpectedlyFocused(page);
+
+      if (destination.primaryFieldSelector === '#body') {
+        await expectMemoryMediaBeforeAuthoredContent(page);
+      }
     });
   }
 
@@ -502,9 +555,10 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     page,
   }) => {
     await installProductMocks(page);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 1280, height: 844 });
     await page.goto('/today');
     await signIn(page);
+    await page.goto('/more/private/notes');
 
     // Push the origin page far down before invoking Quick Create, mirroring
     // the manual Product Owner session that found Notiz/Geschenkidee
@@ -517,7 +571,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePrivateNote);
+    await page.getByRole('link', { name: privateArea.notes.add }).click();
 
     await expect(page).toHaveURL(/\/more\/private\/notes\/new$/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -530,9 +584,10 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     page,
   }) => {
     await installProductMocks(page);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 1280, height: 844 });
     await page.goto('/today');
     await signIn(page);
+    await page.goto('/more/private/gift-ideas');
 
     await page.addStyleTag({ content: 'body { min-height: 3000px; }' });
     await page.evaluate(() => window.scrollTo(0, 2000));
@@ -540,7 +595,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreateGiftIdea);
+    await page.getByRole('link', { name: privateArea.gifts.add }).click();
 
     await expect(page).toHaveURL(/\/more\/private\/gift-ideas\/new$/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -557,7 +612,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, navigation.quickCreatePrivateNote);
 
     await expect(page.locator('#private-note-title')).toBeInViewport();
 
@@ -575,7 +630,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreateGiftIdea);
+    await openContextualCreate(page, navigation.quickCreateGiftIdea);
 
     await expect(page).toHaveURL(/\/more\/private\/gift-ideas\/new$/);
     // On a 390x520 viewport the page's own content (heading + intro text)
@@ -598,13 +653,13 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, navigation.quickCreatePrivateNote);
 
     await expect(page.locator('#private-note-title')).toBeInViewport();
     await expect(page.locator('#private-note-title')).not.toBeFocused();
   });
 
-  test('Browser Back from a dedicated /new route returns to Today', async ({
+  test('Browser Back from a private note task returns to its local list', async ({
     page,
   }) => {
     await installProductMocks(page);
@@ -612,16 +667,16 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await page.goto('/today');
     await signIn(page);
 
-    await openQuickCreateAndChoose(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, navigation.quickCreatePrivateNote);
     await expect(page).toHaveURL(/\/more\/private\/notes\/new$/);
 
     await page.goBack();
-    await expect(page).toHaveURL(/\/today$/);
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
   });
 
   test('Direct Route Entry: visiting /story/memories/new without Quick Create still works', async ({
     page,
-  }) => {
+  }, info) => {
     await installProductMocks(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/today');
@@ -631,7 +686,17 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
-    await expect(page.locator('#title')).toBeVisible();
+    const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+    await expect(body).toBeVisible();
+    await expect(body).toBeInViewport();
+    await expect(body).toBeEnabled();
+    await expect(body).not.toBeFocused();
+    await assertNothingUnexpectedlyFocused(page);
+    await expectMemoryMediaBeforeAuthoredContent(page);
+    await page.screenshot({
+      path: info.outputPath('memory-media-first-390-light.png'),
+      fullPage: true,
+    });
   });
 });
 
@@ -639,7 +704,7 @@ for (const viewport of [
   { name: 'Compact', width: 390, height: 844 },
   { name: 'Expanded', width: 1440, height: 900 },
 ] as const) {
-  test(`Quick Create Milestone preserves its origin through confirmed Save and edit (${viewport.name})`, async ({
+  test(`Milestone creation preserves its origin through confirmed Save and edit (${viewport.name})`, async ({
     page,
   }, testInfo) => {
     await installProductMocks(page);
@@ -653,21 +718,19 @@ for (const viewport of [
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
     await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 
-    await page.getByRole('button', { name: navigation.newContent }).click();
-    await expect(
-      page.getByRole(viewport.name === 'Compact' ? 'dialog' : 'menu', {
-        name: navigation.quickCreateTitle,
-      }),
-    ).toBeVisible();
+    // Both layouts open the same Moment choices from the page's own add action.
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const choices = page.getByRole('dialog', { name: de.story.addMoment });
+    const milestone = choices.getByRole('link', {
+      name: de.story.kind.milestone,
+    });
+    await trigger.click();
+    await expect(choices).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath(`shell-milestone-sheet-${viewport.width}.png`),
       fullPage: true,
     });
-    await page
-      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
-        name: navigation.quickCreateMilestone,
-      })
-      .click();
+    await milestone.click();
     await expect(page).toHaveURL(/\/story\/milestones\/new$/);
     await expect(page.locator('#milestone-title')).not.toBeFocused();
     await expect(
@@ -677,24 +740,11 @@ for (const viewport of [
       path: testInfo.outputPath(`shell-milestone-task-${viewport.width}.png`),
       fullPage: true,
     });
-    await page.getByRole('button', { name: de.common.cancel }).click();
-    await expect(page).toHaveURL(/\/today$/);
-
-    await page.getByRole('button', { name: navigation.newContent }).click();
-    await page
-      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
-        name: navigation.quickCreateMilestone,
-      })
-      .click();
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/today$/);
 
-    await page.getByRole('button', { name: navigation.newContent }).click();
-    await page
-      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
-        name: navigation.quickCreateMilestone,
-      })
-      .click();
+    await trigger.click();
+    await milestone.click();
     await page.locator('#milestone-title').fill('Our first home');
     const createRequest = page.waitForRequest(
       (request) =>
@@ -737,11 +787,9 @@ for (const viewport of [
     await expect(
       page.getByRole('heading', { name: 'Our next home' }),
     ).toBeVisible();
-    await page.locator('.shell-detail-back').click();
+    await page.locator('.composer-header .task-back-control').click();
     await expect(page).toHaveURL(/\/today$/);
-    await expect(
-      page.getByRole('button', { name: navigation.newContent }),
-    ).toBeFocused();
+    await expect(trigger).toBeFocused();
 
     await page.goto('/story/milestones/new');
     await page.getByRole('button', { name: backToStoryName }).click();

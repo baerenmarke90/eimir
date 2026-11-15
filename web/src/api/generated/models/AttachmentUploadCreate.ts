@@ -51,6 +51,12 @@ export interface AttachmentUploadCreate {
      * @memberof AttachmentUploadCreate
      */
     originalName: string;
+    /**
+     * Retain readable EXIF/ICC in the validated primary image; independent of Place association.
+     * @type {boolean}
+     * @memberof AttachmentUploadCreate
+     */
+    preserveMetadata?: boolean;
 }
 
 
@@ -80,6 +86,7 @@ export function AttachmentUploadCreateFromJSONTyped(json: any, ignoreDiscriminat
         'expectedSize': json['expectedSize'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'originalName': json['originalName'],
+        'preserveMetadata': json['preserveMetadata'] == null ? undefined : json['preserveMetadata'],
     };
 }
 
@@ -98,6 +105,7 @@ export function AttachmentUploadCreateToJSONTyped(value?: AttachmentUploadCreate
         'expectedSize': value['expectedSize'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'originalName': value['originalName'],
+        'preserveMetadata': value['preserveMetadata'],
     };
 }
 

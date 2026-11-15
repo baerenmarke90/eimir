@@ -29,6 +29,7 @@ from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.core.errors import ConflictError, ErrorCode
 from eimir.core.ids import parse_id
+from eimir.media.base import ByteSource
 
 UPLOAD_LEASE = timedelta(minutes=5)
 """Maximum silence before an in-flight server-stream claim may be reclaimed."""
@@ -56,7 +57,7 @@ class UploadClaim:
 
 
 @contextmanager
-def _short_transaction(source: Session) -> Iterator[Session]:
+def short_transaction(source: Session) -> Iterator[Session]:
     """Use independently committed authority in production.
 
     Production request Sessions are Engine-bound. For those, create a second
@@ -146,7 +147,7 @@ def claim_upload(
     expires. Claiming does not touch ``created_at`` or ``uploaded_at``: an
     abandoned retry therefore resumes the existing 24-hour retention clock.
     """
-    with _short_transaction(source) as session:
+    with short_transaction(source) as session:
         attachment, rule = service.open_upload(session, context, attachment_id)
         locked = session.execute(
             select(Attachment).where(Attachment.id == attachment.id).with_for_update()
@@ -186,7 +187,7 @@ def should_renew(claim: UploadClaim) -> bool:
 
 def renew_upload_claim(source: Session, claim: UploadClaim) -> UploadClaim:
     """Extend observed activity without exceeding the generation hard cap."""
-    with _short_transaction(source) as session:
+    with short_transaction(source) as session:
         attachment = session.execute(
             select(Attachment).where(Attachment.id == claim.attachment_id).with_for_update()
         ).scalar_one_or_none()
@@ -206,7 +207,7 @@ def renew_upload_claim(source: Session, claim: UploadClaim) -> UploadClaim:
 
 def release_upload_claim(source: Session, claim: UploadClaim) -> None:
     """Release this request's claim without disturbing a newer generation."""
-    with _short_transaction(source) as session:
+    with short_transaction(source) as session:
         attachment = session.execute(
             select(Attachment).where(Attachment.id == claim.attachment_id).with_for_update()
         ).scalar_one_or_none()
@@ -218,7 +219,7 @@ def release_upload_claim(source: Session, claim: UploadClaim) -> None:
         session.flush()
 
 
-def complete_upload(source: Session, claim: UploadClaim, data: bytes) -> None:
+def complete_upload(source: Session, claim: UploadClaim, data: bytes | ByteSource) -> None:
     """Write provider data only while holding authoritative row ownership.
 
     The body has already been read. The row lock therefore covers only the
@@ -231,7 +232,7 @@ def complete_upload(source: Session, claim: UploadClaim, data: bytes) -> None:
     anchor. PostgreSQL rollback cannot erase the provider write, but it also
     cannot erase that already-committed anchor.
     """
-    with _short_transaction(source) as session:
+    with short_transaction(source) as session:
         attachment = session.execute(
             select(Attachment).where(Attachment.id == claim.attachment_id).with_for_update()
         ).scalar_one_or_none()

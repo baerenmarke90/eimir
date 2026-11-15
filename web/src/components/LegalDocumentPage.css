@@ -1,0 +1,23 @@
+.legal-page {
+  min-height: 100dvh;
+  padding: max(var(--space-6), env(safe-area-inset-top))
+    max(var(--space-4), env(safe-area-inset-right))
+    max(var(--space-12), env(safe-area-inset-bottom))
+    max(var(--space-4), env(safe-area-inset-left));
+  background: var(--color-background);
+}
+
+.legal-page-column {
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, var(--reading-max));
+  margin-inline: auto;
+}
+
+.legal-page-column > .eyebrow {
+  margin: var(--space-4) 0 0;
+}
+
+.legal-page-column > .task-back-control {
+  justify-self: start;
+}

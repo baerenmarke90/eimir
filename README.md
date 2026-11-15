@@ -17,23 +17,42 @@ documented in [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md).
 
 ## Product preview
 
-The product-preview artwork and labels below intentionally remain de-DE
-localized product content.
-
-<p align="center">
-  <img src="docs/assets/playstore/app-icon.png" alt="eimir. App-Icon" width="112">
-</p>
-
-<p align="center">
-  <img src="docs/assets/playstore/feature-graphic.png" alt="eimir. – gemeinsam leben, privat verbunden" width="100%">
-</p>
+The screenshots below are real captures of the current eimir. Web app (the same
+UI the Android wrapper ships), taken at a smartphone width of about 390 px in
+the Light theme. They show the canonical demo Space with entirely fictional
+data and photographs (see [docs/DEMO-SPACE.md](docs/DEMO-SPACE.md)). The app
+UI is intentionally de-DE localized product content. They are not mockups.
 
 <p align="center">
   <strong>Erinnerungen, Wünsche, Pläne und gemeinsame Zeit – ruhig gestaltet und privacy-first gedacht.</strong>
 </p>
 
-> The following screens are product and Google Play mockups. The technical
-> implementation state is documented under [Status](#status).
+> The technical implementation state is documented under [Status](#status).
+
+<table>
+  <tr>
+    <th>Anmelden</th>
+    <th>Wir</th>
+    <th>Momente</th>
+    <th>Erinnerung</th>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/readme/01-anmelden.webp" alt="Sign-in screen with the headline Euer Ort für das, was euch verbindet." width="200"></td>
+    <td><img src="docs/assets/readme/02-wir.webp" alt="Wir tab with the couple header, mood and battery status, a daily quote and a featured moment" width="200"></td>
+    <td><img src="docs/assets/readme/03-momente.webp" alt="Momente tab with a retrospective memory card and the shared experiences" width="200"></td>
+    <td><img src="docs/assets/readme/04-erinnerung.webp" alt="A diary memory with a lake photograph, tags and a comment section" width="200"></td>
+  </tr>
+  <tr>
+    <th>Tagebuch</th>
+    <th>Wünsche</th>
+    <th>Mehr</th>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/readme/05-tagebuch.webp" alt="Diary timeline grouped by month with photo entries" width="200"></td>
+    <td><img src="docs/assets/readme/06-wuensche.webp" alt="Planen tab showing the shared wish list grouped alphabetically" width="200"></td>
+    <td><img src="docs/assets/readme/07-mehr.webp" alt="Mehr tab with profile, private notes, notifications and the story areas" width="200"></td>
+  </tr>
+</table>
 
 ### Design and UX foundations
 
@@ -50,33 +69,6 @@ localized product content.
 - [Design System Delivery](docs/DESIGN-SYSTEM-DELIVERY.md) — Token pipeline, component stages, and delivery phases
 - [Design Tokens](design/tokens.json) — colors, typography, spacing, layout, and Motion as a machine-readable source
 - [Component Manifest](design/component-manifest.json) — canonical Web product-UI implementation status
-
-<table>
-  <tr>
-    <th>Gemeinsam starten</th>
-    <th>Unser Heute</th>
-    <th>Unsere Story</th>
-    <th>Unsere Wünsche</th>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/playstore/screen-01-onboarding.png" alt="Onboarding-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-02-heute.png" alt="Heute-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-03-story.png" alt="Story-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-04-wuensche.png" alt="Wünsche-Mockup" width="200"></td>
-  </tr>
-  <tr>
-    <th>Gemeinsam planen</th>
-    <th>Für euch entdecken</th>
-    <th>Gemeinsam einkaufen</th>
-    <th>Privatsphäre</th>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/playstore/screen-05-plan.png" alt="Planungs-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-06-discovery.png" alt="Discovery-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-07-einkauf.png" alt="Einkaufs-Mockup" width="200"></td>
-    <td><img src="docs/assets/playstore/screen-08-privacy.png" alt="Privacy-Mockup" width="200"></td>
-  </tr>
-</table>
 
 ## Roadmap
 

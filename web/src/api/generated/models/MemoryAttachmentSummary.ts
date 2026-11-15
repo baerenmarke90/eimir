@@ -20,6 +20,13 @@ import {
     MediaTypeToJSON,
     MediaTypeToJSONTyped,
 } from './MediaType';
+import type { PhotoReactionSummary } from './PhotoReactionSummary';
+import {
+    PhotoReactionSummaryFromJSON,
+    PhotoReactionSummaryFromJSONTyped,
+    PhotoReactionSummaryToJSON,
+    PhotoReactionSummaryToJSONTyped,
+} from './PhotoReactionSummary';
 
 /**
  * A bound attachment plus its position in the memory gallery.
@@ -27,6 +34,24 @@ import {
  * @interface MemoryAttachmentSummary
  */
 export interface MemoryAttachmentSummary {
+    /**
+     * Viewer-specific authority to edit classification through this parent; never a read grant.
+     * @type {boolean}
+     * @memberof MemoryAttachmentSummary
+     */
+    canEditSensitivity?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof MemoryAttachmentSummary
+     */
+    durationSeconds?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryAttachmentSummary
+     */
+    failureCode?: string | null;
     /**
      * 
      * @type {boolean}
@@ -46,6 +71,12 @@ export interface MemoryAttachmentSummary {
      */
     id: string;
     /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof MemoryAttachmentSummary
+     */
+    isSensitive?: boolean;
+    /**
      * 
      * @type {MediaType}
      * @memberof MemoryAttachmentSummary
@@ -63,6 +94,12 @@ export interface MemoryAttachmentSummary {
      * @memberof MemoryAttachmentSummary
      */
     position: number;
+    /**
+     * 
+     * @type {Array<PhotoReactionSummary>}
+     * @memberof MemoryAttachmentSummary
+     */
+    reactions?: Array<PhotoReactionSummary>;
     /**
      * 
      * @type {number}
@@ -111,12 +148,17 @@ export function MemoryAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'canEditSensitivity': json['canEditSensitivity'] == null ? undefined : json['canEditSensitivity'],
+        'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'position': json['position'],
+        'reactions': json['reactions'] == null ? undefined : ((json['reactions'] as Array<any>).map(PhotoReactionSummaryFromJSON)),
         'size': json['size'],
         'status': json['status'],
         'width': json['width'],
@@ -134,12 +176,17 @@ export function MemoryAttachmentSummaryToJSONTyped(value?: MemoryAttachmentSumma
 
     return {
         
+        'canEditSensitivity': value['canEditSensitivity'],
+        'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'position': value['position'],
+        'reactions': value['reactions'] == null ? undefined : ((value['reactions'] as Array<any>).map(PhotoReactionSummaryToJSON)),
         'size': value['size'],
         'status': value['status'],
         'width': value['width'],

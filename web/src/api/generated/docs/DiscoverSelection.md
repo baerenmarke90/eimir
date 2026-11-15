@@ -9,6 +9,7 @@ Name | Type
 `items` | [Array&lt;StoryItem&gt;](StoryItem.md)
 `lead` | [StoryItem](StoryItem.md)
 `leadContext` | [DiscoverLeadContext](DiscoverLeadContext.md)
+`leadRediscovery` | [RediscoveryContext](RediscoveryContext.md)
 `selectionDate` | Date
 
 ## Example
@@ -21,6 +22,7 @@ const example = {
   "items": null,
   "lead": null,
   "leadContext": null,
+  "leadRediscovery": null,
   "selectionDate": null,
 } satisfies DiscoverSelection
 

@@ -26,12 +26,9 @@ function safeRepositoryPath(path) {
   );
 }
 
-export function selectAdditionalChangedSpecs(files, { actualSpecs, prSpecs }) {
+export function validatePullRequestFiles(files) {
   if (!Array.isArray(files))
     throw new Error('GitHub PR files response must be an array.');
-  const actual = new Set(actualSpecs);
-  const covered = new Set(prSpecs);
-  const additional = new Set();
   for (const file of files) {
     if (
       !file ||
@@ -49,6 +46,15 @@ export function selectAdditionalChangedSpecs(files, { actualSpecs, prSpecs }) {
         'GitHub PR file entry contains an unsafe path or invalid status.',
       );
     }
+  }
+}
+
+export function selectAdditionalChangedSpecs(files, { actualSpecs, prSpecs }) {
+  validatePullRequestFiles(files);
+  const actual = new Set(actualSpecs);
+  const covered = new Set(prSpecs);
+  const additional = new Set();
+  for (const file of files) {
     if (
       file.status === 'removed' ||
       !file.filename.startsWith('web/e2e/tests/') ||
@@ -62,16 +68,15 @@ export function selectAdditionalChangedSpecs(files, { actualSpecs, prSpecs }) {
         `Changed browser spec is absent or unclassified: ${file.filename}`,
       );
     }
-    // Both PR shards already run every case in a PR-critical file. The
+    // The PR shards already run every case in a selected critical file. The
     // aggregate requires their success even when this targeted set is empty.
     if (!covered.has(name)) additional.add(`tests/${name}`);
   }
   return [...additional].sort();
 }
 
-export async function resolveChangedSpecs({
+export async function readPullRequestFiles({
   environment = process.env,
-  inventoryRoot = root,
   fetchImpl = fetch,
 } = {}) {
   const {
@@ -85,7 +90,6 @@ export async function resolveChangedSpecs({
       'GITHUB_REPOSITORY, PR_NUMBER and GITHUB_TOKEN are required.',
     );
   }
-  const inventory = readTestInventory(inventoryRoot);
   const files = [];
   const endpoint = `${apiUrl}/repos/${repository}/pulls/${pullRequest}`;
   async function request(url) {
@@ -122,7 +126,7 @@ export async function resolveChangedSpecs({
     files.push(...pageFiles);
     if (pageFiles.length < 100) break;
   }
-  const additional = selectAdditionalChangedSpecs(files, inventory);
+  validatePullRequestFiles(files);
   const metadata = await request(endpoint);
   // GitHub's Files API is capped at 3000 entries. A successful short page is
   // insufficient evidence of completeness without the PR's total file count.
@@ -142,7 +146,21 @@ export async function resolveChangedSpecs({
       'GitHub PR files response is partial or contains duplicate entries.',
     );
   }
-  return additional;
+  if (
+    environment.PR_HEAD_SHA &&
+    metadata.head?.sha !== environment.PR_HEAD_SHA
+  ) {
+    throw new Error(
+      'GitHub PR head changed; refuse a plan for another revision.',
+    );
+  }
+  return files;
+}
+
+export async function resolveChangedSpecs(options = {}) {
+  const inventory = readTestInventory(options.inventoryRoot ?? root);
+  const files = await readPullRequestFiles(options);
+  return selectAdditionalChangedSpecs(files, inventory);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {

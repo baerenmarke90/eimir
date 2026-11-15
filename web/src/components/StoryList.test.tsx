@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
 import { StoryList } from './StoryList';
+import de from '../i18n/locales/de';
 
 const loadMemoryImage = async () => 'blob:test-image';
 const loadHeartMomentImage = async () => 'blob:test-heart-image';
@@ -92,7 +93,7 @@ describe('StoryList', () => {
     expect(html).not.toContain('Meilenstein öffnen');
   });
 
-  it('renders date and an accessible author avatar in the shared card footer (#1064)', () => {
+  it('renders the date without an author avatar in the Diary overview', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -123,13 +124,13 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #1064 removes redundant author prose while retaining avatar semantics.
+    // The PO requests overview identity only in the canonical detail.
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('class="sr-only"');
-    expect(html).toContain('role="img" aria-label="Alex"');
+    expect(html).not.toContain('role="img" aria-label="Alex"');
   });
 
-  it('keeps the full author identity accessible without visible Timeline attribution (#1064)', () => {
+  it('leaves author identity to the canonical detail', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -159,7 +160,7 @@ describe('StoryList', () => {
 
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('>Alex Winter</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders large image-led card when attachment exists and text-first card when absent (#860)', () => {
@@ -175,6 +176,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -249,6 +251,7 @@ describe('StoryList', () => {
           mediaType: 'IMAGE',
           mimeType: 'image/jpeg',
           hasThumbnail: true,
+          isSensitive: false,
           width: 800,
           height: 800,
           size: 1024,
@@ -285,6 +288,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -338,6 +342,6 @@ describe('StoryList', () => {
       />,
     );
     expect(html).toContain('role="status"');
-    expect(html).toContain('Eure Story beginnt hier.');
+    expect(html).toContain(de.story.emptyTitle);
   });
 });

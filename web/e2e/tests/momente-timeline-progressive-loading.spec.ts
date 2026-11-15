@@ -51,6 +51,7 @@ function memory(index: number, withMedia = false) {
               mediaType: 'IMAGE',
               mimeType: 'image/svg+xml',
               hasThumbnail: true,
+              isSensitive: false,
               width: 800,
               height: 520,
               size: SVG.length,
@@ -265,13 +266,12 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     await installMocks(page, tracker);
     await signIn(page);
 
-    // All 22 initial cards carry the same author avatar. The shared loader
-    // must collapse them into one binary request/object URL rather than one
-    // request per card.
-    await expect.poll(() => tracker.avatarRequests.length).toBe(1);
-
     const firstEntry = page.locator('.story-timeline-item').first();
     await expect(firstEntry).toHaveAttribute('data-timeline-revealed', 'true');
+    // Author identity belongs to the canonical detail. The Diary overview
+    // must not render avatars or fetch their binaries for its 22 cards.
+    await expect(page.locator('.momente-author-meta')).toHaveCount(0);
+    expect(tracker.avatarRequests).toHaveLength(0);
     const transitionDuration = await firstEntry.evaluate(
       (element) => getComputedStyle(element).transitionDuration,
     );
@@ -309,13 +309,31 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     await expect(
       page.getByText(olderItem.memory.title, { exact: true }),
     ).toBeAttached();
-    expect(tracker.avatarRequests).toHaveLength(1);
+    expect(tracker.avatarRequests).toHaveLength(0);
     await expect(page.locator('.story-pagination-sentinel')).toHaveCount(0);
     await page.waitForTimeout(150);
     expect(nextPageRequestCount(tracker)).toBe(1);
     await page
       .getByText(olderItem.memory.title, { exact: true })
       .scrollIntoViewIfNeeded();
+    // The newly reached month heading and cards fade in on intersection.
+    // Assess their settled colors, while retaining the motion assertions above.
+    await expect(
+      page.locator('[data-timeline-reveal-key="month:2026-08"]'),
+    ).toHaveAttribute('data-timeline-revealed', 'true');
+    await expect
+      .poll(() =>
+        page
+          .locator(
+            '.story-timeline-progressive-reveal[data-timeline-revealed="true"]',
+          )
+          .evaluateAll((elements) =>
+            elements.every(
+              (element) => getComputedStyle(element).opacity === '1',
+            ),
+          ),
+      )
+      .toBe(true);
     await capture(page, testInfo, 'story-975-near-end-loaded.png');
 
     const accessibility = await new AxeBuilder({ page })

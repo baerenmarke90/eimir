@@ -1,8 +1,12 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import photoSources from '../../src/i18n/locales/photoSources';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -61,40 +65,86 @@ async function expectHiddenGeometry(input: Locator): Promise<void> {
   await expect(input).toHaveCSS('border-top-width', '0px');
 }
 
-async function tabToElement(page: Page, id: string): Promise<void> {
-  await page.evaluate(() => {
-    const active = document.activeElement;
-    if (active instanceof HTMLElement) active.blur();
-  });
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await page.keyboard.press('Tab');
-    const activeId = await page.evaluate(
-      () => document.activeElement?.id ?? '',
+async function expectKeyboardFilePicker(page: Page): Promise<void> {
+  // #1790 D1: without an external source the diary intake opens the device
+  // picker directly instead of the shared source sheet.
+  const directIntake = page.locator(
+    '.composer-diary-intake .media-intake-device:not([aria-haspopup="dialog"])',
+  );
+  if (await directIntake.isVisible()) {
+    const intakeInput = page.locator(
+      '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type="file"]',
     );
-    if (activeId === id) return;
+    await expect(intakeInput).toHaveCount(1);
+    await expectHiddenGeometry(intakeInput);
+    await expect(intakeInput).not.toHaveAccessibleName('');
+    await expect(intakeInput).toHaveAttribute('tabindex', '-1');
+    await directIntake.focus();
+    await expect(directIntake).toHaveCSS('outline-style', 'solid');
+    for (const key of ['Enter', 'Space']) {
+      const native = page.waitForEvent('filechooser');
+      await directIntake.press(key);
+      await (await native).setFiles([]);
+      await expect(directIntake).toBeFocused();
+    }
+    return;
   }
-
-  throw new Error(`Keyboard focus did not reach #${id}.`);
-}
-
-async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
-  const input = page.locator(`#${id}`);
+  const trigger = page
+    .locator('.composer-tool-row button')
+    .filter({ has: page.locator('.eimir-icon-foto') })
+    .or(page.getByRole('button', { name: photoSources.addMedia, exact: true }))
+    .first();
+  const input = page.locator('input[type="file"]').first();
+  const nativeInput = await input.elementHandle();
+  if (!nativeInput) throw new Error('The persistent native input is missing.');
+  await expect(input).toHaveCount(1);
+  await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
-
-  await tabToElement(page, id);
-  await expect(input).toBeFocused();
-
-  const picker = page.locator(`label.file-picker[for="${id}"]`);
-  await expect(picker).toBeVisible();
-  await expect(picker).toHaveCSS('outline-style', 'solid');
-  await expect(picker).toHaveCSS('outline-width', '3px');
+  await expect(input).toHaveAttribute('tabindex', '-1');
+  await trigger.focus();
+  await expect(trigger).toHaveCSS('outline-style', 'solid');
+  await expect(trigger).toHaveCSS('outline-width', '3px');
+  for (const key of ['Enter', 'Space']) {
+    await trigger.press(key);
+    const sheet = page.getByRole('dialog', {
+      name: photoSources.title,
+      exact: true,
+    });
+    await expect(sheet).toBeVisible();
+    const device = sheet.getByRole('button', {
+      name: photoSources.device,
+      exact: true,
+    });
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('.short-task-sheet-body')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(device).toBeFocused();
+    await expect(device).toHaveCSS('outline-style', 'solid');
+    const native = page.waitForEvent('filechooser');
+    await device.press(key);
+    await (await native).setFiles([]);
+    await expect(sheet).toBeVisible();
+    if (key === 'Enter') await device.press('Escape');
+    else
+      await sheet
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .last()
+        .click();
+    await expect(sheet).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(input).toHaveCount(1);
+    expect(await nativeInput.evaluate((element) => element.isConnected)).toBe(
+      true,
+    );
+  }
 }
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -299,7 +349,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
     await page.setViewportSize(VIEWPORTS[1]);
-    await expectKeyboardFilePicker(page, 'memory-create-images');
+    await expectKeyboardFilePicker(page);
 
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);
@@ -314,7 +364,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       }),
     ).toBeVisible();
     await page.setViewportSize(VIEWPORTS[1]);
-    await expectKeyboardFilePicker(page, 'heart-moment-edit-photo');
+    await expectKeyboardFilePicker(page);
 
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);

@@ -2,70 +2,58 @@
   position: relative;
   display: grid;
   min-width: 0;
-  gap: var(--space-3);
-  margin-block: var(--space-3) var(--space-5);
-  padding: var(--space-4);
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  background:
-    radial-gradient(
-      circle at 88% 12%,
-      color-mix(in srgb, var(--color-brand) 13%, transparent),
-      transparent 38%
-    ),
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-brand) 9%, var(--color-surface)),
-      color-mix(in srgb, var(--color-surface-subtle) 72%, var(--color-surface))
-    );
-  box-shadow: 0 8px 24px var(--color-shadow-soft);
+  gap: var(--space-2);
+  margin-block: var(--space-5);
+  padding: 0;
+  border: 0;
   color: var(--color-text);
 }
 
-.daily-quote-card::before {
-  position: absolute;
-  top: 2.65rem;
-  right: var(--space-4);
-  color: color-mix(in srgb, var(--color-brand) 28%, transparent);
-  content: "“";
-  font-family: var(--font-display);
-  font-size: clamp(3.25rem, 15vw, 5rem);
-  line-height: 1;
-  pointer-events: none;
+/*
+ * The quote is a quiet reading line, not a card: bare text on the page,
+ * centred on the same axis as the couple hero so it continues that column
+ * instead of reading as an inserted block. It never outweighs the hero or
+ * the couple's own moments, wherever the module is ordered on Wir and in
+ * every Wir design.
+ */
+.daily-quote-content {
+  display: grid;
+  justify-items: center;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--color-text);
+  text-align: center;
 }
 
-.daily-quote-card > * {
+/* The quotation mark opens the block: it separates the quote from the
+   content above and says what this is, without a rule or extra space. */
+.daily-quote-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: color-mix(in srgb, var(--color-brand-text) 55%, transparent);
+}
+
+.daily-quote-block,
+.daily-quote-state {
+  justify-items: center;
+}
+
+.daily-quote-card > :not(.sr-only) {
   position: relative;
   z-index: 1;
   min-width: 0;
 }
 
-.daily-quote-header {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.daily-quote-heading-group {
-  min-width: 0;
-}
-
-.daily-quote-heading {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .daily-quote-settings {
   display: grid;
+  flex-shrink: 0;
   width: 44px;
   min-width: 44px;
   height: 44px;
-  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  margin: 0;
   padding: 0;
   place-items: center;
   border: 0;
@@ -82,63 +70,41 @@
 
 .daily-quote-settings:focus-visible,
 .daily-quote-retry:focus-visible,
-.daily-quote-category:has(input:focus-visible),
-.daily-quote-source:has(input:focus-visible) {
+.daily-quote-category:has(input:focus-visible) {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .daily-quote-block {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
-  padding: var(--space-2) 0 0;
+  padding: 0;
+  border: 0;
 }
 
 .daily-quote-block p {
-  max-width: 30ch;
+  max-width: 34ch;
   margin: 0;
   overflow-wrap: break-word;
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 5.4vw, 1.55rem);
-  font-weight: 520;
-  line-height: 1.42;
+  font-size: clamp(1rem, 4.1vw, 1.12rem);
+  font-weight: 480;
+  line-height: 1.45;
   letter-spacing: -0.01em;
-  hyphens: auto;
+  hyphens: manual;
 }
 
 .daily-quote-block footer {
   max-width: 38ch;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   line-height: 1.4;
-  overflow-wrap: break-word;
-}
-
-.daily-quote-categories {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.daily-quote-categories li {
-  max-width: 100%;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-surface) 62%, transparent);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
-  line-height: 1.35;
   overflow-wrap: break-word;
 }
 
 .daily-quote-state {
   display: grid;
-  min-height: 5rem;
   align-content: center;
   gap: var(--space-2);
   padding-block: var(--space-2);
@@ -152,9 +118,10 @@
 
 .daily-quote-state-title {
   max-width: 28ch;
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
-  font-size: clamp(1.08rem, 5vw, 1.35rem);
-  line-height: 1.4;
+  font-size: clamp(1rem, 4.1vw, 1.12rem);
+  line-height: 1.45;
 }
 
 .daily-quote-state-detail {
@@ -168,20 +135,12 @@
   opacity: 0.7;
 }
 
-.daily-quote-state.is-discovery {
-  min-height: 6rem;
-}
-
-.daily-quote-state.is-error {
-  min-height: 6rem;
-}
-
 .daily-quote-retry {
   width: fit-content;
   min-height: 44px;
   margin-top: var(--space-1);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text);
@@ -189,7 +148,7 @@
   font-weight: 650;
 }
 
-/* Personal source/category preferences ----------------------------------- */
+/* Personal category preferences ------------------------------------------ */
 
 .daily-quote-preferences-sheet {
   max-width: 40rem;
@@ -202,7 +161,6 @@
 }
 
 .daily-quote-privacy,
-.daily-quote-footnote,
 .daily-quote-preferences-status {
   margin: 0;
   color: var(--color-text-secondary);
@@ -211,10 +169,6 @@
 
 .daily-quote-privacy {
   margin-top: calc(var(--space-2) * -1);
-}
-
-.daily-quote-footnote {
-  font-size: 0.8rem;
 }
 
 .daily-quote-preferences > .preference-switch-row {
@@ -263,7 +217,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: 0.55rem 0.85rem;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text);
@@ -278,8 +232,7 @@
   font-weight: 650;
 }
 
-.daily-quote-category input,
-.daily-quote-source input {
+.daily-quote-category input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -298,67 +251,6 @@
 
 .daily-quote-category:not(.is-selected) .daily-quote-category-check {
   display: none;
-}
-
-.daily-quote-source-list {
-  display: grid;
-  min-width: 0;
-}
-
-.daily-quote-source {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) 2rem;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding-block: var(--space-3);
-  border-bottom: 1px solid var(--color-border-subtle);
-  cursor: pointer;
-}
-
-.daily-quote-source:first-child {
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.daily-quote-source-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.2rem;
-}
-
-.daily-quote-source-copy strong,
-.daily-quote-source-copy span {
-  overflow-wrap: break-word;
-}
-
-.daily-quote-source-copy strong {
-  font-size: 0.95rem;
-}
-
-.daily-quote-source-copy span {
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.daily-quote-source-check {
-  display: grid;
-  width: 1.6rem;
-  height: 1.6rem;
-  place-items: center;
-  justify-self: end;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.5rem;
-  background: var(--color-surface);
-  color: var(--color-on-accent);
-  font-size: 0.85rem;
-}
-
-.daily-quote-source:has(input:checked) .daily-quote-source-check {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
 }
 
 .daily-quote-preference-error {
@@ -388,12 +280,7 @@
 
 @media (min-width: 840px) {
   .daily-quote-card {
-    width: min(100%, 46rem);
-    margin-inline: auto;
-  }
-
-  .daily-quote-block p {
-    font-size: 1.45rem;
+    width: 100%;
   }
 
   .daily-quote-preference-actions {
@@ -410,8 +297,7 @@
     animation: daily-quote-reveal var(--duration-transition) var(--easing-enter);
   }
 
-  .daily-quote-category,
-  .daily-quote-source-check {
+  .daily-quote-category {
     transition:
       background var(--duration-feedback) var(--easing-standard),
       border-color var(--duration-feedback) var(--easing-standard),
@@ -429,9 +315,8 @@
 }
 
 @media (forced-colors: active) {
-  .daily-quote-card,
-  .daily-quote-category,
-  .daily-quote-source-check {
+  .daily-quote-content,
+  .daily-quote-category {
     border: 1px solid CanvasText;
   }
 }

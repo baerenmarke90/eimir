@@ -1,3 +1,4 @@
+import { MomentDate } from './MomentDate';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -14,12 +15,14 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
-  commentPresenceQueryKey,
   type CommentParentKind,
+  commentPresenceQueryKey,
   listCommentsPage,
 } from '../client/commentQueries';
+import { galleryCover } from '../client/galleryCover';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
@@ -27,8 +30,9 @@ import {
 } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { HeartEmotionBadge } from './HeartEmotionVisual';
+import { ExperienceAnswers } from './ExperienceAnswers';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
-import { AuthorAvatar } from './PersonIdentity';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -166,10 +170,22 @@ function StoryCommentPresence({
  * The Timeline node carries the kind (#969): a plain dot for the default
  * Memory, a heart for a Heart Moment and a ringed star for a Milestone, so a
  * special point in time is marked on the chronology itself rather than with a
- * badge or stripe inside the card. Shapes differ, so the distinction never
- * relies on colour; the card link's accessible name states the kind.
+ * badge or stripe inside the card. Happiness uses the existing highlights glyph.
+ * Shapes differ, so the distinction never relies on colour; the card link's
+ * accessible name states the kind.
  */
-function StoryTimelineMarker({ kind }: { kind: StoryItem['kind'] }) {
+function StoryTimelineMarker({ item }: { item: StoryItem }) {
+  const { kind } = item;
+  if (kind === 'MEMORY' && item.memory.experienceKind === 'HAPPINESS') {
+    return (
+      <span
+        className="story-timeline-marker story-timeline-marker-happiness"
+        aria-hidden="true"
+      >
+        <EimirIcon name="highlights" />
+      </span>
+    );
+  }
   if (kind === 'HEART_MOMENT') {
     return (
       <span
@@ -213,7 +229,6 @@ export function StoryList({
   items,
   loadMemoryImage,
   loadHeartMomentImage,
-  profilesApi,
   spaceId,
   onOpenItem,
   progressiveReveal = false,
@@ -223,12 +238,12 @@ export function StoryList({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   loadHeartMomentImage: (
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
   currentAccountId?: string;
@@ -276,9 +291,9 @@ export function StoryList({
         {items.map((item, index) => {
           const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t, nicknameFor);
-          const author = storyItemAuthor(item);
+          const _author = storyItemAuthor(item);
           const firstMemoryAttachment =
-            item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
+            item.kind === 'MEMORY' ? galleryCover(item.memory) : undefined;
           const heartAttachment =
             item.kind === 'HEART_MOMENT'
               ? (item.heartMoment.attachment ?? undefined)
@@ -306,7 +321,13 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
-          const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
+          const isHappiness =
+            item.kind === 'MEMORY' &&
+            item.memory.experienceKind === 'HAPPINESS';
+          const accessibleKind = isHappiness
+            ? t('coupleExperiences.sharedHappiness')
+            : presentation.kindLabel;
+          const accessibleName = `${accessibleKind}: ${presentation.title}${
             item.kind === 'HEART_MOMENT' && presentation.preview
               ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
               : ''
@@ -320,9 +341,9 @@ export function StoryList({
                 progressiveReveal ? `item:${itemKey}` : undefined
               }
             >
-              <StoryTimelineMarker kind={item.kind} />
+              <StoryTimelineMarker item={item} />
               <Link
-                className="story-card-link"
+                className={`story-card-link${imageAttachment ? ' story-card-photo-led' : ''}`}
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
@@ -341,6 +362,9 @@ export function StoryList({
                     <MemoryPreview
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
+                      hasThumbnail={imageAttachment.hasThumbnail}
+                      isSensitive={imageAttachment.isSensitive}
+                      resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
                       loadingMode={
                         progressiveReveal ? 'near-viewport' : 'immediate'
@@ -348,7 +372,19 @@ export function StoryList({
                     />
                   ) : null}
 
-                  <h4>{presentation.title}</h4>
+                  {!presentation.titleIsDate ? (
+                    <h4>{presentation.title}</h4>
+                  ) : null}
+                  {item.kind === 'MEMORY' &&
+                  item.memory.experienceKind &&
+                  (item.memory.experienceAnswers?.length ?? 0) > 0 ? (
+                    <ExperienceAnswers
+                      answers={item.memory.experienceAnswers ?? []}
+                      kind={item.memory.experienceKind}
+                      compact
+                      showLabel={!isHappiness}
+                    />
+                  ) : null}
                   {item.kind === 'HEART_MOMENT' ? (
                     <HeartEmotionBadge emotion={item.heartMoment.emotion} />
                   ) : presentation.preview ? (
@@ -356,19 +392,25 @@ export function StoryList({
                   ) : null}
 
                   <div className="story-card-footer" id={metaId}>
-                    <time
-                      dateTime={item.effectiveDate.toISOString().slice(0, 10)}
-                    >
-                      {formatTimelineDate(item.effectiveDate, locale)}
-                    </time>
+                    <span className="story-card-when-where">
+                      <MomentDate
+                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
+                      >
+                        {formatTimelineDate(item.effectiveDate, locale)}
+                      </MomentDate>
+                      {(item.kind === 'MEMORY'
+                        ? item.memory.places
+                        : item.kind === 'HEART_MOMENT'
+                          ? item.heartMoment.places
+                          : item.milestone.places
+                      )?.map((place) => (
+                        <span className="story-card-place" key={place.id}>
+                          <EimirIcon name="orte" />
+                          {place.name}
+                        </span>
+                      ))}
+                    </span>
                     <span className="story-card-footer-author">
-                      <span className="momente-author-meta">
-                        <AuthorAvatar
-                          author={author}
-                          profilesApi={profilesApi}
-                          spaceId={spaceId}
-                        />
-                      </span>
                       {presentation.visibility ? (
                         <span
                           className={`story-card-meta-item story-card-visibility story-card-visibility-${presentation.visibility.toLowerCase()}`}

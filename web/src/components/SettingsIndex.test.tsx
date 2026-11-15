@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
+import photoSources from '../i18n/locales/photoSources';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { SettingsIndex } from './SettingsIndex';
 
@@ -17,6 +18,7 @@ describe('SettingsIndex', () => {
       ['/more/settings/notifications', profileIdentity.settingsNotifications],
       ['/more/settings/today', profileIdentity.settingsToday],
       ['/more/settings/appearance', de.theme.label],
+      ['/more/settings/media', photoSources.settingsTitle],
       ['/more/settings/data', profileIdentity.settingsData],
       ['/more/settings/account', profileIdentity.settingsAccount],
     ] as const;

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
 import type { PlanSchedule } from './PlanSchedule';
 import {
     PlanScheduleFromJSON,
@@ -33,10 +40,34 @@ import {
 export interface PlanCreate {
     /**
      * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof PlanCreate
+     */
+    attachments?: Array<AttachmentEntry>;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanCreate
+     */
+    coverAttachmentId?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlanCreate
+     */
+    coverIsSensitive?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof PlanCreate
      */
     description?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PlanCreate
+     */
+    fileAttachmentIds?: Array<string>;
     /**
      * 
      * @type {string}
@@ -49,6 +80,18 @@ export interface PlanCreate {
      * @memberof PlanCreate
      */
     schedule?: PlanSchedule;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanCreate
+     */
+    selectedCoverAttachmentId?: string | null;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PlanCreate
+     */
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -75,9 +118,15 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'coverAttachmentId': json['coverAttachmentId'] == null ? undefined : json['coverAttachmentId'],
+        'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] == null ? undefined : json['description'],
+        'fileAttachmentIds': json['fileAttachmentIds'] == null ? undefined : json['fileAttachmentIds'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
         'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
 }
@@ -93,9 +142,15 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
 
     return {
         
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'coverAttachmentId': value['coverAttachmentId'],
+        'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
+        'fileAttachmentIds': value['fileAttachmentIds'],
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

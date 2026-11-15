@@ -27,6 +27,8 @@ class EntitlementSourceType(StrEnum):
     """Normalized origin of an entitlement grant."""
 
     GOOGLE_PLAY = "GOOGLE_PLAY"
+    # Prepared for the iOS launch (Apple In-App Purchase); no adapter yet.
+    APP_STORE = "APP_STORE"
     CLOUD_STRIPE = "CLOUD_STRIPE"
     SELF_HOSTED_KEY = "SELF_HOSTED_KEY"
     ADMIN_GRANT = "ADMIN_GRANT"
@@ -55,6 +57,7 @@ class Capability(StrEnum):
     """Standard normalized domain capability identifiers."""
 
     STORAGE_CLOUD_QUOTA_50GB = "storage.cloud_quota_50gb"
+    MEDIA_VIDEO_UPLOAD = "media.video_upload"
     CHAPTER_RICH_PRESENTATION = "chapter.rich_presentation"
     OCCASION_AUTOMATION = "occasion.automation"
     RECAP_PDF_YEARBOOK = "recap.pdf_yearbook"
@@ -66,7 +69,12 @@ class Capability(StrEnum):
     GAMES_COUPLE = "games.couple"
     DAILY_INSIGHTS = "daily.insights"
     DAILY_QUOTE = "daily.quote"
+    PARTNER_ONCE_MESSAGES = "partner.once_messages"
     PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
+    RELATIONSHIP_PASSPORT = "relationship.passport"
+    MEMORIES_MAP = "memories.map"
+    PRESENCE_LOCATION = "presence.location"
+    PLANNING_DATE_INSPIRATION = "planning.date_inspiration"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):
@@ -117,7 +125,8 @@ class EntitlementGrant(IdMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint(
             "source_type IN ("
-            "'GOOGLE_PLAY', 'CLOUD_STRIPE', 'SELF_HOSTED_KEY', 'ADMIN_GRANT', 'TEST_FIXTURE'"
+            "'GOOGLE_PLAY', 'APP_STORE', 'CLOUD_STRIPE', 'SELF_HOSTED_KEY', 'ADMIN_GRANT', "
+            "'TEST_FIXTURE'"
             ")",
             name="entitlement_source_type_valid",
         ),

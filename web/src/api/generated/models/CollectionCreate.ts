@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CollectionKind } from './CollectionKind';
+import {
+    CollectionKindFromJSON,
+    CollectionKindFromJSONTyped,
+    CollectionKindToJSON,
+    CollectionKindToJSONTyped,
+} from './CollectionKind';
+
 /**
  * 
  * @export
@@ -21,11 +29,19 @@ import { mapValues } from '../runtime';
 export interface CollectionCreate {
     /**
      * 
+     * @type {CollectionKind}
+     * @memberof CollectionCreate
+     */
+    kind?: CollectionKind;
+    /**
+     * 
      * @type {string}
      * @memberof CollectionCreate
      */
     title: string;
 }
+
+
 
 /**
  * Check if a given object implements the CollectionCreate interface.
@@ -45,6 +61,7 @@ export function CollectionCreateFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'kind': json['kind'] == null ? undefined : CollectionKindFromJSON(json['kind']),
         'title': json['title'],
     };
 }
@@ -60,6 +77,7 @@ export function CollectionCreateToJSONTyped(value?: CollectionCreate | null, ign
 
     return {
         
+        'kind': CollectionKindToJSON(value['kind']),
         'title': value['title'],
     };
 }

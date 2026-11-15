@@ -29,6 +29,15 @@ that classification.
 | M6-D14 | V1 Space offboarding is self-exit only for normal clients: `ACTIVE -> LEFT`, no partner removal, no implicit reconnect, and a new relationship always receives a new Space. | FROZEN | #518, `SPACE-OFFBOARDING-LIFECYCLE.md` v1.0 |
 | M6-D15 | V1 ended Spaces are never reconnected/reactivated; zero-active retention is exactly 30 days as a fixed Product/Privacy policy shared by Self-Hosted and Cloud/Managed; entitlements cannot affect cleanup; each zero-active Space freezes its purge deadline so future policy versions are prospective only. | FROZEN PRODUCT/PRIVACY POLICY | Product Owner, 2026-09-07, #669, `SPACE-OFFBOARDING-LIFECYCLE.md` v1.1 |
 
+### M6-D05 supersession — fresh eimir. Android identity (#565)
+
+On 2026-10-20 the Product Owner selected `de.eimir.app` for a fresh eimir.
+installation, superseding only the package-continuity part of M6-D05 above.
+The former package and its historical release evidence remain unchanged. No
+cross-package credential transfer or automatic uninstall is authorized. The
+existing server Account/data remain authoritative. The debug suffix, explicit
+versionCode, external signing and later same-package upgrade requirements remain.
+
 ## Blocking decisions
 
 ### M6-B01 — Final #262 product/entitlement semantics

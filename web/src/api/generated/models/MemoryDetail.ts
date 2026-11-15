@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { ExperienceKind } from './ExperienceKind';
+import {
+    ExperienceKindFromJSON,
+    ExperienceKindFromJSONTyped,
+    ExperienceKindToJSON,
+    ExperienceKindToJSONTyped,
+} from './ExperienceKind';
 import type { MemoryAttachmentSummary } from './MemoryAttachmentSummary';
 import {
     MemoryAttachmentSummaryFromJSON,
@@ -34,6 +41,13 @@ import {
     MemoryAttachmentSummaryToJSON,
     MemoryAttachmentSummaryToJSONTyped,
 } from './MemoryAttachmentSummary';
+import type { ExperienceAnswer } from './ExperienceAnswer';
+import {
+    ExperienceAnswerFromJSON,
+    ExperienceAnswerFromJSONTyped,
+    ExperienceAnswerToJSON,
+    ExperienceAnswerToJSONTyped,
+} from './ExperienceAnswer';
 
 /**
  * 
@@ -79,16 +93,52 @@ export interface MemoryDetail {
     createdAt: Date;
     /**
      * 
+     * @type {Array<ExperienceAnswer>}
+     * @memberof MemoryDetail
+     */
+    experienceAnswers?: Array<ExperienceAnswer>;
+    /**
+     * 
+     * @type {ExperienceKind}
+     * @memberof MemoryDetail
+     */
+    experienceKind?: ExperienceKind | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryDetail
+     */
+    experienceRootId?: string | null;
+    /**
+     * 
      * @type {Date}
      * @memberof MemoryDetail
      */
     happenedOn: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof MemoryDetail
+     */
+    happenedUntil?: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryDetail
      */
     id: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof MemoryDetail
+     */
+    placeIds?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryDetail
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {string}
@@ -120,6 +170,8 @@ export interface MemoryDetail {
      */
     version: number;
 }
+
+
 
 /**
  * Check if a given object implements the MemoryDetail interface.
@@ -157,8 +209,14 @@ export function MemoryDetailFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'body': json['body'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
+        'experienceAnswers': json['experienceAnswers'] == null ? undefined : ((json['experienceAnswers'] as Array<any>).map(ExperienceAnswerFromJSON)),
+        'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
+        'experienceRootId': json['experienceRootId'] === undefined ? undefined : json['experienceRootId'] === null ? null : json['experienceRootId'],
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
+        'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'id': json['id'],
+        'placeIds': json['placeIds'] == null ? undefined : json['placeIds'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'spaceId': json['spaceId'],
         'tags': json['tags'],
         'title': json['title'],
@@ -184,8 +242,14 @@ export function MemoryDetailToJSONTyped(value?: MemoryDetail | null, ignoreDiscr
         'body': value['body'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
+        'experienceAnswers': value['experienceAnswers'] == null ? undefined : ((value['experienceAnswers'] as Array<any>).map(ExperienceAnswerToJSON)),
+        'experienceKind': ExperienceKindToJSON(value['experienceKind']),
+        'experienceRootId': value['experienceRootId'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'id': value['id'],
+        'placeIds': value['placeIds'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'spaceId': value['spaceId'],
         'tags': value['tags'],
         'title': value['title'],

@@ -137,10 +137,11 @@ export function daysInRange(
 /* Scales ------------------------------------------------------------------ */
 
 /**
- * Vibe is categorical (six named states), not an ordinal scale. The lane order
+ * Vibe is categorical, not an ordinal scale. The lane order
  * is only a stable presentation order and implies no ranking.
  */
 export const VIBE_LANES = [
+  DailyVibe.VERY_GOOD,
   DailyVibe.GOOD,
   DailyVibe.OKAY,
   DailyVibe.NEEDS_CONNECTION,
@@ -150,6 +151,7 @@ export const VIBE_LANES = [
 ] as const;
 
 export const VIBE_GLYPHS: Record<DailyVibe, string> = {
+  [DailyVibe.VERY_GOOD]: '✺',
   [DailyVibe.GOOD]: '☀',
   [DailyVibe.OKAY]: '●',
   [DailyVibe.STRESSED]: '↯',
@@ -292,10 +294,13 @@ export interface DerivedInsight {
 const MIN_SAMPLES_PER_GROUP = 2;
 const ENERGY_DIFFERENCE = 10;
 
+function isPositiveVibe(vibe: DailyVibe | null): boolean {
+  return vibe === DailyVibe.GOOD || vibe === DailyVibe.VERY_GOOD;
+}
+
 function bothGoodDays(days: readonly InsightDay[]): InsightDay[] {
   return days.filter(
-    (day) =>
-      day.own.vibe === DailyVibe.GOOD && day.partner.vibe === DailyVibe.GOOD,
+    (day) => isPositiveVibe(day.own.vibe) && isPositiveVibe(day.partner.vibe),
   );
 }
 
@@ -339,8 +344,8 @@ export function deriveVibeEnergy(
 ): DerivedInsight | null {
   if (!modules.vibe || !modules.energy) return null;
   const samples = vibeEnergySamples(days);
-  const good = samples.filter((sample) => sample.vibe === DailyVibe.GOOD);
-  const other = samples.filter((sample) => sample.vibe !== DailyVibe.GOOD);
+  const good = samples.filter((sample) => isPositiveVibe(sample.vibe));
+  const other = samples.filter((sample) => !isPositiveVibe(sample.vibe));
   if (
     good.length < MIN_SAMPLES_PER_GROUP ||
     other.length < MIN_SAMPLES_PER_GROUP
@@ -436,7 +441,7 @@ export function derivePartnerEnergyVibe(
     const rest = paired.filter((entry) => entry.energy < HIGH_ENERGY_FROM);
     if (high.length < 3 || rest.length < 3) continue;
     const goodShare = (entries: typeof paired) =>
-      entries.filter((entry) => entry.vibe === DailyVibe.GOOD).length /
+      entries.filter((entry) => isPositiveVibe(entry.vibe)).length /
       entries.length;
     const difference = goodShare(high) - goodShare(rest);
     if (difference >= 0.25 && (best === null || difference > best.share)) {
@@ -471,8 +476,8 @@ export function deriveHighlights(
   const candidates = days.flatMap<Highlight>((day) => {
     const bothGood =
       modules.vibe &&
-      day.own.vibe === DailyVibe.GOOD &&
-      day.partner.vibe === DailyVibe.GOOD;
+      isPositiveVibe(day.own.vibe) &&
+      isPositiveVibe(day.partner.vibe);
     const bothEnergy =
       modules.energy &&
       (day.own.energy ?? 0) >= HIGH_ENERGY_FROM &&
@@ -512,8 +517,8 @@ export function goodWeekdays(
   for (const day of days) {
     const good =
       (modules.vibe &&
-        day.own.vibe === DailyVibe.GOOD &&
-        day.partner.vibe === DailyVibe.GOOD) ||
+        isPositiveVibe(day.own.vibe) &&
+        isPositiveVibe(day.partner.vibe)) ||
       (modules.energy &&
         (day.own.energy ?? 0) >= HIGH_ENERGY_FROM &&
         (day.partner.energy ?? 0) >= HIGH_ENERGY_FROM);

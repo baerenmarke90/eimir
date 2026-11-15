@@ -14,7 +14,9 @@ from eimir.demo.story import CHAPTERS, MEMORIES
 from eimir.memories.models import Memory
 from eimir.places import service as place_service
 from eimir.places.models import Place
+from eimir.plans.models import Plan
 from eimir.relations import service as relation_service
+from eimir.wishes.models import Wish
 
 _CAFE_NAME = "Café am Markt"
 # Approximate public-square coordinates are intentional: the demo exercises the
@@ -22,6 +24,25 @@ _CAFE_NAME = "Café am Markt"
 # real venue at an exact storefront.
 _CAFE_LATITUDE = 49.233000
 _CAFE_LONGITUDE = 6.996000
+
+# Manually curated Place-to-Memory examples. They exercise ordinary content
+# relations without fabricating GPS EXIF metadata for licensed stock photos.
+_MEMORY_PLACE_LINKS = (
+    ("Café am Markt", "breakfast-saarbruecken"),
+    ("Waldsee", "lake-walk"),
+)
+
+# Completed experiences and inspiration remain explicit relations, independent
+# of the Wish-to-Plan lifecycle. No source is copied or completed by linking it.
+_MEMORY_PLAN_LINKS = (
+    ("day-trip", "Gemeinsamer Tagesausflug"),
+    ("lake-walk", "Herbstwanderung"),
+    ("ravioli-evening", "Neues Rezept ausprobieren"),
+)
+_MEMORY_WISH_LINKS = (
+    ("day-trip", "Gemeinsamer Tagesausflug"),
+    ("lake-walk", "Herbstwanderung"),
+)
 
 
 def _only_by_title[T](
@@ -60,20 +81,23 @@ def _ensure_coordinate_fixture(
     )
 
 
+def _memory_index(memories: list[Memory]) -> dict[str, Memory]:
+    return {
+        story.key: _only_by_title(
+            memories,
+            title_of=lambda memory: memory.payload.title,
+            title=story.title,
+        )
+        for story in MEMORIES
+    }
+
+
 def _ensure_chapter_story_links(
     session: Session,
     context: AuthorizationContext,
-    memories: list[Memory],
+    memory_by_key: dict[str, Memory],
     chapters: list[Chapter],
 ) -> None:
-    memory_by_key: dict[str, Memory] = {}
-    for memory_story in MEMORIES:
-        memory_by_key[memory_story.key] = _only_by_title(
-            memories,
-            title_of=lambda memory: memory.payload.title,
-            title=memory_story.title,
-        )
-
     for chapter_story in CHAPTERS:
         chapter = _only_by_title(
             chapters,
@@ -96,8 +120,57 @@ def _ensure_chapter_story_links(
             )
 
 
+def _ensure_memory_place_links(
+    session: Session,
+    context: AuthorizationContext,
+    memory_by_key: dict[str, Memory],
+    places: list[Place],
+) -> None:
+    for place_title, memory_key in _MEMORY_PLACE_LINKS:
+        place = _only_by_title(
+            places,
+            title_of=lambda item: item.payload.name,
+            title=place_title,
+        )
+        memory = memory_by_key[memory_key]
+        relation_service.link(
+            session,
+            context,
+            place.id,
+            memory.id,
+            relation_service.PLACE_MEMORIES,
+        )
+
+
+def _ensure_memory_planning_links(
+    session: Session,
+    context: AuthorizationContext,
+    memory_by_key: dict[str, Memory],
+) -> None:
+    plans = list(session.scalars(select(Plan).where(Plan.space_id == context.space_id)))
+    wishes = list(session.scalars(select(Wish).where(Wish.space_id == context.space_id)))
+    for memory_key, title in _MEMORY_PLAN_LINKS:
+        plan = _only_by_title(plans, title_of=lambda item: item.payload.title, title=title)
+        relation_service.link(
+            session,
+            context,
+            memory_by_key[memory_key].id,
+            plan.id,
+            relation_service.MEMORY_PLANS,
+        )
+    for memory_key, title in _MEMORY_WISH_LINKS:
+        wish = _only_by_title(wishes, title_of=lambda item: item.payload.title, title=title)
+        relation_service.link(
+            session,
+            context,
+            memory_by_key[memory_key].id,
+            wish.id,
+            relation_service.MEMORY_WISHES,
+        )
+
+
 def ensure_story_structure(session: Session, result: DemoSeedResult) -> None:
-    """Restore deterministic Place coverage and Chapter-to-Memory relations.
+    """Restore deterministic Place, Chapter and Memory-planning relations.
 
     The low-level seed owns creation and media import. This completion step uses
     the normal product services and is intentionally idempotent so both create
@@ -111,5 +184,8 @@ def ensure_story_structure(session: Session, result: DemoSeedResult) -> None:
     chapters = list(
         session.execute(select(Chapter).where(Chapter.space_id == result.space_id)).scalars()
     )
+    memory_by_key = _memory_index(memories)
     _ensure_coordinate_fixture(session, context, places)
-    _ensure_chapter_story_links(session, context, memories, chapters)
+    _ensure_chapter_story_links(session, context, memory_by_key, chapters)
+    _ensure_memory_place_links(session, context, memory_by_key, places)
+    _ensure_memory_planning_links(session, context, memory_by_key)

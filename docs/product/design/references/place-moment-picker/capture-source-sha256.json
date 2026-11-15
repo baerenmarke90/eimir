@@ -1,0 +1,45 @@
+{
+  "context": "Shared-workspace capture before isolated PR packaging; screenshots use disposable authorized fixtures.",
+  "sources": [
+    {
+      "path": "web/src/components/PlanningRelationManager.tsx",
+      "sha256": "cfc1d385d4b6fac585488e27535ae70f989d3d9203471dcaf149c446c6026557"
+    },
+    {
+      "path": "web/src/components/PlanningRelationManager.css",
+      "sha256": "af94652f20eb432f0bcde2a2a4607763e1613bf7f81e9a57351491e3bc321fce"
+    },
+    {
+      "path": "web/src/components/RelationMomentPreview.tsx",
+      "sha256": "5dd0eccf58482027b1e6c1ed58c9121cf61b61ef363c1785f0df82721a663edb"
+    },
+    {
+      "path": "web/src/client/sharedPlanning.ts",
+      "sha256": "6eb6e1853f31719fd28da14fd72e4ded28dc126489d1f8a19f3fdb80577a2c67"
+    },
+    {
+      "path": "web/src/client/dashboardModules.ts",
+      "sha256": "d118a0d83bbeae834fc278323a432cbc02659fee4b4e7bc51c8fa41ad79f8e19"
+    },
+    {
+      "path": "web/src/client/dashboardPreferences.ts",
+      "sha256": "ec79161a3b86312828752d38d500aac99a9fa11a73a1d1e3ffbf157c8d367526"
+    },
+    {
+      "path": "web/src/components/DashboardSettingsPanel.tsx",
+      "sha256": "5914f1eaecbd19076bd63374b2cb46cb5f5439b22c0c0895ac41fddb771a7efe"
+    },
+    {
+      "path": "web/src/components/PlaceProductPage.tsx",
+      "sha256": "a5f9a29750db57cb22344c64f0bfc1730047308d4e83855172518b1ab9722d4c"
+    },
+    {
+      "path": "web/src/components/ChapterProductPage.tsx",
+      "sha256": "0998ffe22402eafdfc3cda743a349ef6256daa4622f7c548d2444b6ddd4409e7"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s3.ts",
+      "sha256": "6360d0d0f005f6bc4da6f61285be2d5b8d91f1b1c984b911c1a3e4595b8cd4dd"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ Name | Type
 `registrationAvailable` | boolean
 `registrationUnavailableReason` | string
 `selfServiceSignupAvailable` | boolean
+`termsOfUseVersion` | string
 
 ## Example
 
@@ -27,6 +28,7 @@ const example = {
   "registrationAvailable": null,
   "registrationUnavailableReason": null,
   "selfServiceSignupAvailable": null,
+  "termsOfUseVersion": null,
 } satisfies InstanceAccessStatus
 
 console.log(example)

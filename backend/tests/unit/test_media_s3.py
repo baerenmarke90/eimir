@@ -13,6 +13,7 @@ import pytest
 
 from eimir.media.base import build_storage_key
 from eimir.media.s3 import S3MediaStore
+from tests.support.s3_reads import object_read
 
 
 @dataclass
@@ -60,17 +61,10 @@ class PrivateS3:
             self.cache_control[key] = request.headers.get("cache-control", "")
             return httpx.Response(200)
 
-        if request.method == "HEAD":
-            return httpx.Response(200 if key in self.objects else 404)
-
-        if request.method == "GET":
-            if key not in self.objects:
-                return httpx.Response(404)
-            return httpx.Response(
-                200,
-                content=self.objects[key],
-                headers={"Cache-Control": self.cache_control.get(key, "")},
-            )
+        if request.method in {"HEAD", "GET"}:
+            response = object_read(request, self.objects)
+            response.headers["Cache-Control"] = self.cache_control.get(key, "")
+            return response
 
         if request.method == "DELETE":
             self.objects.pop(key, None)

@@ -7,7 +7,10 @@ All URIs are relative to *http://localhost*
 | [**createPlace**](PlacesApi.md#createplace) | **POST** /api/v1/spaces/{spaceId}/places | Create Place |
 | [**deletePlace**](PlacesApi.md#deleteplace) | **DELETE** /api/v1/spaces/{spaceId}/places/{placeId} | Delete Place |
 | [**getPlace**](PlacesApi.md#getplace) | **GET** /api/v1/spaces/{spaceId}/places/{placeId} | Get Place |
+| [**listMemoryMap**](PlacesApi.md#listmemorymap) | **GET** /api/v1/spaces/{spaceId}/memory-map | Get Memory Map |
+| [**listMomentPlaces**](PlacesApi.md#listmomentplaces) | **GET** /api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places | List Moment Places |
 | [**listPlaces**](PlacesApi.md#listplaces) | **GET** /api/v1/spaces/{spaceId}/places | List Places |
+| [**lookupPlaces**](PlacesApi.md#lookupplaces) | **POST** /api/v1/spaces/{spaceId}/places/lookup | Lookup Places |
 | [**updatePlace**](PlacesApi.md#updateplace) | **PATCH** /api/v1/spaces/{spaceId}/places/{placeId} | Update Place |
 
 
@@ -228,11 +231,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## listPlaces
+## listMemoryMap
 
-> PlacePage listPlaces(spaceId, cursor, limit)
+> MemoryMapPage listMemoryMap(spaceId, cursor, limit)
 
-List Places
+Get Memory Map
+
+Pro map over readable saved memories and places; no location tracking.
 
 ### Example
 
@@ -241,7 +246,7 @@ import {
   Configuration,
   PlacesApi,
 } from '';
-import type { ListPlacesRequest } from '';
+import type { ListMemoryMapRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -254,10 +259,10 @@ async function example() {
     cursor: cursor_example,
     // number (optional)
     limit: 56,
-  } satisfies ListPlacesRequest;
+  } satisfies ListMemoryMapRequest;
 
   try {
-    const data = await api.listPlaces(body);
+    const data = await api.listMemoryMap(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -273,6 +278,88 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `100`] |
+
+### Return type
+
+[**MemoryMapPage**](MemoryMapPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listMomentPlaces
+
+> PlacePage listMomentPlaces(kind, targetId, spaceId, cursor, limit)
+
+List Moment Places
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlacesApi,
+} from '';
+import type { ListMomentPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlacesApi();
+
+  const body = {
+    // string
+    kind: kind_example,
+    // string
+    targetId: targetId_example,
+    // string
+    spaceId: spaceId_example,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+  } satisfies ListMomentPlacesRequest;
+
+  try {
+    const data = await api.listMomentPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **kind** | `string` |  | [Defaults to `undefined`] |
+| **targetId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
@@ -299,6 +386,162 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listPlaces
+
+> PlacePage listPlaces(spaceId, cursor, limit, order, scope)
+
+List Places
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlacesApi,
+} from '';
+import type { ListPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+    // 'NEWEST' | 'NAME' (optional)
+    order: order_example,
+    // 'ACTIVE' | 'ARCHIVED' | 'ALL' (optional)
+    scope: scope_example,
+  } satisfies ListPlacesRequest;
+
+  try {
+    const data = await api.listPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `50`] |
+| **order** | `NEWEST`, `NAME` |  | [Optional] [Defaults to `&#39;NAME&#39;`] [Enum: NEWEST, NAME] |
+| **scope** | `ACTIVE`, `ARCHIVED`, `ALL` |  | [Optional] [Defaults to `&#39;ALL&#39;`] [Enum: ACTIVE, ARCHIVED, ALL] |
+
+### Return type
+
+[**PlacePage**](PlacePage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## lookupPlaces
+
+> PlaceLookupResult lookupPlaces(spaceId, placeLookupRequest)
+
+Lookup Places
+
+Search only on explicit user intent; never persist or log query content.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlacesApi,
+} from '';
+import type { LookupPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // PlaceLookupRequest
+    placeLookupRequest: ...,
+  } satisfies LookupPlacesRequest;
+
+  try {
+    const data = await api.lookupPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **placeLookupRequest** | [PlaceLookupRequest](PlaceLookupRequest.md) |  | |
+
+### Return type
+
+[**PlaceLookupResult**](PlaceLookupResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

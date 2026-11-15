@@ -1,16 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { Configuration } from '../client/apiConfiguration';
-import { normalizeClientError } from '../client/problemDetails';
 import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  proPaywallPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceEntitlement,
+} from '../client/spaceEntitlement';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -18,13 +23,7 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = [
-  'moments',
-  'wishes',
-  'perspective',
-  'happiness',
-  'timeTravel',
-] as const;
+const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
@@ -37,12 +36,14 @@ function gameRoute(entry: GameEntry): string | null {
 export function GamesProductArea({
   apiBaseUrl,
   accessToken,
+  accountId,
   spaceId,
   loadEntitlement,
   loadPerspectiveParticipants,
 }: {
   apiBaseUrl: string;
   accessToken: string;
+  accountId: string;
   spaceId: string;
   loadEntitlement?: () => Promise<SpaceEntitlementView>;
   loadPerspectiveParticipants?: () => Promise<
@@ -64,26 +65,28 @@ export function GamesProductArea({
     [apiBaseUrl, accessToken],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: ['games-entitlement', spaceId],
-    queryFn: async () => {
-      try {
-        if (loadEntitlement) return await loadEntitlement();
-        return await entitlementApi.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-          {
-            spaceId,
-          },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-  });
+  const load = useMemo(
+    () =>
+      loadEntitlement
+        ? () => loadEntitlement()
+        : entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, loadEntitlement, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceEntitlement({ accountId, spaceId, load });
 
   const gamesUnlocked = Boolean(
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),
   );
+
+  // The local game replaces the overview in place; system Back ends it like
+  // its own back control instead of leaving Games.
+  const exitLocalGame = useEditorHistoryEntry({
+    isActive: gamesUnlocked && activeLocalGame === 'perspective',
+    isDirty: false,
+    onClose: () => setActiveLocalGame(null),
+    onDiscardRequested: () => setActiveLocalGame(null),
+  });
 
   if (gamesUnlocked && activeLocalGame === 'perspective') {
     return (
@@ -92,7 +95,7 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
-          onExit={() => setActiveLocalGame(null)}
+          onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />
       </div>
@@ -102,12 +105,21 @@ export function GamesProductArea({
   return (
     <div className="page games-product-page">
       <PageHeader
-        eyebrow={t('games.eyebrow')}
         title={t('games.title')}
         description={t('games.intro')}
         className="games-heading"
       />
 
+      {entitlementQuery.data && !gamesUnlocked ? (
+        <p className="games-pro-hint">
+          <Link
+            className="button-link secondary-link"
+            to={proPaywallPath('games')}
+          >
+            {t('proPaywall.contextAction')}
+          </Link>
+        </p>
+      ) : null}
       {entitlementQuery.isPending ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : entitlementQuery.error ? (
@@ -124,7 +136,17 @@ export function GamesProductArea({
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
+                  <EimirIcon
+                    name={
+                      (
+                        [
+                          'foto',
+                          'wuensche',
+                          'gemeinsam',
+                        ] satisfies EimirIconName[]
+                      )[index]
+                    }
+                  />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">
@@ -161,7 +183,9 @@ export function GamesProductArea({
                   type="button"
                   className="games-entry games-entry-link games-entry-button"
                   key={entry}
-                  onClick={() => setActiveLocalGame('perspective')}
+                  onClick={() => {
+                    if (entry === 'perspective') setActiveLocalGame(entry);
+                  }}
                 >
                   {content}
                 </button>

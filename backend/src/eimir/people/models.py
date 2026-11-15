@@ -5,9 +5,10 @@ not sign in, have no session, and receive no invitation. They are records
 maintained by a partner in their space and therefore contain data about
 third parties who cannot manage those records themselves. For that reason,
 less is stored here than would technically be possible: display name,
-relationship type, and a birthday. No address, school, or phone number.
+relationship type, a birthday and an optional bounded note. No structured
+address, school, or phone-number collection.
 
-The display name and the label of an important date are the protected parts
+The display name, note and label of an important date are the protected parts
 and are stored as `ProtectedPayload`, separate from metadata. Everything
 needed for sorting, linking, and later reminders - relationship, date,
 recurrence, and visibility - remains queryable as columns.
@@ -39,6 +40,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from eimir.authorization import (
     PrivateResourceMixin,
     ResourceAbsence,
+    SharedWrite,
 )
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
@@ -52,6 +54,24 @@ class PersonRelationship(StrEnum):
     SIBLING = "SIBLING"
     FRIEND = "FRIEND"
     OTHER = "OTHER"
+    DAUGHTER = "DAUGHTER"
+    SON = "SON"
+    MOTHER = "MOTHER"
+    FATHER = "FATHER"
+    SISTER = "SISTER"
+    BROTHER = "BROTHER"
+    GRANDMOTHER = "GRANDMOTHER"
+    GRANDFATHER = "GRANDFATHER"
+    GRANDDAUGHTER = "GRANDDAUGHTER"
+    GRANDSON = "GRANDSON"
+    MOTHER_IN_LAW = "MOTHER_IN_LAW"
+    FATHER_IN_LAW = "FATHER_IN_LAW"
+    AUNT = "AUNT"
+    UNCLE = "UNCLE"
+    COUSIN = "COUSIN"
+    RELATIVE = "RELATIVE"
+    ACQUAINTANCE = "ACQUAINTANCE"
+    COLLEAGUE = "COLLEAGUE"
 
 
 class ImportantDateType(StrEnum):
@@ -88,6 +108,7 @@ class RelatedPersonPayload(ProtectedPayload):
     """Protected plaintext for a related person."""
 
     display_name: str = Field(min_length=1, max_length=120)
+    note: str = Field(default="", max_length=2000)
 
 
 class ImportantDatePayload(ProtectedPayload):
@@ -100,6 +121,8 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
     """A person related to the couple who does not have an account."""
 
     __tablename__ = "related_persons"
+    # PO decision #1683: people belong to both members; ownership is provenance.
+    shared_write: ClassVar[SharedWrite] = SharedWrite.COLLABORATIVE
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Related person not found.", "RELATED_PERSON_NOT_FOUND"
@@ -137,6 +160,7 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
     )
 
     __table_args__ = (
+        CheckConstraint("privacy_class = 'SPACE_SHARED'", name="people_are_shared"),
         # Target columns for the composite foreign keys from `important_dates`.
         # Without this uniqueness, an important date could not carry its
         # person's space and privacy class at the database level.
@@ -151,7 +175,7 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
             name="uq_related_persons_avatar_attachment",
         ),
         CheckConstraint(
-            "relationship IN ('CHILD', 'PARENT', 'SIBLING', 'FRIEND', 'OTHER')",
+            "relationship IN (" + ", ".join(f"'{value}'" for value in PersonRelationship) + ")",
             name="relationship_is_known",
         ),
         CheckConstraint(

@@ -5,8 +5,10 @@ import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
+import de from '../i18n/locales/de';
 import notificationSettings from '../i18n/locales/notificationSettings';
+import gentleCopy from '../i18n/locales/gentlePrompts';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 
 function view(emailAvailable = true): NotificationPreferencesView {
@@ -118,7 +120,12 @@ function setup(
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { update, updateOwnQuietHours, getOwnNotificationPreferences };
+  return {
+    update,
+    updateOwnQuietHours,
+    getOwnNotificationPreferences,
+    queryClient,
+  };
 }
 
 function deviceController(
@@ -137,7 +144,222 @@ function deviceController(
 }
 
 describe('NotificationSettingsPanel', () => {
-  it('offers system settings after permission denial without a disable action for an unregistered device', async () => {
+  it('keeps gentle prompts to one independent off switch even without device permission', async () => {
+    const data = view();
+    data.items.push({
+      kind: NotificationKind.GENTLE_PROMPT,
+      deliveryClass: 'IMMEDIATE',
+      channels: [
+        {
+          channel: NotificationChannel.IN_APP,
+          enabled: false,
+          configurable: false,
+        },
+        {
+          channel: NotificationChannel.PUSH,
+          enabled: false,
+          configurable: true,
+        },
+        {
+          channel: NotificationChannel.EMAIL,
+          enabled: false,
+          configurable: false,
+        },
+      ],
+    });
+    const update = vi.fn(
+      async (request: {
+        kind: NotificationKind;
+        channel: NotificationChannel;
+        notificationPreferenceUpdate: { enabled: boolean };
+      }) => ({
+        kind: request.kind,
+        channel: request.channel,
+        enabled: request.notificationPreferenceUpdate.enabled,
+      }),
+    );
+    setup(data, update);
+    const toggle = await screen.findByRole('switch', {
+      name: gentleCopy.label,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(screen.getAllByText(gentleCopy.description)).toHaveLength(1);
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(toggle.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      kind: NotificationKind.GENTLE_PROMPT,
+      channel: NotificationChannel.PUSH,
+      notificationPreferenceUpdate: { enabled: true },
+    });
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(toggle.getAttribute('aria-checked')).toBe('false'),
+    );
+  });
+
+  it('preserves actual off consent when saving gentle prompts fails', async () => {
+    const data = view();
+    data.items.push({
+      kind: NotificationKind.GENTLE_PROMPT,
+      deliveryClass: 'IMMEDIATE',
+      channels: [
+        {
+          channel: NotificationChannel.PUSH,
+          enabled: false,
+          configurable: true,
+        },
+      ],
+    });
+    setup(data, vi.fn().mockRejectedValue(new Error('network unavailable')));
+    const toggle = await screen.findByRole('switch', {
+      name: gentleCopy.label,
+    });
+    fireEvent.click(toggle);
+    await screen.findByText(notificationSettings.groupFailed);
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('preserves mixed event choices on opening and saves a group through its eligible events', async () => {
+    const update = vi.fn().mockImplementation(async (request) => ({
+      kind: request.kind,
+      channel: request.channel,
+      enabled: request.notificationPreferenceUpdate.enabled,
+    }));
+    setup(view(), update);
+    const group = await screen.findByRole('switch', {
+      name: 'Gemeinsame Aktivität: E-Mail',
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(screen.getByText(notificationSettings.mixed)).toBeDefined();
+    fireEvent.click(group);
+    fireEvent.click(group);
+    await waitFor(() =>
+      expect(group.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(update.mock.calls.map(([request]) => request.kind)).toEqual([
+      NotificationKind.COMMENT_CREATED,
+      NotificationKind.REMINDER_DUE,
+    ]);
+  });
+
+  it('retains confirmed group writes when a later event fails', async () => {
+    const persisted = view();
+    const update = vi.fn().mockImplementation(async (request) => {
+      if (request.kind === NotificationKind.REMINDER_DUE)
+        throw new Error('outage');
+      persisted.items[0].channels[2].enabled = true;
+      return { kind: request.kind, channel: request.channel, enabled: true };
+    });
+    const fixture = setup(persisted, update);
+    fixture.getOwnNotificationPreferences.mockImplementation(async () =>
+      structuredClone(persisted),
+    );
+    fireEvent.click(
+      await screen.findByRole('switch', {
+        name: 'Gemeinsame Aktivität: E-Mail',
+      }),
+    );
+    await screen.findByText(notificationSettings.groupFailed);
+    expect(
+      screen
+        .getByRole('switch', { name: 'Kommentare: E-Mail' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(
+      screen
+        .getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' })
+        .getAttribute('aria-checked'),
+    ).toBe('false');
+  });
+
+  it('stops a group batch when its authorized read is removed', async () => {
+    let finish: ((value: unknown) => void) | undefined;
+    const update = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const fixture = setup(view(), update);
+    fireEvent.click(
+      await screen.findByRole('switch', {
+        name: 'Gemeinsame Aktivität: E-Mail',
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fixture.queryClient.removeQueries({
+      queryKey: ['notification-preferences', 'owner'],
+      exact: true,
+    });
+    finish?.({
+      kind: NotificationKind.COMMENT_CREATED,
+      channel: NotificationChannel.EMAIL,
+      enabled: true,
+    });
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['off', 'on'] as const)(
+    'uses the shared device switch when push is %s',
+    (state) => {
+      const device = deviceController({ state, registered: state === 'on' });
+      const { update } = setup(view(), undefined, device);
+      const toggle = screen.getByRole('switch', {
+        name: notificationSettings.deviceToggle,
+      });
+      expect(toggle.getAttribute('aria-checked')).toBe(String(state === 'on'));
+      expect(screen.queryByText(notificationSettings.deviceIntro)).toBeNull();
+      expect(
+        screen.queryByText(
+          state === 'on'
+            ? notificationSettings.deviceOn
+            : notificationSettings.deviceOff,
+        ),
+      ).toBeNull();
+      fireEvent.click(toggle);
+      expect(
+        state === 'on' ? device.disable : device.enable,
+      ).toHaveBeenCalledOnce();
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps activation pending until confirmation and allows cancellation', () => {
+    const device = deviceController({ state: 'connecting', registered: true });
+    setup(view(), undefined, device);
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
+    expect(
+      screen.getByText(notificationSettings.deviceConnecting),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
+    expect(device.disable).toHaveBeenCalledOnce();
+  });
+
+  it('retries a failed device deactivation with the same switch', () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'PUSH_DEVICE_DISABLE_FAILED',
+    });
+    setup(view(), undefined, device);
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(
+      screen.getByText(notificationSettings.deviceDisableFailed),
+    ).toBeDefined();
+    fireEvent.click(toggle);
+    expect(device.disable).toHaveBeenCalledOnce();
+    expect(device.enable).not.toHaveBeenCalled();
+  });
+
+  it('offers system settings after permission denial on an unregistered device', async () => {
     const device = deviceController({
       state: 'error',
       error: 'NOTIFICATION_PERMISSION_DENIED',
@@ -147,14 +369,11 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.devicePermissionDenied),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
     fireEvent.click(
       screen.getByRole('button', {
         name: notificationSettings.deviceOpenSettings,
@@ -172,9 +391,11 @@ describe('NotificationSettingsPanel', () => {
     });
     setup(view(), undefined, device);
     await screen.findByRole('switch', { name: 'Kommentare: Push' });
-    fireEvent.click(
-      screen.getByRole('button', { name: notificationSettings.deviceDisable }),
-    );
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle);
     expect(device.disable).toHaveBeenCalledOnce();
     expect(
       screen.getByRole('button', {
@@ -193,14 +414,11 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.deviceUnsupported),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
   });
 
   it('keeps device status retry reachable when notification preferences fail', async () => {
@@ -221,14 +439,10 @@ describe('NotificationSettingsPanel', () => {
       screen.getByText(notificationSettings.deviceStatusUnavailable),
     ).toBeDefined();
     fireEvent.click(
-      screen.getByRole('button', { name: notificationSettings.deviceEnable }),
+      screen.getByRole('switch', { name: notificationSettings.deviceToggle }),
     );
     expect(device.enable).toHaveBeenCalledOnce();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    expect(device.disable).not.toHaveBeenCalled();
   });
 
   it('explains an unconfigured installation without offering activation', async () => {
@@ -237,20 +451,19 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.deviceUnavailable),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
   });
 
   it('omits the device control on the Web client', async () => {
     setup(view(), undefined, deviceController({ available: false }));
     await screen.findByRole('switch', { name: 'Kommentare: Push' });
-    expect(screen.queryByText(notificationSettings.deviceTitle)).toBeNull();
+    expect(
+      screen.queryByRole('switch', { name: notificationSettings.deviceToggle }),
+    ).toBeNull();
   });
 
   it('saves an explicit comment digest choice while transport is unavailable', async () => {
@@ -336,7 +549,7 @@ describe('NotificationSettingsPanel', () => {
     });
     fireEvent.click(commentEmail);
     await waitFor(() =>
-      expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
+      expect(screen.getByText(notificationSettings.groupFailed)).toBeDefined(),
     );
     expect(commentEmail.getAttribute('aria-checked')).toBe('false');
   });
@@ -349,7 +562,7 @@ describe('NotificationSettingsPanel', () => {
     });
     fireEvent.click(commentPush);
     await waitFor(() =>
-      expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
+      expect(screen.getByText(notificationSettings.groupFailed)).toBeDefined(),
     );
     expect(commentPush.getAttribute('aria-checked')).toBe('false');
   });
@@ -384,9 +597,7 @@ describe('NotificationSettingsPanel', () => {
         .getAttribute('aria-checked'),
     ).toBe('true');
     expect(screen.getByRole('status').textContent).toContain(
-      notificationSettings.saved
-        .replace('{{event}}', notificationSettings.reminder)
-        .replace('{{channel}}', notificationSettings.email),
+      notificationSettings.groupSaved,
     );
   });
 
@@ -415,7 +626,7 @@ describe('NotificationSettingsPanel', () => {
     });
     fireEvent.click(email);
     await waitFor(() =>
-      expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
+      expect(screen.getByText(notificationSettings.groupFailed)).toBeDefined(),
     );
     expect(email.getAttribute('aria-checked')).toBe('false');
   });
@@ -451,7 +662,11 @@ describe('NotificationSettingsPanel', () => {
       ).toBeDefined(),
     );
     expect(quietSwitch.getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByText('Täglich 22:00–07:00 Uhr.')).toBeDefined();
+    expect(
+      screen.getByText('Täglich 22:00–07:00 Uhr.', {
+        selector: '.quiet-hours-settings .form-hint',
+      }),
+    ).toBeDefined();
   });
 
   it('rejects equal times and retains a failed save draft', async () => {

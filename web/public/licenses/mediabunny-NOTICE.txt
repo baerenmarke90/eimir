@@ -1,0 +1,12 @@
+Mediabunny 1.65.2
+Copyright (c) 2026-present, Vanilagy and contributors
+
+Used without modifications under the Mozilla Public License 2.0.
+The complete license is available beside this notice in mediabunny-MPL-2.0.txt.
+
+Corresponding source:
+https://github.com/Vanilagy/mediabunny/tree/v1.65.2
+https://registry.npmjs.org/mediabunny/-/mediabunny-1.65.2.tgz
+
+Local conversion uses browser-provided codecs. No remote media conversion service
+or additional software codec is included.

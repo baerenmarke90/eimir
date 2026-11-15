@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest import mock
 
@@ -227,6 +229,101 @@ class DeploySequenceTest(unittest.TestCase):
         for _, arguments in DEPLOY_SEQUENCE:
             self.assertNotIn("build", arguments)
             self.assertNotIn("demo-init", arguments)
+
+
+class FcmOptInTest(unittest.TestCase):
+    def test_one_known_fragment_is_used_for_validation_and_every_operation(self) -> None:
+        env_file = Path("release.env")
+        prefix = self_hosted_release.compose_prefix(env_file, with_fcm=True)
+        self.assertEqual(prefix[-2:], ["--file", str(self_hosted_release.FCM_COMPOSE_FILE)])
+        self.assertEqual(prefix.count("--file"), 2)
+        commands: list[list[str]] = []
+        with mock.patch.object(
+            self_hosted_release, "run_checked", side_effect=lambda command, **_: commands.append(command)
+        ):
+            self_hosted_release.validate_release(
+                env_file, Path("identity.json"), backend=DeploySequenceTest.BACKEND,
+                web=DeploySequenceTest.WEB, image_identity_only=False, with_fcm=True,
+            )
+        self.assertIn("--with-fcm", commands[0])
+        self.assertIn("--release-image-identity", commands[0])
+        self.assertNotIn("--image-identity-only", commands[0])
+
+        commands.clear()
+        with (
+            mock.patch.object(self_hosted_release, "validate_release") as validate,
+            mock.patch.object(
+                self_hosted_release, "run_checked",
+                side_effect=lambda command, **_: commands.append(command),
+            ),
+        ):
+            self_hosted_release.deploy_release(
+                env_file, Path("identity.json"), backend=DeploySequenceTest.BACKEND,
+                web=DeploySequenceTest.WEB, with_fcm=True,
+            )
+        self.assertTrue(validate.call_args.kwargs["with_fcm"])
+        self.assertFalse(validate.call_args.kwargs["image_identity_only"])
+        for command in commands:
+            self.assertEqual(command[:len(prefix)], prefix)
+            self.assertNotIn("build", command)
+        self.assertEqual([command[len(prefix)] for command in commands], ["pull", "up", "run", "up"])
+
+    def test_missing_fragment_or_failed_validation_cannot_reach_compose(self) -> None:
+        with (
+            mock.patch.object(self_hosted_release, "FCM_COMPOSE_FILE", Path("/missing/fixture.yaml")),
+            self.assertRaisesRegex(ReleaseOperationError, "no FCM opt-in fragment"),
+        ):
+            self_hosted_release.compose_prefix(Path("release.env"), with_fcm=True)
+        with (
+            mock.patch.object(self_hosted_release, "validate_release", side_effect=ReleaseOperationError("guard refused")),
+            mock.patch.object(self_hosted_release, "run_checked") as run,
+            self.assertRaisesRegex(ReleaseOperationError, "guard refused"),
+        ):
+            self_hosted_release.deploy_release(
+                Path("release.env"), Path("identity.json"), backend=DeploySequenceTest.BACKEND,
+                web=DeploySequenceTest.WEB, with_fcm=True,
+            )
+        run.assert_not_called()
+
+    def test_configured_fcm_without_opt_in_is_refused_before_validation_or_mutation(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch.object(self_hosted_release, "read_dotenv", return_value={
+                "EIMIR_ENVIRONMENT": "production", "EIMIR_PUSH_FCM_PROJECT_ID": "fixture-project",
+            }),
+            mock.patch.object(self_hosted_release, "load_release_identity", return_value=(
+                DeploySequenceTest.BACKEND, DeploySequenceTest.WEB,
+            )),
+            mock.patch.object(self_hosted_release, "deploy_release") as deploy,
+            redirect_stderr(io.StringIO()) as errors,
+        ):
+            result = self_hosted_release.main(["deploy"])
+        self.assertEqual(result, 2)
+        self.assertIn("--with-fcm", errors.getvalue())
+        deploy.assert_not_called()
+
+    def test_fcm_host_file_is_checked_before_mutation_without_reading_contents(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sender-fixture.json"
+            for exists in (False, True):
+                if exists:
+                    source.write_text("not-a-real-credential")
+                with (
+                    mock.patch.dict(os.environ, {}, clear=True),
+                    mock.patch.object(self_hosted_release, "read_dotenv", return_value={
+                        "EIMIR_ENVIRONMENT": "production",
+                        "EIMIR_PUSH_FCM_PROJECT_ID": "fixture-project",
+                        "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE": str(source),
+                    }),
+                    mock.patch.object(self_hosted_release, "load_release_identity", return_value=(
+                        DeploySequenceTest.BACKEND, DeploySequenceTest.WEB,
+                    )),
+                    mock.patch.object(self_hosted_release, "deploy_release") as deploy,
+                    redirect_stderr(io.StringIO()),
+                ):
+                    result = self_hosted_release.main(["--with-fcm", "deploy"])
+                self.assertEqual(result, 0 if exists else 2)
+                self.assertEqual(deploy.call_count, 1 if exists else 0)
 
 
 if __name__ == "__main__":

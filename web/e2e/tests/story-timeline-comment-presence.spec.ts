@@ -1,3 +1,4 @@
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -28,6 +29,7 @@ function memoryItem(id: string, title: string, happenedOn: string) {
           mediaType: 'IMAGE',
           mimeType: 'image/jpeg',
           hasThumbnail: true,
+          isSensitive: false,
           width: 800,
           height: 800,
           size: 1,
@@ -40,6 +42,7 @@ function memoryItem(id: string, title: string, happenedOn: string) {
 async function installMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

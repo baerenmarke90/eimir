@@ -22,7 +22,7 @@ web/ (Vite + TypeScript)
 
 ### Key Configuration
 - **Capacitor Configuration**: `web/capacitor.config.ts`
-  - `appId`: `'de.sidebyside.app'` (canonical released app ID)
+  - `appId`: `'de.eimir.app'` (canonical released app ID)
   - `appName`: `'eimir.'`
   - `webDir`: `'dist'`
   - `android.path`: `'../android'`
@@ -37,7 +37,7 @@ web/ (Vite + TypeScript)
   - The Demo reset timer is independent of Demo mode. Set `VITE_EIMIR_DEMO_RESET_TIMER` and `VITE_EIMIR_DEMO_RESET_INTERVAL` to match the backend deployment (`EIMIR_DEMO_MODE_RESET_TIMER`, `EIMIR_DEMO_MODE_RESET_INTERVAL`); the build does not infer an active reset timer from the API hostname. The build fails on non-boolean flags, on a reset timer without Demo mode, and on an interval the backend would reject (`30m`/`6h`/`1d` form, 5m to 7d).
   - Canonical `VITE_EIMIR_*` values take precedence over legacy `VITE_SBS_*` values. The resolved values are passed to Vite explicitly, so they also take precedence over any local `web/.env*` file.
   - The Web-demo launch link (`VITE_EIMIR_DEMO_URL`) is always cleared for the native bundle, because following it would leave the app for the system browser.
-  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.sidebyside.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
+  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.eimir.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
 - **Native HTTP Transport (`CapacitorHttp`)**:
   - `CapacitorHttp.enabled: true` patches `window.fetch` and `window.XMLHttpRequest` in the native WebView container.
   - Requests are routed through the native Android network stack, preserving `Authorization: Bearer ...` headers and bypassing WebView CORS restrictions against the remote API origin.
@@ -56,10 +56,17 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - **Hardware Back-Button (`App.addListener('backButton', ...)`):**
   - Evaluates `canGoBack` (provided by Capacitor).
   - If true, invokes `window.history.back()`.
-  - If at root or history is exhausted, invokes `App.exitApp()`.
+  - If at root or history is exhausted, invokes `App.minimizeApp()` so the Android task and WebView remain reusable when the OS retains the process.
 - **App Resume (`App.addListener('appStateChange', ...)`):**
   - Listens for `isActive === true`.
-  - Dispatches `window.dispatchEvent(new Event('focus'))`, which naturally triggers TanStack Query's window focus refetching mechanism (`refetchOnWindowFocus`) across active query caches.
+  - Updates TanStack Query's `focusManager` on background/foreground transitions.
+    Query v5 listens to browser visibility changes, not synthetic window focus;
+    the native callback must therefore notify the framework directly. Fresh
+    ordinary reads remain quiet under their 60-second freshness policy, stale
+    active reads revalidate, and explicit live-domain policies remain intact.
+  - Also dispatches `window.dispatchEvent(new Event('focus'))` on resume for the
+    existing session-refresh and presence consumers. Disposed callbacks are
+    ignored and cleanup restores the framework's default browser focus check.
 
 ---
 
@@ -70,7 +77,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
   - In-app navigation uses existing React router / window history.
 - **Delivered mailbox and invitation links:**
   - The shared Web identity-entry intake reads `appUrlOpen` and `App.getLaunchUrl()` for HTTPS auth URLs from the configured API origin, as well as browser routes and PWA launch targets. Proofs remain in memory and use the existing identity flow before an older signed-in shell can take precedence.
-  - This intake only handles URLs already delivered to the wrapper. The ordinary main manifest registers the OIDC filter below. The separately published Android test channel also has a sideload manifest for five HTTPS auth paths on `demo.eimir.ur-cloud.de`; it does not establish verified App Links for arbitrary Self-Hosted domains. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
+  - The regular main manifest permanently registers verified HTTPS App Links for `app.eimir.de` (and, until installed builds have moved, the transition host `demo.eimir.ur-cloud.de`, #1835) and the five canonical identity paths: `/auth/signup`, `/auth/magic-link`, `/auth/invitation`, `/auth/verify-email`, and `/auth/recovery`. Android verifies the website's `/.well-known/assetlinks.json` against the installed package and signer. The existing test-channel overlay may repeat the same filter; no arbitrary Self-Hosted domains are claimed. Intake still accepts only the configured API origin, not every URL delivered by Android. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
 - **OIDC Authentication Flow:**
   - When running in native mode (`isCapacitorNative()`), OIDC login launches via `@capacitor/browser`:
     ```ts
@@ -78,7 +85,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     ```
   - Upon backend authentication completion, the identity provider redirects to:
     ```
-    de.sidebyside.app://recent-authentication/oidc?code=...&state=...
+    de.eimir.app://recent-authentication/oidc?code=...&state=...
     ```
   - The Android app receives this via an `intent-filter` registered in `android/app/src/main/AndroidManifest.xml`.
   - The web application captures the incoming deep link using both:
@@ -104,8 +111,9 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ## 5. Application ID & Namespace Configuration
 
-- **Release Application ID**: `de.sidebyside.app` (immutable historical identifier required for existing releases and keystores).
-- **Debug Application ID**: `de.sidebyside.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `android/app/build.gradle`).
+- **Release Application ID**: `de.eimir.app` (fresh eimir. installation selected by the Product Owner in #565).
+- **Debug Application ID**: `de.eimir.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `android/app/build.gradle`).
+- The former Android package is a separate installation. Log in to the existing server Account; no local credentials are copied and the old app is not uninstalled automatically. Subsequent updates within `de.eimir.app` must preserve its sandbox and signing identity.
 - **Android Package / Namespace**: `de.eimir.app` (modern namespace used for generated R classes and `MainActivity.java` at `android/app/src/main/java/de/eimir/app/MainActivity.java`).
 - **SDK Compatibility**:
   - `minSdkVersion = 26` (Android 8.0 Oreo, preserved from the retired client's requirement; not lowered to 24).
@@ -194,9 +202,9 @@ app/build/outputs/apk/debug/app-debug.apk
 | `VITE_EIMIR_API_BASE_URL is missing or invalid` | Build or runtime did not supply remote API base. | Provide valid URL `VITE_EIMIR_API_BASE_URL="https://..."` during `cap:build:web`. |
 | Java compiler `invalid source release: 21` | System default Gradle Java is older than Java 21 (e.g., Java 17 in `~/.gradle/gradle.properties`). | Point Gradle to Java 21: `-Dorg.gradle.java.home="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"` or update `gradle.properties`. |
 | Blank screen on app start | Web bundle assets missing from assets directory. | Run `npm run cap:build:web && npm run cap:sync` from `web/`. |
-| Deep link doesn't trigger app | AndroidManifest intent-filter missing scheme/host. | Verify `aapt dump xmltree ... AndroidManifest.xml` contains scheme `de.sidebyside.app`, host `recent-authentication`, path `/oidc`. |
+| Deep link doesn't trigger app | AndroidManifest intent-filter missing scheme/host. | Verify `aapt dump xmltree ... AndroidManifest.xml` contains scheme `de.eimir.app`, host `recent-authentication`, path `/oidc`. |
 | API call CORS error in native WebView | `CapacitorHttp` is disabled or not synced. | Verify `plugins.CapacitorHttp.enabled = true` in `capacitor.config.ts` and run `npm run cap:sync`. |
-| Chrome DevTools WebView debugging | Inspecting running Capacitor WebView on device/emulator. | Connect device via USB, open `chrome://inspect/#devices`, select `de.sidebyside.app.debug`. |
+| Chrome DevTools WebView debugging | Inspecting running Capacitor WebView on device/emulator. | Connect device via USB, open `chrome://inspect/#devices`, select `de.eimir.app.debug`. |
 
 ---
 
@@ -212,7 +220,7 @@ app/build/outputs/apk/debug/app-debug.apk
 Dated plans, gate reviews, audits, and evidence records written before `#1009` may describe a native Kotlin/Jetpack Compose client, Kotlin Multiplatform, SwiftUI, Room/Keystore read caches, or "Web/Android parity". They are historical records of what was true or planned at the time and are **not** current guidance; ADR 0011 governs. In particular:
 
   - account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView. The wrapper keeps no native product-data cache; the encrypted current-session credential slot described below is cleared through that same session facade;
-- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.sidebyside.app` and the signing key.
+- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.eimir.app` and the signing key.
 
 ### Acceptance rule
 
@@ -225,10 +233,53 @@ Mobile Web is the normative product reference. React product work reaches the An
 | File | Classification | Owner / purpose |
 |---|---|---|
 | `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
+| `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` | NATIVE_CAPABILITY_REQUIRED | Selected-photo original-file handoff (#1471): optional photo-metadata permission, read-only document grants, original MediaStore access, cancellation and Activity ownership. No independent upload or location-tracking pipeline. |
+| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS. |
+| `android/app/src/main/java/de/eimir/app/PresenceBackground.java`, `PresencePublishRule.java`, `PresenceLocationReceiver.java`, `PresenceUploadJob.java` | NATIVE_CAPABILITY_REQUIRED | Opt-in background partner location (#1792): passive-provider fixes only, network-bound job uploads with a scoped presence device credential, 6-hour heartbeat without measuring, re-registration after boot/update. No foreground service and no Web-session refresh; cleared on sign-out. |
 | `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
 | `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
 
 ## 9. Reuse-Before-Build Assessment
+
+### Approximate location for partner distance (#1792)
+
+Alternatives considered: the Web Geolocation API inside the WebView, `@capacitor/geolocation`, Google Play services `FusedLocationProviderClient` and the platform `LocationManager` with AndroidX `LocationManagerCompat`.
+
+The small `ApproximateLocation` plugin uses the platform `LocationManager` through `LocationManagerCompat.getCurrentLocation` (already on the classpath through AndroidX Core). It adds no dependency, works without Google Play services (Self-Hosted and de-Googled devices) and lets the app guarantee the energy contract in [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) section 6. Only the network and fused providers are used, under the coarse permission. A cached fix younger than the requested maximum age (default 10 minutes) is returned without a new measurement. Otherwise one measurement runs with a 20-second limit. `@capacitor/geolocation` was not chosen because it adds a Google Play services location dependency (with new Gradle verification entries) and offers neither a provider restriction nor a passive mode. The WebView geolocation path would need an additional WebChromeClient permission bridge and cannot express the provider rule.
+
+In the foreground the plugin never listens continuously. The Web client decides when to publish (displacement of at least 1 km, a new consent generation or a 6-hour-old publication) and calls the API itself.
+
+Background updates while the app is closed (Product Owner, 2026-11-13) are opt-in and need "Allow all the time" (`ACCESS_BACKGROUND_LOCATION`, requested separately after the approximate grant). `PresenceBackground` registers the platform **passive** provider with a `PendingIntent` (15 minutes, 1 km). The app therefore receives only positions that other apps or the system already computed and never triggers a measurement itself. `PresenceLocationReceiver` stores the fix and schedules `PresenceUploadJob`, an ordinary network-bound job. A persisted 6-hour heartbeat job reads the last known position without measuring. The receiver re-registers after boot and app update. There is no foreground service, wake lock or exact alarm, and no fallback to active location.
+
+Uploads never use or refresh the Web session. A native refresh would race the Web client's refresh-token rotation. Instead the Web client issues a scoped presence device credential, which can only publish this owner's snapshot. The server binds it to the issuing device session, the consent generation and at most 30 days. It is stored with the last positions in one Keystore-encrypted no-backup file. Any settings change, an inactive share (`active: false`), a 401, sign-out of the instance or disabling deletes it and unregisters the updates. On each app open the Web client rotates the credential or stops background updates when the share ended.
+
+### Selected-photo locations (#1471)
+
+Android may redact EXIF GPS from ordinary WebView GET_CONTENT selections before
+the backend receives their bytes. Image inputs on Android 10+ therefore use the
+shared `PhotoFileChooser` adapter. It requests `ACCESS_MEDIA_LOCATION` in the
+existing selection task, then opens `ACTION_OPEN_DOCUMENT` with read-only,
+selected-file grants. `MediaStore.getMediaUri` maps supported document providers
+to the same authorized item; `setRequireOriginal` requests its original bytes.
+Resolution/open checks run on Capacitor's background handler and retain a
+selected readable file when a provider cannot resolve an original. No native
+cache, media scan, persistent grant or library-wide storage permission is added.
+
+Declining the optional permission keeps ordinary selection available and does
+not upgrade URIs. The Activity does not repeatedly ask after a decline; Android
+app permissions remain the route for changing a previously refused OS grant.
+The account preference, private/shared policy and sanitized media storage remain
+server-authoritative; OS metadata permission never enables live location or
+bypasses the account switch. Camera capture and non-image inputs still use
+Capacitor. A wrapper/APK update is required for existing installations.
+
+The preflight, official platform sources and generated composition are in
+[Android photo-location import](product/design/references/android-photo-location-import/README.md).
+`PhotoFileChooserTest` supplies native contracts and a real Android document-picker
+round trip with a GPS-bearing JPEG; the existing API 28/36 native job owns the
+build/lint/instrumentation proof. Browser File fixtures alone do not establish
+this platform behavior. The screenshot is synthetic system-picker evidence,
+not a claim that every OEM/provider has been physically accepted.
 
 | Existing Component | Reused / Adapted | Rationale |
 |---|---|---|
@@ -237,7 +288,7 @@ Mobile Web is the normative product reference. React product work reaches the An
 | PWA Service Worker | Disabled in native | Prevents conflicting caching layers inside WebView container. |
 | Brand & Icon Assets | Reused directly | Android launcher icons and splash drawables generated directly from `web/public/pwa-512.png` and semantic tokens. |
 | Recent Auth Flow | Extended for native | Reused cryptographic state verification while adapting transport to `@capacitor/browser` and native deep-linking. |
-| Project Identity Guard | Reused | Verified 0 `MUST_RENAME` findings; `de.sidebyside.app` protected as historical immutable release identifier. |
+| Project Identity Guard | Reused | Verified 0 `MUST_RENAME` findings; `de.eimir.app` protected as historical immutable release identifier. |
 
 ---
 
@@ -340,3 +391,76 @@ Browser/PWA sessions retain their existing tab-scoped sessionStorage behavior.
 Real Android process restart, in-place update, logout/relaunch and Keystore
 failure acceptance must still be checked on a device; JVM cryptography and Web
 bridge tests do not establish those physical outcomes.
+
+## Plan calendar handoff (#1560)
+
+The existing Plan action uses the bounded `PlanCalendar` Capacitor plugin on
+Android. It opens the installed calendar editor through Android's documented
+[`ACTION_INSERT` / CalendarContract](https://developer.android.com/identity/providers/calendar-provider#intents).
+The selected calendar app owns review, saving and cancellation. No calendar
+read/write permission, Google account, provider SDK or direct database write is
+required. Resolving the bridge means only that the editor opened, never that a
+calendar event was saved. An unavailable app, failed launch or older APK receives
+a localized recovery state. There is no automatic retry or background export.
+
+`planCalendarEvent` is the common schedule contract for this adapter and the
+existing browser RFC 5545 export: all-day dates use UTC-midnight carriers and
+an exclusive next-day end; timed schedules preserve exact instants and omit an
+unknown end. The native boundary accepts only bounded plain strings, a strict
+boolean and finite integral timestamps; it fixes the intent action and URI.
+Only the deliberately selected title, description, place label and schedule
+leave the app. No credentials, IDs, files, telemetry or calendar data are read.
+There is no paid capability, managed cost, quota or Cloud/Self-Hosted difference.
+
+Browser clients retain Web Share when a calendar File is supported and a
+resource-owned download otherwise, including recovery after sharing fails.
+`PlanCalendarTest` verifies the native intent and hostile-input boundary in the
+existing Android API 28/36/37.1 workflow. The bridge registration is checked
+alongside other wrapper capabilities. Installed third-party calendar behavior,
+physical-device Back/TalkBack and save/cancel acceptance remain separate from
+these contract checks and browser/component coverage.
+
+
+## Background renderer reclamation (#1609)
+
+`MainActivity` distinguishes Android's non-crash background renderer reclamation
+from real renderer crashes. A healthy resume retains the existing bridge and
+WebView. A real `onRenderProcessGone` callback invalidates the Activity's bridge
+reference, disposes picker/plugin owners once, detaches and destroys the dead
+WebView, and returns handled. No later Activity lifecycle or detach callback
+may use that dead bridge.
+
+A non-crash exit after `onStop` permits one complete Activity recreation on the
+next foreground return, including a delayed exit callback before a live
+`postVisualStateCallback` confirms a foreground frame. Recovery never launches
+another Activity while hidden. The attempt bit survives recreation; only a
+later confirmed foreground frame followed by another background visit rearms
+it. Actual crashes, foreground losses, interrupted native media selections and
+repeated losses remain explicit through the existing localized
+`RuntimeRecoveryActivity`. No timer, renderer-priority override or automatic
+write retry is introduced.
+
+Recreation uses an ordinary launcher intent unless a new intent arrived while
+the bridge was absent. It does not replay the consumed original auth/push link
+or restore a pending plugin operation. Existing encrypted native session
+storage, scoped authored drafts and disposable image-cache contracts remain
+unchanged. Volatile unsaved fields/files are not guaranteed to survive renderer
+death, and this policy cannot establish the root cause of an unlogged device
+crash.
+
+Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
+and Capacitor 8.5.2's existing `BridgeActivity`/`Bridge` lifecycle own the
+implementation. No new dependency, service, account, data egress or cost.
+`RuntimeRecoveryTest` exercises real non-crash termination through
+`WebViewRenderProcess.terminate()` on API 29+, healthy return and real
+`chrome://crash` recovery; API 28 retains the supported healthy/crash cases.
+The isolated native lane retains screenshots and diagnostics. Pure policy
+regressions cover delayed delivery, one-shot fallback, picker interruption and
+rearming. Physical Pixel acceptance remains separate from emulator evidence.
+
+Bundled-interface readiness is required before native return screenshots on
+modern providers. The stock API 28 image still ships Chromium 69 and cannot
+parse the existing product bundle; its pre-existing native adapter/frame/crash
+coverage is not bundled Web-product acceptance. This exact legacy fixture is
+classified explicitly, not treated as a successful UI result. Provisioning a
+supported provider and extending that acceptance is tracked in [#1613](https://github.com/baerenmarke90/eimir/issues/1613).

@@ -2,18 +2,87 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time, timedelta
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
+from pydantic import Field
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.core import clock
+from eimir.domain.experiences import ExperienceKind
 from eimir.entitlements.models import Capability
 from eimir.games import service
+from eimir.games.questions import select_questions
+from eimir.memories import experiences
+from eimir.recaps.service import calendar_context
 
 router = APIRouter(tags=["games"])
+
+
+class CoupleExperienceQuestionState(ApiModel):
+    """Answer state of one daily question for the reading partner."""
+
+    question_id: str
+    memory_id: UUID | None = Field(
+        default=None,
+        description=(
+            "Shared experience to open or answer: the thread still waiting for the reader "
+            "when the partner answered first, otherwise the latest thread for this question."
+        ),
+    )
+    answered_by_me: bool
+    answered_by_partner: bool
+
+
+class CoupleExperienceQuestions(ApiModel):
+    kind: ExperienceKind
+    local_date: date
+    question_ids: list[str]
+    question_states: list[CoupleExperienceQuestionState] = Field(default_factory=list)
+    refresh_after_seconds: int
+
+
+@router.get(
+    "/spaces/{spaceId}/experiences/{kind}/questions",
+    response_model=CoupleExperienceQuestions,
+    operation_id="getCoupleExperienceQuestions",
+    responses=problem_responses(401, 403, 404),
+)
+def get_couple_experience_questions(
+    kind: ExperienceKind, authorization: Authorization, session: DbSession, response: Response
+) -> CoupleExperienceQuestions:
+    """Three stable inspirations per shared calendar day, without an answer limit."""
+    ensure_capability(
+        session, authorization.space_id, Capability.GAMES_COUPLE.value, lock_grants=False
+    )
+    zone, _ = calendar_context(session, authorization)
+    instant = clock.now()
+    day = clock.today_in(zone, at=instant)
+    boundary = clock.resolve_local(day + timedelta(days=1), time.min, clock.resolve_zone(zone))
+    response.headers["Cache-Control"] = "private, no-store"
+    question_ids = list(select_questions(authorization.space_id, kind, day))
+    day_start = clock.resolve_local(day, time.min, clock.resolve_zone(zone))
+    states = experiences.daily_question_states(
+        session, authorization, kind, question_ids, day_start
+    )
+    return CoupleExperienceQuestions(
+        kind=kind,
+        local_date=day,
+        question_ids=question_ids,
+        question_states=[
+            CoupleExperienceQuestionState(
+                question_id=state.question_id,
+                memory_id=state.memory_id,
+                answered_by_me=state.answered_by_me,
+                answered_by_partner=state.answered_by_partner,
+            )
+            for state in states
+        ],
+        refresh_after_seconds=max(1, int((boundary - instant).total_seconds())),
+    )
 
 
 class GameMemoryCandidate(ApiModel):

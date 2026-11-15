@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../client/apiConfiguration';
+import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   createLocalWhoOfUsSession,
@@ -13,30 +12,8 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
-
-async function loadDefaultParticipants({
-  apiBaseUrl,
-  accessToken,
-  spaceId,
-}: {
-  apiBaseUrl: string;
-  accessToken: string;
-  spaceId: string;
-}): Promise<readonly [WhoOfUsParticipant, WhoOfUsParticipant] | null> {
-  const spacesApi = new SpacesApi(
-    new Configuration({
-      basePath: apiBaseUrl,
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-  );
-  const space = await spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId });
-  if (space.partners.length !== 2) return null;
-  return [
-    { id: space.partners[0].id, displayName: space.partners[0].displayName },
-    { id: space.partners[1].id, displayName: space.partners[1].displayName },
-  ];
-}
 
 function questionKey(questionId: WhoOfUsQuestionId): string {
   return `games.whoOfUs.questions.${questionId}`;
@@ -48,11 +25,9 @@ function initialOf(displayName: string): string {
 
 function ActiveWhoOfUsSessionView({
   participants,
-  onExit,
   session,
 }: {
   participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant];
-  onExit: () => void;
   session: WhoOfUsSession;
 }) {
   const { t } = useTranslation();
@@ -89,9 +64,6 @@ function ActiveWhoOfUsSessionView({
         <div className="who-of-us-actions">
           <button type="button" onClick={() => session.restart()}>
             {t('games.whoOfUs.restart')}
-          </button>
-          <button type="button" className="secondary-button" onClick={onExit}>
-            {t('games.whoOfUs.backToGames')}
           </button>
         </div>
       </section>
@@ -251,10 +223,8 @@ function ActiveWhoOfUsSessionView({
 
 function WhoOfUsSessionView({
   participants,
-  onExit,
 }: {
   participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant];
-  onExit: () => void;
 }) {
   const [questions] = useState(() => selectWhoOfUsQuestions());
   const [session, setSession] = useState<WhoOfUsSession | null>(null);
@@ -269,11 +239,7 @@ function WhoOfUsSessionView({
   if (!session) return null;
 
   return (
-    <ActiveWhoOfUsSessionView
-      participants={participants}
-      onExit={onExit}
-      session={session}
-    />
+    <ActiveWhoOfUsSessionView participants={participants} session={session} />
   );
 }
 
@@ -299,7 +265,7 @@ export function WhoOfUsGamePanel({
       try {
         return loadParticipants
           ? await loadParticipants()
-          : await loadDefaultParticipants({ apiBaseUrl, accessToken, spaceId });
+          : await loadGameParticipants({ apiBaseUrl, accessToken, spaceId });
       } catch (error) {
         throw await normalizeClientError(error);
       }
@@ -312,9 +278,9 @@ export function WhoOfUsGamePanel({
     <div className="who-of-us-game">
       <PageHeader
         before={
-          <button type="button" className="back-link" onClick={onExit}>
+          <TaskBackButton type="button" onClick={onExit}>
             {t('games.whoOfUs.back')}
-          </button>
+          </TaskBackButton>
         }
         eyebrow={t('games.entries.perspective.role')}
         title={t('games.entries.perspective.title')}
@@ -340,10 +306,7 @@ export function WhoOfUsGamePanel({
           body={t('games.whoOfUs.coupleRequiredBody')}
         />
       ) : (
-        <WhoOfUsSessionView
-          participants={participantsQuery.data}
-          onExit={onExit}
-        />
+        <WhoOfUsSessionView participants={participantsQuery.data} />
       )}
     </div>
   );

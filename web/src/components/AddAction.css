@@ -1,0 +1,147 @@
+button.add-action,
+a.add-action,
+label.add-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-inline-size: var(--touch-target-comfortable);
+  min-block-size: var(--touch-target-comfortable);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+  font: var(--font-add-action-label);
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.add-action .button-icon {
+  --identity-icon-accent: currentColor;
+  --identity-icon-cool: currentColor;
+  inline-size: var(--add-action-icon);
+  block-size: var(--add-action-icon);
+  flex: 0 0 var(--add-action-icon);
+}
+
+.add-action-label {
+  display: grid;
+  min-inline-size: 0;
+}
+
+/* Reserve both captions so submitting cannot move the action or its neighbors. */
+.add-action-label > span,
+.add-action-label[data-pending-label]::before,
+.add-action-label[data-pending-label]::after {
+  grid-area: 1 / 1;
+}
+
+.add-action-label[data-pending-label]::before {
+  content: attr(data-idle-label);
+  visibility: hidden;
+}
+
+.add-action-label[data-pending-label]::after {
+  content: attr(data-pending-label);
+  visibility: hidden;
+}
+
+button.add-action:disabled {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
+}
+
+.add-action .add-action-floating-icon {
+  display: none;
+}
+
+@media (max-width: 839px) {
+  .page-heading > .page-heading-action:has(.add-action[data-floating-create]) {
+    display: contents;
+  }
+
+  :is(button, a).add-action[data-floating-create] {
+    --add-action-icon: var(--icon-size-large);
+
+    position: fixed;
+    z-index: 51;
+    inset-inline-end: max(
+      var(--page-gutter),
+      env(safe-area-inset-left, 0px),
+      env(safe-area-inset-right, 0px)
+    );
+    inset-block-end: var(--shell-floating-create-bottom);
+    box-sizing: border-box;
+    inline-size: var(--touch-target-floating-create);
+    block-size: var(--touch-target-floating-create);
+    padding: 0;
+    border-radius: var(--radius-floating-create);
+    box-shadow: var(--shadow-soft);
+  }
+
+  [data-floating-create] :is(.add-action-label, .add-action-heading-icon) {
+    display: none;
+  }
+
+  .add-action[data-floating-create] .add-action-floating-icon {
+    display: block;
+  }
+
+  body:has(dialog[open], [role="dialog"][aria-modal="true"])
+    [data-floating-create],
+  .product-main:has(
+      :is(
+          input:not([type]),
+          input[type="text"],
+          input[type="search"],
+          textarea
+        ):focus
+    )
+    [data-floating-create] {
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 839px) {
+  /* #1790 B3: the viewer's own downward scroll tucks the action away and any
+   * upward scroll brings it back; keyboard focus always shows it. */
+  :is(button, a).add-action[data-floating-create] {
+    transition:
+      opacity var(--duration-transition) var(--easing-standard),
+      translate var(--duration-context) var(--easing-standard);
+  }
+
+  :root[data-floating-create-tucked]
+    :is(button, a).add-action[data-floating-create]:not(:focus-visible) {
+    opacity: 0;
+    translate: 0 var(--space-4);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 839px) and (prefers-reduced-motion: reduce) {
+  :is(button, a).add-action[data-floating-create] {
+    transition: opacity var(--duration-feedback) var(--easing-standard);
+  }
+
+  :root[data-floating-create-tucked]
+    :is(button, a).add-action[data-floating-create]:not(:focus-visible) {
+    translate: none;
+  }
+}
+
+@media (max-width: 839px) and (prefers-reduced-motion: no-preference) {
+  :is(button, a).add-action[data-floating-create]:is(
+    :active,
+    [data-control-pressed]
+  ):not(:disabled) {
+    scale: var(--control-pressed-scale-emphasis);
+  }
+}

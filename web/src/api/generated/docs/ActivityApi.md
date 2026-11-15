@@ -10,7 +10,7 @@ All URIs are relative to *http://localhost*
 
 ## getActivity
 
-> ActivityPage getActivity(spaceId, cursor, limit)
+> ActivityPage getActivity(spaceId, cursor, limit, scope)
 
 Get Activity
 
@@ -34,6 +34,8 @@ async function example() {
     cursor: cursor_example,
     // number (optional)
     limit: 56,
+    // ActivityScope (optional)
+    scope: ...,
   } satisfies GetActivityRequest;
 
   try {
@@ -56,6 +58,7 @@ example().catch(console.error);
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `25`] |
+| **scope** | `ActivityScope` |  | [Optional] [Defaults to `undefined`] [Enum: shared, own] |
 
 ### Return type
 

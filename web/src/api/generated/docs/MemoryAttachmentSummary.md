@@ -7,12 +7,17 @@ A bound attachment plus its position in the memory gallery.
 
 Name | Type
 ------------ | -------------
+`canEditSensitivity` | boolean
+`durationSeconds` | number
+`failureCode` | string
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
+`isSensitive` | boolean
 `mediaType` | [MediaType](MediaType.md)
 `mimeType` | string
 `position` | number
+`reactions` | [Array&lt;PhotoReactionSummary&gt;](PhotoReactionSummary.md)
 `size` | number
 `status` | string
 `width` | number
@@ -24,12 +29,17 @@ import type { MemoryAttachmentSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "canEditSensitivity": null,
+  "durationSeconds": null,
+  "failureCode": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,
+  "isSensitive": null,
   "mediaType": null,
   "mimeType": null,
   "position": null,
+  "reactions": null,
   "size": null,
   "status": null,
   "width": null,

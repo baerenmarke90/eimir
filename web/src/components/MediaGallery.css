@@ -1,3 +1,38 @@
+.photo-gallery {
+  min-width: 0;
+}
+.photo-gallery .media-gallery-carousel-viewport {
+  aspect-ratio: 1;
+  border-radius: var(--radius-content);
+}
+.photo-gallery .media-gallery-carousel-slide {
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+.media-gallery-expand {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  top: var(--space-3);
+  left: var(--space-3);
+}
+.media-gallery-expand:hover {
+  background: var(--media-overlay-surface-hover);
+}
+.media-gallery-expand .eimir-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
 .media-gallery-loading {
   animation: gallery-pulse 1.4s ease-in-out infinite;
   background: var(--color-shimmer-base);
@@ -22,6 +57,17 @@
   contain: layout paint;
   border-radius: var(--radius-large);
   background: var(--color-surface-subtle);
+}
+
+.media-gallery-reader > .media-gallery-carousel-viewport {
+  aspect-ratio: 10 / 11;
+  min-block-size: min(var(--composer-detail-media-height), 55svh);
+  max-block-size: 78svh;
+  border-radius: var(--radius-content);
+}
+
+.media-gallery-reader .media-gallery-carousel-backdrop {
+  display: none;
 }
 
 .media-gallery-carousel-track {
@@ -112,13 +158,84 @@
   bottom: var(--space-2);
   border-radius: var(--radius-pill);
   padding: 0.24rem 0.52rem;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
   font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
   pointer-events: none;
+}
+
+.media-gallery-carousel-viewport > .media-gallery-sensitive-control {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  margin: 0;
+  border: 0;
+}
+
+.media-gallery-carousel-viewport:has(> .media-gallery-sensitive-control)
+  > .media-gallery-expand {
+  inset-inline-start: calc(
+    var(--space-3) +
+    var(--touch-target-comfortable) +
+    var(--space-2)
+  );
+}
+
+.media-gallery-position {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  max-inline-size: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-gallery-position > button {
+  display: grid;
+  place-items: center;
+  min-block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  padding: var(--space-1);
+  background: transparent;
+}
+
+.media-gallery-position > button > span,
+.media-gallery-position-marker {
+  block-size: var(--space-1);
+  border-radius: var(--radius-pill);
+}
+
+.media-gallery-position > button > span {
+  display: block;
+  inline-size: var(--space-1);
+  background: var(--color-border);
+}
+
+.media-gallery-position > button[aria-current] > span,
+.media-gallery-position-marker {
+  inline-size: var(--space-3);
+  background: var(--composer-accent, var(--color-link-text));
+}
+
+.media-gallery-position-marker {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .media-gallery-position[data-tracking] > .media-gallery-position-marker {
+    display: block;
+  }
+
+  .media-gallery-position[data-tracking] > button[aria-current] > span {
+    inline-size: var(--space-1);
+    background: var(--color-border);
+  }
 }
 
 .media-gallery-carousel-nav {
@@ -133,12 +250,8 @@
   border: 0;
   border-radius: var(--radius-medium);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
   font-size: 1.55rem;
   line-height: 1;
-  opacity: 0.72;
   transition:
     opacity var(--duration-feedback) var(--easing-standard),
     background-color var(--duration-feedback) var(--easing-standard);
@@ -146,7 +259,7 @@
 
 .media-gallery-carousel-nav:hover,
 .media-gallery-carousel-nav:focus-visible {
-  background: var(--color-media-scrim-strong);
+  background: var(--media-overlay-surface-hover);
   opacity: 1;
 }
 
@@ -206,6 +319,11 @@
   pointer-events: none;
 }
 
+.media-lightbox-voice {
+  inline-size: min(100%, var(--reading-max));
+  padding-inline: calc(var(--touch-target-web) + var(--space-2));
+}
+
 .media-lightbox-content,
 .media-lightbox .media-gallery-loading,
 .media-lightbox .media-gallery-unavailable {
@@ -222,12 +340,83 @@
   bottom: var(--space-3);
   border-radius: var(--radius-pill);
   padding: 0.28rem 0.58rem;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
   font-size: 0.78rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
+}
+
+.media-lightbox-photo {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+.media-lightbox-photo[data-zoomed="true"] {
+  overscroll-behavior: contain;
+}
+.media-lightbox-photo:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+.media-lightbox-photo img {
+  display: block;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.media-photo-zoom-controls {
+  position: absolute;
+  z-index: 4;
+  inset-inline-start: var(--space-3);
+  inset-block-end: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+}
+.media-photo-zoom-controls button {
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-action-label);
+}
+.media-photo-zoom-controls svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+/* Keep localized controls separate as text grows; each keeps its full target. */
+.media-lightbox-actions {
+  position: absolute;
+  z-index: 5;
+  inset: var(--space-3) var(--space-3) auto;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+  pointer-events: none;
+}
+.media-lightbox-actions > button {
+  pointer-events: auto;
+}
+.media-lightbox-actions > .sensitive-media-control {
+  position: static;
+  max-inline-size: 100%;
+  margin: 0;
+  border: 0;
+  flex: 0 1 auto;
+}
+.media-lightbox-actions .sensitive-media-control-copy > span,
+.media-lightbox-actions .sensitive-media-control-copy::after {
+  overflow-wrap: break-word;
+}
+.media-lightbox-actions > .media-lightbox-close {
+  position: static;
+  flex: 0 0 auto;
 }
 
 .media-lightbox-close {
@@ -235,24 +424,70 @@
   z-index: 4;
   top: var(--space-3);
   right: var(--space-3);
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--touch-target-web);
+  height: var(--touch-target-web);
   display: grid;
   place-items: center;
   border: 0;
   border-radius: var(--radius-pill);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
-  font-size: 1.55rem;
+  font: var(--font-action-label);
   line-height: 1;
   transition: background-color var(--duration-feedback) var(--easing-standard);
 }
 
-.media-lightbox-close:hover,
-.media-lightbox-close:focus-visible {
-  background: var(--color-media-scrim-strong);
+.media-lightbox-close .eimir-icon {
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
+}
+
+.media-processing-state .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+
+.media-processing-state {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-inline-size: 0;
+  block-size: 100%;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.media-processing-state-compact {
+  padding: var(--space-2);
+  gap: var(--space-1);
+}
+.media-processing-state progress {
+  max-inline-size: 100%;
+  inline-size: 100%;
+  accent-color: var(--color-brand-strong);
+}
+.media-processing-progress {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  inline-size: min(12rem, 100%);
+  max-inline-size: 100%;
+}
+.media-processing-percent {
+  min-block-size: 1lh;
+  font-variant-numeric: tabular-nums;
+}
+.video-transfer-feedback {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+.media-processing-state-compact .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
 }
 
 .media-lightbox-nav {
@@ -267,12 +502,8 @@
   border: 0;
   border-radius: var(--radius-medium);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
   font-size: 1.75rem;
   line-height: 1;
-  opacity: 0.78;
   transition:
     opacity var(--duration-feedback) var(--easing-standard),
     background-color var(--duration-feedback) var(--easing-standard);
@@ -280,7 +511,7 @@
 
 .media-lightbox-nav:hover,
 .media-lightbox-nav:focus-visible {
-  background: var(--color-media-scrim-strong);
+  background: var(--media-overlay-surface-hover);
   opacity: 1;
 }
 
@@ -360,6 +591,135 @@
   .media-gallery-carousel-nav,
   .media-lightbox-close,
   .media-lightbox-nav {
+    transition: none;
+  }
+}
+
+.video-poster {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: var(--space-12);
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-subtle);
+}
+.video-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.video-play-mark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  padding: var(--space-3);
+  background: var(--media-overlay-surface);
+  color: var(--media-overlay-foreground);
+}
+.video-duration {
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-small);
+  font-variant-numeric: tabular-nums;
+}
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.media-lightbox-stage.is-video .media-lightbox-counter {
+  top: var(--space-3);
+  left: var(--space-3);
+  right: auto;
+  bottom: auto;
+}
+.video-upload-action {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+
+.media-gallery-privacy-indicator .sensitive-media-label {
+  inset: 0;
+}
+
+.media-gallery-carousel-slide .sensitive-media-label {
+  position: absolute;
+  inset: var(--space-3) var(--space-3) auto auto;
+}
+
+/* Native swipes own touch browsing. Keep precision controls reachable by
+ * keyboard and assistive technology without permanent overlaid arrows. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .media-lightbox button.media-lightbox-nav,
+  .media-gallery-carousel button.media-gallery-carousel-nav {
+    display: block;
+    position: absolute;
+    min-inline-size: 0;
+    min-block-size: 0;
+    max-inline-size: 1px;
+    max-block-size: 1px;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .media-lightbox button.media-lightbox-nav:focus-visible,
+  .media-gallery-carousel button.media-gallery-carousel-nav:focus-visible {
+    max-inline-size: none;
+    max-block-size: none;
+    min-inline-size: var(--touch-target-web);
+    min-block-size: var(--touch-target-web);
+    inline-size: auto;
+    block-size: auto;
+    clip-path: none;
+    overflow: visible;
+  }
+}
+
+/* Overlaid controls step aside while the viewer swipes through the photos.
+   They stay in the document and return on focus, so keyboard and assistive
+   technology users never lose them. */
+.media-gallery-carousel-viewport
+> :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
+  /* Returning is the slow, arriving half of the pair. */
+  transition: opacity var(--duration-controls-return) var(--easing-enter);
+}
+.media-gallery-carousel-viewport.is-browsing
+  > :not(
+    .media-gallery-carousel-track,
+    .media-gallery-sensitive-control,
+    :focus-within
+  ) {
+  opacity: 0;
+  pointer-events: none;
+  /* Stepping aside is a calm fade, not a cut. */
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+/* The dots below the photos already show the position on touch screens. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .media-gallery-carousel:not(.photo-draft-stage .media-gallery-carousel):has(
+      .media-gallery-position
+    )
+    .media-gallery-carousel-counter {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-gallery-carousel-viewport
+    > :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
     transition: none;
   }
 }

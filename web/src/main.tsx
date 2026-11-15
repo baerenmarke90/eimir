@@ -1,16 +1,21 @@
-import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
+import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
+import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
+import { useControlPressFeedback } from './client/useControlPressFeedback';
+import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
 import { DemoBanner } from './components/DemoBanner';
-import { i18n } from './i18n';
+import { NativeSessionGate } from './components/NativeSessionGate';
+import { useTranslation } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
-import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
@@ -37,24 +42,38 @@ import './components/StoryDetailContentFirst.css';
 import './components/StoryMomentMetadata.css';
 import './components/SharedPlanningSanctuary.css';
 import './product-reflow.css';
-import './memory-create-polish.css';
+import './components/FreeComposer.css';
+import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
+import { dateAwareStructuralSharing } from './client/structuralSharing';
 
+markNativeRuntime();
 initializeTheme();
+startNativeSystemTheme();
 registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15_000,
+      // Quiet ordinary reads on short app resumes; live domains override this.
+      staleTime: 60_000,
+      gcTime: 30 * 60_000,
       retry: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
+      // Equal refetches keep their references, dates included.
+      structuralSharing: dateAwareStructuralSharing,
     },
   },
 });
+
+// Begin secure restoration once, before React mounts; show the branded shell
+// immediately instead of leaving a blank WebView while Android Keystore runs.
+const nativeRestoration = isNativeSessionStorageAvailable()
+  ? restoreNativeSession()
+  : null;
 
 const demoMode = isDemoModeConfigured();
 const demoResetTimerEnabled =
@@ -67,9 +86,17 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .replace(/\/+$/, '');
 
 function RootApp() {
+  const { t } = useTranslation();
   useCapacitorShell();
+  useControlPressFeedback();
+  useFloatingCreateScrollTuck();
+  // Startup placeholders hold the launch screen; anything else ends it.
+  useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (
-    <>
+    <NativeSessionGate
+      restoration={nativeRestoration}
+      label={t('states.loading.title')}
+    >
       {demoMode ? (
         <DemoBanner
           resetTimerEnabled={demoResetTimerEnabled}
@@ -79,10 +106,10 @@ function RootApp() {
       <App demoMode={demoMode} />
       {!demoMode && demoUrl ? (
         <a className="demo-launch" href={demoUrl}>
-          {i18n.t('demo.launch')}
+          {t('demo.launch')}
         </a>
       ) : null}
-    </>
+    </NativeSessionGate>
   );
 }
 
@@ -104,8 +131,4 @@ function mountApplication() {
   );
 }
 
-if (isNativeSessionStorageAvailable()) {
-  void restoreNativeSession().then(mountApplication, mountApplication);
-} else {
-  mountApplication();
-}
+mountApplication();

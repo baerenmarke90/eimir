@@ -260,3 +260,38 @@ class TestReadyStatements:
 
     def test_read_and_write_conditions_differ(self) -> None:
         assert str(readable(Probe, CONTEXT)) != str(writable(Probe, CONTEXT))
+
+
+class TestSharedContentEditing:
+    @pytest.mark.parametrize("model_name", ["Memory", "HeartMoment", "Milestone"])
+    def test_edit_permission_never_becomes_delete_or_private_permission(
+        self, model_name: str
+    ) -> None:
+        from eimir.heart_moments.models import HeartMoment
+        from eimir.memories.models import Memory
+        from eimir.milestones.models import Milestone
+
+        model = {"Memory": Memory, "HeartMoment": HeartMoment, "Milestone": Milestone}[model_name]
+        edit = str(
+            access_clause(model, CONTEXT, Access.EDIT).compile(
+                dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        destructive = str(
+            access_clause(model, CONTEXT, Access.WRITE).compile(
+                dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        assert "owner_id" not in edit.split("SPACE_SHARED")[1].split("OR")[0]
+        assert "owner_id" in edit.split("OWNER_ONLY")[1]
+        assert "owner_id" in destructive.split("SPACE_SHARED")[1].split("OR")[0]
+        assert str(CONTEXT.space_id) in edit
+
+    def test_other_domains_do_not_inherit_shared_edit(self) -> None:
+        assert not Probe.shared_edit
+        edit = str(
+            access_clause(Probe, CONTEXT, Access.EDIT).compile(
+                dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        assert "owner_id" in edit.split("SPACE_SHARED")[1].split("OR")[0]

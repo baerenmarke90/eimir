@@ -1,6 +1,7 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -58,7 +59,7 @@ def test_resolver_different_accounts_receive_personalized_selection() -> None:
 
     fixed_time = datetime(2026, 9, 21, 10, 0, tzinfo=UTC)
 
-    # Account A: love + poetry
+    # Account A prefers love.
     pref_a = DailyQuotePreference(
         account_id=account_a,
         enabled=True,
@@ -67,7 +68,7 @@ def test_resolver_different_accounts_receive_personalized_selection() -> None:
         locale="de",
         version=1,
     )
-    # Account B: stoic philosophy
+    # Account B prefers philosophy.
     pref_b = DailyQuotePreference(
         account_id=account_b,
         enabled=True,
@@ -93,11 +94,44 @@ def test_resolver_different_accounts_receive_personalized_selection() -> None:
 
     assert res_a.quote is not None
     assert res_b.quote is not None
-    assert res_a.quote.source_id == "poetic_wisdom"
     assert "love" in res_a.quote.category_ids
 
-    assert res_b.quote.source_id == "stoic_philosophy"
     assert "philosophy" in res_b.quote.category_ids
+
+
+def test_resolver_considers_matching_categories_across_legacy_sources() -> None:
+    account_id = UUID(int=1)
+    auth = AuthorizationContext(account_id=account_id, space_id=uuid4())
+    preference = DailyQuotePreference(
+        account_id=account_id,
+        enabled=True,
+        selected_source_ids=["classic_literature"],
+        selected_category_ids=["love"],
+        locale="de",
+        version=1,
+    )
+    classic = DailyQuote(
+        id="01-classic-love",
+        text="A classic saying about love.",
+        author_display="Example Author",
+        source_display="Example Source",
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+    )
+    poetry = replace(classic, id="02-poetic-love", source_id="poetic_wisdom")
+    unrelated = replace(classic, id="03-philosophy", category_ids=("philosophy",))
+
+    result = resolver.resolve_daily_quote(
+        _mock_session_with_preference(preference),
+        auth,
+        at=datetime(2026, 9, 21, 10, 0, tzinfo=UTC),
+        custom_quote_pool=[classic, poetry, unrelated],
+    )
+
+    assert result.quote == poetry
 
 
 def test_disabled_preference_returns_no_quote() -> None:
@@ -170,7 +204,8 @@ def test_empty_pool_returns_neutral_no_quote_state() -> None:
     assert res.quote is None
 
 
-def test_fallback_pool_when_selected_preferences_empty() -> None:
+@pytest.mark.parametrize("author_display", ["Someone", ""])
+def test_fallback_pool_when_selected_preferences_empty(author_display: str) -> None:
     account_id = uuid4()
     space_id = uuid4()
     auth = AuthorizationContext(account_id=account_id, space_id=space_id)
@@ -185,13 +220,22 @@ def test_fallback_pool_when_selected_preferences_empty() -> None:
         version=1,
     )
     session = _mock_session_with_preference(pref)
+    fallback_quote = DailyQuote(
+        id="fallback-1",
+        text="Fallback saying",
+        author_display=author_display,
+        source_display=None,
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=bool(author_display),
+    )
 
     # Even though user selected non-matching preferences, resolver gracefully falls back to Pro pool
-    res = resolver.resolve_daily_quote(session, auth)
-    assert res.quote is not None
-    assert res.quote.locale == "de"
-    assert res.quote.rights_classification == RightsClassification.PUBLIC_DOMAIN
-    assert res.quote.attribution_required is True
+    res = resolver.resolve_daily_quote(session, auth, custom_quote_pool=[fallback_quote])
+    assert res.enabled is True
+    assert res.quote == fallback_quote
 
 
 def test_resolver_respects_space_timezone(monkeypatch) -> None:  # type: ignore[no-untyped-def]

@@ -15,6 +15,7 @@ from eimir.comments.models import Comment, CommentTarget
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.plans.models import Plan
 
 
 def _delete_for_parent(
@@ -76,5 +77,15 @@ def _heart_moment_made_private(
         connection,
         space_id=target.space_id,
         target_type=CommentTarget.HEART_MOMENT,
+        target_id=target.id,
+    )
+
+
+@event.listens_for(Plan, "after_delete")
+def _plan_deleted(_mapper: object, connection: Connection, target: Plan) -> None:
+    _delete_for_parent(
+        connection,
+        space_id=target.space_id,
+        target_type=CommentTarget.PLAN,
         target_id=target.id,
     )

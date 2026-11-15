@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 from eimir.authorization import AuthorizationContext, readable
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError
+from eimir.domain.experiences import ExperienceKind
 from eimir.memories.models import Memory, MemoryCreateReceipt
 from eimir.memories.tags import MemoryTags
 
@@ -46,7 +47,19 @@ clock skew cannot turn an expired identity into a duplicate create.
 
 
 def fingerprint(
-    *, title: str, body: str, happened_on: date | None, tags: MemoryTags | None = None
+    *,
+    title: str,
+    body: str,
+    happened_on: date | None,
+    happened_until: date | None = None,
+    tags: MemoryTags | None = None,
+    experience_kind: ExperienceKind | None = None,
+    experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
+    place_id: UUID | None = None,
+    place_ids: list[UUID] | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> str:
     """Hash the normalized create request without retaining any of its content."""
     content = {
@@ -59,6 +72,29 @@ def fingerprint(
         # Preserve receipts written before tags existed for untagged replays.
         content["v"] = 2
         content["tags"] = tags
+    if experience_kind is not None:
+        content["v"] = 3
+        content["experienceKind"] = experience_kind.value
+    if place_id is not None:
+        content["v"] = 4
+        content["placeId"] = str(place_id)
+    if happened_until is not None:
+        content["v"] = 5
+        content["happenedUntil"] = happened_until.isoformat()
+    if place_ids is not None:
+        content["placeIds"] = [str(identifier) for identifier in place_ids]
+    if experience_reply_to is not None:
+        content["experienceReplyTo"] = str(experience_reply_to)
+    if experience_question_id is not None:
+        content["experienceQuestionId"] = experience_question_id
+    if attachments is not None:
+        content["attachments"] = [
+            [str(identifier), position, sensitive]
+            for identifier, position, sensitive in attachments
+        ]
+        content["selectedCoverAttachmentId"] = (
+            str(selected_cover_attachment_id) if selected_cover_attachment_id else None
+        )
     canonical = json.dumps(
         content,
         sort_keys=True,

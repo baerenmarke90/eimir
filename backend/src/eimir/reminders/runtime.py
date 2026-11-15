@@ -50,6 +50,7 @@ from eimir.reminders.runtime_models import (
     ReminderOccurrence,
     RulePreference,
 )
+from eimir.wishes import reminders as wish_reminders
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +101,8 @@ def register_handlers(target: JobRegistry | None = None) -> None:
     destination = target if target is not None else registry
     if destination.get(OCCURRENCE_JOB) is None:
         destination.register(OCCURRENCE_JOB, handle_occurrence)
+    if destination.get(wish_reminders.JOB_KIND) is None:
+        destination.register(wish_reminders.JOB_KIND, wish_reminders.handle_due)
     if destination.get(RECONCILE_JOB) is None:
         destination.register(RECONCILE_JOB, handle_reconcile)
 

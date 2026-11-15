@@ -6,10 +6,13 @@
 
 Name | Type
 ------------ | -------------
+`anticipation` | [DashboardAnticipation](DashboardAnticipation.md)
+`incomingExperience` | [DashboardExperience](DashboardExperience.md)
 `keepsake` | [DashboardItem](DashboardItem.md)
 `recentShared` | [Array&lt;DashboardItem&gt;](DashboardItem.md)
 `relationshipDuration` | [DashboardRelationshipDuration](DashboardRelationshipDuration.md)
 `retrospective` | [DashboardItem](DashboardItem.md)
+`retrospectiveRediscovery` | [RediscoveryContext](RediscoveryContext.md)
 `sharedStorySummary` | [DashboardSharedStorySummary](DashboardSharedStorySummary.md)
 `space` | [DashboardSpaceSummary](DashboardSpaceSummary.md)
 `thinkingOfYouAvailableAt` | Date
@@ -23,10 +26,13 @@ import type { DashboardView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipation": null,
+  "incomingExperience": null,
   "keepsake": null,
   "recentShared": null,
   "relationshipDuration": null,
   "retrospective": null,
+  "retrospectiveRediscovery": null,
   "sharedStorySummary": null,
   "space": null,
   "thinkingOfYouAvailableAt": null,

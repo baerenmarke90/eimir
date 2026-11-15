@@ -35,6 +35,8 @@ export interface InstanceStatusResult {
   selfServiceSignupAvailable: boolean;
   maintenanceMode: boolean;
   registrationAvailable: boolean;
+  /** Terms version a new Account must accept here; null where none applies. */
+  termsOfUseVersion: string | null;
 }
 
 export function isSelfServiceSignupAllowed(
@@ -66,6 +68,7 @@ export async function loadInstanceAccessStatus(
       selfServiceSignupAvailable: Boolean(status.selfServiceSignupAvailable),
       maintenanceMode: status.maintenanceMode,
       registrationAvailable: status.registrationAvailable,
+      termsOfUseVersion: status.termsOfUseVersion ?? null,
     };
   } catch {
     return {
@@ -75,6 +78,7 @@ export async function loadInstanceAccessStatus(
       selfServiceSignupAvailable: false,
       maintenanceMode: false,
       registrationAvailable: false,
+      termsOfUseVersion: null,
     };
   }
 }

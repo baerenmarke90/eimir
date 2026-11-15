@@ -6,6 +6,32 @@ import {
   type ReactNode,
 } from 'react';
 import { openNativeDatePicker } from '../client/dateInput';
+import './NativeDateField.css';
+
+/** One native interaction for every calendar field; the whole field opens it. */
+export const NativeDateInput = forwardRef<
+  HTMLInputElement,
+  Omit<ComponentPropsWithoutRef<'input'>, 'type'> & {
+    openPickerOnClick?: boolean;
+  }
+>(function NativeDateInput(
+  { onClick, className, openPickerOnClick = true, ...props },
+  ref,
+) {
+  return (
+    <input
+      {...props}
+      ref={ref}
+      type="date"
+      className={['native-date-input', className].filter(Boolean).join(' ')}
+      onClick={(event) => {
+        onClick?.(event);
+        if (openPickerOnClick && !event.defaultPrevented)
+          openNativeDatePicker(event);
+      }}
+    />
+  );
+});
 
 export type NativeDateFieldProps = Omit<
   ComponentPropsWithoutRef<'input'>,
@@ -37,7 +63,7 @@ export const NativeDateField = forwardRef<
     helpText,
     error,
     fieldClassName,
-    openPickerOnClick = false,
+    openPickerOnClick = true,
     onClick,
     'aria-describedby': ariaDescribedBy,
     ...inputProps
@@ -66,11 +92,11 @@ export const NativeDateField = forwardRef<
   return (
     <div className={fieldClassNames}>
       <label htmlFor={inputId}>{label}</label>
-      <input
+      <NativeDateInput
         {...inputProps}
         ref={ref}
         id={inputId}
-        type="date"
+        openPickerOnClick={false}
         aria-invalid={hasError || undefined}
         aria-describedby={describedBy}
         onClick={openPickerOnClick || onClick ? handleClick : undefined}

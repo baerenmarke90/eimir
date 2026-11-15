@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `attachments` | [Array&lt;MemoryAttachmentEntry&gt;](MemoryAttachmentEntry.md)
+`selectedCoverAttachmentId` | string
 
 ## Example
 
@@ -16,6 +17,7 @@ import type { MemoryAttachmentSet } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachments": null,
+  "selectedCoverAttachmentId": null,
 } satisfies MemoryAttachmentSet
 
 console.log(example)

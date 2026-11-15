@@ -1,16 +1,21 @@
 import {
   ACTIVITY_ROUTE,
   APP_ROUTES,
-  PRIMARY_APP_ROUTES,
+  activeNavigationArea,
+  appRoutePath,
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  chapterDetailPath,
+  collectionDetailPath,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
+  heartMomentDetailPath,
+  heartMomentEditPath,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -18,33 +23,32 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
-  SETTINGS_CATEGORY_ROUTES,
-  PLAN_DETAIL_ROUTE_PATTERN,
-  PLAN_CREATE_ROUTE,
-  PLACE_DETAIL_ROUTE_PATTERN,
-  SEARCH_ROUTE,
-  WISH_DETAIL_ROUTE_PATTERN,
-  WISH_CREATE_ROUTE,
-  activeNavigationArea,
-  appRoutePath,
-  chapterDetailPath,
-  collectionDetailPath,
-  heartMomentDetailPath,
-  heartMomentEditPath,
   memoryDetailPath,
   memoryEditPath,
   milestoneDetailPath,
   milestoneEditPath,
-  planDetailPath,
+  PLACE_DETAIL_ROUTE_PATTERN,
+  PLAN_CREATE_ROUTE,
+  PLAN_DETAIL_ROUTE_PATTERN,
+  PRIMARY_APP_ROUTES,
   placeDetailPath,
+  planDetailPath,
+  recapDetailPath,
   rewriteLegacyPath,
+  SEARCH_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
+  STORY_OURS_ROUTE,
+  STORY_RECAPS_ROUTE,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
+  WISH_CREATE_ROUTE,
+  WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
 } from './routes';
 
@@ -123,7 +127,10 @@ describe('settings category routes', () => {
       relationship: '/more/settings/relationship',
       notifications: '/more/settings/notifications',
       today: '/more/settings/today',
+      memories: '/more/settings/memories',
       appearance: '/more/settings/appearance',
+      media: '/more/settings/media',
+      calendar: '/more/settings/calendar',
       data: '/more/settings/data',
       account: '/more/settings/account',
     });
@@ -238,6 +245,26 @@ describe('legacy paths', () => {
     expect(rewriteLegacyPath('/people')).toBe('/more/people');
     expect(rewriteLegacyPath('/notifications')).toBe('/more/notifications');
     expect(rewriteLegacyPath('/profile')).toBe('/more/profile');
+  });
+
+  it('sends the former More passport address to the couple story page', () => {
+    expect(STORY_OURS_ROUTE).toBe('/story/our-story');
+    expect(rewriteLegacyPath(MORE_PASSPORT_ROUTE)).toBe(STORY_OURS_ROUTE);
+    expect(rewriteLegacyPath('/more/passport')).toBe('/story/our-story');
+    expect(rewriteLegacyPath('/more/passport-notes')).toBeNull();
+    // The destination is current: it is not rewritten again and keeps the
+    // Momente tab active like the recap library next to it.
+    expect(rewriteLegacyPath(STORY_OURS_ROUTE)).toBeNull();
+    expect(rewriteLegacyPath(STORY_RECAPS_ROUTE)).toBeNull();
+    expect(activeNavigationArea(STORY_OURS_ROUTE)).toBe('story');
+    expect(activeNavigationArea(STORY_RECAPS_ROUTE)).toBe('story');
+  });
+
+  it('keeps shared recap reader links from More opening the reader', () => {
+    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
+      recapDetailPath('edition-1'),
+    );
+    expect(recapDetailPath('edition-1')).toBe('/story/recaps/edition-1');
   });
 
   it('keeps shared content deep links working', () => {

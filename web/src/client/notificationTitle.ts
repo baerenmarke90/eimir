@@ -1,12 +1,16 @@
-import { authorDisplayName } from './authorPresentation';
-import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { TFunction } from 'i18next';
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import { authorDisplayName } from './authorPresentation';
 
 export function getNotificationItemTitle(
   item: NotificationItem,
   t: TFunction,
   currentAccountId?: string,
 ): string {
+  if (item.kind === 'ONCE_MESSAGE_RECEIVED')
+    return t('onceMessages.notification');
+  if (item.kind === 'WISH_REMINDER_DUE')
+    return t('m5s3.wish.reminder.notification');
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
@@ -16,6 +20,36 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  if (item.kind === 'REMINDER_CREATED') {
+    return t(
+      targetTitle
+        ? 'm5s5.notificationAction.REMINDER_CREATED_WITH_TARGET'
+        : 'm5s5.notificationAction.REMINDER_CREATED',
+      {
+        name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+        target: targetTitle,
+      },
+    );
+  }
+  if (
+    [
+      'PLAN_CREATED',
+      'PLAN_CHANGED',
+      'PLAN_CANCELLED',
+      'WISH_SELECTION_SHARED',
+      'WISH_SELECTION_READY',
+      'PHOTO_REACTION',
+      'PARTNER_JOINED',
+      'TRANSFER_READY',
+      'TRANSFER_COMPLETED',
+      'TRANSFER_FAILED',
+      'VIDEO_PROCESSING_FAILED',
+    ].includes(item.kind)
+  ) {
+    return t(`coupleExperiences.notifications.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
 
   if (item.kind === 'COMMENT_CREATED') {
     if (actorName && targetTitle) {
@@ -34,6 +68,11 @@ export function getNotificationItemTitle(
     }
     return t('m5s5.notificationKind.COMMENT_CREATED');
   }
+
+  if (item.kind === 'COUPLE_EXPERIENCE_SHARED')
+    return t('coupleExperiences.notification', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
 
   if (item.kind === 'THINKING_OF_YOU') {
     return actorName

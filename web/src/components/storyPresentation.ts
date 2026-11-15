@@ -3,8 +3,9 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import type { StoryKind } from '../api/generated/models/StoryKind';
 import { authorDisplayName } from '../client/authorPresentation';
-import { i18n } from '../i18n';
+import { memoryPreviewTitle } from '../client/memoryProduct';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { i18n } from '../i18n';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 
 /**
@@ -35,6 +36,7 @@ export function storyAuthorLabel(
 export interface StoryPresentation {
   kindLabel: string;
   title: string;
+  titleIsDate?: boolean;
   preview?: string;
   author: string;
   /** Number of photos shown as quiet icon metadata; absent when none. */
@@ -114,7 +116,12 @@ export function storyItemPresentation(
       const count = item.memory.attachments.length;
       return {
         kindLabel,
-        title: item.memory.title,
+        ...memoryPreviewTitle(
+          item.memory.title,
+          item.memory.happenedOn ?? item.effectiveDate,
+          t,
+          item.memory.happenedUntil,
+        ),
         author: storyAuthorLabel(item.memory.author, undefined, nicknameFor),
         mediaCount: count > 0 ? count : undefined,
         mediaLabel: count > 0 ? t('story.photos', { count }) : undefined,
@@ -137,9 +144,11 @@ export function storyItemPresentation(
           undefined,
           nicknameFor,
         ),
-        mediaCount: item.heartMoment.attachment ? 1 : undefined,
+        mediaCount:
+          item.heartMoment.attachmentCount ??
+          (item.heartMoment.attachment ? 1 : undefined),
         mediaLabel: item.heartMoment.attachment
-          ? t('story.photos', { count: 1 })
+          ? t('story.photos', { count: item.heartMoment.attachmentCount ?? 1 })
           : undefined,
         visibility,
         visibilityLabel:

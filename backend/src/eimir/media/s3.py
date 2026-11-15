@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import io
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from datetime import UTC, datetime, timedelta
+from tempfile import TemporaryFile
+from typing import BinaryIO
 from urllib.parse import quote, urlsplit
 
 import httpx
@@ -21,6 +23,54 @@ _REQUEST_TYPE = "aws4_request"
 _UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD"
 _MAX_PRESIGN_SECONDS = 7 * 24 * 60 * 60
 _READ_CHUNK = 64 * 1024
+_RANGE_WINDOW = 1024 * 1024
+
+
+class _RangeReader(io.RawIOBase):
+    """Seekable object view with one bounded window, including encrypted consumers."""
+
+    def __init__(self, size: int, load: Callable[[int, int], bytes]) -> None:
+        super().__init__()
+        self._size = size
+        self._load = load
+        self._position = 0
+        self._start = -1
+        self._buffer = b""
+
+    def readable(self) -> bool:
+        return True
+
+    def seekable(self) -> bool:
+        return True
+
+    def tell(self) -> int:
+        return self._position
+
+    def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
+        origin = {io.SEEK_SET: 0, io.SEEK_CUR: self._position, io.SEEK_END: self._size}
+        if whence not in origin or origin[whence] + offset < 0:
+            raise ValueError("Invalid seek position.")
+        self._position = origin[whence] + offset
+        return self._position
+
+    def readinto(self, target: bytearray | memoryview) -> int:  # type: ignore[override]
+        view = memoryview(target).cast("B")
+        if not len(view) or self._position >= self._size:
+            return 0
+        if not self._start <= self._position < self._start + len(self._buffer):
+            self._start = self._position // _RANGE_WINDOW * _RANGE_WINDOW
+            self._buffer = self._load(self._start, min(self._start + _RANGE_WINDOW, self._size) - 1)
+        within = self._position - self._start
+        count = min(len(view), len(self._buffer) - within)
+        if count <= 0:
+            raise OSError("S3 object returned an incomplete range.")
+        view[:count] = self._buffer[within : within + count]
+        self._position += count
+        return count
+
+    def close(self) -> None:
+        self._buffer = b""
+        super().close()
 
 
 def _aws_quote(value: str, *, keep_slash: bool = False) -> str:
@@ -180,13 +230,19 @@ class S3MediaStore(MediaStore):
         method: str,
         storage_key: str,
         *,
-        content: bytes = b"",
+        content: bytes | Iterator[bytes] = b"",
         content_type: str | None = None,
+        payload_hash: str | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        stream: bool = False,
     ) -> httpx.Response:
         moment = self._now()
         amz_date = moment.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = moment.strftime("%Y%m%d")
-        payload_hash = hashlib.sha256(content).hexdigest()
+        if payload_hash is None:
+            if not isinstance(content, bytes):
+                raise ValueError("Streaming S3 requests require an established payload hash.")
+            payload_hash = hashlib.sha256(content).hexdigest()
 
         headers: dict[str, str] = {
             "host": self._host,
@@ -198,6 +254,8 @@ class S3MediaStore(MediaStore):
             headers["cache-control"] = "private, no-store"
         if self._session_token is not None:
             headers["x-amz-security-token"] = self._session_token
+        if extra_headers:
+            headers.update(extra_headers)
 
         canonical_headers, header_names = self._canonical_headers(headers)
         canonical_request = "\n".join(
@@ -226,11 +284,11 @@ class S3MediaStore(MediaStore):
         )
 
         try:
-            return self._client.request(
-                method,
-                self._url(storage_key),
-                headers=headers,
-                content=content,
+            return self._client.send(
+                self._client.build_request(
+                    method, self._url(storage_key), headers=headers, content=content
+                ),
+                stream=stream,
             )
         except httpx.HTTPError:
             # Do not pass the request object to the caller: authorization
@@ -246,18 +304,72 @@ class S3MediaStore(MediaStore):
         raise OSError(f"S3 request failed with status {response.status_code}.")
 
     def put(self, storage_key: str, data: ByteSource, content_type: str) -> StoredObject:
-        buffer = bytearray()
-        while chunk := data.read(_READ_CHUNK):
-            buffer.extend(chunk)
-        payload = bytes(buffer)
-        response = self._request("PUT", storage_key, content=payload, content_type=content_type)
-        self._require_success(response)
-        return StoredObject(storage_key=storage_key, size=len(payload), content_type=content_type)
+        # SigV4 needs the final payload hash. Spool privately instead of holding
+        # ciphertext and its bytes copy in RAM; HTTP then sends fixed-size pieces.
+        with TemporaryFile(mode="w+b") as body:
+            digest = hashlib.sha256()
+            size = 0
+            while chunk := data.read(_READ_CHUNK):
+                digest.update(chunk)
+                body.write(chunk)
+                size += len(chunk)
+            body.seek(0)
 
-    def open(self, storage_key: str) -> io.BytesIO:
-        response = self._request("GET", storage_key)
+            def chunks() -> Iterator[bytes]:
+                while chunk := body.read(_READ_CHUNK):
+                    yield chunk
+
+            response = self._request(
+                "PUT",
+                storage_key,
+                content=chunks(),
+                content_type=content_type,
+                payload_hash=digest.hexdigest(),
+                extra_headers={"content-length": str(size)},
+            )
+            self._require_success(response)
+        return StoredObject(storage_key=storage_key, size=size, content_type=content_type)
+
+    def open(self, storage_key: str) -> BinaryIO:
+        response = self._request("HEAD", storage_key)
         self._require_success(response)
-        return io.BytesIO(response.content)
+        try:
+            size = int(response.headers["content-length"])
+            etag = response.headers["etag"]
+            if size < 0 or not etag or etag.startswith("W/"):
+                raise ValueError
+        except (KeyError, ValueError):
+            raise OSError("S3 object metadata is invalid.") from None
+
+        def load(start: int, end: int) -> bytes:
+            result = self._request(
+                "GET",
+                storage_key,
+                extra_headers={"range": f"bytes={start}-{end}", "if-match": etag},
+                stream=True,
+            )
+            try:
+                length = end - start + 1
+                if (
+                    result.status_code != 206
+                    or result.headers.get("content-range") != f"bytes {start}-{end}/{size}"
+                    or result.headers.get("content-length") != str(length)
+                ):
+                    raise OSError("S3 object range is invalid or changed.")
+                body = bytearray()
+                for chunk in result.iter_bytes(chunk_size=_READ_CHUNK):
+                    if len(body) + len(chunk) > length:
+                        raise OSError("S3 object range exceeded its declared length.")
+                    body.extend(chunk)
+                if len(body) != length:
+                    raise OSError("S3 object range is truncated.")
+                return bytes(body)
+            except httpx.HTTPError:
+                raise OSError("S3 object range transfer failed.") from None
+            finally:
+                result.close()
+
+        return io.BufferedReader(_RangeReader(size, load), buffer_size=_READ_CHUNK)
 
     def delete(self, storage_key: str) -> None:
         response = self._request("DELETE", storage_key)

@@ -19,7 +19,9 @@
  */
 export const MediaType = {
     IMAGE: 'IMAGE',
-    VIDEO: 'VIDEO'
+    VIDEO: 'VIDEO',
+    AUDIO: 'AUDIO',
+    DOCUMENT: 'DOCUMENT'
 } as const;
 export type MediaType = typeof MediaType[keyof typeof MediaType];
 

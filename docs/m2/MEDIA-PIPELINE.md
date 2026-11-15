@@ -43,6 +43,21 @@ M2 uses **exclusive Attachment ownership per Domain target**:
 
 This exclusive binding makes Cleanup and Privacy deterministic and avoids implicit many-to-many Authorization.
 
+### Current video placeholder exception (#1655, #1701)
+
+The video delivery extends exclusive binding to admitted VIDEO reservations in
+PENDING/UPLOADING and finalized VALIDATING/FAILED states, so Memory/HeartMoment
+text can save before transfer/processing completes. This is no read permission:
+only READY media can receive a content or playback grant. Images keep their
+existing READY-only binding. Same-Space immutable owner, exclusive parent,
+expiry, aggregate reservation, sensitivity, deletion and authorization rules
+still apply. Unfinished bound uploads retain an editable failed placeholder
+after cleanup; unvalidated bytes never enter completed-media export. See
+[Short video uploads](../operations/video-uploads.md) for the current windows,
+native staging/background ownership and 1080p output contract. Later ordered
+HeartMoment galleries supersede the historical single-attachment count above;
+the existing twenty-media / 500 MiB shared limit remains authoritative.
+
 ## 3. Components
 
 ```text
@@ -147,7 +162,7 @@ Server-side checks:
 5. parser can safely open the Media under resource limits,
 6. Attachment belongs to the expected Space/owner and the state transition is allowed,
 7. Provider/object integrity is sufficiently confirmed for the adapter,
-8. metadata allowlist is extracted and the object is then stored sanitized (M2-D14).
+8. the projection allowlist is extracted and validated pixels are rewritten (M2-D14, with the selected-moment metadata exception in ADR 0014).
 
 Only after all eight steps is `READY` set. A Provider upload or passed format check alone does not mean `READY`.
 
@@ -157,9 +172,9 @@ On error: `FAILED` with a stable non-sensitive error code; object is marked for 
 
 A malware scanner is not defined as a universal security guarantee for M2. Uploads are treated exclusively as Media and are never executed server-side. A later AV/content-scan extension may extend the state machine but must still set `READY` only after all mandatory checks.
 
-### 7.1 Metadata removal (M2-D14)
+### 7.1 Metadata handling (M2-D14 / ADR 0014)
 
-Before stripping, exactly this allowlist is extracted and stored as ProtectedPayload:
+Before rewriting, exactly this projection allowlist is extracted and stored as ProtectedPayload:
 
 | Field | Purpose |
 |---|---|
@@ -168,9 +183,9 @@ Before stripping, exactly this allowlist is extracted and stored as ProtectedPay
 | width, height | already determined for limit checking |
 | duration (video only) | already determined for limit checking |
 
-Everything else is discarded: GPS and other location information, device and serial numbers, software, author and copyright fields, Comment and description fields, previews embedded in the container, and **every unlisted or unknown segment**. The rule is an allowlist, not a blacklist of known location fields — containers may carry position in vendor-specific and future segments.
+Historical/default behavior discards everything else. [ADR 0014](../decisions/0014-moment-photo-metadata-preservation.md), following the explicit Product Owner instruction, adds a bounded exception for selected Memory/HeartMoment photos: readable EXIF and ICC profiles may remain in the rewritten primary image, including GPS/capture/device metadata. Unrelated uploads and thumbnail derivatives keep their clean behavior. Unknown raw container segments are not copied wholesale.
 
-Only the sanitized file is stored. Uploaded original bytes are not retained permanently; M2 has no path that serves Media with embedded metadata. Media that cannot be safely sanitized fails closed as `FAILED` and is never stored unstripped.
+Only a file rewritten from validated pixels is stored; raw uploaded bytes are not retained permanently. Marked moment-photo primary files may serve retained metadata through their existing parent-authorized read path. Corrupt or unencodable optional metadata may be omitted without rejecting usable pixels. Invalid pixels/format/dimensions still fail closed. Disabling automatic Place association or removing a relation does not scrub metadata from the primary photo file.
 
 The extracted allowlist is ProtectedPayload and is not projected into API metadata outside the parent context, logs, Events, metrics, or Search indexes.
 
@@ -185,7 +200,7 @@ M2 creates at most **one** variant per Attachment:
 
 Transcoding, multiple resolution levels, audio extraction, and adaptive streaming are **not** part of M2.
 
-- Variants are generated server-side in the same validation job, **after** applying M2-D14, and therefore contain no embedded metadata themselves.
+- Variants are generated server-side in the same validation job and contain no embedded metadata, including when ADR 0014 permits metadata in the primary file.
 - A variant has no independent Authorization. It follows exactly its Attachment and therefore the parent; a parent Privacy transition blocks the variant as well.
 - Clients do not choose variant Keys. The server names variants through controlled suffixes according to the pattern in section 5.
 - If variant generation fails, the Attachment remains usable and is served without a variant. A missing Thumbnail is a presentation issue, not a Security issue, and does not set the Attachment to `FAILED`.
@@ -231,6 +246,24 @@ Account B requests Attachment X
 - Bucket remains private.
 - URL is not stored in Analytics, logs, Referrer, or persistent client caches.
 - After Membership/Privacy revocation, an already issued URL may technically remain valid only until TTL expiry; this bounded residual period is an accepted M2 adapter trade-off and is minimized to 5 minutes.
+
+## Finalized video binding extension (#1655)
+
+The PO-approved asynchronous intake narrowly extends READY-only parent binding:
+a fully uploaded, finalized VIDEO in VALIDATING or FAILED may be bound to a
+Memory/HeartMoment. Unbound admission expires sixty minutes after upload;
+PENDING/UPLOADING videos and non-READY images remain ineligible. Status never
+grants content/playback access: only validated READY media are readable.
+Declared video bytes reserve gallery capacity until final publication, when the
+worker rechecks the whole gallery under the canonical parent lock. Immutable
+upload identity and deletion barriers fence publication while annotation changes
+preserve the latest protected values. See [video operations](../operations/video-uploads.md).
+
+A bound failure keeps explicit metadata for replacement while unvalidated raw
+bytes retain the existing 24-hour cleanup bound. Its uploader receives at most
+one failure outcome targeting the currently authorized parent. No success event
+or shared partner notification is added. All other READY-only rules below retain
+their existing meaning.
 
 ## 10. READY binding window
 

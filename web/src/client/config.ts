@@ -14,6 +14,10 @@ export function isCapacitorNativePlatform(): boolean {
   }
 }
 
+export function isAndroidApp(): boolean {
+  return isCapacitorNativePlatform() && Capacitor.getPlatform() === 'android';
+}
+
 export function resolveApiBaseUrl(
   configuredUrl: string,
   origin: string,

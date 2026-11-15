@@ -1,16 +1,14 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { AppIconId } from '../api/generated/models/AppIconId';
-import { isCapacitorNativePlatform } from './config';
+import { isAndroidApp } from './config';
+
+export { isAndroidApp } from './config';
 
 interface AppIconPlugin {
   apply(options: { iconId: AppIconId }): Promise<{ iconId: AppIconId }>;
 }
 
 const launcher = registerPlugin<AppIconPlugin>('AppIcon');
-
-export function isAndroidApp(): boolean {
-  return isCapacitorNativePlatform() && Capacitor.getPlatform() === 'android';
-}
 
 export function canApplyNativeAppIcon(): boolean {
   return isAndroidApp() && Capacitor.isPluginAvailable('AppIcon');

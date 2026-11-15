@@ -19,6 +19,11 @@ import {
     ActivityPageToJSON,
 } from '../models/ActivityPage';
 import {
+    type ActivityScope,
+    ActivityScopeFromJSON,
+    ActivityScopeToJSON,
+} from '../models/ActivityScope';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -28,6 +33,7 @@ export interface GetActivityRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+    scope?: ActivityScope;
 }
 
 /**
@@ -54,6 +60,10 @@ export class ActivityApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

@@ -22,12 +22,18 @@ CRITICAL_RUNTIME_KEYS = (
     "EIMIR_DEPLOYMENT",
     "EIMIR_PUBLIC_BASE_URL",
     "EIMIR_CURSOR_SIGNING_KEY",
+    "EIMIR_PUSH_FCM_PROJECT_ID",
+    "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
+    "EIMIR_PUSH_FCM_CREDENTIALS_FILE",
 )
 DOTENV_AUTHORITATIVE_KEYS = (
     "EIMIR_ACCOUNT_DELETION_INSTANCE_ID",
     "EIMIR_ENVIRONMENT",
     "EIMIR_PUBLIC_BASE_URL",
     "EIMIR_CURSOR_SIGNING_KEY",
+    "EIMIR_PUSH_FCM_PROJECT_ID",
+    "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
+    "EIMIR_PUSH_FCM_CREDENTIALS_FILE",
 )
 PROFILE_RUNTIME_SERVICES = {
     "self-hosted": frozenset({"api", "worker"}),
@@ -384,6 +390,13 @@ def compose_prefix(args: argparse.Namespace) -> list[str]:
     command.extend(["--env-file", str(args.env_file)])
     if args.compose_file:
         command.extend(["--file", str(args.compose_file)])
+    if getattr(args, "with_fcm", False):
+        if not args.compose_file:
+            raise RuntimeEnvironmentError("FCM opt-in requires an explicit canonical --compose-file")
+        fragment = args.compose_file.resolve().parent / "deploy" / "push-fcm.compose.yaml"
+        if not fragment.is_file():
+            raise RuntimeEnvironmentError("the selected bundle has no FCM opt-in fragment")
+        command.extend(["--file", str(fragment)])
     return command
 
 
@@ -433,6 +446,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     parser.add_argument("--compose-file", type=Path)
+    parser.add_argument(
+        "--with-fcm", action="store_true",
+        help="Include only the selected bundle's known FCM credential-mount fragment",
+    )
     parser.add_argument("--profile", default="self-hosted")
     parser.add_argument("--project-name")
     parser.add_argument("--release-image-identity", type=Path)

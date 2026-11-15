@@ -14,12 +14,14 @@ from sqlalchemy.orm import Session
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ErrorCode
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity import effects as account_effects
 from eimir.jobs import queue
 from eimir.jobs.errors import RetryableJobError
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
 from eimir.media import get_media_store
+from eimir.outbox import service as outbox_service
 from eimir.transfer import service
 from eimir.transfer.models import (
     ExportStatus,
@@ -124,6 +126,40 @@ def _identifier(payload: dict[str, Any], key: str) -> UUID | None:
         return None
 
 
+def _record_outcome(
+    session: Session, transfer: TransferExport | TransferImport, kind: EventType
+) -> None:
+    outbox_service.record(
+        session,
+        DomainEvent(
+            type=kind,
+            space_id=transfer.space_id,
+            actor_id=transfer.created_by,
+            subject_type="transfer_export"
+            if isinstance(transfer, TransferExport)
+            else "transfer_import",
+            subject_id=transfer.id,
+            payload=PublicEventPayload(
+                recipient_id=transfer.created_by, due_at=transfer.expires_at
+            ),
+        ),
+    )
+
+
+def _record_exhausted_storage(
+    session: Session, transfer: TransferExport | TransferImport, job_id: UUID | None
+) -> None:
+    job = session.get(Job, job_id) if job_id is not None else None
+    if job is not None and job.attempts >= job.max_attempts:
+        transfer.status = "FAILED"
+        transfer.error_code = (
+            ErrorCode.TRANSFER_EXPORT_FAILED
+            if isinstance(transfer, TransferExport)
+            else ErrorCode.TRANSFER_IMPORT_FAILED
+        )
+        _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
+
+
 def handle_export(session: Session, payload: dict[str, Any]) -> None:
     identifier = _identifier(payload, "exportId")
     if identifier is None:
@@ -179,13 +215,16 @@ def handle_export(session: Session, payload: dict[str, Any]) -> None:
     except BadRequestError as error:
         transfer.status = ExportStatus.FAILED.value
         transfer.error_code = error.code
+        _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
         return
     except OSError as error:
+        _record_exhausted_storage(session, transfer, transfer.job_id)
         raise RetryableJobError("Transfer export storage is temporarily unavailable.") from error
 
     transfer.status = ExportStatus.READY.value
     transfer.artifact_size = stored.size
     transfer.ready_at = now()
+    _record_outcome(session, transfer, EventType.TRANSFER_READY)
     transfer.error_code = None
     log.info(
         "transfer export ready",
@@ -231,8 +270,10 @@ def handle_validate_import(session: Session, payload: dict[str, Any]) -> None:
     except BadRequestError as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
+        _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
         return
     except OSError as error:
+        _record_exhausted_storage(session, transfer, transfer.validation_job_id)
         raise RetryableJobError("Transfer import storage is temporarily unavailable.") from error
 
     transfer.scope = graph.scope.value
@@ -242,6 +283,7 @@ def handle_validate_import(session: Session, payload: dict[str, Any]) -> None:
     transfer.summary = graph.summary
     transfer.validated_at = now()
     transfer.status = ImportStatus.READY_TO_APPLY.value
+    _record_outcome(session, transfer, EventType.TRANSFER_READY)
     transfer.error_code = None
     log.info(
         "transfer import validated",
@@ -286,11 +328,14 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
     except BadRequestError as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
+        _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
         return
     except OSError as error:
+        _record_exhausted_storage(session, transfer, transfer.apply_job_id)
         raise RetryableJobError("Transfer import storage is temporarily unavailable.") from error
 
     transfer.status = ImportStatus.COMPLETED.value
+    _record_outcome(session, transfer, EventType.TRANSFER_COMPLETED)
     transfer.completed_at = now()
     transfer.error_code = None
     # The source archive is no longer needed after a successful atomic apply.

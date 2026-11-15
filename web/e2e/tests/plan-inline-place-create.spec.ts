@@ -1,7 +1,14 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import placeCopy from '../../src/i18n/locales/photoPlaces';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import composer from '../../src/i18n/locales/composer';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -62,7 +69,11 @@ async function installPlanningApiMocks(
   };
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -222,6 +233,21 @@ async function installPlanningApiMocks(
       return;
     }
 
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/places/lookup`) {
+      await fulfillJson({
+        items: [
+          {
+            name: 'Colmar',
+            address: 'Alsace',
+            latitude: 48.08,
+            longitude: 7.35,
+          },
+        ],
+        attribution: 'OpenStreetMap',
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/places`) {
       await fulfillJson({
         hasMore: false,
@@ -294,15 +320,36 @@ async function openPlanCreateForm(page: Page) {
   await page.goto('/plan/plans/new');
   const form = planCreateForm(page);
   await form.getByLabel(m5s3.plan.intentionLabel).fill(PLAN_DRAFT_TITLE);
-  await form.getByText(m5s3.plan.addDetails).click();
+  await expect(form.getByLabel(m5s3.common.description)).toBeVisible();
   return form;
 }
 
-async function clickAddNewPlace(form: ReturnType<typeof planCreateForm>) {
-  await form.getByRole('button', { name: m5s3.plan.addNewPlace }).click();
+async function openPlaceChoice(page: Page) {
+  await planCreateForm(page)
+    .locator('.composer-tool-row')
+    .getByRole('button', { name: composer.place, exact: true })
+    .click();
+  return page.getByRole('dialog', { name: m5s3.common.place, exact: true });
 }
 
-test('the optional enrichment offers no-place, existing Places, and a separate add-new-place action', async ({
+async function selectNewPlace(page: Page) {
+  const picker = await openPlaceChoice(page);
+  await picker
+    .getByRole('button', { name: m5s3.map.open, exact: true })
+    .click();
+  const map = page.getByRole('dialog', { name: m5s3.map.title, exact: true });
+  await map.getByLabel(m5s3.map.searchLabel).fill('Colmar');
+  await map.getByRole('button', { name: m5s3.map.search, exact: true }).click();
+  await map
+    .getByRole('button', { name: 'Colmar, Alsace', exact: true })
+    .click();
+  await map
+    .getByRole('button', { name: placeCopy.saveSharedPlace, exact: true })
+    .click();
+  return picker;
+}
+
+test('the visible Place choice offers saved Places and a separate map action', async ({
   page,
 }) => {
   await installPlanningApiMocks(page, {
@@ -311,117 +358,112 @@ test('the optional enrichment offers no-place, existing Places, and a separate a
   await page.goto('/today');
   await signIn(page);
   const form = await openPlanCreateForm(page);
-
-  const picker = form.getByLabel(m5s3.common.place);
-  await expect(picker).toHaveValue('');
-  await expect(picker.locator('option')).toHaveText([
-    m5s3.common.noPlace,
-    'Berlin',
-  ]);
+  const picker = await openPlaceChoice(page);
   await expect(
-    form.getByRole('button', { name: m5s3.plan.addNewPlace }),
+    picker.getByRole('button', { name: m5s3.map.open }),
   ).toBeVisible();
-  await picker.selectOption('place-1');
-  await expect(picker).toHaveValue('place-1');
+  await picker.getByLabel(placeCopy.savedSearch).fill('Berlin');
+  await picker.getByRole('button', { name: 'Berlin', exact: true }).click();
+  await expect(picker).toBeHidden();
+  await expect(
+    form.getByRole('button', { name: 'Berlin', exact: true }),
+  ).toBeVisible();
 });
 
-test('creating a new Place from the picker keeps the Plan draft and selects the new Place, without leaking a sentinel placeId', async ({
+test('creating a map Place preserves the Plan draft and sends its canonical identifier', async ({
   page,
 }) => {
   const calls = await installPlanningApiMocks(page);
   await page.goto('/today');
   await signIn(page);
   const form = await openPlanCreateForm(page);
-
-  await clickAddNewPlace(form);
-  await form.getByLabel(m5s3.place.name, { exact: true }).fill('Colmar');
-  await form.getByRole('button', { name: m5s3.plan.newPlaceSave }).click();
-
-  await expect(form.getByLabel(m5s3.common.place)).toHaveValue('place-1');
-
+  const picker = await selectNewPlace(page);
+  await expect(picker).toBeHidden();
+  await expect(
+    form.getByRole('button', { name: 'Colmar', exact: true }),
+  ).toBeVisible();
   await expect(form.getByLabel(m5s3.plan.intentionLabel)).toHaveValue(
     PLAN_DRAFT_TITLE,
   );
-
   await form.getByRole('button', { name: m5s3.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
   expect(calls.lastPlanBody?.placeId).toBe('place-1');
 });
 
-test('an existing Place can be selected and the no-place option remains the default', async ({
+test('an existing Place is selectable while no Place remains the default', async ({
   page,
 }) => {
-  await installPlanningApiMocks(page, {
+  const calls = await installPlanningApiMocks(page, {
     seedPlaces: [{ id: 'place-1', name: 'Berlin', address: null }],
   });
   await page.goto('/today');
   await signIn(page);
   const form = await openPlanCreateForm(page);
-
-  const picker = form.getByLabel(m5s3.common.place);
-  await expect(picker).toHaveValue('');
-  await picker.selectOption('place-1');
-
+  const picker = await openPlaceChoice(page);
+  await picker.getByRole('button', { name: 'Berlin', exact: true }).click();
+  await expect(picker).toBeHidden();
   await form.getByRole('button', { name: m5s3.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
+  expect(calls.lastPlanBody?.placeId).toBe('place-1');
+  expect(calls.createPlaceCalls).toBe(0);
 });
 
-test('a failed inline Place creation keeps the Plan draft and lets the user retry', async ({
+test('failed map Place creation preserves the Plan draft and allows a deliberate retry', async ({
   page,
 }) => {
-  const calls = await installPlanningApiMocks(page, { placeCreateFails: true });
+  const options = { placeCreateFails: true };
+  const calls = await installPlanningApiMocks(page, options);
   await page.goto('/today');
   await signIn(page);
   const form = await openPlanCreateForm(page);
-
-  await clickAddNewPlace(form);
-  await form.getByLabel(m5s3.place.name, { exact: true }).fill('Colmar');
-  await form.getByRole('button', { name: m5s3.plan.newPlaceSave }).click();
-
-  await expect(form.getByRole('alert')).toBeVisible();
+  const picker = await selectNewPlace(page);
+  await expect(picker.getByRole('alert')).toBeVisible();
+  expect(calls.createPlaceCalls).toBe(1);
+  options.placeCreateFails = false;
+  await picker
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await selectNewPlace(page);
+  await expect(
+    form.getByRole('button', { name: 'Colmar', exact: true }),
+  ).toBeVisible();
   await expect(form.getByLabel(m5s3.plan.intentionLabel)).toHaveValue(
     PLAN_DRAFT_TITLE,
   );
-  expect(calls.createPlaceCalls).toBe(1);
-
-  await expect(form.getByLabel(m5s3.common.place)).toHaveValue('');
+  expect(calls.createPlaceCalls).toBe(2);
+  expect(calls.createPlanCalls).toBe(0);
 });
 
-test('an open empty inline Place panel does not block saving the Plan and does not send a sentinel placeId', async ({
+test('cancelling the empty Place choice permits saving without a Place', async ({
   page,
 }) => {
   const calls = await installPlanningApiMocks(page);
   await page.goto('/today');
   await signIn(page);
   const form = await openPlanCreateForm(page);
-
-  await clickAddNewPlace(form);
+  const picker = await openPlaceChoice(page);
+  await picker
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
   await form.getByRole('button', { name: m5s3.common.save }).click();
-
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
   expect(calls.createPlaceCalls).toBe(0);
   expect(calls.createPlanCalls).toBe(1);
   expect(calls.lastPlanBody?.placeId).toBeUndefined();
 });
 
-test('pressing Enter in inline Place fields does not submit the outer Plan', async ({
+test('Enter in Place search cannot submit the surrounding Plan', async ({
   page,
 }) => {
   const calls = await installPlanningApiMocks(page);
   await page.goto('/today');
   await signIn(page);
-  const form = await openPlanCreateForm(page);
-
-  await clickAddNewPlace(form);
-  const nameInput = form.getByLabel(m5s3.place.name, { exact: true });
-  await nameInput.fill('Colmar');
-  await nameInput.press('Enter');
+  await openPlanCreateForm(page);
+  const picker = await openPlaceChoice(page);
+  const search = picker.getByLabel(placeCopy.savedSearch);
+  await search.fill('Colmar');
+  await search.press('Enter');
   expect(calls.createPlaceCalls).toBe(0);
   expect(calls.createPlanCalls).toBe(0);
-
-  const addressInput = form.getByLabel(m5s3.place.address, { exact: true });
-  await addressInput.fill('12 Example Street');
-  await addressInput.press('Enter');
-  expect(calls.createPlaceCalls).toBe(0);
-  expect(calls.createPlanCalls).toBe(0);
+  await expect(picker).toBeVisible();
 });

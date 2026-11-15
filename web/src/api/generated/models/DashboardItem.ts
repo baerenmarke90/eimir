@@ -29,6 +29,12 @@ import {
 export interface DashboardItem {
     /**
      * 
+     * @type {boolean}
+     * @memberof DashboardItem
+     */
+    concealed?: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof DashboardItem
      */
@@ -53,6 +59,18 @@ export interface DashboardItem {
     previewAttachmentId?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof DashboardItem
+     */
+    previewHasThumbnail?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof DashboardItem
+     */
+    previewIsSensitive?: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof DashboardItem
      */
@@ -63,6 +81,12 @@ export interface DashboardItem {
      * @memberof DashboardItem
      */
     scheduledOn?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof DashboardItem
+     */
+    scheduledUntil?: Date | null;
     /**
      * 
      * @type {string}
@@ -102,12 +126,16 @@ export function DashboardItemFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
+        'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'createdAt': (json['createdAt'] == null ? null : new Date(json['createdAt'])),
         'id': json['id'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
         'previewAttachmentId': json['previewAttachmentId'] === undefined ? undefined : json['previewAttachmentId'] === null ? null : json['previewAttachmentId'],
+        'previewHasThumbnail': json['previewHasThumbnail'] == null ? undefined : json['previewHasThumbnail'],
+        'previewIsSensitive': json['previewIsSensitive'] == null ? undefined : json['previewIsSensitive'],
         'scheduledAt': (json['scheduledAt'] == null ? null : new Date(json['scheduledAt'])),
         'scheduledOn': json['scheduledOn'] === undefined ? undefined : json['scheduledOn'] === null ? null : (new Date(json['scheduledOn'])),
+        'scheduledUntil': json['scheduledUntil'] === undefined ? undefined : json['scheduledUntil'] === null ? null : (new Date(json['scheduledUntil'])),
         'titleOrText': json['titleOrText'],
         'type': DashboardItemTypeFromJSON(json['type']),
     };
@@ -124,12 +152,16 @@ export function DashboardItemToJSONTyped(value?: DashboardItem | null, ignoreDis
 
     return {
         
+        'concealed': value['concealed'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
         'id': value['id'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),
         'previewAttachmentId': value['previewAttachmentId'],
+        'previewHasThumbnail': value['previewHasThumbnail'],
+        'previewIsSensitive': value['previewIsSensitive'],
         'scheduledAt': value['scheduledAt'] == null ? value['scheduledAt'] : value['scheduledAt'].toISOString(),
         'scheduledOn': value['scheduledOn'] == null ? value['scheduledOn'] : value['scheduledOn'].toISOString().substring(0,10),
+        'scheduledUntil': value['scheduledUntil'] == null ? value['scheduledUntil'] : value['scheduledUntil'].toISOString().substring(0,10),
         'titleOrText': value['titleOrText'],
         'type': DashboardItemTypeToJSON(value['type']),
     };

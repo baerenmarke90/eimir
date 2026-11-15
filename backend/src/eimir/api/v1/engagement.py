@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
@@ -12,11 +13,10 @@ from fastapi import status as http_status
 from pydantic import ConfigDict
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import Authorization, DbSession, ensure_capability
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.authorization import PrivacyClass, readable
-from eimir.engagement import service, thinking
+from eimir.engagement import presentation, service, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -34,6 +34,8 @@ class ActivityTargetPresentation(ApiModel):
     target_type: EngagementTarget
     target_id: UUID
     title: str | None = None
+    concealed: bool = False
+    """``title`` is the list title of a discreet Plan; show no other content."""
 
 
 class ActivityItem(ApiModel):
@@ -120,12 +122,14 @@ def get_activity(
     response: Response,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
+    scope: Annotated[service.ActivityScope, Query()] = service.ActivityScope.SHARED,
 ) -> ActivityPage:
     page = service.read_activity(
         session,
         authorization,
         cursor=cursor,
         limit=limit,
+        scope=scope,
     )
     actor_ids = {item.actor_id for item in page.items if item.actor_id is not None}
     actors = _resolve_actors(session, actor_ids)
@@ -215,12 +219,18 @@ def mark_notification_read(
         authorization,
         notification_id,
     )
+    return _present_opened_notification(notification, session, authorization, response)
+
+
+def _present_opened_notification(
+    notification: Notification, session: DbSession, authorization: Authorization, response: Response
+) -> NotificationItem:
     actors = (
         _resolve_actors(session, {notification.actor_id})
         if notification.actor_id is not None
         else {}
     )
-    target_titles = {}
+    target_titles = None
     if notification.target_type is not None and notification.target_id is not None:
         with contextlib.suppress(ValueError):
             target_titles = _resolve_target_titles(
@@ -230,6 +240,46 @@ def mark_notification_read(
             )
     response.headers["Cache-Control"] = "private, no-store"
     return _notification_item(notification, actors, target_titles)
+
+
+@router.post(
+    "/spaces/{spaceId}/notifications/{notificationId}/open",
+    response_model=NotificationItem,
+    operation_id="openNotification",
+    responses=problem_responses(401, 404, 422),
+    tags=["notifications"],
+)
+def open_notification(
+    authorization: AccountBoundAuthorization,
+    session: DbSession,
+    response: Response,
+    notification_id: Annotated[str, Path(alias="notificationId")],
+) -> NotificationItem:
+    """Resolve an explicit external tap even when the recipient hides Center entries.
+
+    This never enables ambient in-app presentation. Recipient, source visibility,
+    expiry and mutual-reveal checks remain identical to the normal read action.
+    """
+    notification = service.mark_notification_read(
+        session, authorization, notification_id, include_external=True
+    )
+    if notification.kind == NotificationKind.GENTLE_PROMPT.value:
+        from sqlalchemy import select
+
+        from eimir.core import clock
+        from eimir.engagement import gentle
+        from eimir.engagement.models import GentleOccasion
+
+        occasion = session.scalar(
+            select(GentleOccasion).where(
+                GentleOccasion.notification_id == notification.id,
+                GentleOccasion.account_id == authorization.account_id,
+            )
+        )
+        if occasion is not None:
+            occasion.opened_at = occasion.opened_at or clock.now()
+            gentle.record_use(session, authorization)
+    return _present_opened_notification(notification, session, authorization, response)
 
 
 @router.post(
@@ -324,51 +374,38 @@ def _resolve_target_titles(
     session: DbSession,
     authorization: Authorization,
     targets: set[tuple[EngagementTarget, UUID]],
-) -> dict[tuple[EngagementTarget, UUID], str]:
-    if not targets:
-        return {}
+) -> TargetTitles:
+    titles = presentation.target_titles(session, authorization, targets)
+    return TargetTitles(titles, presentation.concealed_targets(session, targets))
 
-    by_type: dict[EngagementTarget, set[UUID]] = {}
-    for target_type, target_id in targets:
-        by_type.setdefault(target_type, set()).add(target_id)
 
-    titles: dict[tuple[EngagementTarget, UUID], str] = {}
-    for target_type, ids in by_type.items():
-        model = service._TARGET_MODELS.get(target_type)
-        if model is None:
-            continue
-        statement = readable(model, authorization).where(
-            model.id.in_(ids),
-            model.privacy_class == PrivacyClass.SPACE_SHARED.value,
+@dataclass(frozen=True)
+class TargetTitles:
+    titles: dict[tuple[EngagementTarget, UUID], str]
+    concealed: set[tuple[EngagementTarget, UUID]]
+
+    def presentation(
+        self, target_type: EngagementTarget, target_id: UUID
+    ) -> ActivityTargetPresentation:
+        key = (target_type, target_id)
+        return ActivityTargetPresentation(
+            target_type=target_type,
+            target_id=target_id,
+            title=self.titles.get(key),
+            concealed=key in self.concealed,
         )
-        rows = session.execute(statement).scalars().all()
-        for row in rows:
-            title: str | None = None
-            if hasattr(row, "payload") and row.payload is not None:
-                if target_type is EngagementTarget.HEART_MOMENT:
-                    title = getattr(row.payload, "text", None)
-                elif target_type is EngagementTarget.PLACE:
-                    title = getattr(row.payload, "name", None)
-                else:
-                    title = getattr(row.payload, "title", None)
-            if title:
-                titles[(target_type, row.id)] = title
-    return titles
 
 
 def _activity_item(
     item: Activity,
     actors: dict[UUID, AuthorSummary],
-    target_titles: dict[tuple[EngagementTarget, UUID], str],
+    target_titles: TargetTitles,
 ) -> ActivityItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)),
+            target_presentation = target_titles.presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
 
     return ActivityItem(
@@ -388,16 +425,13 @@ def _activity_item(
 def _notification_item(
     item: Notification,
     actors: dict[UUID, AuthorSummary] | None = None,
-    target_titles: dict[tuple[EngagementTarget, UUID], str] | None = None,
+    target_titles: TargetTitles | None = None,
 ) -> NotificationItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)) if target_titles else None,
+            target_presentation = (target_titles or TargetTitles({}, set())).presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
     return NotificationItem(
         id=item.id,

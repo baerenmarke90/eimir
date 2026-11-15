@@ -7,7 +7,10 @@
 Name | Type
 ------------ | -------------
 `body` | string
+`expectedPlaceIds` | Array&lt;string&gt;
 `happenedOn` | Date
+`happenedUntil` | Date
+`placeIds` | Array&lt;string&gt;
 `tags` | Array&lt;string&gt;
 `title` | string
 
@@ -19,7 +22,10 @@ import type { MemoryUpdate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "body": null,
+  "expectedPlaceIds": null,
   "happenedOn": null,
+  "happenedUntil": null,
+  "placeIds": null,
   "tags": null,
   "title": null,
 } satisfies MemoryUpdate

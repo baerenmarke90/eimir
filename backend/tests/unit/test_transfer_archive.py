@@ -164,3 +164,13 @@ def test_compression_ratio_is_bounded() -> None:
     with pytest.raises(Exception) as caught:
         validate_zip(_bundle({"accounts.json": b"A" * 100_000}))
     assert getattr(caught.value, "code", None) == ErrorCode.TRANSFER_TOO_LARGE
+
+
+def test_weekly_feedback_is_a_personal_only_bundle_entry() -> None:
+    entries = {
+        "accounts.json": _json({"members": []}),
+        "private/weekly-insight-feedback.json": _json({"tables": []}),
+    }
+    validated = validate_zip(_bundle(entries, scope="PERSONAL"))
+    assert "private/weekly-insight-feedback.json" in validated.entries
+    _assert_code(_bundle(entries, scope="SHARED"), ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID)

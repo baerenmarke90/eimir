@@ -21,6 +21,7 @@ from eimir.auth.policy import (
     resolve_auth_capabilities,
     self_service_signup_supported,
 )
+from eimir.legal import terms
 
 router = APIRouter(tags=["instance"])
 
@@ -63,6 +64,14 @@ class InstanceAccessStatus(ApiModel):
             "`self_service` and `registrationAvailable` is true."
         ),
     )
+    terms_of_use_version: str | None = Field(
+        default=None,
+        description=(
+            "Version of the eimir. Cloud terms of use that a new Account must accept, sent back "
+            "as `acceptedTermsVersion` when requesting or redeeming a signup proof. `null` where "
+            "no such terms apply, including every Self-Hosted instance."
+        ),
+    )
 
 
 @router.get("/instance/status", response_model=InstanceAccessStatus)
@@ -86,4 +95,5 @@ def instance_status(
         auth=auth_policy,
         account_creation="self_service" if self_service else "invitation",
         self_service_signup_available=self_service and state.effective_registration_enabled,
+        terms_of_use_version=terms.required_terms_version(),
     )

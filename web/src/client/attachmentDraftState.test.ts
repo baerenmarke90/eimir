@@ -48,6 +48,23 @@ describe('attachmentDraftReducer', () => {
     });
     expect(state[0]?.progress).toBe(37);
 
+    for (const progress of [12, Number.NaN, Number.POSITIVE_INFINITY]) {
+      state = attachmentDraftReducer(state, {
+        type: 'progress',
+        id: 'one',
+        attempt: 1,
+        progress,
+      });
+      expect(state[0]?.progress).toBe(37);
+    }
+    state = attachmentDraftReducer(state, {
+      type: 'phase',
+      id: 'one',
+      attempt: 1,
+      status: 'uploading',
+    });
+    expect(state[0]?.progress).toBe(37);
+
     state = attachmentDraftReducer(state, {
       type: 'start',
       id: 'one',
@@ -184,4 +201,30 @@ describe('attachmentDraftReducer', () => {
 
     expect(readyAttachmentIds(state)).toEqual(['attachment-1', 'attachment-3']);
   });
+});
+
+it('reorders ready and pending files without changing upload ownership', () => {
+  const one = {
+    ...draft('one'),
+    status: 'ready' as const,
+    attachmentId: 'ready-one',
+  };
+  const two = {
+    ...draft('two'),
+    status: 'ready' as const,
+    attachmentId: 'ready-two',
+  };
+  const pending = draft('pending');
+  const initial = [one, pending, two];
+  const moved = attachmentDraftReducer(initial, {
+    type: 'move',
+    id: 'two',
+    offset: -1,
+  });
+  expect(moved).toEqual([one, two, pending]);
+  expect(moved[1]).toBe(two);
+  expect(readyAttachmentIds(moved)).toEqual(['ready-one', 'ready-two']);
+  expect(
+    attachmentDraftReducer(initial, { type: 'move', id: 'one', offset: -1 }),
+  ).toBe(initial);
 });

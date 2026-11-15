@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -194,12 +195,9 @@ function WishDetectiveSessionView({
           >
             {t('games.wishDetective.restart')}
           </button>
-          <Link
-            className="button-link secondary-link"
-            to={appRoutePath('games')}
-          >
+          <TaskBackLink to={appRoutePath('games')}>
             {t('games.wishDetective.backToGames')}
-          </Link>
+          </TaskBackLink>
         </div>
       </section>
     );
@@ -451,11 +449,6 @@ export function WishDetectiveGamePage({
   return (
     <div className="page wish-detective-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('games')}>
-            {t('games.wishDetective.back')}
-          </Link>
-        }
         eyebrow={t('games.entries.wishes.role')}
         title={t('games.entries.wishes.title')}
         description={t('games.wishDetective.intro')}
@@ -474,15 +467,14 @@ export function WishDetectiveGamePage({
             {t('games.wishDetective.interruptedTitle')}
           </h2>
           <p>{t('games.wishDetective.interruptedBody')}</p>
-          <Link
-            className="button-link"
+          <TaskBackLink
             to={appRoutePath('games')}
             onClick={() =>
               setWishDetectiveHiddenRoundMarker(hiddenRoundStorageKey, false)
             }
           >
             {t('games.wishDetective.backToGames')}
-          </Link>
+          </TaskBackLink>
         </section>
       ) : setupQuery.isPending ? (
         <UiState

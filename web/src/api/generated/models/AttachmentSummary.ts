@@ -33,6 +33,18 @@ import {
 export interface AttachmentSummary {
     /**
      * 
+     * @type {number}
+     * @memberof AttachmentSummary
+     */
+    durationSeconds?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AttachmentSummary
+     */
+    failureCode?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof AttachmentSummary
      */
@@ -49,6 +61,12 @@ export interface AttachmentSummary {
      * @memberof AttachmentSummary
      */
     id: string;
+    /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof AttachmentSummary
+     */
+    isSensitive?: boolean;
     /**
      * 
      * @type {MediaType}
@@ -108,9 +126,12 @@ export function AttachmentSummaryFromJSONTyped(json: any, ignoreDiscriminator: b
     }
     return {
         
+        'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'size': json['size'],
@@ -130,9 +151,12 @@ export function AttachmentSummaryToJSONTyped(value?: AttachmentSummary | null, i
 
     return {
         
+        'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'size': value['size'],

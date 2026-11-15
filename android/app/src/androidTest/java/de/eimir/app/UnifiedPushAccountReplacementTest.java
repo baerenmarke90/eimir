@@ -12,6 +12,7 @@ import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.google.firebase.FirebaseApp;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -35,9 +36,11 @@ public class UnifiedPushAccountReplacementTest {
     private final Context context = instrumentation.getTargetContext();
     private RecordingLauncherActivity activity;
     private ActivityScenario<LauncherActivity> scenario;
-    private UnifiedPushBridge plugin;
+    private NativePushBridge plugin;
     private String distributor;
     private String previousToken;
+    private PushActivation previousActivation;
+    private static final String API = "https://example.invalid";
 
     @Before
     public void prepare() throws Exception {
@@ -50,7 +53,7 @@ public class UnifiedPushAccountReplacementTest {
                 .putExtra(RecordingLauncherActivity.RECORD_DISPATCH, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         scenario.onActivity(created -> activity = (RecordingLauncherActivity) created);
-        plugin = (UnifiedPushBridge) activity.getBridge().getPlugin("EimirUnifiedPush").getInstance();
+        plugin = (NativePushBridge) activity.getBridge().getPlugin("EimirPush").getInstance();
         assertTrue("The old Web document has been replaced", activity.awaitBlankDocument(5, TimeUnit.SECONDS));
         CountDownLatch nativeCallsDrained = new CountDownLatch(1);
         activity.getBridge().execute(nativeCallsDrained::countDown);
@@ -64,13 +67,13 @@ public class UnifiedPushAccountReplacementTest {
         assertTrue("The test APK is a discoverable distributor",
             UnifiedPush.getDistributors(activity).contains(distributor));
         UnifiedPush.saveDistributor(activity, distributor);
-        UnifiedPush.register(activity, PREVIOUS, "eimir.", VAPID);
+        previousActivation = new PushActivation(PREVIOUS, API, "unifiedpush", UUID.randomUUID().toString(), null);
+        UnifiedPush.register(activity, previousActivation.activationId, "eimir.", VAPID);
         List<Intent> initial = activity.registrations();
         assertEquals("The initial Account dispatches exactly one real connector registration", 1, initial.size());
         previousToken = initial.get(0).getStringExtra("token");
         assertNotNull(previousToken);
-        context.getSharedPreferences("eimir_unified_push", Context.MODE_PRIVATE).edit()
-            .putString("active_account", PREVIOUS).commit();
+        PushActivation.save(context, previousActivation);
         activity.clear();
         trace("prepared");
     }
@@ -78,9 +81,12 @@ public class UnifiedPushAccountReplacementTest {
     @After
     public void cleanup() throws Exception {
         try {
-            if (plugin != null) plugin.disable(new CapturedCall("disable", new JSObject()));
-            UnifiedPush.unregister(context, PREVIOUS);
-            UnifiedPush.unregister(context, NEXT);
+            if (plugin != null) {
+                CapturedCall disable = new CapturedCall("disable", new JSObject());
+                plugin.disable(disable);
+                disable.await();
+            }
+            if (previousActivation != null) UnifiedPush.unregister(context, previousActivation.activationId);
             UnifiedPush.removeDistributor(context);
         } finally {
             if (scenario != null) scenario.close();
@@ -91,35 +97,40 @@ public class UnifiedPushAccountReplacementTest {
     public void replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration() throws Exception {
         CapturedCall enable = new CapturedCall("enable", configuration(NEXT));
         instrumentation.runOnMainSync(() -> plugin.enable(enable));
+        enable.await();
         assertNull(enable.error);
         assertTrue("Activation resolves after dispatching registration", enable.resolved);
         List<Intent> registrations = activity.registrations();
         trace("replacement dispatched");
-        assertEquals("Replacing the last Account retains the newly selected distributor",
-            distributor, UnifiedPush.getSavedDistributor(activity));
+        String selectedDistributor = UnifiedPush.getSavedDistributor(activity);
+        assertNotNull("Replacing the last Account selects a distributor", selectedDistributor);
+        assertTrue("The selected distributor is installed and discoverable",
+            UnifiedPush.getDistributors(activity).contains(selectedDistributor));
         assertEquals("The replacement Account dispatches exactly one real REGISTER", 1, registrations.size());
         Intent registration = registrations.get(0);
-        assertEquals(distributor, registration.getPackage());
+        assertEquals("REGISTER targets the newly selected current/default distributor",
+            selectedDistributor, registration.getPackage());
         assertNotNull(registration.getStringExtra("token"));
         assertFalse("The replacement uses a new registration",
             previousToken.equals(registration.getStringExtra("token")));
-        assertEquals(NEXT, context.getSharedPreferences("eimir_unified_push", Context.MODE_PRIVATE)
-            .getString("active_account", null));
+        PushActivation replacement = PushActivation.read(context);
+        assertEquals(NEXT, replacement.accountId);
+        assertEquals(API, replacement.apiBaseUrl);
+        assertEquals("unifiedpush", replacement.providerKey);
+        assertFalse("The new Account receives a separate activation", previousActivation.activationId.equals(replacement.activationId));
     }
 
     @Test
     public void aCancelledEnableCannotRetireTheCurrentAccount() throws Exception {
         CapturedCall cancelled = new CapturedCall("enable", configuration(NEXT));
-        Field generation = UnifiedPushBridge.class.getDeclaredField("registrationRequests");
+        Field generation = NativePushBridge.class.getDeclaredField("registrationRequests");
         generation.setAccessible(true);
         int obsoleteRequest = ((AtomicInteger) generation.get(plugin)).get();
-        Method register = UnifiedPushBridge.class.getDeclaredMethod("selectAndRegister", PluginCall.class, int.class);
+        Method register = NativePushBridge.class.getDeclaredMethod("selectAndRegister", PluginCall.class, int.class);
         register.setAccessible(true);
         instrumentation.runOnMainSync(() -> invoke(register, cancelled, obsoleteRequest));
         assertEquals("PUSH_REQUEST_CANCELLED", cancelled.error);
-        assertEquals("Cancellation does not clear the active Account", PREVIOUS,
-            context.getSharedPreferences("eimir_unified_push", Context.MODE_PRIVATE)
-                .getString("active_account", null));
+        assertEquals("Cancellation does not clear the active Account", PREVIOUS, PushActivation.read(context).accountId);
         assertEquals(distributor, UnifiedPush.getSavedDistributor(activity));
         assertTrue("Cancellation emits no distributor operation", !activity.hasRequests());
         trace("obsolete enable rejected");
@@ -128,16 +139,32 @@ public class UnifiedPushAccountReplacementTest {
     @Test
     public void aPermissionCallbackAfterDisableCannotReactivatePush() throws Exception {
         CapturedCall cancelled = new CapturedCall("enable", configuration(NEXT));
-        plugin.disable(new CapturedCall("disable", new JSObject()));
+        CapturedCall disable = new CapturedCall("disable", new JSObject());
+        plugin.disable(disable);
+        disable.await();
         activity.clear();
-        Method permissionResult = UnifiedPushBridge.class.getDeclaredMethod("permissionResult", PluginCall.class);
+        Method permissionResult = NativePushBridge.class.getDeclaredMethod("permissionResult", PluginCall.class);
         permissionResult.setAccessible(true);
         instrumentation.runOnMainSync(() -> invoke(permissionResult, cancelled));
         assertEquals("PUSH_REQUEST_CANCELLED", cancelled.error);
-        assertNull(context.getSharedPreferences("eimir_unified_push", Context.MODE_PRIVATE)
-            .getString("active_account", null));
+        assertNull(PushActivation.read(context));
         assertNull(UnifiedPush.getSavedDistributor(activity));
         assertTrue("Cancelled permission delivery emits no distributor operation", !activity.hasRequests());
+        CapturedCall status = new CapturedCall("status", new JSObject());
+        plugin.status(status);
+        assertNotNull(status.data);
+        assertEquals("Status exposes the compiled package for server configuration matching",
+            context.getPackageName(), status.data.getString("androidPackage"));
+        String configuredProject = null;
+        try { configuredProject = FirebaseApp.getInstance().getOptions().getProjectId(); }
+        catch (IllegalStateException unconfigured) { }
+        assertTrue("Unconfigured Firebase metadata is explicitly nullable", status.data.has("firebaseProjectId"));
+        assertEquals("Status uses only the existing Firebase options",
+            configuredProject, status.data.isNull("firebaseProjectId") ? null : status.data.getString("firebaseProjectId"));
+        for (String field : new String[] { "accountId", "apiBaseUrl", "providerKey", "activationId" }) {
+            assertTrue("Disabled status retains explicit nullable ownership fields",
+                status.data.has(field) && status.data.isNull(field));
+        }
         trace("late permission rejected");
     }
 
@@ -150,7 +177,8 @@ public class UnifiedPushAccountReplacementTest {
     }
 
     private static JSObject configuration(String accountId) {
-        return new JSObject().put("accountId", accountId).put("vapidPublicKey", VAPID);
+        return new JSObject().put("accountId", accountId).put("apiBaseUrl", API)
+            .put("providerKey", "unifiedpush").put("vapidPublicKey", VAPID);
     }
 
     private void trace(String stage) {
@@ -162,18 +190,24 @@ public class UnifiedPushAccountReplacementTest {
     private static final class CapturedCall extends PluginCall {
         boolean resolved;
         String error;
+        JSObject data;
+        private final CountDownLatch completed = new CountDownLatch(1);
+
+        void await() throws InterruptedException {
+            assertTrue("The native lifecycle operation completes", completed.await(5, TimeUnit.SECONDS));
+        }
 
         CapturedCall(String method, JSObject data) {
-            super(null, "EimirUnifiedPush", UUID.randomUUID().toString(), method, data);
+            super(null, "EimirPush", UUID.randomUUID().toString(), method, data);
         }
 
         @Override
-        public void resolve() { resolved = true; }
+        public void resolve() { resolved = true; completed.countDown(); }
 
         @Override
-        public void resolve(JSObject data) { resolved = true; }
+        public void resolve(JSObject data) { this.data = data; resolved = true; completed.countDown(); }
 
         @Override
-        public void reject(String message, String code, Exception cause, JSObject data) { error = message; }
+        public void reject(String message, String code, Exception cause, JSObject data) { error = message; completed.countDown(); }
     }
 }

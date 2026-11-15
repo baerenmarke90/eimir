@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface SignupConsumeRequest {
     /**
+     * Terms-of-use acceptance given while redeeming. Needed only after `TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account but carries no acceptance of the current version.
+     * @type {string}
+     * @memberof SignupConsumeRequest
+     */
+    acceptedTermsVersion?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof SignupConsumeRequest
@@ -63,6 +69,7 @@ export function SignupConsumeRequestFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
+        'acceptedTermsVersion': json['acceptedTermsVersion'] === undefined ? undefined : json['acceptedTermsVersion'] === null ? null : json['acceptedTermsVersion'],
         'deviceName': json['deviceName'] == null ? undefined : json['deviceName'],
         'displayName': json['displayName'] === undefined ? undefined : json['displayName'] === null ? null : json['displayName'],
         'platform': json['platform'] == null ? undefined : json['platform'],
@@ -81,6 +88,7 @@ export function SignupConsumeRequestToJSONTyped(value?: SignupConsumeRequest | n
 
     return {
         
+        'acceptedTermsVersion': value['acceptedTermsVersion'],
         'deviceName': value['deviceName'],
         'displayName': value['displayName'],
         'platform': value['platform'],

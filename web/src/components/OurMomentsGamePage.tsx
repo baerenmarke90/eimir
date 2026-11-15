@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -19,10 +20,8 @@ import {
   type PreparedOurMoment,
   selectOurMomentsRound,
 } from '../client/ourMomentsSession';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-} from '../client/referenceFlow';
+import { createReferenceApis } from '../client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -226,12 +225,9 @@ function ActiveOurMomentsSessionView({
           <button type="button" onClick={() => session.restart()}>
             {t('games.momentsGame.restart')}
           </button>
-          <Link
-            className="button-link secondary-link"
-            to={appRoutePath('games')}
-          >
+          <TaskBackLink to={appRoutePath('games')}>
             {t('games.momentsGame.backToGames')}
-          </Link>
+          </TaskBackLink>
         </div>
       </section>
     );
@@ -356,17 +352,14 @@ async function loadDefaultSetup({
   const resources: OwnedObjectUrl[] = [];
   const results = await Promise.allSettled(
     selected.map(async (candidate) => {
-      const imageUrl = await loadAuthorizedImage(
+      const resource = await loadAuthorizedStoryImageResource(
         referenceApis,
-        apiBaseUrl,
-        accessToken,
         spaceId,
+        'MEMORY',
         candidate.memoryId,
         candidate.imageAttachmentId,
-        fetch,
-        signal,
+        { signal },
       );
-      const resource = adoptObjectUrl(imageUrl);
       resources.push(resource);
       return {
         memoryId: candidate.memoryId,
@@ -446,11 +439,6 @@ export function OurMomentsGamePage({
   return (
     <div className="page our-moments-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('games')}>
-            {t('games.momentsGame.back')}
-          </Link>
-        }
         eyebrow={t('games.entries.moments.role')}
         title={t('games.entries.moments.title')}
         description={t('games.momentsGame.intro')}

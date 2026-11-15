@@ -11,6 +11,45 @@ from eimir.attachments import images
 from eimir.attachments.limits import MediaRule, rule_for
 
 MANUFACTURER = "GeheimKamera GmbH"
+
+
+def test_optional_gps_is_consent_gated_and_never_survives_in_image_bytes() -> None:
+    raw = _with_metadata()
+    assert images.process(raw, _rule()).coordinates is None
+    result = images.process(raw, _rule(), extract_location=True)
+    assert result.coordinates == (52.516667, 13.4)
+    assert "52.516667" not in repr(result)
+    assert Image.open(io.BytesIO(result.content)).getexif() == {}
+    assert result.thumbnail is not None
+    assert Image.open(io.BytesIO(result.thumbnail)).getexif() == {}
+
+
+@pytest.mark.parametrize(
+    "gps,expected",
+    [
+        ({1: "N", 2: (0, 0, 0), 3: "E", 4: (0, 0, 0)}, (0.0, 0.0)),
+        ({1: "S", 2: (90, 0, 0), 3: "W", 4: (180, 0, 0)}, (-90.0, -180.0)),
+        ({1: "N", 2: (90, 1, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "N", 2: (1, 60, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "X", 2: (1, 0, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "N", 2: (1, 0, 0)}, None),
+    ],
+)
+def test_gps_pair_validation(gps, expected) -> None:  # type: ignore[no-untyped-def]
+    image = Image.new("RGB", (16, 16))
+    exif = Image.Exif()
+    exif[0x8825] = gps
+    buffer = io.BytesIO()
+    image.save(buffer, "JPEG", exif=exif.tobytes())
+    assert images.process(buffer.getvalue(), _rule(), extract_location=True).coordinates == expected
+
+
+@pytest.mark.parametrize("part", [float("nan"), float("inf"), -1, 60])
+def test_invalid_dms_is_rejected_without_sensitive_diagnostics(part: float) -> None:
+    with pytest.raises(ValueError, match="Invalid GPS coordinate"):
+        images._gps_coordinate((1, part, 0), "N", "N", "S")
+
+
 COMMENT = "privater Kommentar"
 SOFTWARE = "SpionageApp 1.0"
 
@@ -133,3 +172,53 @@ def test_the_thumbnail_carries_no_metadata_either() -> None:
     assert result.thumbnail is not None
     assert MANUFACTURER.encode() not in result.thumbnail
     assert Image.open(io.BytesIO(result.thumbnail)).getexif() == {}
+
+
+def _camera_mpo() -> bytes:
+    primary = Image.new("RGB", (32, 24), (200, 20, 10))
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    exif[0x010F] = MANUFACTURER
+    target = io.BytesIO()
+    primary.save(
+        target,
+        "MPO",
+        save_all=True,
+        append_images=[Image.new("RGB", (16, 12), (10, 20, 200))],
+        exif=exif,
+    )
+    assert Image.open(io.BytesIO(target.getvalue())).format == "MPO"
+    return target.getvalue()
+
+
+@pytest.mark.parametrize("preserve_metadata", [False, True])
+def test_camera_mpo_jpeg_sanitizes_only_primary_pixels(preserve_metadata: bool) -> None:
+    result = images.process(_camera_mpo(), _rule(), preserve_metadata=preserve_metadata)
+    assert result.mime_type == "image/jpeg"
+    assert (result.width, result.height) == (32, 24)
+    saved = Image.open(io.BytesIO(result.content))
+    assert saved.format == "JPEG"
+    assert saved.size == (32, 24)
+    assert saved.getpixel((0, 0))[0] > 150
+    assert b"MPF\x00" not in result.content
+    assert (saved.getexif().get(0x010F) == MANUFACTURER) is preserve_metadata
+    assert result.thumbnail is not None
+    thumbnail = Image.open(io.BytesIO(result.thumbnail))
+    assert thumbnail.size == ((24, 32) if preserve_metadata else (32, 24))
+    assert thumbnail.getexif() == {}
+
+
+def test_mpo_primary_keeps_type_and_dimension_guards(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", _rule().max_pixels)
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_TYPE_MISMATCH"):
+        images.process(_camera_mpo(), _rule("image/png"))
+    from dataclasses import replace
+
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_TOO_LARGE"):
+        images.process(_camera_mpo(), replace(_rule(), max_pixels=100))
+
+
+def test_truncated_mpo_primary_is_rejected() -> None:
+    raw = _camera_mpo()
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_UNREADABLE"):
+        images.process(raw[: len(raw) // 3], _rule())

@@ -1,0 +1,25 @@
+.preview-card-link {
+  position: relative;
+  isolation: isolate;
+}
+.preview-card-link-target {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+.preview-card-link-content {
+  display: contents;
+  pointer-events: none;
+}
+.preview-card-link-content > * {
+  position: relative;
+  z-index: 1;
+}
+.preview-card-link .sensitive-media-control {
+  pointer-events: auto;
+}
+.preview-card-link:has(> .preview-card-link-target:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}

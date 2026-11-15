@@ -30,7 +30,7 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
     vi.restoreAllMocks();
   });
 
-  it('reuses avatar bytes after unmount while disposing each view URL', async () => {
+  it('reuses avatar bytes and the display URL across tab remounts', async () => {
     const getProfileAvatarContentRaw = vi.fn(async () => ({
       raw: { blob: async () => new Blob(['avatar']) },
     }));
@@ -50,8 +50,10 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
     expect(getProfileAvatarContentRaw).toHaveBeenCalledTimes(1);
     second.unmount();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(createObjectUrl).toHaveBeenCalledTimes(2);
-    expect(revokeObjectUrl).toHaveBeenCalledTimes(2);
+    expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).not.toHaveBeenCalled();
+    clearAuthorizedMediaCache();
+    expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
   });
 
   it('shares an active avatar across profile clients and loads a changed attachment separately', async () => {
@@ -93,6 +95,43 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
+  it('never reuses a revoked active avatar entry after a cache wipe', async () => {
+    let serial = 0;
+    createObjectUrl.mockImplementation(() => `blob:avatar-${++serial}`);
+    const download = vi.fn(async () => ({
+      raw: { blob: async () => new Blob(['avatar']) },
+    }));
+    const api = {
+      getProfileAvatarContentRaw: download,
+    } as unknown as ProfilesApi;
+    const first = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(first.result.current.avatarUrl).toBe('blob:avatar-1'),
+    );
+    clearAuthorizedMediaCache();
+    const next = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(next.result.current.avatarUrl).toBe('blob:avatar-2'),
+    );
+    expect(download).toHaveBeenCalledTimes(2);
+    first.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const simultaneous = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(simultaneous.result.current.avatarUrl).toBe('blob:avatar-2'),
+    );
+    expect(download).toHaveBeenCalledTimes(2);
+    next.unmount();
+    simultaneous.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
   it('deduplicates concurrent consumers of the same avatar and shares one object URL', async () => {
     const blob = vi.fn(async () => new Blob(['avatar']));
     const getProfileAvatarContentRaw = vi.fn(async () => ({
@@ -129,6 +168,8 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
 
     unmount();
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(revokeObjectUrl).not.toHaveBeenCalled();
+    clearAuthorizedMediaCache();
     expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:shared-avatar');
   });

@@ -1,0 +1,56 @@
+.short-task-sheet.media-arrange-task {
+  inset: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+}
+.media-arrange-task .short-task-sheet-body {
+  flex: 1;
+}
+.media-arrange-task .short-task-sheet-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.media-arrange-task .short-task-sheet-footer > button {
+  width: 100%;
+}
+.media-arrange-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.media-arrange-grid li {
+  min-width: 0;
+}
+.media-arrange-handle {
+  width: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.media-arrange-grid .is-dragging {
+  opacity: var(--opacity-disabled);
+}
+.media-arrange-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.media-arrange-controls legend {
+  overflow-wrap: anywhere;
+}
+.photo-draft-cover {
+  display: block;
+  color: var(--color-text-muted);
+}
+@media (min-width: 840px) {
+  .short-task-sheet.media-arrange-task {
+    inset: var(--space-6) 0;
+    height: auto;
+    max-height: calc(100dvh - 2 * var(--space-6));
+    border-radius: var(--radius-sheet-top);
+  }
+  .media-arrange-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

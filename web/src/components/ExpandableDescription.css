@@ -1,0 +1,13 @@
+.expandable-description {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.description-disclosure {
+  display: inline-flex;
+  align-items: center;
+  max-inline-size: 100%;
+  min-block-size: var(--space-12);
+  margin-top: var(--space-2);
+  text-align: start;
+}

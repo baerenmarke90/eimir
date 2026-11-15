@@ -1,4 +1,6 @@
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 
@@ -13,6 +15,8 @@ async function installPlanDetailMocks(page: Page): Promise<string[]> {
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -25,6 +29,16 @@ async function installPlanDetailMocks(page: Page): Promise<string[]> {
 
     if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
       await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
       return;
     }
 
@@ -248,8 +262,9 @@ test('plan detail edit action exposes translated accessible copy, never a raw ke
 
   const editButton = page.getByRole('button', { name: de.common.edit });
   await expect(editButton).toBeVisible();
-  await expect(editButton).toHaveAttribute('aria-label', 'Bearbeiten');
-  await expect(editButton).toHaveAttribute('title', 'Bearbeiten');
+  await expect(editButton).toHaveAccessibleName(de.common.edit);
+  await expect(editButton).toHaveText(de.common.edit);
+  await expect(editButton).toHaveAttribute('type', 'button');
 
   const rawDottedLabels = await page
     .locator('[aria-label]')
@@ -258,7 +273,8 @@ test('plan detail edit action exposes translated accessible copy, never a raw ke
         .map((element) => element.getAttribute('aria-label'))
         .filter(
           (label): label is string =>
-            Boolean(label) &&
+            typeof label === 'string' &&
+            label.length > 0 &&
             /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/.test(label),
         ),
     );

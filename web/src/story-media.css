@@ -60,7 +60,7 @@
 .story-media-placeholder {
   display: grid;
   place-items: center;
-  border: 1px dashed var(--color-border);
+  border: var(--border-surface-width) dashed var(--color-border);
   padding: 1rem;
   background: var(--color-surface-subtle);
   color: var(--color-text-muted);
@@ -98,4 +98,13 @@ input.visually-hidden-input {
   .story-media-skeleton {
     animation: none;
   }
+}
+
+/* Decoded media fades in over its frame instead of popping in. */
+img[data-media-reveal] {
+  transition: opacity var(--duration-context) var(--easing-enter);
+}
+
+img[data-media-reveal="pending"] {
+  opacity: 0;
 }

@@ -67,6 +67,7 @@ def read_memory_candidates(
         readable(Memory, context)
         .add_columns(
             Attachment.id.label("attachment_id"),
+            Attachment.payload,
             MemoryAttachment.position.label("attachment_position"),
         )
         .join(MemoryAttachment, MemoryAttachment.memory_id == Memory.id)
@@ -87,7 +88,11 @@ def read_memory_candidates(
     candidates: list[MemoryCandidate] = []
     seen_memories: set[UUID] = set()
     rows = session.execute(statement).yield_per(100)
-    for memory, attachment_id, _attachment_position in rows:
+    for memory, attachment_id, attachment_payload, _attachment_position in rows:
+        # Gameplay flips are not consent to reveal sensitive content. Select a
+        # different ordinary photo, or leave this Memory in its canonical home.
+        if attachment_payload.is_sensitive:
+            continue
         if memory.id in seen_memories:
             continue
         seen_memories.add(memory.id)

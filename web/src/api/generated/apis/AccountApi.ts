@@ -24,6 +24,36 @@ import {
     AccountDeletionRequestToJSON,
 } from '../models/AccountDeletionRequest';
 import {
+    type DeviceContextUpdate,
+    DeviceContextUpdateFromJSON,
+    DeviceContextUpdateToJSON,
+} from '../models/DeviceContextUpdate';
+import {
+    type DeviceContextView,
+    DeviceContextViewFromJSON,
+    DeviceContextViewToJSON,
+} from '../models/DeviceContextView';
+import {
+    type LanguagePreferenceUpdate,
+    LanguagePreferenceUpdateFromJSON,
+    LanguagePreferenceUpdateToJSON,
+} from '../models/LanguagePreferenceUpdate';
+import {
+    type LanguagePreferenceView,
+    LanguagePreferenceViewFromJSON,
+    LanguagePreferenceViewToJSON,
+} from '../models/LanguagePreferenceView';
+import {
+    type PhotoLocationPreference,
+    PhotoLocationPreferenceFromJSON,
+    PhotoLocationPreferenceToJSON,
+} from '../models/PhotoLocationPreference';
+import {
+    type PhotoLocationPreferenceUpdate,
+    PhotoLocationPreferenceUpdateFromJSON,
+    PhotoLocationPreferenceUpdateToJSON,
+} from '../models/PhotoLocationPreferenceUpdate';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -31,6 +61,20 @@ import {
 
 export interface DeleteOwnAccountApiV1AccountDeletionPostRequest {
     accountDeletionRequest: AccountDeletionRequest;
+}
+
+export interface SetLanguagePreferenceRequest {
+    ifMatch: string;
+    languagePreferenceUpdate: LanguagePreferenceUpdate;
+}
+
+export interface SetPhotoLocationPreferenceRequest {
+    ifMatch: string;
+    photoLocationPreferenceUpdate: PhotoLocationPreferenceUpdate;
+}
+
+export interface UpdateOwnDeviceContextRequest {
+    deviceContextUpdate: DeviceContextUpdate;
 }
 
 /**
@@ -84,6 +128,243 @@ export class AccountApi extends runtime.BaseAPI {
      */
     async deleteOwnAccountApiV1AccountDeletionPost(requestParameters: DeleteOwnAccountApiV1AccountDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AccountDeletionAccepted> {
         const response = await this.deleteOwnAccountApiV1AccountDeletionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getLanguagePreference without sending the request
+     */
+    async getLanguagePreferenceRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/account/language-preference`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Language Preference
+     */
+    async getLanguagePreferenceRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LanguagePreferenceView>> {
+        const requestOptions = await this.getLanguagePreferenceRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LanguagePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Language Preference
+     */
+    async getLanguagePreference(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LanguagePreferenceView> {
+        const response = await this.getLanguagePreferenceRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPhotoLocationPreference without sending the request
+     */
+    async getPhotoLocationPreferenceRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/account/photo-location-preference`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Photo Location Preference
+     */
+    async getPhotoLocationPreferenceRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoLocationPreference>> {
+        const requestOptions = await this.getPhotoLocationPreferenceRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoLocationPreferenceFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Photo Location Preference
+     */
+    async getPhotoLocationPreference(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoLocationPreference> {
+        const response = await this.getPhotoLocationPreferenceRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setLanguagePreference without sending the request
+     */
+    async setLanguagePreferenceRequestOpts(requestParameters: SetLanguagePreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling setLanguagePreference().'
+            );
+        }
+
+        if (requestParameters['languagePreferenceUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'languagePreferenceUpdate',
+                'Required parameter "languagePreferenceUpdate" was null or undefined when calling setLanguagePreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/account/language-preference`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: LanguagePreferenceUpdateToJSON(requestParameters['languagePreferenceUpdate']),
+        };
+    }
+
+    /**
+     * Set Language Preference
+     */
+    async setLanguagePreferenceRaw(requestParameters: SetLanguagePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LanguagePreferenceView>> {
+        const requestOptions = await this.setLanguagePreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LanguagePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Language Preference
+     */
+    async setLanguagePreference(requestParameters: SetLanguagePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LanguagePreferenceView> {
+        const response = await this.setLanguagePreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setPhotoLocationPreference without sending the request
+     */
+    async setPhotoLocationPreferenceRequestOpts(requestParameters: SetPhotoLocationPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling setPhotoLocationPreference().'
+            );
+        }
+
+        if (requestParameters['photoLocationPreferenceUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'photoLocationPreferenceUpdate',
+                'Required parameter "photoLocationPreferenceUpdate" was null or undefined when calling setPhotoLocationPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/account/photo-location-preference`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PhotoLocationPreferenceUpdateToJSON(requestParameters['photoLocationPreferenceUpdate']),
+        };
+    }
+
+    /**
+     * Set Photo Location Preference
+     */
+    async setPhotoLocationPreferenceRaw(requestParameters: SetPhotoLocationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoLocationPreference>> {
+        const requestOptions = await this.setPhotoLocationPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoLocationPreferenceFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Photo Location Preference
+     */
+    async setPhotoLocationPreference(requestParameters: SetPhotoLocationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoLocationPreference> {
+        const response = await this.setPhotoLocationPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnDeviceContext without sending the request
+     */
+    async updateOwnDeviceContextRequestOpts(requestParameters: UpdateOwnDeviceContextRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['deviceContextUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'deviceContextUpdate',
+                'Required parameter "deviceContextUpdate" was null or undefined when calling updateOwnDeviceContext().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/account/device-context`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: DeviceContextUpdateToJSON(requestParameters['deviceContextUpdate']),
+        };
+    }
+
+    /**
+     * Update Own Device Context
+     */
+    async updateOwnDeviceContextRaw(requestParameters: UpdateOwnDeviceContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeviceContextView>> {
+        const requestOptions = await this.updateOwnDeviceContextRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeviceContextViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Update Own Device Context
+     */
+    async updateOwnDeviceContext(requestParameters: UpdateOwnDeviceContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeviceContextView> {
+        const response = await this.updateOwnDeviceContextRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

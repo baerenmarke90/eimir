@@ -171,8 +171,8 @@ def validate_android_record(android: dict[str, Any], *, version: str | None = No
             )
         return
 
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Android release applicationId must remain de.sidebyside.app")
+    if android.get("applicationId") != "de.eimir.app":
+        raise ManifestError("Android release applicationId must be de.eimir.app")
     if version is not None and android.get("versionName") != version:
         raise ManifestError(
             f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"

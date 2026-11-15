@@ -17,11 +17,16 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.memories.models import Memory, MemoryPayload
+from eimir.plans import service as plans
+from eimir.plans.models import Plan
 from eimir.relationship import service as relationship_service
 from eimir.transfer import jobs, service
 from eimir.transfer.models import ImportStatus, TransferScope
+from eimir.wishes import service as wishes
+from eimir.wishes.models import Wish
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -51,7 +56,12 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
             owner_id=anna.id,
             privacy_class=PrivacyClass.SPACE_SHARED.value,
             happened_on=date(2026, 9, 29),
-            payload=HeartMomentPayload(text="", emotion=HeartEmotion.LOVED, tags=["everyday"]),
+            payload=HeartMomentPayload(
+                text="",
+                emotion=HeartEmotion.LOVED,
+                tags=["everyday"],
+                location=HeartMomentLocation(name="Transported lake", latitude=49.1, longitude=7.2),
+            ),
         )
     )
     session.flush()
@@ -64,9 +74,19 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
         {"s": source.id},
     ).scalar_one()
     assert "everyday" not in heart_stored
+    assert "Transported lake" not in heart_stored
 
     source_context = AuthorizationContext(account_id=anna.id, space_id=source.id)
     target_context = AuthorizationContext(account_id=anna.id, space_id=target.id)
+    wishes.create_wish(session, source_context, title="A wish", tags=["Summer"])
+    plans.create_plan(
+        session, source_context, title="A plan", description=None, place_id=None, tags=["Concert"]
+    )
+    session.flush()
+    for table, label in (("plans", "Concert"), ("wishes", "Summer")):
+        assert label not in session.scalar(
+            text(f"SELECT payload::text FROM {table} WHERE space_id=:s"), {"s": source.id}
+        )
     with service.build_export_archive(session, source_context, TransferScope.SHARED) as bundle:
         with ZipFile(bundle) as archive:
             document = json.loads(archive.read("memories.json"))
@@ -80,6 +100,7 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
         )["rows"]
         assert heart_rows[0]["payload"]["text"] == ""
         assert heart_rows[0]["payload"]["tags"] == ["everyday"]
+        assert heart_rows[0]["payload"]["location"]["name"] == "Transported lake"
 
         bundle.seek(0, io.SEEK_END)
         size = bundle.tell()
@@ -113,3 +134,8 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
     imported_heart = session.query(HeartMoment).filter(HeartMoment.space_id == target.id).one()
     assert imported_heart.payload.text == ""
     assert imported_heart.payload.tags == ["everyday"]
+    assert imported_heart.payload.location == HeartMomentLocation(
+        name="Transported lake", latitude=49.1, longitude=7.2
+    )
+    assert session.query(Plan).filter(Plan.space_id == target.id).one().payload.tags == ["Concert"]
+    assert session.query(Wish).filter(Wish.space_id == target.id).one().payload.tags == ["Summer"]

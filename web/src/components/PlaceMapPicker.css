@@ -1,0 +1,145 @@
+.place-map-task,
+.place-map-search,
+.place-map-choice,
+.place-map-canvas {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.place-map-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.place-map-results button {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  text-align: start;
+  color: var(--color-text);
+  border-radius: var(--radius-small);
+}
+.place-map-results button[aria-pressed="true"] {
+  background: var(--color-shared-surface);
+}
+.place-map-results span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.place-map-viewport {
+  height: clamp(16rem, 45dvh, 24rem);
+  width: 100%;
+  border-radius: var(--radius-medium);
+  isolation: isolate;
+  z-index: 0;
+}
+/* Zoom buttons: round, raised and thumb-sized, in the corner a map user expects. */
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button {
+  width: var(--space-12);
+  height: var(--space-12);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--font-action-label);
+  font-size: var(--space-6);
+  line-height: 1;
+  box-shadow: var(--shadow-raised);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button:focus {
+  border-radius: var(--radius-pill);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button + button {
+  border-top: 0;
+}
+.place-map-viewport
+  .maplibregl-ctrl-group.place-map-zoom
+  button:not(:disabled):hover {
+  background: var(--color-surface-subtle);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button:disabled {
+  color: var(--color-text-secondary);
+}
+.place-map-selected-marker {
+  display: block;
+  box-sizing: border-box;
+  width: var(--space-6);
+  height: var(--space-6);
+  border: var(--border-strong) solid var(--color-on-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-strong);
+}
+/* The stock attribution icon is a data: image the CSP does not allow. */
+.place-map-viewport .maplibregl-ctrl-attrib-button {
+  display: none;
+}
+.place-map-viewport .maplibregl-ctrl-attrib {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.place-map-viewport .maplibregl-ctrl-attrib a {
+  color: var(--color-link-text);
+}
+
+/* Only map pixels change scheme; authored previews, markers and attribution do not. */
+:root[data-theme="dark"] .place-map-viewport .maplibregl-canvas {
+  filter: var(--map-dark-tile-filter);
+}
+.place-map-viewport.maplibregl-map {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Approximate areas (#1792): an area, never a precise pin. */
+.place-map-area {
+  --place-map-area-fill: color-mix(
+    in srgb,
+    var(--color-shared) 16%,
+    transparent
+  );
+  --place-map-area-ring: color-mix(
+    in srgb,
+    var(--color-shared) 45%,
+    transparent
+  );
+
+  position: relative;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.place-map-area-circle,
+.place-map-area-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.place-map-area-circle {
+  border-radius: 50%;
+  background: var(--place-map-area-fill);
+  box-shadow: inset 0 0 0 2px var(--place-map-area-ring);
+}
+
+.place-map-area.is-own .place-map-area-circle {
+  display: none;
+}
+
+.place-map-area-marker {
+  display: grid;
+  place-items: center;
+}
+
+.place-map-area-marker .partner-avatar {
+  box-shadow: 0 0 0 3px var(--color-surface);
+}

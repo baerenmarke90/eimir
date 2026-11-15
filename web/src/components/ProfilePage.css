@@ -95,7 +95,7 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-5);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
@@ -282,7 +282,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
   box-shadow: none;
@@ -341,7 +341,7 @@
   max-height: calc(100dvh - 3rem);
   overflow-y: auto;
   padding: var(--space-6);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
@@ -576,13 +576,26 @@
   display: grid;
   gap: var(--space-4);
   padding: var(--space-5);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-subtle);
 }
 
 .private-partner-notes-wrapper .profile-section {
   background: transparent;
+}
+.private-partner-notes-page {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.private-partner-notes-page .private-partner-notes-wrapper,
+.private-partner-notes-page .profile-section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .private-partner-notes-badge {
@@ -593,7 +606,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-secondary);
@@ -729,4 +742,32 @@
   .relationship-notification-hint-link {
     transition: none;
   }
+}
+
+.profile-partner-disclosure {
+  min-inline-size: 0;
+}
+.profile-partner-disclosure > summary,
+.settings-explanation > summary,
+.notification-event-details > summary {
+  min-height: var(--touch-target-web);
+  padding-block: var(--space-3);
+  font: var(--font-content-heading);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.profile-partner-disclosure[open] > summary {
+  margin-bottom: var(--space-4);
+}
+summary.profile-premium-title-row {
+  display: list-item;
+  cursor: pointer;
+  min-height: var(--touch-target-web);
+  align-content: center;
+}
+summary.profile-premium-title-row h2 {
+  display: inline;
+}
+.profile-page .profile-section-intro:empty {
+  display: none;
 }

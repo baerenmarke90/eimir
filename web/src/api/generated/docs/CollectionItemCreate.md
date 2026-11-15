@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `completed` | boolean
+`quantity` | string
 `title` | string
 
 ## Example
@@ -17,6 +18,7 @@ import type { CollectionItemCreate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "completed": null,
+  "quantity": null,
   "title": null,
 } satisfies CollectionItemCreate
 

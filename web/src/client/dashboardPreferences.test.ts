@@ -5,6 +5,7 @@ import {
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
   limitUpcomingItems,
+  orderedDashboardModuleKeys,
   selectedDashboardCollectionId,
 } from './dashboardPreferences';
 
@@ -24,6 +25,97 @@ function withVisibility(
 }
 
 describe('dashboardPreferences', () => {
+  it('inserts the daily quote beside the hero in a complete legacy personal order', () => {
+    const legacy = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter((key) => key !== 'daily_quote');
+    const migrated = orderedDashboardModuleKeys({
+      items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
+    });
+    expect(migrated[0]).toBe('relationship_presence');
+    expect(
+      migrated.filter(
+        (key) => key !== 'daily_quote' && key !== 'relationship_presence',
+      ),
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
+    expect(migrated.indexOf('daily_quote')).toBe(
+      migrated.indexOf('shared_experience') + 1,
+    );
+  });
+  it('preserves the old personal order while inserting both additive modules', () => {
+    const legacy = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter(
+        (key) =>
+          key !== 'daily_quote' &&
+          key !== 'shared_experience' &&
+          key !== 'partner_distance',
+      );
+    const migrated = orderedDashboardModuleKeys({
+      items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
+    });
+    expect(
+      migrated.filter(
+        (key) =>
+          key !== 'daily_quote' &&
+          key !== 'shared_experience' &&
+          key !== 'partner_distance' &&
+          key !== 'relationship_presence',
+      ),
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
+    expect(migrated[0]).toBe('relationship_presence');
+    // #1792 enters directly below the couple hero for older saved orders.
+    expect(migrated.indexOf('partner_distance')).toBe(
+      migrated.indexOf('relationship_presence') + 1,
+    );
+    expect(migrated.indexOf('shared_experience')).toBe(
+      migrated.indexOf('partner_distance') + 1,
+    );
+    expect(migrated.indexOf('daily_quote')).toBe(
+      migrated.indexOf('shared_experience') + 1,
+    );
+  });
+  it('inserts independent rediscovery without resetting a legacy personal order or visibility', () => {
+    const legacy = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter((key) => key !== 'retrospective');
+    const items = legacy.map((moduleKey) => ({
+      moduleKey,
+      visible: moduleKey !== 'relationship_signal',
+    }));
+    const order = orderedDashboardModuleKeys({ items });
+    expect(order[0]).toBe('relationship_presence');
+    expect(
+      order.filter(
+        (key) => key !== 'retrospective' && key !== 'relationship_presence',
+      ),
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
+    expect(order.indexOf('retrospective')).toBe(
+      order.indexOf('pinned_collection') + 1,
+    );
+    expect(isDashboardModuleVisible({ items }, 'relationship_signal')).toBe(
+      false,
+    );
+    expect(isDashboardModuleVisible({ items }, 'retrospective')).toBe(true);
+  });
+
+  it('pins the couple hero above older personal orders without dropping hidden preferences', () => {
+    const keys = [...DASHBOARD_MODULE_KEYS].reverse();
+    const value = {
+      items: keys.map((moduleKey) => ({
+        moduleKey,
+        visible:
+          moduleKey !== 'relationship_presence' && moduleKey !== 'keepsake',
+      })),
+    };
+    expect(orderedDashboardModuleKeys(value)).toEqual([
+      'relationship_presence',
+      ...keys.filter((key) => key !== 'relationship_presence'),
+    ]);
+    expect(isDashboardModuleVisible(value, 'relationship_presence')).toBe(true);
+    expect(isDashboardModuleVisible(value, 'keepsake')).toBe(false);
+  });
+
   it('scopes query cache entries by account and Space', () => {
     expect(dashboardPreferencesQueryKey('account-a', 'space-a')).toEqual([
       'dashboard-preferences',
@@ -102,7 +194,9 @@ describe('dashboardPreferences', () => {
   describe('isDashboardModuleVisible', () => {
     it('defaults every registered module to visible without a preferences response', () => {
       for (const key of DASHBOARD_MODULE_KEYS) {
-        expect(isDashboardModuleVisible(undefined, key)).toBe(true);
+        expect(isDashboardModuleVisible(undefined, key)).toBe(
+          key !== 'shared_story_summary',
+        );
       }
     });
 

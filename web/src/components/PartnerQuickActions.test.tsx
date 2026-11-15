@@ -25,11 +25,11 @@ import {
 import '../i18n';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
-import { ClientProblemError } from '../client/problemDetails';
 import { dashboardQueryKey } from '../client/dashboardQueries';
-import { partnerQuickActionsEntitlementQueryKey } from '../client/partnerQuickActions';
-import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
 import type { M4ProductApis } from '../client/m4Product';
+import { ClientProblemError } from '../client/problemDetails';
+import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
+import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { PartnerQuickActions } from './PartnerQuickActions';
@@ -242,6 +242,7 @@ describe('PartnerQuickActions', () => {
       await screen.findByText(copy.sentThinking);
       expect(activated).toBe(true);
       expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
+      expect(view.snackbars).toEqual([]);
     } finally {
       unsubscribe();
     }
@@ -506,8 +507,8 @@ describe('PartnerQuickActions', () => {
     first.queryClient.clear();
     first.queryClient.setQueryData(key, { thinkingOfYouAvailableAt: null });
     first.queryClient.setQueryData(
-      partnerQuickActionsEntitlementQueryKey('account-1', 'space-1'),
-      false,
+      spaceEntitlementQueryKey('account-1', 'space-1'),
+      { capabilities: [] },
     );
     await act(async () =>
       resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),

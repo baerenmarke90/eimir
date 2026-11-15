@@ -2,22 +2,25 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
-import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import storyProducts from '../i18n/locales/storyProducts';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
-import { QuickCreateMenu } from './QuickCreateMenu';
 
-const backToStoryName = new RegExp(
-  storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
-  'i',
-);
+const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
   window.matchMedia = (query: string) => ({
@@ -187,7 +190,24 @@ function ReturnFromResult() {
   );
 }
 
-describe('Quick Create Milestone continuity (#509)', () => {
+/** Stands in for any page-level add action that opens a create task. */
+function StartCreate({ to }: { to: string }) {
+  const { captureOrigin } = useTaskOrigin();
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const taskOriginKey = captureOrigin();
+        void navigate(to, { state: { taskOriginKey } });
+      }}
+    >
+      Start create
+    </button>
+  );
+}
+
+describe('Create Milestone continuity (#509)', () => {
   it('returns from a confirmed result to its originating context', async () => {
     const createMilestone = vi.fn().mockResolvedValue({ id: 'milestone-new' });
     const queryClient = new QueryClient({
@@ -200,7 +220,7 @@ describe('Quick Create Milestone continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu variant="desktop" />
+            <StartCreate to="/story/milestones/new" />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route
@@ -230,12 +250,7 @@ describe('Quick Create Milestone continuity (#509)', () => {
     );
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole('button', { name: navigation.newContent }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: navigation.quickCreateMilestone }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Start create' }));
     expect(document.activeElement).not.toBe(
       screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
     );
@@ -281,19 +296,40 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
   });
 });
 
-describe('Milestone detail edit action (#1014)', () => {
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
-    renderDetail();
+describe('Milestone detail header', () => {
+  it('uses the shared composer header with a written-out edit action', async () => {
+    const { container } = renderDetail();
     const editLink = await screen.findByRole('link', {
       name: storyProducts.milestoneProduct.edit,
     });
     expect(editLink.getAttribute('href')).toBe(
       '/story/milestones/milestone-1/edit',
     );
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.textContent?.trim()).toBe(
+      storyProducts.milestoneProduct.edit,
+    );
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
+    expect(container.querySelector('.page-composer-detail')).toBeTruthy();
+    expect(
+      container.querySelector('.composer-header .story-detail-edit-link'),
+    ).toBe(editLink);
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: storyProducts.milestoneProduct.detailEyebrow,
+      }),
+    ).toBeTruthy();
+  });
+
+  it('shows the milestone title and date as the hero below the header', async () => {
+    const { container } = renderDetail();
+    const title = await screen.findByRole('heading', {
+      level: 2,
+      name: 'First apartment together',
+    });
+    expect(title.className).toContain('milestone-hero-title');
+    expect(container.querySelector('.milestone-hero-date')).toBeTruthy();
   });
 });
 
@@ -311,7 +347,7 @@ describe('Milestone view receipt', () => {
   it('emits a receipt strictly on successful presentation', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getMilestoneMock = vi.fn().mockReturnValue(
+    const getMilestoneMock = vi.fn().mockReturnValue(
       new Promise((resolve) => {
         resolveQuery = resolve;
       }),

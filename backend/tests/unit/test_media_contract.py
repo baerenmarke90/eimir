@@ -13,6 +13,7 @@ from eimir.core.ids import new_id
 from eimir.media.base import MediaStore, build_account_storage_key, build_storage_key
 from eimir.media.local import LocalMediaStore
 from eimir.media.s3 import S3MediaStore
+from tests.support.s3_reads import object_read
 
 
 class MemoryS3:
@@ -24,12 +25,8 @@ class MemoryS3:
         if request.method == "PUT":
             self.objects[key] = request.content
             return httpx.Response(200)
-        if request.method == "HEAD":
-            return httpx.Response(200 if key in self.objects else 404)
-        if request.method == "GET":
-            if key not in self.objects:
-                return httpx.Response(404)
-            return httpx.Response(200, content=self.objects[key])
+        if request.method in {"HEAD", "GET"}:
+            return object_read(request, self.objects)
         if request.method == "DELETE":
             self.objects.pop(key, None)
             return httpx.Response(204)

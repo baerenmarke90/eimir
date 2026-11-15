@@ -72,6 +72,12 @@ export interface InstanceAccessStatus {
      * @memberof InstanceAccessStatus
      */
     selfServiceSignupAvailable?: boolean;
+    /**
+     * Version of the eimir. Cloud terms of use that a new Account must accept, sent back as `acceptedTermsVersion` when requesting or redeeming a signup proof. `null` where no such terms apply, including every Self-Hosted instance.
+     * @type {string}
+     * @memberof InstanceAccessStatus
+     */
+    termsOfUseVersion?: string | null;
 }
 
 
@@ -120,6 +126,7 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
         'registrationAvailable': json['registrationAvailable'],
         'registrationUnavailableReason': json['registrationUnavailableReason'],
         'selfServiceSignupAvailable': json['selfServiceSignupAvailable'] == null ? undefined : json['selfServiceSignupAvailable'],
+        'termsOfUseVersion': json['termsOfUseVersion'] === undefined ? undefined : json['termsOfUseVersion'] === null ? null : json['termsOfUseVersion'],
     };
 }
 
@@ -140,6 +147,7 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
         'registrationAvailable': value['registrationAvailable'],
         'registrationUnavailableReason': value['registrationUnavailableReason'],
         'selfServiceSignupAvailable': value['selfServiceSignupAvailable'],
+        'termsOfUseVersion': value['termsOfUseVersion'],
     };
 }
 

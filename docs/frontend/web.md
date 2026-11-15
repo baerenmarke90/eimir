@@ -11,7 +11,7 @@ M5 Web S2 completes the product surfaces for Memories, HeartMoments, and Milesto
 - Milestone create, detail, edit, delete, comments, and deep links.
 - Story cards link directly to the corresponding detail route.
 - Story filtering uses the generated API contract for content kind, year, and ordering; cursor pagination appends API pages without reordering them locally.
-- Image galleries provide a fullscreen viewer, keyboard navigation, touch swipe navigation, and an item counter. Video playback remains out of scope because the current backend intentionally rejects video fail-closed; a future video slice must provide the media and accessibility contract before the web client enables playback.
+- Shared galleries provide a fullscreen viewer, keyboard navigation, native touch swipe and an item counter. The bounded #88 slice adds MP4/MOV H.264/AAC videos to Memories and HeartMoments: posters use the existing authorized image cache, while only the active fullscreen item owns a native, deliberate-play video element and transient parent/session-bound range URL. Video intake requires the backend availability flag and Space Pro capability; retained playback remains available without either. Plans and avatars keep image-only intake. See [the interaction contract](../product/design/references/88-video/README.md) and [operations/security](../operations/video-uploads.md).
 - Memory and HeartMoment attachment drafts upload immediately after selection, show a local preview and upload progress, and can be cancelled before binding the attachment to domain content.
 
 Routes:
@@ -37,6 +37,34 @@ A successful authorized network read refreshes the relevant cache. When addition
 Cache fallback is deliberately limited to transport/offline failures and temporary server failures. Authentication, permission, and not-found responses never fall back to cached protected content. This preserves fail-closed authorization semantics, including privacy-sensitive resources that deliberately use `404` instead of `403` to avoid existence disclosure.
 
 Cached detail views are read-only. Cached Story snapshots do not expose network pagination while offline. The client does not queue or synchronize offline writes. Comments are not loaded from the product cache. The cache is cleared on logout.
+
+Authorized image bytes use the existing Account/API/Space and parent-bound media
+cache: 48 MiB in memory and a disposable IndexedDB store capped at 128 MiB,
+512 entries and seven days. Every display reentry still authorizes its parent;
+an authoritative denial revokes all affected variants immediately. Credentials,
+signed URLs, playback grants, video originals and non-image payloads do not enter
+the durable image store. Logout and Account/Space changes invalidate it.
+
+The size/LRU index is stored separately from Blob payloads in one IndexedDB
+transaction, so eviction and access-time updates never scan or rewrite all
+cached images. Upgrading the disposable v1 store discards its old cache once;
+server content is unaffected. Ordinary storage failure remains best effort.
+Only two idle original-image Object URLs are retained, independently of their
+compressed byte size; downloaded bytes remain cached after a decoded URL is
+released. Thumbnail URLs retain the existing bounded preview lifecycle.
+
+The saved-memory map uses server-declared thumbnail availability, mounts one
+MapLibre map at a time, and fits its authorized locations after measurable layout
+and subsequent resizes until the user pans/zooms. Its initial overview is capped
+at zoom 12; deliberate zoom remains available. Short returns reuse its scoped
+query for one minute, with thirty-minute garbage collection and existing
+mutation/authorization invalidation. No durable map or Pro entitlement snapshot
+is introduced. See #1605 and parallel video work #1598.
+
+The same thumbnail-availability projection also drives Wir's Keepsake,
+retrospective, contextual media and monthly strip through MemoryPreview. These
+previews avoid decoding the full originals during startup; a source without a
+thumbnail retains the existing authorized-original fallback.
 
 ## Concurrency and mutations
 

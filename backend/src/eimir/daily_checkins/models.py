@@ -40,12 +40,55 @@ class DailyVibe(StrEnum):
     presentation concern.
     """
 
+    VERY_GOOD = "VERY_GOOD"
     GOOD = "GOOD"
     OKAY = "OKAY"
     STRESSED = "STRESSED"
     SAD = "SAD"
     NEEDS_CONNECTION = "NEEDS_CONNECTION"
     NEEDS_SPACE = "NEEDS_SPACE"
+
+
+class RecommendationKey(StrEnum):
+    QUIET_TIME = "quiet_time"
+    SMALL_PLAN = "small_plan"
+    APPRECIATION = "appreciation"
+    LISTENING = "listening"
+    OWN_PACE = "own_pace"
+    KEEP_RITUAL = "keep_ritual"
+
+
+class RecommendationRating(StrEnum):
+    HELPFUL = "HELPFUL"
+    NOT_FITTING = "NOT_FITTING"
+
+
+class DailyInsightFeedback(IdMixin, TimestampMixin, Base):
+    """Bounded caller-owned preferences; never stores check-in data or model prose."""
+
+    __tablename__ = "daily_insight_feedback"
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("spaces.id", ondelete="CASCADE"), nullable=False
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    recommendation_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    rating: Mapped[str] = mapped_column(String(16), nullable=False)
+    __table_args__ = (
+        UniqueConstraint(
+            "space_id",
+            "account_id",
+            "recommendation_key",
+            name="uq_daily_insight_feedback_owner_key",
+        ),
+        CheckConstraint(
+            "recommendation_key IN ('quiet_time','small_plan','appreciation',"
+            "'listening','own_pace','keep_ritual')",
+            name="recommendation_is_known",
+        ),
+        CheckConstraint("rating IN ('HELPFUL','NOT_FITTING')", name="rating_is_known"),
+    )
 
 
 class DailyVibeNotePayload(ProtectedPayload):
@@ -87,7 +130,7 @@ class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
         ),
         CheckConstraint(
             "vibe IS NULL OR vibe IN "
-            "('GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')",
+            "('VERY_GOOD', 'GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')",
             name="vibe_is_known",
         ),
         CheckConstraint(

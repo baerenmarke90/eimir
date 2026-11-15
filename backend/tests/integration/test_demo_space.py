@@ -36,6 +36,7 @@ from eimir.media import get_media_store
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.people import service as people_service
 from eimir.people.models import ImportantDate, RelatedPerson
 from eimir.places.models import Place
 from eimir.plans.models import Plan, PlanStatus
@@ -91,8 +92,8 @@ def _assert_demo_configuration(configuration: SpaceConfiguration) -> None:
     assert configuration.shared_achievements_enabled is True
     assert configuration.daily_questions_enabled is True
     assert configuration.daily_context_timezone == "Europe/Berlin"
-    assert configuration.vibe_visibility_mode == "MUTUAL_REVEAL"
-    assert configuration.energy_visibility_mode == "MUTUAL_REVEAL"
+    assert configuration.vibe_visibility_mode == "IMMEDIATE"
+    assert configuration.energy_visibility_mode == "IMMEDIATE"
 
 
 def test_create_is_idempotent_and_representative(session: Session) -> None:
@@ -119,7 +120,7 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     assert _count(session, Milestone, first.space_id) == 3
     assert _count(session, Wish, first.space_id) == 3
     assert _count(session, Plan, first.space_id) == 7
-    assert _count(session, Place, first.space_id) == 2
+    assert _count(session, Place, first.space_id) == 5
     assert _count(session, Collection, first.space_id) == 3
     assert _count(session, PrivateNote, first.space_id) == 4
     assert _count(session, GiftIdea, first.space_id) == 4
@@ -265,13 +266,19 @@ def test_canonical_demo_retrospective_has_annual_photo_and_text_only_first_memor
         assert view.retrospective.id == anniversary.id
         assert view.retrospective.preview_attachment_id == anniversary_media[0].attachment.id
 
-    # The fallback is a Space-stable weekday, not a per-device or per-person
-    # random choice. None of the seeded anniversaries occurs on this later day.
-    fallback_day = next(
-        REFERENCE_DATE + timedelta(days=offset)
-        for offset in range(1, 8)
-        if (REFERENCE_DATE + timedelta(days=offset)).weekday() == result.space_id.int % 7
-    )
+    # Daily rotation no longer guarantees the earliest Memory. Isolate this
+    # text-only fallback case by making all other shared sources too recent;
+    # the daily multi-candidate rotation has its own acceptance coverage.
+    fallback_day = REFERENCE_DATE + timedelta(days=1)
+    for model in (Memory, Milestone, HeartMoment):
+        for source in session.scalars(
+            select(model).where(
+                model.space_id == result.space_id,
+                model.privacy_class == "SPACE_SHARED",
+                model.id != first_memory.id,
+            )
+        ):
+            source.happened_on = fallback_day
 
     # An owner-private Heart Moment with the matching anniversary must not
     # displace the eligible shared, text-only fallback for either partner.
@@ -300,6 +307,15 @@ def test_private_demo_content_stays_owner_only_across_read_models(session: Sessi
     result = _seed(session)
     lea_context = AuthorizationContext(account_id=result.lea_id, space_id=result.space_id)
     alex_context = AuthorizationContext(account_id=result.alex_id, space_id=result.space_id)
+
+    for context in (lea_context, alex_context):
+        people = people_service.list_persons(session, context)
+        assert {person.payload.display_name for person in people} == {"Mara", "Jule", "Noah"}
+        assert all(person.privacy_class == "SPACE_SHARED" for person in people)
+        dates = people_service.list_dates(session, context)
+        private_dates = [date for date in dates if date.privacy_class == "OWNER_ONLY"]
+        assert len(private_dates) == 1
+        assert private_dates[0].owner_id == context.account_id
 
     private_heart = session.execute(
         select(HeartMoment).where(

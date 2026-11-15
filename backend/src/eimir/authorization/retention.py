@@ -50,8 +50,10 @@ def _register_privacy_models() -> None:
     from eimir.private_collections import models as _private_collections  # noqa: F401
     from eimir.private_notes import models as _private_notes  # noqa: F401
     from eimir.profiles import models as _profiles  # noqa: F401
+    from eimir.recaps import models as _recaps  # noqa: F401
     from eimir.relationship import models as _relationship  # noqa: F401
     from eimir.reminders import models as _reminders  # noqa: F401
+    from eimir.wish_selections import models as _wish_selections  # noqa: F401
     from eimir.wishes import models as _wishes  # noqa: F401
 
 

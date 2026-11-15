@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-09",
+  "baseline": "48532ea35a04f86364c11efe6c4c8c19b16b6d0f",
+  "method": "Same pinned FFmpeg/OpenH264/zimg sources, generic C++ codec/color builds, local CPU; not a device/network/production benchmark.",
+  "luminance": {
+    "pq-highlight-steps.mp4": {
+      "before": [
+        0,
+        37,
+        125,
+        231,
+        254,
+        255,
+        255,
+        255
+      ],
+      "after": [
+        0,
+        37,
+        118,
+        192,
+        227,
+        247,
+        253,
+        255
+      ]
+    },
+    "hlg-highlight-steps.mp4": {
+      "before": [
+        0,
+        37,
+        125,
+        231,
+        249,
+        255,
+        255,
+        255
+      ],
+      "after": [
+        0,
+        38,
+        121,
+        199,
+        225,
+        242,
+        252,
+        255
+      ]
+    }
+  },
+  "detail": {
+    "before": {
+      "runs": [
+        {
+          "processing_seconds": 0.8116,
+          "output_bytes": 487919,
+          "rgb_psnr_db": 37.8169
+        },
+        {
+          "processing_seconds": 0.8074,
+          "output_bytes": 487919,
+          "rgb_psnr_db": 37.8169
+        },
+        {
+          "processing_seconds": 0.8268,
+          "output_bytes": 487919,
+          "rgb_psnr_db": 37.8169
+        }
+      ],
+      "median_processing_seconds": 0.8116,
+      "source_bytes": 1244179
+    },
+    "after": {
+      "runs": [
+        {
+          "processing_seconds": 0.9079,
+          "output_bytes": 982990,
+          "rgb_psnr_db": 41.5532
+        },
+        {
+          "processing_seconds": 0.9113,
+          "output_bytes": 982990,
+          "rgb_psnr_db": 41.5532
+        },
+        {
+          "processing_seconds": 0.9682,
+          "output_bytes": 982990,
+          "rgb_psnr_db": 41.5532
+        }
+      ],
+      "median_processing_seconds": 0.9113,
+      "source_bytes": 1244179
+    }
+  }
+}

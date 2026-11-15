@@ -1,0 +1,88 @@
+.plan-files {
+  min-inline-size: 0;
+  margin-block: var(--space-4);
+}
+
+.planning-detail-grid > .plan-files {
+  margin: 0;
+  height: auto;
+  background: transparent;
+}
+
+.plan-files h3 {
+  margin-block: 0 var(--space-1);
+}
+
+.plan-files ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.plan-file-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-block-size: var(--touch-target-comfortable);
+}
+
+.plan-file-row + .plan-file-row {
+  border-block-start: var(--border-divider-width) solid var(--color-border);
+}
+
+.plan-file-row > .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  color: var(--color-link-text);
+}
+
+.plan-file-description {
+  display: grid;
+  padding-block: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.plan-file-description small,
+.plan-file-notice {
+  color: var(--color-text-secondary);
+}
+
+.plan-file-remove,
+.plan-file-actions > button,
+.plan-file-feedback button {
+  min-block-size: var(--touch-target-comfortable);
+  min-inline-size: var(--touch-target-comfortable);
+}
+
+.plan-file-actions {
+  display: flex;
+  align-items: center;
+}
+
+.plan-file-actions > button {
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-comfortable);
+  block-size: var(--touch-target-comfortable);
+  padding: 0;
+}
+
+.plan-file-actions .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.plan-file-actions > button.tertiary:not(:disabled) {
+  color: var(--color-link-text);
+}
+
+.plan-file-feedback {
+  grid-column: 2 / -1;
+  margin-block-end: var(--space-2);
+}
+
+progress.plan-file-feedback {
+  inline-size: 100%;
+  accent-color: var(--color-link-text);
+}

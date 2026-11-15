@@ -1,0 +1,21 @@
+{
+  "parent": "899ca9c829ba4e7b5a2af53bc2f5fe858b51dc56",
+  "sources": [
+    {
+      "path": "web/src/shell.css",
+      "sha256": "7013a37619a54382bc2cf9a4d85ca25d8ec413c3bed5e4fe37f6167e04c29104"
+    },
+    {
+      "path": "web/src/components/AppShell.tsx",
+      "sha256": "c17754772e5dd3544b190d4c55202f836e78f713b39c76cb40eae9a38315840b"
+    },
+    {
+      "path": "web/e2e/tests/floating-bottom-nav-scroll.spec.ts",
+      "sha256": "338a2988a632753b20d7c1f7e41c2a30caea94acc5c45b2ed165fb8b78fbd029"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-quote.spec.ts",
+      "sha256": "daa42703fbe13d0ebeb9565ae49a8b23c21c404b5f6653676748aef1222e2ce7"
+    }
+  ]
+}

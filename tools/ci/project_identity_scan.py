@@ -20,6 +20,12 @@ LEGACY_PATTERN = re.compile(
     r"SideBySide-Next|SideBySide|sidebyside|side-by-side|side by side|SBS_|\bSBS\b|sbs_|sbs-|sbs(?=[A-Z])",
     re.IGNORECASE,
 )
+# Only a complete compact direct-encryption value is opaque. Keep every other
+# field and any prose on the same line subject to the normal identity rules.
+PUSH_PREVIEW_JWE_LINE = re.compile(
+    r'\s*"jwe"\s*:\s*"[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]{16}\.'
+    r'[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}"[,]?\s*'
+)
 
 
 class Classification(StrEnum):
@@ -45,15 +51,14 @@ GUARD_FILES = {
     Path("tools/ci/test_project_identity_scan.py"),
 }
 
-ANDROID_IMMUTABLE_IDENTIFIERS = ("de.sidebyside.app",)
-LEGACY_ANDROID_CLEANUP_FILES = {
-    Path("android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java"),
-    Path("tools/ci/test_project_identity_migration.py"),
+LEGACY_ANDROID_EVIDENCE_FILES = {
+    Path("docs/CAPACITOR-ANDROID-FOUNDATION.md"),
+    Path("docs/m5/ANDROID-DELIVERY-PLAN.md"),
+    Path("docs/m6/README.md"),
+    Path("docs/m6/DECISION-LOG.md"),
+    # The migration decision must name the legacy package it migrates from.
+    Path("docs/decisions/0013-legacy-android-package-migration.md"),
 }
-LEGACY_ANDROID_CLEANUP_IDENTIFIERS = (
-    "sidebyside-read-cache.db",
-    "sidebyside_owner_only_read_cache",
-)
 WEB_PERSISTENCE_IDENTIFIERS = (
     "sidebyside-session-v1",
     "sidebyside-auth-return-v1",
@@ -74,6 +79,16 @@ RELEASE_COMPATIBILITY_IDENTIFIERS = (
 )
 
 
+# Exact English editorial date-idea copy (#1892) using the ordinary phrase.
+DATE_IDEA_SIDE_BY_SIDE_PHRASES = (
+    "try two pasta sauces side by side",
+    "try two short stances side by side",
+    "read quietly side by side",
+    "find a bench with a backrest and sit side by side",
+    "sit side by side on a sandy spot",
+)
+
+
 def _under(path: Path, prefix: Path) -> bool:
     try:
         path.relative_to(prefix)
@@ -86,6 +101,15 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
     """Return the narrow exception for one occurrence, or MUST_RENAME."""
 
     normalized = line.casefold()
+
+    if (
+        path == Path("android/app/src/androidTest/assets/push-preview-catalog.json")
+        and PUSH_PREVIEW_JWE_LINE.fullmatch(line)
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the compact sender-encrypted fixture value is opaque ciphertext, not a project identity",
+        )
 
     if path in GUARD_FILES:
         return (
@@ -132,6 +156,129 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "side-by-side is used as generic responsive-layout terminology",
         )
 
+    if (
+        path == Path("docs/product/design/references/1647-media-planning/reference-prompt.txt")
+        and match == "side by side"
+        and "three complete 390px smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes three adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/vibe-immich-clarity/reference-prompt.txt")
+        and match == "side-by-side"
+        and "two small side-by-side people cards:" in normalized
+        and normalized.count("side-by-side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact Vibe reference prompt describes adjacent person cards, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/once-messages/prompt.md")
+        and match == "side by side"
+        and "three complete smartphone app screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact one-time-message reference prompt describes adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("backend/src/eimir/date_ideas/data/catalog.json")
+        and match == "side by side"
+        and normalized.count("side by side") == 1
+        and any(phrase in normalized for phrase in DATE_IDEA_SIDE_BY_SIDE_PHRASES)
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the editorial date-idea copy describes two people or things next to each other",
+        )
+
+    planning_prompt_phrases = {
+        Path("docs/product/design/references/planning-search-private-profile/prompt.txt"): (
+            "four complete flat smartphone screen compositions, each 390 css pixels wide, "
+            "side by side",
+        ),
+        Path("docs/product/design/references/planning-search-private-profile/follow-up-prompts.txt"): (
+            "three complete smartphone app screens side by side",
+            "three complete smartphone screens side by side",
+        ),
+    }
+    if (
+        match == "side by side"
+        and normalized.count("side by side") == 1
+        and any(phrase in normalized for phrase in planning_prompt_phrases.get(path, ()))
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact planning reference prompt describes adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/contextual-create/reference-prompts.md")
+        and match == "side by side"
+        and normalized.count("side by side") == 1
+        and "both complete screens side by side at the same 390:844 proportions" in normalized
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact contextual-creation prompt describes adjacent screens, not a project name",
+        )
+
+    if match == "side by side" and (
+        (
+            path == Path("docs/product/design/references/1477/image-prompt.txt")
+            and "complete compact smartphone screens side by side" in normalized
+        )
+        or (
+            path
+            == Path(
+                "docs/product/design/references/automatic-relationship-recaps/prompt.txt"
+            )
+            and "two flat smartphone screens side by side" in normalized
+        )
+        or (
+            path == Path("docs/product/design/references/1542/prompt.txt")
+            and "two comparable phones side by side" in normalized
+        )
+        or (
+            path == Path("docs/product/design/references/daily-couple-prompts/prompt.txt")
+            and "two complete smartphone screens side by side" in normalized
+        )
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact generated-reference prompt describes two adjacent screens, not a project name",
+        )
+
+    if (
+        path
+        == Path("docs/product/design/references/places-and-lists/reference-prompt.txt")
+        and match == "side-by-side"
+        and "four whole compact smartphone app screens side-by-side" in normalized
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact generated-reference prompt describes four adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/chapter-experience/reference-prompt.txt")
+        and match == "side by side"
+        and "four complete smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes four adjacent screens, not a project name",
+        )
+
     if "side by side" in normalized and any(
         layout_term in normalized
         for layout_term in ("row", "photograph", "representation", "muted role")
@@ -150,18 +297,14 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the negative brand regression assertion intentionally names a rejected spelling",
         )
 
-    if any(identifier in normalized for identifier in ANDROID_IMMUTABLE_IDENTIFIERS):
+    android_evidence = path in LEGACY_ANDROID_EVIDENCE_FILES or (
+        "evidence" in path.parts
+        and any(_under(path, prefix) for prefix in (Path("docs/product/design"), Path("docs/design")))
+    )
+    if android_evidence and "de.sidebyside.app" in normalized:
         return (
-            Classification.TEMP_COMPAT,
-            "the released Android application and OIDC callback identity cannot change in-place",
-        )
-
-    if path in LEGACY_ANDROID_CLEANUP_FILES and any(
-        identifier in normalized for identifier in LEGACY_ANDROID_CLEANUP_IDENTIFIERS
-    ):
-        return (
-            Classification.TEMP_COMPAT,
-            "the one-way Android upgrade cleanup must name retired local-storage identifiers so it can delete them",
+            Classification.HISTORICAL_IMMUTABLE,
+            "prior APK evidence and superseded Android decisions retain their original package identity",
         )
 
     if any(identifier in normalized for identifier in WEB_PERSISTENCE_IDENTIFIERS):

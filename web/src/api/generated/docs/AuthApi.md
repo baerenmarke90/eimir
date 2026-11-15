@@ -591,7 +591,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
 | **403** | &#x60;AUTH_METHOD_DISABLED&#x60; on deployments without self-service signup, or &#x60;REGISTRATION_DISABLED&#x60; when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created. |  -  |
-| **409** | The request conflicts with the current state of the resource. |  -  |
+| **409** | &#x60;TERMS_ACCEPTANCE_REQUIRED&#x60;: the proof would create a new Account without an acceptance of the current terms of use. Nothing was created and the proof stays redeemable: redeem it again with &#x60;acceptedTermsVersion&#x60;. &#x60;TERMS_VERSION_OUTDATED&#x60;: &#x60;acceptedTermsVersion&#x60; is not the current version. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | &#x60;MAINTENANCE_MODE&#x60;: no new Account is created during maintenance. |  -  |
@@ -1523,6 +1523,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **202** | Successful Response |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **409** | &#x60;TERMS_VERSION_OUTDATED&#x60;: &#x60;acceptedTermsVersion&#x60; is not the version currently published by &#x60;GET /instance/status&#x60;. No proof was issued. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | A capability required for this operation is not configured on this instance. |  -  |

@@ -7,8 +7,8 @@ Owning issue: #1384. Baseline: `ac74b40a346f52d745bc4563658061a500edc327`.
 Returning to a photo or opening its detail reuses already downloaded bytes.
 Today, Story, Years, Photos and details share the attachment loader. Profile
 and related-person avatars use the same bounded byte owner. Visible views
-continue to own and dispose their Object URLs; removing a view no longer
-destroys the reusable bytes. Concurrent consumers share a download, while
+own disposable handles to shared display URLs; removing a view releases its
+handle while bounded URL and byte reuse continue (see #1603 below). Concurrent consumers share a download, while
 cancelling one consumer does not cancel another consumer's download.
 
 Original and thumbnail are separate variants. An attachment without a thumbnail
@@ -76,3 +76,127 @@ Unit/component regressions cover shared transport cancellation, failed-load
 retry, login rotation/isolation, origin/Space/parent/variant isolation, avatar
 replacement, stale-context rendering, LRU byte/count limits, age expiry and
 late completions after invalidation.
+
+## Durable app storage — #1517 (2026-10-30)
+
+The Product Owner explicitly requested app-owned persistent storage. This
+supersedes the memory-only delivery boundary above; it does not change the
+per-read parent authorization contract. Browser and Capacitor now share an
+IndexedDB byte store behind the existing authorized loader. RWN Messenger's
+bounded preview-cache ownership and targeted invalidation informed the design;
+no native Kotlin implementation was copied.
+
+The existing RAM cache remains bounded at 48 MiB / 192 entries / 30 minutes.
+The disposable disk tier retains at most 128 MiB / 512 entries / seven days,
+evicting least recently used entries when writing. It stores binary Blobs and
+local age/ownership metadata, never bearer tokens, signed URLs or Object URLs.
+Origin, Account, Space, parent, attachment and variant are separate identities.
+Only session-bound configured clients receive a disk namespace; custom clients
+stay memory-only. An opaque local epoch is rotated synchronously before queued
+cleanup on logout, login replacement, Space change and product-cache reset.
+Lease and epoch checks fence late reads/writes. Parent denial removes all variants.
+
+Disk hits still require fresh authorized read-access; this is not offline media
+viewing. Authenticated private bytes now reside in app/browser storage, subject
+to device/browser access controls; this feature does not claim local encryption.
+Storage denial, quota exhaustion or browser eviction falls back to the network
+and bounded RAM tier. Browser data clearing/uninstall can discard the cache.
+Approved existing domain read snapshots and draft policies remain unchanged;
+we deliberately do not serialize the complete QueryClient or credentials.
+
+Ordinary query projections now remain in RAM for 30 minutes of inactivity,
+while retaining the existing one-minute freshness and explicit mutation/live
+invalidation contracts. Returning to a screen keeps its current data visible
+while necessary background updates run. This does not promise zero requests or
+complete domain persistence after process death.
+
+
+## Appwide display continuity — #1603 (2026-11-02)
+
+The byte cache alone did not prevent visible image reloads. Gallery originals,
+profile/person avatars and several relation/Photos loaders created a new Object
+URL when a view reopened. The preview URL pool also expired after one minute or
+24 idle previews, so an ordinary detail visit could invalidate its origin's image.
+
+All authorized display loaders now return reference-counted handles from the
+same bounded pool. Thumbnail and original keys remain distinct; an original
+fallback shares its identity with a gallery original. Profile keys retain the
+Account and authoritative attachment identity; related-person keys retain their
+client scope. Upload drafts and temporary external source-picker previews keep
+single-consumer ownership.
+
+Idle URL ownership uses the same **48 MiB / 192 entries / 30-minute** bounds as
+the existing RAM byte cache. URL age measures inactivity, while byte age remains
+measured from receipt. LRU/expiry removes idle entries; live handles remain valid
+until released. Reentry checks authorization before acquiring a retained URL.
+Denied parent read-access, authoritative membership loss and login/Space/product-cache
+wipes revoke both active and idle URLs synchronously. Space revocation also
+fences outstanding parent-specific authorization leases; transient membership
+refresh errors preserve current images and an expired Account response cannot
+revoke the next Account's scope. No Object URL is persisted to disk. The disk tier and
+its authorization, epoch and eviction contracts remain unchanged.
+
+Regressions cover Story, Heart Moment and Plan originals/thumbnails, profile and
+related-person avatars, a ninety-second detail visit and a real Memory gallery
+journey through Wir/Moments tabs. Reuse avoids repeat binary transfer and URL
+creation without suppressing fresh parent authorization. Idle images can load
+again after eviction/expiry or privacy revocation; this is deliberate bounded
+ownership rather than an unlimited retention promise.
+
+## Parallel reads during session restoration — 2026-11-12
+
+The Product Owner’s follow-up to #1517 and #1603 addressed the Diary and its
+photos appearing in separate network-bound stages after the membership response. On a restored
+Story route, the client now starts the active authorized network reads while
+membership and Account restoration run. Diary prepares Timeline and Discover;
+the Years index, selected year and read-mode Memory, Heart Moment and Milestone
+prepare their own first read. Create and edit routes use their existing reads.
+
+The public startup view remains until the active Space is authorized. A result
+belongs to its Account, Space and exact route, and the matching query can take
+it once. Abandoning the route or losing membership cancels unconsumed work.
+The existing product read-cache handles persistence and availability fallback
+after the Space is admitted. The warm overview exceptions in M2-D18 remain
+scoped to their approved surfaces.
+
+For a photo without a fresh projection proof, the loader starts its local byte
+lookup alongside the normal parent read-access request. Display still requires
+that request to succeed. A fresh projection can supply the existing preview
+proof. Cache misses still download through the authorized transport. A
+401/403/404 prevents display and evicts the parent’s variants and display
+URLs. The existing cache namespaces, retention limits and expiry apply.
+
+The browser tests hold the membership response until the Timeline, Discover
+or Memory read completes, verify the public startup view while it is held, and
+verify one read per projection after admission. The Diary reload reuses its
+photo bytes. A revoked membership keeps the Diary closed and removes stored
+photos. A separate journey verifies the photo stays hidden while parent access
+is pending and that a 404 evicts its bytes. Representative Compact and Expanded
+renders are in [the startup evidence folder](evidence/story-startup/). The
+native session lifecycle is simulated in Chromium.
+
+## Kept primary tabs — 2026-11-12
+
+The Product Owner's screen recording of the Android test build showed every
+switch between Wir, Momente, Planen and Mehr rebuilding the destination:
+loading card, then the stored overview notice, then empty media frames, then
+photos popping in once their parent read-access returned. The byte and URL
+tiers were working; the views themselves were discarded on every tab change.
+
+Visited primary tabs now stay mounted, as on a native tab bar. The inactive
+tabs are `hidden` (out of layout, focus order and the accessibility tree) and
+see the location they last had, so they never react to another tab's route or
+publish task-origin metadata. Returning to a tab shows the same view, photos
+and scroll position immediately; a detail route opened from a tab returns to
+the kept view as well. Re-selecting the active tab still returns to its top.
+
+This does not change the authorization contract above: a kept view keeps its
+already authorized display handles, exactly as a view that stays on screen.
+Any new delivery (a newly mounted preview, a detail, an original) still checks
+parent read-access first. Hidden tabs keep their query observers, so the
+existing freshness, invalidation, revocation and logout/Space wipes apply to
+them unchanged. Memory is bounded by the four primary tabs.
+
+Images that do mount now fade in once decoded (`useMediaReveal`) instead of
+replacing the frame abruptly; the fade uses `--duration-context`, which is
+zero under reduced motion, and failed images settle visibly.

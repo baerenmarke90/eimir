@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Wish title correction.
+ * Wish content correction. Explicit null clears the description.
  * 
  * There is deliberately no ``status`` field. Wish status is controlled only
  * by explicit lifecycle commands; an arbitrary status PATCH would provide a
@@ -23,6 +23,18 @@ import { mapValues } from '../runtime';
  * @interface WishUpdate
  */
 export interface WishUpdate {
+    /**
+     * 
+     * @type {string}
+     * @memberof WishUpdate
+     */
+    description?: string | null;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof WishUpdate
+     */
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -48,6 +60,8 @@ export function WishUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -63,6 +77,8 @@ export function WishUpdateToJSONTyped(value?: WishUpdate | null, ignoreDiscrimin
 
     return {
         
+        'description': value['description'],
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

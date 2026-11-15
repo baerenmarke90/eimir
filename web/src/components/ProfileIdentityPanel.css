@@ -44,8 +44,9 @@
 }
 
 .profile-identity-name-row {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: var(--space-2);
 }
 
@@ -60,6 +61,8 @@
 }
 
 .profile-identity-visibility-badge {
+  grid-column: 1 / -1;
+  justify-self: center;
   align-self: center;
   max-width: min(42ch, 100%);
   white-space: normal;
@@ -131,5 +134,11 @@
   .profile-name-input-group {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (min-width: 36rem) {
+  .profile-identity-visibility-badge {
+    justify-self: start;
   }
 }

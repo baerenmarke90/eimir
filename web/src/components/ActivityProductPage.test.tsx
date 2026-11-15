@@ -15,15 +15,18 @@ function renderActivityPage(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  queryClient.setQueryData(['m5-s5', 'activity', SPACE_ID], {
-    pages: [
-      {
-        items,
-        nextCursor: null,
-      },
-    ],
-    pageParams: [null],
-  });
+  queryClient.setQueryData(
+    ['m5-s5', 'activity', SPACE_ID, currentAccountId, 'shared'],
+    {
+      pages: [
+        {
+          items,
+          nextCursor: null,
+        },
+      ],
+      pageParams: [null],
+    },
+  );
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
@@ -137,7 +140,7 @@ describe('issue #501: Activity relationship chronology presentation', () => {
     expect(html).not.toContain(m5s5.activity.you);
     expect(html).toContain('Weekend getaway');
     expect(html).toContain('href="/plan/plans/plan-1"');
-    expect(html).toContain('activity-card-chevron');
+    expect(html).not.toContain('activity-card-chevron');
   });
 
   it('renders static non-interactive card when target is null', () => {

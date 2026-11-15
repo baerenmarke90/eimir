@@ -1,6 +1,9 @@
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import './ProMark.css';
 
 export function ProMark({ label }: { label: string }) {
+  const hide = useHideProFeatureMarks();
+  if (hide) return null;
   return (
     <span className="pro-mark">
       <svg

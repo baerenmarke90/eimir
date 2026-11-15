@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`acceptedTermsVersion` | string
 `email` | string
 `invitationToken` | string
 
@@ -16,6 +17,7 @@ import type { SignupEmailRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "acceptedTermsVersion": null,
   "email": null,
   "invitationToken": null,
 } satisfies SignupEmailRequest

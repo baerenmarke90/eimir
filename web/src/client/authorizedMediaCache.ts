@@ -1,6 +1,25 @@
-/** Session-memory byte ownership; views continue to own their Object URLs. */
+import {
+  captureDurableMediaEpoch,
+  clearDurableMediaStore,
+  readDurableMedia,
+  writeDurableMedia,
+  evictDurableMedia,
+} from './durableMediaStore';
+import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
+import {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+export {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+/** Session-memory ownership, shared only within an authorized account/API scope. */
 export interface MediaCacheScope {
   readonly id: number;
+  readonly durableIdentity?: string;
   isCurrent(spaceId: string): boolean;
 }
 
@@ -10,6 +29,9 @@ interface CacheLease {
   readonly generation: number;
   readonly resourceKey: string;
   readonly revocation: number;
+  readonly spaceRevocation: number;
+  readonly durableEpoch?: string;
+  readonly projectionRevision: number;
 }
 
 interface CachedBlob {
@@ -23,10 +45,6 @@ interface PendingBlob {
   consumers: number;
 }
 
-export const MEDIA_CACHE_MAX_BYTES = 48 * 1024 * 1024;
-export const MEDIA_CACHE_MAX_ENTRIES = 192;
-export const MEDIA_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
-
 const scopesByOwner = new WeakMap<object, Map<string, MediaCacheScope>>();
 const clientScopes = new WeakMap<object, MediaCacheScope>();
 let nextScopeId = 1;
@@ -35,6 +53,7 @@ export function mediaCacheScopeForOwner(
   owner: object,
   basePath: string,
   isCurrent: (spaceId: string) => boolean,
+  accountId?: string,
 ): MediaCacheScope {
   let scopes = scopesByOwner.get(owner);
   if (!scopes) {
@@ -43,7 +62,13 @@ export function mediaCacheScopeForOwner(
   }
   let scope = scopes.get(basePath);
   if (!scope) {
-    scope = { id: nextScopeId++, isCurrent };
+    scope = {
+      id: nextScopeId++,
+      isCurrent,
+      durableIdentity: accountId
+        ? JSON.stringify([basePath, accountId])
+        : undefined,
+    };
     scopes.set(basePath, scope);
   }
   return scope;
@@ -67,10 +92,17 @@ export function mediaCacheScopeForClient(client: object): MediaCacheScope {
 }
 
 const cached = new Map<string, CachedBlob>();
+const stored = new Map<string, Promise<Blob | undefined>>();
 const pending = new Map<string, PendingBlob>();
 let cachedBytes = 0;
 let generation = 0;
 const revocations = new Map<string, number>();
+let projectionRevision = 0;
+const previewAuthorizations = new Map<
+  string,
+  { lease: CacheLease; expiresAt: number }
+>();
+const PREVIEW_AUTHORIZATION_MAX_AGE_MS = 60_000;
 
 export function captureMediaCacheLease(
   client: object,
@@ -85,13 +117,22 @@ export function captureMediaCacheLease(
     generation,
     resourceKey,
     revocation: revocations.get(resourceKey) ?? 0,
+    spaceRevocation: revocations.get(JSON.stringify([scope.id, spaceId])) ?? 0,
+    durableEpoch: scope.durableIdentity
+      ? captureDurableMediaEpoch()
+      : undefined,
+    projectionRevision,
   };
 }
 
 export function assertMediaCacheLease(lease: CacheLease): void {
   if (
     lease.generation !== generation ||
+    (lease.durableEpoch !== undefined &&
+      lease.durableEpoch !== captureDurableMediaEpoch()) ||
     lease.revocation !== (revocations.get(lease.resourceKey) ?? 0) ||
+    lease.spaceRevocation !==
+      (revocations.get(JSON.stringify([lease.scope.id, lease.spaceId])) ?? 0) ||
     !lease.scope.isCurrent(lease.spaceId)
   ) {
     throw new DOMException('Media context expired', 'AbortError');
@@ -120,10 +161,32 @@ function prune(): void {
   }
 }
 
+function findCachedBlob(key: string): Blob | undefined {
+  prune();
+  const hit = cached.get(key);
+  if (hit) {
+    cached.delete(key);
+    cached.set(key, hit);
+  }
+  return hit?.blob;
+}
+
+function rememberCachedBlob(key: string, blob: Blob): void {
+  if (blob.size > MEDIA_CACHE_MAX_BYTES || cached.has(key)) return;
+  cached.set(key, { blob, receivedAt: performance.now() });
+  cachedBytes += blob.size;
+  prune();
+}
+
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
+  projectionRevision += 1;
+  previewAuthorizations.clear();
+  evictMediaObjectUrls();
+  clearDurableMediaStore();
   cached.clear();
+  stored.clear();
   cachedBytes = 0;
   revocations.clear();
   for (const entry of pending.values()) entry.controller.abort();
@@ -138,13 +201,21 @@ export function evictAuthorizedMedia(
   lease: CacheLease,
   identityPrefix: readonly string[],
 ): void {
+  projectionRevision += 1;
+  previewAuthorizations.clear();
   const resourceKey = keyPrefix(lease, identityPrefix);
+  const diskPrefix = durableKey(lease, identityPrefix);
+  if (diskPrefix) evictDurableMedia(diskPrefix.slice(0, -1));
   revocations.set(resourceKey, (revocations.get(resourceKey) ?? 0) + 1);
   const prefix = keyPrefix(lease, identityPrefix).slice(0, -1);
+  evictMediaObjectUrls(prefix);
   const matches = (key: string) =>
     key === `${prefix}]` || key.startsWith(`${prefix},`);
   for (const key of cached.keys()) {
     if (matches(key)) removeCached(key);
+  }
+  for (const key of stored.keys()) {
+    if (matches(key)) stored.delete(key);
   }
   for (const [key, entry] of pending) {
     if (!matches(key)) continue;
@@ -153,28 +224,120 @@ export function evictAuthorizedMedia(
   }
 }
 
+function durableKey(
+  lease: CacheLease,
+  identity: readonly string[],
+): string | undefined {
+  return lease.scope.durableIdentity && lease.durableEpoch
+    ? JSON.stringify([
+        lease.durableEpoch,
+        lease.scope.durableIdentity,
+        lease.spaceId,
+        ...identity,
+      ])
+    : undefined;
+}
+
+/** A fresh parent response authorizes only its exact ready thumbnail identities.
+ * These one-use proofs are never persisted or derived from a cached projection.
+ */
+export function rememberAuthorizedMediaPreviews(
+  lease: CacheLease,
+  identities: readonly (readonly string[])[],
+): void {
+  if (
+    !lease.scope.durableIdentity ||
+    lease.projectionRevision !== projectionRevision
+  )
+    return;
+  try {
+    assertMediaCacheLease(lease);
+  } catch {
+    return;
+  }
+  for (const identity of identities) {
+    if (identity.at(-1) !== 'thumbnail') continue;
+    const key = keyPrefix(lease, identity);
+    previewAuthorizations.delete(key);
+    previewAuthorizations.set(key, {
+      lease,
+      expiresAt: Date.now() + PREVIEW_AUTHORIZATION_MAX_AGE_MS,
+    });
+  }
+  while (previewAuthorizations.size > MEDIA_CACHE_MAX_ENTRIES) {
+    previewAuthorizations.delete(previewAuthorizations.keys().next().value!);
+  }
+}
+
+export function consumeAuthorizedMediaPreview(
+  lease: CacheLease,
+  identity: readonly string[],
+): boolean {
+  const key = keyPrefix(lease, identity);
+  const authorization = previewAuthorizations.get(key);
+  previewAuthorizations.delete(key);
+  if (!authorization || authorization.expiresAt <= Date.now()) return false;
+  try {
+    assertMediaCacheLease(authorization.lease);
+    assertMediaCacheLease(lease);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Start the local read while the caller verifies parent access. The caller
+ * must still authorize delivery before exposing the bytes to a view.
+ */
+export async function readStoredMediaBlob(
+  lease: CacheLease,
+  identity: readonly string[],
+): Promise<Blob | undefined> {
+  assertMediaCacheLease(lease);
+  const key = keyPrefix(lease, identity);
+  const hit = findCachedBlob(key);
+  if (hit) return hit;
+  const diskKey = durableKey(lease, identity);
+  const epoch = lease.durableEpoch;
+  if (!diskKey || !epoch) return undefined;
+  let read = stored.get(key);
+  if (!read) {
+    const created = readDurableMedia(diskKey, epoch)
+      .then((blob) => {
+        assertMediaCacheLease(lease);
+        return blob;
+      })
+      .finally(() => {
+        if (stored.get(key) === created) stored.delete(key);
+      });
+    stored.set(key, created);
+    read = created;
+  }
+  const blob = await read;
+  assertMediaCacheLease(lease);
+  return blob;
+}
+
 /**
  * Reuse immutable bytes after the caller's authorization check. Identity must
  * include parent binding, attachment identity and original/thumbnail variant.
  * Cancellation belongs to each consumer; only the last departing consumer
  * cancels the shared transport. Failed/aborted results never enter the cache.
+ * A prestarted local read must use the same lease and attachment identity.
  */
 export async function loadCachedMediaBlob(
   lease: CacheLease,
   identity: readonly string[],
   load: (signal: AbortSignal) => Promise<Blob>,
   signal?: AbortSignal,
+  storedRead?: Promise<Blob | undefined>,
 ): Promise<Blob> {
   signal?.throwIfAborted();
   assertMediaCacheLease(lease);
-  prune();
   const key = keyPrefix(lease, identity);
-  const hit = cached.get(key);
-  if (hit) {
-    cached.delete(key);
-    cached.set(key, hit);
-    return hit.blob;
-  }
+  const hit = findCachedBlob(key);
+  if (hit) return hit;
 
   let entry = pending.get(key);
   if (!entry) {
@@ -185,14 +348,27 @@ export async function loadCachedMediaBlob(
       promise: Promise.resolve()
         .then(async () => {
           controller.signal.throwIfAborted();
-          const blob = await load(controller.signal);
+          const diskKey = durableKey(lease, identity);
+          const diskRead =
+            storedRead ??
+            (diskKey ? readStoredMediaBlob(lease, identity) : undefined);
+          const diskBlob = diskRead ? await diskRead : undefined;
           controller.signal.throwIfAborted();
           assertMediaCacheLease(lease);
-          if (blob.size <= MEDIA_CACHE_MAX_BYTES) {
-            cached.set(key, { blob, receivedAt: performance.now() });
-            cachedBytes += blob.size;
-            prune();
+          const blob = diskBlob ?? (await load(controller.signal));
+          controller.signal.throwIfAborted();
+          assertMediaCacheLease(lease);
+          if (!diskBlob && diskKey && lease.durableEpoch) {
+            void writeDurableMedia(diskKey, lease.durableEpoch, blob, () => {
+              try {
+                assertMediaCacheLease(lease);
+                return !controller.signal.aborted;
+              } catch {
+                return false;
+              }
+            });
           }
+          rememberCachedBlob(key, blob);
           return blob;
         })
         .finally(() => {

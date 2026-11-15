@@ -72,6 +72,12 @@ export interface RelatedPersonView {
     id: string;
     /**
      * 
+     * @type {string}
+     * @memberof RelatedPersonView
+     */
+    note?: string;
+    /**
+     * 
      * @type {PersonRelationship}
      * @memberof RelatedPersonView
      */
@@ -137,6 +143,7 @@ export function RelatedPersonViewFromJSONTyped(json: any, ignoreDiscriminator: b
         'createdAt': (new Date(json['createdAt'])),
         'displayName': json['displayName'],
         'id': json['id'],
+        'note': json['note'] == null ? undefined : json['note'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
         'showBirthdayOnDashboard': json['showBirthdayOnDashboard'],
         'updatedAt': (new Date(json['updatedAt'])),
@@ -162,6 +169,7 @@ export function RelatedPersonViewToJSONTyped(value?: RelatedPersonView | null, i
         'createdAt': value['createdAt'].toISOString(),
         'displayName': value['displayName'],
         'id': value['id'],
+        'note': value['note'],
         'relationship': PersonRelationshipToJSON(value['relationship']),
         'showBirthdayOnDashboard': value['showBirthdayOnDashboard'],
         'updatedAt': value['updatedAt'].toISOString(),

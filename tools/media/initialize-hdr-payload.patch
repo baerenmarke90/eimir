@@ -1,0 +1,19 @@
+--- a/libavutil/hdr_dynamic_metadata.c
++++ b/libavutil/hdr_dynamic_metadata.c
+@@ -312,0 +313,2 @@
++    // All serialized bytes, including padding, must be initialized.
++    memset(buf, 0, size_bytes);
+@@ -382,5 +384,5 @@
+-            put_bits(pb, 1, s->params[w].color_saturation_mapping_flag);
+-            if (s->params[w].color_saturation_mapping_flag)
+-                put_bits(pb, 6, s->params[w].color_saturation_weight.num * saturation_weight_den /
+-                    s->params[w].color_saturation_weight.den);
+-        }
++        }
++        put_bits(pb, 1, s->params[w].color_saturation_mapping_flag);
++        if (s->params[w].color_saturation_mapping_flag)
++            put_bits(pb, 6, s->params[w].color_saturation_weight.num * saturation_weight_den /
++                s->params[w].color_saturation_weight.den);
+@@ -633,0 +636,2 @@
++    // All serialized bytes, including padding, must be initialized.
++    memset(buf, 0, size_bytes);

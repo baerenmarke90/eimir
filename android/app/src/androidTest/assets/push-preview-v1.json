@@ -1,0 +1,54 @@
+{
+  "activationId": "a056af57-e809-465f-8173-e17c23cd408a",
+  "now": 1100,
+  "cases": [
+    {
+      "kind": "REMINDER_CREATED",
+      "notificationId": "01a19706-45b8-741d-a0d2-3687565a6789",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..zjVxO08IK-sfwE0K.GjOhroBcoubLiKP0DVxmI7sPN4oLIrpq6HVTba9WRQtBj3nCqPZf6izqhFVBS4Cue3YlnTVr4NPqBiLVKC45yKv3rRbUGdNSNwfr6rucP7HqHFQRsKJol7a1voN0nSEOKmOT6pJtjKSjFwggOmTp-LV5ZZSTUb-CV9roZHCZ_xul_OcnRFa9HN8-ewszHFegPrkpUTP89HnLhp4cdLn-i56siOn1QI5zf3xPZic0yqdMU8qw-4zMjJ1a1S19smB_c3Pm.Y8mrRk7a_BP_uaiKcE92OQ"
+    },
+    {
+      "kind": "PARTNER_KISS",
+      "notificationId": "01a19706-45b8-741d-a0d2-3687565a6790",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..C5CfcRuqzOizXGvE.t7HG9WNIUCBOs3IG3kLs8s8s42OjLwlkobRyTj5NUunaXf_LfK76EY3tM09ZrpQ1PWyygGBrH8nH_8qb9KL5C7VrhlY4Ufjd81xDaZ5AYs4VVeRrUdiZpF0Qu4hgzpyubfEtUFbVIOyrWtUNUewxcpMGmopH1jCGLpvrk4jqeBeOf2K5D4lGnCpQm5Syv9WNB_Dr2IpsnSBL-iPWavmddDep4IiFDLM3OpbSQZ5K.mjUtEDjReAOO9HAKNxnYrw"
+    },
+    {
+      "kind": "FUTURE_REVIEWED_EVENT",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yC_918QscMwLLhpb.JEAoMsCGGgbBcNfieHmoZE1bHBfGtxFIolMdnvSZU56qg3-S9lwNRbbxBweibNxLTICBO49yd_HGTjNRiZmUdjjKiRFza8SWPxYf5j_XlkxCxTj8ccYUgMzHSsGZ2ftfT5AMASSm7Hcr3aQZqPSkpOmQvP06F_6aNzCWhK-c5JJ-di-Exk0cxHDzbSF1_85dq1bLrFZsDJbW5WxJvIf6TXm5eoHCvLV0ELw8yt5GlXwnbqzrMGRJ3iRy8cGzX6tkAse2BPZ0mUUNdD99q6k9MmkcHSWXR0iwB5-xvSh9-QhPaZv0_qVPvtJ2eIksSm0hi7EIImo.vs8egrnrPp3Tc6sB7vtCVQ"
+    }
+  ],
+  "keyBytes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ]
+}

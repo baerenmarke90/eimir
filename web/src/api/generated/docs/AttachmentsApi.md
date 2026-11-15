@@ -6,10 +6,13 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**createAttachmentReadAccess**](AttachmentsApi.md#createattachmentreadaccess) | **POST** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/read-access | Create Attachment Read Access |
 | [**createAttachmentUpload**](AttachmentsApi.md#createattachmentupload) | **POST** /api/v1/spaces/{spaceId}/attachments | Create Attachment Upload |
+| [**createVideoPlaybackAccess**](AttachmentsApi.md#createvideoplaybackaccess) | **POST** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback-access | Create Playback Access |
 | [**deleteAttachment**](AttachmentsApi.md#deleteattachment) | **DELETE** /api/v1/spaces/{spaceId}/attachments/{attachmentId} | Delete Attachment |
 | [**finalizeAttachmentUpload**](AttachmentsApi.md#finalizeattachmentupload) | **POST** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/finalize | Finalize Attachment Upload |
 | [**getAttachment**](AttachmentsApi.md#getattachment) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId} | Get Attachment |
 | [**getAttachmentContent**](AttachmentsApi.md#getattachmentcontent) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content | Get Attachment Content |
+| [**getAttachmentUploadPolicy**](AttachmentsApi.md#getattachmentuploadpolicy) | **GET** /api/v1/spaces/{spaceId}/attachment-upload-policy | Upload Policy |
+| [**streamVideoPlayback**](AttachmentsApi.md#streamvideoplayback) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback | Read Playback |
 | [**uploadAttachmentContent**](AttachmentsApi.md#uploadattachmentcontent) | **PUT** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content | Upload Attachment Content |
 
 
@@ -159,6 +162,82 @@ No authorization required
 | **413** | The content exceeds the server-side size limit. |  -  |
 | **415** | The media type is not on the allowlist. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## createVideoPlaybackAccess
+
+> VideoPlaybackAccess createVideoPlaybackAccess(attachmentId, spaceId, videoPlaybackRequest)
+
+Create Playback Access
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AttachmentsApi,
+} from '';
+import type { CreateVideoPlaybackAccessRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AttachmentsApi();
+
+  const body = {
+    // string
+    attachmentId: attachmentId_example,
+    // string
+    spaceId: spaceId_example,
+    // VideoPlaybackRequest
+    videoPlaybackRequest: ...,
+  } satisfies CreateVideoPlaybackAccessRequest;
+
+  try {
+    const data = await api.createVideoPlaybackAccess(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **attachmentId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **videoPlaybackRequest** | [VideoPlaybackRequest](VideoPlaybackRequest.md) |  | |
+
+### Return type
+
+[**VideoPlaybackAccess**](VideoPlaybackAccess.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -456,6 +535,147 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getAttachmentUploadPolicy
+
+> AttachmentUploadPolicy getAttachmentUploadPolicy(spaceId)
+
+Upload Policy
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AttachmentsApi,
+} from '';
+import type { GetAttachmentUploadPolicyRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AttachmentsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetAttachmentUploadPolicyRequest;
+
+  try {
+    const data = await api.getAttachmentUploadPolicy(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AttachmentUploadPolicy**](AttachmentUploadPolicy.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## streamVideoPlayback
+
+> streamVideoPlayback(spaceId, attachmentId, token)
+
+Read Playback
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AttachmentsApi,
+} from '';
+import type { StreamVideoPlaybackRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AttachmentsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string
+    attachmentId: attachmentId_example,
+    // string
+    token: token_example,
+  } satisfies StreamVideoPlaybackRequest;
+
+  try {
+    const data = await api.streamVideoPlayback(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **attachmentId** | `string` |  | [Defaults to `undefined`] |
+| **token** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 

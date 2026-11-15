@@ -1,3 +1,4 @@
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -95,6 +96,7 @@ function timelineItems() {
 async function installMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());

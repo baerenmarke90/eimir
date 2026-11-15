@@ -54,6 +54,7 @@ const original: CommentDetail = {
 const other = { ...original, id: 'other', body: 'Another comment' };
 const saved = { ...original, body: 'Submitted words', version: 8 };
 const listMethods = {
+  plan: 'listPlanComments',
   memory: 'listMemoryComments',
   heartMoment: 'listHeartMomentComments',
   milestone: 'listMilestoneComments',
@@ -127,7 +128,6 @@ async function edit(body = 'Original words') {
   const user = userEvent.setup();
   const card = screen.getByText(body, { selector: 'p' }).closest('li');
   if (!card) throw new Error('Expected comment card');
-  await user.click(within(card).getByLabelText(copy.edit));
   await user.click(within(card).getByRole('button', { name: copy.edit }));
   const field = within(card).getByRole<HTMLTextAreaElement>('textbox');
   fireEvent.change(field, { target: { value: 'Submitted words' } });
@@ -142,7 +142,7 @@ async function submitEdit() {
   return editor;
 }
 
-describe.each(['memory', 'heartMoment', 'milestone'] as const)(
+describe.each(['memory', 'heartMoment', 'milestone', 'plan'] as const)(
   '%s comment edit draft ownership',
   (kind) => {
     for (const sameWords of [false, true]) {

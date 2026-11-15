@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from eimir.attachments.binding import MemoryAttachment
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
+from eimir.chapters.models import Chapter, ChapterPayload
 from eimir.core.ids import new_id
 from eimir.dashboard import service as dashboard_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
@@ -86,6 +87,7 @@ def _bind_ready_photo(session: Session, memory: Memory, name: str) -> Attachment
         media_type=MediaType.IMAGE.value,
         declared_mime_type="image/jpeg",
         declared_size=100,
+        has_thumbnail=True,
         ready_at=FIXED_NOW,
         payload=AttachmentPayload(original_name=name),
     )
@@ -111,11 +113,11 @@ def test_dashboard_is_shared_only_and_private_no_store(
         payload=HeartMomentPayload(text="Private retrospective", emotion=HeartEmotion.GRATEFUL),
     )
     private_person = RelatedPerson(
-        **_resource(couple, couple["anna"].id, private=True),
+        **_resource(couple, couple["anna"].id, private=False),
         relationship=PersonRelationship.FRIEND.value,
         birthday=date(1904, 8, 31),
         birthday_year_known=False,
-        payload=RelatedPersonPayload(display_name="Private birthday"),
+        payload=RelatedPersonPayload(display_name="Birthday without dashboard opt-in"),
     )
     foreign_memory = Memory(
         space_id=couple["foreign_space"].id,
@@ -153,6 +155,7 @@ def test_dashboard_is_shared_only_and_private_no_store(
     assert str(foreign_memory.id) not in visible_ids
     assert set(body) == {
         "space",
+        "anticipation",
         "relationshipDuration",
         "retrospective",
         "keepsake",
@@ -160,8 +163,11 @@ def test_dashboard_is_shared_only_and_private_no_store(
         "recentShared",
         "sharedStorySummary",
         "thinkingOfYouAvailableAt",
+        "incomingExperience",
         "viewerLocalDate",
+        "retrospectiveRediscovery",
     }
+    assert body["anticipation"] is None
     assert body["viewerLocalDate"] == "2026-08-30"
 
 
@@ -268,6 +274,7 @@ def test_keepsake_survives_recent_shared_crowded_by_non_memory_items(
     assert body["keepsake"]["id"] == str(photo_memory.id)
     assert body["keepsake"]["type"] == "MEMORY"
     assert body["keepsake"]["previewAttachmentId"] == str(attachment.id)
+    assert body["keepsake"]["previewHasThumbnail"] is True
 
 
 def test_keepsake_is_space_isolated(client, session: Session, couple, monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -601,10 +608,11 @@ def test_upcoming_birthday_enabled_and_shared_appears(
     assert upcoming[0]["titleOrText"] == "Lisa"
 
 
-def test_upcoming_birthday_enabled_but_owner_only_never_appears(
-    client, session: Session, couple, monkeypatch
+def test_dashboard_opt_in_cannot_bypass_shared_person_invariant(
+    session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
-    """Enabling Dashboard visibility never overrides OWNER_ONLY privacy."""
+    from sqlalchemy.exc import IntegrityError
+
     _freeze(monkeypatch)
     person = _birthday_person(
         couple,
@@ -612,31 +620,21 @@ def test_upcoming_birthday_enabled_but_owner_only_never_appears(
         privacy_class=PrivacyClass.OWNER_ONLY.value,
         show_birthday_on_dashboard=True,
     )
-    session.add(person)
-    session.flush()
-
-    anna_view = _dashboard(client, couple)
-    assert anna_view.status_code == 200
-    assert anna_view.json()["upcoming"] == []
-
-    ben_view = client.get(
-        f"/api/v1/spaces/{couple['space'].id}/dashboard",
-        headers=auth(sign_in(session, couple["ben"])),
-    )
-    assert ben_view.status_code == 200
-    assert ben_view.json()["upcoming"] == []
+    with pytest.raises(IntegrityError, match="people_are_shared"), session.begin_nested():
+        session.add(person)
+        session.flush()
 
 
-def test_upcoming_birthday_owner_only_partner_view_has_no_side_channel(
+def test_foreign_birthday_has_no_dashboard_count_or_order_side_channel(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
-    """The partner's Dashboard must not reveal a private birthday exists,
+    """The partner's Dashboard must not reveal a foreign birthday exists,
     even through count/order/section-presence side channels."""
     _freeze(monkeypatch)
     private_person = _birthday_person(
         couple,
-        owner_id=couple["anna"].id,
-        privacy_class=PrivacyClass.OWNER_ONLY.value,
+        owner_id=couple["outsider"].id,
+        space_id=couple["foreign_space"].id,
         show_birthday_on_dashboard=True,
     )
     shared_plan = Plan(
@@ -654,7 +652,7 @@ def test_upcoming_birthday_owner_only_partner_view_has_no_side_channel(
     )
     assert response.status_code == 200
     upcoming = response.json()["upcoming"]
-    # Only the shared plan is visible; the private birthday influences
+    # Only the shared plan is visible; the foreign birthday influences
     # neither count nor presence.
     assert len(upcoming) == 1
     assert upcoming[0]["id"] == str(shared_plan.id)
@@ -958,3 +956,174 @@ def test_thinking_of_you_available_at_reflects_server_authoritative_cooldown(
     after_cooldown = _dashboard(client, couple)
     assert after_cooldown.status_code == 200
     assert after_cooldown.json()["thinkingOfYouAvailableAt"] is None
+
+
+@pytest.mark.parametrize("kind", ["memory", "heart", "milestone"])
+def test_recent_content_dates_survive_late_historical_backfills(
+    client, session: Session, couple, monkeypatch, kind: str
+) -> None:  # type: ignore[no-untyped-def]
+    """Apply content recency before each bounded query and the combined limit."""
+    _freeze(monkeypatch)
+
+    def entry(label: str, happened: date, created: datetime):  # type: ignore[no-untyped-def]
+        common = dict(
+            **_resource(couple, couple["anna"].id),
+            happened_on=happened,
+            created_at=created,
+        )
+        if kind == "memory":
+            return Memory(**common, payload=MemoryPayload(title=label, body=label))
+        if kind == "heart":
+            return HeartMoment(
+                **common, payload=HeartMomentPayload(text=label, emotion=HeartEmotion.LOVED)
+            )
+        return Milestone(**common, payload=MilestonePayload(title=label))
+
+    current = entry("Current experience", FIXED_NOW.date(), FIXED_NOW - timedelta(days=30))
+    backfills = [
+        entry(f"Historical backfill {index}", date(2024, 1, 1), FIXED_NOW)
+        for index in range(dashboard_service.SECTION_LIMIT + 2)
+    ]
+    session.add_all([current, *backfills])
+    session.flush()
+    if kind == "memory":
+        _bind_ready_photo(session, current, "current.jpg")
+        _bind_ready_photo(session, backfills[0], "historical.jpg")
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["recentShared"][0]["id"] == str(current.id)
+    assert body["recentShared"][0]["occurredOn"] == FIXED_NOW.date().isoformat()
+    assert len(body["recentShared"]) == dashboard_service.SECTION_LIMIT
+    if kind == "memory":
+        assert body["keepsake"]["id"] == str(current.id)
+
+
+def test_recent_timed_plan_uses_the_viewer_calendar_day(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    """A UTC-next-day time is still yesterday for this viewer."""
+    _freeze(monkeypatch, FIXED_NOW + timedelta(days=1))
+    couple["anna"].timezone = "Pacific/Honolulu"
+    current = Memory(
+        **_resource(couple, couple["anna"].id),
+        happened_on=date(2026, 8, 31),
+        payload=MemoryPayload(title="Today's memory", body="Current content"),
+    )
+    plan = Plan(
+        **_resource(couple, couple["anna"].id),
+        status=PlanStatus.PLANNED.value,
+        planned_start=datetime(2026, 8, 31, 2, tzinfo=UTC),
+        payload=PlanPayload(title="Yesterday's local Plan"),
+    )
+    session.add_all([current, plan])
+    session.flush()
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["recentShared"]] == [
+        str(current.id),
+        str(plan.id),
+    ]
+
+
+@pytest.mark.parametrize("kind", ["memory", "chapter", "timed_plan", "undated_plan", "dated_plan"])
+def test_recent_same_day_selection_matches_the_final_order_before_limiting(
+    client, session: Session, couple, monkeypatch, kind: str
+) -> None:  # type: ignore[no-untyped-def]
+    """A bounded query must not discard newer same-day timestamp fallbacks."""
+    _freeze(monkeypatch)
+    entries = []
+    for index in range(dashboard_service.SECTION_LIMIT + 2):
+        instant = FIXED_NOW.replace(hour=0) + timedelta(hours=index)
+        common = dict(**_resource(couple, couple["anna"].id), created_at=instant)
+        label = f"Same-day entry {index}"
+        if kind == "memory":
+            entry = Memory(**common, payload=MemoryPayload(title=label, body=label))
+        elif kind == "chapter":
+            entry = Chapter(**common, payload=ChapterPayload(title=label))
+        else:
+            entry = Plan(
+                **common,
+                status=PlanStatus.PLANNED.value
+                if kind != "undated_plan"
+                else PlanStatus.IDEA.value,
+                planned_on=FIXED_NOW.date() if kind == "dated_plan" else None,
+                planned_start=instant if kind == "timed_plan" else None,
+                payload=PlanPayload(title=label),
+            )
+        session.add(entry)
+        session.flush()
+        entries.append(entry)
+
+    if kind == "memory":
+        _bind_ready_photo(session, entries[0], "older.jpg")
+        _bind_ready_photo(session, entries[-1], "newer.jpg")
+
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    expected = (
+        sorted(entries, key=lambda entry: str(entry.id))
+        if kind == "dated_plan"
+        else list(reversed(entries))
+    )
+    assert [item["id"] for item in response.json()["recentShared"]] == [
+        str(entry.id) for entry in expected[: dashboard_service.SECTION_LIMIT]
+    ]
+    if kind == "memory":
+        assert response.json()["keepsake"]["id"] == str(entries[-1].id)
+
+
+@pytest.mark.parametrize("kind", ["HAPPINESS", "TIME_TRAVEL"])
+@pytest.mark.parametrize("is_reply", [False, True])
+def test_incoming_experience_preserves_original_prompt_with_partner_answer(
+    client, session, couple, monkeypatch, kind, is_reply
+):  # type: ignore[no-untyped-def]
+    _freeze(monkeypatch)
+    prompt = "Which part of our morning stayed with you?"
+    reply_text = "Waking up beside you. " * 20
+    own = Memory(
+        **_resource(couple, couple["anna"].id),
+        payload=MemoryPayload(title="Own prompt", body="Own answer", tags=[]),
+        experience_kind=kind,
+        created_at=FIXED_NOW,
+    )
+    foreign = Memory(
+        space_id=couple["foreign_space"].id,
+        owner_id=couple["outsider"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=MemoryPayload(title="Other Space prompt", body="Other answer", tags=[]),
+        experience_kind=kind,
+        created_at=FIXED_NOW,
+    )
+    session.add_all([own, foreign])
+    session.flush()
+    assert _dashboard(client, couple).json()["incomingExperience"] is None
+    root = Memory(
+        **_resource(couple, couple["anna" if is_reply else "ben"].id),
+        payload=MemoryPayload(title=prompt, body="Original answer", tags=[]),
+        experience_kind=kind,
+        happened_on=date(2026, 8, 30),
+        created_at=FIXED_NOW - timedelta(minutes=1),
+    )
+    session.add(root)
+    session.flush()
+    if is_reply:
+        reply = Memory(
+            **_resource(couple, couple["ben"].id),
+            payload=MemoryPayload(title=prompt, body=reply_text, tags=[]),
+            experience_kind=kind,
+            experience_root_id=root.id,
+            happened_on=root.happened_on,
+            created_at=FIXED_NOW,
+        )
+        session.add(reply)
+        session.flush()
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    incoming = response.json()["incomingExperience"]
+    assert incoming["id"] == str(root.id)
+    assert incoming["kind"] == kind
+    assert incoming["prompt"] == prompt
+    assert incoming["text"] == (reply_text[:279].rstrip() + "…" if is_reply else "Original answer")
+    assert incoming["authorId"] == str(couple["ben"].id)
+    assert incoming["happenedOn"] == "2026-08-30"

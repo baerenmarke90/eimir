@@ -162,8 +162,11 @@ For larger runtime slices, client features, and production user flows, document 
 
 <!-- Tests, lint, typecheck, manual checks, etc. -->
 
+Follow the [CI retry policy](../CONTRIBUTING.md#retrying-failed-ci-jobs): inspect failures first, retry only affected jobs for transient failures on the same revision, and validate fixes with fresh checks on their new commit. Record any retried workflow/job and the reason here.
+
 - [ ] relevant tests executed
 - [ ] CI must be green before merge
+- [ ] CI retry policy followed; any retries and their reasons documented, or no retries needed
 - [ ] Product Design / UX result is complete and traceable
 - [ ] business/freemium model consistency result is complete and traceable
 - [ ] no Clean-Room, security, privacy, tenant-isolation, provenance, licensing, or engineering-language rule weakened

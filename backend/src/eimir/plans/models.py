@@ -7,13 +7,17 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
+    ForeignKey,
     ForeignKeyConstraint,
     Index,
     SmallInteger,
+    String,
     UniqueConstraint,
     text,
 )
@@ -27,6 +31,7 @@ from eimir.authorization import (
     ResourceAbsence,
     SharedWrite,
 )
+from eimir.core.context_tags import ContextTags
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
@@ -63,6 +68,21 @@ def plan_status_type() -> SqlEnum:
     )
 
 
+class DiscreetTitleMode(StrEnum):
+    """Which title a discreet Plan shows outside its detail view (#1790 F3).
+
+    ``PREVIEW`` shows the author-chosen preview title, or the client's neutral
+    fallback when it is empty. ``ORIGINAL`` keeps the real title visible while
+    description, place and photos stay concealed.
+    """
+
+    PREVIEW = "PREVIEW"
+    ORIGINAL = "ORIGINAL"
+
+
+PREVIEW_TITLE_MAX_LENGTH = 200
+
+
 class PlanPayload(ProtectedPayload):
     """Protected content of a plan.
 
@@ -72,7 +92,15 @@ class PlanPayload(ProtectedPayload):
     """
 
     title: str
+    selected_cover_attachment_id: UUID | None = None
     description: str | None = None
+    tags: ContextTags = Field(default_factory=list)
+    preview_title: str | None = None
+    """Title shown in overviews while the Plan is discreet (#1790 F3).
+
+    It is authored content like ``title`` and therefore stays behind the
+    protected boundary. ``None`` means the neutral localized fallback.
+    """
 
 
 class Plan(
@@ -84,7 +112,8 @@ class Plan(
 ):
     """A shared plan that both partners may read and write.
 
-    A plan is created either from a wish (M3-D02) or directly (M3-D30). The
+    A plan is created either from a wish (M3-D02) or directly (M3-D30). A direct
+    Plan can explicitly adopt one open Wish later (#1586). The
     distinction is represented by exactly one field, ``source_wish_id``, and
     determines completion effects, ``return-to-wish``, and deletion rules.
     """
@@ -118,6 +147,11 @@ class Plan(
     plans do not conflict with one another.
     """
 
+    cover_attachment_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL")
+    )
+    """Designated leading photo; ordered supplemental bindings live beside it."""
+
     planned_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day for a genuinely date-only schedule, or NULL.
 
@@ -127,8 +161,35 @@ class Plan(
     field. Existing timed schedules continue to use ``planned_start``.
     """
 
+    planned_until: Mapped[date | None] = mapped_column(Date)
+    """Inclusive last calendar day of a multi-day date-only Plan, or NULL (#1895).
+
+    Only a date-only schedule carries it; a timed Plan expresses its range
+    through ``planned_end``. NULL means the Plan covers ``planned_on`` alone.
+    """
+
     planned_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anticipation_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    discreet: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    """Shared visual shield against onlookers, never a permission (#1790 F3).
+
+    Both partners keep full read and write access; overviews, search, activity
+    and push only present the list title and conceal everything else.
+    """
+
+    discreet_title_mode: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=DiscreetTitleMode.PREVIEW.value,
+        server_default=text("'PREVIEW'"),
+    )
+    """Kept when ``discreet`` is cleared so a later re-enable restores the choice."""
+
     experienced_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day on which the experience happened, not an instant.
 
@@ -148,8 +209,14 @@ class Plan(
     )
 
     __table_args__ = (
+        UniqueConstraint("cover_attachment_id", name="uq_plans_cover_attachment"),
+        UniqueConstraint("id", "space_id", name="uq_plans_id_space_id"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
+        CheckConstraint(
+            "discreet_title_mode IN ('PREVIEW', 'ORIGINAL')",
+            name="discreet_title_mode_is_known",
+        ),
         # A schedule has exactly one semantic start representation. Keeping the
         # two columns mutually exclusive makes date-only versus timed explicit
         # at the persistence boundary and prevents timezone inference later.
@@ -164,6 +231,10 @@ class Plan(
         CheckConstraint(
             "planned_end IS NULL OR planned_end >= planned_start",
             name="planned_end_not_before_start",
+        ),
+        CheckConstraint(
+            "planned_until IS NULL OR (planned_on IS NOT NULL AND planned_until >= planned_on)",
+            name="planned_until_extends_planned_on",
         ),
         CheckConstraint(
             "status <> 'IDEA' OR "
@@ -211,6 +282,7 @@ class Plan(
         Index("ix_plans_place_id", "place_id"),
         Index("ix_plans_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_plans_space_id_status", "space_id", "status"),
+        Index("ix_plans_space_id_anticipation", "space_id", "anticipation_enabled", "status"),
         Index("ix_plans_space_id_planned_on", "space_id", "planned_on"),
         Index("ix_plans_space_id_planned_start", "space_id", "planned_start"),
     )

@@ -29,6 +29,7 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
 
@@ -59,8 +60,12 @@ class HeartMomentPayload(ProtectedPayload):
     """
 
     text: str
+    audio_title: str = Field(default="", max_length=120)
+    audio_speaker_name: str = Field(default="", max_length=80)
     emotion: HeartEmotion
     tags: HeartMomentTags = Field(default_factory=list)
+    location: HeartMomentLocation | None = None
+    selected_cover_attachment_id: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -80,14 +85,14 @@ class HeartMoment(
     """
 
     __tablename__ = "heart_moments"
+    shared_edit: ClassVar[bool] = True
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Heart moment not found.", "RESOURCE_NOT_FOUND"
     )
 
-    # At most one attachment (M2-D03). Model this as a foreign key rather than
-    # a relation table so cardinality lives in the schema instead of a rule
-    # that application code could forget.
+    # Position zero remains here for compatibility; supplemental bindings live
+    # in HeartMomentAttachment. The display cover is independent of this order.
     happened_on: Mapped[date] = mapped_column(Date, nullable=False)
     attachment_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
@@ -114,6 +119,7 @@ class HeartMoment(
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # Prevent the same attachment from belonging to two HeartMoments.
         UniqueConstraint("attachment_id", name="uq_heart_moments_attachment"),
+        UniqueConstraint("id", "space_id", name="uq_heart_moments_id_space_id"),
         # Target of the foreign key from `place_heart_moments`. The privacy
         # class deliberately participates in it so the join row can carry the
         # shared state of its target, and so a transition to OWNER_ONLY breaks

@@ -4,12 +4,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
-  parseStoryFilters,
   storyCacheResourceId,
   type StoryFilters,
 } from '../client/storyProduct';
 import de from '../i18n/locales/de';
-import { StoryProductPage } from './StoryProductPage';
 import { StoryYearDetailPage, StoryYearsIndexPage } from './StoryYearsPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
@@ -90,32 +88,6 @@ function renderYearDetail(year: number, cachedData: unknown): string {
   );
 }
 
-function renderStoryDiscover(cachedData: unknown): string {
-  const route = '/story';
-  const filters = parseStoryFilters(new URLSearchParams());
-  const cacheKey = storyCacheResourceId(filters);
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  queryClient.setQueryData(['story', 'space-1', cacheKey], {
-    pages: [{ value: cachedData, source: 'network' }],
-    pageParams: [null],
-  });
-
-  return renderToStaticMarkup(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[route]}>
-        <StoryProductPage
-          apis={{} as ReferenceApis}
-          accountId="account-1"
-          spaceId="space-1"
-          loadMemoryImage={loadMemoryImage}
-        />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
 describe('Story annual archive (#868)', () => {
   it('renders the years index from authoritative availableYears rather than loaded items', () => {
     const html = renderYearsIndex({
@@ -130,6 +102,26 @@ describe('Story annual archive (#868)', () => {
     expect(html).toContain('href="/story/years/2024"');
     expect(html).toContain('href="/story/years/2022"');
     expect(html).not.toContain('href="/story/years/2025"');
+  });
+
+  it('offers the recaps as a quiet next step, also before any year exists (#1790)', () => {
+    for (const availableYears of [[2026], []]) {
+      const html = renderYearsIndex({
+        items: [],
+        availableYears,
+        hasMore: false,
+        nextCursor: null,
+      });
+      expect(html).toContain('class="story-years-recaps-entry"');
+      expect(html).toContain('href="/story/recaps"');
+      expect(html).toContain(de.storyYears.recapsEntryTitle);
+      expect(html).toContain(de.storyYears.recapsEntryHint);
+      expect(html.indexOf('story-years-recaps-entry')).toBeLessThan(
+        html.indexOf(
+          availableYears.length ? 'story-years-list' : 'story-years-empty',
+        ),
+      );
+    }
   });
 
   it('renders one year oldest-first with month structure and existing source deep links', () => {
@@ -161,19 +153,5 @@ describe('Story annual archive (#868)', () => {
 
     expect(html).toContain(de.storyYears.unavailableTitle);
     expect(html).not.toContain('story-year-month');
-  });
-
-  it('keeps the compact Momente years entry independent of partially loaded pagination', () => {
-    const html = renderStoryDiscover({
-      items: [memory('m-2026', 'Aktueller Moment', '2026-09-12')],
-      availableYears: [2026, 2024],
-      hasMore: true,
-      nextCursor: 'next',
-    });
-
-    expect(html).toContain('href="/story/years"');
-    expect(html).not.toContain('href="/story/years/2026"');
-    expect(html).not.toContain('href="/story/years/2024"');
-    expect(html).not.toContain('momente-year-archive');
   });
 });

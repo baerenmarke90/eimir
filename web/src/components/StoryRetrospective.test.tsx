@@ -16,6 +16,7 @@ function candidate(overrides: Partial<DashboardItem> = {}): DashboardItem {
     createdAt: null,
     scheduledAt: null,
     previewAttachmentId: 'ready-lake-image',
+    previewIsSensitive: false,
     ...overrides,
   };
 }
@@ -37,7 +38,9 @@ describe('StoryRetrospective #601 / #452', () => {
     const html = renderCard(candidate());
     expect(html).toContain('aria-labelledby="momente-retrospective-heading"');
     expect(html).toContain(de.story.retrospectiveHeading);
-    expect(html).toContain(m5s5.today.living.retrospectiveLabel);
+    expect(html).not.toContain(m5s5.today.living.retrospectiveLabel);
+    expect(html).not.toContain(de.story.retrospectiveOpen);
+    expect(html).toContain('momente-retrospective-chevron');
     expect(html).toContain('href="/story/memories/lake-memory"');
     expect(html).toContain('momente-retrospective-media');
     expect(html).toContain('data-media-deferred="true"');
@@ -51,6 +54,7 @@ describe('StoryRetrospective #601 / #452', () => {
         id: 'first-evening',
         titleOrText: 'Our first evening by the water',
         previewAttachmentId: null,
+        previewIsSensitive: false,
       }),
     );
     expect(html).toContain('Our first evening by the water');
@@ -66,6 +70,7 @@ describe('StoryRetrospective #601 / #452', () => {
         type: 'HEART_MOMENT',
         titleOrText: 'Wir beide',
         previewAttachmentId: 'not-a-memory-image',
+        previewIsSensitive: false,
       }),
     );
     expect(html).toContain('href="/story/heart-moments/shared-heart"');
@@ -78,6 +83,7 @@ describe('StoryRetrospective #601 / #452', () => {
         occurredOn: null,
         createdAt: null,
         previewAttachmentId: null,
+        previewIsSensitive: false,
         titleOrText: null,
       }),
     );

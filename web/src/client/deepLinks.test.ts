@@ -46,6 +46,20 @@ describe('M5 Web S6 canonical Deep Links', () => {
     expect(validateAppRelativeReturnTarget('/more/settings')).toBe(
       '/more/settings',
     );
+    expect(validateAppRelativeReturnTarget('/plan/reminders/reminder-1')).toBe(
+      '/plan/reminders/reminder-1',
+    );
+  });
+
+  it('binds a reminder return to the Account and Space that admitted it', () => {
+    const path = '/plan/reminders/reminder-1';
+    window.history.replaceState(null, '', path);
+    rememberCurrentAuthReturnTarget('account-1', 'space-1');
+    expect(consumeAuthReturnTarget('account-1', 'space-2')).toBeNull();
+    rememberCurrentAuthReturnTarget('account-1', 'space-1');
+    expect(consumeAuthReturnTarget('account-2', 'space-1')).toBeNull();
+    rememberCurrentAuthReturnTarget('account-1', 'space-1');
+    expect(consumeAuthReturnTarget('account-1', 'space-1')).toBe(path);
   });
 
   it.each(SETTINGS_AUTH_RETURN_HASHES)(
@@ -57,7 +71,16 @@ describe('M5 Web S6 canonical Deep Links', () => {
     },
   );
 
-  it('rejects hashes outside the explicit Settings allowlist', () => {
+  it.each([
+    '/more/people/new',
+    '/more/people/person-1',
+    '/more/people/person-1/edit',
+    '/plan#dates',
+  ])('retains the canonical People and occasions return %s', (path) => {
+    expect(validateAppRelativeReturnTarget(path)).toBe(path);
+  });
+
+  it('rejects hashes outside the explicit surface allowlists', () => {
     expect(
       validateAppRelativeReturnTarget('/more/settings#settings-unknown'),
     ).toBeNull();

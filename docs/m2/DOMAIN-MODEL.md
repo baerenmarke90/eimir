@@ -114,13 +114,13 @@ Public Domain/API language and internal Authorization language are deliberately 
 | Content | `title`, `body` within the ProtectedPayload boundary |
 | Date | optional `happenedOn`, separate from `createdAt` |
 | Media | multiple Attachments; relation remains non-binding until #69 |
-| Write | author only; partner gains no Update/Delete authority from shared readability |
+| Write | shared content Update is collaborative under PO #1603 (2026-11-02); Delete remains author-only |
 | Read | both active Space partners |
 | Story | always permitted unless deleted |
 | Search | global full-text Search is not required for G2; M4 scope |
 | Concurrency | `version`, 409 for stale Update/Delete |
 
-Non-content fields are subject to the same author rule. Later collaborative editing would be a new Domain feature, not a silent weakening of this invariant.
+The explicit #1603 Domain amendment permits shared content enrichment while retaining immutable authorship, author-only deletion/privacy transitions and private isolation. See [Privacy Model](../PRIVACY-MODEL.md#shared-story-editing-1603).
 
 ### HeartMoment
 

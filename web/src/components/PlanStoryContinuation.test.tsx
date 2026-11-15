@@ -8,6 +8,8 @@ import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
+import { SubpageNavigation } from './SubpageNavigation';
+import { TaskBackButton } from './TaskBackButton';
 
 const plan: PlanDetail = {
   capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -49,6 +51,30 @@ function renderContinuation(sharedAchievementEnabled = false) {
 }
 
 describe('PlanStoryContinuation', () => {
+  it('restores focus to the shared upper-left Back after dismissing completion', () => {
+    render(
+      <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+        <main className="product-main">
+          <SubpageNavigation>
+            <div className="planning-page">
+              <TaskBackButton>Return to Plans</TaskBackButton>
+              <PlanStoryContinuation
+                apis={{} as SharedPlanningApis}
+                spaceId="space-1"
+                plan={plan}
+              />
+            </div>
+          </SubpageNavigation>
+        </main>
+      </MemoryRouter>,
+    );
+    const back = screen.getByRole('button', { name: 'Return to Plans' });
+    expect(back.closest('.subpage-back-slot')).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.planStory.later') }),
+    );
+    expect(document.activeElement).toBe(back);
+  });
   it('renders exactly one team celebration when the Space module is enabled', () => {
     const view = renderContinuation(true);
 
@@ -129,5 +155,47 @@ describe('PlanStoryContinuation', () => {
     expect(screen.getByLabelText('location').textContent).toBe(
       '/plan/plans/plan-1',
     );
+  });
+
+  it('closes a plan from a wish with the fulfilled wish and its path (#1790 F2)', () => {
+    render(
+      <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+        <PlanStoryContinuation
+          apis={{} as SharedPlanningApis}
+          spaceId="space-1"
+          plan={{ ...plan, sourceWishId: 'wish-1' }}
+          sharedAchievementEnabled
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('wishJourney.fulfilledTitle'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        i18n.t('wishJourney.fulfilledBody', { title: plan.title }),
+      ),
+    ).toBeTruthy();
+    const path = screen.getByRole('list', {
+      name: i18n.t('wishJourney.pathLabel'),
+    });
+    expect(path.hasAttribute('data-advancing')).toBe(true);
+    expect(path.querySelector('[aria-current="step"]')?.textContent).toBe(
+      i18n.t('wishJourney.stages.experienced'),
+    );
+    // The existing continuation stays: capture a memory, or later.
+    expect(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.planStory.memoryAction'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: i18n.t('m5s3.planStory.later') }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(i18n.t('m5s3.plan.sharedAchievementTitle')),
+    ).toBeNull();
   });
 });

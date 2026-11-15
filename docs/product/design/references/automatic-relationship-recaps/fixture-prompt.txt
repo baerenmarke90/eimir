@@ -1,0 +1,3 @@
+Built-in ImageGen, 2026-10-30. Illustrative photograph, used only in browser test fixtures.
+
+Use case: photorealistic-natural. Asset type: illustrative editorial photograph for a private couple relationship yearbook mobile mockup. A quiet empty wooden jetty extending from bottom left into a calm wooded European lake in late summer, warm low late afternoon sun, soft natural greens, reflections on water, slight analog film texture, candid travel photo rather than luxury advertising. No people, no buildings, no words, no graphics, no watermark. Landscape approx 3:2 composition, high quality yet natural, visually rich foreground, gentle highlights, muted warm greens and gold. It is an illustrative sample, not a claim about a real person's travels.

@@ -63,6 +63,21 @@ Sentiment: LOVE, LIKE, NEUTRAL, DISLIKE, AVOID.
 
 `Comment`: version-1 targets are strictly enumerated — shared Memory, Milestone, shared HeartMoment. No comments on private content.
 
+### One-time partner messages (#1672)
+
+`OnceMessage`, `OnceReception`, `OnceDevice` form an optional TEMPORARY_SHARED
+boundary. The 2026-11-06 Product Owner decision authorizes Pro sending through
+Space `partner.once_messages`, discreet Push and reuse of HeartMoment voice
+capture/player primitives. These are not persistent HeartMoments or Attachments.
+Both partners opt into reception independently; consent, opening pending content,
+discard and withdrawal are non-paywallable. Unopened content expires after 24
+hours, one explicit recipient claim grants one view, and closing/backgrounding
+clears the active local view. No response/read receipt, activity/story/search,
+recap, export/import payload or durable conversion is created. Scoped standard
+client-side JWE seals content for recipient devices; general Core E2EE, recovery,
+device verification and its audit remain MX work. See the complete
+[product/security contract](../docs/product/once-messages.md).
+
 ### Planning
 `Wish` (OPEN, PLANNED, COMPLETED), `Plan` (IDEA, PLANNED, COMPLETED), `Place`, `Chapter`
 

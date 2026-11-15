@@ -8,9 +8,11 @@ Name | Type
 ------------ | -------------
 `createdAt` | Date
 `durationSeconds` | number
+`failureCode` | string
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
+`isSensitive` | boolean
 `mediaType` | [MediaType](MediaType.md)
 `mimeType` | string
 `size` | number
@@ -27,9 +29,11 @@ import type { AttachmentDetail } from ''
 const example = {
   "createdAt": null,
   "durationSeconds": null,
+  "failureCode": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,
+  "isSensitive": null,
   "mediaType": null,
   "mimeType": null,
   "size": null,

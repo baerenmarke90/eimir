@@ -23,7 +23,7 @@ describe('EIMIR-M5-Web-S2-SCOPE Story product query', () => {
       order: StoryOrder.ASC,
     });
     expect(storyCacheResourceId(filters)).toBe(
-      'timeline:HEART_MOMENT:2026:ASC',
+      'diary-v2:HEART_MOMENT:2026:ASC',
     );
     expect(storyFiltersToSearch(filters).toString()).toBe(
       'type=HEART_MOMENT&year=2026&order=ASC',
@@ -53,12 +53,12 @@ describe('EIMIR-M5-Web-S2-SCOPE Story product query', () => {
 
   it('aggregates loaded cursor pages without inventing pagination state', () => {
     const first = {
-      items: [{ kind: 'MEMORY' }],
+      items: [{ kind: 'MEMORY', memory: { id: 'memory-1' } }],
       hasMore: true,
       nextCursor: 'cursor-2',
     } as unknown as StoryPage;
     const second = {
-      items: [{ kind: 'MILESTONE' }],
+      items: [{ kind: 'MILESTONE', milestone: { id: 'milestone-1' } }],
       hasMore: false,
       nextCursor: null,
     } as unknown as StoryPage;

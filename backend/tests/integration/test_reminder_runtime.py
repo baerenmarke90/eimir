@@ -84,10 +84,10 @@ def test_rule_catalog_defaults_validation_and_account_isolation(
         rules.RELATIONSHIP_ANNIVERSARY_RULE,
         rules.PLAN_START_RULE,
     }
-    assert items[rules.IMPORTANT_DATE_RULE]["parameters"]["daysBefore"] == [7, 1]
-    assert items[rules.RELATED_PERSON_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [14, 7, 1]
-    assert items[rules.PARTNER_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [14, 7, 1]
-    assert items[rules.RELATIONSHIP_ANNIVERSARY_RULE]["parameters"]["daysBefore"] == [30, 7, 1]
+    assert items[rules.IMPORTANT_DATE_RULE]["parameters"]["daysBefore"] == [7, 0]
+    assert items[rules.RELATED_PERSON_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [7, 0]
+    assert items[rules.PARTNER_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [14, 0]
+    assert items[rules.RELATIONSHIP_ANNIVERSARY_RULE]["parameters"]["daysBefore"] == [30, 0]
     assert items[rules.PLAN_START_RULE]["parameters"]["daysBefore"] == [1, 0]
 
     changed = client.put(
@@ -111,7 +111,7 @@ def test_rule_catalog_defaults_validation_and_account_isolation(
     )
     assert partner.status_code == 200
     assert partner.json()["enabled"] is True
-    assert partner.json()["parameters"]["daysBefore"] == [7, 1]
+    assert partner.json()["parameters"]["daysBefore"] == [7, 0]
 
     invalid = client.put(
         f"{_rule_base(couple)}/{rules.IMPORTANT_DATE_RULE}/preference",
@@ -314,7 +314,7 @@ def test_partner_birthday_reconciles_without_self_delivery(
                 if row.state == OccurrenceState.PENDING.value
             ]
         )
-        == 3
+        == 2
     )
 
     disabled = client.put(

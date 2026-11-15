@@ -1,0 +1,17 @@
+.native-date-input {
+  font-weight: 400;
+  cursor: pointer;
+}
+
+/* Hide browser date glyphs globally without disabling their native hit target.
+   NativeDateInput itself keeps the full-field showPicker() interaction. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+.native-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.field-group:has(> input.native-date-input) > label:not(.choice-row) {
+  font-weight: 400;
+}

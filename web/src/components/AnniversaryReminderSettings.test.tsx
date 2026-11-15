@@ -22,25 +22,29 @@ function createMockRulesApi(
     },
   },
 ) {
-  const getFn = vi.fn().mockResolvedValue(initialPreference);
-  const setFn = vi.fn().mockImplementation(async ({ rulePreferenceUpdate }) => {
-    return {
-      ruleKey: 'relationship_anniversary_reminder',
+  const getRulePreference = vi.fn().mockResolvedValue(initialPreference);
+  const setRulePreference = vi
+    .fn()
+    .mockImplementation(async ({ rulePreferenceUpdate }) => ({
+      ruleKey: initialPreference.ruleKey,
       enabled: rulePreferenceUpdate.enabled,
       parameters: {
-        daysBefore: rulePreferenceUpdate.parameters?.daysBefore ?? [30, 7, 1],
-        localTime: rulePreferenceUpdate.parameters?.localTime ?? '09:00:00',
+        daysBefore:
+          rulePreferenceUpdate.parameters?.daysBefore ??
+          initialPreference.parameters.daysBefore,
+        localTime:
+          rulePreferenceUpdate.parameters?.localTime ??
+          initialPreference.parameters.localTime,
       },
-    };
-  });
+    }));
 
   return {
-    getRulePreference: getFn,
-    setRulePreference: setFn,
+    getRulePreference,
+    setRulePreference,
   } as unknown as RulesApi;
 }
 
-function renderComponent(rulesApi: RulesApi) {
+function renderReminder(rulesApi: RulesApi, birthday = false) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -50,128 +54,170 @@ function renderComponent(rulesApi: RulesApi) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AnniversaryReminderSettings rulesApi={rulesApi} spaceId={SPACE_ID} />
+      {birthday ? (
+        <PartnerBirthdayReminderSettings
+          rulesApi={rulesApi}
+          spaceId={SPACE_ID}
+        />
+      ) : (
+        <AnniversaryReminderSettings rulesApi={rulesApi} spaceId={SPACE_ID} />
+      )}
     </QueryClientProvider>,
   );
 }
 
+function expandSchedule() {
+  const summary = screen.getByText(profileIdentity.importantDatesSchedule);
+  fireEvent.click(summary.closest('summary')!);
+}
+
 describe('AnniversaryReminderSettings', () => {
-  it('renders loaded preference with toggle, day presets, and time input', async () => {
+  it('shows a compact schedule preview and reuses the settings switch', async () => {
     const rulesApi = createMockRulesApi();
-    renderComponent(rulesApi);
+    renderReminder(rulesApi);
 
-    await waitFor(() => {
-      expect(
-        screen.getByLabelText(/An unseren Jahrestag erinnern/i),
-      ).toBeDefined();
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.anniversaryReminderToggle,
     });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(
+      screen.getByText('30 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: /Änderungen speichern/i }),
+    ).toBeNull();
 
-    const toggle = screen.getByLabelText(
-      /An unseren Jahrestag erinnern/i,
-    ) as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
-
-    expect(screen.getByText(/30 Tage vorher/i)).toBeDefined();
-    expect(screen.getByText(/7 Tage vorher/i)).toBeDefined();
-    expect(screen.getByText(/1 Tag vorher/i)).toBeDefined();
-
-    const timeInput = screen.getByLabelText(
-      profileIdentity.anniversaryReminderTimeLabel,
-    ) as HTMLInputElement;
-    expect(timeInput.value).toBe('09:00');
-
-    const saveBtn = screen.getByRole('button', {
-      name: /Änderungen speichern/i,
-    }) as HTMLButtonElement;
-    expect(saveBtn.disabled).toBe(true);
+    expandSchedule();
+    expect(
+      screen.getByRole('checkbox', { name: '30 Tage vorher' }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole('checkbox', { name: '7 Tage vorher' }),
+    ).toBeDefined();
+    expect(
+      (
+        screen.getByLabelText(
+          profileIdentity.anniversaryReminderTimeLabel,
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('09:00');
   });
 
-  it('enables save button on edit and calls setRulePreference on submit', async () => {
+  it('saves a switch change immediately and hides the schedule when disabled', async () => {
     const rulesApi = createMockRulesApi();
-    renderComponent(rulesApi);
+    renderReminder(rulesApi);
 
-    await waitFor(() => {
-      expect(
-        screen.getByLabelText(/An unseren Jahrestag erinnern/i),
-      ).toBeDefined();
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.anniversaryReminderToggle,
     });
-
-    const timeInput = screen.getByLabelText(
-      profileIdentity.anniversaryReminderTimeLabel,
-    ) as HTMLInputElement;
-    fireEvent.change(timeInput, { target: { value: '10:30' } });
-
-    const saveBtn = screen.getByRole('button', {
-      name: /Änderungen speichern/i,
-    }) as HTMLButtonElement;
-    expect(saveBtn.disabled).toBe(false);
-
-    fireEvent.click(saveBtn);
+    fireEvent.click(toggle);
 
     await waitFor(() => {
       expect(rulesApi.setRulePreference).toHaveBeenCalledWith(
         expect.objectContaining({
           spaceId: SPACE_ID,
           ruleKey: 'relationship_anniversary_reminder',
-          rulePreferenceUpdate: expect.objectContaining({
-            enabled: true,
-            parameters: expect.objectContaining({
+          rulePreferenceUpdate: {
+            enabled: false,
+            parameters: {
               daysBefore: [30, 7, 1],
-              localTime: '10:30:00',
-            }),
-          }),
+              localTime: '09:00:00',
+            },
+          },
         }),
       );
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
     });
-
-    await waitFor(() => {
-      expect(screen.getByText('✓ Gespeichert')).toBeDefined();
-    });
+    expect(
+      screen.queryByText(profileIdentity.importantDatesSchedule),
+    ).toBeNull();
   });
 
-  it('hides configuration controls when disabled toggle is unchecked', async () => {
+  it('saves selected days without a submit button', async () => {
     const rulesApi = createMockRulesApi();
-    renderComponent(rulesApi);
+    renderReminder(rulesApi);
 
-    await waitFor(() => {
-      expect(
-        screen.getByLabelText(/An unseren Jahrestag erinnern/i),
-      ).toBeDefined();
-    });
+    await screen.findByRole('switch');
+    expandSchedule();
+    fireEvent.click(screen.getByRole('checkbox', { name: '7 Tage vorher' }));
 
-    const toggle = screen.getByLabelText(
-      /An unseren Jahrestag erinnern/i,
-    ) as HTMLInputElement;
-    fireEvent.click(toggle);
-
-    expect(toggle.checked).toBe(false);
-    expect(screen.queryByText(/30 Tage vorher/i)).toBeNull();
-    expect(
-      screen.queryByLabelText(profileIdentity.anniversaryReminderTimeLabel),
-    ).toBeNull();
-
-    const saveBtn = screen.getByRole('button', {
-      name: /Änderungen speichern/i,
-    }) as HTMLButtonElement;
-    expect(saveBtn.disabled).toBe(false);
-
-    fireEvent.click(saveBtn);
-
-    await waitFor(() => {
+    await waitFor(() =>
       expect(rulesApi.setRulePreference).toHaveBeenCalledWith(
         expect.objectContaining({
           rulePreferenceUpdate: expect.objectContaining({
-            enabled: false,
+            enabled: true,
+            parameters: { daysBefore: [30, 1], localTime: '09:00:00' },
           }),
         }),
-      );
+      ),
+    );
+    expect(
+      await screen.findByText(profileIdentity.anniversaryReminderSaved),
+    ).toBeDefined();
+  });
+
+  it('saves a changed time when the time picker loses focus', async () => {
+    const rulesApi = createMockRulesApi();
+    renderReminder(rulesApi);
+
+    await screen.findByRole('switch');
+    expandSchedule();
+    const time = screen.getByLabelText(
+      profileIdentity.anniversaryReminderTimeLabel,
+    );
+    fireEvent.change(time, { target: { value: '10:30' } });
+    fireEvent.blur(time);
+
+    await waitFor(() =>
+      expect(rulesApi.setRulePreference).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rulePreferenceUpdate: expect.objectContaining({
+            parameters: { daysBefore: [30, 7, 1], localTime: '10:30:00' },
+          }),
+        }),
+      ),
+    );
+  });
+
+  it('prevents an enabled reminder from losing its final selected day', async () => {
+    const rulesApi = createMockRulesApi({
+      ruleKey: 'relationship_anniversary_reminder',
+      enabled: true,
+      parameters: { daysBefore: [0], localTime: '09:00:00' },
     });
+    renderReminder(rulesApi);
+
+    await screen.findByRole('switch');
+    expandSchedule();
+
+    const finalDay = screen.getByRole('checkbox', {
+      name: profileIdentity.anniversaryReminderDay0,
+    });
+    expect((finalDay as HTMLInputElement).disabled).toBe(true);
+    fireEvent.click(finalDay);
+    expect(rulesApi.setRulePreference).not.toHaveBeenCalled();
+  });
+
+  it('restores the persisted switch value when saving fails', async () => {
+    const rulesApi = createMockRulesApi();
+    vi.mocked(rulesApi.setRulePreference).mockRejectedValueOnce(
+      new Error('Offline'),
+    );
+    renderReminder(rulesApi);
+
+    const toggle = await screen.findByRole('switch');
+    fireEvent.click(toggle);
+
+    await waitFor(() =>
+      expect(toggle.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(rulesApi.setRulePreference).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('PartnerBirthdayReminderSettings', () => {
-  it('uses the recipient-scoped partner birthday rule', async () => {
-    const getRulePreference = vi.fn().mockResolvedValue({
+  it('uses a separate account-scoped rule and matching birthday schedule', async () => {
+    const rulesApi = createMockRulesApi({
       ruleKey: 'partner_birthday_reminder',
       enabled: true,
       parameters: {
@@ -179,53 +225,22 @@ describe('PartnerBirthdayReminderSettings', () => {
         localTime: '09:00:00',
       },
     });
-    const setRulePreference = vi
-      .fn()
-      .mockImplementation(async ({ rulePreferenceUpdate }) => ({
-        ruleKey: 'partner_birthday_reminder',
-        enabled: rulePreferenceUpdate.enabled,
-        parameters: rulePreferenceUpdate.parameters,
-      }));
-    const rulesApi = {
-      getRulePreference,
-      setRulePreference,
-    } as unknown as RulesApi;
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    renderReminder(rulesApi, true);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <PartnerBirthdayReminderSettings
-          rulesApi={rulesApi}
-          spaceId={SPACE_ID}
-        />
-      </QueryClientProvider>,
-    );
-
-    const toggle = await screen.findByRole('checkbox', {
-      name: new RegExp(profileIdentity.partnerBirthdayReminderToggle),
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.partnerBirthdayReminderToggle,
     });
     expect(
-      screen.getByText(profileIdentity.partnerBirthdayReminderDay14),
+      screen.getByText('14 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'),
     ).toBeDefined();
-    expect(getRulePreference).toHaveBeenCalledWith({
+    expect(rulesApi.getRulePreference).toHaveBeenCalledWith({
       spaceId: SPACE_ID,
       ruleKey: 'partner_birthday_reminder',
     });
 
     fireEvent.click(toggle);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: profileIdentity.anniversaryReminderSave,
-      }),
-    );
-
     await waitFor(() =>
-      expect(setRulePreference).toHaveBeenCalledWith(
+      expect(rulesApi.setRulePreference).toHaveBeenCalledWith(
         expect.objectContaining({
           spaceId: SPACE_ID,
           ruleKey: 'partner_birthday_reminder',

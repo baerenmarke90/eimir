@@ -136,7 +136,7 @@ class TestDirectCreate:
         assert p["capabilities"] == {
             "canEdit": True,
             "canDelete": True,
-            "canComment": False,
+            "canComment": True,
         }
         assert created.headers["ETag"] == '"1"'
 
@@ -928,6 +928,7 @@ class TestEvents:
         assert [row.event_type for row in rows] == [
             "PLAN_CREATED",
             "PLAN_UPDATED",
+            "PLAN_SCHEDULED",
             "PLAN_UPDATED",
             "PLAN_COMPLETED",
             "PLAN_DELETED",

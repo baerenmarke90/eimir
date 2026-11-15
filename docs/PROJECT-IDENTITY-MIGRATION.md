@@ -18,7 +18,7 @@ passed its complete protected-branch gate matrix.
 | OCI images | `ghcr.io/baerenmarke90/eimir-backend`, `ghcr.io/baerenmarke90/eimir-web` | New releases publish only the canonical names |
 | Release assets | `eimir-*` | New releases publish canonical asset names; prior manifests remain readable |
 | OpenAPI | title `eimir.`, schemas under `eimir.*` | The generated TypeScript client uses the new model identity (the Kotlin client was retired in #1009) |
-| Android namespace | `de.eimir.app` | The Capacitor wrapper (#1009) uses the new namespace; the installed-app identity `de.sidebyside.app` is unchanged |
+| Android application ID and namespace | `de.eimir.app` | Fresh eimir. installation selected by the Product Owner in #565; debug adds `.debug` |
 
 ## Before upgrading a Self-Hosted installation
 
@@ -88,17 +88,15 @@ names must never acquire different meanings.
 
 Some names are deliberately not changed in place:
 
-- Android `applicationId` `de.sidebyside.app`, its debug suffix, and the OIDC
-  callback scheme remain stable so stores and installed devices receive an
-  upgrade rather than a second application.
-- The retired Kotlin client's Room read cache and Keystore alias are not part of
-  the Capacitor architecture. Because an in-place Android update preserves the
-  existing app sandbox, the wrapper runs a one-way startup cleanup that deletes
-  the old `sidebyside-read-cache.db`, the remembered-Space preference and the
-  `sidebyside_owner_only_read_cache` Keystore entry. It never reads or migrates
-  their contents. It stores a completion marker only after all three removals
-  succeeded and then stops running; while Android reports a deletion failure it
-  retries on later starts. Server data continuity is unaffected.
+- Android now uses `de.eimir.app` and the matching OIDC callback scheme under
+  the Product Owner's #565 decision (2026-10-20), superseding the earlier
+  `de.sidebyside.app` continuity requirement. This is a fresh Android sandbox:
+  log in to the same Account on the existing server. No credentials or retired
+  local cache are copied from the former package, and it is not automatically
+  uninstalled or cleared. There is no cross-package startup cleanup. Published
+  old APKs and their evidence retain their real identity. Subsequent updates
+  within `de.eimir.app` must preserve signing and local data as usual. OIDC
+  providers must register the new callback before native OIDC is used.
 - The IndexedDB database `sidebyside-web-read-cache` remains stable. Web session,
   auth-return, theme, cache-context, and demo-mode keys are read once from their
   old names, written to canonical `eimir` keys, and then removed where removal

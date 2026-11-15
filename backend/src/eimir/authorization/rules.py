@@ -27,6 +27,7 @@ class Access(StrEnum):
 
     READ = "READ"
     WRITE = "WRITE"
+    EDIT = "EDIT"
 
 
 AccessRule = Callable[[type[PrivateResource], AuthorizationContext], ColumnElement[bool]]
@@ -82,10 +83,27 @@ _WRITE_RULES: Mapping[PrivacyClass, AccessRule] = MappingProxyType(
     }
 )
 
+
+def _shared_edit(
+    model: type[PrivateResource], context: AuthorizationContext
+) -> ColumnElement[bool]:
+    """Content editing is a domain opt-in, never destructive authority."""
+    return _the_whole_space(model, context) if model.shared_edit else _shared_write(model, context)
+
+
+_EDIT_RULES: Mapping[PrivacyClass, AccessRule] = MappingProxyType(
+    {
+        PrivacyClass.SPACE_SHARED: _shared_edit,
+        PrivacyClass.OWNER_ONLY: _only_the_owner,
+    }
+)
+
+
 _RULES: Mapping[Access, Mapping[PrivacyClass, AccessRule]] = MappingProxyType(
     {
         Access.READ: _READ_RULES,
         Access.WRITE: _WRITE_RULES,
+        Access.EDIT: _EDIT_RULES,
     }
 )
 

@@ -1,7 +1,7 @@
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { normalizeClientError } from './problemDetails';
 
-export type CommentParentKind = 'memory' | 'heartMoment' | 'milestone';
+export type CommentParentKind = 'memory' | 'heartMoment' | 'milestone' | 'plan';
 
 export function commentsQueryKey(
   spaceId: string,
@@ -30,6 +30,11 @@ export async function listCommentsPage(
   const common = { spaceId, cursor: cursor ?? undefined, limit };
   try {
     switch (parentKind) {
+      case 'plan':
+        return await commentsApi.listPlanComments({
+          ...common,
+          planId: parentId,
+        });
       case 'memory':
         return await commentsApi.listMemoryComments({
           ...common,

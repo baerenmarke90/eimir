@@ -52,6 +52,7 @@ from eimir.db.locks import lock_subject
 from eimir.db.session import schedule_after_rollback
 from eimir.identity import service as accounts
 from eimir.identity.models import Account, AuthIdentity, OidcAuthRequest
+from eimir.legal import terms
 from eimir.relationship import invitations
 from eimir.relationship.invitations import InvitationErrorCode
 
@@ -462,11 +463,18 @@ def _onboard_with_invitation(
     subject: str,
     connection_id: str,
 ) -> Account:
-    """Atomically create account, OIDC identity, and membership from an invitation."""
+    """Atomically create account, OIDC identity, and membership from an invitation.
+
+    Where new Accounts must accept the eimir. Cloud terms of use, they are
+    created only through the mailed signup proof, which carries that
+    acceptance. OIDC still signs into and links existing Accounts there.
+    """
     if request.invitation_token_hash is None:
         raise UnauthenticatedError(
             "This identity is not linked to an account.", OidcErrorCode.NO_ACCOUNT
         )
+    if terms.required_terms_version() is not None:
+        raise terms.acceptance_required_error()
 
     def create_account() -> Account:
         account = accounts.create_oidc_account(

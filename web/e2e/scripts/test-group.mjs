@@ -1,13 +1,16 @@
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBrowserImpact, validatePlannedSpecs } from './browser-impact.mjs';
 import { readTestInventory } from './test-inventory.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 let validated;
+let impact;
 try {
   validated = readTestInventory(root);
+  impact = readBrowserImpact(resolve(root, '../..'), validated);
 } catch (error) {
   console.error(error.message);
   process.exit(1);
@@ -36,7 +39,20 @@ if (mode !== 'pr' && mode !== 'full') {
 }
 
 const forwarded = process.argv.slice(3);
-const selected = mode === 'pr' ? prSpecs : [];
+let selected = mode === 'pr' ? prSpecs : inventoriedSpecs;
+try {
+  if (Object.hasOwn(process.env, 'EIMIR_BROWSER_SPECS')) {
+    selected = validatePlannedSpecs(
+      process.env.EIMIR_BROWSER_SPECS,
+      mode,
+      validated,
+      impact,
+    );
+  }
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 const executable = join(
   root,
   'node_modules',
@@ -45,12 +61,16 @@ const executable = join(
 );
 
 console.log(
-  `Running browser group "${mode}": ${mode === 'pr' ? selected.length : inventoriedSpecs.length} spec files (baseline ${mode === 'pr' ? declaredPrCount : declaredFullCount} tests).`,
+  `Running browser group "${mode}": ${selected.length} selected spec files. Inventory baselines are historical; use Playwright's collected count for this run.`,
 );
 
 const result = spawnSync(
   executable,
-  ['test', ...selected.map((name) => `tests/${name}`), ...forwarded],
+  [
+    'test',
+    ...selected.map((name) => `tests/${name.replaceAll('.', '\\.')}$`),
+    ...forwarded,
+  ],
   {
     cwd: root,
     env: process.env,

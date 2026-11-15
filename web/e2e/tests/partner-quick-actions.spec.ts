@@ -1,9 +1,17 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import coupleExperiences from '../../src/i18n/locales/coupleExperiences';
 import de from '../../src/i18n/locales/de';
+import onceCopy from '../../src/i18n/locales/onceMessages';
+import people from '../../src/i18n/locales/people';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
+import wishSelection from '../../src/i18n/locales/wishSelection';
+import localizedFixtures from '../fixtures/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -22,6 +30,10 @@ async function installMocks(
     partnerProfileAttachmentId = null,
     holdFirstGesture = false,
     failFirstGesture = false,
+    supportGesturesEnabled = true,
+    vibeCheckEnabled = false,
+    unreadCounts = [0],
+    notificationItems = () => [],
   }: {
     hasExtendedCapability?: boolean;
     thinkingOfYouAvailableAt?: string | null;
@@ -31,8 +43,15 @@ async function installMocks(
     partnerProfileAttachmentId?: string | null;
     holdFirstGesture?: boolean;
     failFirstGesture?: boolean;
+    supportGesturesEnabled?: boolean;
+    vibeCheckEnabled?: boolean;
+    /** Successive unread counts; the last value repeats. */
+    unreadCounts?: number[];
+    notificationItems?: () => unknown[];
   } = {},
 ) {
+  let unreadReads = 0;
+  let notificationListReads = 0;
   let entitlementGetCount = 0;
   const sentActions: Array<{ kind: string; clientRequestId: string }> = [];
   const gestures: Array<{ kind: string; clientRequestId: string }> = [];
@@ -140,9 +159,9 @@ async function installMocks(
           loveNotesEnabled: false,
           sharedAchievementsEnabled: false,
           spaceId: SPACE_ID,
-          supportGesturesEnabled: true,
+          supportGesturesEnabled,
           version: 1,
-          vibeCheckEnabled: false,
+          vibeCheckEnabled,
           vibeVisibilityMode: 'MUTUAL_REVEAL',
         },
         200,
@@ -230,7 +249,41 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
     ) {
-      await json({ unreadCount: 0 });
+      const index = Math.min(unreadReads, unreadCounts.length - 1);
+      unreadReads += 1;
+      await json({ unreadCount: unreadCounts[index] });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications`
+    ) {
+      notificationListReads += 1;
+      await json({ items: notificationItems(), nextCursor: null });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
+    ) {
+      await json(
+        {
+          checkedOn: '2026-11-15',
+          dailyContextTimezone: 'Europe/Berlin',
+          own: { energyLevel: null, vibe: null, vibeNote: null, version: 1 },
+          energy: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'NO_CHECK_IN' },
+          },
+          vibe: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'NO_CHECK_IN' },
+            partnerNote: null,
+          },
+        },
+        200,
+        { ETag: '"2026-11-15:check-in:1"' },
+      );
       return;
     }
     if (
@@ -336,6 +389,7 @@ async function installMocks(
 
   return {
     entitlementGetCount: () => entitlementGetCount,
+    notificationListReads: () => notificationListReads,
     sentActions: () => sentActions,
     gestures: () => gestures,
     releaseGesture,
@@ -423,6 +477,13 @@ for (const scenario of [
     await expect(surface.getByText(scenario.pending)).toBeVisible();
     await expect(action).toBeFocused();
     await expect(action).toHaveAttribute('aria-disabled', 'true');
+    const onceEntry = surface.getByRole('link', {
+      name: new RegExp(onceCopy.title),
+    });
+    await expect(onceEntry).toHaveAttribute('aria-disabled', 'true');
+    await onceEntry.evaluate((link: HTMLAnchorElement) => link.click());
+    await expect(page).toHaveURL('/today');
+    await expect(surface).toBeVisible();
     await expect(surface.getByText(scenario.confirmed)).toHaveCount(0);
     await expect.poll(() => network.gestures().length).toBe(1);
     await expectNoWcagViolations(page);
@@ -454,6 +515,14 @@ for (const scenario of [
     network.releaseGesture();
     await expect(surface.getByText(scenario.confirmed)).toBeVisible();
     await expect(surface.getByText(scenario.pending)).toHaveCount(0);
+    await expect(page.locator('.snackbar')).toHaveCount(0);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gesture-${scenario.kind}-confirmed-${scenario.width}-${scenario.theme}.png`,
+      ),
+      fullPage: true,
+      animations: 'disabled',
+    });
     await expect(
       surface.getByRole('button', {
         name: new RegExp(scenario.label.replace('?', '\\?')),
@@ -464,6 +533,32 @@ for (const scenario of [
     await expect(triggerLocator(page)).toBeFocused();
   });
 }
+
+test('system Back closes the Expanded quick-actions popover without leaving Wir (#1907)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installMocks(page);
+  await signIn(page);
+  const popover = page.locator('.partner-quick-actions-popover');
+  await triggerLocator(page).click();
+  await expect(popover).toBeVisible();
+  const openIndex = await page.evaluate(() => window.history.state?.idx);
+  await page.goBack();
+  await expect(popover).toHaveCount(0);
+  await expect(page).toHaveURL(/\/today$/);
+  expect(await page.evaluate(() => window.history.state?.idx)).toBe(openIndex);
+  // Escape releases the entry too, so the next Back is not swallowed.
+  await triggerLocator(page).click();
+  await expect(popover).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(popover).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => Boolean(window.history.state?.__eimirEditorEntry)),
+    )
+    .toBe(false);
+});
 
 test('gesture failure survives leaving and returning; explicit retry reconciles the same request identity', async ({
   page,
@@ -754,7 +849,7 @@ test('gates extended gestures behind the central Premium entitlement and sends t
   await expect(sheet.getByText(copy.pro).first()).toBeVisible();
 
   await kissButton.click();
-  await expect(page).toHaveURL(/\/more\/profile#profile-premium$/);
+  await expect(page).toHaveURL(/\/more\/pro$/);
   expect(network.sentActions()).toEqual([]);
 });
 
@@ -932,4 +1027,550 @@ test('keeps the trigger reachable across Compact widths and holds up at 320px/20
     fullPage: true,
     animations: 'disabled',
   });
+  await captureScreenshot(page, testInfo, 'partner-actions-320-dark-large.png');
+});
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`partner one-time entry at ${width} ${theme}: rounded actions open the existing composer and return without sending`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const network = await installMocks(page, { hasExtendedCapability: true });
+    const mutations: string[] = [];
+    page.on('request', (request) => {
+      if (
+        request.url().includes('/once-messages') &&
+        request.method() !== 'GET'
+      )
+        mutations.push(request.method());
+    });
+    await page.route('**/once-messages/status', (route) =>
+      route.fulfill({
+        json: {
+          ownEnabled: false,
+          partnerEnabled: false,
+          canSend: true,
+          ownDeviceIds: [],
+          recipientDevices: [],
+          receptionVersion: 0,
+          partner: { id: PARTNER_ID, displayName: 'Ben' },
+        },
+      }),
+    );
+    await signIn(page);
+    await triggerLocator(page).click();
+    const surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    await expect(surface.locator('.partner-quick-action')).toHaveCount(4);
+    for (const row of await surface.locator('.partner-quick-action').all()) {
+      expect(
+        await row.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
+        ),
+      ).toBeGreaterThanOrEqual(14);
+    }
+    await expect(surface.getByText(copy.intro)).toHaveCount(0);
+    await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
+    await expect(surface.getByText(copy.checkInHint)).toHaveCount(0);
+    const entry = surface.getByRole('link', {
+      name: new RegExp(onceCopy.title),
+    });
+    await expect(entry).toContainText(onceCopy.singleView);
+    await expect(entry.locator('.pro-mark')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await captureScreenshot(
+      page,
+      info,
+      `partner-actions-${width}-${theme}.png`,
+    );
+    await entry.click();
+    await expect(page).toHaveURL('/today/only-you/new');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: onceCopy.title, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(onceCopy.consent)).toBeVisible();
+    await page.locator('.task-back-control').click();
+    await expect(page).toHaveURL('/today');
+    await expect(triggerLocator(page)).toBeFocused();
+    expect(mutations).toEqual([]);
+    expect(network.gestures()).toEqual([]);
+  });
+}
+
+test('Wir shows no separate one-time link and no global create shortcut in the header', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installMocks(page, { supportGesturesEnabled: false });
+  await page.route('**/once-messages/status', (route) =>
+    route.fulfill({
+      json: {
+        ownEnabled: false,
+        partnerEnabled: false,
+        canSend: true,
+        ownDeviceIds: [],
+        recipientDevices: [],
+        receptionVersion: 0,
+        partner: { id: PARTNER_ID, displayName: 'Ben' },
+      },
+    }),
+  );
+  await signIn(page);
+  await expect(triggerLocator(page)).toHaveCount(0);
+  // Product Owner decision 2026-11-12: Wir carries no separate one-time
+  // link; the composer stays reachable from the partner action sheet. The
+  // Expanded header no longer carries a global create shortcut.
+  await expect(
+    page
+      .locator('.today-content')
+      .getByRole('link', { name: new RegExp(onceCopy.title) }),
+  ).toHaveCount(0);
+  await expect(page.locator('.shell-primary-action')).toHaveCount(0);
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+});
+
+test('the one-time entry is independent of an unavailable extended-gesture entitlement read', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page);
+  await page.route('**/entitlements', (route) => route.abort('failed'));
+  await signIn(page);
+  await triggerLocator(page).click();
+  const surface = page.getByRole('dialog', {
+    name: copy.title.replace('{{partner}}', 'Ben'),
+  });
+  await expect(surface.getByText(copy.unavailablePremium)).toBeVisible();
+  await expect(
+    surface.getByRole('link', { name: new RegExp(onceCopy.title) }),
+  ).toBeVisible();
+});
+
+for (const width of [390, 1280]) {
+  test(`partner photo completes the action-menu handoff and returns focus without sending at ${width}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    const state = await installMocks(page, {
+      partnerProfileAttachmentId: '00000000-0000-0000-0000-000000000031',
+    });
+    await signIn(page);
+    const trigger = triggerLocator(page);
+    await trigger.click();
+    await page
+      .getByRole('button', { name: people.photoAction, exact: true })
+      .click();
+    const gallery = page.getByRole('dialog', {
+      name: storyProducts.gallery.dialogAria,
+    });
+    await expect(gallery).toBeVisible();
+    await expect(gallery.locator('img')).toBeVisible();
+    await expect(
+      gallery.getByRole('button', { name: storyProducts.gallery.close }),
+    ).toBeFocused();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await captureScreenshot(page, info, `partner-photo-${width}-dark.png`);
+    await page.keyboard.press('Escape');
+    await expect(gallery).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(state.sentActions()).toEqual([]);
+    expect(state.gestures()).toEqual([]);
+  });
+}
+
+// Partner gesture receipt (#455): the recipient's calm, one-shot moment.
+const receiptCopy = relationshipComponents.partnerGestureReceipt;
+const receiptTitle = (key: 'thinking' | 'kiss' | 'checkIn') =>
+  receiptCopy[key].title.replace('{{name}}', 'Ben');
+
+function gestureNotification(id: string, kind: string) {
+  return {
+    id,
+    kind,
+    actorId: PARTNER_ID,
+    actor: { id: PARTNER_ID, displayName: 'Ben' },
+    // Created after the shell started: a genuinely new arrival.
+    createdAt: new Date().toISOString(),
+    readAt: null,
+    sourceEventId: `event-${id}`,
+    targetId: null,
+    targetType: null,
+  };
+}
+
+/** The shell's existing count refresh on focus, as after a push wake. */
+async function refreshUnreadCount(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('visibilitychange')),
+  );
+}
+
+function receiptLocator(page: Page) {
+  return page.getByTestId('partner-gesture-receipt');
+}
+
+async function settleReceiptMotion(page: Page): Promise<void> {
+  // The one-shot choreography ends after the gesture sequence.
+  await page.waitForTimeout(2_800);
+}
+
+test('a foreground Wish invitation opens the private favorites directly', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const notificationId = '00000000-0000-4000-8000-000000000021';
+  const invitation = () => ({
+    ...gestureNotification(notificationId, 'WISH_SELECTION_SHARED'),
+    targetId: 'round-1',
+    targetType: 'WISH_SELECTION',
+  });
+  await installMocks(page, {
+    unreadCounts: [0, 1],
+    notificationItems: () => [invitation()],
+  });
+  let opens = 0;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/notifications/${notificationId}/open`,
+    async (route) => {
+      opens += 1;
+      await route.fulfill({
+        json: { ...invitation(), readAt: new Date().toISOString() },
+      });
+    },
+  );
+  await page.route(
+    (url) => url.pathname === `/api/v1/spaces/${SPACE_ID}/wish-selection`,
+    (route) =>
+      route.fulfill({
+        json: {
+          id: 'round-1',
+          version: 1,
+          roundToken: 'round-1:1',
+          title: null,
+          candidates: localizedFixtures.wishSelection.wishes
+            .slice(0, 2)
+            .map((title, index) => ({
+              wishId: `wish-${index}`,
+              title,
+              version: 1,
+              status: 'OPEN',
+              planId: null,
+            })),
+          own: {
+            favoriteWishIds: [],
+            favoriteDateIdeaIds: [],
+            published: false,
+            version: 0,
+          },
+          selectionToken: 'round-1:1:0',
+          resultState: 'CHOOSING',
+          commonWishIds: [],
+          dateIdeaCandidates: [],
+          commonDateIdeaIds: [],
+        },
+      }),
+  );
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  const banner = page.getByTestId('foreground-notification');
+  await expect(banner).toHaveCount(0);
+
+  await refreshUnreadCount(page);
+  await expect(banner).toContainText(
+    coupleExperiences.notifications.WISH_SELECTION_SHARED.replace(
+      '{{name}}',
+      'Ben',
+    ),
+  );
+  await banner.hover();
+  await expect(
+    banner.locator('[data-motion="wish-fan"] > span').first(),
+  ).toHaveCSS('animation-name', 'notification-wish-fan');
+  expect(opens).toBe(0);
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'foreground-wish-invitation-390-light.png',
+  );
+
+  await banner.getByRole('button', { name: wishSelection.openOwn }).click();
+  await expect(page).toHaveURL(/\/plan\/choose$/);
+  await expect(
+    page.getByRole('heading', { name: wishSelection.chooseTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: wishSelection.shareNone }),
+  ).toBeVisible();
+  expect(opens).toBe(1);
+});
+
+test('the Wish result shows its own symbol with reduced motion', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installMocks(page, {
+    unreadCounts: [0, 1],
+    notificationItems: () => [
+      gestureNotification('result', 'WISH_SELECTION_READY'),
+    ],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  await refreshUnreadCount(page);
+
+  const banner = page.getByTestId('foreground-notification');
+  await expect(banner).toContainText(
+    coupleExperiences.notifications.WISH_SELECTION_READY,
+  );
+  await banner.hover();
+  const symbol = banner.locator('[data-motion="wish-match"] > span').first();
+  await expect(symbol).toBeVisible();
+  await expect(symbol).toHaveCSS('animation-name', 'none');
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'foreground-wish-result-1280-dark-reduced.png',
+  );
+});
+
+for (const scenario of [
+  {
+    kind: 'THINKING_OF_YOU',
+    title: receiptTitle('thinking'),
+    detail: receiptCopy.thinking.detail,
+    reply: receiptCopy.thinking.reply,
+    sent: copy.sentThinking,
+    variant: 'heart-pulse',
+    width: 390,
+    theme: 'light',
+  },
+  {
+    kind: 'PARTNER_KISS',
+    title: receiptTitle('kiss'),
+    detail: receiptCopy.kiss.detail,
+    reply: receiptCopy.kiss.reply,
+    sent: copy.sentKiss,
+    variant: 'kiss',
+    width: 390,
+    theme: 'dark',
+  },
+] as const) {
+  test(`receipt ${scenario.kind}: arrives once app-wide, replies through the existing action`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({ colorScheme: scenario.theme });
+    const network = await installMocks(page, {
+      hasExtendedCapability: true,
+      unreadCounts: [0, 1],
+      notificationItems: () => [gestureNotification('g-1', scenario.kind)],
+    });
+    await signIn(page);
+    await expect(triggerLocator(page)).toBeVisible();
+    // Nothing is read or replayed at app start.
+    expect(network.notificationListReads()).toBe(0);
+    await expect(receiptLocator(page)).toHaveCount(0);
+
+    await refreshUnreadCount(page);
+    const receipt = receiptLocator(page);
+    await expect(receipt).toBeVisible();
+    // Resting the pointer on it pauses the reading time.
+    await receipt.hover();
+    await expect(receipt).toHaveAttribute('data-variant', scenario.variant);
+    await expect(
+      page.getByRole('complementary', { name: scenario.title }),
+    ).toBeVisible();
+    await expect(receipt).toContainText(scenario.detail);
+    // No focus is taken from the page.
+    expect(
+      await page.evaluate(() =>
+        Boolean(
+          document.activeElement?.closest(
+            '[data-testid="partner-gesture-receipt"]',
+          ),
+        ),
+      ),
+    ).toBe(false);
+    await settleReceiptMotion(page);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `gesture-receipt-${scenario.variant}-${scenario.width}-${scenario.theme}.png`,
+    );
+
+    const reply = receipt.getByRole('button', { name: scenario.reply });
+    const box = await reply.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    await reply.click();
+    await expect(receipt).toContainText(scenario.sent);
+    expect(network.gestures()).toHaveLength(1);
+    expect(network.gestures()[0].kind).toBe(
+      scenario.kind === 'PARTNER_KISS' ? 'KISS' : 'THINKING',
+    );
+
+    // The same notification never animates again on a later refresh.
+    await receipt.getByRole('button', { name: receiptCopy.close }).click();
+    await expect(receiptLocator(page)).toHaveCount(0);
+    await refreshUnreadCount(page);
+    await page.waitForTimeout(300);
+    await expect(receiptLocator(page)).toHaveCount(0);
+  });
+}
+
+test('receipt PARTNER_CHECK_IN: "share how you feel" opens the existing own check-in', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const network = await installMocks(page, {
+    hasExtendedCapability: true,
+    vibeCheckEnabled: true,
+    unreadCounts: [0, 1],
+    notificationItems: () => [gestureNotification('c-1', 'PARTNER_CHECK_IN')],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  // App-wide: the gesture arrives while the person is on Momente.
+  await page
+    .getByRole('navigation', { name: de.navigation.primary })
+    .last()
+    .getByRole('link', { name: de.navigation.story })
+    .click();
+  await expect(page).toHaveURL(/\/story/);
+  await refreshUnreadCount(page);
+  const receipt = receiptLocator(page);
+  await expect(receipt).toBeVisible();
+  await receipt.hover();
+  await expect(receipt).toHaveAttribute('data-variant', 'calm-ring');
+  await expect(receipt).toContainText(receiptTitle('checkIn'));
+  await settleReceiptMotion(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'gesture-receipt-calm-ring-430-dark-on-momente.png',
+  );
+  await receipt
+    .getByRole('button', { name: receiptCopy.checkIn.reply })
+    .click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(
+    page.getByRole('dialog', { name: wirCheckInCopy.panelTitle }),
+  ).toBeVisible();
+  // Nothing was changed or sent on the person's behalf.
+  expect(network.gestures()).toHaveLength(0);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'gesture-receipt-calm-ring-430-dark-checkin-open.png',
+  );
+});
+
+test('receipt: no interruption while writing, no replay of earlier gestures', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const network = await installMocks(page, {
+    unreadCounts: [1, 2],
+    notificationItems: () => [
+      gestureNotification('while-writing', 'THINKING_OF_YOU'),
+    ],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  // A text field has focus, as in any composer.
+  await page.evaluate(() => {
+    const field = document.createElement('textarea');
+    field.setAttribute('aria-label', 'composer');
+    document.querySelector('main')?.append(field);
+    field.focus();
+  });
+  await refreshUnreadCount(page);
+  await page.waitForTimeout(500);
+  await expect(receiptLocator(page)).toHaveCount(0);
+  await expect(page.getByLabel('composer')).toBeFocused();
+  // Nothing is fetched to build a later, delayed interruption either.
+  expect(network.notificationListReads()).toBe(0);
+});
+
+test('receipt: 320 px, 200 % text and reduced motion keep everything static and reachable', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installMocks(page, {
+    hasExtendedCapability: false,
+    unreadCounts: [0, 1],
+    notificationItems: () => [gestureNotification('k-1', 'PARTNER_KISS')],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await refreshUnreadCount(page);
+  const receipt = receiptLocator(page);
+  await expect(receipt).toBeVisible();
+  // Static: no running animation, no decorative layers.
+  expect(
+    await receipt.evaluate(
+      (element) => element.getAnimations({ subtree: true }).length,
+    ),
+  ).toBe(0);
+  await expect(receipt.locator('.partner-gesture-receipt-hero')).toBeHidden();
+  // Without Pro the existing, restrained Pro discovery is offered.
+  const reply = receipt.getByRole('button', {
+    name: new RegExp(receiptCopy.kiss.reply),
+  });
+  await expect(reply).toContainText(copy.pro);
+  await expect(reply).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'gesture-receipt-kiss-320-dark-200pct-reduced-motion.png',
+  );
+});
+
+test('receipt: Expanded keeps the top navigation free', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await installMocks(page, {
+    unreadCounts: [0, 1],
+    notificationItems: () => [gestureNotification('e-1', 'THINKING_OF_YOU')],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  await refreshUnreadCount(page);
+  const receipt = receiptLocator(page);
+  await expect(receipt).toBeVisible();
+  const header = await page.locator('.app-header').boundingBox();
+  const surface = await receipt.boundingBox();
+  expect(surface && header && surface.y >= header.y + header.height).toBe(true);
+  await settleReceiptMotion(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'gesture-receipt-heart-pulse-1280-light.png',
+  );
 });

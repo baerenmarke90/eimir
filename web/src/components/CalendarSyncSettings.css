@@ -1,0 +1,116 @@
+.calendar-sync {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.calendar-sync-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-target-web);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+}
+
+.calendar-sync-choice > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.calendar-sync-choice > span:first-child > span {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.calendar-sync-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.calendar-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--color-brand-surface);
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+
+.calendar-sync-dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.calendar-sync-status-attention,
+.calendar-sync-status-broken {
+  background: var(--color-surface-panel-tint);
+}
+
+.calendar-sync-conflicts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-sync-conflicts > li,
+.calendar-sync-confirm,
+.calendar-sync-success {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-panel-tint);
+}
+
+.calendar-sync-success {
+  background: var(--color-brand-surface);
+}
+
+.calendar-sync-conflicts p,
+.calendar-sync-confirm p,
+.calendar-sync-success p {
+  margin: 0 0 var(--space-2);
+}
+
+.calendar-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.calendar-sync-target {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.calendar-sync-target > p {
+  margin: 0;
+}
+
+.calendar-sync-calendars {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-sync-status {
+    transition: none;
+  }
+}

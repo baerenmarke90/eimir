@@ -111,6 +111,8 @@ def test_allowlisted_but_unverified_email_does_not_grant_server_admin(
     assert capability.status_code == 200
     assert capability.json() == {
         "serverAdmin": False,
+        "videoProcessingEnabled": False,
+        "audioProcessingEnabled": False,
         "auth": {
             "localPassword": True,
             "passkey": True,
@@ -143,6 +145,8 @@ def test_verified_allowlisted_account_gets_server_admin_capability_and_extended_
     assert capability.status_code == 200
     assert capability.json() == {
         "serverAdmin": True,
+        "videoProcessingEnabled": False,
+        "audioProcessingEnabled": False,
         "auth": {
             "localPassword": True,
             "passkey": True,

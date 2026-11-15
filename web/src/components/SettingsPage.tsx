@@ -40,6 +40,7 @@ import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { GoogleAccountSettings } from './GoogleAccountSettings';
+import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
@@ -251,6 +252,16 @@ export function SettingsPage(props: SettingsPageProps) {
           }}
         />
       </div>
+    );
+  } else if (categoryId === 'calendar') {
+    categoryContent = (
+      <CalendarSyncSettings
+        key={`calendar:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+        apiBaseUrl={props.apiBaseUrl}
+        accessToken={props.accessToken}
+        accountId={props.account.id}
+        spaceId={props.spaceId}
+      />
     );
   } else if (categoryId === 'media') {
     categoryContent = (

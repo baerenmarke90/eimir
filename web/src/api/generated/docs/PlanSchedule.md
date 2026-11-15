@@ -1,7 +1,7 @@
 
 # PlanSchedule
 
-One explicit Plan schedule representation.  ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware instant. Exactly one of those semantic starts must be supplied; clients may never synthesize a wall-clock time merely to encode ``plannedOn``.
+One explicit Plan schedule representation.  ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware instant. Exactly one of those semantic starts must be supplied; clients may never synthesize a wall-clock time merely to encode ``plannedOn``. ``plannedUntil`` is the optional inclusive last calendar day of a multi-day date-only Plan; a timed Plan uses ``plannedEnd`` instead.
 
 ## Properties
 
@@ -10,6 +10,7 @@ Name | Type
 `plannedEnd` | Date
 `plannedOn` | Date
 `plannedStart` | Date
+`plannedUntil` | Date
 
 ## Example
 
@@ -21,6 +22,7 @@ const example = {
   "plannedEnd": null,
   "plannedOn": null,
   "plannedStart": null,
+  "plannedUntil": null,
 } satisfies PlanSchedule
 
 console.log(example)

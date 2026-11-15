@@ -1174,6 +1174,17 @@
         "web/src/components/CollectionsOverviewPage.tsx"
       ]
     },
+    "settings-calendar-sync.spec.ts": {
+      "roots": [
+        "web/src/components/CalendarSyncSettings.tsx",
+        "web/src/components/CalendarSyncSettings.css",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/SettingsIndex.tsx",
+        "web/src/client/calendarSync.ts",
+        "web/src/client/settingsNavigation.ts",
+        "web/src/i18n/locales/calendarSync.ts"
+      ]
+    },
     "settings-google-account.spec.ts": {
       "roots": [
         "web/src/components/GoogleAccountSettings.tsx",

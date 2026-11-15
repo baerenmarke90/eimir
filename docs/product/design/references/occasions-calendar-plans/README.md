@@ -19,7 +19,7 @@ and the contextual "plan for this day" action from the reader are unchanged.
 
 - Dated Plans with status planned join the month band and the month sheet.
 - Marks differ by shape, not only by color: an occasion keeps its dot; a Plan gets a short
-  bar in the brand text color. A day with both shows bar and dot side by side.
+  bar in the brand text color. A day with both shows bar and dot next to each other.
 - Under the month, Plans are listed in date order between the occasions. A Plan row has a
   brand-tinted date marker, the Planen symbol, its list title and one quiet line with
   weekday, time (or "ganztägig") and the word "Plan".

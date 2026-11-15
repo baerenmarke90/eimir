@@ -263,6 +263,76 @@
       "evidenceSha256": "ea004821113616a7cfd42f3037ba344586a242d4f70a4dc7bb4327f82c62e35f",
       "reviewedAt": "2026-11-15",
       "review": "The affected Quick Sync encoder wrapper (libavcodec/qsvenc.c) is built only with CONFIG_QSVENC, which requires the external libmfx (qsv_deps in configure). build-ffmpeg.sh sets --disable-autodetect, enables no QSV encoder and links no Intel media library."
+    },
+    "CVE-2026-125236": {
+      "evidenceSha256": "58308a897dcaba23dcf92c5ad76cd23b19502ceacfef4d59dc47b49f86cec923",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected VVC decoder (alloc_frame() in libavcodec/vvc/refs.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/vvc/Makefile builds vvc/refs.o only with CONFIG_VVC_DECODER."
+    },
+    "CVE-2026-125237": {
+      "evidenceSha256": "129d98ee529237fe3a7ac7f850120b0ca2918162e7d6eedd854e956285ce964d",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected DPX decoder and its Vulkan hwaccel path (libavcodec/dpx.c) are not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds dpx.o only with CONFIG_DPX_DECODER. build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC and H.264 are decoded by the software decoders only."
+    },
+    "CVE-2026-125238": {
+      "evidenceSha256": "0ed3c6264bfbc8364442faa4760ab4b42a187332b64418c6be69b14fb198d85c",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected libxevd EVC wrapper (libxevd_receive_frame() in libavcodec/libxevd.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds libxevd.o only with CONFIG_LIBXEVD_DECODER, which needs the external libxevd (libxevd_decoder_deps_any in configure). --enable-libxevd is not set and --disable-autodetect is."
+    },
+    "CVE-2026-125239": {
+      "evidenceSha256": "4a30647ddcf2b145d8546cf8c0d3229006f3b110f58dd08455310e5e633efa0e",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected DXVA2/D3D11VA HEVC acceleration (ff_dxva2_hevc_fill_picture_parameters() in libavcodec/dxva2_hevc.c) is built only with CONFIG_HEVC_DXVA2_HWACCEL, CONFIG_HEVC_D3D11VA_HWACCEL or CONFIG_HEVC_D3D12VA_HWACCEL, which require the Windows DXVA2/D3D headers (hevc_dxva2_hwaccel_deps in configure). build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC and H.264 are decoded by the software decoders only. The build is a Linux build."
+    },
+    "CVE-2026-125240": {
+      "evidenceSha256": "dfae0a5f879bc4e3714515c6f84ad1f1f28197685c183605ef59059029bd7de1",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected JPEG XS decoder wrapper (svt_jpegxs_dec_decode() in libavcodec/libsvtjpegxsdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds libsvtjpegxsdec.o only with CONFIG_LIBSVTJPEGXS_DECODER, which needs the external libsvtjpegxs (libsvtjpegxs_decoder_deps in configure). No MPEG-TS demuxer is enabled either."
+    },
+    "CVE-2026-125241": {
+      "evidenceSha256": "ba75de5b0aed101f70615812eadfdc57d162f45595493c99fda8407f5925e060",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected FLIC decoder (libavcodec/flicvideo.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds flicvideo.o only with CONFIG_FLIC_DECODER."
+    },
+    "CVE-2026-125242": {
+      "evidenceSha256": "ef2fb32d961fd1a5001834b3c94daa1606ae1b2d5ca0a68bcf1d92316b4a62ab",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected VDPAU glue code (libavcodec/vdpau.c) is not compiled: libavcodec/Makefile builds vdpau.o only with CONFIG_VDPAU, which requires the external vdpau library. build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC and H.264 are decoded by the software decoders only. The software H.264 decoder does not use this code."
+    },
+    "CVE-2026-125243": {
+      "evidenceSha256": "0df87adf966500bbc30748a033e161373216da21b770cd41380204ef57dffd23",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected JPEG-LS decoder (ff_jpegls_decode_picture() in libavcodec/jpeglsdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds jpeglsdec.o only with CONFIG_JPEGLS_DECODER."
+    },
+    "CVE-2026-125245": {
+      "evidenceSha256": "bba31e686cb7ff5f276246ccd43c69105a236dc2a5cecf7195be170c44b62a64",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected MJPEG decoder (ff_mjpeg_decode_sof() in libavcodec/mjpegdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds mjpegdec.o only with CONFIG_MJPEG_DECODER. The advisory also requires a VAAPI or similar hwaccel, and build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC and H.264 are decoded by the software decoders only."
+    },
+    "CVE-2026-125246": {
+      "evidenceSha256": "eca6edb73dcf367b6b04ade6a796f7c3cb9e781e5079e6b732dccc46a67f82cb",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected JPEG coded bitstream backend (cbs_jpeg_assemble_fragment() in libavcodec/cbs_jpeg.c) is not compiled: libavcodec/Makefile builds cbs_jpeg.o only with CONFIG_CBS_JPEG, and configure selects it only for the mjpeg_vaapi_encoder, which needs VAAPI. build-ffmpeg.sh sets --disable-autodetect and enables no VAAPI encoder. The enabled filter_units bitstream filter therefore has no JPEG support."
+    },
+    "CVE-2026-125247": {
+      "evidenceSha256": "08d7f594944996ff8630826d088529704fa39bc38f779b00f719d2b3cca43f36",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected TIFF/DNG decoder (dng_decode_tiles() in libavcodec/tiff.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds tiff.o only with CONFIG_TIFF_DECODER."
+    },
+    "CVE-2026-125248": {
+      "evidenceSha256": "d948af0d88cc9cc4d57912e8d9918fab3018a9ad8e4ed9f197d1242dc123dce8",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Vulkan FFV1 encoder (libavcodec/ffv1enc_vulkan.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds ffv1enc_vulkan.o only with CONFIG_FFV1_VULKAN_ENCODER, which also needs Vulkan support. The advisory also describes GPU buffer writes, and no GPU path exists in this build."
+    },
+    "CVE-2026-125249": {
+      "evidenceSha256": "a30013898bdc5c74ef192bd4d45efe745601771661889fd34b0954c187985386",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Vulkan decode helper (ff_vk_decode_add_slice() in libavcodec/vulkan_decode.c) is built only with a Vulkan hwaccel (CONFIG_*_VULKAN_HWACCEL entries in libavcodec/Makefile), and none is enabled. build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC and H.264 are decoded by the software decoders only."
+    },
+    "CVE-2026-125250": {
+      "evidenceSha256": "b2e65f3279e41a4659cae7882e0d1b699889704e840f57edc6239c43a7330235",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected GIF encoder (gif_image_write_image() in libavcodec/gif.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds gif.o only with CONFIG_GIF_ENCODER."
     }
   },
   "dependencies": {

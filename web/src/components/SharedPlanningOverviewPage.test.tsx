@@ -151,7 +151,7 @@ describe('SharedPlanningOverviewPage', () => {
     const idle = render({ id: null });
     expect(idle).toContain(i18n.t('wishSelection.entryTitle'));
     expect(idle).toContain(
-      i18n.t('wishSelection.entryHint').replace('&', '&amp;'),
+      i18n.t('wishSelection.entryHint').replaceAll('&', '&amp;'),
     );
     expect(idle).toContain(`>${i18n.t('wishSelection.entryStart')}</a>`);
     expect(idle).toContain('href="/plan/choose"');

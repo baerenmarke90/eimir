@@ -566,7 +566,9 @@ test('both sharing: the map connects the two avatars by distance', async ({
       false,
   );
   expect(markerAfter).toBe(true);
-  const glow = connection(page).locator('.place-map-connection-glow');
+  const glow = connection(page).locator(
+    '.place-map-connection-glow:not(.is-trail)',
+  );
   await expect(glow).toHaveCSS('animation-name', 'place-map-connection-travel');
   await expect(glow).toHaveCSS('animation-duration', '6s');
   await expect(glow).toHaveCSS('animation-iteration-count', '3');
@@ -639,7 +641,7 @@ test('both sharing regionally: a solid arc with a shorter trip', async ({
   );
   await expect(connection(page)).toHaveClass(/\bis-regional\b/);
   await expect(
-    connection(page).locator('.place-map-connection-glow'),
+    connection(page).locator('.place-map-connection-glow:not(.is-trail)'),
   ).toHaveCSS('animation-duration', '3.2s');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await captureScreenshot(page, info, 'partner-connection-regional-390.png');
@@ -661,7 +663,7 @@ test('an earlier partner snapshot keeps a muted connection without motion', asyn
   await openMapFromWir(page, between('340 km'));
   await expect(connection(page)).toHaveClass(/\bis-earlier\b/);
   await expect(
-    connection(page).locator('.place-map-connection-glow'),
+    connection(page).locator('.place-map-connection-glow:not(.is-trail)'),
   ).toHaveCSS('animation-name', 'none');
   await expect(
     connection(page).locator('.place-map-connection-reveal'),

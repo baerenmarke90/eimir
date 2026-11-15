@@ -551,7 +551,9 @@ test('system Back closes the Expanded quick-actions popover without leaving Wir 
   await page.keyboard.press('Escape');
   await expect(popover).toHaveCount(0);
   await expect
-    .poll(() => page.evaluate(() => Boolean(window.history.state?.__eimirEditorEntry)))
+    .poll(() =>
+      page.evaluate(() => Boolean(window.history.state?.__eimirEditorEntry)),
+    )
     .toBe(false);
 });
 

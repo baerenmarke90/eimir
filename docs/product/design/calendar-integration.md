@@ -133,3 +133,26 @@ deliberate addition to the reference: it replaces a browser-binding cookie,
 which cannot work across the app/system-browser boundary, and makes the
 account that will receive the Plans visible before anything is written.
 Evidence: [confirmation at 390 px](references/calendar-integration/evidence/calendar-sync-google-confirm-390-light.png).
+
+### Connected state correction (Product Owner, 2026-11-15)
+
+After the first live Google connection the Product Owner rejected the connected
+state: the Google primary calendar showed the account address as its title, the
+success block stayed, the primary button spanned the page, actions were
+scattered, and there was no way to choose another calendar without ending sync.
+
+![Compact reference: current, connected, choose another calendar, more options](references/calendar-integration/connected-compact-reference.png)
+![Expanded reference](references/calendar-integration/connected-expanded-reference.png)
+
+Approved direction (composed from the running app, 390 px and 1280 px, Light):
+
+| Concern | Contract |
+| --- | --- |
+| Focal point | One card for the shared calendar: calendar mark, name (`calendarSync.primaryCalendar` for a provider's primary calendar), provider and, for the sponsor only, the account label; the partner sees who connected it. |
+| Status | One honest line: ready with nothing transferred yet, syncing, synced with the last success, or a problem; never "synced" before a Plan was confirmed. |
+| Actions | Inside the card, content width: sync now (secondary) and choose another calendar (tertiary). |
+| Choose another calendar | The existing bottom sheet lists the current connection's calendars and offers "another connection" (CalDAV, another Google account). |
+| More options | Collapsed disclosure: pause/resume, end sync with confirmation, remove the provider access (sponsor only). |
+| Success | A short, dismissing confirmation line instead of a persistent block. |
+| Google return | On the Web the consent runs in the same tab and returns to this page with the confirmation; the Android app keeps the system browser until a native return link exists. |
+| Expanded | Same order, card bounded to the reading width, no full-width buttons. |

@@ -176,3 +176,108 @@ Business/freemium and cross-cutting decisions above were rechecked after deliver
 and remain unchanged. The authoritative matrix is version 1.9. CI results and
 exact test totals are recorded in the pull request; no deployment or physical
 native-device acceptance is claimed.
+
+## Extension: curated date ideas as typed candidates (#465 within #1535)
+
+Product Owner instruction 2026-11-15: extend this selection with the Pro date
+inspiration catalog (#1892) instead of building a separate Blind-Match module.
+The preflight, baseline `main` `146708719`, Mobile Interaction Contract and the
+kept/dropped #465 requirements are recorded on
+[#465](https://github.com/baerenmarke90/eimir/issues/465#issuecomment-6886946014).
+
+![Compact reference](references/wish-selection-date-ideas/compact-reference.png)
+
+### Why extend instead of a second module
+
+#465 asked for private choices, a server-side intersection, no side-channel
+leaks and conversion into existing Wishes/Plans. This selection already
+implements exactly that lifecycle. A second deck/match domain would duplicate
+privacy, concurrency, notification and export logic and give couples two
+competing ways to answer the same question. The extension keeps one entry,
+one round per Space, two to five candidates and the existing reveal rules.
+
+### Typed candidates
+
+- `wish_selection_candidates.source_type` is `WISH` or `DATE_IDEA`. A Wish
+  candidate keeps its Same-Space Wish reference and version; a date-idea
+  candidate stores the persistent catalog ID (`eimir-date-001` …) and a content
+  revision: the SHA-256 of that idea's full catalog entry (both locales and
+  structured facts). A database check enforces exactly one reference per type.
+- The additive migration (`0137`) turns every existing row into a `WISH`
+  candidate; stored rounds, selections and API clients keep working. The key
+  moves to the already unique `(round_id, position)`.
+- A removed idea or a changed revision makes the round `NEEDS_IDEAS`: publishing
+  is rejected and the couple reviews the round. Catalog edits never redirect a
+  round to other content; unrelated catalog edits keep the revision stable.
+- Date ideas are not saved as Wishes before the vote. The API keeps
+  `candidates` Wish-only and adds `dateIdeaCandidates` (`dateIdeaId`, `current`,
+  `idea` content or null), `commonDateIdeaIds`, `own.favoriteDateIdeaIds` and
+  optional request lists. An own update that omits `favoriteDateIdeaIds` while
+  the round has ideas is rejected, so an outdated client cannot publish about
+  ideas it never showed.
+
+### Privacy semantics (unchanged)
+
+Idea favorites extend the existing OWNER_ONLY, ProtectedPayload-encrypted
+selection; there is no new table or plaintext decision. Only the caller's own
+list and the intersection after both current members publish are returned.
+Events and notifications stay the existing generic `WISH_SELECTION_SHARED` /
+`WISH_SELECTION_READY` messages without titles; no per-choice notification
+exists. Exports contain catalog IDs only, never catalog copy; the shared export
+has no personal lists. Membership changes still purge the whole round.
+
+### Free and Pro
+
+Wish-only rounds, private favorites, matches and Wish-to-Plan stay Free/Core.
+Adding, choosing and showing date ideas requires the Space capability
+`planning.date_inspiration` (one grant for both partners), checked server-side
+on every write and before any catalog content is returned. Free Spaces see the
+source switch with the calm locked hint and the shared paywall (`dateIdeas`).
+
+### From a common idea to a Wish or Plan
+
+A common idea is only a decision. plan now (`dateIdeas.card.plan`) opens the existing Plan
+composer prefilled with the idea's `planTitle` and description; save as Wish
+(`dateIdeas.card.save`) opens the Wish composer with `wishTitle`. Both save through the
+ordinary idempotent endpoints and return to the selection through the task
+origin. A Wish saved from an idea in this session plans through the canonical
+Wish-to-Plan conversion. later (`wishSelection.later`) leaves the round unchanged. A partner can
+still continue alone with their own favorites; that path is labeled as a
+proposal, never as a mutual match.
+
+### Downgrade, membership and account changes
+
+Without the capability a round that contains ideas is `PAUSED`: Wish titles and
+own data remain, catalog content and the result are withheld, choice writes are
+rejected (`PREMIUM_ENTITLEMENT_REQUIRED`), and the couple can deliberately start
+a Wish-only replacement or close the round. Wishes and Plans are never touched.
+Restoring Pro resumes the same round if its ideas are still current. Account or
+Space changes remount the task and the catalog cache is scoped and cleared as in
+discovery.
+
+### #465 scope decisions
+
+Kept and delivered: owner-only choices, server-side intersection, no
+side-channel counts or notifications, idempotent result, accessible
+button/checkbox interaction, conversion through existing Wish/Plan flows,
+isolation and export semantics. Deliberately not built: an endless swipe deck,
+LIKE/PASS/SKIP history and re-surfacing, separate match objects and
+celebration effects. Left for a later Product Owner decision: an opt-in
+sensitive/intimacy category and further card sources (places, M8 providers).
+A swipe gesture is not part of this slice; native checkboxes and the add
+toggle remain the complete interaction.
+
+### Reuse, cross-cutting and evidence
+
+Reused: the selection service, tokens and reveal rules, ProtectedPayloadJSON,
+`ensure`/`has_capability`, the bundled catalog and image endpoint, the catalog
+query, filters, facts and image components (extracted from discovery and shared
+by both screens), StatusScope, AddAction, ProMark, the shared paywall and the
+existing composers. No dependency, provider, configuration or native change.
+Cross-cutting: additive migration with guarded downgrade, OpenAPI/generated
+client, bounded rows (at most five candidates), i18n in German and English,
+accessibility via native controls, `aria-pressed` toggles and labeled remove
+buttons, and reduced motion through existing tokens.
+[Runtime evidence](references/wish-selection-date-ideas/evidence/README.md)
+covers setup, private choice, result and pause at 320 (200 % text)/360/390/430/
+Expanded in Light and Dark.

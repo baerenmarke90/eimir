@@ -13,10 +13,15 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { WishSelectionView } from '../api/generated/models/WishSelectionView';
+import { dateIdeasQueryKey } from '../client/dateIdeas';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { wishSelectionQueryKey } from '../client/wishSelection';
+import { resolvedLocale } from '../i18n';
+import dateCopy from '../i18n/locales/dateIdeas';
 import m5s3 from '../i18n/locales/m5s3';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import copy from '../i18n/locales/wishSelection';
@@ -68,6 +73,7 @@ function projection(
     own: {
       favoriteWishIds:
         state === 'READY' || state === 'WAITING' ? ['pasta', 'lake'] : [],
+      favoriteDateIdeaIds: [],
       published: state === 'READY' || state === 'WAITING',
       version: state === 'READY' || state === 'WAITING' ? 1 : 0,
     },
@@ -77,10 +83,91 @@ function projection(
         : `round-1:1:${state === 'READY' || state === 'WAITING' ? 1 : 0}`,
     resultState: state,
     commonWishIds: state === 'READY' ? ['pasta'] : [],
+    dateIdeaCandidates: [],
+    commonDateIdeaIds: [],
   };
 }
 
-function renderTask(initial = projection(), paginated = false) {
+const picnic: DateIdea = {
+  id: 'eimir-date-001',
+  category: 'food_drink',
+  placeType: 'home',
+  minutes: 40,
+  budgetEurForTwo: 10,
+  title: 'Living-room picnic',
+  description: 'A blanket, two plates, no table.',
+  wishTitle: 'Living-room picnic one evening',
+  planTitle: 'Our living-room picnic',
+  prerequisites: [],
+  contentLocale: 'de',
+  image: { id: 'category-food_drink', width: 3, height: 2, alt: 'Plates' },
+};
+const sunset: DateIdea = {
+  ...picnic,
+  id: 'eimir-date-002',
+  category: 'nature',
+  placeType: 'out',
+  title: 'Sunset walk',
+  wishTitle: 'A sunset walk',
+  planTitle: 'Our sunset walk',
+  image: { id: 'category-nature', width: 3, height: 2, alt: 'Path' },
+};
+const cooking: DateIdea = {
+  ...picnic,
+  id: 'eimir-date-003',
+  title: 'A new recipe, two cooks',
+};
+
+/** Seeds the session caches that a Pro or Free Space would have loaded. */
+function seedDateIdeas(client: QueryClient, pro: boolean) {
+  client.setQueryData(spaceEntitlementQueryKey('account-a', 'space-1'), {
+    capabilities: pro ? ['planning.date_inspiration'] : [],
+  });
+  if (pro)
+    client.setQueryData(
+      dateIdeasQueryKey('account-a', 'space-1', resolvedLocale()),
+      {
+        catalogVersion: '1.0.0',
+        locale: 'de',
+        currency: 'EUR',
+        totalCount: 3,
+        categories: [
+          { id: 'food_drink', label: 'Essen & Trinken' },
+          { id: 'nature', label: 'Natur' },
+        ],
+        placeTypes: [
+          { id: 'home', label: 'Zuhause' },
+          { id: 'out', label: 'Unterwegs' },
+        ],
+        ideas: [picnic, sunset, cooking],
+      },
+    );
+}
+
+function withIdeas(
+  state: WishSelectionView['resultState'],
+  options: { common?: string[]; favorites?: string[]; content?: boolean } = {},
+): WishSelectionView {
+  const view = projection(state === 'PAUSED' ? 'READY' : state);
+  view.resultState = state;
+  view.candidates = view.candidates.slice(0, 1);
+  view.dateIdeaCandidates = [picnic, sunset].map((idea) => ({
+    dateIdeaId: idea.id,
+    current: true,
+    idea: options.content === false ? null : idea,
+  }));
+  view.own.favoriteWishIds = [];
+  view.own.favoriteDateIdeaIds = options.favorites ?? [];
+  view.commonWishIds = [];
+  view.commonDateIdeaIds = options.common ?? [];
+  return view;
+}
+
+function renderTask(
+  initial = projection(),
+  paginated = false,
+  dateIdeas: 'pro' | 'free' | null = null,
+) {
   let current = structuredClone(initial);
   let sourceWishes = candidates.map((candidate) => ({
     id: candidate.wishId,
@@ -94,6 +181,11 @@ function renderTask(initial = projection(), paginated = false) {
     current.candidates = candidates.filter((candidate) =>
       request.wishSelectionRoundUpdate.wishIds.includes(candidate.wishId),
     );
+    current.dateIdeaCandidates = [picnic, sunset]
+      .filter((idea) =>
+        request.wishSelectionRoundUpdate.dateIdeaIds?.includes(idea.id),
+      )
+      .map((idea) => ({ dateIdeaId: idea.id, current: true, idea }));
     return structuredClone(current);
   });
   const updateOwnWishSelection = vi.fn(async (request) => {
@@ -156,6 +248,7 @@ function renderTask(initial = projection(), paginated = false) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  if (dateIdeas) seedDateIdeas(queryClient, dateIdeas === 'pro');
   function tree(accountId: string) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -176,6 +269,9 @@ function renderTask(initial = projection(), paginated = false) {
               element={<p>Canonical Plan result</p>}
             />
             <Route path="/plan" element={<p>Planning hub</p>} />
+            <Route path="/plan/plans/new" element={<p>Plan composer</p>} />
+            <Route path="/plan/wishes/new" element={<p>Wish composer</p>} />
+            <Route path="/more/pro/*" element={<p>Pro paywall</p>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -244,9 +340,11 @@ describe('WishSelectionPage', () => {
     await screen.findByRole('heading', { name: copy.chooseTitle });
     expect(replaceWishSelectionRound).toHaveBeenCalledWith({
       spaceId: 'space-1',
+      locale: resolvedLocale(),
       ifMatch: 'absent',
       wishSelectionRoundUpdate: {
         wishIds: ['pasta', 'lake'],
+        dateIdeaIds: [],
         title: undefined,
       },
     });
@@ -262,8 +360,13 @@ describe('WishSelectionPage', () => {
     await screen.findByRole('heading', { name: copy.waitingTitle });
     expect(updateOwnWishSelection).toHaveBeenCalledWith({
       spaceId: 'space-1',
+      locale: resolvedLocale(),
       ifMatch: 'round-1:1:0',
-      wishSelectionUpdate: { favoriteWishIds: ['pasta'], published: true },
+      wishSelectionUpdate: {
+        favoriteWishIds: ['pasta'],
+        favoriteDateIdeaIds: [],
+        published: true,
+      },
     });
     expect(screen.queryByText(copy.sharedTitle)).toBeNull();
   });
@@ -593,5 +696,193 @@ describe('WishSelectionPage', () => {
       idempotencyKey: expect.any(String),
       wishCreate: { title: 'Make bread together' },
     });
+  });
+
+  it('keeps date ideas behind the calm Pro hint for a Free Space', async () => {
+    const { replaceWishSelectionRound } = renderTask(
+      projection('NO_ROUND'),
+      false,
+      'free',
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.sourceIdeas }),
+    );
+    expect(
+      await screen.findByRole('heading', {
+        name: new RegExp(dateCopy.locked.title),
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.ideasLockedBody)).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: dateCopy.locked.action }),
+    ).toHaveProperty('href', expect.stringContaining('/more/pro'));
+    expect(screen.queryByText(picnic.title)).toBeNull();
+    // Wishes stay fully usable in the same draft.
+    fireEvent.click(screen.getByRole('button', { name: copy.sourceWishes }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: candidates[0].title }),
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: candidates[1].title }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await waitFor(() =>
+      expect(replaceWishSelectionRound).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wishSelectionRoundUpdate: {
+            wishIds: ['pasta', 'lake'],
+            dateIdeaIds: [],
+            title: undefined,
+          },
+        }),
+      ),
+    );
+  });
+
+  it('combines Wishes and Pro date ideas in one bounded round', async () => {
+    const { replaceWishSelectionRound } = renderTask(
+      projection('NO_ROUND'),
+      false,
+      'pro',
+    );
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: candidates[0].title }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.sourceIdeas }));
+    const add = await screen.findAllByRole('button', { name: copy.ideaAdd });
+    expect(add).toHaveLength(3);
+    fireEvent.click(add[0]);
+    expect(screen.getByRole('button', { name: copy.ideaAdded })).toHaveProperty(
+      'ariaPressed',
+      'true',
+    );
+    // The summary keeps both sources visible and removable.
+    expect(
+      screen.getByRole('button', {
+        name: copy.removeCandidate.replace('{{title}}', picnic.title),
+      }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await waitFor(() =>
+      expect(replaceWishSelectionRound).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        locale: resolvedLocale(),
+        ifMatch: 'absent',
+        wishSelectionRoundUpdate: {
+          wishIds: ['pasta'],
+          dateIdeaIds: [picnic.id],
+          title: undefined,
+        },
+      }),
+    );
+    expect(
+      await screen.findByRole('checkbox', { name: new RegExp(picnic.title) }),
+    ).toHaveProperty('checked', false);
+  });
+
+  it('never adds a sixth candidate from the catalog', async () => {
+    renderTask(projection('NO_ROUND'), false, 'pro');
+    for (const candidate of candidates)
+      fireEvent.click(
+        await screen.findByRole('checkbox', { name: candidate.title }),
+      );
+    fireEvent.click(screen.getByRole('button', { name: copy.sourceIdeas }));
+    const [first, second, third] = await screen.findAllByRole('button', {
+      name: copy.ideaAdd,
+    });
+    fireEvent.click(first);
+    fireEvent.click(second);
+    expect(screen.getByText(copy.ideasFull)).toBeTruthy();
+    expect(third).toHaveProperty('disabled', true);
+    expect(
+      screen.getByText(copy.selected.replace('{{count}}', '5')),
+    ).toBeTruthy();
+    // Removing one from the summary frees a place again.
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: copy.removeCandidate.replace('{{title}}', picnic.title),
+      }),
+    );
+    expect(third).toHaveProperty('disabled', false);
+  });
+
+  it('publishes date-idea favorites only with the deliberate Share action', async () => {
+    const { updateOwnWishSelection } = renderTask(
+      withIdeas('CHOOSING'),
+      false,
+      'pro',
+    );
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: new RegExp(sunset.title) }),
+    );
+    expect(updateOwnWishSelection).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: copy.share }));
+    await screen.findByRole('heading', { name: copy.waitingTitle });
+    expect(updateOwnWishSelection).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      locale: resolvedLocale(),
+      ifMatch: 'round-1:1:0',
+      wishSelectionUpdate: {
+        favoriteWishIds: [],
+        favoriteDateIdeaIds: [sunset.id],
+        published: true,
+      },
+    });
+  });
+
+  it('turns a common date idea into nothing until a composer saves it', async () => {
+    const { createWish, convertWishToPlan } = renderTask(
+      withIdeas('READY', { common: [picnic.id], favorites: [picnic.id] }),
+      false,
+      'pro',
+    );
+    expect(
+      await screen.findByRole('heading', { name: picnic.title }),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.sharedIdea)).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: sunset.title })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: dateCopy.card.save }),
+    ).toHaveProperty('href', expect.stringContaining('/plan/wishes/new'));
+    fireEvent.click(screen.getByRole('link', { name: dateCopy.card.plan }));
+    expect(await screen.findByText('Plan composer')).toBeTruthy();
+    expect(createWish).not.toHaveBeenCalled();
+    expect(convertWishToPlan).not.toHaveBeenCalled();
+  });
+
+  it('offers a later return without saving a common date idea', async () => {
+    renderTask(
+      withIdeas('READY', { common: [picnic.id], favorites: [picnic.id] }),
+      false,
+      'pro',
+    );
+    fireEvent.click(await screen.findByRole('button', { name: copy.later }));
+    expect(await screen.findByText('Planning hub')).toBeTruthy();
+  });
+
+  it('pauses a round with date ideas after a downgrade without catalog content', async () => {
+    renderTask(withIdeas('PAUSED', { content: false }), false, 'free');
+    expect(
+      await screen.findByRole('heading', { name: copy.pausedTitle }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(copy.pausedIdeas_other.replace('{{count}}', '2')),
+    ).toBeTruthy();
+    expect(screen.queryByText(picnic.title)).toBeNull();
+    expect(
+      screen.getByRole('link', { name: dateCopy.locked.action }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.pausedReplace }));
+    expect(
+      await screen.findByRole('heading', { name: copy.setupTitle }),
+    ).toBeTruthy();
+    // Paused ideas without content are not carried into the Free replacement.
+    expect(screen.getByText(copy.chooseMore)).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: copy.removeCandidate.replace('{{title}}', candidates[0].title),
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByText(copy.ideaSource)).toBeNull();
   });
 });

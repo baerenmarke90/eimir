@@ -201,7 +201,17 @@ declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
-for (const role of ['standard', 'enter', 'exit', 'playback']) {
+declare('duration-connection-draw', value('motion.duration.connectionDraw'));
+declare('duration-connection-beat', value('motion.duration.connectionBeat'));
+declare(
+  'duration-connection-travel',
+  value('motion.duration.connectionTravel'),
+);
+declare(
+  'duration-connection-travel-far',
+  value('motion.duration.connectionTravelFar'),
+);
+for (const role of ['standard', 'enter', 'exit', 'playback', 'travel']) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,
@@ -301,6 +311,10 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-sequence-beat: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
+    --duration-connection-draw: ${value('motion.duration.instant')};
+    --duration-connection-beat: ${value('motion.duration.instant')};
+    --duration-connection-travel: ${value('motion.duration.instant')};
+    --duration-connection-travel-far: ${value('motion.duration.instant')};
   }
 }
 

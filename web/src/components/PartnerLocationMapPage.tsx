@@ -8,6 +8,7 @@ import {
   currentApproximatePosition,
   locationPermission,
 } from '../client/approximateLocation';
+import { partnerConnectionStyle } from '../client/partnerConnection';
 import {
   DISTANCE_RESUME_MIN_INTERVAL_MS,
   deviceLanguages,
@@ -35,7 +36,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { SingleAvatar } from './PartnerAvatarPair';
 import { useDistanceAsOfLabel, useDistanceText } from './PartnerDistanceLine';
-import type { MapArea } from './PlaceMapCanvas';
+import type { MapArea, MapConnection } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -219,6 +220,36 @@ export function PartnerLocationMapPage({
     return result;
   }, [area, ownAvatar, ownFirstName, ownPosition, partnerAvatar, partnerName]);
 
+  // Only while both currently share (#1907 H1); otherwise no line, no hint.
+  const connectionStyle = partnerConnectionStyle({
+    partnerArea:
+      area?.latitude != null && area.longitude != null
+        ? {
+            latitude: area.latitude,
+            longitude: area.longitude,
+            capturedAt: area.capturedAt,
+          }
+        : null,
+    ownPosition,
+    ownSharingActive: settings?.state === 'ACTIVE',
+    band: distanceLine?.kind === 'distance' ? distanceLine.band : null,
+  });
+  const connectionTier = connectionStyle?.tier;
+  const connectionEarlier = connectionStyle?.earlier ?? false;
+  const connection = useMemo<MapConnection | undefined>(
+    () =>
+      connectionTier
+        ? {
+            from: 'own',
+            to: 'partner',
+            tier: connectionTier,
+            earlier: connectionEarlier,
+            playRequest: showUs,
+          }
+        : undefined,
+    [connectionEarlier, connectionTier, showUs],
+  );
+
   const header = (
     <PageHeader
       title={t('partnerLocation.mapTitle')}
@@ -308,6 +339,7 @@ export function PartnerLocationMapPage({
           <MapCanvas
             areas={areas}
             showAreasRequest={showUs}
+            connection={connection}
             ariaLabel={t('partnerLocation.mapPeopleLabel')}
           />
         </Suspense>
@@ -331,6 +363,14 @@ export function PartnerLocationMapPage({
                 partner: partnerFirstName,
               })}{' '}
           {ownPosition ? t('partnerLocation.mapOwnDescription') : null}
+          {connection ? ' ' : null}
+          {connection
+            ? connection.tier === 'near'
+              ? t('partnerLocation.mapConnectionNear')
+              : t('partnerLocation.mapConnectionLine', {
+                  partner: partnerFirstName,
+                })
+            : null}
         </p>
       </section>
 

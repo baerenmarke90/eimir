@@ -39,6 +39,11 @@ import {
     CalendarSyncViewToJSON,
 } from '../models/CalendarSyncView';
 import {
+    type GoogleCalendarStart,
+    GoogleCalendarStartFromJSON,
+    GoogleCalendarStartToJSON,
+} from '../models/GoogleCalendarStart';
+import {
     type PlanCalendarSyncView,
     PlanCalendarSyncViewFromJSON,
     PlanCalendarSyncViewToJSON,
@@ -53,6 +58,11 @@ import {
     SpaceCalendarTargetSaveFromJSON,
     SpaceCalendarTargetSaveToJSON,
 } from '../models/SpaceCalendarTargetSave';
+
+export interface ConfirmCalendarConnectionRequest {
+    connectionId: string;
+    spaceId: string;
+}
 
 export interface ConnectCalDavCalendarRequest {
     spaceId: string;
@@ -109,10 +119,67 @@ export interface SetCalendarSyncTargetRequest {
     spaceCalendarTargetSave: SpaceCalendarTargetSave;
 }
 
+export interface StartGoogleCalendarConnectionRequest {
+    spaceId: string;
+}
+
 /**
  * 
  */
 export class CalendarSyncApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for confirmCalendarConnection without sending the request
+     */
+    async confirmCalendarConnectionRequestOpts(requestParameters: ConfirmCalendarConnectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling confirmCalendarConnection().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling confirmCalendarConnection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Confirm Connection
+     */
+    async confirmCalendarConnectionRaw(requestParameters: ConfirmCalendarConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CalendarConnectionCreated>> {
+        const requestOptions = await this.confirmCalendarConnectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CalendarConnectionCreatedFromJSON(jsonValue));
+    }
+
+    /**
+     * Confirm Connection
+     */
+    async confirmCalendarConnection(requestParameters: ConfirmCalendarConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CalendarConnectionCreated> {
+        const response = await this.confirmCalendarConnectionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for connectCalDavCalendar without sending the request
@@ -711,6 +778,51 @@ export class CalendarSyncApi extends runtime.BaseAPI {
      */
     async setCalendarSyncTarget(requestParameters: SetCalendarSyncTargetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CalendarSyncView> {
         const response = await this.setCalendarSyncTargetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for startGoogleCalendarConnection without sending the request
+     */
+    async startGoogleCalendarConnectionRequestOpts(requestParameters: StartGoogleCalendarConnectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling startGoogleCalendarConnection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/calendar-sync/connections/google`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Start Google
+     */
+    async startGoogleCalendarConnectionRaw(requestParameters: StartGoogleCalendarConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GoogleCalendarStart>> {
+        const requestOptions = await this.startGoogleCalendarConnectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GoogleCalendarStartFromJSON(jsonValue));
+    }
+
+    /**
+     * Start Google
+     */
+    async startGoogleCalendarConnection(requestParameters: StartGoogleCalendarConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GoogleCalendarStart> {
+        const response = await this.startGoogleCalendarConnectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

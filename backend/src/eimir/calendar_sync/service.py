@@ -110,7 +110,7 @@ def _require_available() -> None:
         )
 
 
-def _require_pro(session: Session, space_id: UUID) -> None:
+def require_pro(session: Session, space_id: UUID) -> None:
     if not entitlements.has_capability(session, space_id, CAPABILITY, lock_grants=True):
         raise PremiumEntitlementRequiredError(CAPABILITY)
 
@@ -141,6 +141,10 @@ def provider_for(connection: CalendarConnection) -> CalendarProvider:
             ),
             private_hosts=_private_hosts(),
         )
+    if connection.provider == CalendarProviderKind.GOOGLE.value:
+        from eimir.calendar_sync import google
+
+        return google.provider_for(connection)
     raise ServiceUnavailableError("Calendar connection is unavailable.", "CALENDAR_UNAVAILABLE")
 
 
@@ -181,7 +185,7 @@ def connect_caldav(
 ) -> tuple[CalendarConnection, list[CalendarSummary]]:
     """Discover a CalDAV account and store it encrypted for this Account only."""
     _require_available()
-    _require_pro(session, auth.space_id)
+    require_pro(session, auth.space_id)
     rate_limit.check(
         session,
         "calendar-connect",
@@ -232,6 +236,9 @@ def list_calendars(
 ) -> list[CalendarSummary]:
     _require_available()
     row = own_connection(session, auth.account_id, connection_id)
+    if row.status == ConnectionStatus.PENDING.value:
+        # A returned consent is usable only after the person confirmed it.
+        raise NotFoundError("Calendar connection not found.", "CALENDAR_CONNECTION_NOT_FOUND")
     try:
         calendars = provider_for(row).list_calendars()
     except CalendarAuthError:
@@ -296,7 +303,7 @@ def set_target(
 ) -> SpaceCalendarTarget:
     """Make one calendar of the caller's connection the Space's shared target."""
     _require_available()
-    _require_pro(session, auth.space_id)
+    require_pro(session, auth.space_id)
     connection = own_connection(session, auth.account_id, connection_id)
     if connection.status != ConnectionStatus.ACTIVE.value:
         raise ValidationError("The calendar connection failed.", "CALENDAR_AUTH_FAILED")
@@ -364,7 +371,7 @@ def resume_target(
     session: Session, auth: AuthorizationContext, expected: str
 ) -> SpaceCalendarTarget:
     _require_available()
-    _require_pro(session, auth.space_id)
+    require_pro(session, auth.space_id)
     target = _locked_target(session, auth, expected)
     connection = session.get(CalendarConnection, target.connection_id)
     if connection is None or connection.status != ConnectionStatus.ACTIVE.value:
@@ -402,7 +409,7 @@ def request_space_sync(session: Session, space_id: UUID) -> None:
 
 def request_manual_sync(session: Session, auth: AuthorizationContext) -> SpaceCalendarTarget:
     _require_available()
-    _require_pro(session, auth.space_id)
+    require_pro(session, auth.space_id)
     target = target_of(session, auth.space_id)
     if target is None:
         raise NotFoundError("No shared calendar is set.", "CALENDAR_TARGET_NOT_FOUND")
@@ -457,7 +464,7 @@ def resolve_conflict(
         session.flush()
         return link
     _require_available()
-    _require_pro(session, auth.space_id)
+    require_pro(session, auth.space_id)
     # Overwrite: forget the stale version; the job re-reads the current event.
     link.state = LinkState.PENDING.value
     link.reason = "OVERWRITE"
@@ -555,7 +562,16 @@ def _runnable(session: Session, space_id: UUID) -> _Context | None:
     if connection is None or connection.status != ConnectionStatus.ACTIVE.value:
         _suspend(target, REASON_CONNECTION_BROKEN)
         return None
-    return _Context(target, connection, provider_for(connection))
+    try:
+        provider = provider_for(connection)
+    except CalendarAuthError:
+        _mark_connection_broken(session, connection)
+        return None
+    except (CalendarProviderError, ServiceUnavailableError):
+        # E.g. the operator removed the Google client configuration.
+        _suspend(target, REASON_CALENDAR_UNAVAILABLE)
+        return None
+    return _Context(target, connection, provider)
 
 
 def _event_for(session: Session, plan: Plan, uid: str) -> CalendarEvent | None:

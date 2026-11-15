@@ -41,6 +41,15 @@ export default {
     confirm: 'Als gemeinsamen Kalender verwenden',
     saving: 'Wird eingerichtet …',
   },
+  google: {
+    confirmTitle: 'Ist das dein Google-Konto?',
+    confirmBody:
+      '{{label}} – eimir. schreibt eure gemeinsamen Pläne in einen Kalender dieses Kontos, den du gleich auswählst.',
+    confirm: 'Bestätigen',
+    cancel: 'Abbrechen',
+    waiting:
+      'Melde dich bei Google an und erlaube den Zugriff. Danach geht es hier weiter.',
+  },
   connected: {
     title: 'Kalender verbunden',
     body: 'Eure gemeinsamen Pläne können jetzt automatisch synchronisiert werden.',
@@ -117,6 +126,10 @@ export default {
       'Die Einstellungen wurden gerade geändert. Wir haben den aktuellen Stand geladen.',
     CALENDAR_CONNECTION_LIMIT:
       'Du hast schon mehrere Kalender verbunden. Entferne zuerst einen davon.',
+    CALENDAR_GOOGLE_UNAVAILABLE:
+      'Google Kalender ist auf diesem eimir. gerade nicht eingerichtet.',
+    CALENDAR_GOOGLE_EXPIRED:
+      'Die Anmeldung bei Google ist abgelaufen. Bitte verbinde Google Kalender erneut.',
     fallback: 'Das hat nicht geklappt. Versuche es erneut.',
   },
   plan: {

@@ -134,6 +134,7 @@ export * from './GiftIdeaPage';
 export * from './GiftIdeaStatus';
 export * from './GiftIdeaUpdate';
 export * from './GoogleAccountSave';
+export * from './GoogleCalendarStart';
 export * from './Health';
 export * from './HeartEmotion';
 export * from './HeartMomentCreate';

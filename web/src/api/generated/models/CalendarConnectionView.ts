@@ -59,6 +59,7 @@ export type CalendarConnectionViewServiceEnum = typeof CalendarConnectionViewSer
  * @export
  */
 export const CalendarConnectionViewStatusEnum = {
+    PENDING: 'PENDING',
     ACTIVE: 'ACTIVE',
     BROKEN: 'BROKEN'
 } as const;

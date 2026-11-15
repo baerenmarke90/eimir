@@ -118,3 +118,18 @@ page and is replaced by the category intro (`calendarSync.settingsIntro`).
 
 Why a list: the calendar choice is a single-select of the person's own
 calendars (radio group), a bounded utility decision, not a record table.
+
+### PR B2 – Google Calendar consent
+
+Google appears as the second provider choice of reference panel 3 once the
+operator configured the OAuth client. Choosing it opens Google's consent in a
+separate window (Web) or the system browser (Android app) through the shared,
+host-allowlisted opener; a blocked popup falls back to the same tab, and the
+localized return page links back to the calendar settings. Back in eimir., one
+confirmation block (`calendarSync.google.confirmTitle`) shows the Google
+account address with a primary confirm and a quiet cancel; only then the
+existing calendar-choice sheet opens. This explicit confirmation is a
+deliberate addition to the reference: it replaces a browser-binding cookie,
+which cannot work across the app/system-browser boundary, and makes the
+account that will receive the Plans visible before anything is written.
+Evidence: [confirmation at 390 px](references/calendar-integration/evidence/calendar-sync-google-confirm-390-light.png).

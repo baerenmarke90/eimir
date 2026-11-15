@@ -8,10 +8,12 @@ connected it, status) but never the connection, its label or its credentials.
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Response, status
+from fastapi import APIRouter, Path, Query, Request, Response, status
+from fastapi.responses import HTMLResponse
 from pydantic import ConfigDict, Field, SecretStr
 
 from eimir.api.authors import resolve_author_summary
@@ -19,16 +21,19 @@ from eimir.api.concurrency import IfMatchToken
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.calendar_sync import service
+from eimir.calendar_sync import google, service
 from eimir.calendar_sync.models import (
     CalendarConnection,
     LinkState,
     PlanCalendarLink,
     SpaceCalendarTarget,
 )
+from eimir.config import get_settings
 from eimir.core.errors import ConflictError
 from eimir.entitlements.service import has_capability
+from eimir.i18n import request_locale, text
 from eimir.providers.calendar import CalendarSummary
+from eimir.providers.google_calendar import CALLBACK_PATH
 
 router = APIRouter(tags=["calendar-sync"])
 _HEADERS = {"Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer"}
@@ -41,7 +46,7 @@ class CalendarConnectionView(ApiModel):
     id: UUID
     service: ServiceKind
     label: str = Field(description="Shown only to the connecting person.")
-    status: Literal["ACTIVE", "BROKEN"]
+    status: Literal["PENDING", "ACTIVE", "BROKEN"]
 
 
 class CalendarOption(ApiModel):
@@ -168,7 +173,7 @@ def _view(session: DbSession, authorization: Authorization) -> CalendarSyncView:
     return CalendarSyncView(
         available=available,
         can_sync=available and has_capability(session, authorization.space_id, service.CAPABILITY),
-        services=["CALDAV"],
+        services=["CALDAV", "GOOGLE"] if google.available() else ["CALDAV"],
         connections=[
             _connection_view(row)
             for row in (
@@ -190,6 +195,8 @@ def get_calendar_sync(
     authorization: Authorization, session: DbSession, response: Response
 ) -> CalendarSyncView:
     response.headers.update(_HEADERS)
+    if service.available():
+        google.purge_stale(session, authorization.account_id)
     return _view(session, authorization)
 
 
@@ -385,3 +392,80 @@ def resolve_conflict(
     response.headers.update(_HEADERS)
     link = service.resolve_conflict(session, authorization, plan_id, body.action)
     return _plan_view(link, service.target_of(session, authorization.space_id))
+
+
+class GoogleCalendarStart(ApiModel):
+    authorization_url: str = Field(
+        description="Google's consent page; open it in the browser and return to eimir. after."
+    )
+
+
+@router.post(
+    "/spaces/{spaceId}/calendar-sync/connections/google",
+    response_model=GoogleCalendarStart,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="startGoogleCalendarConnection",
+    responses=problem_responses(401, 403, 404, 409, 429, 503),
+)
+def start_google(
+    authorization: Authorization, session: DbSession, response: Response
+) -> GoogleCalendarStart:
+    response.headers.update(_HEADERS)
+    if len(service.connections_of(session, authorization.account_id)) >= _MAX_CONNECTIONS:
+        raise ConflictError("Too many calendar connections.", "CALENDAR_CONNECTION_LIMIT")
+    return GoogleCalendarStart(authorization_url=google.start(session, authorization))
+
+
+@router.post(
+    "/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm",
+    response_model=CalendarConnectionCreated,
+    operation_id="confirmCalendarConnection",
+    responses=problem_responses(401, 403, 404, 422, 503),
+)
+def confirm_connection(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    connection_id: Annotated[UUID, Path(alias="connectionId")],
+) -> CalendarConnectionCreated:
+    response.headers.update(_HEADERS)
+    row, calendars = google.confirm(session, authorization, connection_id)
+    return CalendarConnectionCreated(
+        connection=_connection_view(row), calendars=_options(calendars)
+    )
+
+
+@router.get(CALLBACK_PATH.removeprefix("/api/v1"), include_in_schema=False)
+def google_callback(
+    session: DbSession,
+    request: Request,
+    state: Annotated[str, Query(max_length=1024)] = "",
+    code: Annotated[str | None, Query(max_length=4096)] = None,
+    error: Annotated[str | None, Query(max_length=128)] = None,
+) -> Response:
+    """External return page; provider details never reach the browser."""
+    outcome = google.complete(session, state=state, code=code, error=error)
+    locale = request_locale(request.headers.get("accept-language"))
+    back = f"{get_settings().public_base_url.rstrip('/')}/more/settings/calendar"
+    page = (
+        f"<!doctype html><html lang={locale}><meta charset=utf-8>"
+        "<meta name=viewport content='width=device-width,initial-scale=1'>"
+        f"<title>{escape(text('calendar.google.title', locale))}</title>"
+        "<body style='font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;"
+        "padding:0 1rem;line-height:1.5'>"
+        f"<h1 style='font-size:1.4rem'>{escape(text('calendar.google.title', locale))}</h1>"
+        f"<p>{escape(text(f'calendar.google.{outcome}', locale))}</p>"
+        f"<p><a href='{escape(back, quote=True)}'>"
+        f"{escape(text('calendar.google.back', locale))}</a></p>"
+        "</body></html>"
+    )
+    return HTMLResponse(
+        page,
+        headers={
+            **_HEADERS,
+            "Content-Security-Policy": (
+                "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; "
+                "base-uri 'none'; form-action 'none'"
+            ),
+        },
+    )

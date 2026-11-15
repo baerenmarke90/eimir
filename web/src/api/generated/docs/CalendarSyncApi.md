@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**confirmCalendarConnection**](CalendarSyncApi.md#confirmcalendarconnection) | **POST** /api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm | Confirm Connection |
 | [**connectCalDavCalendar**](CalendarSyncApi.md#connectcaldavcalendar) | **POST** /api/v1/spaces/{spaceId}/calendar-sync/connections/caldav | Connect Caldav |
 | [**endCalendarSyncTarget**](CalendarSyncApi.md#endcalendarsynctarget) | **DELETE** /api/v1/spaces/{spaceId}/calendar-sync/target | End Target |
 | [**getCalendarSync**](CalendarSyncApi.md#getcalendarsync) | **GET** /api/v1/spaces/{spaceId}/calendar-sync | Get Calendar Sync |
@@ -15,7 +16,81 @@ All URIs are relative to *http://localhost*
 | [**resolvePlanCalendarConflict**](CalendarSyncApi.md#resolveplancalendarconflict) | **POST** /api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve | Resolve Conflict |
 | [**resumeCalendarSyncTarget**](CalendarSyncApi.md#resumecalendarsynctarget) | **POST** /api/v1/spaces/{spaceId}/calendar-sync/target/resume | Resume Target |
 | [**setCalendarSyncTarget**](CalendarSyncApi.md#setcalendarsynctarget) | **PUT** /api/v1/spaces/{spaceId}/calendar-sync/target | Set Target |
+| [**startGoogleCalendarConnection**](CalendarSyncApi.md#startgooglecalendarconnection) | **POST** /api/v1/spaces/{spaceId}/calendar-sync/connections/google | Start Google |
 
+
+
+## confirmCalendarConnection
+
+> CalendarConnectionCreated confirmCalendarConnection(connectionId, spaceId)
+
+Confirm Connection
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CalendarSyncApi,
+} from '';
+import type { ConfirmCalendarConnectionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CalendarSyncApi();
+
+  const body = {
+    // string
+    connectionId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ConfirmCalendarConnectionRequest;
+
+  try {
+    const data = await api.confirmCalendarConnection(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **connectionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**CalendarConnectionCreated**](CalendarConnectionCreated.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## connectCalDavCalendar
@@ -805,6 +880,77 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## startGoogleCalendarConnection
+
+> GoogleCalendarStart startGoogleCalendarConnection(spaceId)
+
+Start Google
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CalendarSyncApi,
+} from '';
+import type { StartGoogleCalendarConnectionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CalendarSyncApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies StartGoogleCalendarConnectionRequest;
+
+  try {
+    const data = await api.startGoogleCalendarConnection(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**GoogleCalendarStart**](GoogleCalendarStart.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

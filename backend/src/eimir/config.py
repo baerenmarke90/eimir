@@ -321,6 +321,10 @@ class Settings(IdentityCompatibleSettings):
     # Self-Hosted only: exact host names of private CalDAV servers (LAN, VPN)
     # that may resolve to non-public addresses. Loopback stays blocked.
     calendar_caldav_private_hosts: list[str] = Field(default_factory=list)
+    # Operator-owned Google OAuth Web client for Google Calendar sync. The same
+    # client as for Google Photos may be used when both redirect URIs are listed.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: SecretStr | None = None
 
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
@@ -379,6 +383,7 @@ class Settings(IdentityCompatibleSettings):
         "encryption_active_key_id",
         "push_vapid_private_key",
         "google_photos_client_secret",
+        "google_calendar_client_secret",
         mode="before",
     )
     @classmethod

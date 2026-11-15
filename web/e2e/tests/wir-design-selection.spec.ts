@@ -685,6 +685,30 @@ for (const [width, theme, large] of [
     expect(f.unexpected).toEqual([]);
   });
 }
+test('Verbunden stage sits in the middle of the Expanded Wir page', async ({
+  page,
+}) => {
+  await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  for (const width of [768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/today');
+    const stage = page.locator('.wir-stage');
+    await expect(stage).toBeVisible();
+    // Layout settles asynchronously; a mid-render measurement must retry.
+    await expect
+      .poll(
+        async () => {
+          const box = await stage.boundingBox();
+          return box
+            ? Math.abs(box.x + box.width / 2 - width / 2)
+            : Number.POSITIVE_INFINITY;
+        },
+        { message: `the stage is centered at ${width} px` },
+      )
+      .toBeLessThanOrEqual(1);
+  }
+});
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({
   page,
 }) => {

@@ -4,6 +4,8 @@ import { CalendarSyncApi } from '../api/generated/apis/CalendarSyncApi';
 import type { CalendarSyncView } from '../api/generated/models/CalendarSyncView';
 import type { SpaceCalendarTargetView } from '../api/generated/models/SpaceCalendarTargetView';
 import { Configuration } from './apiConfiguration';
+import { openPhotoBrowser, preparePhotoBrowser } from './photoSources';
+import { isCapacitorNative } from '../pwa';
 import { normalizeClientError } from './problemDetails';
 
 export function calendarSyncApi(apiBaseUrl: string, accessToken: string) {
@@ -82,6 +84,29 @@ export function calendarSyncStatus(
   return 'synced';
 }
 
+/**
+ * Google consent opens in a separate browser window (Web) or the system
+ * browser (Android app) through the shared, host-allowlisted opener.
+ */
+export function prepareGoogleConsent(): Window | null {
+  return preparePhotoBrowser();
+}
+
+export async function openGoogleConsent(url: string, popup: Window | null) {
+  if (popup === null && typeof window !== 'undefined' && !isCapacitorNative()) {
+    // A blocked popup falls back to this tab; the return page links back.
+    const parsed = new URL(url);
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.hostname !== 'accounts.google.com'
+    )
+      throw new Error('Calendar authorization origin is invalid.');
+    window.location.assign(parsed.href);
+    return;
+  }
+  await openPhotoBrowser(url, popup);
+}
+
 const KNOWN_ERRORS = new Set([
   'CALENDAR_AUTH_FAILED',
   'CALENDAR_NOT_FOUND',
@@ -94,6 +119,8 @@ const KNOWN_ERRORS = new Set([
   'CALENDAR_RATE_LIMITED',
   'CALENDAR_TARGET_CHANGED',
   'CALENDAR_CONNECTION_LIMIT',
+  'CALENDAR_GOOGLE_UNAVAILABLE',
+  'CALENDAR_GOOGLE_EXPIRED',
 ]);
 
 /** Map any failure to one localized key; provider text is never shown. */

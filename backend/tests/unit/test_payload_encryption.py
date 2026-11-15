@@ -43,6 +43,7 @@ PINNED_CONTEXTS = {
     "photo_source_connections": "PhotoConnectionPayload",
     "calendar_connections": "CalendarConnectionPayload",
     "space_calendar_targets": "SpaceCalendarTargetPayload",
+    "calendar_oauth_transactions": "CalendarOAuthPayload",
     "plan_calendar_links": "PlanCalendarLinkPayload",
     "photo_location_drafts": "PhotoLocationPayload",
     "photo_source_selections": "PhotoSelectionPayload",

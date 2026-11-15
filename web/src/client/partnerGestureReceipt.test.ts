@@ -3,11 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import {
+  notificationArrivalKey,
+  selectArrivedNotification,
+} from './foregroundNotifications';
+import {
   isPartnerGestureKind,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
   requestPartnerGestureReceipt,
-  selectArrivedGesture,
 } from './partnerGestureReceipt';
 
 const ME = 'account-me';
@@ -34,7 +37,11 @@ function item(
 }
 
 const select = (items: NotificationItem[], handled = new Set<string>()) =>
-  selectArrivedGesture(items, { accountId: ME, notBefore: START, handled });
+  selectArrivedNotification(items, {
+    accountId: ME,
+    notBefore: START,
+    handled,
+  });
 
 describe('partner gesture receipt policy', () => {
   it('knows exactly the three existing gesture kinds and their variants', () => {
@@ -73,20 +80,8 @@ describe('partner gesture receipt policy', () => {
     ).toBeNull();
   });
 
-  it('ignores read, handled, own and non-gesture notifications', () => {
-    expect(
-      select([
-        item('read', NotificationKind.THINKING_OF_YOU, {
-          readAt: new Date(START + 90_000),
-        }),
-        item('own', NotificationKind.PARTNER_KISS, {
-          actorId: ME,
-          actor: { id: ME, displayName: 'Me' },
-        }),
-        item('comment', NotificationKind.COMMENT_CREATED),
-        item('handled', NotificationKind.PARTNER_CHECK_IN),
-      ]),
-    ).not.toBeNull();
+  it('ignores read, handled and own gestures', () => {
+    const handled = item('handled', NotificationKind.PARTNER_CHECK_IN);
     expect(
       select(
         [
@@ -94,12 +89,21 @@ describe('partner gesture receipt policy', () => {
             readAt: new Date(START + 90_000),
           }),
           item('own', NotificationKind.PARTNER_KISS, { actorId: ME }),
-          item('comment', NotificationKind.COMMENT_CREATED),
-          item('handled', NotificationKind.PARTNER_CHECK_IN),
+          handled,
         ],
-        new Set(['handled']),
+        new Set([notificationArrivalKey(handled)]),
       ),
     ).toBeNull();
+  });
+
+  it('accepts ordinary in-app items, own outcomes and new coalesced events', () => {
+    const first = item('round', NotificationKind.WISH_SELECTION_SHARED);
+    const next = { ...first, sourceEventId: 'renewed-round' };
+    const ownReminder = item('reminder', NotificationKind.WISH_REMINDER_DUE, {
+      actorId: ME,
+    });
+    expect(select([next], new Set([notificationArrivalKey(first)]))).toBe(next);
+    expect(select([ownReminder])).toBe(ownReminder);
   });
 
   it('dispatches open requests only for gesture kinds', () => {

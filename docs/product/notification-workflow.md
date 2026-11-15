@@ -59,9 +59,13 @@ foundation. It does not introduce the previously rejected daily summary.
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
    through the existing document-leave guard. Dismissing/receiving is not reading.
-7. Reconciliation and unread-count polling remain silent. No transient global
-   foreground banner, replayed backlog animation, inactivity nudge, streak or
-   response-pressure message is introduced. Existing content updates in place.
+7. The active native app suppresses system presentation. Its wake signal and
+   the existing unread-count refresh admit new, authorized in-app items to the
+   [shared foreground banner](design/partner-gesture-receipt.md). Each kind has
+   its own one-shot animation or a stable symbol with reduced motion. Only one
+   banner is visible. Focused tasks keep the screen, and notifications that
+   arrived while the app was away stay in the inbox. The existing browser Web
+   Push platform contract still governs browser system notifications.
 
 ## Complete module inventory
 

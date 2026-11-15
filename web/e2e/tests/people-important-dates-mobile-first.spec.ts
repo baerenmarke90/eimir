@@ -1156,7 +1156,7 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
   ).toHaveCount(1);
   await expectNoWcagViolations(page);
   await page.screenshot({
-    path: info.outputPath('occasions-plans-november-390-light.png'),
+    path: info.outputPath('planning-occasions-plans-november-390-light.png'),
   });
 
   await page.locator('.occasions-band-month').nth(1).click();
@@ -1179,12 +1179,12 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
       }),
     ).toBeVisible();
   await page.screenshot({
-    path: info.outputPath('occasions-plans-december-390-light.png'),
+    path: info.outputPath('planning-occasions-plans-december-390-light.png'),
     fullPage: true,
   });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.screenshot({
-    path: info.outputPath('occasions-plans-december-390-dark.png'),
+    path: info.outputPath('planning-occasions-plans-december-390-dark.png'),
     fullPage: true,
   });
 

@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `name` | string
+`primary` | boolean
 `ref` | string
 `writable` | boolean
 
@@ -18,6 +19,7 @@ import type { CalendarOption } from ''
 // TODO: Update the object below with actual values
 const example = {
   "name": null,
+  "primary": null,
   "ref": null,
   "writable": null,
 } satisfies CalendarOption

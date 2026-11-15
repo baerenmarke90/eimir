@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import type { CalendarOption } from '../api/generated/models/CalendarOption';
 import type { CalendarSyncView } from '../api/generated/models/CalendarSyncView';
@@ -16,13 +16,15 @@ import {
   calendarSyncErrorKey,
   calendarSyncStatus,
   openGoogleConsent,
-  prepareGoogleConsent,
+  openGoogleConsentHere,
   useCalendarSync,
 } from '../client/calendarSync';
 import { isClientOnline } from '../client/connectivity';
 import { planListTitle } from '../client/discreetPlans';
 import { proPaywallPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -39,7 +41,16 @@ type Props = {
 type Step =
   | { kind: 'closed' }
   | { kind: 'credentials' }
-  | { kind: 'choose'; connectionId: string; calendars: CalendarOption[] };
+  | {
+      kind: 'choose';
+      connectionId: string;
+      label: string | null;
+      calendars: CalendarOption[];
+      switching: boolean;
+    };
+
+const GOOGLE_RETURN = 'calendarGoogle';
+const CONFIRMATION_SECONDS = 6;
 
 /**
  * Settings › Calendar (#1895): one shared target calendar per Space. The
@@ -50,16 +61,29 @@ export function CalendarSyncSettings(props: Props) {
   const { t } = useTranslation();
   const { api, view, error, loading, replace, refresh } =
     useCalendarSync(props);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [step, setStep] = useState<Step>({ kind: 'closed' });
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [confirmation, setConfirmation] = useState(false);
   const [problem, setProblem] = useState('');
-  const [confirmEnd, setConfirmEnd] = useState(false);
   const [awaitingGoogle, setAwaitingGoogle] = useState(false);
   const inFlight = useRef(false);
   const trigger = useRef<HTMLButtonElement>(null);
 
-  // The consent happens in another window; read the result when people return.
+  // Web consent returns in the same tab with a fixed outcome code only.
+  const googleReturn = searchParams.get(GOOGLE_RETURN);
+  useEffect(() => {
+    if (!googleReturn) return;
+    if (googleReturn === 'denied' || googleReturn === 'failed')
+      setProblem(t(`calendarSync.google.return.${googleReturn}`));
+    if (googleReturn === 'expired')
+      setProblem(t('calendarSync.errors.CALENDAR_GOOGLE_EXPIRED'));
+    const next = new URLSearchParams(searchParams);
+    next.delete(GOOGLE_RETURN);
+    setSearchParams(next, { replace: true });
+  }, [googleReturn, searchParams, setSearchParams, t]);
+
+  // The app hands consent to the system browser; read the result on return.
   useEffect(() => {
     if (!awaitingGoogle) return;
     const back = () => {
@@ -74,12 +98,20 @@ export function CalendarSyncSettings(props: Props) {
     };
   }, [awaitingGoogle, refresh]);
 
+  useEffect(() => {
+    if (!confirmation) return;
+    const timer = window.setTimeout(
+      () => setConfirmation(false),
+      CONFIRMATION_SECONDS * 1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [confirmation]);
+
   async function run(action: () => Promise<CalendarSyncView | void>) {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     setProblem('');
-    setMessage('');
     try {
       const next = await action();
       if (next) replace(next);
@@ -117,26 +149,32 @@ export function CalendarSyncSettings(props: Props) {
     (connection) => connection.id === target?.connectionId,
   );
   const openConnections = view.connections.filter(
-    (connection) => connection.status === 'ACTIVE',
+    (connection) =>
+      connection.status === 'ACTIVE' && connection.id !== target?.connectionId,
   );
   const pendingGoogle = view.connections.filter(
     (connection) => connection.status === 'PENDING',
   );
 
   async function startGoogle() {
-    // Open the window inside the click so browsers do not block it.
-    const popup = prepareGoogleConsent();
-    await run(async () => {
-      try {
+    if (!isCapacitorNative()) {
+      // Web: Google in this tab, then straight back to this page.
+      await run(async () => {
         const started = await api.startGoogleCalendarConnection({
           spaceId: props.spaceId,
+          googleCalendarStartRequest: { returnTo: 'web' },
         });
-        await openGoogleConsent(started.authorizationUrl, popup);
-        setAwaitingGoogle(true);
-      } catch (failure) {
-        popup?.close();
-        throw failure;
-      }
+        openGoogleConsentHere(started.authorizationUrl);
+      });
+      return;
+    }
+    await run(async () => {
+      const started = await api.startGoogleCalendarConnection({
+        spaceId: props.spaceId,
+        googleCalendarStartRequest: { returnTo: 'page' },
+      });
+      await openGoogleConsent(started.authorizationUrl, null);
+      setAwaitingGoogle(true);
     });
   }
 
@@ -150,21 +188,69 @@ export function CalendarSyncSettings(props: Props) {
       setStep({
         kind: 'choose',
         connectionId: confirmed.connection.id,
+        label: confirmed.connection.label,
         calendars: confirmed.calendars,
+        switching: Boolean(target),
       });
       await refresh().catch(() => {});
     });
   }
 
-  async function chooseFrom(connectionId: string) {
+  async function chooseFrom(
+    connectionId: string,
+    label: string | null,
+    switching: boolean,
+  ) {
     await run(async () => {
       const list = await api.listConnectionCalendars({
         spaceId: props.spaceId,
         connectionId,
       });
-      setStep({ kind: 'choose', connectionId, calendars: list.calendars });
+      setStep({
+        kind: 'choose',
+        connectionId,
+        label,
+        calendars: list.calendars,
+        switching,
+      });
     });
   }
+
+  const pendingCards = pendingGoogle.map((connection) => (
+    <section
+      key={connection.id}
+      className="calendar-sync-confirm"
+      aria-label={t('calendarSync.google.confirmTitle')}
+    >
+      <strong>{t('calendarSync.google.confirmTitle')}</strong>
+      <p>{t('calendarSync.google.confirmBody', { label: connection.label })}</p>
+      <div className="calendar-sync-row">
+        <button
+          type="button"
+          disabled={busy || offline}
+          onClick={() => void confirmGoogle(connection.id)}
+        >
+          {t('calendarSync.google.confirm')}
+        </button>
+        <button
+          type="button"
+          className="tertiary"
+          disabled={busy}
+          onClick={() =>
+            void run(async () => {
+              await api.removeCalendarConnection({
+                spaceId: props.spaceId,
+                connectionId: connection.id,
+              });
+              return api.getCalendarSync({ spaceId: props.spaceId });
+            })
+          }
+        >
+          {t('calendarSync.google.cancel')}
+        </button>
+      </div>
+    </section>
+  ));
 
   return (
     <section
@@ -175,13 +261,14 @@ export function CalendarSyncSettings(props: Props) {
         {t('calendarSync.sharedHeading')}{' '}
         <ProMark label={t('calendarSync.pro')} />
       </h2>
-      {message ? (
-        <div className="calendar-sync-success" role="status">
-          <strong>{t('calendarSync.connected.title')}</strong>
-          <p>{message}</p>
-        </div>
-      ) : null}
+      <p className="calendar-sync-confirmation" role="status">
+        {confirmation ? `✓ ${t('calendarSync.connected.title')}` : ''}
+      </p>
       {problem && step.kind === 'closed' ? <p role="alert">{problem}</p> : null}
+      {view.canSync ? pendingCards : null}
+      {awaitingGoogle && pendingGoogle.length === 0 ? (
+        <p role="status">{t('calendarSync.google.waiting')}</p>
+      ) : null}
 
       {target ? (
         <TargetState
@@ -190,10 +277,23 @@ export function CalendarSyncSettings(props: Props) {
           view={view}
           busy={busy || offline}
           ifMatch={ifMatch}
-          sponsorConnectionId={sponsorConnection?.id}
-          confirmEnd={confirmEnd}
-          setConfirmEnd={setConfirmEnd}
+          accountLabel={sponsorConnection?.label ?? null}
           run={run}
+          onChooseCalendar={() =>
+            sponsorConnection
+              ? void chooseFrom(
+                  sponsorConnection.id,
+                  sponsorConnection.label,
+                  true,
+                )
+              : setStep({
+                  kind: 'choose',
+                  connectionId: '',
+                  label: null,
+                  calendars: [],
+                  switching: true,
+                })
+          }
           onReconnect={() =>
             target.service === 'GOOGLE'
               ? void startGoogle()
@@ -203,55 +303,15 @@ export function CalendarSyncSettings(props: Props) {
       ) : view.canSync ? (
         <>
           <p>{t('calendarSync.sharedIntro')}</p>
-          {pendingGoogle.map((connection) => (
-            <section
-              key={connection.id}
-              className="calendar-sync-confirm"
-              aria-label={t('calendarSync.google.confirmTitle')}
-            >
-              <strong>{t('calendarSync.google.confirmTitle')}</strong>
-              <p>
-                {t('calendarSync.google.confirmBody', {
-                  label: connection.label,
-                })}
-              </p>
-              <div className="calendar-sync-row">
-                <button
-                  type="button"
-                  disabled={busy || offline}
-                  onClick={() => void confirmGoogle(connection.id)}
-                >
-                  {t('calendarSync.google.confirm')}
-                </button>
-                <button
-                  type="button"
-                  className="tertiary"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await api.removeCalendarConnection({
-                        spaceId: props.spaceId,
-                        connectionId: connection.id,
-                      });
-                      return api.getCalendarSync({ spaceId: props.spaceId });
-                    })
-                  }
-                >
-                  {t('calendarSync.google.cancel')}
-                </button>
-              </div>
-            </section>
-          ))}
-          {awaitingGoogle && pendingGoogle.length === 0 ? (
-            <p role="status">{t('calendarSync.google.waiting')}</p>
-          ) : null}
           {openConnections.map((connection) => (
             <button
               key={connection.id}
               type="button"
               className="calendar-sync-choice"
               disabled={busy || offline}
-              onClick={() => void chooseFrom(connection.id)}
+              onClick={() =>
+                void chooseFrom(connection.id, connection.label, false)
+              }
             >
               <span>
                 <strong>
@@ -314,7 +374,9 @@ export function CalendarSyncSettings(props: Props) {
             setStep({
               kind: 'choose',
               connectionId: created.connection.id,
+              label: created.connection.label,
               calendars: created.calendars,
+              switching: Boolean(target),
             });
             await refresh().catch(() => {});
           })
@@ -325,11 +387,17 @@ export function CalendarSyncSettings(props: Props) {
         busy={busy}
         problem={problem}
         restoreFocusRef={trigger}
+        services={view.services}
         onClose={() => {
           if (!busy) {
             setStep({ kind: 'closed' });
             setProblem('');
           }
+        }}
+        onOtherConnection={(service) => {
+          setStep({ kind: 'closed' });
+          if (service === 'GOOGLE') void startGoogle();
+          else setStep({ kind: 'credentials' });
         }}
         onConfirm={(connectionId, calendarRef) =>
           run(async () => {
@@ -339,7 +407,7 @@ export function CalendarSyncSettings(props: Props) {
               spaceCalendarTargetSave: { connectionId, calendarRef },
             });
             setStep({ kind: 'closed' });
-            setMessage(t('calendarSync.connected.body'));
+            setConfirmation(true);
             return next;
           })
         }
@@ -354,18 +422,21 @@ function TargetState(
     view: CalendarSyncView;
     busy: boolean;
     ifMatch: string;
-    sponsorConnectionId: string | undefined;
-    confirmEnd: boolean;
-    setConfirmEnd: (value: boolean) => void;
+    accountLabel: string | null;
     run: (action: () => Promise<CalendarSyncView | void>) => Promise<void>;
+    onChooseCalendar: () => void;
     onReconnect: () => void;
   },
 ) {
   const { t } = useTranslation();
   const { api, spaceId, view, busy, ifMatch, run } = props;
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const target = view.target!;
   const status = calendarSyncStatus(target);
   const provider = t(`calendarSync.providers.${target.service}`);
+  const name = target.calendarPrimary
+    ? t('calendarSync.target.primaryCalendar')
+    : target.calendarName;
   const plansApi = useMemo(
     () =>
       new PlansApi(
@@ -390,211 +461,262 @@ function TargetState(
         timeStyle: 'short',
       }).format(target.lastSuccessAt)
     : null;
+  // Nothing confirmed yet is "ready", never "synced".
+  const ready =
+    status === 'synced' &&
+    target.syncedCount === 0 &&
+    target.pendingCount === 0;
+  const statusText = ready
+    ? t('calendarSync.status.ready')
+    : status === 'synced' && lastSuccess
+      ? t('calendarSync.status.syncedAt', { time: lastSuccess })
+      : t(`calendarSync.status.${status}`);
+  const meta = target.sponsoredByMe
+    ? props.accountLabel
+      ? `${provider} · ${props.accountLabel}`
+      : t('calendarSync.target.viaYou', { provider })
+    : t('calendarSync.target.via', {
+        provider,
+        name: target.sponsor.displayName,
+      });
 
   return (
-    <div className="calendar-sync-target">
-      <p className="calendar-sync-name">{target.calendarName}</p>
-      <p className="field-help">
-        {target.sponsoredByMe
-          ? t('calendarSync.target.viaYou', { provider })
-          : t('calendarSync.target.via', {
-              provider,
-              name: target.sponsor.displayName,
-            })}
-      </p>
-      <p
-        className={`calendar-sync-status calendar-sync-status-${status}`}
-        role="status"
+    <>
+      <article
+        className="calendar-sync-card"
+        aria-labelledby="calendar-sync-name"
       >
-        <span aria-hidden="true" className="calendar-sync-dot" />
-        {t(`calendarSync.status.${status}`)}
-      </p>
-      {status === 'broken' ? (
-        <p>
-          {target.sponsoredByMe
-            ? t('calendarSync.status.brokenHint')
-            : t('calendarSync.status.brokenPartner', {
-                name: target.sponsor.displayName,
-              })}
-        </p>
-      ) : null}
-      {target.status === 'SUSPENDED' &&
-      target.statusReason === 'CALENDAR_UNAVAILABLE' ? (
-        <p>{t('calendarSync.status.calendarGone')}</p>
-      ) : null}
-      {target.syncedCount > 0 ? (
-        <p>{t('calendarSync.target.synced', { count: target.syncedCount })}</p>
-      ) : null}
-      {target.keptCount > 0 ? (
-        <p className="field-help">
-          {t('calendarSync.target.kept', { count: target.keptCount })}
-        </p>
-      ) : null}
-      {lastSuccess ? (
-        <p className="field-help">
-          {t('calendarSync.target.lastSuccess', { time: lastSuccess })}
-        </p>
-      ) : null}
-
-      {target.conflicts.length > 0 ? (
-        <ul
-          className="calendar-sync-conflicts"
-          aria-label={t('calendarSync.status.attention')}
+        <div className="calendar-sync-card-head">
+          <span className="calendar-sync-mark" aria-hidden="true">
+            <EimirIcon name="kalender" />
+          </span>
+          <div className="calendar-sync-card-title">
+            <h3 id="calendar-sync-name" className="calendar-sync-name">
+              {name}
+            </h3>
+            <p className="calendar-sync-meta">{meta}</p>
+          </div>
+        </div>
+        <p
+          className={`calendar-sync-status calendar-sync-status-${ready ? 'ready' : status}`}
+          role="status"
         >
-          {target.conflicts.map((conflict, index) => {
-            const plan = titles[index]?.data;
-            const title = plan
-              ? planListTitle(plan, t)
-              : t('calendarSync.conflict.unknownPlan');
-            const resolve = (action: 'OVERWRITE' | 'DETACH') =>
-              run(async () => {
-                await api.resolvePlanCalendarConflict({
-                  spaceId,
-                  planId: conflict.planId,
-                  calendarConflictResolution: { action },
+          <span aria-hidden="true" className="calendar-sync-dot" />
+          {statusText}
+        </p>
+        {status === 'broken' ? (
+          <p>
+            {target.sponsoredByMe
+              ? t('calendarSync.status.brokenHint')
+              : t('calendarSync.status.brokenPartner', {
+                  name: target.sponsor.displayName,
+                })}
+          </p>
+        ) : null}
+        {target.status === 'SUSPENDED' &&
+        target.statusReason === 'CALENDAR_UNAVAILABLE' ? (
+          <p>{t('calendarSync.status.calendarGone')}</p>
+        ) : null}
+        {target.syncedCount > 0 ? (
+          <p className="calendar-sync-meta">
+            {t('calendarSync.target.synced', { count: target.syncedCount })}
+          </p>
+        ) : (
+          <p className="calendar-sync-meta">
+            {t('calendarSync.target.explain')}
+          </p>
+        )}
+        {target.keptCount > 0 ? (
+          <p className="calendar-sync-meta">
+            {t('calendarSync.target.kept', { count: target.keptCount })}
+          </p>
+        ) : null}
+
+        {target.conflicts.length > 0 ? (
+          <ul
+            className="calendar-sync-conflicts"
+            aria-label={t('calendarSync.status.attention')}
+          >
+            {target.conflicts.map((conflict, index) => {
+              const plan = titles[index]?.data;
+              const title = plan
+                ? planListTitle(plan, t)
+                : t('calendarSync.conflict.unknownPlan');
+              const resolve = (action: 'OVERWRITE' | 'DETACH') =>
+                run(async () => {
+                  await api.resolvePlanCalendarConflict({
+                    spaceId,
+                    planId: conflict.planId,
+                    calendarConflictResolution: { action },
+                  });
+                  return api.getCalendarSync({ spaceId });
                 });
-                return api.getCalendarSync({ spaceId });
-              });
-            return (
-              <li key={conflict.planId}>
-                <p>
-                  {t(`calendarSync.conflict.${conflict.reason}`, { title })}
-                </p>
-                <div className="calendar-sync-row">
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => void resolve('OVERWRITE')}
-                  >
-                    {t('calendarSync.conflict.overwrite')}
-                  </button>
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={busy}
-                    onClick={() => void resolve('DETACH')}
-                  >
-                    {t('calendarSync.conflict.detach')}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-
-      {status === 'paused' ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            void run(() => api.resumeCalendarSyncTarget({ spaceId, ifMatch }))
-          }
-        >
-          {t('calendarSync.actions.resume')}
-        </button>
-      ) : status === 'broken' && target.sponsoredByMe ? (
-        <button type="button" disabled={busy} onClick={props.onReconnect}>
-          {t('calendarSync.actions.reconnect')}
-        </button>
-      ) : status !== 'broken' && view.canSync ? (
-        <button
-          type="button"
-          disabled={busy}
-          aria-busy={busy}
-          onClick={() => void run(() => api.requestCalendarSync({ spaceId }))}
-        >
-          {t('calendarSync.actions.syncNow')}
-        </button>
-      ) : status === 'proPaused' ? (
-        <Link to={proPaywallPath('calendar')}>
-          {t('proPaywall.contextAction')}
-        </Link>
-      ) : null}
-
-      <div className="calendar-sync-row">
-        {target.status === 'ACTIVE' ? (
-          <button
-            type="button"
-            className="tertiary"
-            disabled={busy}
-            onClick={() =>
-              void run(() => api.pauseCalendarSyncTarget({ spaceId, ifMatch }))
-            }
-          >
-            {t('calendarSync.actions.pause')}
-          </button>
+              return (
+                <li key={conflict.planId}>
+                  <p>
+                    {t(`calendarSync.conflict.${conflict.reason}`, { title })}
+                  </p>
+                  <div className="calendar-sync-row">
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => void resolve('OVERWRITE')}
+                    >
+                      {t('calendarSync.conflict.overwrite')}
+                    </button>
+                    <button
+                      type="button"
+                      className="tertiary"
+                      disabled={busy}
+                      onClick={() => void resolve('DETACH')}
+                    >
+                      {t('calendarSync.conflict.detach')}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         ) : null}
-        {!props.confirmEnd ? (
-          <button
-            type="button"
-            className="tertiary"
-            disabled={busy}
-            onClick={() => props.setConfirmEnd(true)}
-          >
-            {t('calendarSync.actions.end')}
-          </button>
-        ) : null}
-      </div>
-      {props.confirmEnd ? (
-        <section
-          className="calendar-sync-confirm"
-          aria-label={t('calendarSync.actions.end')}
-        >
-          <p>{t('calendarSync.actions.endConfirm')}</p>
-          <div className="calendar-sync-row">
+
+        <div className="calendar-sync-row">
+          {status === 'paused' ? (
             <button
               type="button"
               className="secondary"
               disabled={busy}
               onClick={() =>
-                void run(async () => {
-                  const next = await api.endCalendarSyncTarget({
-                    spaceId,
-                    ifMatch,
-                  });
-                  props.setConfirmEnd(false);
-                  return next;
-                })
+                void run(() =>
+                  api.resumeCalendarSyncTarget({ spaceId, ifMatch }),
+                )
               }
             >
-              {t('calendarSync.actions.endConfirmAction')}
+              {t('calendarSync.actions.resume')}
             </button>
+          ) : status === 'broken' && target.sponsoredByMe ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={props.onReconnect}
+            >
+              {t('calendarSync.actions.reconnect')}
+            </button>
+          ) : status !== 'broken' && view.canSync ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() =>
+                void run(() => api.requestCalendarSync({ spaceId }))
+              }
+            >
+              {t('calendarSync.actions.syncNow')}
+            </button>
+          ) : status === 'proPaused' ? (
+            <Link to={proPaywallPath('calendar')}>
+              {t('proPaywall.contextAction')}
+            </Link>
+          ) : null}
+          {view.canSync ? (
             <button
               type="button"
               className="tertiary"
-              onClick={() => props.setConfirmEnd(false)}
+              disabled={busy}
+              onClick={props.onChooseCalendar}
             >
-              {t('calendarSync.actions.keepSyncing')}
+              {t('calendarSync.actions.changeCalendar')}
             </button>
-          </div>
-        </section>
-      ) : null}
-      {props.sponsorConnectionId ? (
-        <div className="calendar-sync-private">
-          <button
-            type="button"
-            className="tertiary"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                await api.removeCalendarConnection({
-                  spaceId,
-                  connectionId: props.sponsorConnectionId!,
-                });
-                return api.getCalendarSync({ spaceId });
-              })
-            }
-          >
-            {t('calendarSync.actions.disconnect')}
-          </button>
-          <p className="field-help">
-            {t('calendarSync.actions.disconnectHint')}
+          ) : null}
+        </div>
+      </article>
+
+      <details className="calendar-sync-options">
+        <summary>{t('calendarSync.actions.moreOptions')}</summary>
+        <div className="calendar-sync-options-body">
+          {target.status === 'ACTIVE' ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={busy}
+              onClick={() =>
+                void run(() =>
+                  api.pauseCalendarSyncTarget({ spaceId, ifMatch }),
+                )
+              }
+            >
+              {t('calendarSync.actions.pause')}
+            </button>
+          ) : null}
+          {!confirmEnd ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={busy}
+              onClick={() => setConfirmEnd(true)}
+            >
+              {t('calendarSync.actions.end')}
+            </button>
+          ) : (
+            <section
+              className="calendar-sync-confirm"
+              aria-label={t('calendarSync.actions.end')}
+            >
+              <p>{t('calendarSync.actions.endConfirm')}</p>
+              <div className="calendar-sync-row">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const next = await api.endCalendarSyncTarget({
+                        spaceId,
+                        ifMatch,
+                      });
+                      setConfirmEnd(false);
+                      return next;
+                    })
+                  }
+                >
+                  {t('calendarSync.actions.endConfirmAction')}
+                </button>
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => setConfirmEnd(false)}
+                >
+                  {t('calendarSync.actions.keepSyncing')}
+                </button>
+              </div>
+            </section>
+          )}
+          {target.sponsoredByMe && target.connectionId ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await api.removeCalendarConnection({
+                    spaceId,
+                    connectionId: target.connectionId!,
+                  });
+                  return api.getCalendarSync({ spaceId });
+                })
+              }
+            >
+              {t('calendarSync.actions.disconnectProvider', { provider })}
+            </button>
+          ) : null}
+          <p className="calendar-sync-meta">
+            {t('calendarSync.actions.eventsStay')}
           </p>
         </div>
-      ) : null}
-    </div>
+      </details>
+    </>
   );
 }
 
@@ -716,11 +838,18 @@ function CalDavSheet(props: {
 }
 
 function ChooseSheet(props: {
-  step: { connectionId: string; calendars: CalendarOption[] } | null;
+  step: {
+    connectionId: string;
+    label: string | null;
+    calendars: CalendarOption[];
+    switching: boolean;
+  } | null;
   busy: boolean;
   problem: string;
+  services: Array<'CALDAV' | 'GOOGLE'>;
   restoreFocusRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
+  onOtherConnection: (service: 'CALDAV' | 'GOOGLE') => void;
   onConfirm: (connectionId: string, calendarRef: string) => void;
 }) {
   const { t } = useTranslation();
@@ -742,44 +871,69 @@ function ChooseSheet(props: {
         props.onClose();
       }}
       footer={
-        <button
-          type="button"
-          disabled={!chosen || props.busy}
-          aria-busy={props.busy}
-          onClick={() =>
-            step && chosen && props.onConfirm(step.connectionId, chosen)
-          }
-        >
-          {props.busy
-            ? t('calendarSync.choose.saving')
-            : t('calendarSync.choose.confirm')}
-        </button>
+        step && step.calendars.length > 0 ? (
+          <button
+            type="button"
+            disabled={!chosen || props.busy}
+            aria-busy={props.busy}
+            onClick={() =>
+              step && chosen && props.onConfirm(step.connectionId, chosen)
+            }
+          >
+            {props.busy
+              ? t('calendarSync.choose.saving')
+              : t('calendarSync.choose.confirm')}
+          </button>
+        ) : undefined
       }
     >
-      <fieldset className="calendar-sync-calendars">
-        <legend className="sr-only">{t('calendarSync.choose.title')}</legend>
-        {step?.calendars.map((calendar) => (
-          <label key={calendar.ref} className="choice-row">
-            <input
-              type="radio"
-              name={`${id}-calendar`}
-              value={calendar.ref}
-              checked={chosen === calendar.ref}
-              disabled={!calendar.writable || props.busy}
-              onChange={() => setSelected(calendar.ref)}
-            />
-            <span>
-              {calendar.name}
-              {!calendar.writable ? (
-                <span className="field-help">
-                  {' '}
-                  · {t('calendarSync.choose.readOnly')}
-                </span>
-              ) : null}
-            </span>
-          </label>
-        ))}
-      </fieldset>
+      {step?.label ? <p className="calendar-sync-meta">{step.label}</p> : null}
+      {step && step.calendars.length > 0 ? (
+        <fieldset className="calendar-sync-calendars">
+          <legend className="sr-only">{t('calendarSync.choose.title')}</legend>
+          {step.calendars.map((calendar) => (
+            <label key={calendar.ref} className="choice-row">
+              <input
+                type="radio"
+                name={`${id}-calendar`}
+                value={calendar.ref}
+                checked={chosen === calendar.ref}
+                disabled={!calendar.writable || props.busy}
+                onChange={() => setSelected(calendar.ref)}
+              />
+              <span>
+                {calendar.primary
+                  ? t('calendarSync.target.primaryCalendar')
+                  : calendar.name}
+                {!calendar.writable ? (
+                  <span className="field-help">
+                    {' '}
+                    · {t('calendarSync.choose.readOnly')}
+                  </span>
+                ) : null}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+      {step?.switching ? (
+        <div className="calendar-sync-other">
+          <p className="calendar-sync-other-title">
+            {t('calendarSync.choose.otherConnection')}
+          </p>
+          {props.services.map((service) => (
+            <button
+              key={service}
+              type="button"
+              className="tertiary"
+              disabled={props.busy}
+              onClick={() => props.onOtherConnection(service)}
+            >
+              {t(`calendarSync.choose.connect_${service}`)}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {props.problem ? (
         <p role="alert" className="field-error">
           {props.problem}

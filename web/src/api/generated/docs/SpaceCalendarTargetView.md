@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `calendarName` | string
+`calendarPrimary` | boolean
 `conflicts` | [Array&lt;CalendarConflictView&gt;](CalendarConflictView.md)
 `connectionId` | string
 `failedCount` | number
@@ -28,6 +29,7 @@ import type { SpaceCalendarTargetView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "calendarName": null,
+  "calendarPrimary": null,
   "conflicts": null,
   "connectionId": null,
   "failedCount": null,

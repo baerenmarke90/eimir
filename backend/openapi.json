@@ -1051,6 +1051,12 @@
             "title": "Name",
             "type": "string"
           },
+          "primary": {
+            "default": false,
+            "description": "The account's own main calendar.",
+            "title": "Primary",
+            "type": "boolean"
+          },
           "ref": {
             "description": "Opaque provider calendar reference.",
             "title": "Ref",
@@ -4524,6 +4530,23 @@
           "authorizationUrl"
         ],
         "title": "GoogleCalendarStart",
+        "type": "object"
+      },
+      "GoogleCalendarStartRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "returnTo": {
+            "default": "page",
+            "description": "web: Google returns to the calendar settings in the same browser tab; page: a short return page for the system browser of the app.",
+            "enum": [
+              "web",
+              "page"
+            ],
+            "title": "Returnto",
+            "type": "string"
+          }
+        },
+        "title": "GoogleCalendarStartRequest",
         "type": "object"
       },
       "Health": {
@@ -14293,6 +14316,12 @@
             "title": "Calendarname",
             "type": "string"
           },
+          "calendarPrimary": {
+            "default": false,
+            "description": "Shown as the provider's main calendar, not by its raw name.",
+            "title": "Calendarprimary",
+            "type": "boolean"
+          },
           "conflicts": {
             "items": {
               "$ref": "#/components/schemas/CalendarConflictView"
@@ -23445,6 +23474,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/GoogleCalendarStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {

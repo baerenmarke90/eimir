@@ -177,7 +177,8 @@ export function WishDateProposalAction({
   });
 
   useDocumentLeaveGuard(
-    editorOpen &&
+    canShow &&
+      editorOpen &&
       (write.isPending || Boolean(editor && draft !== editor.original)),
   );
 

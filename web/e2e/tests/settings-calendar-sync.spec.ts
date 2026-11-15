@@ -28,6 +28,7 @@ interface CalendarScenario {
   rejectCredentials: boolean;
   google: boolean;
   googlePending: boolean;
+  calendarPrimary: boolean;
   provider: 'CALDAV' | 'GOOGLE';
   requests: { method: string; path: string; body: unknown }[];
 }
@@ -43,6 +44,7 @@ function scenario(overrides: Partial<CalendarScenario> = {}): CalendarScenario {
     rejectCredentials: false,
     google: false,
     googlePending: false,
+    calendarPrimary: false,
     provider: 'CALDAV',
     requests: [],
     ...overrides,
@@ -53,7 +55,10 @@ function view(state: CalendarScenario) {
   const target = state.targetSet
     ? {
         service: state.provider,
-        calendarName: 'Unser Kalender',
+        calendarName: state.calendarPrimary
+          ? 'anna@gmail.example'
+          : 'Unser Kalender',
+        calendarPrimary: state.calendarPrimary,
         sponsor: {
           id: state.sponsoredByMe ? ACCOUNT_ID : 'partner',
           displayName: state.sponsoredByMe ? 'Anna' : 'Ben',
@@ -182,11 +187,38 @@ async function installApiMocks(
           status: 'ACTIVE',
         },
         calendars: [
-          { ref: 'anna@gmail.example', name: 'Anna', writable: true },
+          {
+            ref: 'anna@gmail.example',
+            name: 'anna@gmail.example',
+            writable: true,
+            primary: true,
+          },
           {
             ref: 'shared@group.calendar.google.com',
             name: 'Unser Kalender',
             writable: true,
+          },
+        ],
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `${sync}/connections/${CONNECTION_ID}/calendars`
+    ) {
+      await fulfillJson({
+        calendars: [
+          {
+            ref: 'anna@gmail.example',
+            name: 'anna@gmail.example',
+            writable: true,
+            primary: true,
+          },
+          {
+            ref: 'shared@group.calendar.google.com',
+            name: 'Unser Kalender',
+            writable: true,
+            primary: false,
           },
         ],
       });
@@ -468,8 +500,15 @@ test('the partner sees the shared status, resolves a conflict and holds no crede
       .filter({ hasText: calendarSync.status.attention }),
   ).toBeVisible();
   await expect(page.getByText(CHANGED_CONFLICT)).toBeVisible();
+  // Only the sponsor can remove the provider access, even with options open.
+  await page.getByText(calendarSync.actions.moreOptions).click();
   await expect(
-    page.getByRole('button', { name: calendarSync.actions.disconnect }),
+    page.getByRole('button', {
+      name: calendarSync.actions.disconnectProvider.replace(
+        '{{provider}}',
+        calendarSync.providers.CALDAV,
+      ),
+    }),
   ).toHaveCount(0);
   await captureScreenshot(
     page,
@@ -547,23 +586,24 @@ test('Google Calendar connects through consent, explicit account confirmation an
   await page.setViewportSize({ width: 390, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openCalendarSettings(page, state);
-  const popupPromise = context.waitForEvent('page');
   await page
     .getByRole('button', {
       name: new RegExp(calendarSync.providers.GOOGLE_hint),
     })
     .click();
-  const popup = await popupPromise;
-  await expect.poll(() => popup.url()).toContain('accounts.google.com');
-  await expect(page.getByText(calendarSync.google.waiting)).toBeVisible();
+  // Web consent runs in this tab, without a second window.
+  await expect.poll(() => page.url()).toContain('accounts.google.com');
+  expect(
+    state.requests.find((entry) => entry.path === '/connections/google')?.body,
+  ).toEqual({ returnTo: 'web' });
 
-  // Consent finished elsewhere: the server now holds a pending connection.
+  // Google returns to the settings; the server now holds a pending connection.
   state.connected = true;
   state.googlePending = true;
   state.provider = 'GOOGLE';
-  await popup.close();
-  await page.bringToFront();
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  state.calendarPrimary = true;
+  await page.goto('/more/settings/calendar?calendarGoogle=connected');
+  await expect.poll(() => page.url()).not.toContain('calendarGoogle');
   const confirmCard = page.getByRole('region', {
     name: calendarSync.google.confirmTitle,
   });
@@ -578,22 +618,43 @@ test('Google Calendar connects through consent, explicit account confirmation an
     .click();
 
   const chooser = page.getByRole('dialog', { name: calendarSync.choose.title });
-  await chooser.getByRole('radio', { name: 'Unser Kalender' }).check();
+  await chooser
+    .getByRole('radio', { name: calendarSync.target.primaryCalendar })
+    .check();
   await chooser
     .getByRole('button', { name: calendarSync.choose.confirm })
     .click();
+  const card = page.locator('.calendar-sync-card');
   await expect(
-    page.getByText(
-      calendarSync.target.viaYou.replace(
-        '{{provider}}',
-        calendarSync.providers.GOOGLE,
-      ),
-    ),
+    card.getByRole('heading', { name: calendarSync.target.primaryCalendar }),
   ).toBeVisible();
+  await expect(card).toContainText('anna@gmail.example');
   expect(
     state.requests.find((entry) => entry.path === '/target')?.body,
   ).toEqual({
     connectionId: CONNECTION_ID,
-    calendarRef: 'shared@group.calendar.google.com',
+    calendarRef: 'anna@gmail.example',
   });
+  await captureScreenshot(
+    page,
+    testInfo,
+    'calendar-sync-google-connected-390-light.png',
+  );
+
+  // Another calendar or connection stays one step away.
+  await card
+    .getByRole('button', { name: calendarSync.actions.changeCalendar })
+    .click();
+  const again = page.getByRole('dialog', { name: calendarSync.choose.title });
+  await expect(
+    again.getByRole('radio', { name: 'Unser Kalender' }),
+  ).toBeVisible();
+  await expect(
+    again.getByRole('button', { name: calendarSync.choose.connect_CALDAV }),
+  ).toBeVisible();
+  await captureScreenshot(
+    page,
+    testInfo,
+    'calendar-sync-change-calendar-390-light.png',
+  );
 });

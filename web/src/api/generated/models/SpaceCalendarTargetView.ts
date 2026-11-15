@@ -41,6 +41,12 @@ export interface SpaceCalendarTargetView {
      */
     calendarName: string;
     /**
+     * Shown as the provider's main calendar, not by its raw name.
+     * @type {boolean}
+     * @memberof SpaceCalendarTargetView
+     */
+    calendarPrimary?: boolean;
+    /**
      * 
      * @type {Array<CalendarConflictView>}
      * @memberof SpaceCalendarTargetView
@@ -163,6 +169,7 @@ export function SpaceCalendarTargetViewFromJSONTyped(json: any, ignoreDiscrimina
     return {
         
         'calendarName': json['calendarName'],
+        'calendarPrimary': json['calendarPrimary'] == null ? undefined : json['calendarPrimary'],
         'conflicts': ((json['conflicts'] as Array<any>).map(CalendarConflictViewFromJSON)),
         'connectionId': json['connectionId'] === undefined ? undefined : json['connectionId'] === null ? null : json['connectionId'],
         'failedCount': json['failedCount'],
@@ -190,6 +197,7 @@ export function SpaceCalendarTargetViewToJSONTyped(value?: SpaceCalendarTargetVi
     return {
         
         'calendarName': value['calendarName'],
+        'calendarPrimary': value['calendarPrimary'],
         'conflicts': ((value['conflicts'] as Array<any>).map(CalendarConflictViewToJSON)),
         'connectionId': value['connectionId'],
         'failedCount': value['failedCount'],

@@ -58,6 +58,8 @@ class CalendarSummary:
     """Provider calendar reference: a CalDAV collection path or a Google calendar id."""
     name: str
     writable: bool
+    primary: bool = False
+    """The provider's own main calendar of the account (Google ``primary``)."""
 
 
 @dataclass(frozen=True)

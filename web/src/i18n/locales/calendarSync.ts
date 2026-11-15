@@ -38,6 +38,9 @@ export default {
   choose: {
     title: 'Welcher Kalender soll es sein?',
     readOnly: 'nur lesbar',
+    otherConnection: 'Andere Verbindung',
+    connect_CALDAV: 'CalDAV verbinden',
+    connect_GOOGLE: 'Google Kalender verbinden',
     confirm: 'Als gemeinsamen Kalender verwenden',
     saving: 'Wird eingerichtet …',
   },
@@ -47,12 +50,17 @@ export default {
       '{{label}} – eimir. schreibt eure gemeinsamen Pläne in einen Kalender dieses Kontos, den du gleich auswählst.',
     confirm: 'Bestätigen',
     cancel: 'Abbrechen',
+    return: {
+      denied:
+        'Die Verbindung mit Google wurde abgebrochen. Du kannst es jederzeit erneut versuchen.',
+      failed:
+        'Die Verbindung mit Google hat nicht geklappt. Versuche es bitte erneut.',
+    },
     waiting:
       'Melde dich bei Google an und erlaube den Zugriff. Danach geht es hier weiter.',
   },
   connected: {
     title: 'Kalender verbunden',
-    body: 'Eure gemeinsamen Pläne können jetzt automatisch synchronisiert werden.',
   },
   target: {
     via: '{{provider}} · verbunden von {{name}}',
@@ -63,10 +71,14 @@ export default {
       '{{count}} Termin blieb im Kalender stehen, weil er dort geändert wurde.',
     kept_other:
       '{{count}} Termine blieben im Kalender stehen, weil sie dort geändert wurden.',
-    lastSuccess: 'Zuletzt synchronisiert: {{time}}',
+    primaryCalendar: 'Hauptkalender',
+    explain:
+      'Neue und geänderte Pläne erscheinen hier automatisch – einmal, für euch beide.',
   },
   status: {
     synced: 'Synchronisiert',
+    ready: 'Bereit · noch keine Pläne übertragen',
+    syncedAt: 'Synchronisiert · {{time}}',
     running: 'Synchronisierung läuft',
     broken: 'Verbindung unterbrochen',
     attention: 'Aufmerksamkeit erforderlich',
@@ -97,9 +109,9 @@ export default {
       'Die Synchronisation endet für euch beide. Bereits übertragene Termine bleiben im Kalender.',
     endConfirmAction: 'Beenden',
     keepSyncing: 'Weiter synchronisieren',
-    disconnect: 'Zugang entfernen',
-    disconnectHint:
-      'Entfernt deine gespeicherten Zugangsdaten. Termine im Kalender bleiben erhalten.',
+    moreOptions: 'Weitere Optionen',
+    disconnectProvider: '{{provider}}-Zugang entfernen',
+    eventsStay: 'Bereits übertragene Termine bleiben im Kalender.',
     reconnect: 'Neu verbinden',
     changeCalendar: 'Anderen Kalender wählen',
     connectAnother: 'Anderen Kalender verbinden',

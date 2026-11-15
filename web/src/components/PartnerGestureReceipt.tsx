@@ -543,7 +543,9 @@ export function PartnerGestureReceiptHost({
     <>
       <div
         className="partner-gesture-receipt-announcer"
-        role="status"
+        data-testid="partner-gesture-receipt-announcer"
+        // A plain polite live region, not role="status": the shell already
+        // owns the page's status regions (Snackbar, task feedback).
         aria-live="polite"
         aria-atomic="true"
       >

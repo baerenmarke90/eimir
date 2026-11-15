@@ -219,10 +219,15 @@ describe('PartnerGestureReceiptHost', () => {
       expect(screen.getByRole('complementary', { name: title })).toBe(surface);
       expect(surface.textContent).toContain(detail);
       // Announced once by the persistent polite region, not by the surface.
-      expect(screen.getByRole('status').textContent).toContain(
-        `${title}. ${detail}`,
-      );
+      expect(
+        screen.getByTestId('partner-gesture-receipt-announcer').textContent,
+      ).toContain(`${title}. ${detail}`);
       expect(surface.hasAttribute('aria-live')).toBe(false);
+      // A plain polite region: it never adds a second page status role.
+      const announcer = screen.getByTestId('partner-gesture-receipt-announcer');
+      expect(announcer.getAttribute('aria-live')).toBe('polite');
+      expect(announcer.hasAttribute('role')).toBe(false);
+      expect(screen.queryAllByRole('status')).toHaveLength(0);
       // The avatar is decorative here; its initials fallback renders.
       expect(surface.textContent).toContain('RO');
 
@@ -356,7 +361,9 @@ describe('PartnerGestureReceiptHost', () => {
     );
     finishExit();
     expect(receipt()).toHaveLength(0);
-    expect(screen.getByRole('status').textContent).toBe('');
+    expect(
+      screen.getByTestId('partner-gesture-receipt-announcer').textContent,
+    ).toBe('');
   });
 
   it('replies to a thought through the existing THINKING send, once', async () => {

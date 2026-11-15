@@ -4771,7 +4771,9 @@
     "mapUnavailableBody": "An approximate area appears here only while it is shared.",
     "mapAreaDescription": "{{partner}} is somewhere in an area with a {{radius}} radius. As of: {{time}}.",
     "mapOwnDescription": "Your own approximate location is marked for you only.",
-    "mapPeopleLabel": "The two of you on the map"
+    "mapPeopleLabel": "The two of you on the map",
+    "mapConnectionLine": "A line on the map connects you and {{partner}}.",
+    "mapConnectionNear": "A heart on the map shows that you are close to each other."
   },
   "wirCheckIn": {
     "ownPrompt": "How are you?",

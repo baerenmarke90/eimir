@@ -40,3 +40,27 @@ Images (`390` Light/Dark, `360` with 200 % root font size):
 At 200 % text the existing map tools and avatars grow with the root font size
 and crowd the map; that is the current behavior of the page and is not
 changed by this slice.
+
+## Product Owner approval
+
+Approved on 2026-11-15 ("Passt, umsetzen") after the motion recordings,
+including the draw-in on open, the glow point instead of a travelling heart and
+three round trips, then rest.
+
+## Implementation evidence
+
+Captured from the implementation branch in the e2e harness (mocked API; the
+`2x` images use the flat fixture basemap, the `30-*` recordings the production
+basemap):
+
+- `20-impl-far-390-light.jpg`, `21-impl-regional-390-light.jpg`,
+  `22-impl-near-390-light.jpg`: the three tiers after the motion (reduced
+  motion), with the text alternative `partnerLocation.mapConnectionLine` or
+  `partnerLocation.mapConnectionNear`.
+- `23-impl-earlier-390-dark.jpg`: an earlier snapshot, muted, no motion.
+- `24-impl-far-360-light.jpg`, `25-impl-far-430-light.jpg`,
+  `26-impl-far-390-dark.jpg`, `27-impl-far-390-light-large.jpg` (200 % text),
+  `28-impl-far-1280-light.jpg`, `29-impl-far-1280-dark.jpg`: full page.
+- `30-impl-near-animation.gif`, `30-impl-regional-animation.gif`,
+  `30-impl-far-animation.gif`: the shipped CSS animation, sought frame by frame
+  at 20 fps (draw-in and the first round trip).

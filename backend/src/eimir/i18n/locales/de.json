@@ -55,5 +55,11 @@
   "deletion.intro": "Du musst nichts weiter tun. Der Zugriff auf dein eimir.-Konto wurde beendet.\n\nDie weitere Löschung läuft automatisch nach den geltenden Aufbewahrungsregeln.",
   "deletion.reason": "Du erhältst diese Nachricht als Bestätigung, weil für dein eimir.-Konto die Löschung beantragt wurde.",
   "deletion.ignore": "Das warst nicht du? Dann melde dich bitte umgehend bei uns.",
-  "mail.service.account": "Diese Nachricht gehört zu deinem Konto. Sie enthält keine Werbung."
+  "mail.service.account": "Diese Nachricht gehört zu deinem Konto. Sie enthält keine Werbung.",
+  "calendar.google.title": "Google Kalender",
+  "calendar.google.connected": "Fast geschafft. Kehre zu eimir. zurück und bestätige dort dein Google-Konto.",
+  "calendar.google.denied": "Die Verbindung mit Google wurde abgebrochen. In eimir. kannst du es jederzeit erneut versuchen.",
+  "calendar.google.failed": "Die Verbindung mit Google hat nicht geklappt. Kehre zu eimir. zurück und versuche es erneut.",
+  "calendar.google.expired": "Dieser Link ist abgelaufen. Starte die Verbindung in eimir. bitte neu.",
+  "calendar.google.back": "Zurück zu eimir."
 }

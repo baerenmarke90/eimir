@@ -113,6 +113,17 @@ export function WishProductPage({
     useState<WishDetail | null>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const backLinkRef = useRef<HTMLButtonElement>(null);
+  // "Plan now" on a date idea that is already a Wish opens this canonical
+  // conversion with the idea's editable plan title; nothing is saved before
+  // the couple confirms.
+  const [convertDraft] = useState(
+    () => resolveOrigin(originKey)?.planningConvertDraft,
+  );
+  const convertHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (convertDraft)
+      convertHeadingRef.current?.scrollIntoView({ block: 'start' });
+  }, [convertDraft]);
   const key = authorSummaryQueryKeys.wishDetail(spaceId, wishId);
   const online = useSyncExternalStore(
     onlineManager.subscribe,
@@ -635,7 +646,10 @@ export function WishProductPage({
         ) : null}
 
         {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
-          <details className="planen-operations wish-operations">
+          <details
+            className="planen-operations wish-operations"
+            open={convertDraft ? true : undefined}
+          >
             <summary className="button-link">
               {t('m5s3.wish.actionsHeading')}
             </summary>
@@ -662,7 +676,7 @@ export function WishProductPage({
               ) : null}
             </section>
             <section className="planning-subsection">
-              <h2>{t('m5s3.wish.convertHeading')}</h2>
+              <h2 ref={convertHeadingRef}>{t('m5s3.wish.convertHeading')}</h2>
               <p>{t('m5s3.wish.convertIntro')}</p>
               <form
                 className="form-grid free-composer"
@@ -680,6 +694,7 @@ export function WishProductPage({
                     name="title"
                     maxLength={200}
                     placeholder={wish.title}
+                    defaultValue={convertDraft?.title}
                   />
                   <label htmlFor="wish-plan-description">
                     {t('m5s3.common.description')}
@@ -688,6 +703,7 @@ export function WishProductPage({
                     id="wish-plan-description"
                     name="description"
                     rows={4}
+                    defaultValue={convertDraft?.description}
                   />
                   <label htmlFor="wish-plan-place">
                     {t('m5s3.common.place')}

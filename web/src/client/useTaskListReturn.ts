@@ -76,14 +76,7 @@ export function useTaskListReturn({
     };
     const frame = window.requestAnimationFrame(() => {
       const selected = restorePosition();
-      const focusTarget =
-        selected ??
-        (returnOrigin.focusTarget === 'quick-create'
-          ? Array.from(
-              document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-            ).find((element) => element.getClientRects().length > 0)
-          : null);
-      focusTarget?.focus({ preventScroll: true });
+      selected?.focus({ preventScroll: true });
 
       // Browser history restoration and late layout work can settle one frame
       // after the first paint. Re-apply the exact captured offset before the

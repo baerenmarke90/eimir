@@ -110,6 +110,9 @@
   --duration-map-camera: 1100ms;
   --duration-map-stack: 600ms;
   --duration-controls-return: 480ms;
+  --duration-sequence-beat: 200ms;
+  --duration-gesture-moment: 900ms;
+  --duration-gesture-sequence: 1800ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -180,6 +183,9 @@
     --duration-map-camera: 0ms;
     --duration-map-stack: 0ms;
     --duration-controls-return: 0ms;
+    --duration-sequence-beat: 0ms;
+    --duration-gesture-moment: 0ms;
+    --duration-gesture-sequence: 0ms;
   }
 }
 

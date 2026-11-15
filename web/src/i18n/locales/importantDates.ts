@@ -36,6 +36,7 @@ const importantDates = {
   loading: 'Besondere Tage werden geladen …',
   listTitle: 'Eure besonderen Tage',
   emptyTitle: 'Noch kein besonderer Tag festgehalten',
+  monthEmpty: 'In diesem Monat steht nichts an.',
   emptyBody:
     'Haltet hier Tage fest, an die ihr euch erinnern oder die ihr gemeinsam im Blick behalten möchtet.',
   dateValue: '{{date}}',

@@ -27,6 +27,13 @@ import {
     WishSelectionOwnViewToJSON,
     WishSelectionOwnViewToJSONTyped,
 } from './WishSelectionOwnView';
+import type { WishSelectionDateIdeaCandidateView } from './WishSelectionDateIdeaCandidateView';
+import {
+    WishSelectionDateIdeaCandidateViewFromJSON,
+    WishSelectionDateIdeaCandidateViewFromJSONTyped,
+    WishSelectionDateIdeaCandidateViewToJSON,
+    WishSelectionDateIdeaCandidateViewToJSONTyped,
+} from './WishSelectionDateIdeaCandidateView';
 
 /**
  * 
@@ -45,7 +52,19 @@ export interface WishSelectionView {
      * @type {Array<string>}
      * @memberof WishSelectionView
      */
+    commonDateIdeaIds: Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof WishSelectionView
+     */
     commonWishIds: Array<string>;
+    /**
+     * 
+     * @type {Array<WishSelectionDateIdeaCandidateView>}
+     * @memberof WishSelectionView
+     */
+    dateIdeaCandidates: Array<WishSelectionDateIdeaCandidateView>;
     /**
      * 
      * @type {string}
@@ -99,7 +118,8 @@ export const WishSelectionViewResultStateEnum = {
     CHOOSING: 'CHOOSING',
     WAITING: 'WAITING',
     READY: 'READY',
-    NEEDS_IDEAS: 'NEEDS_IDEAS'
+    NEEDS_IDEAS: 'NEEDS_IDEAS',
+    PAUSED: 'PAUSED'
 } as const;
 export type WishSelectionViewResultStateEnum = typeof WishSelectionViewResultStateEnum[keyof typeof WishSelectionViewResultStateEnum];
 
@@ -109,7 +129,9 @@ export type WishSelectionViewResultStateEnum = typeof WishSelectionViewResultSta
  */
 export function instanceOfWishSelectionView(value: object): value is WishSelectionView {
     if (!('candidates' in value) || value['candidates'] === undefined) return false;
+    if (!('commonDateIdeaIds' in value) || value['commonDateIdeaIds'] === undefined) return false;
     if (!('commonWishIds' in value) || value['commonWishIds'] === undefined) return false;
+    if (!('dateIdeaCandidates' in value) || value['dateIdeaCandidates'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('own' in value) || value['own'] === undefined) return false;
     if (!('resultState' in value) || value['resultState'] === undefined) return false;
@@ -131,7 +153,9 @@ export function WishSelectionViewFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'candidates': ((json['candidates'] as Array<any>).map(WishSelectionCandidateViewFromJSON)),
+        'commonDateIdeaIds': json['commonDateIdeaIds'],
         'commonWishIds': json['commonWishIds'],
+        'dateIdeaCandidates': ((json['dateIdeaCandidates'] as Array<any>).map(WishSelectionDateIdeaCandidateViewFromJSON)),
         'id': json['id'],
         'own': WishSelectionOwnViewFromJSON(json['own']),
         'resultState': json['resultState'],
@@ -154,7 +178,9 @@ export function WishSelectionViewToJSONTyped(value?: WishSelectionView | null, i
     return {
         
         'candidates': ((value['candidates'] as Array<any>).map(WishSelectionCandidateViewToJSON)),
+        'commonDateIdeaIds': value['commonDateIdeaIds'],
         'commonWishIds': value['commonWishIds'],
+        'dateIdeaCandidates': ((value['dateIdeaCandidates'] as Array<any>).map(WishSelectionDateIdeaCandidateViewToJSON)),
         'id': value['id'],
         'own': WishSelectionOwnViewToJSON(value['own']),
         'resultState': value['resultState'],

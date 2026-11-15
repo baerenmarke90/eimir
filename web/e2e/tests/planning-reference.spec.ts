@@ -12,6 +12,8 @@ import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 import experiences from '../../src/i18n/locales/experiences';
+import importantDates from '../../src/i18n/locales/importantDates';
+import memoryMap from '../../src/i18n/locales/memoryMap';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -722,3 +724,63 @@ for (const [width, colorScheme] of [
     expect(writes).toHaveLength(1);
   });
 }
+
+test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await installMocks(page);
+  await signIn(page);
+
+  // expect.poll aborts on the first thrown error instead of retrying, so a view
+  // that re-renders between resolving the element and measuring it (the map
+  // tab settling into its error state) must count as "not centered yet".
+  const offCenter = async (selector: string) => {
+    const box = await page.locator(`${selector}:visible`).first().boundingBox();
+    if (!box) return Number.POSITIVE_INFINITY;
+    return Math.abs(box.x + box.width / 2 - 960);
+  };
+  const expectCentered = async (selector: string) => {
+    await expect
+      .poll(() => offCenter(selector), {
+        message: `${selector} is laid out and centered in the window`,
+      })
+      .toBeLessThanOrEqual(1);
+  };
+  const shot = (name: string) =>
+    captureScreenshot(page, testInfo, `expanded-centered-${name}.png`);
+
+  await page.goto('/plan');
+  for (const name of [
+    null,
+    m5s3.overview.segmentWishes,
+    importantDates.heading,
+  ]) {
+    if (name) await page.getByRole('tab', { name }).click();
+    await expectCentered('.planen-segmented');
+    await expectCentered('.page.planen-overview');
+    const column = await page.locator('.page.planen-overview').boundingBox();
+    expect(column?.width).toBeLessThanOrEqual(720);
+  }
+  await shot('plan');
+
+  await page.goto('/story');
+  await expectCentered('.story-view-tabs');
+  await shot('story');
+  await page.getByRole('tab', { name: de.story.tabTimeline }).click();
+  await expectCentered('.story-view-tabs');
+  await page.getByRole('tab', { name: memoryMap.entry }).click();
+  await expectCentered('.story-view-tabs');
+
+  for (const [path, selector] of [
+    ['/today', '.new-space-experience'],
+    ['/story/our-story', '.page.relationship-story-page'],
+    ['/search', '.page.m4-product-page'],
+  ] as const) {
+    await page.goto(path);
+    await expectCentered(selector);
+  }
+
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});

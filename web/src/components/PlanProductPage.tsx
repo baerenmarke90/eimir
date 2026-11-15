@@ -47,9 +47,9 @@ import {
   dateOnlyInput,
   loadAllPlaces,
   localCalendarDateInput,
-  localDateTimeInput,
   planningIfMatch,
   planScheduleDateInput,
+  planScheduleEndInput,
   planScheduleFromInputs,
   planScheduleTimeInput,
   type SharedPlanningApis,
@@ -80,6 +80,7 @@ import {
 } from './PageComposer';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarAction } from './PlanCalendarAction';
+import { PlanCalendarSyncLine } from './PlanCalendarSyncLine';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
@@ -672,6 +673,16 @@ export function PlanProductPage({
               location={calendar.location}
             />
           ) : null}
+          {!isEditing && apiBaseUrl && accessToken && accountId ? (
+            <PlanCalendarSyncLine
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={accountId}
+              spaceId={plan.spaceId}
+              planId={plan.id}
+              planVersion={plan.version}
+            />
+          ) : null}
           {plan.status === 'COMPLETED' ? (
             <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
           ) : null}
@@ -799,9 +810,7 @@ export function PlanProductPage({
                     idPrefix="plan-schedule"
                     defaultDate={planScheduleDateInput(editingPlan ?? plan)}
                     defaultTime={planScheduleTimeInput(editingPlan ?? plan)}
-                    defaultEnd={localDateTimeInput(
-                      (editingPlan ?? plan).plannedEnd,
-                    )}
+                    defaultEnd={planScheduleEndInput(editingPlan ?? plan)}
                     includeEnd
                   />
                 ) : (

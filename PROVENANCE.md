@@ -117,6 +117,20 @@ image-generation tool on 2026-10-28 from an actual eimir. browser render at
 evidence. Companion browser screenshots use synthetic test identities and the
 repository's existing authorized assets. No predecessor assets were consulted.
 
+## Date-idea catalog and images
+
+`backend/src/eimir/date_ideas/data/catalog.json` is the eimir. editorial
+date-idea catalog (#1892): 200 original ideas in German and English, written
+for eimir. and delivered as a versioned handoff with its JSON Schema.
+
+`backend/src/eimir/date_ideas/data/images/` holds 25 editorial images for that
+catalog (15 per idea, 10 per category). They were generated with OpenAI's
+built-in image-generation tool without reference images; `images.json`
+records each file, size, German and English alt text and the exact prompt.
+They depict no real persons and contain no third-party photographs, brands or
+artwork. They are project assets with no separate public license grant and
+are served only through the Pro-gated API.
+
 ## Daily Saying catalog
 
 `backend/src/eimir/quotes/daily_sayings.json` contains an eimir. selection

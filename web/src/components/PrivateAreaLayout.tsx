@@ -1,6 +1,6 @@
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useReturnTo } from '../client/historyEntries';
 import {
   PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
@@ -14,6 +14,7 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 export function PrivateAreaFrame({
   children,
@@ -109,14 +110,11 @@ export function usePrivateTaskEditorLifecycle({
   isCloseBlocked?: boolean;
   closeToFallback?: boolean;
 }) {
-  const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const taskContext = usePrivateAreaTaskContext(fallbackPath);
   const closeToDetail = useCallback(() => {
-    void navigate(fallbackPath, {
-      replace: true,
-      state: taskContext.navigationState,
-    });
-  }, [fallbackPath, navigate, taskContext.navigationState]);
+    returnTo(fallbackPath, { state: taskContext.navigationState });
+  }, [fallbackPath, returnTo, taskContext.navigationState]);
   const lifecycle = useTaskEditorLifecycle({
     isDirty,
     isCloseBlocked,

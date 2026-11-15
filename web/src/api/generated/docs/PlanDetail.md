@@ -23,6 +23,7 @@ Name | Type
 `plannedEnd` | Date
 `plannedOn` | Date
 `plannedStart` | Date
+`plannedUntil` | Date
 `previewTitle` | string
 `selectedCoverAttachmentId` | string
 `sourceWishId` | string
@@ -57,6 +58,7 @@ const example = {
   "plannedEnd": null,
   "plannedOn": null,
   "plannedStart": null,
+  "plannedUntil": null,
   "previewTitle": null,
   "selectedCoverAttachmentId": null,
   "sourceWishId": null,

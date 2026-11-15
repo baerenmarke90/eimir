@@ -232,6 +232,9 @@ def test_one_time_push_waits_and_expires_before_provider_submission(
 
     now = datetime(2026, 11, 13, 23, tzinfo=UTC)
     monkeypatch.setattr(clock, "now", lambda: now)
+    # The fixture grant starts relative to the real clock; keep it effective
+    # under the pinned clock regardless of the date the suite runs on.
+    actors["grant"].effective_from = now - timedelta(days=1)
     actors["second"].timezone = "UTC"
     quiet_hours_preferences.set_own_window(
         session,

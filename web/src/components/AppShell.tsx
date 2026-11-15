@@ -45,12 +45,11 @@ import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { isCapacitorNative } from '../pwa';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
-import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
@@ -162,6 +161,7 @@ interface AppShellProps {
   account: AccountView;
   spaceId: string;
   serverAdmin?: boolean;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 }
 
 export function AppShell(props: AppShellProps) {
@@ -198,6 +198,7 @@ function AuthenticatedAppShell({
   account,
   spaceId,
   serverAdmin = false,
+  openNotification,
   primaryTabs,
 }: AppShellProps) {
   const { t } = useTranslation();
@@ -337,11 +338,6 @@ function AuthenticatedAppShell({
               <PrimaryNavigationLinks />
             </nav>
             <div className="header-actions">
-              {!isPrivateArea && !isCapacitorNative() ? (
-                <div className="shell-primary-action">
-                  <QuickCreateMenu />
-                </div>
-              ) : null}
               <span
                 className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
@@ -412,6 +408,18 @@ function AuthenticatedAppShell({
           </div>
         ) : null}
 
+        {spaceId && accessToken ? (
+          <ForegroundNotificationHost
+            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+            unreadCount={unreadCount}
+            suppressed={isFocusedTask}
+            openNotification={openNotification}
+          />
+        ) : null}
         <Snackbar />
       </div>
     </ShellUtilitiesContext.Provider>

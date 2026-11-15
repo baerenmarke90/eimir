@@ -35,7 +35,7 @@ import {
   notificationUnreadCountQueryKey,
   notificationsListQueryKey,
 } from '../client/notificationQueries';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
@@ -769,10 +769,7 @@ function OnceTask({
                 <section>
                   <ProMark label="Pro" />
                   <p>{t('onceMessages.pro')}</p>
-                  <Link
-                    className="button-link secondary"
-                    to={PRO_INFORMATION_ROUTE}
-                  >
+                  <Link className="button-link secondary" to={proPaywallPath()}>
                     {t('onceMessages.discoverPro')}
                   </Link>
                 </section>

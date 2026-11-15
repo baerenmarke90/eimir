@@ -1325,9 +1325,26 @@ code {
     opacity var(--duration-context) var(--easing-standard);
 }
 
+.overview-cache-notice-slot[data-open="true"] {
+  animation: overview-cache-notice-in var(--duration-context)
+    var(--easing-standard) both;
+}
+
 .overview-cache-notice-slot[data-open="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
+}
+
+@keyframes overview-cache-notice-in {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
 }
 
 .overview-cache-notice-clip {
@@ -1336,7 +1353,9 @@ code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .overview-cache-notice-slot {
+  .overview-cache-notice-slot,
+  .overview-cache-notice-slot[data-open="true"] {
+    animation: none;
     transition: none;
   }
 }

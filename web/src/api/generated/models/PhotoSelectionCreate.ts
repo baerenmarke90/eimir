@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface PhotoSelectionCreate {
     /**
+     * True only for destinations that accept videos. Image-only destinations keep the default; the server then marks every video as not allowed.
+     * @type {boolean}
+     * @memberof PhotoSelectionCreate
+     */
+    allowVideo?: boolean;
+    /**
      * 
      * @type {PhotoSelectionCreateConsentEnum}
      * @memberof PhotoSelectionCreate
@@ -94,6 +100,7 @@ export function PhotoSelectionCreateFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
+        'allowVideo': json['allowVideo'] == null ? undefined : json['allowVideo'],
         'consent': json['consent'],
         'maxItems': json['maxItems'],
         'mediaRecoveryPolicy': json['mediaRecoveryPolicy'] === undefined ? undefined : json['mediaRecoveryPolicy'] === null ? null : json['mediaRecoveryPolicy'],
@@ -112,6 +119,7 @@ export function PhotoSelectionCreateToJSONTyped(value?: PhotoSelectionCreate | n
 
     return {
         
+        'allowVideo': value['allowVideo'],
         'consent': value['consent'],
         'maxItems': value['maxItems'],
         'mediaRecoveryPolicy': value['mediaRecoveryPolicy'],

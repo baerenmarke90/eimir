@@ -1,6 +1,7 @@
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
+import calendarSync from './locales/calendarSync';
 import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
@@ -8,6 +9,7 @@ import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
+import dateIdeas from './locales/dateIdeas';
 import de from './locales/de';
 import demo from './locales/demo';
 import discreetPlans from './locales/discreetPlans';
@@ -32,6 +34,7 @@ import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
 import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
+import photoCrop from './locales/photoCrop';
 import photoPlaces from './locales/photoPlaces';
 import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
@@ -40,6 +43,7 @@ import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
+import proPaywall from './locales/proPaywall';
 import recaps from './locales/recaps';
 import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
@@ -65,6 +69,7 @@ export const germanResources = {
   onceMessages,
   memoryMap,
   calendarPlan,
+  calendarSync,
   planFiles,
   gentlePrompts,
   coupleExperiences,
@@ -89,6 +94,7 @@ export const germanResources = {
   weeklyInsights,
   dailyQuote,
   dailyVibe,
+  dateIdeas,
   games,
   experiences,
   importantDates,
@@ -102,6 +108,7 @@ export const germanResources = {
   partnerLocation,
   people,
   privateArea,
+  proPaywall,
   profileIdentity,
   profiles,
   productTour,
@@ -116,6 +123,7 @@ export const germanResources = {
   contextTags,
   composer,
   mediaOverview,
+  photoCrop,
   photoSources,
   photoPlaces,
   photoReactions,

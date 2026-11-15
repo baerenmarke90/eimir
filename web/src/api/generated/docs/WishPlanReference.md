@@ -11,6 +11,7 @@ Name | Type
 `id` | string
 `plannedOn` | Date
 `plannedStart` | Date
+`plannedUntil` | Date
 `status` | [PlanStatus](PlanStatus.md)
 
 ## Example
@@ -24,6 +25,7 @@ const example = {
   "id": null,
   "plannedOn": null,
   "plannedStart": null,
+  "plannedUntil": null,
   "status": null,
 } satisfies WishPlanReference
 

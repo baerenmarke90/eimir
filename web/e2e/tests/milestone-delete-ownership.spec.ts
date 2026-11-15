@@ -391,7 +391,8 @@ for (const theme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: copy.deleting }),
     ).toBeDisabled();
     await fixture.respond(204);
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(page.locator('.story-card-milestone')).toHaveCount(0);
     expect(fixture.deletions).toEqual([{ id: milestone.id, version: '1' }]);
     expect(fixture.unknown).toEqual([]);

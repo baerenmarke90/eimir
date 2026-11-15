@@ -128,10 +128,19 @@ export async function expectLabeledAddAction(
 
 /** Labeled insertion may wrap, but input and action must never overlap. */
 export async function expectInlineAddLayout(input: Locator, action: Locator) {
-  const [field, control] = await Promise.all([
-    input.boundingBox(),
-    action.boundingBox(),
-  ]);
+  await expect(input).toBeVisible();
+  await expect(action).toBeVisible();
+  // Read both rectangles from one layout snapshot. Two separate reads can
+  // straddle a frame of an opening sheet's translateY and report a vertical
+  // overlap between rows that never overlap on screen.
+  const [field, control] = await input.evaluate(
+    (field, control) =>
+      [field, control].map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      }),
+    await action.elementHandle(),
+  );
   if (!field || !control) throw new Error('Add controls must be visible.');
   expect(field.width).toBeGreaterThanOrEqual(44);
   if (

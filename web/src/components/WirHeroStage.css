@@ -563,5 +563,7 @@
   .today-page .wir-stage {
     --wir-avatar: 9rem;
     max-width: 34rem;
+    /* The capped stage sits in the middle of the page, like the quote below. */
+    margin-inline: auto;
   }
 }

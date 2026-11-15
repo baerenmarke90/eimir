@@ -15527,8 +15527,47 @@
         "title": "WishSelectionCandidateView",
         "type": "object"
       },
+      "WishSelectionDateIdeaCandidateView": {
+        "properties": {
+          "current": {
+            "description": "False when the catalog removed or changed this idea; review the round.",
+            "title": "Current",
+            "type": "boolean"
+          },
+          "dateIdeaId": {
+            "description": "Persistent catalog ID. Never a Wish or Plan ID.",
+            "title": "Dateideaid",
+            "type": "string"
+          },
+          "idea": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateIdea"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current catalog content; null without the Pro capability or when removed."
+          }
+        },
+        "required": [
+          "dateIdeaId",
+          "current",
+          "idea"
+        ],
+        "title": "WishSelectionDateIdeaCandidateView",
+        "type": "object"
+      },
       "WishSelectionOwnView": {
         "properties": {
+          "favoriteDateIdeaIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Favoritedateideaids",
+            "type": "array"
+          },
           "favoriteWishIds": {
             "items": {
               "format": "uuid",
@@ -15548,6 +15587,7 @@
         },
         "required": [
           "favoriteWishIds",
+          "favoriteDateIdeaIds",
           "published",
           "version"
         ],
@@ -15557,6 +15597,17 @@
       "WishSelectionRoundUpdate": {
         "additionalProperties": false,
         "properties": {
+          "dateIdeaIds": {
+            "description": "Curated catalog ideas; requires `planning.date_inspiration`.",
+            "items": {
+              "maxLength": 32,
+              "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Dateideaids",
+            "type": "array"
+          },
           "title": {
             "anyOf": [
               {
@@ -15570,25 +15621,40 @@
             "title": "Title"
           },
           "wishIds": {
+            "description": "Space Wishes. Together with `dateIdeaIds`: two to five candidates.",
             "items": {
               "format": "uuid",
               "type": "string"
             },
             "maxItems": 5,
-            "minItems": 2,
             "title": "Wishids",
             "type": "array"
           }
         },
-        "required": [
-          "wishIds"
-        ],
         "title": "WishSelectionRoundUpdate",
         "type": "object"
       },
       "WishSelectionUpdate": {
         "additionalProperties": false,
         "properties": {
+          "favoriteDateIdeaIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 32,
+                  "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$",
+                  "type": "string"
+                },
+                "maxItems": 5,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when the round has date-idea candidates.",
+            "title": "Favoritedateideaids"
+          },
           "favoriteWishIds": {
             "items": {
               "format": "uuid",
@@ -15619,12 +15685,26 @@
             "title": "Candidates",
             "type": "array"
           },
+          "commonDateIdeaIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commondateideaids",
+            "type": "array"
+          },
           "commonWishIds": {
             "items": {
               "format": "uuid",
               "type": "string"
             },
             "title": "Commonwishids",
+            "type": "array"
+          },
+          "dateIdeaCandidates": {
+            "items": {
+              "$ref": "#/components/schemas/WishSelectionDateIdeaCandidateView"
+            },
+            "title": "Dateideacandidates",
             "type": "array"
           },
           "id": {
@@ -15648,7 +15728,8 @@
               "CHOOSING",
               "WAITING",
               "READY",
-              "NEEDS_IDEAS"
+              "NEEDS_IDEAS",
+              "PAUSED"
             ],
             "title": "Resultstate",
             "type": "string"
@@ -15693,7 +15774,9 @@
           "selectionToken",
           "roundToken",
           "resultState",
-          "commonWishIds"
+          "commonWishIds",
+          "dateIdeaCandidates",
+          "commonDateIdeaIds"
         ],
         "title": "WishSelectionView",
         "type": "object"
@@ -42695,6 +42778,25 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Preferred locale for date-idea content.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Preferred locale for date-idea content.",
+              "title": "Locale"
+            }
           }
         ],
         "responses": {
@@ -42747,6 +42849,25 @@
             }
           },
           {
+            "description": "Preferred locale for date-idea content.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Preferred locale for date-idea content.",
+              "title": "Locale"
+            }
+          },
+          {
             "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
             "in": "header",
             "name": "If-Match",
@@ -42788,6 +42909,16 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: the round contains curated date ideas and the Space lacks the Pro capability `planning.date_inspiration`."
           },
           "404": {
             "content": {
@@ -42840,6 +42971,25 @@
             }
           },
           {
+            "description": "Preferred locale for date-idea content.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Preferred locale for date-idea content.",
+              "title": "Locale"
+            }
+          },
+          {
             "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
             "in": "header",
             "name": "If-Match",
@@ -42881,6 +43031,16 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: the round contains curated date ideas and the Space lacks the Pro capability `planning.date_inspiration`."
           },
           "404": {
             "content": {

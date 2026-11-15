@@ -24,6 +24,12 @@ export interface WishSelectionOwnView {
      * @type {Array<string>}
      * @memberof WishSelectionOwnView
      */
+    favoriteDateIdeaIds: Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof WishSelectionOwnView
+     */
     favoriteWishIds: Array<string>;
     /**
      * 
@@ -43,6 +49,7 @@ export interface WishSelectionOwnView {
  * Check if a given object implements the WishSelectionOwnView interface.
  */
 export function instanceOfWishSelectionOwnView(value: object): value is WishSelectionOwnView {
+    if (!('favoriteDateIdeaIds' in value) || value['favoriteDateIdeaIds'] === undefined) return false;
     if (!('favoriteWishIds' in value) || value['favoriteWishIds'] === undefined) return false;
     if (!('published' in value) || value['published'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
@@ -59,6 +66,7 @@ export function WishSelectionOwnViewFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
+        'favoriteDateIdeaIds': json['favoriteDateIdeaIds'],
         'favoriteWishIds': json['favoriteWishIds'],
         'published': json['published'],
         'version': json['version'],
@@ -76,6 +84,7 @@ export function WishSelectionOwnViewToJSONTyped(value?: WishSelectionOwnView | n
 
     return {
         
+        'favoriteDateIdeaIds': value['favoriteDateIdeaIds'],
         'favoriteWishIds': value['favoriteWishIds'],
         'published': value['published'],
         'version': value['version'],

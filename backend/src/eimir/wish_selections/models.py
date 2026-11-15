@@ -1,10 +1,18 @@
-"""One current decision round per Space; no history of rejected choices."""
+"""One current decision round per Space; no history of rejected choices.
+
+A candidate is typed: an ordinary Space Wish (Free/Core) or a curated date idea
+from the bundled Pro catalog (``planning.date_inspiration``). A date idea is
+referenced by its persistent editorial ID and a content revision, never copied
+into a Wish before the couple deliberately adopts a common favorite.
+"""
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -25,12 +33,19 @@ from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import ProtectedPayload
 
 
+class WishSelectionCandidateSource(StrEnum):
+    WISH = "WISH"
+    DATE_IDEA = "DATE_IDEA"
+
+
 class WishSelectionRoundPayload(ProtectedPayload):
     title: str | None = None
 
 
 class WishSelectionPayload(ProtectedPayload):
     favorite_wish_ids: list[UUID]
+    # Absent in selections stored before typed candidates existed.
+    favorite_date_idea_ids: list[str] = Field(default_factory=list)
 
 
 class WishSelectionRound(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base):
@@ -61,10 +76,20 @@ class WishSelectionCandidate(Base):
     __tablename__ = "wish_selection_candidates"
 
     round_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
-    wish_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    position: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
     space_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
-    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    wish_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_type: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=WishSelectionCandidateSource.WISH.value,
+        server_default=text("'WISH'"),
+    )
+    wish_id: Mapped[UUID | None] = mapped_column(postgresql.UUID(as_uuid=True), nullable=True)
+    wish_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Persistent editorial ID (``eimir-date-001``); never a Wish or Plan ID.
+    date_idea_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Content fingerprint of the referenced catalog entry when the round was set.
+    date_idea_revision: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -75,9 +100,16 @@ class WishSelectionCandidate(Base):
         ForeignKeyConstraint(
             ["wish_id", "space_id"], ["wishes.id", "wishes.space_id"], ondelete="CASCADE"
         ),
-        UniqueConstraint("round_id", "position", name="uq_wish_selection_candidates_position"),
+        UniqueConstraint("round_id", "wish_id", name="uq_wish_selection_candidates_wish"),
+        UniqueConstraint("round_id", "date_idea_id", name="uq_wish_selection_candidates_date_idea"),
         CheckConstraint("position BETWEEN 0 AND 4", name="position_is_bounded"),
-        CheckConstraint("wish_version > 0", name="wish_version_is_positive"),
+        CheckConstraint(
+            "(source_type = 'WISH' AND wish_id IS NOT NULL AND wish_version > 0"
+            " AND date_idea_id IS NULL AND date_idea_revision IS NULL)"
+            " OR (source_type = 'DATE_IDEA' AND wish_id IS NULL AND wish_version IS NULL"
+            " AND date_idea_id IS NOT NULL AND date_idea_revision IS NOT NULL)",
+            name="source_is_typed",
+        ),
     )
 
 

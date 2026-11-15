@@ -425,6 +425,7 @@ export * from './WishPage';
 export * from './WishPlanReference';
 export * from './WishRepeat';
 export * from './WishSelectionCandidateView';
+export * from './WishSelectionDateIdeaCandidateView';
 export * from './WishSelectionOwnView';
 export * from './WishSelectionRoundUpdate';
 export * from './WishSelectionUpdate';

@@ -26,7 +26,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from functools import cache
+from functools import cache, cached_property
+from hashlib import sha256
 from importlib.resources import files
 from typing import Annotated, Literal, Self
 
@@ -247,6 +248,25 @@ class DateIdeaCatalog:
             ResolvedLabel(id=place.value, label=getattr(labels, place.value).get(locale))
             for place in DateIdeaPlaceType
         ]
+
+    @cached_property
+    def _by_id(self) -> dict[str, CatalogIdea]:
+        return {idea.id: idea for idea in self.data.ideas}
+
+    def revision(self, idea_id: str) -> str | None:
+        """Content fingerprint of one idea across all locales and metadata.
+
+        Unrelated catalog edits keep it stable; any change to this idea's copy
+        or structured facts changes it. ``None`` means the idea is not offered.
+        """
+        idea = self._by_id.get(idea_id)
+        if idea is None:
+            return None
+        return sha256(idea.model_dump_json(by_alias=True).encode()).hexdigest()
+
+    def idea(self, idea_id: str, locale: str) -> ResolvedIdea | None:
+        idea = self._by_id.get(idea_id)
+        return None if idea is None else self._resolve(idea, locale)
 
     def ideas(self, locale: str, idea_filter: IdeaFilter | None = None) -> list[ResolvedIdea]:
         resolved = [self._resolve(idea, locale) for idea in self.data.ideas]

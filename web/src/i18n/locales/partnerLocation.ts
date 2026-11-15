@@ -151,6 +151,9 @@ const partnerLocation = {
   mapOwnDescription:
     'Dein eigener ungefährer Standort ist nur für dich markiert.',
   mapPeopleLabel: 'Ihr beide auf der Karte',
+  mapConnectionLine: 'Eine Linie auf der Karte verbindet dich und {{partner}}.',
+  mapConnectionNear:
+    'Ein Herz auf der Karte zeigt, dass ihr nah beieinander seid.',
 } as const;
 
 export default partnerLocation;

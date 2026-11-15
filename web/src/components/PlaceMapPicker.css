@@ -143,3 +143,195 @@
 .place-map-area-marker .partner-avatar {
   box-shadow: 0 0 0 3px var(--color-surface);
 }
+
+/*
+ * Connection between two areas (#1907 H1): below the area markers. Its
+ * motion roles are instant with reduced motion, so the arc and heart appear
+ * at once and the glow never shows.
+ */
+.place-map-connection {
+  --place-map-connection-tone: var(--color-shared);
+  --place-map-connection-casing: var(--color-surface);
+  --place-map-connection-halo: color-mix(
+    in srgb,
+    var(--color-shared) 25%,
+    transparent
+  );
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.place-map-connection-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.place-map-connection-reveal {
+  fill: none;
+  /* Mask luminance, not a visible color: white keeps the arc. */
+  stroke: white;
+  stroke-width: 16px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
+
+.place-map-connection-casing,
+.place-map-connection-stroke {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.place-map-connection-casing {
+  stroke: var(--place-map-connection-casing);
+  stroke-width: 7px;
+  opacity: 0.9;
+}
+
+.place-map-connection-stroke {
+  stroke: var(--place-map-connection-tone);
+  stroke-width: 3.5px;
+}
+
+.place-map-connection.is-far .place-map-connection-stroke,
+.place-map-connection.is-earlier .place-map-connection-stroke {
+  stroke-width: 3px;
+  stroke-dasharray: 1 9;
+}
+
+.place-map-connection.is-earlier {
+  --place-map-connection-tone: var(--color-text-secondary);
+}
+
+.place-map-connection.is-earlier .place-map-connection-casing {
+  opacity: 0.6;
+}
+
+.place-map-connection.is-earlier .place-map-connection-stroke {
+  opacity: 0.55;
+}
+
+.place-map-connection-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--place-map-connection-tone);
+  box-shadow:
+    0 0 0 2px var(--place-map-connection-casing),
+    0 0 0 9px var(--place-map-connection-halo);
+  offset-rotate: 0deg;
+  opacity: 0;
+}
+
+.place-map-connection-heart {
+  position: absolute;
+  /* Above the translucent area circles, which would dull it. */
+  z-index: 1;
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--place-map-connection-casing);
+  color: var(--place-map-connection-tone);
+  translate: -50% -50%;
+}
+
+.place-map-connection-heart svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.place-map-connection.is-near .place-map-connection-line,
+.place-map-connection.is-near .place-map-connection-glow {
+  display: none;
+}
+
+.place-map-connection.is-near .place-map-connection-heart {
+  display: grid;
+}
+
+.place-map-connection.is-entering:not(.is-earlier)
+  .place-map-connection-reveal {
+  animation: place-map-connection-draw var(--duration-connection-draw)
+    var(--easing-enter) both;
+}
+
+.place-map-connection.is-entering:not(.is-earlier) .place-map-connection-heart {
+  animation: place-map-connection-appear var(--duration-connection-draw)
+    var(--easing-enter) both;
+}
+
+.place-map-connection.is-playing:not(.is-earlier) .place-map-connection-glow {
+  /* Three round trips after the arc has drawn in, then the glow rests. */
+  animation: place-map-connection-travel var(--duration-connection-travel)
+    var(--easing-travel) var(--duration-connection-draw) 3;
+}
+
+.place-map-connection.is-far.is-playing:not(.is-earlier)
+  .place-map-connection-glow {
+  animation-duration: var(--duration-connection-travel-far);
+}
+
+.place-map-connection.is-entering.is-playing:not(.is-earlier)
+  .place-map-connection-heart {
+  animation:
+    place-map-connection-appear var(--duration-connection-draw)
+    var(--easing-enter) both,
+    place-map-connection-beat var(--duration-connection-beat)
+    var(--easing-standard) var(--duration-connection-draw) 2;
+}
+
+.place-map-connection.is-paused * {
+  animation-play-state: paused;
+}
+
+@keyframes place-map-connection-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes place-map-connection-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  50% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+}
+
+@keyframes place-map-connection-appear {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes place-map-connection-beat {
+  50% {
+    scale: 1.14;
+  }
+}

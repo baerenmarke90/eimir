@@ -31,6 +31,7 @@ type Scenario = {
   ownLevel?: 'OFF' | 'DISTANCE' | 'DISTANCE_AND_MAP';
   distance?: { band: Band; asOf: Date } | null;
   map?: boolean;
+  mapPosition?: { latitude: number; longitude: number };
   capturedAt?: Date;
 };
 
@@ -70,6 +71,7 @@ async function distanceMocks(
       asOf: minutesAgo(20),
     },
     map = true,
+    mapPosition = { latitude: 53.55, longitude: 10.0 },
     capturedAt = minutesAgo(20),
   }: Scenario = {},
 ): Promise<Server> {
@@ -183,8 +185,7 @@ async function distanceMocks(
         json: map
           ? {
               available: true,
-              latitude: 53.55,
-              longitude: 10.0,
+              ...mapPosition,
               radiusMeters: 1500,
               capturedAt: capturedAt.toISOString(),
             }
@@ -534,6 +535,161 @@ test('partner shares nothing: the map still opens from the settings link', async
     info,
     'partner-distance-map-partner-not-sharing-1280.png',
   );
+});
+
+const connection = (page: Page) => page.locator('.place-map-connection');
+
+async function openMapFromWir(page: Page, distance: string) {
+  await openWir(page);
+  await hero(page)
+    .getByRole('link', { name: new RegExp(`^${distance}`) })
+    .click();
+  await expect(page).toHaveURL(MAP_ROUTE);
+  await expect(page.locator('.place-map-area.is-partner')).toHaveCount(1);
+  await expect(page.locator('.place-map-area.is-own')).toHaveCount(1);
+}
+
+test('both sharing: the map connects the two avatars by distance', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  const server = await distanceMocks(page, { ownLevel: 'DISTANCE_AND_MAP' });
+  await openMapFromWir(page, between('340 km'));
+
+  // Far: a dotted arc below the avatars, drawn in, with a slow travelling glow.
+  await expect(connection(page)).toHaveClass(/\bis-far\b/);
+  await expect(connection(page)).toHaveAttribute('aria-hidden', 'true');
+  const markerAfter = await connection(page).evaluate(
+    (element) =>
+      element.nextElementSibling?.classList.contains('maplibregl-marker') ??
+      false,
+  );
+  expect(markerAfter).toBe(true);
+  const glow = connection(page).locator('.place-map-connection-glow');
+  await expect(glow).toHaveCSS('animation-name', 'place-map-connection-travel');
+  await expect(glow).toHaveCSS('animation-duration', '6s');
+  await expect(glow).toHaveCSS('animation-iteration-count', '3');
+  await expect(
+    page.getByText(forPartner(copy.mapConnectionLine), { exact: false }),
+  ).toBeAttached();
+  // The arc adds no request and puts no coordinate into a URL.
+  expect(server.urls.join(' ')).not.toMatch(/50\.94|6\.96|53\.55/);
+
+  // "Show us" plays the motion again.
+  await page.getByRole('button', { name: copy.mapShowUs }).click();
+  await expect(connection(page)).toHaveClass(/\bis-playing\b/);
+
+  // Reduced motion: the arc is complete at once and the glow never shows.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(glow).toHaveCSS('animation-duration', '0s');
+  await expect(glow).toHaveCSS('opacity', '0');
+  await expect(
+    connection(page).locator('.place-map-connection-reveal'),
+  ).toHaveCSS('stroke-dashoffset', '0px');
+  await captureScreenshot(page, info, 'partner-connection-far-390.png');
+});
+
+test('both sharing nearby: a heart instead of a line', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, {
+    distance: { band: { kind: 'NEARBY' }, asOf: minutesAgo(15) },
+    mapPosition: { latitude: 50.955, longitude: 6.985 },
+  });
+  await openMapFromWir(page, copy.distanceNear);
+  await expect(connection(page)).toHaveClass(/\bis-near\b/);
+  await expect(
+    connection(page).locator('.place-map-connection-heart'),
+  ).toBeVisible();
+  await expect(
+    connection(page).locator('.place-map-connection-line'),
+  ).toBeHidden();
+  await expect(page.getByText(copy.mapConnectionNear)).toBeAttached();
+  await captureScreenshot(page, info, 'partner-connection-near-390.png');
+});
+
+test('both sharing regionally: a solid arc with a shorter trip', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, {
+    distance: {
+      band: { kind: 'RANGE', minKm: 25, maxKm: 50 },
+      asOf: minutesAgo(15),
+    },
+    mapPosition: { latitude: 51.23, longitude: 6.78 },
+  });
+  await openMapFromWir(page, copy.distanceShortTrip);
+  await expect(connection(page)).toHaveClass(/\bis-regional\b/);
+  await expect(
+    connection(page).locator('.place-map-connection-glow'),
+  ).toHaveCSS('animation-duration', '3.2s');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await captureScreenshot(page, info, 'partner-connection-regional-390.png');
+});
+
+test('an earlier partner snapshot keeps a muted connection without motion', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, {
+    distance: {
+      band: { kind: 'APPROXIMATE', approximateKm: 340 },
+      asOf: minutesAgo(20 * 60),
+    },
+    capturedAt: minutesAgo(20 * 60),
+  });
+  await openMapFromWir(page, between('340 km'));
+  await expect(connection(page)).toHaveClass(/\bis-earlier\b/);
+  await expect(
+    connection(page).locator('.place-map-connection-glow'),
+  ).toHaveCSS('animation-name', 'none');
+  await expect(
+    connection(page).locator('.place-map-connection-reveal'),
+  ).toHaveCSS('animation-name', 'none');
+  await captureScreenshot(
+    page,
+    info,
+    'partner-connection-earlier-390-dark.png',
+  );
+});
+
+test('one-way or no sharing: no connection and no hint', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  // The partner shares the map, the viewer shares nothing.
+  await distanceMocks(page, { ownState: 'OFF', ownLevel: 'OFF' });
+  await signIn(page);
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await settleStartSheet(page);
+  await page.goto(MAP_ROUTE);
+  await expect(page.locator('.place-map-area.is-partner')).toHaveCount(1);
+  await expect(page.locator('.place-map-area.is-own')).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await expect(connection(page)).toHaveCount(0);
+  await expect(page.getByText(forPartner(copy.mapConnectionLine))).toHaveCount(
+    0,
+  );
+});
+
+test('partner without a map area: no connection', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, { map: false, ownLevel: 'DISTANCE_AND_MAP' });
+  await openWir(page);
+  await page.goto(MAP_ROUTE);
+  await expect(page.locator('.place-map-area.is-own')).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await expect(page.locator('.place-map-area.is-partner')).toHaveCount(0);
+  await expect(connection(page)).toHaveCount(0);
 });
 
 /** The default Verbunden hero with both partners' daily marks (#1790). */

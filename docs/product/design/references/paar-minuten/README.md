@@ -2,9 +2,9 @@
 
 Baseline: GitHub `main` at `146708719e469f1d86656e632c7c4145ee1bc3c3`.
 Reviewed the real `/games` screen through the existing Playwright journey at
-390 px (Light) and 1280 px (Dark). "Unsere Momente", "Wunschdetektiv" and
-"Wer von euch?" stay in the same order with their existing behavior. Keep the
-"Mehr" selection in the bottom bar; the quick card deck is one additional
+390 px (Light) and 1280 px (Dark). "Our moments", "Wish detective" and
+"Which of you?" stay in the same order with their existing behavior. Keep the
+"More" selection in the bottom bar; the quick card deck is one additional
 game, rather than a new navigation destination.
 
 - **Goal:** play something together in two to five minutes using a shared
@@ -51,11 +51,4 @@ project's built-in OpenAI ImageGen workflow on 2026-11-15. Input: the image
 captured from the baseline 390 px Light Games browser test. The image is a
 project-owned illustrative design reference. It does not ship in the app.
 
-Exact prompt:
-
-```text
-Use case: ui-mockup. Design preflight for eimir., a quiet and playful German partner app. Create a high-fidelity two-screen smartphone design reference side by side at 390 px wide per device, vertical scroll screen, pure app UI no hardware decoration. Input image is current eimir. “Gemeinsam spielen” at main 146708719e469f1d86656e632c7c4145ee1bc3c3. Treat it as reference for actual navigation, tokens, hierarchy, serif headings / sans body. Maintain sufficient contrast in text; the frame is a compact relationship app, calm light lavender backdrop and violet-blue existing accents, no generic white enterprise dashboard, no flat carousel or advertisements.
-
-Left screen: preserve the current top chevron, “Gemeinsam spielen”, “Erinnerungen erraten und Neues übereinander erfahren.” and the three existing distinct rows in this order, unchanged in meaning, with the visible titles “Unsere Momente”, “Wunschdetektiv”, “Wer von euch?”. Append a fourth matching smaller row at the end within the vertical scroll: label “LOSLEGEN”, title “Paar Minuten”, description “Kleine Spiele für zwischendurch. Ein Handy reicht.” and quiet “Spielen” pill. Use a small existing-style outline card-stack icon. Show the fourth row via a lightly taller scroll capture to make its placement obvious. Preserve bottom navigation Wir · Momente · Planen · Mehr with Mehr selected. 
-Right screen: same application shell and bottom bar. A single clear return control “Zur Spieleübersicht” near the start of content, heading “Paar Minuten”. One large reading card, with a small “1 von 8 · 3 Min.” label, large serif title “Eine ist erfunden”, one short materials line “Ihr braucht: nichts”, and the rules “Erzählt abwechselnd drei kurze Dinge über euch. Zwei sind wahr, eins ist erfunden. Die andere Person rät, was erfunden ist.” Use the existing soft low-contrast card fill, accessible text contrast and phone margins. One dominant reachable blue primary button under the card “Nächste Karte”. No typing, ads, progress overlays, countdown or a new navigation item. Show only these two screens with correct German accents, no outer legend.
-```
+[Original image prompt](compact-reference.prompt.txt), including the German product copy shown in the mockup.

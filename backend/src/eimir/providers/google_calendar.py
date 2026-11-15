@@ -354,6 +354,7 @@ class GoogleCalendarApi(CalendarProvider):
                         ref=item["id"],
                         name=str(name)[:200],
                         writable=item.get("accessRole") in {"owner", "writer"},
+                        primary=item.get("primary") is True,
                     )
                 )
             page = (

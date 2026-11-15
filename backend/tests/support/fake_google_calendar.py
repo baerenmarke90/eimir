@@ -23,7 +23,11 @@ class FakeGoogleCalendar:
         self.access_tokens: list[str] = []
         self.revoked: list[str] = []
         self.calendars: dict[str, dict[str, Any]] = {
-            "anna@example.com": {"summary": "Anna", "accessRole": "owner"},
+            "anna@example.com": {
+                "summary": "anna@example.com",
+                "accessRole": "owner",
+                "primary": True,
+            },
             "shared-calendar@group.calendar.google.com": {
                 "summary": "Unser Kalender",
                 "accessRole": "writer",

@@ -5203,6 +5203,9 @@
     "choose": {
       "title": "Which calendar should it be?",
       "readOnly": "read-only",
+      "otherConnection": "Another connection",
+      "connect_CALDAV": "Connect CalDAV",
+      "connect_GOOGLE": "Connect Google Calendar",
       "confirm": "Use as shared calendar",
       "saving": "Setting up …"
     },
@@ -5211,11 +5214,14 @@
       "confirmBody": "{{label}} – eimir. writes your shared plans into a calendar of this account that you choose next.",
       "confirm": "Confirm",
       "cancel": "Cancel",
+      "return": {
+        "denied": "Connecting to Google was cancelled. You can try again at any time.",
+        "failed": "Connecting to Google did not work. Please try again."
+      },
       "waiting": "Sign in with Google and allow access. Then continue here."
     },
     "connected": {
-      "title": "Calendar connected",
-      "body": "Your shared plans can now be synced automatically."
+      "title": "Calendar connected"
     },
     "target": {
       "via": "{{provider}} · connected by {{name}}",
@@ -5224,10 +5230,13 @@
       "synced_other": "{{count}} plans are in your calendar.",
       "kept_one": "{{count}} event stayed in the calendar because it was changed there.",
       "kept_other": "{{count}} events stayed in the calendar because they were changed there.",
-      "lastSuccess": "Last synced: {{time}}"
+      "primaryCalendar": "Main calendar",
+      "explain": "New and changed plans appear here automatically – once, for both of you."
     },
     "status": {
       "synced": "Synced",
+      "ready": "Ready · no plans transferred yet",
+      "syncedAt": "Synced · {{time}}",
       "running": "Syncing",
       "broken": "Connection interrupted",
       "attention": "Attention needed",
@@ -5252,8 +5261,9 @@
       "endConfirm": "Sync ends for both of you. Events already transferred stay in the calendar.",
       "endConfirmAction": "End",
       "keepSyncing": "Keep syncing",
-      "disconnect": "Remove access",
-      "disconnectHint": "Removes your saved credentials. Events in the calendar stay.",
+      "moreOptions": "More options",
+      "disconnectProvider": "Remove {{provider}} access",
+      "eventsStay": "Events already transferred stay in the calendar.",
       "reconnect": "Reconnect",
       "changeCalendar": "Choose another calendar",
       "connectAnother": "Connect another calendar"

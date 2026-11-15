@@ -109,6 +109,36 @@
       "reviewedAt": "2026-11-14",
       "review": "The affected Monkey's Audio decoder (libavcodec/apedec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_APE_DECODER 0. No APE demuxer is enabled either."
     },
+    "CVE-2026-125170": {
+      "evidenceSha256": "a7bc3ffa248b7ab03e795c575fa4b1497770d519faad0dea6898a393eb38f000",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Targa decoder (targa_decode_rle() in libavcodec/targa.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_TARGA_DECODER 0. No image demuxer is enabled either."
+    },
+    "CVE-2026-125171": {
+      "evidenceSha256": "48d5df0c80f36db1579c7b57209262f01adb9c46530fe0178877bd44c5ebd181",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Musepack SV7 decoder (libavcodec/mpc7.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_MPC7_DECODER 0. No Musepack demuxer is enabled either."
+    },
+    "CVE-2026-125172": {
+      "evidenceSha256": "4fa95061bd6cd4a62a912c0f0bb4aadb38ccfd320bc5bab3ded8f857c3c5e8b1",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected libxevd EVC wrapper (libavcodec/libxevd.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_LIBXEVD_DECODER 0. --enable-libxevd is not set and --disable-autodetect is, so CONFIG_LIBXEVD is 0 as well."
+    },
+    "CVE-2026-125173": {
+      "evidenceSha256": "3a866d22c988e2332ca66c27e9024fc20a8ea6fc1fbed71e6c8d95fc2e0d415a",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected libxevd EVC wrapper (libavcodec/libxevd.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_LIBXEVD_DECODER 0. --enable-libxevd is not set and --disable-autodetect is, so CONFIG_LIBXEVD is 0 as well."
+    },
+    "CVE-2026-125174": {
+      "evidenceSha256": "82137f62afb46b00be8f8401858f7f7113c380111c72cff4863b3ecfa8e3cbd0",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected ff_hap_set_chunk_count() (libavcodec/hap.c) is built only with the Hap decoder, the Hap encoder and the hapqa_extract bitstream filter (libavcodec/Makefile). None of them is compiled; configuring the pinned upstream commit with the restricted component flags reports CONFIG_HAP_DECODER, CONFIG_HAP_ENCODER and CONFIG_HAPQA_EXTRACT_BSF 0."
+    },
+    "CVE-2026-125175": {
+      "evidenceSha256": "90fb4e255739c95dee533b5825c6f818be90f91ab06b85010beb8827156b22f6",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Flash Screen Video decoder (flashsv_decode_block() in libavcodec/flashsv.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_FLASHSV_DECODER and CONFIG_FLASHSV2_DECODER 0. No FLV demuxer is enabled either (CONFIG_FLV_DEMUXER 0)."
+    },
     "CVE-2026-125202": {
       "evidenceSha256": "cf780706aa700903cf653976cf4f1e9d66279bb487005976e0d586284daf10db",
       "reviewedAt": "2026-11-14",
@@ -118,6 +148,31 @@
       "evidenceSha256": "323e2cf9707f927796a31f3eda91061314f5bceb6a66214a7c7d82af3367e3ea",
       "reviewedAt": "2026-11-14",
       "review": "The affected libavcodec/libwebpenc_common.c is built only with the libwebp or libwebp_anim encoder, both of which depend on the opt-in external library libwebp. build-ffmpeg.sh never passes --enable-libwebp and its explicit encoder list is libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le; configuring the pinned source reports CONFIG_LIBWEBP_ENCODER 0 and CONFIG_LIBWEBP_ANIM_ENCODER 0 even with libwebp installed on the host."
+    },
+    "CVE-2026-125205": {
+      "evidenceSha256": "011091c064f33ecba8218c0143dade2ea72b0924988a35dccdcef198c6f43b9e",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected av1_frame_merge bitstream filter (libavcodec/bsf/av1_frame_merge.c) is not compiled. The restricted build enables only the filter_units, h264_metadata, h264_mp4toannexb and aac_adtstoasc bitstream filters (plus vp9_superframe selected by a muxer); configuring the pinned upstream commit with the restricted component flags reports CONFIG_AV1_FRAME_MERGE_BSF 0. The AV1 OBU and Annex B demuxers are not enabled either (CONFIG_OBU_DEMUXER 0)."
+    },
+    "CVE-2026-125206": {
+      "evidenceSha256": "7bd070f98bcd5fc1d69f8ff27e507d846205286085e20960e2222cf1050f6730",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected ProRes encoder (get_alpha_data() in libavcodec/proresenc_kostya.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_PRORES_KS_ENCODER and CONFIG_PRORES_KS_VULKAN_ENCODER 0."
+    },
+    "CVE-2026-125207": {
+      "evidenceSha256": "176b2e816633ba783631ab3454c429b680c3ed9029f8e0bf65a2e2d3b6a21ecb",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Interplay ACM decoder (libavcodec/interplayacm.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_INTERPLAY_ACM_DECODER 0. No ACM demuxer is enabled either."
+    },
+    "CVE-2026-125208": {
+      "evidenceSha256": "ac8e898da7918adfd4193067c41a25107ec61bd1517c8829cb6395e52069cfae",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected V4L2 memory-to-memory code (v4l2_buffer_swframe_to_buf() in libavcodec/v4l2_buffers.c) is built only with CONFIG_V4L2_M2M (libavcodec/Makefile). The restricted build sets --disable-autodetect and enables no V4L2 M2M codec; configuring the pinned upstream commit with the restricted component flags reports CONFIG_V4L2_M2M and CONFIG_H264_V4L2M2M_ENCODER 0."
+    },
+    "CVE-2026-125209": {
+      "evidenceSha256": "f9163e7c7955f952171c8edb6c251b81392f369c96cb7ab0c9e77717062de89b",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected DVD subtitle encoder (libavcodec/dvdsubenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_DVDSUB_ENCODER 0."
     }
   },
   "dependencies": {

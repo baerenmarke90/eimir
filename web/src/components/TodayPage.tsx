@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -137,6 +138,7 @@ import { concealedTitle } from '../client/discreetPlans';
 import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
+import { alignWirIntroAnimations } from './wirIntroClock';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 
@@ -144,6 +146,30 @@ import './WirSharedAlbum.css';
 // to the tab. The window covers the whole sequence with some margin.
 let wirHeroIntroStartedAt: number | null = null;
 const WIR_HERO_INTRO_WINDOW_MS = 5000;
+
+function WirIntroStage({
+  intro,
+  children,
+}: {
+  intro: boolean;
+  children: ReactNode;
+}) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Runs after every render: a remount anywhere in the hero (a new wrapper,
+  // a split avatar pair, a late badge) joins the running sequence instead of
+  // restarting it.
+  useLayoutEffect(() => {
+    if (intro) alignWirIntroAnimations(stageRef.current, wirHeroIntroStartedAt);
+  });
+  return (
+    <div
+      ref={stageRef}
+      className={`wir-stage${intro ? ' wir-stage-intro' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
@@ -1551,7 +1577,7 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
-    <div className={`wir-stage${heroIntro ? ' wir-stage-intro' : ''}`}>
+    <WirIntroStage intro={heroIntro}>
       <CouplePresence
         className="today-hero"
         headingLevel="h2"
@@ -1649,7 +1675,7 @@ export function TodayPage({
           ) : undefined
         }
       />
-    </div>
+    </WirIntroStage>
   );
 
   const renderClassicHero = (

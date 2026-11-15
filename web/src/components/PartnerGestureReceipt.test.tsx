@@ -31,6 +31,7 @@ import { ClientProblemError } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
+import coupleExperiences from '../i18n/locales/coupleExperiences';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import wishSelection from '../i18n/locales/wishSelection';
 import { NotificationMotion } from './NotificationMotion';
@@ -219,7 +220,10 @@ describe('ForegroundNotificationHost', () => {
 
     const banner = await screen.findByTestId('foreground-notification');
     expect(banner.textContent).toContain(
-      'Ronja hat eine gemeinsame Wunschauswahl vorbereitet.',
+      coupleExperiences.notifications.WISH_SELECTION_SHARED.replace(
+        '{{name}}',
+        'Ronja',
+      ),
     );
     expect(banner.querySelector('[data-motion="wish-fan"]')).not.toBeNull();
     expect(openNotification).not.toHaveBeenCalled();

@@ -22,6 +22,10 @@ import {
 import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
+  settleEditorHistory,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
+import {
   canConfirmRelatedPersonDelete,
   INITIAL_RELATED_PERSON_DELETE_CHOICE,
   type RelatedPersonDeleteChoice,
@@ -216,6 +220,13 @@ function DeleteRelatedPersonDialog({
   useModalLifecycle({
     active: true,
     initialFocusRef: cancelButtonRef,
+  });
+  // System Back cancels like the Cancel button; a running delete keeps it open.
+  useEditorHistoryEntry({
+    isDirty: false,
+    isCloseBlocked: pending,
+    onClose: onCancel,
+    onDiscardRequested: onCancel,
   });
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -416,6 +427,8 @@ export function RelatedPeoplePage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      // The closed dialog removes its history entry; leave only after that.
+      await settleEditorHistory();
       if (deletedId) leaveDeleted(personPath(deletedId), '/more/people');
       else navigate('/more/people', { replace: true });
     },

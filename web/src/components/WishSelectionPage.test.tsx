@@ -512,6 +512,8 @@ describe('WishSelectionPage', () => {
     expect(convertWishToPlan.mock.calls[0][0].wishToPlan.schedule).toEqual({
       plannedOn: new Date('2026-11-01T00:00:00Z'),
     });
+    // Saving releases the plan step's and the task's history entries in turn.
+    await screen.findByText('Canonical Plan result');
   });
 
   it('opens a converted source without creating another Plan', async () => {

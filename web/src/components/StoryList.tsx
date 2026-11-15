@@ -1,4 +1,3 @@
-import { MomentDate } from './MomentDate';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -22,17 +21,21 @@ import {
 } from '../client/commentQueries';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { HeartEmotionBadge } from './HeartEmotionVisual';
-import { ExperienceAnswers } from './ExperienceAnswers';
 import { EimirIcon } from './EimirIcon';
+import { ExperienceAnswers } from './ExperienceAnswers';
+import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentDate } from './MomentDate';
+import { OccasionMark } from './OccasionMark';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -230,6 +233,7 @@ export function StoryList({
   loadMemoryImage,
   loadHeartMomentImage,
   spaceId,
+  currentAccountId,
   onOpenItem,
   progressiveReveal = false,
 }: {
@@ -258,6 +262,10 @@ export function StoryList({
   const { nicknameFor } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
+  const occasions = useSpaceOccasions(
+    spaceId ?? apiRuntime?.spaceId,
+    currentAccountId ?? apiRuntime?.accountId,
+  );
   const commentsApi = useMemo(
     () =>
       apiRuntime
@@ -321,6 +329,13 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
+          const occasionId = `${listId}-occasion-${index}`;
+          const occasionMatches = occasionsOn(
+            item.effectiveDate,
+            item.kind === 'MEMORY' ? item.memory.happenedUntil : null,
+            occasions,
+            locale,
+          );
           const isHappiness =
             item.kind === 'MEMORY' &&
             item.memory.experienceKind === 'HAPPINESS';
@@ -348,7 +363,9 @@ export function StoryList({
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
                 aria-label={accessibleName}
-                aria-describedby={metaId}
+                aria-describedby={
+                  occasionMatches.length ? `${occasionId} ${metaId}` : metaId
+                }
               >
                 <article
                   className={cardClasses}
@@ -391,6 +408,11 @@ export function StoryList({
                     <p className="story-preview">{presentation.preview}</p>
                   ) : null}
 
+                  <OccasionMark
+                    id={occasionId}
+                    matches={occasionMatches}
+                    revealKey={`timeline:${itemKey}`}
+                  />
                   <div className="story-card-footer" id={metaId}>
                     <span className="story-card-when-where">
                       <MomentDate

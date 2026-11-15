@@ -603,6 +603,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6,
       "reason": "Feature-owned acceptance for remembering the Google account in Settings > Medienquellen (#1467): link and disconnect with the exact If-Match token, a rejected address explained, a stale write reloaded instead of overwritten, hidden when the import is unavailable, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
+    },
+    "occasion-memory-mark.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
     }
   }
 }

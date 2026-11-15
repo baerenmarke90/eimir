@@ -40,6 +40,7 @@ import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
 import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -66,6 +67,7 @@ import { formatAttachmentDraftContextKey } from '../client/useAttachmentDrafts';
 import { useHeartVoiceDraft } from '../client/useHeartVoiceDraft';
 import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -102,6 +104,7 @@ import {
   type MomentPlaceSelection,
 } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
+import { OccasionMark } from './OccasionMark';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
@@ -218,6 +221,7 @@ export function HeartMomentProductPage({
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const heartMomentId = params.heartMomentId;
   const queryKey = authorSummaryQueryKeys.heartMoment(spaceId, heartMomentId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
@@ -1752,6 +1756,15 @@ export function HeartMomentProductPage({
               variant="subtle"
             />
           </div>
+          <OccasionMark
+            matches={occasionsOn(
+              heartMoment.happenedOn,
+              null,
+              occasions,
+              resolvedLocale(),
+            )}
+            revealKey={`heart-moment:${heartMoment.id}`}
+          />
         </div>
         <div
           className="heart-moment-detail-container"

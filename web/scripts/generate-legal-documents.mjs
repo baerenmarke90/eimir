@@ -15,6 +15,14 @@ const documents = [
     ),
     exportName: 'termsOfUseDe',
   },
+  {
+    source: new URL('../../legal/de/privacy-policy.md', import.meta.url),
+    output: new URL(
+      '../src/i18n/locales/legalDocuments/privacyPolicy.de.generated.ts',
+      import.meta.url,
+    ),
+    exportName: 'privacyPolicyDe',
+  },
 ];
 
 const args = process.argv.slice(2);

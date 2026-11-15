@@ -179,9 +179,7 @@ function DeviceInput({
                         ? 'composer.chooseFromDevice'
                         : 'composer.chooseOrDrag',
                   )
-                : inSourceChooser && videos
-                  ? t('photoSources.deviceMedia')
-                  : undefined
+                : undefined
             }
             icon="foto"
             variant={inSourceChooser || intake ? 'source' : 'entry'}

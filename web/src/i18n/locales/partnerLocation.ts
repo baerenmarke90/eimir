@@ -115,6 +115,8 @@ const partnerLocation = {
   distanceOpenMap: 'Auf der Karte ansehen',
   distanceOwnMissing: 'Dein Standort fehlt',
   distanceOwnMissingAction: 'Einschalten',
+  distanceShareShort: 'Standort teilen',
+  distanceNearShort: 'Ganz nah',
   distanceOwnMissingLabel:
     'Dein Standort fehlt. Nur du siehst diesen Hinweis. Einschalten',
   distanceSharing: 'Du teilst deine Entfernung mit {{partner}}',
@@ -125,6 +127,7 @@ const partnerLocation = {
   mapShowUs: 'Uns zeigen',
   mapLoading: 'Karte wird geladen …',
   mapPartnerArea: '{{partner}} · ungefährer Bereich',
+  mapPartnerNotSharing: '{{partner}} teilt gerade nichts',
   mapPartnerAsOf: 'Stand: {{time}}',
   mapYou: 'Du · nur für dich sichtbar',
   mapYouMissing: 'Du · dein Standort fehlt',

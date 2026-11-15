@@ -107,6 +107,70 @@ describe('PlanScheduleFields', () => {
     expect(container.querySelector('[name="plannedEnd"]')).toBeNull();
   });
 
+  it('offers a last day only for date-only Plans and keeps both representations exclusive', () => {
+    const { container } = render(
+      <form>
+        <PlanScheduleFields
+          idPrefix="plan-period"
+          defaultDate="2026-11-20"
+          includeEnd
+        />
+      </form>,
+    );
+    const time = container.querySelector(
+      '#plan-period-time',
+    ) as HTMLInputElement;
+    const add = screen.getByRole('button', {
+      name: i18n.t('m5s3.plan.addLastDay'),
+    });
+    expect(add.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(add);
+
+    const until = container.querySelector(
+      '#plan-period-until',
+    ) as HTMLInputElement;
+    expect(until.value).toBe('2026-11-21');
+    expect(until.min).toBe('2026-11-20');
+    expect(time.disabled).toBe(true);
+    fireEvent.change(until, { target: { value: '2026-11-22' } });
+    expect(
+      (container.querySelector('[name="plannedEnd"]') as HTMLInputElement)
+        .value,
+    ).toBe('2026-11-22');
+
+    fireEvent.change(until, { target: { value: '2026-11-19' } });
+    expect(screen.getByRole('alert').textContent).toBe(
+      i18n.t('m5s3.plan.lastDayBeforeFirst'),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.plan.removeLastDay') }),
+    );
+    expect(container.querySelector('[name="plannedEnd"]')).toBeNull();
+    expect(time.disabled).toBe(false);
+    fireEvent.change(time, { target: { value: '18:00' } });
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.plan.addLastDay') }),
+    ).toBeNull();
+  });
+
+  it('restores a saved period as the default end of a date-only Plan', () => {
+    const { container } = render(
+      <form>
+        <PlanScheduleFields
+          idPrefix="plan-saved-period"
+          defaultDate="2026-11-20"
+          defaultEnd="2026-11-22"
+          includeEnd
+        />
+      </form>,
+    );
+    expect(
+      (container.querySelector('#plan-saved-period-until') as HTMLInputElement)
+        .value,
+    ).toBe('2026-11-22');
+  });
+
   it('discloses a same-day end time, validates the range, and supports an explicit next-day end', () => {
     const { container } = render(
       <form>

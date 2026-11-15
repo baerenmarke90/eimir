@@ -46,6 +46,8 @@ class DashboardItem(ApiModel):
     title_or_text: str | None
     occurred_on: date | None
     scheduled_on: date | None = None
+    scheduled_until: date | None = None
+    """Inclusive last day of a multi-day date-only Plan (#1895)."""
     scheduled_at: datetime | None
     created_at: datetime | None
     preview_attachment_id: UUID | None = None
@@ -454,6 +456,7 @@ def _project_item(item: service.DashboardItem) -> DashboardItem:
         title_or_text=item.title_or_text,
         occurred_on=item.occurred_on,
         scheduled_on=item.scheduled_on,
+        scheduled_until=item.scheduled_until,
         scheduled_at=item.scheduled_at,
         created_at=item.created_at,
         preview_attachment_id=item.preview_attachment_id,

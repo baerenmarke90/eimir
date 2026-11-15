@@ -222,6 +222,9 @@ export async function installPageComposerFixture(
         isInGracePeriod: false,
       });
     if (path === `${base}/dashboard/preferences`) return json({ items: [] });
+    // A Pro Space without a shared calendar (#1895): Plan detail asks once.
+    if (path.startsWith(`${base}/calendar-sync/plans/`))
+      return json({ state: 'NOT_SYNCED', targetStatus: null });
     if (path === `${base}/photo-sources`)
       return json({
         enabled: true,

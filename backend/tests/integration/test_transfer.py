@@ -13,9 +13,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from eimir.appearance.models import AppIconPreference
 from eimir.authorization import AuthorizationContext, ContentVisibility
 from eimir.collections import service as collection_service
-from eimir.collections.models import Collection
+from eimir.collections.models import Collection, CollectionKind, CollectionSuggestion
 from eimir.core.clock import now
 from eimir.heart_moments import service as heart_moment_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
@@ -58,26 +59,24 @@ def _verified_email(session: Session, account, address: str) -> None:  # type: i
     session.flush()
 
 
-def _minimal_bundle(source_id: str, email: str | None) -> io.BytesIO:
-    accounts = (
-        json.dumps(
+def _minimal_bundle(
+    source_id: str, email: str | None, *, appearance: dict[str, str] | None = None
+) -> io.BytesIO:
+    account_document: dict[str, object] = {
+        "members": [
             {
-                "members": [
-                    {
-                        "sourceId": source_id,
-                        "displayName": "Portable member",
-                        "birthday": None,
-                        "locale": "de-DE",
-                        "timezone": "Europe/Berlin",
-                        "verifiedEmail": email,
-                    }
-                ]
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        + "\n"
-    ).encode()
+                "sourceId": source_id,
+                "displayName": "Portable member",
+                "birthday": None,
+                "locale": "de-DE",
+                "timezone": "Europe/Berlin",
+                "verifiedEmail": email,
+            }
+        ]
+    }
+    if appearance is not None:
+        account_document["personalAppearance"] = appearance
+    accounts = (json.dumps(account_document, sort_keys=True, separators=(",", ":")) + "\n").encode()
     manifest = {
         "formatVersion": 1,
         "exportedAt": "2026-08-31T10:00:00+00:00",
@@ -429,13 +428,19 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
 
 
-def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:
+def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
+    session: Session,
+) -> None:
     target = make_account(session, "Target")
     _verified_email(session, target, "target@example.test")
     space = make_space(session, target)
     authorization = AuthorizationContext(account_id=target.id, space_id=space.id)
     source_id = str(uuid4())
-    bundle = _minimal_bundle(source_id, "target@example.test")
+    bundle = _minimal_bundle(
+        source_id,
+        "target@example.test",
+        appearance={"appIconId": "sage", "wirDesign": "shared_album"},
+    )
 
     transfer = service.create_import(
         session,
@@ -468,6 +473,15 @@ def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session
 
     assert transfer.status == ImportStatus.COMPLETED.value
     assert transfer.artifact_size == 0
+    assert (
+        session.scalar(
+            select(AppIconPreference).where(
+                AppIconPreference.account_id == target.id,
+                AppIconPreference.space_id == space.id,
+            )
+        )
+        is None
+    )
     assert service.request_apply(session, authorization, str(transfer.id)).status == (
         ImportStatus.COMPLETED.value
     )
@@ -576,3 +590,58 @@ def test_import_remaps_repeated_wish_links_and_series(
     assert imported[3].followed_from_wish_id == imported[2].id
     assert {wish.series_id for wish in imported.values()} == {imported[1].id}
     assert imported[3].id != third.id
+
+
+def test_shopping_suggestions_travel_with_their_list_in_a_shared_round_trip(
+    session: Session,
+) -> None:
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    source_space = make_space(session, anna)
+    relationship_service.add_member(session, source_space.id, ben)
+    target_space = make_space(session, anna)
+    relationship_service.add_member(session, target_space.id, ben)
+    source_authorization = AuthorizationContext(account_id=anna.id, space_id=source_space.id)
+    target_authorization = AuthorizationContext(account_id=anna.id, space_id=target_space.id)
+    shopping = collection_service.create_collection(
+        session, source_authorization, title="Einkauf", kind=CollectionKind.SHOPPING
+    )
+    milk = collection_service.create_item(
+        session,
+        source_authorization,
+        shopping.id,
+        title="Milch",
+        quantity="2 l",
+        completed=True,
+    )
+    collection_service.finish_shopping(
+        session, source_authorization, shopping.id, item_ids=[milk.id]
+    )
+
+    with service.build_export_archive(
+        session, source_authorization, TransferScope.SHARED
+    ) as bundle:
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = service.create_import(session, target_authorization, bundle, size=size)
+    session.flush()
+    jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    service.request_apply(session, target_authorization, str(transfer.id))
+    session.flush()
+    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+
+    assert transfer.status == ImportStatus.COMPLETED.value
+    imported = session.scalars(
+        select(Collection).where(Collection.space_id == target_space.id)
+    ).one()
+    assert imported.kind == CollectionKind.SHOPPING.value
+    suggestions = session.scalars(
+        select(CollectionSuggestion).where(CollectionSuggestion.collection_id == imported.id)
+    ).all()
+    assert [
+        (item.payload.title, item.payload.quantity, item.times_bought) for item in suggestions
+    ] == [("Milch", "2 l", 1)]
+    assert collection_service.list_items(session, imported) == []

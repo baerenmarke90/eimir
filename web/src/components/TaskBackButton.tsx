@@ -1,12 +1,14 @@
 import {
   type ComponentProps,
   createContext,
+  type MouseEvent,
   type ReactNode,
   useContext,
   useLayoutEffect,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { createPath, Link } from 'react-router-dom';
+import { previousEntryIs, useReturnTo } from '../client/historyEntries';
 import { useTranslation } from '../i18n';
 import './SubpageNavigation.css';
 
@@ -69,14 +71,27 @@ export function TaskBackButton({
   );
 }
 
+function isPlainActivation(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 /** Preserve link semantics, modified clicks and existing editor guards. */
 export function TaskBackLink({
   children,
   className = '',
   inline = false,
+  onClick,
   ...props
 }: ComponentProps<typeof Link> & { inline?: boolean }) {
   const { t } = useTranslation();
+  const returnTo = useReturnTo();
   const label = children ?? t('taskBoundary.back');
   return (
     <PlaceBackControl inline={inline}>
@@ -85,6 +100,20 @@ export function TaskBackLink({
         className={`back-link task-back-control ${className}`}
         data-page-back=""
         {...props}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!isPlainActivation(event) || !previousEntryIs(props.to)) return;
+          // The parent is the entry directly below: return to it instead of
+          // stacking a second copy that system Back would show again.
+          event.preventDefault();
+          const { state } = props;
+          returnTo(
+            typeof props.to === 'string' ? props.to : createPath(props.to),
+            state && typeof state === 'object'
+              ? { restoredState: state as Record<string, unknown> }
+              : undefined,
+          );
+        }}
       >
         <BackGlyph>{label}</BackGlyph>
       </Link>

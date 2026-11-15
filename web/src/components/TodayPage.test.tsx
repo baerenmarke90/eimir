@@ -1,10 +1,10 @@
-import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { onTestFinished, vi } from 'vitest';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
@@ -1598,7 +1598,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('Beziehungsstart festlegen');
   });
 
-  it('links duration pill to relationship profile when relationshipDuration is present in DAYS mode', () => {
+  it('links the time together to the story overview when relationshipDuration is present in DAYS mode', () => {
     const html = renderTodayPage({
       space: {
         id: 'space-1',
@@ -1621,9 +1621,12 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    expect(html).toContain('today-hero-duration-link');
+    // The default design carries the time together on the line between the
+    // two portraits; it opens the couple's story overview.
+    expect(html).toContain('wir-bridge');
     expect(html).toContain('100 Tage zusammen');
-    expect(html).toContain('href="/more/profile#relationship-profile-title"');
+    expect(html).toContain('href="/story/our-story"');
+    expect(html).not.toContain('today-hero-duration-link');
     expect(html).not.toContain('today-hero-settings-link');
   });
 
@@ -1650,8 +1653,11 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    expect(html).toContain('today-hero-duration-link');
+    // The largest unit leads above the line and the rest follows below it;
+    // the accessible name keeps the whole figure in one piece.
+    expect(html).toContain('wir-bridge-lead');
     expect(html).toContain('3 Jahre, 2 Monate, 1 Tag zusammen');
+    expect(html).toMatch(/wir-bridge-rest[\s\S]*2 Monate[\s\S]*1 Tag/);
     expect(html).not.toContain('today-hero-settings-link');
   });
 });

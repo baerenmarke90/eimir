@@ -583,6 +583,10 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
     wishAction,
     page.locator('.mobile-bottom-shell'),
   );
+  // The search rests as an icon and opens on demand (#1861).
+  await page
+    .getByRole('button', { name: m5s3.overview.searchWishes, exact: true })
+    .click();
   const search = page.getByRole('searchbox', {
     name: m5s3.overview.searchWishes,
   });
@@ -690,4 +694,37 @@ test('the focused task remains reachable at 200% layout zoom', async ({
     'r3-create-plan-200pct-expanded.png',
     false,
   );
+});
+
+test('a weekend without times is saved as one multi-day date-only Plan', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const calls = await installPlanningMocks(page);
+  await signIn(page);
+  await page.goto('/plan/plans/new');
+
+  await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend at the lake');
+  await page.locator('.composer-schedule-trigger').click();
+  const sheet = page.getByRole('dialog', { name: m5s3.plan.schedule });
+  await sheet
+    .getByLabel(m5s3.plan.plannedDate, { exact: true })
+    .fill('2026-11-20');
+  await sheet.getByRole('button', { name: m5s3.plan.addLastDay }).click();
+  const lastDay = sheet.getByLabel(m5s3.plan.lastDay, { exact: true });
+  await expect(lastDay).toHaveValue('2026-11-21');
+  await expect(
+    sheet.getByLabel(m5s3.plan.plannedStartTime, { exact: true }),
+  ).toBeDisabled();
+  await lastDay.fill('2026-11-22');
+  await sheet.getByRole('button', { name: 'Fertig' }).click();
+  await expect(page.locator('.composer-schedule-trigger')).toContainText('22.');
+
+  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await expect(page).toHaveURL(/\/plan\/plans\/plan-created$/);
+  expect(calls.planCreates).toBe(1);
+  expect(calls.lastPlanBody?.schedule).toEqual({
+    plannedOn: '2026-11-20',
+    plannedUntil: '2026-11-22',
+  });
 });

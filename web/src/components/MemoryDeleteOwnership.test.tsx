@@ -209,7 +209,8 @@ describe('Memory delete response and task ownership', () => {
       'memory-1',
     );
     expect(s.client.getQueryData(key)).toBeUndefined();
-    expect(s.path()).toBe('/story');
+    // Leaving first releases the editor's history entry.
+    await waitFor(() => expect(s.path()).toBe('/story'));
     expect(s.toast).toHaveBeenCalledTimes(1);
   });
   it('admits only one synchronous confirmation', async () => {

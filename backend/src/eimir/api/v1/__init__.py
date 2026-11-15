@@ -15,6 +15,8 @@ from eimir.api.v1 import (
     appearance,
     attachments,
     auth,
+    billing,
+    calendar_sync,
     chapter_relations,
     chapters,
     collections,
@@ -23,6 +25,7 @@ from eimir.api.v1 import (
     daily_checkins,
     daily_quote,
     dashboard,
+    date_ideas,
     demo,
     engagement,
     entitlements,
@@ -92,6 +95,7 @@ normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
 normal_router.include_router(video.router)
 normal_router.include_router(photo_sources.router)
+normal_router.include_router(calendar_sync.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)
@@ -109,10 +113,12 @@ normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)
 normal_router.include_router(partner_location.router)
 normal_router.include_router(daily_quote.router)
+normal_router.include_router(date_ideas.router)
 normal_router.include_router(people.router)
 normal_router.include_router(profiles.router)
 normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
+normal_router.include_router(billing.router)
 normal_router.include_router(games.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)

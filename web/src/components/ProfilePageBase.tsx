@@ -36,6 +36,7 @@ import {
   formatRelationshipDuration,
 } from '../client/relationshipPreview';
 import { settingsCategoryPath } from '../client/routes';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { DestinationIcon } from './DestinationIcon';
@@ -425,6 +426,15 @@ export function PreferenceDialog({
   if (isOpen) renderedPreferenceRef.current = preference;
   const renderedPreference = renderedPreferenceRef.current;
   const { present, presenceState, completeExit } = useOverlayPresence(isOpen);
+  // System Back closes the dialog instead of leaving the profile; a pending
+  // save or delete keeps it open, as the close button does not apply then.
+  useEditorHistoryEntry({
+    isActive: isOpen,
+    isDirty: false,
+    isCloseBlocked: pending || deletePending,
+    onClose: onCancel,
+    onDiscardRequested: onCancel,
+  });
 
   useModalLifecycle({
     active: present,

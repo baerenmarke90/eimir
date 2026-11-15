@@ -177,41 +177,40 @@ source `NOT_APPLICABLE` only when the launch scope makes that honest.
 
 Do not create one omnibus multi-provider PR.
 
-### 7.1 Declared first launch channel
+### 7.1 Declared launch channels
 
-Resolved (2026-09-05): **the first launch uses `ADMIN_GRANT` only.** No real
-payment/store provider is part of the initial launch target.
+Resolved (2026-09-05): the first launch used **`ADMIN_GRANT` only**.
+Superseded for paid channels by the Product Owner decision of 2026-11-15
+(#1525): **purchases are in-app only — Google Play Billing in the Android app
+now, Apple In-App Purchase when the iOS app launches, no Stripe/browser
+checkout.** Store purchases serve eimir. Cloud Spaces; Self-Hosted keeps the
+signed offline license (its delivery details are defined later).
 
 - **`ADMIN_GRANT`** — required and implemented. A ServerAdmin-authorized
   manual grant/revoke surface
   (`POST/GET /server-admin/spaces/{spaceId}/entitlement...`) reuses the
   existing normalized `record_grant`/`revoke_grant` source-update interface
-  from `#523` unchanged. This is the only entitlement source a launch actually
-  needs before a real commercial channel is selected: it lets an operator
-  extend Premium to a specific Space (beta testers, support cases, promotions)
-  without inventing a second grant-mutation path.
-- **`GOOGLE_PLAY`** — `NOT_APPLICABLE` for this launch. No Play Console
-  access, product IDs, or server-side purchase-verification service account
-  exist yet, and none are required for the declared first launch scope. Not
-  implemented; no Play Billing SDK dependency was added.
-- **`CLOUD_STRIPE`** — `NOT_APPLICABLE` for this launch. No Stripe account,
-  product/price IDs, or webhook secret exist yet, and none are required for
-  the declared first launch scope. Not implemented; no Stripe SDK dependency
-  was added.
-- **`SELF_HOSTED_KEY`** — `NOT_APPLICABLE` for this launch, despite the Ed25519
-  offline-license verifier already existing
-  (`backend/src/eimir/entitlements/offline_license.py`, unit-tested in
-  isolation). That verifier is intentionally not wired into `record_grant`,
-  configuration, or any endpoint: #523 explicitly scoped "Self-Hosted license
-  issuer/adapter implementation" out, and no accepted decision requires it for
-  the first launch.
+  from `#523` unchanged. It stays the operator path for beta testers, support
+  cases and promotions; it is not a substitute for paid checkout.
+- **`GOOGLE_PLAY`** — implemented in `backend/src/eimir/billing/` (#1525).
+  The app opens the Play purchase sheet through `@capgo/native-purchases`
+  with an opaque purchase reference; the backend verifies the token with
+  `purchases.subscriptionsv2`, records one grant per purchase (reference =
+  SHA-256 of the token, never the token), acknowledges the purchase and
+  reconciles Real-time developer notifications (authenticated Pub/Sub push)
+  by fetching Google's current state. Offered only on eimir. Cloud with
+  complete operator configuration; the Play Console catalog, service account
+  and Pub/Sub topic are owner setup ([setup](../operations/google-play-billing.md)).
+- **`APP_STORE`** — source type and purchase-reference storage prepared for
+  the iOS launch (migration `0136`); no adapter and no purchase offer yet.
+- **`CLOUD_STRIPE`** — `NOT_APPLICABLE`. The Product Owner decided against a
+  browser checkout (2026-11-15). The enum value remains for compatibility.
+- **`SELF_HOSTED_KEY`** — unchanged: the Ed25519 offline-license verifier
+  exists (`backend/src/eimir/entitlements/offline_license.py`) and is not yet
+  wired into `record_grant`; its issuance/import flow is a later decision.
 - **`TEST_FIXTURE`** — unchanged: deterministic Development/Demo-only fixture
   path, already rejected in Production by
   `entitlements/service.py::_ensure_source_allowed`.
-
-A future real commercial channel remains a separate, focused
-issue/branch/PR when the product actually needs one — this decision does not
-close that door, it only states what launch actually requires today.
 
 ## 8. Couple / relationship ownership
 

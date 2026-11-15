@@ -20,18 +20,80 @@ import { mapValues } from '../runtime';
  */
 export interface PhotoSelectionItemView {
     /**
+     * The staged Attachment of an already imported item.
+     * @type {string}
+     * @memberof PhotoSelectionItemView
+     */
+    attachmentId?: string | null;
+    /**
+     * 
+     * @type {PhotoSelectionItemViewAvailabilityEnum}
+     * @memberof PhotoSelectionItemView
+     */
+    availability: PhotoSelectionItemViewAvailabilityEnum;
+    /**
+     * Fixed code explaining why an item is not available; never provider text.
+     * @type {string}
+     * @memberof PhotoSelectionItemView
+     */
+    code?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof PhotoSelectionItemView
      */
     id: string;
+    /**
+     * 
+     * @type {PhotoSelectionItemViewKindEnum}
+     * @memberof PhotoSelectionItemView
+     */
+    kind: PhotoSelectionItemViewKindEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof PhotoSelectionItemView
+     */
+    mimeType: string;
+    /**
+     * Stable position of the item in the provider selection.
+     * @type {number}
+     * @memberof PhotoSelectionItemView
+     */
+    ordinal: number;
 }
+
+
+/**
+ * @export
+ */
+export const PhotoSelectionItemViewAvailabilityEnum = {
+    AVAILABLE: 'AVAILABLE',
+    PROCESSING: 'PROCESSING',
+    UNAVAILABLE: 'UNAVAILABLE'
+} as const;
+export type PhotoSelectionItemViewAvailabilityEnum = typeof PhotoSelectionItemViewAvailabilityEnum[keyof typeof PhotoSelectionItemViewAvailabilityEnum];
+
+/**
+ * @export
+ */
+export const PhotoSelectionItemViewKindEnum = {
+    IMAGE: 'IMAGE',
+    VIDEO: 'VIDEO',
+    OTHER: 'OTHER'
+} as const;
+export type PhotoSelectionItemViewKindEnum = typeof PhotoSelectionItemViewKindEnum[keyof typeof PhotoSelectionItemViewKindEnum];
+
 
 /**
  * Check if a given object implements the PhotoSelectionItemView interface.
  */
 export function instanceOfPhotoSelectionItemView(value: object): value is PhotoSelectionItemView {
+    if (!('availability' in value) || value['availability'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('kind' in value) || value['kind'] === undefined) return false;
+    if (!('mimeType' in value) || value['mimeType'] === undefined) return false;
+    if (!('ordinal' in value) || value['ordinal'] === undefined) return false;
     return true;
 }
 
@@ -45,7 +107,13 @@ export function PhotoSelectionItemViewFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
+        'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
+        'availability': json['availability'],
+        'code': json['code'] === undefined ? undefined : json['code'] === null ? null : json['code'],
         'id': json['id'],
+        'kind': json['kind'],
+        'mimeType': json['mimeType'],
+        'ordinal': json['ordinal'],
     };
 }
 
@@ -60,7 +128,13 @@ export function PhotoSelectionItemViewToJSONTyped(value?: PhotoSelectionItemView
 
     return {
         
+        'attachmentId': value['attachmentId'],
+        'availability': value['availability'],
+        'code': value['code'],
         'id': value['id'],
+        'kind': value['kind'],
+        'mimeType': value['mimeType'],
+        'ordinal': value['ordinal'],
     };
 }
 

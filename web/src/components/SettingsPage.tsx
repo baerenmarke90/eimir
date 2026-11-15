@@ -39,6 +39,8 @@ import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
+import { GoogleAccountSettings } from './GoogleAccountSettings';
+import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
@@ -251,15 +253,34 @@ export function SettingsPage(props: SettingsPageProps) {
         />
       </div>
     );
-  } else if (categoryId === 'media') {
+  } else if (categoryId === 'calendar') {
     categoryContent = (
-      <PhotoSourceSettingsPanel
-        key={`${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+      <CalendarSyncSettings
+        key={`calendar:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
         apiBaseUrl={props.apiBaseUrl}
         accessToken={props.accessToken}
         accountId={props.account.id}
         spaceId={props.spaceId}
       />
+    );
+  } else if (categoryId === 'media') {
+    categoryContent = (
+      <>
+        <PhotoSourceSettingsPanel
+          key={`${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <GoogleAccountSettings
+          key={`google:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+      </>
     );
   } else if (categoryId === 'data') {
     categoryContent = (

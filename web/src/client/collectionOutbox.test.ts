@@ -136,10 +136,12 @@ function run(
   extra: {
     known?: (id: string) => CollectionItemDetail | undefined;
     now?: () => number;
+    onAddConfirmed?: (localId: string, created: CollectionItemDetail) => void;
+    onItem?: (item: CollectionItemDetail) => void;
   } = {},
 ) {
   const store = new MemoryOutbox(record);
-  const onItem = vi.fn();
+  const onItem = vi.fn(extra.onItem);
   const onCollection = vi.fn();
   const result = replayOutbox({
     collectionId: 'list-1',
@@ -147,6 +149,7 @@ function run(
     store,
     known: extra.known ?? (() => undefined),
     onItem,
+    onAddConfirmed: extra.onAddConfirmed,
     onCollection,
     now: extra.now ?? (() => NOW.getTime()),
   });
@@ -316,6 +319,74 @@ describe('the list as shown', () => {
     });
     expect(isLocalItemId(created.id)).toBe(true);
     expect(view.pendingItemIds.has(created.id)).toBe(true);
+  });
+
+  it('does not show a waiting add next to the item the server already confirmed for it', () => {
+    const record = add(emptyOutbox(), 'Hafermilch', { quantity: '2 l' });
+    const addOp = record.ops[0] as { localId: string };
+    const confirmedItem = item({
+      id: 'server-1',
+      title: 'Hafermilch',
+      quantity: '2 l',
+    });
+
+    const view = applyOutbox(
+      list([item(), confirmedItem]),
+      record,
+      VIEWER,
+      new Map([[addOp.localId, 'server-1']]),
+    );
+
+    expect(view.collection.items.map((entry) => entry.title)).toEqual([
+      'Milch',
+      'Hafermilch',
+    ]);
+    expect(view.pendingItemIds.size).toBe(0);
+  });
+
+  it('applies a change that waits behind a confirmed add to the confirmed item', () => {
+    const base = add(emptyOutbox(), 'Hafermilch');
+    const addOp = base.ops[0] as { localId: string };
+    // Built by hand: a change queued while the add was being sent stays its own op.
+    const record: OutboxRecord = {
+      ...base,
+      ops: [
+        ...base.ops,
+        {
+          kind: 'setQuantity',
+          opId: id(),
+          createdAt: NOW.toISOString(),
+          itemId: addOp.localId,
+          quantity: '2 l',
+        },
+      ],
+    };
+    const confirmedItem = item({ id: 'server-1', title: 'Hafermilch' });
+
+    const view = applyOutbox(
+      list([confirmedItem]),
+      record,
+      VIEWER,
+      new Map([[addOp.localId, 'server-1']]),
+    );
+
+    expect(view.collection.items).toHaveLength(1);
+    expect(view.collection.items[0]).toMatchObject({
+      id: 'server-1',
+      quantity: '2 l',
+    });
+    expect(view.pendingItemIds.has('server-1')).toBe(true);
+  });
+
+  it('still shows a waiting add the server has not confirmed', () => {
+    const record = add(emptyOutbox(), 'Hafermilch');
+
+    const view = applyOutbox(list(), record, VIEWER, new Map());
+
+    expect(view.collection.items.map((entry) => entry.title)).toEqual([
+      'Milch',
+      'Hafermilch',
+    ]);
   });
 
   it('shows a waiting check with the viewer as the one who completed it', () => {
@@ -694,6 +765,24 @@ describe('sending the waiting changes', () => {
     expect(onItem).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Brot' }),
     );
+  });
+
+  it('names the confirmed add before it puts the item into the list', async () => {
+    const base = add(emptyOutbox(), 'Brot');
+    const addOp = base.ops[0] as { localId: string; idempotencyKey: string };
+    const calls: string[] = [];
+
+    const { result } = run(base, transport(), {
+      onAddConfirmed: (localId, created) =>
+        calls.push(`confirmed:${localId}->${created.id}`),
+      onItem: (created) => calls.push(`item:${created.id}`),
+    });
+    await result;
+
+    expect(calls).toEqual([
+      `confirmed:${addOp.localId}->server-${addOp.idempotencyKey}`,
+      `item:server-${addOp.idempotencyKey}`,
+    ]);
   });
 
   it('keeps changes queued while it runs and does not lose them', async () => {

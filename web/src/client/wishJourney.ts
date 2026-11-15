@@ -3,6 +3,7 @@ import type { WishPlanReference } from '../api/generated/models/WishPlanReferenc
 import { resolvedLocale } from '../i18n';
 import {
   formatCompactCalendarDate,
+  formatCompactCalendarRange,
   formatCompactWeekdayDate,
 } from './formatRecency';
 
@@ -34,9 +35,22 @@ export function wishJourneyIndex(stage: WishJourneyStage): number {
 
 /** Day of the originating Plan; a date-only schedule keeps its encoded day. */
 export function wishPlanDateLabel(
-  plan: Pick<WishPlanReference, 'plannedOn' | 'plannedStart'> | null,
+  plan:
+    | (Pick<WishPlanReference, 'plannedOn' | 'plannedStart'> &
+        Partial<Pick<WishPlanReference, 'plannedUntil'>>)
+    | null,
   locale = resolvedLocale(),
 ): string | null {
+  if (
+    plan?.plannedOn &&
+    plan.plannedUntil &&
+    plan.plannedUntil > plan.plannedOn
+  )
+    return formatCompactCalendarRange(
+      plan.plannedOn,
+      plan.plannedUntil,
+      locale,
+    );
   if (plan?.plannedOn) return formatCompactCalendarDate(plan.plannedOn, locale);
   if (plan?.plannedStart)
     return formatCompactWeekdayDate(plan.plannedStart, locale);

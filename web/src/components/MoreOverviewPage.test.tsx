@@ -3,11 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
 import dailyInsights from '../i18n/locales/dailyInsights';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
+import relationshipReflections from '../i18n/locales/relationshipReflections';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
@@ -44,6 +46,7 @@ describe('MoreOverviewPage', () => {
     expect(html).toContain(de.more.groups.moments);
 
     for (const href of [
+      STORY_OURS_ROUTE,
       '/story/years',
       '/story/photos',
       '/story/chapters',
@@ -106,15 +109,37 @@ describe('MoreOverviewPage', () => {
     expect(html).not.toContain(de.more.intro);
     expect(html).not.toContain(de.more.notifications.description);
 
+    // The couple's own story overview leads the story group, ahead of the
+    // media, chapter and year destinations.
+    expect(STORY_OURS_ROUTE).toBe('/story/our-story');
+    const storyOursIndex = html.indexOf(`href="${STORY_OURS_ROUTE}"`);
+    expect(storyOursIndex).toBeGreaterThan(-1);
+    for (const laterHref of [
+      '/story/photos',
+      '/story/chapters',
+      '/story/years',
+    ]) {
+      expect(storyOursIndex).toBeLessThan(html.indexOf(`href="${laterHref}"`));
+    }
+    const storyOursRow = html.slice(
+      storyOursIndex,
+      html.indexOf('</a>', storyOursIndex),
+    );
+    expect(storyOursRow).toContain(relationshipReflections.passport.title);
+    expect(storyOursRow).toContain(relationshipReflections.passport.intro);
+    expect(storyOursRow).toContain(
+      `class="more-destination-badge">${relationshipReflections.passport.pro}`,
+    );
+
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(13);
+    expect(rowMatches).toHaveLength(14);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(2);
+    expect(badgeMatches).toHaveLength(3);
     expect(html).toContain(games.status.premium);
     expect(html).toContain(de.more.destinations.insights);
     expect(html).toContain(dailyInsights.pro);
@@ -197,35 +222,39 @@ describe('MoreOverviewPage', () => {
     },
   );
   it.each([
-    ['2026-11-05.draft-1', true],
+    ['2026-11-06.draft-2', true],
     [null, false],
-  ])('links the terms of use only where they apply (%s)', (version, shown) => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
-      availability: 'available',
-      auth: null,
-      accountCreation: version ? 'self_service' : 'invitation',
-      selfServiceSignupAvailable: Boolean(version),
-      maintenanceMode: false,
-      registrationAvailable: true,
-      termsOfUseVersion: version,
-    });
+  ])(
+    'links the Cloud legal texts only where they apply (%s)',
+    (version, shown) => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
+        availability: 'available',
+        auth: null,
+        accountCreation: version ? 'self_service' : 'invitation',
+        selfServiceSignupAvailable: Boolean(version),
+        maintenanceMode: false,
+        registrationAvailable: true,
+        termsOfUseVersion: version,
+      });
 
-    const html = renderToStaticMarkup(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MoreOverviewPage
-            apiBaseUrl="http://api.example.test"
-            accessToken="test-token"
-            account={{ id: 'account-1', displayName: 'Alex' }}
-            spaceId="space-1"
-          />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+      const html = renderToStaticMarkup(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <MoreOverviewPage
+              apiBaseUrl="http://api.example.test"
+              accessToken="test-token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
 
-    expect(html.includes('href="/legal/terms"')).toBe(shown);
-  });
+      expect(html.includes('href="/legal/terms"')).toBe(shown);
+      expect(html.includes('href="/legal/privacy"')).toBe(shown);
+    },
+  );
 });

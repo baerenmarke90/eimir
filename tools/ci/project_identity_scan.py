@@ -79,6 +79,16 @@ RELEASE_COMPATIBILITY_IDENTIFIERS = (
 )
 
 
+# Exact English editorial date-idea copy (#1892) using the ordinary phrase.
+DATE_IDEA_SIDE_BY_SIDE_PHRASES = (
+    "try two pasta sauces side by side",
+    "try two short stances side by side",
+    "read quietly side by side",
+    "find a bench with a backrest and sit side by side",
+    "sit side by side on a sandy spot",
+)
+
+
 def _under(path: Path, prefix: Path) -> bool:
     try:
         path.relative_to(prefix)
@@ -177,6 +187,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         return (
             Classification.FALSE_POSITIVE,
             "the exact one-time-message reference prompt describes adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("backend/src/eimir/date_ideas/data/catalog.json")
+        and match == "side by side"
+        and normalized.count("side by side") == 1
+        and any(phrase in normalized for phrase in DATE_IDEA_SIDE_BY_SIDE_PHRASES)
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the editorial date-idea copy describes two people or things next to each other",
         )
 
     planning_prompt_phrases = {

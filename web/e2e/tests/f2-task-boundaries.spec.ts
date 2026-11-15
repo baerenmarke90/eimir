@@ -749,6 +749,10 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   const source = page
     .getByRole('link')
     .filter({ has: page.getByText(older.title, { exact: true }) });
+  // The root tab's opening rise (#1861) moves the rows for a moment. A click on
+  // a moving row is retried with a different scroll alignment, which would
+  // change the position this test compares against.
+  await expect(page.locator('.page[data-root-intro]')).toHaveCount(0);
   await source.scrollIntoViewIfNeeded();
   const before = await source.boundingBox();
   expect(before).not.toBeNull();
@@ -1346,6 +1350,46 @@ test('edit header Back and Browser Back keep the selected Memory origin', async 
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
   expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
   await expect(source).toBeFocused();
+  expect(api.unexpected).toEqual([]);
+});
+
+test('leaving the Memory editor reuses the detail entry so Back returns to the origin (#1907)', async ({
+  page,
+}) => {
+  const api = await installProductApi(page);
+  await signIn(page);
+  const source = page.locator('.story-card-link').filter({
+    has: page.getByRole('heading', { name: firstPage[0].title, exact: true }),
+  });
+  await source.click();
+  const detailHeading = page.getByRole('heading', {
+    name: firstPage[0].title,
+    exact: true,
+  });
+  await expect(detailHeading).toBeVisible();
+  const detailIndex = await page.evaluate(() => window.history.state?.idx);
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: memoryProduct.editHeading,
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(detailHeading).toBeVisible();
+  // The editor closed into the existing detail entry instead of a copy of it.
+  expect(await page.evaluate(() => window.history.state?.idx)).toBe(
+    detailIndex,
+  );
+  // System Back therefore leaves the detail at once instead of showing it again.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/story\?.*year=2025/);
+  await expect(source).toBeVisible();
   expect(api.unexpected).toEqual([]);
 });
 

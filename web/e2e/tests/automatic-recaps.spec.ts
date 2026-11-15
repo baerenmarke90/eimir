@@ -1502,8 +1502,10 @@ test('the former More addresses of the recap library and reader redirect with th
       window.history.pushState({}, '', target);
       window.dispatchEvent(new PopStateEvent('popstate'));
     }, path);
+  // The bare address held the story overview, which is a page of its own
+  // again (#1861); everything below it still opens the recap reader.
   await open('/more/passport?tab=years');
-  await expect(page).toHaveURL(/\/story\/recaps\?tab=years$/);
+  await expect(page).toHaveURL(/\/story\/our-story\?tab=years$/);
   await open('/more/passport/october?page=2');
   await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
 });

@@ -1,11 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import coupleExperiences from '../../src/i18n/locales/coupleExperiences';
 import de from '../../src/i18n/locales/de';
 import onceCopy from '../../src/i18n/locales/onceMessages';
 import people from '../../src/i18n/locales/people';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
+import wishSelection from '../../src/i18n/locales/wishSelection';
+import localizedFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { captureScreenshot } from '../support/storyTimelineFixture';
@@ -1221,6 +1224,131 @@ async function settleReceiptMotion(page: Page): Promise<void> {
   // The one-shot choreography ends after the gesture sequence.
   await page.waitForTimeout(2_800);
 }
+
+test('a foreground Wish invitation opens the private favorites directly', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const notificationId = '00000000-0000-4000-8000-000000000021';
+  const invitation = () => ({
+    ...gestureNotification(notificationId, 'WISH_SELECTION_SHARED'),
+    targetId: 'round-1',
+    targetType: 'WISH_SELECTION',
+  });
+  await installMocks(page, {
+    unreadCounts: [0, 1],
+    notificationItems: () => [invitation()],
+  });
+  let opens = 0;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/notifications/${notificationId}/open`,
+    async (route) => {
+      opens += 1;
+      await route.fulfill({
+        json: { ...invitation(), readAt: new Date().toISOString() },
+      });
+    },
+  );
+  await page.route(
+    (url) => url.pathname === `/api/v1/spaces/${SPACE_ID}/wish-selection`,
+    (route) =>
+      route.fulfill({
+        json: {
+          id: 'round-1',
+          version: 1,
+          roundToken: 'round-1:1',
+          title: null,
+          candidates: localizedFixtures.wishSelection.wishes
+            .slice(0, 2)
+            .map((title, index) => ({
+              wishId: `wish-${index}`,
+              title,
+              version: 1,
+              status: 'OPEN',
+              planId: null,
+            })),
+          own: {
+            favoriteWishIds: [],
+            favoriteDateIdeaIds: [],
+            published: false,
+            version: 0,
+          },
+          selectionToken: 'round-1:1:0',
+          resultState: 'CHOOSING',
+          commonWishIds: [],
+          dateIdeaCandidates: [],
+          commonDateIdeaIds: [],
+        },
+      }),
+  );
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  const banner = page.getByTestId('foreground-notification');
+  await expect(banner).toHaveCount(0);
+
+  await refreshUnreadCount(page);
+  await expect(banner).toContainText(
+    coupleExperiences.notifications.WISH_SELECTION_SHARED.replace(
+      '{{name}}',
+      'Ben',
+    ),
+  );
+  await banner.hover();
+  await expect(
+    banner.locator('[data-motion="wish-fan"] > span').first(),
+  ).toHaveCSS('animation-name', 'notification-wish-fan');
+  expect(opens).toBe(0);
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'foreground-wish-invitation-390-light.png',
+  );
+
+  await banner.getByRole('button', { name: wishSelection.openOwn }).click();
+  await expect(page).toHaveURL(/\/plan\/choose$/);
+  await expect(
+    page.getByRole('heading', { name: wishSelection.chooseTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: wishSelection.shareNone }),
+  ).toBeVisible();
+  expect(opens).toBe(1);
+});
+
+test('the Wish result shows its own symbol with reduced motion', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installMocks(page, {
+    unreadCounts: [0, 1],
+    notificationItems: () => [
+      gestureNotification('result', 'WISH_SELECTION_READY'),
+    ],
+  });
+  await signIn(page);
+  await expect(triggerLocator(page)).toBeVisible();
+  await refreshUnreadCount(page);
+
+  const banner = page.getByTestId('foreground-notification');
+  await expect(banner).toContainText(
+    coupleExperiences.notifications.WISH_SELECTION_READY,
+  );
+  await banner.hover();
+  const symbol = banner.locator('[data-motion="wish-match"] > span').first();
+  await expect(symbol).toBeVisible();
+  await expect(symbol).toHaveCSS('animation-name', 'none');
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'foreground-wish-result-1280-dark-reduced.png',
+  );
+});
 
 for (const scenario of [
   {

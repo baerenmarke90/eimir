@@ -412,6 +412,10 @@
       "roots": [
         "web/src/components/PartnerQuickActions.tsx",
         "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/components/NotificationMotion.tsx",
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/client/devicePush.ts",
+        "web/src/client/foregroundNotifications.ts",
         "web/src/client/partnerGestureReceipt.ts",
         "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",

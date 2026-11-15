@@ -25,7 +25,6 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx",
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/components/AddAction.tsx"
       ]
     },
@@ -178,7 +177,6 @@
     },
     "f2-task-boundaries.spec.ts": {
       "roots": [
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
@@ -218,7 +216,6 @@
       "roots": [
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/client/taskOrigin.tsx",
         "web/src/components/MomentCreateMenu.tsx"
       ]
@@ -231,7 +228,6 @@
     },
     "hidden-file-inputs.spec.ts": {
       "roots": [
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
@@ -654,7 +650,6 @@
     },
     "quick-create-destination-handoff.spec.ts": {
       "roots": [
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
@@ -1069,7 +1064,6 @@
         "web/src/components/OnceMessages.tsx",
         "web/src/client/onceMessages.tsx",
         "web/src/client/onceMessageCrypto.ts",
-        "web/src/components/QuickCreateMenu.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/VoiceNotePlayer.tsx",
         "web/src/client/useVoiceRecorder.ts",

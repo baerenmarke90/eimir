@@ -94,11 +94,7 @@ export function RouteEntryHandoff(): null {
                 element.dataset.taskItemKey === origin.selectedKey &&
                 !element.closest('[hidden]'),
             )
-          : origin.focusTarget === 'quick-create'
-            ? Array.from(
-                document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-              ).find((element) => element.getClientRects().length > 0)
-            : null;
+          : null;
         target?.focus({ preventScroll: true });
       });
       return () => window.cancelAnimationFrame(frame);

@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`allowVideo` | boolean
 `consent` | boolean
 `maxItems` | number
 `mediaRecoveryPolicy` | string
@@ -18,6 +19,7 @@ import type { PhotoSelectionCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "allowVideo": null,
   "consent": null,
   "maxItems": null,
   "mediaRecoveryPolicy": null,

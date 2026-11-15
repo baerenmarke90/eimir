@@ -9,6 +9,7 @@ keys and all tooling stay English, following exception 1 of
 | Document | Locale | File | Status |
 | --- | --- | --- | --- |
 | Terms of use (Nutzungsbedingungen) | de-DE | [`de/terms-of-use.md`](de/terms-of-use.md) | Draft, not in force, legal review pending |
+| Privacy policy (Datenschutzhinweise) | de-DE | [`de/privacy-policy.md`](de/privacy-policy.md) | Draft, not in force, legal review pending; see [review notes](privacy-policy-review.md) |
 
 ## Rules
 
@@ -25,7 +26,13 @@ keys and all tooling stay English, following exception 1 of
   through Git history.
 - The terms of use govern eimir. Cloud, the official apps and eimir. Pro. They
   do not govern the relationship between users and the operator of a
-  Self-Hosted installation. The source code license remains
+  Self-Hosted installation.
+- The privacy policy informs (Art. 13 GDPR) about eimir. Cloud and the official
+  apps. It is never accepted, never bundled with the terms acceptance and never
+  blocks a flow. Every statement must describe processing the repository
+  actually implements; [`privacy-policy-review.md`](privacy-policy-review.md)
+  maps each statement to its source and lists the open legal decisions.
+  Self-Hosted operators are their own controllers and provide their own notice. The source code license remains
   [`LICENSE`](../LICENSE) (PolyForm Noncommercial 1.0.0).
 - Statements in these documents must stay consistent with
   [`docs/BUSINESS-MODEL.md`](../docs/BUSINESS-MODEL.md),
@@ -44,9 +51,11 @@ keys and all tooling stay English, following exception 1 of
   of `npm test` and `npm run build`) fails when the module is stale, and the
   strict reader rejects any Markdown construct outside the supported subset.
   A `published` document with unresolved placeholders is rejected as well.
-- The Web app renders the bundled text on the public route `/legal/terms`
-  and in a reading sheet next to the signup checkbox. It works offline and
-  needs no session.
+- The Web app renders the bundled texts on the public routes `/legal/terms`
+  and `/legal/privacy` and in reading sheets in the signup form: the terms next
+  to the required checkbox, the privacy policy in an informational sentence
+  below it. Both work offline and need no session. Links between the documents
+  open a nested reading sheet inside a form, so typed input is kept.
 - `backend/src/eimir/legal/terms.py` holds the version a new eimir. Cloud
   Account must accept; a unit test keeps it equal to the front matter.
   `GET /instance/status` publishes it as `termsOfUseVersion` (null on
@@ -56,6 +65,8 @@ keys and all tooling stay English, following exception 1 of
   shows it as a draft. Publishing eimir. Cloud requires a `published` version.
 
 Changing a document therefore means: edit the Markdown, bump `version`, run
-`npm run legal:generate` in `web/`, and update `TERMS_OF_USE_VERSION`.
+`npm run legal:generate` in `web/`, and, for the terms of use, update
+`TERMS_OF_USE_VERSION`. The privacy policy has no acceptance version; its
+`version` identifies the text shown.
 Existing Accounts keep their recorded acceptance; asking them to accept a new
 version is a separate, not yet implemented flow.

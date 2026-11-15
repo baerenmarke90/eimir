@@ -1,6 +1,6 @@
 import {
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type Ref,
   type RefObject,
   useEffect,
@@ -45,6 +45,7 @@ const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'video',
   'audio',
   '.place-map-viewport',
+  '.photo-crop-stage',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="slider"]',
@@ -592,6 +593,9 @@ export function ShortTaskSheet({
         if (event.key === 'Escape') event.stopPropagation();
       }}
       onCancel={(event) => {
+        // A nested sheet's cancel reaches this handler through the React
+        // portal tree; only the topmost dialog closes on Escape.
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         // Native cancel still propagates through React's parent portal tree.
         event.stopPropagation();

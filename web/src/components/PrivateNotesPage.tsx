@@ -9,6 +9,7 @@ import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
+import { useReturnTo } from '../client/historyEntries';
 import {
   capturePrivateCreate,
   capturePrivateDelete,
@@ -375,6 +376,7 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
 export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { noteId, query } = usePrivateNote(api, accountId, spaceId);
@@ -439,10 +441,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateNotePath(note.id), {
-          replace: true,
-          state: navigationState,
-        });
+        returnTo(privateNotePath(note.id), { state: navigationState });
       });
     },
   });

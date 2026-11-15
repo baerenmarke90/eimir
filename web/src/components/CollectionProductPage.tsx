@@ -8,6 +8,7 @@ import {
 import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -24,11 +25,15 @@ import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import {
   knownPersonName,
+  listPeople,
   partnerTone,
   summarizeSharedList,
 } from '../client/sharedListSummary';
+import { visibleSuggestions } from '../client/shoppingSuggestions';
+import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
@@ -56,6 +61,11 @@ import {
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
+import {
+  CART_TARGET_ATTRIBUTE,
+  type CartFlight,
+  flyIntoCart,
+} from './cartFlight';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -65,6 +75,14 @@ import {
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
 import { SharedListCartBar } from './SharedListCartBar';
+import {
+  type FinishBlock,
+  FinishTripButton,
+  SharedListTripEnd,
+  type TripEnd,
+} from './SharedListFinish';
+import { SharedContentSheet } from './SharedContentSheet';
+import { SharedListSuggestions } from './SharedListSuggestions';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
 import { useCollectionOutbox } from './useCollectionOutbox';
@@ -74,12 +92,19 @@ import './SharedPlanningPages.css';
 import './SharedContentPages.css';
 
 type Props = {
-  apis: SharedPlanningApis;
+  apis: Pick<SharedPlanningApis, 'collections'>;
   spaceId: string;
   dashboardApi?: DashboardApi;
   accountId?: string;
   collectionId?: string;
   embedded?: boolean;
+  /**
+   * The list shown inside a Wir sheet (#1808): the sheet owns the title and
+   * the way out, so the page has no heading or back control of its own.
+   */
+  inSheet?: boolean;
+  /** Ask for the entry field once, without going through router state. */
+  focusAddOnOpen?: boolean;
   onPendingChange?: (pending: boolean) => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
@@ -90,6 +115,8 @@ type Props = {
  */
 const LIST_POLL_INTERVAL_MS = 12_000;
 const LIST_RETURN_STALE_MS = 10_000;
+/** How long a checked entry waits for the cart to be on screen before it flies. */
+const FLIGHT_WAIT_MS = 800;
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -119,6 +146,8 @@ function CollectionProductDetail({
   accountId,
   collectionId,
   embedded = false,
+  inSheet = false,
+  focusAddOnOpen = false,
   onPendingChange,
   onDirtyChange,
 }: Props) {
@@ -129,6 +158,10 @@ function CollectionProductDetail({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const origin = resolveOrigin(originKey);
+  // A Wir tile's add link asks for the entry field; opening the tile itself
+  // must not raise the keyboard (#1808).
+  const focusAddRequested = focusAddOnOpen;
+  const focusAddDoneRef = useRef(false);
   const rawScope = origin
     ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
     : null;
@@ -140,7 +173,33 @@ function CollectionProductDetail({
   const [isSorting, setIsSorting] = useState(false);
   const createItemInFlightRef = useRef(false);
   const refocusAddRef = useRef(false);
-  const refocusToggleRef = useRef<string | null>(null);
+  const refocusToggleRef = useRef<{ id: string; completed: boolean } | null>(
+    null,
+  );
+  const [menuOpen, setMenuOpen] = useState(false);
+  // The entry that was just checked or put back arrives in its new place with
+  // a short glide; the rest of the list does not move (#1808).
+  const [arrivingId, setArrivingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!arrivingId) return;
+    const timer = window.setTimeout(() => setArrivingId(null), 700);
+    return () => window.clearTimeout(timer);
+  }, [arrivingId]);
+  // A checked entry flies from its row into the cart (#1808). The flight is
+  // started after the render that shows the cart, so even the first entry of a
+  // trip, which makes the cart bar appear, has a place to fly to.
+  const flightRef = useRef<(CartFlight & { at: number }) | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after every render on purpose
+  useLayoutEffect(() => {
+    const flight = flightRef.current;
+    if (!flight) return;
+    if (performance.now() - flight.at > FLIGHT_WAIT_MS) {
+      flightRef.current = null;
+      return;
+    }
+    if (flyIntoCart(flight)) flightRef.current = null;
+  });
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   // Refreshing under the person's hands would fight an edit in progress.
   const pollPausedRef = useRef(false);
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -251,7 +310,6 @@ function CollectionProductDetail({
   }, [collectionQuery.data]);
 
   const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
-  const pinnedCollectionId = pinCollection.selectedCollectionId;
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -326,11 +384,100 @@ function CollectionProductDetail({
     },
   });
 
+  // Suggestions from earlier trips and finishing the trip (#1808).
+  const isShopping = collectionQuery.data?.kind === 'SHOPPING';
+  const suggestionsKey = [
+    'm5-s3',
+    'collection-suggestions',
+    spaceId,
+    collectionId,
+  ] as const;
+  const suggestionsQuery = useQuery({
+    queryKey: suggestionsKey,
+    queryFn: async () =>
+      (
+        await apiCall(() =>
+          apis.collections.listCollectionSuggestions({
+            spaceId,
+            collectionId: collectionId ?? '',
+          }),
+        )
+      ).items,
+    enabled: Boolean(collectionId) && isShopping && !embedded,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const removeSuggestion = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (suggestion: CollectionSuggestion) => {
+      assertOnlineWrite();
+      return apiCall(() =>
+        apis.collections.deleteCollectionSuggestion({
+          spaceId,
+          collectionId: collectionId ?? '',
+          suggestionId: suggestion.id,
+        }),
+      );
+    },
+    onMutate: async (suggestion) => {
+      await queryClient.cancelQueries({ queryKey: suggestionsKey });
+      const previous =
+        queryClient.getQueryData<CollectionSuggestion[]>(suggestionsKey);
+      queryClient.setQueryData<CollectionSuggestion[]>(suggestionsKey, (all) =>
+        (all ?? []).filter((entry) => entry.id !== suggestion.id),
+      );
+      return { previous };
+    },
+    onError: (_error, _suggestion, context) => {
+      if (context?.previous)
+        queryClient.setQueryData(suggestionsKey, context.previous);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: suggestionsKey }),
+  });
+  const [tripEnd, setTripEnd] = useState<TripEnd | null>(null);
+  const finishTrip = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async ({
+      itemIds,
+    }: {
+      itemIds: string[];
+      shares: TripEnd['shares'];
+    }) => {
+      assertOnlineWrite();
+      const response = await apiCall(() =>
+        apis.collections.finishCollectionShoppingRaw({
+          spaceId,
+          collectionId: collectionId ?? '',
+          collectionFinish: { itemIds },
+        }),
+      );
+      return {
+        result: await response.value(),
+        celebrate:
+          sharedAchievementKind(response.raw) === 'collection-completed',
+      };
+    },
+    onSuccess: async ({ result, celebrate }, variables) => {
+      await commitCollection(result.collection);
+      await queryClient.invalidateQueries({ queryKey: suggestionsKey });
+      if (result.finishedCount > 0)
+        setTripEnd({
+          finishedCount: result.finishedCount,
+          shares: variables.shares,
+          celebrate,
+        });
+    },
+  });
+
   // Checking an entry moves it into the tray, which mounts a new button. Focus
   // follows the entry so keyboard and screen-reader users keep their place.
   useEffect(() => {
-    const id = refocusToggleRef.current;
-    if (!id) return;
+    const target = refocusToggleRef.current;
+    if (!target) return;
+    const { id, completed } = target;
     const toggle = Array.from(
       itemsRef.current?.querySelectorAll<HTMLElement>(
         '[data-sortable-item-id]',
@@ -338,10 +485,24 @@ function CollectionProductDetail({
     )
       .find((row) => row.dataset.sortableItemId === id)
       ?.querySelector<HTMLButtonElement>('.checklist-toggle');
-    if (!toggle || toggle.disabled) return;
+    // Wait until the entry shows its new state: it is mounted again there.
+    if (
+      !toggle ||
+      toggle.disabled ||
+      toggle.getAttribute('aria-pressed') !== String(completed)
+    )
+      return;
     refocusToggleRef.current = null;
     if (!document.activeElement || document.activeElement === document.body)
       toggle.focus();
+  });
+
+  useEffect(() => {
+    if (!focusAddRequested || focusAddDoneRef.current) return;
+    const input = addInputRef.current;
+    if (!input || input.disabled) return;
+    focusAddDoneRef.current = true;
+    input.focus();
   });
 
   // The input is disabled while an entry is being saved, so focus goes back
@@ -697,7 +858,8 @@ function CollectionProductDetail({
     updateItem.isPending ||
     deleteItem.isPending ||
     reorderItems.isPending ||
-    updateCollection.isPending;
+    updateCollection.isPending ||
+    finishTrip.isPending;
 
   if (
     collectionQuery.error &&
@@ -745,6 +907,63 @@ function CollectionProductDetail({
   };
   const openItems = items.filter((item) => !item.completed);
   const doneItems = items.filter((item) => item.completed);
+  const canFinish = shopping && !embedded && collection.capabilities.canEdit;
+  const finishBlock: FinishBlock = !online
+    ? 'offline'
+    : outbox.pendingCount > 0
+      ? 'waiting'
+      : null;
+  const finishControl = canFinish ? (
+    <FinishTripButton
+      pending={finishTrip.isPending}
+      blocked={finishBlock}
+      failed={finishTrip.isError}
+      onFinish={() => {
+        setTripEnd(null);
+        finishTrip.mutate({
+          itemIds: doneItems.map((entry) => entry.id),
+          shares: summarizeSharedList(collection, doneItems).shares,
+        });
+      }}
+    />
+  ) : null;
+  // The list's menu (#1808): sorting lives here instead of in the page. Without
+  // a page header (the Wir sheet) the button sits in the list's toolbar.
+  const hasListMenu =
+    !embedded &&
+    collection.capabilities.canEdit &&
+    items.length > 1 &&
+    !isSorting;
+  const listMenuButton = hasListMenu ? (
+    <ListEntryIconButton
+      ref={menuTriggerRef}
+      icon="more"
+      className="tertiary"
+      label={t('m5s3.collection.menu.open')}
+      aria-haspopup="dialog"
+      aria-expanded={menuOpen}
+      onClick={() => setMenuOpen(true)}
+    />
+  ) : null;
+  const suggestionsShown =
+    shopping && !embedded && !isSorting && collection.capabilities.canEdit
+      ? visibleSuggestions(suggestionsQuery.data ?? [], items)
+      : [];
+  const addSuggestion = (suggestion: CollectionSuggestion) => {
+    const title = suggestion.title;
+    const quantity = suggestion.quantity ?? null;
+    if (outbox.active) {
+      void outbox.addItem({ title, quantity });
+      return;
+    }
+    if (createItemInFlightRef.current || hasCurrentReorder()) return;
+    createItemInFlightRef.current = true;
+    createItem.mutate({
+      collection,
+      title,
+      quantity: quantity ?? undefined,
+    });
+  };
   const groups = isSorting
     ? [{ key: 'all', title: null, list: items }]
     : [
@@ -772,7 +991,25 @@ function CollectionProductDetail({
 
   function toggleItem(targetItem: CollectionItemDetail) {
     if (!collection) return;
-    refocusToggleRef.current = targetItem.id;
+    refocusToggleRef.current = {
+      id: targetItem.id,
+      completed: !targetItem.completed,
+    };
+    setArrivingId(targetItem.id);
+    const row =
+      collection.kind === 'SHOPPING' && !targetItem.completed
+        ? document.querySelector<HTMLElement>(
+            `[data-sortable-item-id="${CSS.escape(targetItem.id)}"]`,
+          )
+        : null;
+    flightRef.current = row
+      ? {
+          from: row.getBoundingClientRect(),
+          label: targetItem.title,
+          tone: partnerTone(collection, accountId),
+          at: performance.now(),
+        }
+      : null;
     if (outbox.active)
       void outbox.setCompleted(targetItem.id, !targetItem.completed);
     else
@@ -836,9 +1073,15 @@ function CollectionProductDetail({
 
   return (
     <div
-      className={embedded ? 'shared-list-composer' : 'page shared-content-page'}
+      className={
+        embedded
+          ? 'shared-list-composer'
+          : inSheet
+            ? 'shared-content-page shared-list-in-sheet'
+            : 'page shared-content-page'
+      }
     >
-      {!embedded ? (
+      {!embedded && !inSheet ? (
         <PageHeader
           className="shared-authored-heading"
           title={
@@ -942,48 +1185,47 @@ function CollectionProductDetail({
             ) : undefined
           }
           action={
-            dashboardApi && accountId ? (
-              <div className="planning-collection-dashboard-action">
-                <button
-                  type="button"
-                  className="button-link secondary-link"
-                  disabled={pinCollection.isBlocked}
-                  aria-pressed={pinnedCollectionId === collection.id}
-                  aria-label={t(
-                    pinnedCollectionId === collection.id
-                      ? 'm5s3.collection.unpinFromToday'
-                      : 'm5s3.collection.pinToToday',
-                  )}
-                  aria-describedby={
-                    pinCollection.isSaving
-                      ? 'collection-pin-pending'
-                      : undefined
-                  }
-                  onClick={() =>
-                    pinCollection.changeSelection(
-                      pinnedCollectionId === collection.id
-                        ? null
-                        : collection.id,
-                    )
-                  }
-                >
-                  {pinnedCollectionId === collection.id ? (
-                    <span aria-hidden="true">✓ </span>
-                  ) : null}
-                  {t('m5s3.collection.pinLabel')}
-                </button>
-                {pinCollection.isSaving ? (
-                  <small id="collection-pin-pending" role="status">
-                    {t('common.saving')}
-                  </small>
+            (dashboardApi && accountId) || listMenuButton ? (
+              <>
+                {dashboardApi && accountId ? (
+                  <div className="planning-collection-dashboard-action">
+                    <button
+                      type="button"
+                      className="button-link secondary-link"
+                      disabled={pinCollection.isBlocked}
+                      aria-pressed={pinCollection.isPinned(collection.id)}
+                      aria-label={t(
+                        pinCollection.isPinned(collection.id)
+                          ? 'm5s3.collection.unpinFromToday'
+                          : 'm5s3.collection.pinToToday',
+                      )}
+                      aria-describedby={
+                        pinCollection.isSaving
+                          ? 'collection-pin-pending'
+                          : undefined
+                      }
+                      onClick={() => pinCollection.toggle(collection.id)}
+                    >
+                      {pinCollection.isPinned(collection.id) ? (
+                        <span aria-hidden="true">✓ </span>
+                      ) : null}
+                      {t('m5s3.collection.pinLabel')}
+                    </button>
+                    {pinCollection.isSaving ? (
+                      <small id="collection-pin-pending" role="status">
+                        {t('common.saving')}
+                      </small>
+                    ) : null}
+                    {pinCollection.error ? (
+                      <ProblemState
+                        error={pinCollection.error}
+                        onRetry={() => void pinCollection.retryRead()}
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
-                {pinCollection.error ? (
-                  <ProblemState
-                    error={pinCollection.error}
-                    onRetry={() => void pinCollection.retryRead()}
-                  />
-                ) : null}
-              </div>
+                {listMenuButton}
+              </>
             ) : null
           }
         />
@@ -1004,8 +1246,15 @@ function CollectionProductDetail({
           {t('m5s3.collection.itemsHeading')}
         </h2>
 
+        {tripEnd ? (
+          <SharedListTripEnd end={tripEnd} onDismiss={() => setTripEnd(null)} />
+        ) : null}
         {!embedded ? (
-          <SharedListSummary summary={summary} shopping={shopping} />
+          <SharedListSummary
+            summary={summary}
+            shopping={shopping}
+            people={listPeople(collection, items)}
+          />
         ) : null}
         <div className="shared-list-toolbar">
           {embedded ? (
@@ -1016,23 +1265,18 @@ function CollectionProductDetail({
               })}
             </p>
           ) : null}
-          {!embedded &&
-          collection.capabilities.canEdit &&
-          (items.length > 1 || isSorting) ? (
+          {!embedded && collection.capabilities.canEdit && isSorting ? (
             <button
               type="button"
               className="tertiary"
-              aria-pressed={isSorting}
+              aria-pressed
               disabled={isReordering || outbox.pendingCount > 0}
-              onClick={() => setIsSorting((value) => !value)}
+              onClick={() => setIsSorting(false)}
             >
-              {t(
-                isSorting
-                  ? 'm5s3.collection.finishSorting'
-                  : 'm5s3.collection.sort',
-              )}
+              {t('m5s3.collection.finishSorting')}
             </button>
           ) : null}
+          {inSheet && listMenuButton}
         </div>
         {outbox.active ? (
           <>
@@ -1147,6 +1391,17 @@ function CollectionProductDetail({
             />
           </form>
         ) : null}
+        {suggestionsShown.length > 0 ? (
+          <SharedListSuggestions
+            suggestions={suggestionsShown}
+            disabled={createItem.isPending || isReordering}
+            onAdd={addSuggestion}
+            onRemove={(suggestion) => removeSuggestion.mutate(suggestion)}
+          />
+        ) : null}
+        {removeSuggestion.error ? (
+          <ProblemState error={removeSuggestion.error} />
+        ) : null}
 
         {items.length > 0 ? (
           <div ref={itemsRef} className="shared-list-groups">
@@ -1159,6 +1414,9 @@ function CollectionProductDetail({
                     : 'shared-list-group'
                 }
                 aria-label={group.title ?? undefined}
+                {...(shopping && group.key === 'done'
+                  ? { [CART_TARGET_ATTRIBUTE]: '' }
+                  : {})}
               >
                 {group.title ? (
                   <h3 className="shared-list-tray-heading">
@@ -1193,6 +1451,7 @@ function CollectionProductDetail({
                       onToggleComplete={toggleItem}
                       waiting={viewed?.pendingItemIds.has(item.id)}
                       marker={markerFor(item)}
+                      arriving={arrivingId === item.id}
                       onDelete={(targetItem) => {
                         const index = items.findIndex(
                           (item) => item.id === targetItem.id,
@@ -1236,6 +1495,7 @@ function CollectionProductDetail({
                     />
                   ))}
                 </ol>
+                {shopping && group.key === 'done' ? finishControl : null}
               </section>
             ))}
           </div>
@@ -1257,6 +1517,29 @@ function CollectionProductDetail({
         ) : null}
       </section>
 
+      <SharedContentSheet
+        open={menuOpen && hasListMenu}
+        title={collection.title}
+        restoreFocusRef={menuTriggerRef}
+        onClose={() => setMenuOpen(false)}
+      >
+        {() => (
+          <div className="shared-content-actions">
+            <button
+              type="button"
+              className="tertiary"
+              disabled={isReordering || outbox.pendingCount > 0}
+              onClick={() => {
+                setMenuOpen(false);
+                setIsSorting(true);
+              }}
+            >
+              {t('m5s3.collection.sort')}
+            </button>
+          </div>
+        )}
+      </SharedContentSheet>
+
       {shopping && !embedded && !isSorting ? (
         <SharedListCartBar
           entries={doneItems.map((entry) => ({
@@ -1265,6 +1548,7 @@ function CollectionProductDetail({
           }))}
           disabled={updateItem.isPending || isReordering}
           onPutBack={toggleItem}
+          finish={finishControl}
         />
       ) : null}
 

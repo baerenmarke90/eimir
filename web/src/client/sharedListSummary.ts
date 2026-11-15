@@ -69,6 +69,45 @@ export function summarizeSharedList(
   };
 }
 
+export interface ListPerson {
+  personId: string;
+  displayName: string;
+  tone: PartnerTone;
+}
+
+/**
+ * The people the list already knows: its creator and anyone who added or
+ * completed an entry, rose first. A partner who has not touched the list yet
+ * is not known to it and does not appear until they do (#1808).
+ */
+export function listPeople(
+  collection: Pick<CollectionDetail, 'createdBy' | 'creator'>,
+  items: readonly CollectionItemDetail[],
+): ListPerson[] {
+  const byId = new Map<string, ListPerson>();
+  const remember = (
+    person: { id: string; displayName: string } | null | undefined,
+  ) => {
+    if (!person?.id || !person.displayName.trim() || byId.has(person.id))
+      return;
+    byId.set(person.id, {
+      personId: person.id,
+      displayName: person.displayName,
+      tone: partnerTone(collection, person.id),
+    });
+  };
+  remember(collection.creator);
+  for (const item of items) {
+    remember(item.creator);
+    remember(item.completer);
+  }
+  return [...byId.values()].sort(
+    (left, right) =>
+      Number(left.tone === 'b') - Number(right.tone === 'b') ||
+      left.displayName.localeCompare(right.displayName),
+  );
+}
+
 /**
  * A person's name as the list already knows it, so an entry that has not been
  * sent yet can still carry a marker with the right initials.

@@ -2195,7 +2195,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toBeVisible();
       await expect(
         page.getByRole('button', { name: navigation.newContent }),
-      ).toHaveCount(width >= 840 ? 1 : 0);
+      ).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       const inHeader = await navigationRegion.evaluate((element) =>
         Boolean(element.closest('header')),
@@ -2214,28 +2214,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
     const header = page.getByRole('banner');
-    const create = page.getByRole('button', { name: navigation.newContent });
-    await create.focus();
-    await page.keyboard.press('ArrowDown');
-    const menu = page.getByRole('menu', { name: navigation.quickCreateTitle });
-    await expect(menu).toBeVisible();
-    const memory = menu.getByRole('menuitem', {
-      name: navigation.quickCreateMemory,
-    });
-    await expect(memory).toBeFocused();
-    await expect(memory).toHaveAttribute('href', '/story/memories/new');
-    await page.keyboard.press('End');
-    await expect(
-      menu.getByRole('menuitem', { name: navigation.quickCreateGiftIdea }),
-    ).toBeFocused();
-    await expectNoWcagViolations(page);
-    await page.screenshot({
-      path: testInfo.outputPath(`shell-create-expanded-${colorScheme}.png`),
-    });
-    await page.keyboard.press('Escape');
-    await expect(create).toBeFocused();
-    await expect(menu).toHaveCount(0);
-
     await header
       .getByRole('link', { name: navigation.more, exact: true })
       .click();

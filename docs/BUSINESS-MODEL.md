@@ -65,14 +65,17 @@ A separate `Family` consumer tier is not part of the initial commercial model. I
 
 ## Consumer Pro pricing
 
-Product Owner decision #876 freezes the initial EUR consumer reference price per relationship/Space:
+The Product Owner decision of 2026-11-14 (recorded with #1892) sets the binding EUR target price per relationship/Space and supersedes the #876 reference price (EUR 5.99 monthly / EUR 49.99 annual):
 
-| Billing period | eimir. Pro reference price |
+| Billing period | eimir. Pro target price |
 | --- | ---: |
-| Monthly | **EUR 5.99** |
-| Annual | **EUR 49.99** |
+| Monthly | **EUR 7.99** |
+| Annual | **EUR 59.99** |
+| eimir. Free | **free, permanently** |
 
-Twelve monthly payments equal EUR 71.88. The annual plan therefore saves EUR 21.89, approximately **30.5%** compared with twelve monthly payments.
+Twelve monthly payments equal EUR 95.88. The annual plan therefore saves EUR 35.89, approximately **37%** compared with twelve monthly payments.
+
+These are product target prices. Once a billing provider is connected, the price a customer is charged comes exclusively from that provider's valid offer; the client never invents or hard-codes a chargeable price.
 
 One current relationship Space needs one consumer Premium entitlement. The purchasing Account remains the commercial sponsor/billing owner, but both current partners receive the active Space-level Premium capabilities under the normal Membership and privacy boundaries.
 
@@ -167,11 +170,11 @@ A compatible product-tier message is:
 
 A compatible consumer price message is:
 
-> eimir. Pro costs EUR 5.99 per month or EUR 49.99 per year for the relationship Space — one purchase for both partners.
+> eimir. Pro costs EUR 7.99 per month or EUR 59.99 per year for the relationship Space — one subscription for both partners.
 
 ## Not yet defined
 
-The initial consumer plan name and EUR reference price are now defined by #876. The following commercial details remain intentionally open until pre-launch validation or the relevant distribution path requires them:
+The consumer plan name was defined by #876; the current EUR target price is the 2026-11-14 Product Owner decision above. The following commercial details remain intentionally open until pre-launch validation or the relevant distribution path requires them:
 
 - final Cloud storage quotas and paid storage add-ons;
 - SLA/support commitments and any partner/enterprise packaging;

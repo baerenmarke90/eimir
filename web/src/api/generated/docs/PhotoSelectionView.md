@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`allowVideo` | boolean
 `authorizationUrl` | string
 `hasMore` | boolean
 `id` | string
@@ -22,6 +23,7 @@ import type { PhotoSelectionView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "allowVideo": null,
   "authorizationUrl": null,
   "hasMore": null,
   "id": null,

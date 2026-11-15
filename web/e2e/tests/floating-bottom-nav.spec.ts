@@ -1002,7 +1002,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(zoomDialog).toHaveCount(0);
   });
 
-  test('the expanded browser shortcut is absent in the Capacitor runtime', async ({
+  test('the global create shortcut is absent from the Capacitor header', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1024, height: 768 });

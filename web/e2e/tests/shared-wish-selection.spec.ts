@@ -19,7 +19,12 @@ const demo = localizedFixtures.wishSelection;
 const ROOT = `/api/v1/spaces/${SPACE_ID}`;
 const WISH_IDS = ['wish-pasta', 'wish-lake', 'wish-spa'];
 const ROUND_ID = 'round-choice';
-type Own = { favoriteWishIds: string[]; published: boolean; version: number };
+type Own = {
+  favoriteWishIds: string[];
+  favoriteDateIdeaIds: string[];
+  published: boolean;
+  version: number;
+};
 type Round = {
   id: string | null;
   version: number;
@@ -30,6 +35,8 @@ type Round = {
   selectionToken: string | null;
   resultState: string;
   commonWishIds: string[];
+  dateIdeaCandidates: unknown[];
+  commonDateIdeaIds: string[];
 };
 type Candidate = {
   wishId: string;
@@ -46,10 +53,17 @@ function emptyRound(): Round {
     roundToken: 'absent',
     title: null,
     candidates: [],
-    own: { favoriteWishIds: [], published: false, version: 0 },
+    own: {
+      favoriteWishIds: [],
+      favoriteDateIdeaIds: [],
+      published: false,
+      version: 0,
+    },
     selectionToken: null,
     resultState: 'NO_ROUND',
     commonWishIds: [],
+    dateIdeaCandidates: [],
+    commonDateIdeaIds: [],
   };
 }
 function readyRound(common = true): Round {
@@ -65,10 +79,17 @@ function readyRound(common = true): Round {
       status: 'OPEN',
       planId: null,
     })),
-    own: { favoriteWishIds: WISH_IDS.slice(0, 2), published: true, version: 1 },
+    own: {
+      favoriteWishIds: WISH_IDS.slice(0, 2),
+      favoriteDateIdeaIds: [],
+      published: true,
+      version: 1,
+    },
     selectionToken: `${ROUND_ID}:1:1`,
     resultState: 'READY',
     commonWishIds: common ? [WISH_IDS[0]] : [],
+    dateIdeaCandidates: [],
+    commonDateIdeaIds: [],
   };
 }
 
@@ -158,7 +179,12 @@ async function install(page: Page, initial = emptyRound()) {
           status: 'OPEN',
           planId: null,
         })),
-        own: { favoriteWishIds: [], published: false, version: 0 },
+        own: {
+          favoriteWishIds: [],
+          favoriteDateIdeaIds: [],
+          published: false,
+          version: 0,
+        },
         commonWishIds: [],
         resultState: 'CHOOSING',
       };
@@ -383,7 +409,12 @@ test('publication failure/offline retain private input and never replay a write'
   page,
 }) => {
   const initial = readyRound();
-  initial.own = { favoriteWishIds: [], published: false, version: 0 };
+  initial.own = {
+    favoriteWishIds: [],
+    favoriteDateIdeaIds: [],
+    published: false,
+    version: 0,
+  };
   initial.selectionToken = `${ROUND_ID}:1:0`;
   initial.resultState = 'CHOOSING';
   initial.commonWishIds = [];

@@ -341,7 +341,8 @@ for (const theme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: copy.deleting, exact: true }),
     ).toBeDisabled();
     await state.respond(204);
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(
       page.getByRole('heading', { name: de.story.timelineTitle, exact: true }),
     ).toBeVisible();

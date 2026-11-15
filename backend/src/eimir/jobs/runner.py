@@ -18,6 +18,7 @@ from types import FrameType
 
 from eimir.attachments import account_media
 from eimir.attachments import cleanup as media_cleanup
+from eimir.calendar_sync import jobs as calendar_sync_jobs
 from eimir.config import get_settings
 from eimir.context_tags import jobs as context_tag_jobs
 from eimir.daily_checkins import retention as daily_checkin_retention
@@ -121,6 +122,7 @@ def main() -> None:
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()
+    calendar_sync_jobs.register_handlers()
     _ensure_maintenance()
     last_checked = time.monotonic()
 

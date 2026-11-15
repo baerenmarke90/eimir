@@ -14,6 +14,7 @@ from eimir.api.concurrency import IfMatchToken
 from eimir.api.deps import Authorization, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.api.v1.attachments import AttachmentDetail, _detail
 from eimir.auth.tokens import generate_token
 from eimir.config import get_settings
 from eimir.core.clock import now
@@ -37,6 +38,8 @@ class PhotoSourceAvailability(ApiModel):
     immich_connected: bool
     immich_connection_token: str
     immich_origin: str | None = None
+    google_account_email: str | None = None
+    google_account_token: str
     can_import: bool
 
 
@@ -47,16 +50,40 @@ class PhotoSourceConnectionCreate(ApiModel):
     consent: Literal[True]
 
 
+class GoogleAccountSave(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+    consent: Literal[True]
+
+
 class PhotoSelectionCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
     source: Literal["google", "immich"]
     max_items: int = Field(ge=1, le=20)
     consent: Literal[True]
     media_recovery_policy: Literal["memory-only-v1"] | None = None
+    allow_video: bool = Field(
+        default=False,
+        description=(
+            "True only for destinations that accept videos. Image-only destinations keep the "
+            "default; the server then marks every video as not allowed."
+        ),
+    )
 
 
 class PhotoSelectionItemView(ApiModel):
     id: str
+    ordinal: int = Field(description="Stable position of the item in the provider selection.")
+    kind: Literal["IMAGE", "VIDEO", "OTHER"]
+    mime_type: str
+    availability: Literal["AVAILABLE", "PROCESSING", "UNAVAILABLE"]
+    code: str | None = Field(
+        default=None,
+        description="Fixed code explaining why an item is not available; never provider text.",
+    )
+    attachment_id: UUID | None = Field(
+        default=None, description="The staged Attachment of an already imported item."
+    )
 
 
 class PhotoSelectionView(ApiModel):
@@ -68,6 +95,7 @@ class PhotoSelectionView(ApiModel):
     poll_after_seconds: int = 5
     items: list[PhotoSelectionItemView]
     has_more: bool
+    allow_video: bool = False
 
 
 def _view(row: PhotoSelection, authorization_url: str | None = None) -> PhotoSelectionView:
@@ -82,8 +110,20 @@ def _view(row: PhotoSelection, authorization_url: str | None = None) -> PhotoSel
             if row.status == "PICKING"
             else 5
         ),
-        items=[PhotoSelectionItemView(id=item.id) for item in row.payload.items],
+        items=[
+            PhotoSelectionItemView(
+                id=item.id,
+                ordinal=item.ordinal,
+                kind=item.kind,
+                mime_type=item.mime_type,
+                availability=item.availability,
+                code=item.code,
+                attachment_id=item.attachment_id,
+            )
+            for item in row.payload.items
+        ],
         has_more=row.payload.next_page is not None,
+        allow_video=row.payload.allow_video,
     )
 
 
@@ -103,6 +143,11 @@ def sources(
         if get_settings().encryption_mode is EncryptionMode.REQUIRED
         else None
     )
+    google_account = (
+        service.google_account_hint(session, authorization.account_id)
+        if settings.encryption_mode is EncryptionMode.REQUIRED
+        else None
+    )
     return PhotoSourceAvailability(
         enabled=service.enabled(),
         google_available=(
@@ -113,6 +158,8 @@ def sources(
         immich_connected=linked is not None,
         immich_connection_token=service.connection_token(linked, authorization.account_id),
         immich_origin=linked.payload.origin if linked else None,
+        google_account_email=google_account.payload.email if google_account else None,
+        google_account_token=service.google_account_token(google_account, authorization.account_id),
         can_import=has_capability(
             session, authorization.space_id, Capability.INTEGRATION_EXTERNAL_SYNC.value
         ),
@@ -150,6 +197,37 @@ def disconnect(
     return Response(status_code=204, headers=_HEADERS)
 
 
+@router.put(
+    "/spaces/{spaceId}/photo-sources/google/account",
+    status_code=204,
+    response_class=Response,
+    operation_id="saveGooglePhotoAccount",
+    responses=problem_responses(401, 403, 404, 409, 422, 429, 503),
+)
+def save_google_account(
+    authorization: Authorization,
+    session: DbSession,
+    body: GoogleAccountSave,
+    expected: IfMatchToken,
+) -> Response:
+    service.save_google_account(session, authorization, body.email, expected)
+    return Response(status_code=204, headers=_HEADERS)
+
+
+@router.delete(
+    "/spaces/{spaceId}/photo-sources/google/account",
+    status_code=204,
+    response_class=Response,
+    operation_id="removeGooglePhotoAccount",
+    responses=problem_responses(401, 404, 409, 422),
+)
+def remove_google_account(
+    authorization: Authorization, session: DbSession, expected: IfMatchToken
+) -> Response:
+    service.remove_google_account(session, authorization, expected)
+    return Response(status_code=204, headers=_HEADERS)
+
+
 @router.post(
     "/spaces/{spaceId}/photo-selections",
     response_model=PhotoSelectionView,
@@ -173,6 +251,7 @@ def start(
         body.max_items,
         browser_binding=proof,
         media_recovery_policy=body.media_recovery_policy,
+        allow_video=body.allow_video,
     )
     response.headers.update(_HEADERS)
     if proof and row.payload.oauth_state:
@@ -236,6 +315,32 @@ def read(
         media_type=photo.mime_type,
         headers={**_HEADERS, "Content-Disposition": f'attachment; filename="{photo.filename}"'},
     )
+
+
+@router.post(
+    "/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import",
+    response_model=AttachmentDetail,
+    operation_id="importSelectedVideo",
+    responses=problem_responses(401, 403, 404, 409, 413, 415, 429, 503),
+)
+def import_video(
+    authorization: Authorization,
+    device: CurrentSession,
+    session: DbSession,
+    selection_id: Annotated[str, Path(alias="selectionId")],
+    item_id: Annotated[str, Path(alias="itemId")],
+    response: Response,
+) -> AttachmentDetail:
+    """Move one selected, provider-ready video into the protected attachment pipeline.
+
+    Repeating the call for the same item returns the same staged Attachment.
+    """
+    row = service.owned(session, authorization, device, selection_id, lock=False)
+    attachment = service.import_video(session, authorization, row, item_id)
+    # A cancel, unlink or expiry during the transfer invalidates the late result.
+    service.owned(session, authorization, device, selection_id, lock=False)
+    response.headers.update(_HEADERS)
+    return _detail(attachment)
 
 
 @router.delete(

@@ -72,6 +72,8 @@ class PlanSchedule(ApiModel):
     ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware
     instant. Exactly one of those semantic starts must be supplied; clients may
     never synthesize a wall-clock time merely to encode ``plannedOn``.
+    ``plannedUntil`` is the optional inclusive last calendar day of a
+    multi-day date-only Plan; a timed Plan uses ``plannedEnd`` instead.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -79,6 +81,7 @@ class PlanSchedule(ApiModel):
     planned_on: date | SkipJsonSchema[None] = None
     planned_start: datetime | SkipJsonSchema[None] = None
     planned_end: datetime | SkipJsonSchema[None] = None
+    planned_until: date | SkipJsonSchema[None] = None
 
     @model_validator(mode="after")
     def _validate_schedule(self) -> Self:
@@ -94,6 +97,16 @@ class PlanSchedule(ApiModel):
             raise ValueError("plannedOn and plannedStart are mutually exclusive")
         if self.planned_on is not None and self.planned_end is not None:
             raise ValueError("plannedEnd requires plannedStart")
+        if "planned_until" in self.model_fields_set and self.planned_until is None:
+            raise ValueError("plannedUntil must not be null")
+        if self.planned_until is not None and self.planned_on is None:
+            raise ValueError("plannedUntil requires plannedOn")
+        if (
+            self.planned_until is not None
+            and self.planned_on is not None
+            and self.planned_until < self.planned_on
+        ):
+            raise ValueError("plannedUntil must not precede plannedOn")
         return self
 
 
@@ -305,6 +318,8 @@ class PlanDetail(ApiModel):
     preview_title: str | None = None
     planned_start: datetime | None
     planned_end: datetime | None
+    planned_until: date | None = None
+    """Inclusive last day of a multi-day date-only Plan; NULL for a single day."""
     experienced_on: date | None
     version: int
     created_at: datetime
@@ -402,6 +417,7 @@ def _plan_detail(
         preview_title=plan.payload.preview_title,
         planned_start=plan.planned_start,
         planned_end=plan.planned_end,
+        planned_until=plan.planned_until,
         experienced_on=plan.experienced_on,
         version=plan.version,
         created_at=plan.created_at,
@@ -415,12 +431,15 @@ def _plan_detail(
     )
 
 
-def _schedule_values(
-    schedule: PlanSchedule | None,
-) -> tuple[date | None, datetime | None, datetime | None]:
+def _schedule_values(schedule: PlanSchedule | None) -> service.PlanScheduleValues:
     if schedule is None:
-        return None, None, None
-    return schedule.planned_on, schedule.planned_start, schedule.planned_end
+        return None, None, None, None
+    return (
+        schedule.planned_on,
+        schedule.planned_start,
+        schedule.planned_end,
+        schedule.planned_until,
+    )
 
 
 @router.post(
@@ -449,7 +468,7 @@ def create_plan(
     body: PlanCreate,
     idempotency_key: IdempotencyKey,
 ) -> PlanDetail:
-    planned_on, planned_start, planned_end = _schedule_values(body.schedule)
+    planned_on, planned_start, planned_end, planned_until = _schedule_values(body.schedule)
     result = service.create_plan_once(
         session,
         authorization,
@@ -466,6 +485,7 @@ def create_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
@@ -625,6 +645,7 @@ def schedule_plan(
         planned_on=body.planned_on,
         planned_start=body.planned_start,
         planned_end=body.planned_end,
+        planned_until=body.planned_until,
     )
     response.headers["ETag"] = etag_for(plan.version)
     return _plan_detail(session, authorization, plan)
@@ -775,7 +796,7 @@ def convert_wish_to_plan(
     expected_version: IfMatchVersion,
     wish_id: Annotated[str, Path(alias="wishId")],
 ) -> WishToPlanResponse:
-    planned_on, planned_start, planned_end = _schedule_values(body.schedule)
+    planned_on, planned_start, planned_end, planned_until = _schedule_values(body.schedule)
     result = service.convert_wish_to_plan(
         session,
         authorization,
@@ -787,6 +808,7 @@ def convert_wish_to_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK

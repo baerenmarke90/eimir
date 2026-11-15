@@ -366,7 +366,8 @@ for (const theme of ['light', 'dark'] as const) {
     );
     state.release();
     await response;
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     expect(state.deletes).toEqual(['1']);
     expect(state.unexpected).toEqual([]);
   });

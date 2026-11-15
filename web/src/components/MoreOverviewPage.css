@@ -278,6 +278,7 @@
 }
 .more-legal {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   padding-block: var(--space-2);
   font: var(--font-supporting-copy);

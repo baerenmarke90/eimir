@@ -233,7 +233,7 @@ No authorization required
 
 Update Wir Design Preference
 
-Save a personal cosmetic. Warm is Free; new alternatives require Pro.
+Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.
 
 ### Example
 

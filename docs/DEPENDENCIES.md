@@ -219,6 +219,11 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| defusedxml | 0.7.1 | PyPI | PSFL |
+
+`defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
+entity expansion, external entities or DTD retrieval. It has no runtime
+dependencies, sends no data and is replaceable by a hardened stdlib parser.
 
 The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 `hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
@@ -408,6 +413,8 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
+| com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
 | com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
@@ -440,6 +447,24 @@ non-authoritative Kotlin client and are not part of server data continuity.
 contains no server sender private key. The Google Services plugin activates only
 when that configured build input is present. Official distribution and Firebase
 project/package alignment are separate from server credential installation.
+
+### Store billing (2026-11-15, #1525)
+
+`@capgo/native-purchases` is used unmodified as the native store sheet bridge:
+Google Play Billing Library 9.1.0 on Android and StoreKit 2 on iOS (prepared,
+not yet connected). It was selected over a hand-written plugin, RevenueCat and
+`cordova-plugin-purchase` because it covers both stores behind one Capacitor
+interface, lets the backend acknowledge purchases
+(`autoAcknowledgePurchases: false`) and sends nothing to a third-party billing
+service. Only the opaque purchase reference (`appAccountToken`, sent to Google
+as the obfuscated account ID) and the selected base plan reach the store. The
+MPL notice and source location ship in
+`web/public/licenses/capgo-native-purchases-NOTICE.txt`; the complete license
+is the existing `mediabunny-MPL-2.0.txt` text. The Play Billing Library is a
+Google SDK component distributed under the Android SDK license; its artifacts
+are pinned in the strict Gradle verification metadata. Purchase verification
+runs on the eimir. Cloud backend with the already adopted `google-auth` and
+`httpx`; no new backend dependency is added.
 
 ## iOS — Capacitor wrapper runtime
 
@@ -547,6 +572,7 @@ decision for the project's own source code.
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
+| `backend/src/eimir/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

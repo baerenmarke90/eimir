@@ -25,6 +25,8 @@ from eimir.collections.models import (
     CollectionItemPayload,
     CollectionKind,
     CollectionPayload,
+    CollectionSuggestion,
+    CollectionSuggestionPayload,
     shared_privacy,
 )
 from eimir.core import cursor as cursor_codec
@@ -46,9 +48,18 @@ COLLECTION_ORDER_INVALID = "COLLECTION_ORDER_INVALID"
 COLLECTION_ORDER_CONFLICT = "COLLECTION_ORDER_CONFLICT"
 COLLECTION_ITEM_QUANTITY_TOO_LONG = "COLLECTION_ITEM_QUANTITY_TOO_LONG"
 COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED = "COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED"
+COLLECTION_SUGGESTION_NOT_FOUND = "COLLECTION_SUGGESTION_NOT_FOUND"
+COLLECTION_SHOPPING_NOT_SUPPORTED = "COLLECTION_SHOPPING_NOT_SUPPORTED"
+COLLECTION_FINISH_TOO_MANY_ITEMS = "COLLECTION_FINISH_TOO_MANY_ITEMS"
 
 # Display text such as "2 l" or "500 g"; a technical bound, not a product limit.
 ITEM_QUANTITY_MAX_LENGTH = 40
+
+# Technical bounds against abusive payloads, not product limits (decision 0016):
+# the most entries one finish request may name, and how many suggestions a
+# shopping list keeps before the least recently bought ones are dropped.
+FINISH_MAX_ITEMS = 200
+SUGGESTIONS_MAX_PER_COLLECTION = 200
 
 
 class CollectionScope(StrEnum):
@@ -273,10 +284,13 @@ def _cursor_binding(
     context: AuthorizationContext,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> dict[str, Any]:
     binding = {"collection": "collections", "spaceId": str(context.space_id)}
     if scope != CollectionScope.ALL:
         binding["scope"] = scope.value
+    if kind is not None:
+        binding["kind"] = kind.value
     if ids is not None:
         binding["ids"] = ",".join(sorted(str(identifier) for identifier in ids))
     return binding
@@ -289,9 +303,10 @@ def _encode_cursor(
     collection_id: UUID,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context, scope, ids),
+        binding=_cursor_binding(context, scope, ids, kind),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(collection_id),
@@ -305,8 +320,9 @@ def _decode_cursor(
     context: AuthorizationContext,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope, ids))
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope, ids, kind))
     created_raw = position.get("createdAt")
     collection_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(collection_raw, str):
@@ -329,15 +345,20 @@ def list_collections(
     limit: int,
     scope: CollectionScope = CollectionScope.ALL,
     ids: Sequence[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> CollectionPageResult:
     """Page readable Collections, optionally limited to the given identifiers.
 
     ``ids`` lets a client read several known lists (for example the ones shown
-    on Wir) in one request instead of one request per list.
+    on Wir) in one request instead of one request per list. ``kind`` answers
+    questions such as "does the couple have a shopping list yet" without
+    paging through every list of another kind.
     """
     statement = readable(Collection, context)
     if ids is not None:
         statement = statement.where(Collection.id.in_(ids))
+    if kind is not None:
+        statement = statement.where(Collection.kind == kind.value)
     if scope != CollectionScope.ALL:
         has_items = (
             select(CollectionItem.id).where(CollectionItem.collection_id == Collection.id).exists()
@@ -353,7 +374,9 @@ def list_collections(
         completed = and_(has_items, ~has_unchecked)
         statement = statement.where(completed if scope == CollectionScope.COMPLETED else ~completed)
     if cursor is not None:
-        created_at, collection_id = _decode_cursor(cursor, context=context, scope=scope, ids=ids)
+        created_at, collection_id = _decode_cursor(
+            cursor, context=context, scope=scope, ids=ids, kind=kind
+        )
         statement = statement.where(
             or_(
                 Collection.created_at < created_at,
@@ -376,6 +399,7 @@ def list_collections(
             collection_id=last.id,
             scope=scope,
             ids=ids,
+            kind=kind,
         )
     return CollectionPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 
@@ -688,6 +712,189 @@ def delete_item(
     _flush(session)
 
 
+@dataclass(frozen=True)
+class FinishShoppingResult:
+    collection: Collection
+    finished_count: int
+
+
+def _require_shopping(collection: Collection) -> None:
+    if collection.kind != CollectionKind.SHOPPING.value:
+        raise ValidationError(
+            "Only a shopping list has a trip to finish and suggestions.",
+            COLLECTION_SHOPPING_NOT_SUPPORTED,
+        )
+
+
+def _suggestion_key(title: str) -> str:
+    """Two spellings of one thing (case, spacing) are one suggestion."""
+    return " ".join(title.split()).casefold()
+
+
+def finish_shopping(
+    session: Session,
+    context: AuthorizationContext,
+    collection_id: UUID | str,
+    *,
+    item_ids: Sequence[UUID],
+) -> FinishShoppingResult:
+    """End a shopping trip: clear the named entries from the cart and remember them.
+
+    Only the entries the client names and that are still completed are taken, so
+    repeating the request, or a partner finishing the same cart at the same time,
+    finds nothing left to do and loses nothing; an entry checked after the client
+    read the list is not named and stays. The list row is locked for the whole
+    call, which orders two finishes. Titles move to the suggestions of the list.
+    """
+    collection = require_writable_locked(session, Collection, context, collection_id)
+    _require_shopping(collection)
+    wanted = list(dict.fromkeys(item_ids))
+    if len(wanted) > FINISH_MAX_ITEMS:
+        raise ValidationError(
+            f"A trip finishes at most {FINISH_MAX_ITEMS} entries at once.",
+            COLLECTION_FINISH_TOO_MANY_ITEMS,
+        )
+    finished = (
+        list(
+            session.execute(
+                select(CollectionItem)
+                .where(
+                    CollectionItem.collection_id == collection.id,
+                    CollectionItem.id.in_(wanted),
+                    CollectionItem.completed.is_(True),
+                )
+                .order_by(CollectionItem.position)
+                .with_for_update()
+            ).scalars()
+        )
+        if wanted
+        else []
+    )
+    if not finished:
+        return FinishShoppingResult(collection=collection, finished_count=0)
+
+    now = datetime.now(UTC)
+    known = {
+        _suggestion_key(suggestion.payload.title): suggestion
+        for suggestion in session.execute(
+            select(CollectionSuggestion)
+            .where(CollectionSuggestion.collection_id == collection.id)
+            .with_for_update()
+        ).scalars()
+    }
+    for item in finished:
+        key = _suggestion_key(item.payload.title)
+        suggestion = known.get(key)
+        payload = CollectionSuggestionPayload(
+            title=item.payload.title, quantity=item.payload.quantity
+        )
+        if suggestion is None:
+            suggestion = CollectionSuggestion(
+                collection_id=collection.id,
+                payload=payload,
+                last_bought_at=now,
+                times_bought=1,
+            )
+            session.add(suggestion)
+            known[key] = suggestion
+        else:
+            suggestion.payload = payload
+            suggestion.last_bought_at = now
+            suggestion.times_bought += 1
+
+    deleted = [(item.id, item.version) for item in finished]
+    for item in finished:
+        session.delete(item)
+    _flush(session)
+
+    remaining = list(
+        session.execute(
+            select(CollectionItem.id)
+            .where(CollectionItem.collection_id == collection.id)
+            .order_by(CollectionItem.position)
+        ).scalars()
+    )
+    if remaining:
+        position_by_id = {item_id: position for position, item_id in enumerate(remaining)}
+        session.execute(
+            update(CollectionItem)
+            .where(CollectionItem.collection_id == collection.id)
+            .values(
+                position=case(position_by_id, value=CollectionItem.id),
+                updated_at=CollectionItem.updated_at,
+            ),
+            execution_options={"synchronize_session": False},
+        )
+
+    overflow = len(known) - SUGGESTIONS_MAX_PER_COLLECTION
+    if overflow > 0:
+        # Keep the ones bought most recently; a suggestion is a convenience.
+        oldest = sorted(known.values(), key=lambda value: value.last_bought_at)[:overflow]
+        for suggestion in oldest:
+            if suggestion.last_bought_at != now:
+                session.delete(suggestion)
+
+    _touch_collection(collection)
+    _flush(session)
+    for deleted_id, deleted_version in deleted:
+        _record(
+            session,
+            event_type=EventType.COLLECTION_ITEM_DELETED,
+            actor_id=context.account_id,
+            space_id=collection.space_id,
+            subject_type=_COLLECTION_ITEM_SUBJECT_TYPE,
+            subject_id=deleted_id,
+            resource_version=deleted_version,
+        )
+    _record_collection(session, collection, context.account_id, EventType.COLLECTION_UPDATED)
+    _flush(session)
+    return FinishShoppingResult(collection=collection, finished_count=len(finished))
+
+
+def list_suggestions(
+    session: Session,
+    context: AuthorizationContext,
+    collection_id: UUID | str,
+) -> list[CollectionSuggestion]:
+    """The titles bought before, the most recently bought first."""
+    collection = require_readable(session, Collection, context, collection_id)
+    _require_shopping(collection)
+    return list(
+        session.execute(
+            select(CollectionSuggestion)
+            .where(CollectionSuggestion.collection_id == collection.id)
+            .order_by(CollectionSuggestion.last_bought_at.desc(), CollectionSuggestion.id)
+        ).scalars()
+    )
+
+
+def delete_suggestion(
+    session: Session,
+    context: AuthorizationContext,
+    collection_id: UUID | str,
+    suggestion_id: UUID | str,
+) -> None:
+    # A plain list never has suggestions, so asking for one there is simply "not found".
+    collection = require_writable_locked(session, Collection, context, collection_id)
+    identifier = suggestion_id if isinstance(suggestion_id, UUID) else parse_id(suggestion_id)
+    suggestion = (
+        session.execute(
+            select(CollectionSuggestion)
+            .where(
+                CollectionSuggestion.collection_id == collection.id,
+                CollectionSuggestion.id == identifier,
+            )
+            .with_for_update()
+        ).scalar_one_or_none()
+        if identifier is not None
+        else None
+    )
+    if suggestion is None:
+        raise NotFoundError("Suggestion not found.", COLLECTION_SUGGESTION_NOT_FOUND)
+    session.delete(suggestion)
+    _flush(session)
+
+
 def reorder_items(
     session: Session,
     context: AuthorizationContext,
@@ -738,25 +945,34 @@ def reorder_items(
 
 
 __all__ = [
+    "COLLECTION_FINISH_TOO_MANY_ITEMS",
     "COLLECTION_ITEM_NOT_FOUND",
     "COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED",
     "COLLECTION_ITEM_QUANTITY_TOO_LONG",
     "COLLECTION_ITEM_TITLE_REQUIRED",
     "COLLECTION_ORDER_CONFLICT",
     "COLLECTION_ORDER_INVALID",
+    "COLLECTION_SHOPPING_NOT_SUPPORTED",
+    "COLLECTION_SUGGESTION_NOT_FOUND",
     "COLLECTION_TITLE_REQUIRED",
+    "FINISH_MAX_ITEMS",
     "ITEM_QUANTITY_MAX_LENGTH",
+    "SUGGESTIONS_MAX_PER_COLLECTION",
     "CollectionItemCreateResult",
     "CollectionItemUpdateResult",
     "CollectionPageResult",
+    "FinishShoppingResult",
     "create_collection",
     "create_item",
     "create_item_once",
     "delete_collection",
     "delete_item",
+    "delete_suggestion",
+    "finish_shopping",
     "get_collection",
     "list_collections",
     "list_items",
+    "list_suggestions",
     "normalize_quantity",
     "reorder_items",
     "update_collection",

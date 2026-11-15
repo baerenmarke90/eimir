@@ -1,7 +1,7 @@
 ---
 document: terms-of-use
 locale: de-DE
-version: 2026-11-05.draft-1
+version: 2026-11-06.draft-2
 status: draft
 effective: null
 legal_review: pending
@@ -75,7 +75,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
 
 ## § 7 Datenschutz
 
-Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren Datenschutzhinweisen unter [[PRIVACY_URL]]. Die Datenschutzhinweise informieren dich; sie sind nicht Teil dieser Nutzungsbedingungen und müssen nicht akzeptiert werden.
+Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschutzhinweisen](/legal/privacy). Die Datenschutzhinweise informieren dich; sie sind nicht Teil dieser Nutzungsbedingungen und müssen nicht akzeptiert werden.
 
 ## § 8 Was nicht erlaubt ist
 

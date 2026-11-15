@@ -44,6 +44,7 @@ def test_configured_encrypted_premium_deployment_still_hides_google(
 ):
     session = Mock()
     monkeypatch.setattr(service, "connection", Mock(return_value=None))
+    monkeypatch.setattr(service, "google_account_hint", Mock(return_value=None))
     monkeypatch.setattr(api, "has_capability", Mock(return_value=True))
     availability = api.sources(context(), session, Response())
     assert service.enabled() is True

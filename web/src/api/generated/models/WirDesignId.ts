@@ -18,7 +18,9 @@
  * @export
  */
 export const WirDesignId = {
+    connected: 'connected',
     warm: 'warm',
+    shared_album: 'shared_album',
     modern: 'modern',
     classic: 'classic'
 } as const;

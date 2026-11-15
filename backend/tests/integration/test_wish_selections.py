@@ -101,7 +101,12 @@ def test_private_lists_and_versions_are_not_partner_projections(client, actors):
     assert first.json()["resultState"] == "WAITING"
     assert first.headers["cache-control"] == "private, no-store"
     second = client.get(path(actors), headers=headers(actors, "b")).json()
-    assert second["own"] == {"favoriteWishIds": [], "published": False, "version": 0}
+    assert second["own"] == {
+        "favoriteWishIds": [],
+        "favoriteDateIdeaIds": [],
+        "published": False,
+        "version": 0,
+    }
     assert second["resultState"] == "CHOOSING"
     assert second["commonWishIds"] == []
     assert not {"partner", "selections", "partnerVersion", "participantCount"} & set(second)

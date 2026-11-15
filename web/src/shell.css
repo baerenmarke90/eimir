@@ -88,11 +88,13 @@
   );
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
+/* The glow belongs to Wir alone. It fades in on arrival but leaves at once,
+   so it never lingers as a tint over the tab that slides in. */
 .product-shell[data-top-surface="today"]::before {
   opacity: 1;
+  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
 .product-shell[data-top-surface="today"]
@@ -111,20 +113,12 @@
   position: relative;
 }
 
-.quick-create-trigger {
-  justify-content: flex-start;
-  border: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
 /* Global utilities live in the app bar and stay icon-only in persistent chrome.
    The border is transparent by default: it keeps the box model shared with
    the brand-colored primary action below, without drawing a visible ring
    around the neutral utility icons at rest. */
 .shell-utility-link,
-.header-profile-trigger,
-.shell-primary-action .quick-create-trigger {
+.header-profile-trigger {
   display: inline-grid;
   width: 44px;
   min-width: 44px;
@@ -513,103 +507,6 @@
     z-index: 91;
     padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
   }
-}
-
-.quick-create {
-  position: relative;
-  width: 100%;
-}
-
-.quick-create-trigger:focus-visible,
-.quick-create-menu-item:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.quick-create-menu {
-  position: absolute;
-  z-index: 70;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  display: grid;
-  width: 100%;
-  min-width: 13rem;
-  gap: var(--space-1);
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
-  padding: var(--space-2);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
-}
-
-.quick-create-group-label {
-  padding: var(--space-2) var(--space-3) var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.quick-create-menu-item {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-medium);
-  padding: var(--space-3);
-  color: var(--color-text);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.quick-create-menu-item:hover {
-  background: var(--color-surface-subtle);
-}
-
-.quick-create-separator {
-  height: 1px;
-  margin: var(--space-1) var(--space-2);
-  border: 0;
-  background: var(--color-border-subtle);
-}
-
-.quick-create-private-item {
-  color: var(--color-text-secondary);
-}
-
-/* Global creation shares the header utilities; Compact keeps its action sheet. */
-.shell-primary-action {
-  position: relative;
-  display: none;
-}
-
-.shell-primary-action .quick-create-trigger {
-  justify-content: center;
-  border-color: var(--color-brand-glow);
-  background: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  box-shadow: none;
-}
-
-.shell-primary-action .quick-create-trigger > span:not(.shell-nav-icon) {
-  display: none;
-}
-
-.shell-primary-action .quick-create-menu {
-  position: absolute;
-  right: 0;
-  left: auto;
-  width: min(26rem, calc(100vw - var(--space-10)));
-  max-width: none;
-  max-height: calc(100dvh - var(--topbar-height) - var(--space-8));
-  overflow-y: auto;
-  margin: 0;
-  background: var(--color-surface-raised);
-}
-
-.shell-primary-action .quick-create-tile-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 /* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
@@ -1190,10 +1087,6 @@
 
     width: min(var(--content-max), calc(100% - 4rem));
     padding-bottom: var(--space-16);
-  }
-
-  .shell-primary-action {
-    display: grid;
   }
 
   .mobile-bottom-shell {

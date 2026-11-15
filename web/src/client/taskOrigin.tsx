@@ -8,9 +8,12 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { DateIdeasFilterState } from './dateIdeas';
+import { previousEntryIs } from './historyEntries';
 import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
+  DATE_IDEAS_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
@@ -27,7 +30,6 @@ const MAX_ORIGINS = 12;
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 export interface TaskOriginMetadata {
-  focusTarget?: 'quick-create';
   selectedKey?: string;
   selectedOffset?: number;
   loadedPageCount?: number;
@@ -42,6 +44,19 @@ export interface TaskOriginMetadata {
   planningWishSearch?: string;
   /** Date-only default for a new Plan started from a shared occasion. */
   planningCreateDate?: string;
+  /**
+   * Editable catalog text that prefills a new Wish or Plan started from a
+   * curated date idea; the idea ID is only the in-session link, never sent.
+   */
+  planningCreateDraft?: {
+    title: string;
+    description?: string;
+    dateIdeaId?: string;
+  };
+  /** Editable prefill for converting a known Wish into a Plan. */
+  planningConvertDraft?: { title: string; description?: string };
+  /** Restores the date inspiration filters; catalog keys only, never content. */
+  dateIdeasFilter?: DateIdeasFilterState;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */
   memoryMap?: {
     placeId: string | null;
@@ -128,6 +143,7 @@ export function taskOriginPath(
       MORE_PLACES_ROUTE,
       '/plan',
       WISH_SELECTION_ROUTE,
+      DATE_IDEAS_ROUTE,
       '/more',
       STORY_RECAPS_ROUTE,
       '/search',
@@ -255,7 +271,6 @@ export function TaskOriginProvider({
           (snapshot.loadedPageCount ?? 0) > 0
             ? (snapshot.loadedPageCount ?? 1)
             : 1,
-        focusTarget: snapshot.focusTarget,
         selectedKey: snapshot.selectedKey,
         selectedOffset: snapshot.selectedOffset,
         searchQuery: snapshot.searchQuery,
@@ -266,6 +281,9 @@ export function TaskOriginProvider({
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
         planningCreateDate: snapshot.planningCreateDate,
+        planningCreateDraft: snapshot.planningCreateDraft,
+        planningConvertDraft: snapshot.planningConvertDraft,
+        dateIdeasFilter: snapshot.dateIdeasFilter,
         memoryMap: snapshot.memoryMap,
         taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
@@ -313,7 +331,10 @@ export function TaskOriginProvider({
       if (!generation.active || storeRef.current !== generation) return;
       const origin = resolveStored(key);
       if (!origin) {
-        void navigate(fallback, { replace: true });
+        // Without a captured origin, a parent directly below is still the
+        // natural Back target; replacing would leave it in history twice.
+        if (previousEntryIs(fallback)) void navigate(-1);
+        else void navigate(fallback, { replace: true });
         return;
       }
       if (

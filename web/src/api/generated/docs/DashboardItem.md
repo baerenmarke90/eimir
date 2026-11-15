@@ -15,6 +15,7 @@ Name | Type
 `previewIsSensitive` | boolean
 `scheduledAt` | Date
 `scheduledOn` | Date
+`scheduledUntil` | Date
 `titleOrText` | string
 `type` | [DashboardItemType](DashboardItemType.md)
 
@@ -34,6 +35,7 @@ const example = {
   "previewIsSensitive": null,
   "scheduledAt": null,
   "scheduledOn": null,
+  "scheduledUntil": null,
   "titleOrText": null,
   "type": null,
 } satisfies DashboardItem

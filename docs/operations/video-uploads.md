@@ -270,7 +270,10 @@ Debian security feed. For FFmpeg it keeps an unresolved advisory only when it na
 source file of the real build, an architecture-specific file, or no resolvable source
 file, and it fails on such an advisory until `advisory-review.json` records it with a
 matching evidence hash. An advisory that names only unbuilt files is counted and ignored,
-because it cannot concern the shipped binary. OpenH264 and zimg keep the exact-match
+because it cannot concern the shipped binary. When it names no file, it is ignored only if
+every function it names is absent from the built sources of the pinned upstream archive
+(downloaded and digest-checked by the script); architecture-specific and token-pasted
+names never count as absent. OpenH264 and zimg keep the exact-match
 contract on new/removed/changed unresolved advisories. It runs on PRs and weekly;
 feed/network failure is a failed check. `tools/media/built-sources.txt` is the set of
 source files that reach the shipped binary. `build-inventory.py` derives it from the make

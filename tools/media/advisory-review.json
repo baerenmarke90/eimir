@@ -263,6 +263,16 @@
       "evidenceSha256": "ea004821113616a7cfd42f3037ba344586a242d4f70a4dc7bb4327f82c62e35f",
       "reviewedAt": "2026-11-15",
       "review": "The affected Quick Sync encoder wrapper (libavcodec/qsvenc.c) is built only with CONFIG_QSVENC, which requires the external libmfx (qsv_deps in configure). build-ffmpeg.sh sets --disable-autodetect, enables no QSV encoder and links no Intel media library."
+    },
+    "CVE-2026-125256": {
+      "evidenceSha256": "2741ef52693e341b90043341e5d243cb8e09db73f3f22f9462cd57883c513a9c",
+      "reviewedAt": "2026-11-16",
+      "review": "The affected RISC-V vector routine (ff_llvidenc_diff_bytes_rvv()) is not compiled: libavcodec/riscv/Makefile builds llvidencdsp_rvv.o only for RISC-V targets with RVV (RVV-OBJS-$(CONFIG_LLVIDENCDSP)), and the restricted build targets x86_64 Linux. The Huffyuv encoder named in the advisory is not compiled either. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds huffyuvenc.o only with CONFIG_HUFFYUV_ENCODER."
+    },
+    "CVE-2026-125259": {
+      "evidenceSha256": "0060e6dd30e4c18e9a5e883e2355f4ed404bc4d8e8611d773c715da4d82aeb78",
+      "reviewedAt": "2026-11-16",
+      "review": "The affected ProRes encoder (ff_prores_kostya_encode_init() in libavcodec/proresenc_kostya.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds proresenc_kostya.o only with CONFIG_PRORES_KS_ENCODER."
     }
   },
   "dependencies": {

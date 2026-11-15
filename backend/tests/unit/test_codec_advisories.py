@@ -12,6 +12,7 @@ _advisories = runpy.run_path(str(MEDIA_TOOLS / "check-advisories.py"))
 findings = _advisories["findings"]
 is_relevant = _advisories["is_relevant"]
 relevant_findings = _advisories["relevant_findings"]
+source_identifiers = _advisories["source_identifiers"]
 _inventory = runpy.run_path(str(MEDIA_TOOLS / "build-inventory.py"))
 dependency_paths = _inventory["dependency_paths"]
 
@@ -90,3 +91,50 @@ def test_recorded_build_inventory_is_sorted_unique_and_in_tree() -> None:
     assert not any(line.startswith("/") for line in lines)
     assert "libavcodec/h264dec.c" in lines
     assert "libavcodec/vvc/refs.c" not in lines
+
+
+IDENTIFIERS = {"ff_h264_decode_picture", "encode_frame", "avcodec_open2"}
+
+
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        ("Overflow in ff_vvc_slice_rpl() for crafted VVC streams.", False),
+        ("Overflow in ff_h264_decode_picture() for crafted streams.", True),
+        ("Overflow in ff_llvidenc_diff_bytes_rvv() on RISC-V builds.", True),
+        ("Overflow in hevc_idct_8() through the macro-built table.", True),
+        ("Overflow in ff_prores_kostya_encode_init() reached through encode_frame().", True),
+        ("Leak in svt_jpegxs_dec_decode() in libsvtjpegxsdec.c.", False),
+        ("Leak in decode_block() in h264dec.c.", True),
+        ("Crash in encode_frame() in libavcodec/huffyuvenc.c.", False),
+        ("An overflow in the decoder with no function or file named.", True),
+    ],
+)
+def test_pathless_advisories_are_dismissed_only_when_no_named_function_is_built(
+    description: str, expected: bool
+) -> None:
+    built = BUILT | {"libavcodec/h264dec.c"}
+    assert is_relevant(description, built, IDENTIFIERS) is expected
+
+
+def test_function_names_are_ignored_without_the_built_source_text() -> None:
+    assert is_relevant("Overflow in ff_vvc_slice_rpl().", BUILT) is True
+
+
+def test_source_identifiers_come_from_the_built_files_only(tmp_path: Path) -> None:
+    (tmp_path / "libavcodec").mkdir()
+    (tmp_path / "libavcodec/h264dec.c").write_text(
+        "int ff_h264_decode_picture(void);\n", encoding="utf-8"
+    )
+    (tmp_path / "libavcodec/dpx.c").write_text("int dpx_decode_frame(void);\n", encoding="utf-8")
+    found = source_identifiers(tmp_path, {"libavcodec/h264dec.c", "config.h"})
+    assert "ff_h264_decode_picture" in found
+    assert "dpx_decode_frame" not in found
+
+
+def test_pinned_ffmpeg_source_matches_the_workflow_that_builds_it() -> None:
+    workflow = (MEDIA_TOOLS.parents[1] / ".github/workflows/media-video.yml").read_text(
+        encoding="utf-8"
+    )
+    assert _advisories["FFMPEG_COMMIT"] in workflow
+    assert _advisories["FFMPEG_SHA256"] in workflow

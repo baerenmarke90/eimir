@@ -27,6 +27,7 @@ from eimir.attachments import binding as _binding  # noqa: F401
 # Register models. These imports look unused, but they are not.
 from eimir.attachments import models as _attachments  # noqa: F401
 from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
+from eimir.billing import models as _billing  # noqa: F401
 from eimir.calendar_sync import models as _calendar_sync  # noqa: F401
 from eimir.chapters import models as _chapters  # noqa: F401
 from eimir.collections import models as _collections  # noqa: F401

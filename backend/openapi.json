@@ -873,6 +873,23 @@
         "title": "AuthorSummary",
         "type": "object"
       },
+      "BillingChannelsView": {
+        "description": "Store channels this installation can fulfil; empty on Self-Hosted.",
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/StoreChannelView"
+            },
+            "title": "Channels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channels"
+        ],
+        "title": "BillingChannelsView",
+        "type": "object"
+      },
       "CalDavConnectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3798,6 +3815,7 @@
         "description": "Normalized origin of an entitlement grant.",
         "enum": [
           "GOOGLE_PLAY",
+          "APP_STORE",
           "CLOUD_STRIPE",
           "SELF_HOSTED_KEY",
           "ADMIN_GRANT",
@@ -14752,6 +14770,153 @@
         "title": "SpaceView",
         "type": "object"
       },
+      "StoreChannel": {
+        "description": "App-store purchase channels. Values equal the entitlement source type.",
+        "enum": [
+          "GOOGLE_PLAY",
+          "APP_STORE"
+        ],
+        "title": "StoreChannel",
+        "type": "string"
+      },
+      "StoreChannelView": {
+        "properties": {
+          "manageUrl": {
+            "title": "Manageurl",
+            "type": "string"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/StorePlanView"
+            },
+            "title": "Plans",
+            "type": "array"
+          },
+          "productId": {
+            "title": "Productid",
+            "type": "string"
+          },
+          "store": {
+            "$ref": "#/components/schemas/StoreChannel"
+          }
+        },
+        "required": [
+          "store",
+          "productId",
+          "plans",
+          "manageUrl"
+        ],
+        "title": "StoreChannelView",
+        "type": "object"
+      },
+      "StorePlan": {
+        "enum": [
+          "monthly",
+          "yearly"
+        ],
+        "title": "StorePlan",
+        "type": "string"
+      },
+      "StorePlanView": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/StorePlan"
+          },
+          "storePlanId": {
+            "title": "Storeplanid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "storePlanId"
+        ],
+        "title": "StorePlanView",
+        "type": "object"
+      },
+      "StorePurchaseResultView": {
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/SpaceEntitlementView"
+          },
+          "outcome": {
+            "enum": [
+              "confirmed",
+              "restored",
+              "pending",
+              "expired"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "entitlement"
+        ],
+        "title": "StorePurchaseResultView",
+        "type": "object"
+      },
+      "StorePurchaseStartRequest": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/StorePlan"
+          },
+          "store": {
+            "$ref": "#/components/schemas/StoreChannel"
+          }
+        },
+        "required": [
+          "store",
+          "plan"
+        ],
+        "title": "StorePurchaseStartRequest",
+        "type": "object"
+      },
+      "StorePurchaseStartView": {
+        "properties": {
+          "productId": {
+            "title": "Productid",
+            "type": "string"
+          },
+          "purchaseReference": {
+            "format": "uuid",
+            "title": "Purchasereference",
+            "type": "string"
+          },
+          "storePlanId": {
+            "title": "Storeplanid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purchaseReference",
+          "productId",
+          "storePlanId"
+        ],
+        "title": "StorePurchaseStartView",
+        "type": "object"
+      },
+      "StorePurchaseSubmitRequest": {
+        "properties": {
+          "purchaseToken": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Purchasetoken",
+            "type": "string"
+          },
+          "restore": {
+            "default": false,
+            "title": "Restore",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "purchaseToken"
+        ],
+        "title": "StorePurchaseSubmitRequest",
+        "type": "object"
+      },
       "StoryHeartMomentItem": {
         "properties": {
           "effectiveDate": {
@@ -21137,7 +21302,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants": {
       "post": {
-        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.\n\nGranting unlimited Premium is as consequential as the other high-risk\nServerAdmin actions in this router (account deletion, email verification,\nrecovery issuance), so it requires the same step-up re-authentication.",
+        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThe operator path for beta testers, support and promotions. Paid Google\nPlay purchases arrive through the store adapter in `eimir.billing`\ninstead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.\n\nGranting unlimited Premium is as consequential as the other high-risk\nServerAdmin actions in this router (account deletion, email verification,\nrecovery issuance), so it requires the same step-up re-authentication.",
         "operationId": "grant_server_admin_space_entitlement_api_v1_server_admin_spaces__space_id__entitlement_grants_post",
         "parameters": [
           {
@@ -22762,6 +22927,225 @@
         "summary": "Create Attachment Read Access",
         "tags": [
           "attachments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/billing/channels": {
+      "get": {
+        "description": "List the purchase channels available for this Space's installation.",
+        "operationId": "get_billing_channels_api_v1_spaces__spaceId__billing_channels_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingChannelsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Billing Channels",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/billing/google-play/purchases": {
+      "post": {
+        "description": "Verify a Google Play purchase token with Google and update the Space.\n\n`pending` grants nothing until Google confirms the payment; the grant then\nfollows from the real-time developer notification.",
+        "operationId": "submit_google_play_purchase_api_v1_spaces__spaceId__billing_google_play_purchases_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorePurchaseSubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorePurchaseResultView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Submit Google Play Purchase",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/billing/purchases": {
+      "post": {
+        "description": "Bind the purchasing Account and this Space before the store sheet opens.\n\n`409 BILLING_SPACE_ALREADY_PREMIUM` means Pro is already active for the\nSpace, for example through the partner's subscription.",
+        "operationId": "start_store_purchase_api_v1_spaces__spaceId__billing_purchases_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorePurchaseStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorePurchaseStartView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Store Purchase",
+        "tags": [
+          "billing"
         ]
       }
     },

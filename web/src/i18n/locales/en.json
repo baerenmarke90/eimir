@@ -5107,6 +5107,16 @@
       "monthly": {
         "name": "Monthly",
         "price": "{{price}} per month"
+      },
+      "trial": {
+        "day_one": "Try {{count}} day free",
+        "day_other": "Try {{count}} days free",
+        "week_one": "Try {{count}} week free",
+        "week_other": "Try {{count}} weeks free",
+        "month_one": "Try {{count}} month free",
+        "month_other": "Try {{count}} months free",
+        "year_one": "Try {{count}} year free",
+        "year_other": "Try {{count}} years free"
       }
     },
     "forBoth": "One subscription. For both of you.",
@@ -5118,6 +5128,11 @@
     },
     "purchasing": "Starting purchase …",
     "restore": "Restore purchase",
+    "manage": "Manage subscription in Google Play",
+    "storeNote": "Payment runs securely through Google Play. eimir. sees no payment details.",
+    "loadingOffers": "Loading current prices from Google Play …",
+    "storeUnavailableTitle": "Google Play cannot be reached right now",
+    "storeUnavailableBody": "The prices could not be loaded. Please try again in a moment. Your content is not affected.",
     "unavailableTitle": "Purchase not available here yet",
     "unavailableBody": "Pro cannot be bought in eimir. yet. As soon as it can, you will find the purchase right here.",
     "active": {
@@ -5151,7 +5166,8 @@
       "network": "No connection. Please try again in a moment.",
       "restored": "Your purchase was restored.",
       "partnerActive": "Pro is already active for your shared space.",
-      "expired": "Your Pro access has expired. Your content stays fully intact."
+      "expired": "Your Pro access has expired. Your content stays fully intact.",
+      "nothingToRestore": "We found no Pro purchase to restore. Nothing was charged."
     },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"

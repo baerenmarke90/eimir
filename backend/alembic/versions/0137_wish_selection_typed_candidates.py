@@ -10,15 +10,15 @@ primary key moves from ``(round_id, wish_id)`` to the already unique
 Owner-only favorites for date ideas live in the existing protected selection
 payload (an additive field), so no column or table holds a decision in clear.
 
-Revision ID: 0136
-Revises: 0135
+Revision ID: 0137
+Revises: 0136
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0136"
-down_revision = "0135"
+revision = "0137"
+down_revision = "0136"
 branch_labels = None
 depends_on = None
 

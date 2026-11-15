@@ -181,9 +181,22 @@
   font: var(--font-reading-body);
 }
 
-.pro-paywall-plan-hint {
+.pro-paywall-plan-hint,
+.pro-paywall-store-note,
+.pro-paywall-loading {
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
+}
+
+.pro-paywall-store-note,
+.pro-paywall-loading {
+  margin: 0;
+}
+
+.pro-paywall-plan-trial {
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
 }
 
 .pro-paywall-actions {
@@ -219,6 +232,7 @@
 }
 
 .pro-paywall-active button,
+.pro-paywall-unavailable button,
 .pro-paywall-status button {
   justify-self: start;
   min-height: var(--touch-target-web);

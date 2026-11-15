@@ -1,4 +1,4 @@
-import { isCapacitorNativePlatform } from './config';
+import { isAndroidApp, isCapacitorNativePlatform } from './config';
 
 /**
  * eimir. Pro plans and the purchase channel contract (#1892 paywall).
@@ -7,12 +7,12 @@ import { isCapacitorNativePlatform } from './config';
  * channel only starts a purchase with its provider; access changes after the
  * backend reconciles a grant and the session entitlement read is renewed.
  *
- * No production billing adapter (Stripe for Web, Google Play Billing for the
- * native app) exists yet, so `currentBillingChannel()` reports `unavailable`
- * and the paywall offers no purchase action. There is no simulated purchase,
- * confirmation or local unlock. Adding a provider means implementing
- * `AvailableBillingChannel` for the runtime platform; its offers then replace
- * the reference prices below.
+ * Purchases are in-app only (Product Owner, 2026-11-15): Google Play Billing
+ * in the Android app now, Apple In-App Purchase when the iOS app launches, no
+ * browser checkout. The Android channel is loaded by `storeBilling.ts`; its
+ * live store offers replace the reference prices below. The browser and the
+ * iOS app report `unavailable` and show no purchase action: there is no
+ * simulated purchase, confirmation or local unlock.
  */
 
 export type ProPlanId = 'yearly' | 'monthly';
@@ -25,6 +25,8 @@ export interface ProPlanOffer {
   period: 'year' | 'month';
   /** `reference` = PO target price; `provider` = live billing offer. */
   source: 'reference' | 'provider';
+  /** Free trial the store currently offers this customer, if any. */
+  trial?: { unit: 'day' | 'week' | 'month' | 'year'; count: number };
 }
 
 /** Product Owner target prices per Space (supersedes #876 reference prices). */
@@ -66,7 +68,8 @@ export type ProPurchaseOutcome =
   | 'network'
   | 'restored'
   | 'partnerActive'
-  | 'expired';
+  | 'expired'
+  | 'nothingToRestore';
 
 /** Outcomes after which the requested feature is usable right away. */
 export function unlocksFeature(outcome: ProPurchaseOutcome): boolean {
@@ -84,18 +87,27 @@ export interface AvailableBillingChannel {
   /** Starts the provider flow; sends no relationship content. */
   purchase: (plan: ProPlanId) => Promise<ProPurchaseOutcome>;
   restore: () => Promise<ProPurchaseOutcome>;
+  /** Opens the store's own subscription management (cancel, change). */
+  manage?: () => Promise<void>;
 }
 
 export type BillingChannel =
-  | { kind: 'unavailable'; platform: 'web' | 'native' }
+  | { kind: 'loading' }
+  | {
+      kind: 'unavailable';
+      platform: 'web' | 'native';
+      /** `store`: the store could not be reached or offers nothing now. */
+      reason?: 'store';
+    }
   | AvailableBillingChannel;
 
 /**
- * The purchase channel for the runtime platform. Web would use Stripe and
- * the native app Google Play Billing; browser-only checkout never appears in
- * the native app. Neither adapter exists yet.
+ * The purchase channel to start with on the runtime platform: the Android app
+ * loads Google Play (`loading`); the browser and the iOS app have none. The
+ * runtime platform decides, never the viewport width.
  */
 export function currentBillingChannel(): BillingChannel {
+  if (isAndroidApp()) return { kind: 'loading' };
   return {
     kind: 'unavailable',
     platform: isCapacitorNativePlatform() ? 'native' : 'web',

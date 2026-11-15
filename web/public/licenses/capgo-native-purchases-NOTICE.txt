@@ -1,0 +1,12 @@
+@capgo/native-purchases 8.9.16
+Author: Martin Donadieu (Capgo) and contributors
+
+Used without modifications under the Mozilla Public License 2.0.
+The complete license text is available beside this notice in mediabunny-MPL-2.0.txt.
+
+Corresponding source:
+https://github.com/Cap-go/capacitor-native-purchases
+https://registry.npmjs.org/@capgo/native-purchases/-/native-purchases-8.9.16.tgz
+
+It opens the store's own purchase sheet (Google Play Billing). eimir. sends the
+store only an opaque purchase reference and the selected plan.

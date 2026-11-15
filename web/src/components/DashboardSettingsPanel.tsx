@@ -589,7 +589,7 @@ export function DashboardSettingsPanel({
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
       const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
-      if (!isCurrentQuery()) return;
+      if (!isCurrentQuery()) return false;
       const next = [
         COUPLE_HERO_MODULE_KEY,
         ...keys,
@@ -624,6 +624,7 @@ export function DashboardSettingsPanel({
           }),
         });
       }
+      return true;
     },
   });
 

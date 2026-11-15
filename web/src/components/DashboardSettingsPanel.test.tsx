@@ -144,6 +144,58 @@ describe('DashboardSettingsPanel', () => {
     );
   });
 
+  it('builds a second rapid keyboard move on the first before it renders (#1687)', async () => {
+    const reorder = vi
+      .fn()
+      .mockImplementation(
+        async ({
+          dashboardModuleOrderUpdate,
+        }: {
+          dashboardModuleOrderUpdate: { moduleKeys: string[] };
+        }) => ({
+          items: dashboardModuleOrderUpdate.moduleKeys.map((moduleKey) => ({
+            moduleKey,
+            visible: true,
+          })),
+        }),
+      );
+    const { queryClient } = renderPanel(vi.fn(), DEFAULT_PREFERENCES, reorder);
+    const grip = screen.getByRole('button', {
+      name: `${moduleLabel('keepsake')} verschieben`,
+    });
+    const before = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+    ).map((row) => row.dataset.sortableItemId);
+    grip.focus();
+    // Two presses inside the same task, before the optimistic Query order
+    // reaches the rendered list, as with key repeat or a fast double press.
+    fireEvent.keyDown(grip, { key: 'ArrowDown' });
+    fireEvent.keyDown(grip, { key: 'ArrowDown' });
+
+    const rendered = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+    ).map((row) => row.dataset.sortableItemId);
+    expect(rendered.indexOf('keepsake')).toBe(before.indexOf('keepsake') + 2);
+    expect(document.activeElement).toBe(grip);
+
+    await waitFor(() => expect(reorder).toHaveBeenCalledTimes(2));
+    const writes = reorder.mock.calls.map(
+      ([request]) => request.dashboardModuleOrderUpdate.moduleKeys as string[],
+    );
+    expect(writes[1].indexOf('keepsake')).toBe(
+      writes[0].indexOf('keepsake') + 1,
+    );
+    await waitFor(() =>
+      expect(
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(
+            dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
+          )
+          ?.items.map((item) => item.moduleKey),
+      ).toEqual(writes[1]),
+    );
+  });
+
   it('queues rapid keyboard reorders and restores the server order on a failed save', async () => {
     let finishFirst:
       | ((value: DashboardModulePreferenceList) => void)

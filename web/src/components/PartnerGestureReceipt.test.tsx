@@ -20,7 +20,9 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { reportNotificationWake } from '../client/foregroundNotifications';
 import {
+  isPartnerGestureKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   receiptScope,
   requestPartnerGestureReceipt,
@@ -30,9 +32,11 @@ import { proPaywallPath } from '../client/routes';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import wishSelection from '../i18n/locales/wishSelection';
+import { NotificationMotion } from './NotificationMotion';
 import {
-  PARTNER_GESTURE_RECEIPT_VISIBLE_MS,
-  PartnerGestureReceiptHost,
+  FOREGROUND_NOTIFICATION_VISIBLE_MS,
+  ForegroundNotificationHost,
 } from './PartnerGestureReceipt';
 
 const notifications = {
@@ -94,11 +98,13 @@ function setup({
   capabilities,
   unreadCount = 0,
   accountId = ACCOUNT,
+  openNotification,
 }: {
   configuration?: Record<string, boolean>;
   capabilities?: string[];
   unreadCount?: number;
   accountId?: string;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 } = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -116,7 +122,7 @@ function setup({
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/story']}>
         {extra}
-        <PartnerGestureReceiptHost
+        <ForegroundNotificationHost
           key={`${owner}:${SPACE}`}
           apiBaseUrl="https://eimir.test"
           accessToken="token"
@@ -124,6 +130,7 @@ function setup({
           spaceId={SPACE}
           unreadCount={count}
           suppressed={false}
+          openNotification={openNotification}
         />
         <LocationProbe />
       </MemoryRouter>
@@ -180,12 +187,84 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('PartnerGestureReceiptHost', () => {
+describe('ForegroundNotificationHost', () => {
   it('does not read or replay anything at app start', async () => {
     setup({ unreadCount: 3 });
     await act(async () => undefined);
     expect(notifications.getNotifications).not.toHaveBeenCalled();
     expect(receipt()).toHaveLength(0);
+  });
+
+  it('opens a Wish invitation from a scoped wake even if the unread count did not change', async () => {
+    const openNotification = vi.fn();
+    const invitation = gesture(
+      'wish-invite',
+      NotificationKind.WISH_SELECTION_SHARED,
+      {
+        targetType: 'WISH_SELECTION',
+        targetId: 'round-1',
+      },
+    );
+    notifications.getNotifications.mockResolvedValue(page(invitation));
+    setup({ unreadCount: 1, openNotification });
+
+    const scope = {
+      accountId: ACCOUNT,
+      apiBaseUrl: 'https://eimir.test',
+      spaceId: SPACE,
+    };
+    act(() => reportNotificationWake({ ...scope, spaceId: 'different-space' }));
+    expect(notifications.getNotifications).not.toHaveBeenCalled();
+    act(() => reportNotificationWake(scope));
+
+    const banner = await screen.findByTestId('foreground-notification');
+    expect(banner.textContent).toContain(
+      'Ronja hat eine gemeinsame Wunschauswahl vorbereitet.',
+    );
+    expect(banner.querySelector('[data-motion="wish-fan"]')).not.toBeNull();
+    expect(openNotification).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: wishSelection.openOwn }),
+    );
+    expect(openNotification).toHaveBeenCalledWith(
+      invitation.id,
+      invitation.sourceEventId,
+    );
+  });
+
+  it('does not replay arrivals that occurred while the window was away', async () => {
+    const focus = vi.mocked(document.hasFocus);
+    const { rerender } = setup();
+    focus.mockReturnValue(false);
+    fireEvent(window, new Event('blur'));
+    const notification = gesture('comment', NotificationKind.COMMENT_CREATED);
+    notifications.getNotifications.mockResolvedValue(page(notification));
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    focus.mockReturnValue(true);
+    fireEvent(window, new Event('focus'));
+    rerender(1);
+    await waitFor(() =>
+      expect(notifications.getNotifications).toHaveBeenCalled(),
+    );
+    expect(screen.queryByTestId('foreground-notification')).toBeNull();
+  });
+
+  it('assigns distinguishable animation names to each ordinary kind', () => {
+    const kinds = Object.values(NotificationKind).filter(
+      (kind) => !isPartnerGestureKind(kind),
+    );
+    const { container } = render(
+      kinds.map((kind) => <NotificationMotion key={kind} kind={kind} />),
+    );
+    const names = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '.notification-motion > span:first-child',
+      ),
+      (element) => element.style.getPropertyValue('--notification-animation'),
+    );
+    expect(names).toHaveLength(kinds.length);
+    expect(new Set(names).size).toBe(kinds.length);
+    expect(names).not.toContain('');
   });
 
   it.each([
@@ -340,7 +419,7 @@ describe('PartnerGestureReceiptHost', () => {
     const close = screen.getByRole('button', { name: copy.close });
     act(() => close.focus());
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     expect(surface.isConnected).toBe(true);
     fireEvent.keyDown(close, { key: 'Escape' });
@@ -357,7 +436,7 @@ describe('PartnerGestureReceiptHost', () => {
     rerender(1);
     await screen.findByTestId('partner-gesture-receipt');
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     finishExit();
     expect(receipt()).toHaveLength(0);
@@ -424,7 +503,7 @@ describe('PartnerGestureReceiptHost', () => {
     expect(notifications.sendThinkingOfYou).not.toHaveBeenCalled();
     // The receipt stays until the person closes it.
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     expect(receipt()).toHaveLength(1);
   });

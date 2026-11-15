@@ -608,6 +608,7 @@ function AuthenticatedApp({
         account={account}
         spaceId={spaceId}
         serverAdmin={serverAdmin}
+        openNotification={devicePush.openNotification}
         primaryTabs={
           <PrimaryTabPanels
             panels={primaryTabPanels}

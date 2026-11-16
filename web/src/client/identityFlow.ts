@@ -5,6 +5,7 @@ import type { MembershipView } from '../api/generated/models/MembershipView';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
 import { Configuration } from './apiConfiguration';
+import { markInvitationAccepted } from './connectedMoment';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import {
@@ -104,9 +105,12 @@ async function joinInvitation(
     }),
   );
   try {
-    return await invitations.acceptInvitationApiV1InvitationsAcceptPost({
-      acceptRequest: { token: invitationToken },
-    });
+    const membership =
+      await invitations.acceptInvitationApiV1InvitationsAcceptPost({
+        acceptRequest: { token: invitationToken },
+      });
+    markInvitationAccepted(membership.spaceId);
+    return membership;
   } catch (error) {
     void revokeUnacceptedSession(apiBaseUrl, session);
     throw error;

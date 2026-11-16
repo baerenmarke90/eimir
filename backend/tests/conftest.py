@@ -52,9 +52,12 @@ def encryption(
     """
     from tests.support.encryption import reset_encryption_caches
 
-    def carry_accounts(previous, current) -> None:  # type: ignore[no-untyped-def]
-        # Accounts exist before most tests choose a mode; see EncryptionConfigurator.
-        if "session" not in request.fixturenames or not current.mode.encrypts_writes:
+    def carry_accounts(previous, current, first_switch: bool) -> None:  # type: ignore[no-untyped-def]
+        # Accounts exist before most tests choose a mode; see EncryptionConfigurator
+        # for why only the first switch may open them into plaintext.
+        if "session" not in request.fixturenames:
+            return
+        if not first_switch and not current.mode.encrypts_writes:
             return
         import json
 

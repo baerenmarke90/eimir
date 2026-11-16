@@ -69,9 +69,14 @@ import {
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
+  MEMORY_CREATE_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
   STORY_OURS_ROUTE,
 } from '../client/routes';
+import { useConnectedMoment } from '../client/connectedMoment';
+import { useFirstContentSettle } from '../client/firstContentSettle';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
@@ -142,6 +147,9 @@ import {
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 import { alignWirIntroAnimations } from './wirIntroClock';
+import { ConnectedMoment } from './ConnectedMoment';
+import { FirstStepAction } from './FirstStepAction';
+import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 
@@ -1412,6 +1420,17 @@ export function TodayPage({
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
+  // #1907 I1: the first moment settles in where the move-in stood.
+  const firstMomentSettle = useFirstContentSettle(
+    dashboardQuery.data && !dashboardQuery.isCached ? isSparse : undefined,
+  );
+  const connectedMoment = useConnectedMoment(
+    account?.id,
+    spaceId,
+    partner?.id ?? null,
+    Boolean(dashboardQuery.data && !dashboardQuery.isCached),
+  );
+  const rootIntro = useRootTabIntro('today');
 
   // #1792: the distance is a normal Wir module. Directly below the couple
   // hero it stays inside the hero; moved elsewhere it renders in its place.
@@ -1822,6 +1841,9 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {connectedMoment.visible ? (
+          <ConnectedMoment playing={connectedMoment.playing} />
+        ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
@@ -1834,7 +1856,11 @@ export function TodayPage({
                   stack of planning utilities. */}
         {showMomentSection && keepsakeVisible && focalItem ? (
           <TodayModuleSection
-            className="today-section-moment"
+            className={
+              firstMomentSettle
+                ? 'today-section-moment first-content-settle'
+                : 'today-section-moment'
+            }
             title={t('m5s5.today.keepsake.title')}
           >
             <TodayMomentFeature
@@ -2134,7 +2160,10 @@ export function TodayPage({
       ) : null}
 
       {contentReady && dashboardQuery.data ? (
-        <div className="today-content">
+        <div
+          className="today-content"
+          data-root-intro={rootIntro ? 'true' : undefined}
+        >
           <PageHeader
             variant="root"
             className="content-overview-heading"
@@ -2155,8 +2184,30 @@ export function TodayPage({
                   : t('m5s5.dashboard.newSpaceEmpty')}
               </h2>
               <p className="new-space-body">
-                {t('m5s5.dashboard.newSpaceIntro')}
+                {t(
+                  partner
+                    ? 'm5s5.dashboard.newSpaceIntro'
+                    : 'quietHints.moveIn.solo',
+                )}
               </p>
+              <span className="new-space-wall" aria-hidden="true">
+                <span />
+              </span>
+              <FirstStepAction
+                to={MEMORY_CREATE_ROUTE}
+                label={t('m5s5.dashboard.newSpaceAction')}
+                icon="foto"
+                selectedKey="wir-move-in"
+              />
+              {partner ? null : (
+                <TodayDestinationLink
+                  to={`${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`}
+                  className="new-space-invite"
+                >
+                  <EimirIcon name="profil" />
+                  <span>{t('quietHints.moveIn.invite')}</span>
+                </TodayDestinationLink>
+              )}
             </div>
           ) : null}
         </div>

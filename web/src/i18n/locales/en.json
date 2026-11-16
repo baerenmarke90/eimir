@@ -4143,7 +4143,7 @@
       "body": "Manage account and sign-in status without accessing private relationship content.",
       "totalSuffix": "accounts",
       "search": "Search",
-      "searchPlaceholder": "Name, email or account ID",
+      "searchPlaceholder": "Email or account ID",
       "loading": "Loading accounts …",
       "error": "The account list could not be loaded.",
       "empty": "No matching accounts found.",

@@ -12,8 +12,11 @@ Name | Type
 `partnerSentToday` | boolean
 `partnerWateredToday` | string
 `plants` | [Array&lt;GardenPlantView&gt;](GardenPlantView.md)
+`reunionOn` | Date
+`reunionToday` | boolean
 `sentToday` | [GardenPlantView](GardenPlantView.md)
 `sharedToday` | boolean
+`sleeping` | boolean
 `wateredToday` | string
 
 ## Example
@@ -29,8 +32,11 @@ const example = {
   "partnerSentToday": null,
   "partnerWateredToday": null,
   "plants": null,
+  "reunionOn": null,
+  "reunionToday": null,
   "sentToday": null,
   "sharedToday": null,
+  "sleeping": null,
   "wateredToday": null,
 } satisfies GardenView
 

@@ -613,6 +613,12 @@
 }
 
 @media (min-width: 840px) {
+  /* Align Wir with the Planen reading column while the backdrop can bleed. */
+  .today-page > :is(.today-content, .ui-state, .overview-cache-notice-slot) {
+    max-inline-size: var(--reading-max);
+    margin-inline: auto;
+  }
+
   /* Expanded: the sparse welcome sits under the centered hero, not at the edge. */
   .new-space-experience {
     margin-inline: auto;

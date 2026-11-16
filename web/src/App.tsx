@@ -69,6 +69,7 @@ import {
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
@@ -158,6 +159,7 @@ import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { HeartHuntGamePage } from './components/HeartHuntGamePage';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
@@ -853,6 +855,17 @@ function AuthenticatedApp({
               path={GAMES_WISH_DETECTIVE_ROUTE}
               element={
                 <WishDetectiveGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_HEART_HUNT_ROUTE}
+              element={
+                <HeartHuntGamePage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
                   spaceId={spaceId}

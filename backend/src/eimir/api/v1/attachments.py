@@ -77,7 +77,9 @@ class AttachmentFinalize(ApiModel):
 class AttachmentReadRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
-    parent_type: Literal["MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "NONE"] = "NONE"
+    parent_type: Literal[
+        "MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "HEART_HUNT_ROUND", "NONE"
+    ] = "NONE"
     parent_id: UUID | None = None
     variant: ReadVariant = Field(
         default="original",

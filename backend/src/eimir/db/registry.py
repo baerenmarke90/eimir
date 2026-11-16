@@ -28,6 +28,7 @@ MODEL_MODULES = (
     "eimir.engagement.models",
     "eimir.entitlements.models",
     "eimir.gift_ideas.models",
+    "eimir.heart_hunt.models",
     "eimir.heart_moments.models",
     "eimir.identity.models",
     "eimir.jobs.models",

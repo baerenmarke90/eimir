@@ -5,7 +5,9 @@
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-[data-design-preview="connected"] {
+[data-design-preview="classic"],
+[data-design-preview="connected"],
+[data-design-preview="modern"] {
   --color-background: #e6ebfa;
   --color-header-surface: #e6ebfa;
   --color-surface: #f3f5fc;
@@ -56,7 +58,9 @@
   --identity-premium-surface: #f1ecfa;
 }
 
-:root[data-theme="dark"] [data-design-preview="connected"] {
+:root[data-theme="dark"] [data-design-preview="classic"],
+:root[data-theme="dark"] [data-design-preview="connected"],
+:root[data-theme="dark"] [data-design-preview="modern"] {
   --color-background: #171b2f;
   --color-header-surface: #171b2f;
   --color-surface: #252b43;
@@ -108,7 +112,9 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) [data-design-preview="connected"] {
+  :root:not([data-theme]) [data-design-preview="classic"],
+  :root:not([data-theme]) [data-design-preview="connected"],
+  :root:not([data-theme]) [data-design-preview="modern"] {
     --color-background: #171b2f;
     --color-header-surface: #171b2f;
     --color-surface: #252b43;
@@ -313,6 +319,16 @@
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
   }
+}
+
+:root[data-app-design="classic"] .today-page {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: var(--color-brand-glow);
+}
+
+:root[data-app-design="modern"] .today-page {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: var(--color-brand-glow);
 }
 
 :root[data-app-design="warm"] .today-page {

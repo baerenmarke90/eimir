@@ -467,6 +467,13 @@ def _require_readable_parent(
     from eimir.people.models import RelatedPerson
     from eimir.plans.models import Plan
 
+    if parent_type == "HEART_HUNT_ROUND":
+        # Exactly the two partners of the round, never decided by the uploader alone.
+        from eimir.heart_hunt import service as heart_hunt
+
+        if not heart_hunt.can_read_photo(session, context, parent_id):
+            raise Attachment.privacy_absence.error()
+        return
     if parent_type == "MEMORY":
         model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan] = Memory
     elif parent_type == "HEART_MOMENT":

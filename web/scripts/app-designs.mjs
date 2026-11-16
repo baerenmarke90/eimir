@@ -275,36 +275,53 @@ export function buildAppDesigns(tokens, designs) {
     '/* Generated from design/designs/*.json by scripts/generate-app-designs.mjs. Do not edit. */',
     block(':root', presetDeclarations(fallback, tokens)),
   ];
+  const status = identity.semanticStatus;
+  // Preview tiles show each design's own palette wherever they render; designs
+  // sharing a palette share one block.
+  const previews = new Map();
   for (const design of validated) {
-    const status = identity.semanticStatus;
-    const preview = `[data-design-preview="${design.id}"]`;
+    const key = JSON.stringify(design.palette);
+    previews.set(key, [...(previews.get(key) ?? []), design]);
+  }
+  for (const group of previews.values()) {
+    const selectors = (prefix) =>
+      group
+        .map((design) => `${prefix}[data-design-preview="${design.id}"]`)
+        .join(',\n');
+    const { palette } = group[0];
     css.push(
       ...schemeBlocks(
-        preview,
-        `:root[data-theme="dark"] ${preview}`,
-        `:root:not([data-theme]) ${preview}`,
-        paletteDeclarations(design.palette.light, status.light, 'light'),
-        paletteDeclarations(design.palette.dark, status.dark, 'dark'),
+        selectors(''),
+        selectors(':root[data-theme="dark"] '),
+        selectors(':root:not([data-theme]) '),
+        paletteDeclarations(palette.light, status.light, 'light'),
+        paletteDeclarations(palette.dark, status.dark, 'dark'),
       ),
     );
+  }
+  for (const design of validated) {
     if (design.id === fallback.id) continue;
     const root = `[data-app-design="${design.id}"]`;
     const extra = presetDeclarations(design, tokens);
-    css.push(
-      ...schemeBlocks(
-        `:root${root} ${APP_DESIGN_SCOPE}`,
-        `:root[data-theme="dark"]${root} ${APP_DESIGN_SCOPE}`,
-        `:root:not([data-theme])${root} ${APP_DESIGN_SCOPE}`,
-        [
-          ...paletteDeclarations(design.palette.light, status.light, 'light'),
-          ...extra,
-        ],
-        [
-          ...paletteDeclarations(design.palette.dark, status.dark, 'dark'),
-          ...extra,
-        ],
-      ),
-    );
+    // A design on the default colour world inherits the root palette.
+    if (design.palette.world === identity.defaultWorld)
+      css.push(block(`:root${root} ${APP_DESIGN_SCOPE}`, extra));
+    else
+      css.push(
+        ...schemeBlocks(
+          `:root${root} ${APP_DESIGN_SCOPE}`,
+          `:root[data-theme="dark"]${root} ${APP_DESIGN_SCOPE}`,
+          `:root:not([data-theme])${root} ${APP_DESIGN_SCOPE}`,
+          [
+            ...paletteDeclarations(design.palette.light, status.light, 'light'),
+            ...extra,
+          ],
+          [
+            ...paletteDeclarations(design.palette.dark, status.dark, 'dark'),
+            ...extra,
+          ],
+        ),
+      );
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(

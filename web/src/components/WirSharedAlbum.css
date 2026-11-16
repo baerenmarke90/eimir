@@ -136,8 +136,13 @@ body:has(
 
 .today-page[data-wir-design="shared_album"] .today-content {
   position: relative;
-  width: min(100%, 43rem);
-  margin-inline: auto;
+}
+
+@media (max-width: 839px) {
+  .today-page[data-wir-design="shared_album"] .today-content {
+    max-inline-size: 43rem;
+    margin-inline: auto;
+  }
 }
 
 .today-page .shared-album-hero.couple-presence-card {

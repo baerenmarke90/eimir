@@ -41,6 +41,10 @@ for (const world of worldNames.filter(
 css.push(
   `.eimir-icon { fill: none; stroke: currentColor; stroke-width: var(--icon-stroke-width, ${identity.icon.strokePx}); stroke-linecap: round; stroke-linejoin: round; }`,
 );
+// #1907 C3: icons drawn inline in components share the registry stroke.
+css.push(
+  `.inline-icon { stroke-width: var(--icon-stroke-width, ${identity.icon.strokePx}); }`,
+);
 css.push('.eimir-icon .accent { stroke: var(--identity-icon-accent); }');
 css.push('.eimir-icon .cool { stroke: var(--identity-icon-cool); }');
 css.push(

@@ -48,7 +48,6 @@
 .shell-nav-icon svg.eimir-icon {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.65;
 }
 .shell-nav-link-active .shell-nav-icon {
   color: var(--color-brand-text);

@@ -25,13 +25,20 @@ from the local demo instance with only the icons swapped.
 - **Accent** marks only the one meaningful detail (tape, ribbon, heart, check); colours stay as they are.
 - **17 redrawn glyphs:** `denken` (Heart Moment: a heart in a speech bubble, Product Owner choice C), `vibe` (soft
   wave instead of an ECG), `jahrestag` (calendar with a heart; no longer identical to `wir`), `wuensche` (heart with a
-  sparkle), `meilensteine` (flag), `spiele` (tilted die with a heart pip), `listen` (checklist), `nurfuer` (lock with a
+  sparkle), `meilensteine` (flag), `spiele` (tilted dice with a heart pip), `listen` (checklist), `nurfuer` (lock with a
   heart, including the filled and duotone shapes), `erinnerungen` (Polaroid), `notes`, `kapitel`, `highlights`
   (sparkle instead of a plus), `einstellungen` (gear drawn on the grid), `benachrichtigungen`, `geburtstag` (drop
   flame), `geschenk` (lid and box) and `smile-plus` (plus no longer clipped).
 - Navigation (Wir, Momente, Planen, Mehr) keeps its shapes; a 2×2 tile "Mehr" was tried and rejected. Unused glyphs
   (`geteilt`, `ziele`, `neu`, `reisen`) are unchanged.
 - **Inline icons** drawn directly in components use the same stroke token; their shapes stay.
-- The draft #1828 is superseded; only its checklist and die ideas survive, redrawn.
+- The draft #1828 is superseded; only its checklist and dice ideas survive, redrawn.
 
 The captures guide Product Acceptance; Product Reference v1, accessibility and the privacy contracts govern details.
+
+## Evidence
+
+`evidence/` holds captures of the implemented icons from the local demo instance with reduced motion: More (top
+and destination list) and the Momente create menu at 390 px Light and Dark, at 390 px Light with 200 % root text,
+and at 1280 px Light (Expanded create dialog). Accessible names come from the visible labels; every icon stays
+`aria-hidden`. Device verification on the Pixel is still open.

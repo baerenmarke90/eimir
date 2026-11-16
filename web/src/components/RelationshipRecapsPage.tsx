@@ -1106,6 +1106,7 @@ function RecapReader({
                         <p className="recap-reaction-line">
                           {source.mutualReaction === 'LOVE' ? (
                             <svg
+                              className="inline-icon"
                               viewBox="0 0 24 24"
                               aria-hidden="true"
                               focusable="false"

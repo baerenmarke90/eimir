@@ -487,7 +487,6 @@
   block-size: var(--space-6);
   fill: none;
   stroke: var(--color-text-secondary);
-  stroke-width: 1.7;
   stroke-linejoin: round;
 }
 .wish-selection-favorite[aria-pressed="true"] .wish-selection-favorite-heart {

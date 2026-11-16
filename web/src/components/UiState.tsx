@@ -44,6 +44,7 @@ export function UiState({
       <span className="ui-state-mark" aria-hidden="true">
         {kind === 'empty' ? (
           <svg
+            className="inline-icon"
             aria-hidden="true"
             focusable="false"
             viewBox="0 0 24 24"
@@ -51,7 +52,6 @@ export function UiState({
             height="100%"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ color: 'var(--color-brand)' }}

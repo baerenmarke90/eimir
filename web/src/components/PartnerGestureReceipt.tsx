@@ -72,7 +72,12 @@ const HEART_PATH =
 
 function Heart() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d={HEART_PATH} />
     </svg>
   );

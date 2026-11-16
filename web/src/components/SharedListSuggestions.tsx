@@ -55,12 +55,12 @@ export function SharedListSuggestions({
               onClick={() => onRemove(suggestion)}
             >
               <svg
+                className="inline-icon"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
                 focusable="false"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
                 strokeLinecap="round"
               >
                 <path d="M7 7l10 10M17 7 7 17" />

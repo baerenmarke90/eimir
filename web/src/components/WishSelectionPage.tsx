@@ -34,6 +34,8 @@ import {
   useDateIdeasCatalog,
   useDateInspirationCapability,
 } from '../client/dateIdeas';
+import { usePartnerName } from '../client/partnerLocation';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -51,8 +53,6 @@ import {
   planScheduleFromInputs,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { usePartnerName } from '../client/partnerLocation';
-import { usePartnerNickname } from '../client/partnerNickname';
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -129,7 +129,7 @@ function titleInitial(title: string): string {
 function FavoriteHeart() {
   return (
     <svg
-      className="wish-selection-favorite-heart"
+      className="wish-selection-favorite-heart inline-icon"
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

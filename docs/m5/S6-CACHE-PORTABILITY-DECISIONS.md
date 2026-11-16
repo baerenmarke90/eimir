@@ -175,6 +175,14 @@ ciphertext under a per-login key that Android Keystore wraps (the
 with the session, so stored images are unreadable even before their rows are
 removed, and the app names what signing out deletes before it happens.
 
+**Sealed read-cache rows in the Android app (requested by the Product Owner,
+2026-11-16).** The Android app stores the payload of every persistent read-cache
+row, including the list outbox, as AES-GCM ciphertext under the same per-login
+key. Namespace fields stay readable for lookup, expiry and purge. The seven-day
+rule, the `SPACE_SHARED`-only scope and every clearing rule are unchanged.
+The owner-local Memory diary draft store seals its text and photo bytes under
+the same key. Browsers and iOS keep plaintext rows.
+
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently
 visible query. Normal cache eviction by the browser/OS is allowed because cache

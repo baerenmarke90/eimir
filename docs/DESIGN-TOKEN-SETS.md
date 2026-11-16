@@ -117,6 +117,12 @@ intimate moments and plan anticipation) stay as they are in designs on the
 default palette. In a design with its own palette (Geborgen, Seite an Seite)
 they resolve to that design's palette, so a page never mixes two designs.
 
+Transitional rule until that step: Seite an Seite already tinted the body,
+its portaled sheets and the bottom navigation while Wir is open. The
+generator keeps that reach for this one design
+(`TRANSITIONAL_SHELL_SCOPES`), and `WirSharedAlbum.css` keeps its marked
+bottom-navigation rules; both are removed with the app-wide step.
+
 ## Tiers and stored preferences
 
 Pro gating is unchanged: saving a Pro design needs `theme.bespoke_packs`, a

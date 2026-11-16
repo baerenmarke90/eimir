@@ -2,7 +2,9 @@
 
 ``PartnerLocationConsent`` is the owner's purpose-bound sharing decision.
 ``PresenceSnapshot`` is the single short-lived, reduced-precision current
-position per owner and Space. There is deliberately no history table.
+position per owner and Space. There is deliberately no history table. The
+position itself is a ``ProtectedPayload``: with encryption at rest it is
+ciphertext in the database, so a dump shows who shares and until when, not where.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -19,7 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Numeric,
+    SmallInteger,
     String,
     UniqueConstraint,
     text,
@@ -29,6 +32,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin
+from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.payload import ProtectedPayload
 
 
 class SharingLevel(StrEnum):
@@ -82,6 +87,14 @@ class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
     )
 
 
+class PresencePositionPayload(ProtectedPayload):
+    """The snapped position of a snapshot; the bounds the columns used to check."""
+
+    latitude: Decimal = Field(ge=-90, le=90)
+    longitude: Decimal = Field(ge=-180, le=180)
+    accuracy_meters: int = Field(ge=1000)
+
+
 class PresenceSnapshot(IdMixin, TimestampMixin, Base):
     """The latest snapped position of one sharing Account; replaced, never appended."""
 
@@ -95,18 +108,18 @@ class PresenceSnapshot(IdMixin, TimestampMixin, Base):
         ForeignKey("accounts.id", ondelete="CASCADE"),
         nullable=False,
     )
-    latitude: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
-    longitude: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
-    accuracy_meters: Mapped[int] = mapped_column(Integer, nullable=False)
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    payload: Mapped[PresencePositionPayload] = mapped_column(
+        ProtectedPayloadJSON(PresencePositionPayload), nullable=False
+    )
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consent_generation: Mapped[int] = mapped_column(Integer, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("space_id", "account_id", name="uq_presence_snapshots_space_account"),
-        CheckConstraint("latitude BETWEEN -90 AND 90", name="latitude_in_range"),
-        CheckConstraint("longitude BETWEEN -180 AND 180", name="longitude_in_range"),
-        CheckConstraint("accuracy_meters >= 1000", name="accuracy_is_coarse"),
         Index("ix_presence_snapshots_expires_at", "expires_at"),
     )
 

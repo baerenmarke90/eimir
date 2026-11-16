@@ -88,8 +88,8 @@ for (const [width, theme] of [
     await expect(image).toBeVisible();
     await expect(image).toHaveAttribute('src', src ?? '');
     // Returning to a kept tab neither remounts the preview nor delivers new
-    // cached media. Fresh deliveries, including the gallery opened below,
-    // still require parent read-access before using retained image bytes.
+    // cached media. Stored bytes are shown without a new read grant; the
+    // refreshed parent lists decide what remains visible.
     expect(reads).toBe(firstReads);
     expect(downloads).toBe(1);
     const reflow = await page.evaluate(() => ({
@@ -147,7 +147,7 @@ test('Diary thumbnail survives a normal ninety-second detail visit without decod
   expect(downloads).toBe(1);
 });
 
-test('Memory gallery originals survive Wir and Moments tab navigation with fresh parent authorization', async ({
+test('Memory gallery originals survive Wir and Moments tab navigation without a new read grant', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -230,7 +230,7 @@ test('Memory gallery originals survive Wir and Moments tab navigation with fresh
   await page.getByRole('tab', { name: de.story.tabTimeline }).click();
   await card.click();
   await expect(galleryImage).toHaveAttribute('src', source ?? '');
-  await expect.poll(() => originalReads).toBeGreaterThan(readsBefore);
+  expect(originalReads).toBe(readsBefore);
   expect(originalDownloads).toBe(1);
 });
 

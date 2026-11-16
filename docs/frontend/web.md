@@ -39,11 +39,24 @@ Cache fallback is deliberately limited to transport/offline failures and tempora
 Cached detail views are read-only. Cached Story snapshots do not expose network pagination while offline. The client does not queue or synchronize offline writes. Comments are not loaded from the product cache. The cache is cleared on logout.
 
 Authorized image bytes use the existing Account/API/Space and parent-bound media
-cache: 48 MiB in memory and a disposable IndexedDB store capped at 128 MiB,
-512 entries and seven days. Every display reentry still authorizes its parent;
-an authoritative denial revokes all affected variants immediately. Credentials,
-signed URLs, playback grants, video originals and non-image payloads do not enter
-the durable image store. Logout and Account/Space changes invalidate it.
+cache: 48 MiB in memory and a disposable IndexedDB store bounded by 2000 media
+items (thumbnail and original of one item share a slot), without a byte cap
+beyond the browser quota, and without a maximum age (Product Owner exception
+to M2-D18 in `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`).
+Product Owner decision (2026-11-16): attachment bytes are immutable, and the
+parent data a view renders decides whether they are shown. Bytes already stored
+for the exact login, Account, API origin, Space, parent, attachment and variant
+are therefore shown without a new read grant, and an image this runtime already
+decoded renders in a returning view's first frame without a skeleton or a second
+fade. A read grant is requested only for bytes not stored yet. The parent lists
+revalidate in the background: a denied list evicts the Space's stored media, a
+denied read evicts all variants of its parent, and Media overview removes items
+the refreshed list no longer contains with motion and deletes their stored bytes.
+Until that list response arrives, an item deleted or withdrawn while the app was
+closed can stay visible (online usually under a second, offline until the next
+successful response). Credentials, signed URLs, playback grants, video originals
+and non-image payloads do not enter the durable image store. Logout and
+Account/Space changes invalidate it.
 
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all

@@ -20,7 +20,8 @@ change these semantics.
 2. **M2-D18 is DECIDED.** Persistent client read caches are always bound to
    Account + Space + Privacy/owner scope, have a hard maximum age of seven days,
    and are completely removed on logout, Account change, or Space change. There
-   is no Offline Write.
+   is no Offline Write. Authorized image bytes are bounded by item count and
+   storage instead of age (Product Owner exception of 2026-11-16, see below).
 3. **Web does not persist `OWNER_ONLY` ProtectedPayloads.** The Web persistent
    cache uses IndexedDB only for explicitly approved `SPACE_SHARED` read
    snapshots. Private Web data remains session-memory-only.
@@ -155,6 +156,16 @@ last successful network refresh. Expired entries are deleted before use. Cache
 age is based on a server/client technical timestamp recorded when an authorized
 network response was received; changing device wall-clock time must not extend
 retention indefinitely where a monotonic/runtime-safe comparison is available.
+
+**Exception for authorized image bytes (Product Owner decision, 2026-11-16).**
+The client store of immutable attachment image bytes (`durableMediaStore`) has
+no maximum age. It is bounded by 2000 media items and the platform storage
+quota instead, and it is still cleared on logout, session invalidation,
+Account change and Space change. Whether stored bytes are shown is decided by
+the parent read data the view renders, which keeps the seven-day rule above;
+a denied parent list or read evicts the affected bytes, and Media overview
+deletes the bytes of items its refreshed list no longer contains. Details:
+`docs/frontend/web.md`.
 
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently

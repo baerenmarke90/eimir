@@ -7,11 +7,12 @@ import wishDateProposal from '../../src/i18n/locales/wishDateProposal';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
-import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
 
 /*
  * #1790 F2: a wish's journey (wished, planned, experienced, remembered) is
@@ -441,6 +442,7 @@ async function installMocks(
       return page_([]);
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillNoWishSelectionRound(route)) return;
     state.unexpected.push(`${method} ${pathname}`);
     return json(
       {
@@ -622,7 +624,7 @@ test.describe('wish journey (#1790 F2)', () => {
     );
     const receipt = page.getByTestId('partner-gesture-receipt');
     await expect(receipt).toHaveAttribute('data-variant', 'calm-ring');
-    await expect(receipt.locator('[data-glyph="calendar"]')).toBeVisible();
+    await expect(receipt.locator('[data-glyph="icon"]')).toBeVisible();
     await receipt.hover();
     await captureScreenshot(page, info, 'wish-date-in-app-receipt-390.png');
     await receipt.getByRole('button', { name: copy.review }).click();

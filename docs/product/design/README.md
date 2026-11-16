@@ -120,3 +120,8 @@ supersedes person audience selection and the former combined People/date page.
 [Soft composers and integrated media intake (#1726)](references/soft-composer/README.md)
 records the later borderless writing surfaces and grouped full-width media
 choices, retaining the quiet task header and existing attachment lifecycles.
+
+[One entry for "what do we do next" (#1907 J1)](references/1907-wishes-what-do-we-do/README.md)
+records the approved single Wishes entry row, the composing hub with two sources,
+the catalog pick mode with one filter sheet, private heart favourites and the
+result for several common favourites; the consent-based random pick follows.

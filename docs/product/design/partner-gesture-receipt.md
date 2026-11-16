@@ -96,10 +96,45 @@ Mehr, and the Snackbar.
 | --- | --- | --- | --- |
 | `THINKING_OF_YOU` | `partnerGestureReceipt.thinking.title` / `.detail` ("Ben is thinking of you right now" / "a small hello, just for you") | A big heart appears over the avatar, beats twice (lub-dub) with one ripple, then settles as the heart badge. | `partnerGestureReceipt.thinking.reply` ("send one back") → existing `THINKING` send, only when the Thinking-of-You cooldown is not active. |
 | `PARTNER_KISS` | `partnerGestureReceipt.kiss.title` / `.detail` ("a kiss from Ben" / "for you") | Two hearts float in on arcs from both sides, meet over the avatar, "kiss" with a short squeeze and a soft bloom, then settle as two small hearts. | `partnerGestureReceipt.kiss.reply` ("send a kiss back") → existing `KISS` send with the extended capability; without it, the Pro mark opens the shared Pro page exactly like the quick actions (`proPaywallPath()`). Not offered while the cooldown is active or the entitlement is not yet known. |
-| `PARTNER_CHECK_IN` | `partnerGestureReceipt.checkIn.title` / `.detail` ("Ben would like to know how you are" / "only if you feel like it") | No hearts: the avatar takes one slow breath while three calm waves widen, then a "?" badge settles. | `partnerGestureReceipt.checkIn.reply` ("share how you feel") → opens the existing own daily check-in sheet on Wir, only when vibe or energy check-in is enabled for the Space. Nothing is changed automatically. |
+| `PARTNER_CHECK_IN` | `partnerGestureReceipt.checkIn.title` / `.detail` ("Ben would like to know how you are" / "only if you feel like it") | No hearts, no waves: the avatar takes one slow breath and a "?" badge settles soon after (calm receipt, see below). | `partnerGestureReceipt.checkIn.reply` ("share how you feel") → opens the existing own daily check-in sheet on Wir, only when vibe or energy check-in is enabled for the Space. Nothing is changed automatically. |
 
 Without an actor name the existing anonymous titles are used. The avatar uses
 the shared `AuthorAvatar` with its initials fallback.
+
+## Calm partner notices (standard, 2026-11-15)
+
+The Product Owner decided on 2026-11-15, after reviewing animated Compact
+examples on the real Wir, Planen and Momente screens, that the calm check-in
+receipt becomes the standard for every notification a partner deliberately
+causes. Waves were judged restless and removed.
+
+- **Calm receipt:** partner avatar (or its kind icon when no actor is
+  available), one soft breath, a small kind-specific badge that lands about
+  0.5 s after the surface opens, one reply pill, close. No waves, no hearts.
+  Enter, exit, auto-close (8 s), suppression, announcement and reduced motion
+  (settled state at once) stay as specified above.
+- **Kinds and badges** (`PARTNER_NOTICE_ICONS`, existing `EimirIcon` set):
+  Wish date proposal/counter/acceptance, Plan created and changed: calendar;
+  Plan cancelled: close; shared Wish selection started: "together"; result
+  ready: sparkle; comment: message; photo reaction: photo; shared moment:
+  moment; reminder created: bell; partner joined: "together"; one-time
+  message: message; check-in keeps "?". The plain wish heart is never a badge
+  because it belongs to "thinking of you".
+- **Keep their own expression:** `THINKING_OF_YOU` (heart pulse with one soft
+  ring) and `PARTNER_KISS` (two hearts meet, short bloom) are unchanged.
+- **Plain surface:** system and owner-only kinds (data transfers, video
+  failure, due reminders, gentle prompts) keep the avatar-less surface and
+  their own icon motion; failures stay readable without decorative arrival.
+- **Copy and replies** are unchanged: the title comes from the existing
+  Notification Center copy and the single reply opens the same destination as
+  the system notification. A deliberately opened push still navigates straight
+  to its target; only the three gestures present the receipt for it, because
+  the destination of the other kinds is the content itself.
+- **Android push** is unchanged: system presentation, generic lock-screen text,
+  at most one "view" action, no "reply" action.
+
+Reference: [calm notices, Compact](references/partner-gesture-receipt/calm-notices-compact-reference.png)
+(real screens, final state of the five examples; baseline `main` `9b8c4a33e`).
 
 ## Arrival and lifecycle
 

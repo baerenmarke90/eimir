@@ -1,4 +1,6 @@
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import type { NotificationKind } from '../api/generated/models/NotificationKind';
+import type { EimirIconName } from '../components/EimirIcon';
 
 /**
  * Receipt presentation for the three existing partner gestures (#455).
@@ -66,6 +68,44 @@ export function isWishDateReceiptKind(
   kind: string,
 ): kind is WishDateReceiptKind {
   return (WISH_DATE_RECEIPT_KINDS as readonly string[]).includes(kind);
+}
+
+/**
+ * The partner-caused notices that share the calm receipt: the same quiet
+ * arrival as the check-in, told apart by a small badge on the partner's
+ * avatar. `center` fills the avatar circle when no actor is available.
+ * Owner-only and system kinds (data transfers, due reminders, gentle prompts)
+ * are deliberately absent and keep the plain notification surface.
+ */
+export interface PartnerNoticeIcons {
+  badge: EimirIconName;
+  center: EimirIconName;
+}
+
+export const PARTNER_NOTICE_ICONS = {
+  WISH_DATE_PROPOSED: { badge: 'kalender', center: 'kalender' },
+  WISH_DATE_COUNTERED: { badge: 'kalender', center: 'kalender' },
+  WISH_DATE_ACCEPTED: { badge: 'kalender', center: 'kalender' },
+  WISH_SELECTION_SHARED: { badge: 'gemeinsam', center: 'wuensche' },
+  WISH_SELECTION_READY: { badge: 'sparkle', center: 'wuensche' },
+  PLAN_CREATED: { badge: 'kalender', center: 'kalender' },
+  PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },
+  PLAN_CANCELLED: { badge: 'close', center: 'kalender' },
+  COMMENT_CREATED: { badge: 'nachrichten', center: 'nachrichten' },
+  PHOTO_REACTION: { badge: 'foto', center: 'foto' },
+  COUPLE_EXPERIENCE_SHARED: { badge: 'momente', center: 'momente' },
+  REMINDER_CREATED: {
+    badge: 'benachrichtigungen',
+    center: 'benachrichtigungen',
+  },
+  PARTNER_JOINED: { badge: 'gemeinsam', center: 'gemeinsam' },
+  ONCE_MESSAGE_RECEIVED: { badge: 'nachrichten', center: 'nachrichten' },
+} as const satisfies Partial<Record<NotificationKind, PartnerNoticeIcons>>;
+
+export type PartnerNoticeKind = keyof typeof PARTNER_NOTICE_ICONS;
+
+export function isPartnerNoticeKind(kind: string): kind is PartnerNoticeKind {
+  return Object.hasOwn(PARTNER_NOTICE_ICONS, kind);
 }
 
 export const PARTNER_GESTURE_RECEIPT_EVENT = 'eimir:partner-gesture-receipt';

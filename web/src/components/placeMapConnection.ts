@@ -35,6 +35,11 @@ const HEART_LIFT_PX = 34;
 const HEART_PATH =
   'M12 20.3 4.7 13a4.6 4.6 0 0 1 6.5-6.5l.8.8.8-.8a4.6 4.6 0 0 1 6.5 6.5Z';
 
+/** The glow turns before an avatar instead of hiding under it. */
+const AVATAR_CLEARANCE_PX = 30;
+/** Trailing points that follow the glow as a short tail. */
+const TRAIL_POINTS = 2;
+
 let maskCount = 0;
 
 /** A quadratic arc between two screen points that bows towards the top. */
@@ -64,6 +69,40 @@ export function connectionArc(
   )} ${round(to.x)} ${round(to.y)}`;
 }
 
+/** Length of the arc between both ends, in screen pixels. */
+export function connectionArcLength(
+  from: ScreenPoint,
+  to: ScreenPoint,
+  tier: MapConnectionTier,
+): number {
+  const numbers = connectionArc(from, to, tier).match(/-?\d+(\.\d+)?/g);
+  if (!numbers || numbers.length < 6) return 0;
+  const [x0, y0, cx, cy, x1, y1] = numbers.map(Number);
+  let length = 0;
+  let previous = { x: x0, y: y0 };
+  const steps = 24;
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    const point = {
+      x: (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t ** 2 * x1,
+      y: (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t ** 2 * y1,
+    };
+    length += Math.hypot(point.x - previous.x, point.y - previous.y);
+    previous = point;
+  }
+  return length;
+}
+
+/**
+ * Where the glow turns, as a share of the arc: just outside both avatars, so
+ * it never disappears under them. Short arcs keep at least the middle fifth.
+ */
+export function glowTurns(length: number): { start: number; end: number } {
+  if (length <= 0) return { start: 0, end: 100 };
+  const start = Math.min(40, (AVATAR_CLEARANCE_PX / length) * 100);
+  return { start, end: 100 - start };
+}
+
 function svgElement<K extends keyof SVGElementTagNameMap>(
   name: K,
   attributes: Record<string, string> = {},
@@ -78,7 +117,7 @@ export class ConnectionOverlay {
   readonly element: HTMLElement;
   private readonly paths: SVGPathElement[];
   private readonly mask: SVGMaskElement;
-  private readonly glow: HTMLElement;
+  private readonly glows: HTMLElement[];
   private readonly heart: HTMLElement;
   private started = false;
 
@@ -115,8 +154,13 @@ export class ConnectionOverlay {
     group.append(casing, stroke);
     svg.append(defs, group);
     this.paths = [reveal, casing, stroke];
-    this.glow = document.createElement('span');
-    this.glow.className = 'place-map-connection-glow';
+    this.glows = Array.from({ length: TRAIL_POINTS + 1 }, (_, index) => {
+      const glow = document.createElement('span');
+      glow.className = index
+        ? `place-map-connection-glow is-trail is-trail-${index}`
+        : 'place-map-connection-glow';
+      return glow;
+    });
     this.heart = document.createElement('span');
     this.heart.className = 'place-map-connection-heart';
     const heartSvg = svgElement('svg', {
@@ -125,7 +169,8 @@ export class ConnectionOverlay {
     });
     heartSvg.append(svgElement('path', { d: HEART_PATH }));
     this.heart.append(heartSvg);
-    element.append(svg, this.glow, this.heart);
+    // Trailing points first, so the leading glow is drawn on top.
+    element.append(svg, ...[...this.glows].reverse(), this.heart);
     if (after?.parentElement === container) after.after(element);
     else container.prepend(element);
     this.element = element;
@@ -154,19 +199,36 @@ export class ConnectionOverlay {
     } else {
       const d = connectionArc(from, to, connection.tier);
       for (const path of this.paths) path.setAttribute('d', d);
-      this.glow.style.setProperty('offset-path', `path('${d}')`);
+      for (const glow of this.glows)
+        glow.style.setProperty('offset-path', `path('${d}')`);
+      const turns = glowTurns(connectionArcLength(from, to, connection.tier));
+      element.style.setProperty(
+        '--place-map-connection-start',
+        `${turns.start.toFixed(2)}%`,
+      );
+      element.style.setProperty(
+        '--place-map-connection-end',
+        `${turns.end.toFixed(2)}%`,
+      );
     }
-    if (!this.started) {
-      this.started = true;
-      // The arc draws in once; later plays only repeat the travel or beat.
-      element.classList.add('is-entering');
-      this.play();
-    }
+  }
+
+  /**
+   * Shows the drawing and plays it for the first time. Called once the map
+   * has drawn its tiles, so the arc never draws in over an empty map.
+   */
+  start() {
+    if (this.started) return;
+    this.started = true;
+    // The arc draws in once; later plays only repeat the travel or beat.
+    this.element.classList.add('is-started', 'is-entering');
+    this.play();
   }
 
   /** Restarts the travelling glow or the heartbeat. */
   play() {
     const { element } = this;
+    if (!this.started) return;
     element.classList.remove('is-paused', 'is-playing');
     // Reading layout restarts the CSS animations bound to the class.
     void element.offsetWidth;

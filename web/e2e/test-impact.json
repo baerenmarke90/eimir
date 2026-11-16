@@ -759,7 +759,8 @@
     "date-inspiration.spec.ts": {
       "roots": [
         "web/src/components/DateIdeasPage.tsx",
-        "web/src/components/DateIdeasEntry.tsx",
+        "web/src/components/DateIdeasComposerHint.tsx",
+        "web/src/components/DateIdeaCard.tsx",
         "web/src/components/DateIdeaImage.tsx",
         "web/src/components/DateIdeaFilters.tsx",
         "web/src/components/DateIdeaFacts.tsx",
@@ -779,6 +780,7 @@
         "web/src/components/WishSelectionIdeaPicker.tsx",
         "web/src/client/wishSelection.ts",
         "web/src/components/DateIdeaFilters.tsx",
+        "web/src/components/DateIdeaCard.tsx",
         "web/src/components/DateIdeaFacts.tsx",
         "web/src/components/DateIdeaImage.tsx",
         "web/src/client/dateIdeas.ts",
@@ -790,6 +792,8 @@
     "shared-wish-selection.spec.ts": {
       "roots": [
         "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/WishSelectionEntry.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/client/wishSelection.ts",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
@@ -1035,6 +1039,7 @@
     "planning-search-private-profile.spec.ts": {
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishSelectionEntry.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
@@ -1232,6 +1237,9 @@
         "web/src/components/PlanningOccasions.tsx",
         "web/src/i18n/locales/occasionMarks.ts"
       ]
+    },
+    "webview-update-notice.spec.ts": {
+      "roots": ["web/src/i18n/locales/webViewNotice.ts"]
     }
   }
 }

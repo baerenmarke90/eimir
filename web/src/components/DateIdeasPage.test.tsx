@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { DateIdeaCatalog } from '../api/generated/models/DateIdeaCatalog';
 import { dateIdeasQueryKey, rememberDateIdeaWish } from '../client/dateIdeas';
@@ -10,6 +10,15 @@ import { ClientProblemError } from '../client/problemDetails';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import dateIdeas from '../i18n/locales/dateIdeas';
 import { DateIdeasPage } from './DateIdeasPage';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 const env = vi.hoisted(() => ({
   allowed: true as boolean,
@@ -194,10 +203,15 @@ describe('DateIdeasPage', () => {
       locale: 'de',
     });
 
+    // All filters live in one sheet behind one action (#1907 J1).
+    expect(
+      screen.queryByRole('group', { name: dateIdeas.filters.budgetLegend }),
+    ).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: dateIdeas.filters.more }),
+      screen.getByRole('button', { name: dateIdeas.filters.open }),
     );
-    const budget = screen.getByRole('group', {
+    const sheet = await screen.findByRole('dialog');
+    const budget = within(sheet).getByRole('group', {
       name: dateIdeas.filters.budgetLegend,
     });
     fireEvent.click(within(budget).getByRole('button', { name: /10\s€/ }));
@@ -206,15 +220,39 @@ describe('DateIdeasPage', () => {
       within(budget).getByRole('button', { name: dateIdeas.filters.free }),
     );
     expect(screen.getAllByRole('article')).toHaveLength(1);
-    const place = screen.getByRole('group', {
+    const place = within(sheet).getByRole('group', {
       name: dateIdeas.filters.placeLegend,
     });
     fireEvent.click(within(place).getByRole('button', { name: 'Out' }));
     expect(screen.getByText(dateIdeas.empty.title)).toBeTruthy();
     fireEvent.click(
-      screen.getAllByRole('button', { name: dateIdeas.filters.reset })[0],
+      within(sheet).getByRole('button', {
+        name: dateIdeas.filters.show_other.replace('{{count}}', '0'),
+      }),
+    );
+    // Active filters stay visible as removable chips.
+    const removePlace = screen.getByRole('button', {
+      name: dateIdeas.filters.remove.replace('{{label}}', 'Out'),
+    });
+    expect(
+      screen.getByRole('button', {
+        name: dateIdeas.filters.openActive_other.replace('{{count}}', '2'),
+      }),
+    ).toBeTruthy();
+    fireEvent.click(removePlace);
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: dateIdeas.filters.remove.replace(
+          '{{label}}',
+          dateIdeas.filters.free,
+        ),
+      }),
     );
     expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(
+      screen.getByRole('button', { name: dateIdeas.filters.open }),
+    ).toBeTruthy();
     expect(env.listDateIdeas).toHaveBeenCalledTimes(1);
   });
 

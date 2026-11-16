@@ -11,8 +11,10 @@ UI, keyframes or notification priorities.
 > **Scoped Product Owner approvals.** The [partner gesture
 > receipt](partner-gesture-receipt.md) from #455 uses expressive one-shot
 > motion. [Wish date proposals](https://github.com/baerenmarke90/eimir/issues/1910)
-> reuse the check-in receipt's calm avatar breath, three waves and settled
-> badge treatment with a calendar icon and the same reduced-motion behavior.
+> reuse the check-in receipt's calm avatar breath and settled badge treatment
+> with a calendar icon and the same reduced-motion behavior. The Product Owner
+> removed the three waves on 2026-11-15; see
+> [calm notices](partner-gesture-receipt.md#calm-partner-notices-standard-2026-11-15).
 > This applies to the explicit proposal exchange. Vibe and Energy status
 > updates still reconcile silently.
 

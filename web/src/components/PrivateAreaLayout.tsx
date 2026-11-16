@@ -18,17 +18,13 @@ import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 export function PrivateAreaFrame({
   children,
-  overviewAction,
-  showNavigation = true,
   editorFirst = false,
 }: {
   children: ReactNode;
-  overviewAction?: ReactNode;
-  showNavigation?: boolean;
   editorFirst?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigation = showNavigation ? (
+  const navigation = (
     <nav
       className="private-area-nav"
       aria-label={t('privateArea.navigation.aria')}
@@ -46,7 +42,7 @@ export function PrivateAreaFrame({
         {t('privateArea.partnerNotes.shortTitle')}
       </NavLink>
     </nav>
-  ) : null;
+  );
   return (
     <div className="page private-area-page">
       {editorFirst ? null : (
@@ -59,15 +55,8 @@ export function PrivateAreaFrame({
               <EimirIcon name="nurfuer" className="private-area-lock-icon" />
               {t('privateArea.eyebrow')}
             </h1>
-            <p className="private-area-intro-text">
-              {t(
-                showNavigation
-                  ? 'privateArea.intro'
-                  : 'privateArea.entry.privacy',
-              )}
-            </p>
+            <p className="private-area-intro-text">{t('privateArea.intro')}</p>
           </div>
-          {overviewAction}
         </section>
       )}
       {!editorFirst && navigation}

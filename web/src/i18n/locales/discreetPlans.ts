@@ -21,8 +21,7 @@ export default {
       'Der Titel bleibt überall sichtbar. Beschreibung, Ort und Fotos bleiben verdeckt, bis ihr tippt.',
   },
   detail: {
-    concealedBody:
-      'Dieser Plan ist verdeckt. Ihr beide könnt ihn jederzeit ansehen. Verdeckt bleibt er nur für Blicke von außen.',
+    concealedBody: 'Dieser Plan ist verdeckt.',
     reveal: 'Anzeigen',
     conceal: 'Wieder verdecken',
     revealed: 'Plan wird angezeigt.',

@@ -26,7 +26,7 @@ const de = {
       lists: 'Listen',
     },
     subtitles: {
-      private: 'Notizen und Geschenkideen · {{visibility}}',
+      private: 'Notizen, Geschenkideen und Listen · {{visibility}}',
       media: 'Alle Fotos und Videos',
       chapters: 'Reisen, Umzüge, große Abschnitte',
       yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
@@ -63,8 +63,7 @@ const de = {
     },
     private: {
       title: 'Nur für mich',
-      description:
-        'Notizen, Geschenkideen und Gedanken, die ausschließlich für dich bestimmt sind.',
+      description: 'Notizen, Geschenkideen und Listen, die nur du siehst.',
     },
     notifications: {
       title: 'Benachrichtigungen',

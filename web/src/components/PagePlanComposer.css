@@ -296,3 +296,16 @@ dialog.short-task-sheet:has(
     color: var(--color-link-text);
   }
 }
+/* The date opens the calendar sheet: it reads as a link, like the place. */
+.page-plan-detail button.planen-detail-schedule-action {
+  min-block-size: var(--touch-target-web);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.plan-calendar-sheet-body {
+  display: grid;
+  gap: var(--space-4);
+}

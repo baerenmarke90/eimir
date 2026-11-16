@@ -14,6 +14,7 @@ All URIs are relative to *http://localhost*
 | [**listCollectionSuggestions**](CollectionsApi.md#listcollectionsuggestions) | **GET** /api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions | List Collection Suggestions |
 | [**listCollections**](CollectionsApi.md#listcollections) | **GET** /api/v1/spaces/{spaceId}/collections | List Collections |
 | [**reorderCollectionItems**](CollectionsApi.md#reordercollectionitems) | **PUT** /api/v1/spaces/{spaceId}/collections/{collectionId}/order | Reorder Collection Items |
+| [**sendCollectionToPartner**](CollectionsApi.md#sendcollectiontopartner) | **POST** /api/v1/spaces/{spaceId}/collections/{collectionId}/send | Send a shared list to the partner |
 | [**updateCollection**](CollectionsApi.md#updatecollection) | **PATCH** /api/v1/spaces/{spaceId}/collections/{collectionId} | Update Collection |
 | [**updateCollectionItem**](CollectionsApi.md#updatecollectionitem) | **PATCH** /api/v1/spaces/{spaceId}/collections/{collectionId}/items/{itemId} | Update Collection Item |
 
@@ -765,6 +766,80 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## sendCollectionToPartner
+
+> sendCollectionToPartner(collectionId, spaceId)
+
+Send a shared list to the partner
+
+A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CollectionsApi,
+} from '';
+import type { SendCollectionToPartnerRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CollectionsApi();
+
+  const body = {
+    // string
+    collectionId: collectionId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies SendCollectionToPartnerRequest;
+
+  try {
+    const data = await api.sendCollectionToPartner(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **collectionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |

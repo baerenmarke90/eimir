@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v12)
+## Current module workflow (v14)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -14,6 +14,11 @@ and Quiet Hours.
 Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.
+
+A shared list a partner deliberately sends (#1907 E2, `COLLECTION_SENT`) uses
+neutral immediate delivery without the list title, its own recipient switch,
+Quiet Hours and no email choice; see the
+[module workflow](../product/notification-workflow.md).
 
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.

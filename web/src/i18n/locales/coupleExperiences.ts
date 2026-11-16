@@ -21,6 +21,7 @@ export default {
       '{{name}} möchte lieber selbst entscheiden.',
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
+    COLLECTION_SENT: '{{name}} hat dir eine Liste geschickt.',
     TRANSFER_READY:
       'Dein Datenauftrag ist bereit. Du kannst ihn jetzt ansehen.',
     TRANSFER_COMPLETED: 'Dein Datenimport ist abgeschlossen.',

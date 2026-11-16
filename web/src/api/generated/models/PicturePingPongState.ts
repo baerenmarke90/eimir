@@ -39,7 +39,6 @@ export interface PicturePingPongState {
  * Check if a given object implements the PicturePingPongState interface.
  */
 export function instanceOfPicturePingPongState(value: object): value is PicturePingPongState {
-
     return true;
 }
 

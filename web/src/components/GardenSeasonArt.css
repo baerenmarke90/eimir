@@ -119,6 +119,11 @@
   gap: var(--space-3);
 }
 
+.garden-card-actions a {
+  color: var(--color-brand-text);
+  font-weight: 700;
+}
+
 /* Motion: lit lanterns flicker gently while the garden is lively; leaves fall
    once on open in autumn; the mist lifts once when the garden wakes. */
 .garden-flicker {

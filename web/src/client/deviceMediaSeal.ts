@@ -93,3 +93,63 @@ export async function openMedia(
   );
   return new Blob([data], { type: sealed.type });
 }
+
+/** A JSON value sealed for one row; see `sealJson`. */
+export interface SealedJson {
+  readonly iv: Uint8Array<ArrayBuffer>;
+  readonly data: ArrayBuffer;
+}
+
+// Never a real media type, so a sealed record cannot stand in for an image.
+const JSON_SEAL_TYPE = 'eimir/sealed-json';
+
+/**
+ * Seal a JSON-serializable value under the same per-login key as the images.
+ * The read cache uses it for cached shared content and the list outbox, as
+ * the Product Owner asked on 2026-11-16 for content the app keeps locally.
+ */
+export async function sealJson(
+  cryptoKey: CryptoKey,
+  rowKey: string,
+  value: unknown,
+): Promise<SealedJson> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = new TextEncoder().encode(JSON.stringify(value));
+  try {
+    const data = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv,
+        additionalData: additionalData(rowKey, JSON_SEAL_TYPE),
+      },
+      cryptoKey,
+      plain,
+    );
+    return { iv, data };
+  } finally {
+    plain.fill(0);
+  }
+}
+
+export async function openJson(
+  cryptoKey: CryptoKey,
+  rowKey: string,
+  sealed: SealedJson,
+): Promise<unknown> {
+  const plain = new Uint8Array(
+    await crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: sealed.iv,
+        additionalData: additionalData(rowKey, JSON_SEAL_TYPE),
+      },
+      cryptoKey,
+      sealed.data,
+    ),
+  );
+  try {
+    return JSON.parse(new TextDecoder().decode(plain)) as unknown;
+  } finally {
+    plain.fill(0);
+  }
+}

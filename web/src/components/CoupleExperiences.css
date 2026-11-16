@@ -341,13 +341,9 @@
 }
 .recap-lead-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-4) var(--space-4);
-}
-.recap-lead-body > .recap-lead-badge {
-  grid-column: 1 / -1;
 }
 .recap-lead-copy {
   display: grid;
@@ -362,10 +358,9 @@
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
 }
-.recap-lead-chevron {
-  width: var(--space-5);
-  height: var(--space-5);
-  color: var(--color-text-secondary);
+.recap-lead-card:hover .recap-lead-copy strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 @media (min-width: 840px) {
   /* Expanded keeps the photo beside the words, like the Wir invitation. */

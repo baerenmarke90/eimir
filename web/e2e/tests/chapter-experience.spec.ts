@@ -4,6 +4,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import de from '../../src/i18n/locales/de';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -292,11 +293,15 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
     })
     .click();
   await addMemory(page);
-  await page.getByRole('link', { name: /Breakfast by the canal/ }).click();
+  const linkedMemory = page.getByRole('link', {
+    name: /Breakfast by the canal/,
+  });
+  await linkedMemory.click();
   await expect(
     page.getByRole('heading', { name: 'Breakfast by the canal', exact: true }),
   ).toBeVisible();
   await back(page).click();
+  await expect(linkedMemory).toBeFocused();
   await page
     .getByRole('button', {
       name: m5s3.relations.actions.replace(
@@ -351,6 +356,41 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
     .click();
   await expect(page).toHaveURL(/year=2025/);
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(0);
+  expect(unexpected).toEqual([]);
+});
+
+test('Chapter cards use the same Moments design preference as the Diary', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const entry = seed();
+  const { state, unexpected } = await installChapters(page, [entry]);
+  state.links.set(entry.id, ['mem-canal']);
+  await signIn(page);
+
+  await page.goto(`/plan/chapters/${entry.id}`);
+  await expect(
+    page.locator('[data-diary-layout="album"] .story-card-memory.has-image'),
+  ).toBeVisible();
+
+  await page.goto('/more/settings/appearance');
+  await page
+    .getByRole('radio', {
+      name: new RegExp(storyProducts.momentsLayout.compact.name),
+    })
+    .check();
+
+  await page.goto(`/plan/chapters/${entry.id}`);
+  await expect(
+    page.locator('[data-diary-layout="compact"] .story-card-memory.has-image'),
+  ).toBeVisible();
+
+  await page.goto('/story?tab=timeline');
+  await expect(
+    page
+      .locator('[data-diary-layout="compact"] .story-card-memory.has-image')
+      .first(),
+  ).toBeVisible();
   expect(unexpected).toEqual([]);
 });
 
@@ -513,7 +553,7 @@ for (const viewport of [
     ).toHaveCount(0);
     const add = page.getByRole('button', { name: m5s3.relations.addLabel });
     const first = page.getByRole('link', { name: /Breakfast by the canal/ });
-    await expect(first.locator('.relation-moment-art')).toHaveCount(1);
+    await expect(first.locator('.story-card-memory.has-image')).toHaveCount(1);
     if (!viewport.large) await expect(first.locator('img')).toBeVisible();
     expect((await add.boundingBox())?.y).toBeLessThan(
       (await first.boundingBox())?.y ?? 0,

@@ -7,7 +7,6 @@ import { normalizeClientError } from '../client/problemDetails';
 import { monthlyRecapInvitation, recapPeriodLabel } from '../client/recaps';
 import { recapDetailPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { EimirIcon } from './EimirIcon';
 import { useRecapInvitationReceipt } from './MonthlyRecapInvitation';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 
@@ -147,7 +146,6 @@ export function RecapDiscoverLead({
               <strong>{recapPeriodLabel(edition, resolvedLocale())}</strong>
               <span>{t('recaps.shortTitle')}</span>
             </span>
-            <EimirIcon name="chevron-right" className="recap-lead-chevron" />
           </span>
         </Link>
       </div>

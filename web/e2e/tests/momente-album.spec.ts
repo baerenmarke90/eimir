@@ -185,7 +185,7 @@ test.describe('Momente Album design (#1960)', () => {
   test('Tagebuch Album keeps reading at 200% text and 320px without overflow', async ({
     page,
   }, testInfo) => {
-    await openDiary(page, { width: 320, height: 640 }, 'light');
+    await openDiary(page, { width: 320, height: 640 }, 'light', CHAPTERS);
     await page.addStyleTag({ content: ':root { font-size: 200%; }' });
     await page.evaluate(() => document.fonts.ready);
 

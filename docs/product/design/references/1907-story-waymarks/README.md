@@ -34,10 +34,9 @@ first shared home, longest long-distance phase. First shared photo belongs to
 
 ## Proposal
 
-- **Round day counts.** Every 100 days up to 1,000; from then on every 500
-  days and the repdigits 1,111, 2,222 … 9,999; then 10,000. The next one stays
-  the single round-day card in "next chapter" (so after 1,000 the next card is
-  1,111, not 1,500).
+- **Round day counts.** 100, 200, 500 and 1,000 days, then every 1,000
+  days up to 10,000 (decided 2026-11-16, see below). The next one stays the
+  single round-day card in "next chapter".
 - **"One year since …".** Each authored Milestone has a yearly anniversary
   ("1 Jahr seit …", "2 Jahre seit …", quoted title). The nearest upcoming one
   joins "next chapter" as one more card, sorted with the others by days
@@ -91,3 +90,11 @@ first shared home, longest long-distance phase. First shared photo belongs to
 - Browser evidence: `web/e2e/tests/story-waymarks.spec.ts` writes
   `story-waymarks-*.png` for 390 Light/Dark, 360 at 200 % text, Expanded,
   the expanded thread and the omitted state.
+
+## Round days narrowed (2026-11-16)
+
+The Product Owner asked for fewer round days after the first implementation:
+not every hundredth day and no repdigits. The series is **100, 200, 500,
+1,000, then every 1,000 days up to 10,000**. The reference images above
+still show the earlier series (for example 1,111 and 1,500) and are kept as the
+composition reference only.

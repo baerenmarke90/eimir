@@ -5,10 +5,11 @@ import { paletteDeclarations, paletteRoles } from './identity-palette.mjs';
  * palette and bounded presets; this module validates the file and turns it
  * into semantic custom properties. See docs/DESIGN-TOKEN-SETS.md.
  *
- * Designs currently apply to Wir only. The approved delivery switches the
- * scope to the whole app in a separate step, by changing APP_DESIGN_SCOPE.
+ * A design applies app-wide from the root element (`data-app-design`), so
+ * every tab, portaled sheet and the browser theme colour follow it. In a
+ * design with its own palette, contextual colour worlds (`data-color-world`)
+ * resolve to that palette; designs on the default palette keep them.
  */
-export const APP_DESIGN_SCOPE = '.today-page';
 
 const FIELDS = [
   '$description',
@@ -34,6 +35,28 @@ const MOTION_ROLES = {
   'duration-context': 'emphasized',
 };
 const SCHEMES = ['light', 'dark'];
+/**
+ * Optional fine roles (Product Owner amendment 2026-11-16): a design may set
+ * these besides the 16 mandatory roles; omitted ones keep the value the 16
+ * roles derive. Decoration roles exist only where a design sets them.
+ */
+export const FINE_ROLES = {
+  borderSubtle: ['color-border-subtle', 'color-header-border'],
+  mutedTextSoft: ['color-text-muted'],
+  surfaceSubtle: ['color-surface-subtle', 'color-surface-panel-tint'],
+  surfaceOverlay: ['color-surface-overlay'],
+  actionStrong: ['color-brand-strong'],
+  sharedFill: ['color-shared'],
+  glow: ['color-brand-glow'],
+  tintBrand: ['color-page-tint-brand'],
+  tintShared: ['color-page-tint-shared'],
+  decoration: ['design-decoration'],
+  onDecoration: ['design-on-decoration'],
+  onDecorationMuted: ['design-on-decoration-muted'],
+  highlight: ['design-highlight'],
+  onHighlight: ['design-on-highlight'],
+  decorationIcon: ['design-decoration-icon'],
+};
 
 export class AppDesignError extends Error {}
 
@@ -82,15 +105,38 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 function palettes(id, color, identity) {
   if (color && typeof color === 'object' && 'world' in color) {
-    exactKeys(id, 'color', color, ['world']);
+    // A colour world, optionally with single roles replaced per scheme.
+    for (const key of Object.keys(color))
+      if (!['world', ...SCHEMES].includes(key))
+        fail(id, `color.${key} is not allowed with color.world.`);
     const world = identity.colorWorlds[color.world];
     if (!world) fail(id, `color.world "${color.world}" is not a colour world.`);
-    return { light: world.light, dark: world.dark, world: color.world };
+    const overrides = SCHEMES.filter((scheme) => scheme in color);
+    for (const scheme of overrides)
+      for (const [role, value] of Object.entries(color[scheme])) {
+        if (!(role in paletteRoles) && !(role in FINE_ROLES))
+          fail(id, `color.${scheme}.${role} is not a colour role.`);
+        if (!HEX.test(value))
+          fail(id, `color.${scheme}.${role} must be a #RRGGBB colour.`);
+      }
+    return {
+      light: { ...world.light, ...color.light },
+      dark: { ...world.dark, ...color.dark },
+      // An adjusted world is the design's own palette, not the shared one.
+      world: overrides.length ? `${color.world}+${id}` : color.world,
+    };
   }
   exactKeys(id, 'color', color, SCHEMES);
   for (const scheme of SCHEMES) {
-    exactKeys(id, `color.${scheme}`, color[scheme], Object.keys(paletteRoles));
-    for (const [role, value] of Object.entries(color[scheme]))
+    const roles = color[scheme];
+    if (!roles || typeof roles !== 'object' || Array.isArray(roles))
+      fail(id, `color.${scheme} must be an object.`);
+    for (const role of Object.keys(paletteRoles))
+      if (!(role in roles)) fail(id, `color.${scheme} is missing "${role}".`);
+    for (const role of Object.keys(roles))
+      if (!(role in paletteRoles) && !(role in FINE_ROLES))
+        fail(id, `color.${scheme}.${role} is not a colour role.`);
+    for (const [role, value] of Object.entries(roles))
       if (!HEX.test(value))
         fail(id, `color.${scheme}.${role} must be a #RRGGBB colour.`);
   }
@@ -102,9 +148,20 @@ const TEXT_PAIRS = [
   ['text', 'surface'],
   ['mutedText', 'page'],
   ['mutedText', 'surface'],
+  // Supporting text also sits on the soft tinted surfaces.
+  ['mutedText', 'softRose'],
+  ['mutedText', 'softBlue'],
   ['action', 'page'],
   ['action', 'surface'],
   ['onAction', 'actionFill'],
+];
+/** Checked only when the design sets the fine role. */
+const FINE_TEXT_PAIRS = [
+  ['mutedTextSoft', 'page'],
+  ['mutedTextSoft', 'surface'],
+  ['onDecoration', 'decoration'],
+  ['onDecorationMuted', 'decoration'],
+  ['onHighlight', 'highlight'],
 ];
 const NON_TEXT_PAIRS = [
   ['focus', 'page'],
@@ -112,8 +169,12 @@ const NON_TEXT_PAIRS = [
 ];
 
 function checkContrast(id, scheme, palette, minimums) {
+  const fine = FINE_TEXT_PAIRS.filter(
+    ([foreground, background]) =>
+      foreground in palette && background in palette,
+  );
   for (const [pairs, minimum] of [
-    [TEXT_PAIRS, minimums.text],
+    [[...TEXT_PAIRS, ...fine], minimums.text],
     [NON_TEXT_PAIRS, minimums.nonText],
   ]) {
     for (const [foreground, background] of pairs) {
@@ -156,14 +217,16 @@ export function validateDesign(design, tokens) {
   );
   oneOf(id, 'type.headings', design.type.headings, HEADINGS);
   exactKeys(id, 'icon', design.icon, ['stroke', 'accent']);
+  // "standard" follows the app's icon stroke (identity.icon.strokePx).
   if (
-    typeof design.icon.stroke !== 'number' ||
-    design.icon.stroke < presets.iconStroke.min ||
-    design.icon.stroke > presets.iconStroke.max
+    design.icon.stroke !== 'standard' &&
+    (typeof design.icon.stroke !== 'number' ||
+      design.icon.stroke < presets.iconStroke.min ||
+      design.icon.stroke > presets.iconStroke.max)
   )
     fail(
       id,
-      `icon.stroke must be between ${presets.iconStroke.min} and ${presets.iconStroke.max}.`,
+      `icon.stroke must be "standard" or between ${presets.iconStroke.min} and ${presets.iconStroke.max}.`,
     );
   oneOf(id, 'icon.accent', design.icon.accent, ICON_ACCENTS);
   exactKeys(id, 'surface', design.surface, ['backdrop', 'elevation', 'edges']);
@@ -202,7 +265,10 @@ function presetDeclarations(design, tokens) {
     lines.push('--shadow-card: var(--shadow-soft);');
   if (design.surface.edges === 'hairline')
     lines.push(`--border-surface-width: ${tokens.border.hairline.$value};`);
-  if (design.icon.stroke !== identity.icon.strokePx)
+  if (
+    design.icon.stroke !== 'standard' &&
+    design.icon.stroke !== identity.icon.strokePx
+  )
     lines.push(`--icon-stroke-width: ${design.icon.stroke};`);
   if (design.icon.accent === 'mono')
     lines.push(
@@ -221,8 +287,26 @@ function motionDeclarations(design, tokens) {
   );
 }
 
+/** The 16-role declarations followed by the fine roles the palette sets. */
+function designPalette(palette, status, mode) {
+  const lines = paletteDeclarations(palette, status, mode);
+  for (const [role, aliases] of Object.entries(FINE_ROLES))
+    if (role in palette)
+      for (const alias of aliases) lines.push(`--${alias}: ${palette[role]};`);
+  return lines;
+}
+
+/** Keeps the last declaration of each property, at its first position. */
+function uniqueDeclarations(lines) {
+  const byProperty = new Map();
+  for (const line of lines) byProperty.set(line.split(':')[0], line);
+  return [...byProperty.values()];
+}
+
 function block(selector, lines, indent = '') {
-  const body = lines.map((line) => `${indent}  ${line}`).join('\n');
+  const body = uniqueDeclarations(lines)
+    .map((line) => `${indent}  ${line}`)
+    .join('\n');
   return `${indent}${selector} {\n${body}\n${indent}}`;
 }
 
@@ -263,7 +347,7 @@ export function buildAppDesigns(tokens, designs) {
     fallback.surface.elevation !== 'standard' ||
     fallback.surface.edges !== 'none' ||
     fallback.icon.accent !== 'duotone' ||
-    fallback.icon.stroke !== identity.icon.strokePx ||
+    ![identity.icon.strokePx, 'standard'].includes(fallback.icon.stroke) ||
     fallback.type.display !== 'literata'
   )
     fail(
@@ -294,30 +378,34 @@ export function buildAppDesigns(tokens, designs) {
         selectors(''),
         selectors(':root[data-theme="dark"] '),
         selectors(':root:not([data-theme]) '),
-        paletteDeclarations(palette.light, status.light, 'light'),
-        paletteDeclarations(palette.dark, status.dark, 'dark'),
+        designPalette(palette.light, status.light, 'light'),
+        designPalette(palette.dark, status.dark, 'dark'),
       ),
     );
   }
   for (const design of validated) {
     if (design.id === fallback.id) continue;
     const root = `[data-app-design="${design.id}"]`;
+    const ownPalette = design.palette.world !== identity.defaultWorld;
+    const scoped = (prefix) =>
+      ownPalette
+        ? `${prefix}${root},\n${prefix}${root} [data-color-world]`
+        : `${prefix}${root}`;
     const extra = presetDeclarations(design, tokens);
     // A design on the default colour world inherits the root palette.
-    if (design.palette.world === identity.defaultWorld)
-      css.push(block(`:root${root} ${APP_DESIGN_SCOPE}`, extra));
+    if (!ownPalette) css.push(block(scoped(':root'), extra));
     else
       css.push(
         ...schemeBlocks(
-          `:root${root} ${APP_DESIGN_SCOPE}`,
-          `:root[data-theme="dark"]${root} ${APP_DESIGN_SCOPE}`,
-          `:root:not([data-theme])${root} ${APP_DESIGN_SCOPE}`,
+          scoped(':root'),
+          scoped(':root[data-theme="dark"]'),
+          scoped(':root:not([data-theme])'),
           [
-            ...paletteDeclarations(design.palette.light, status.light, 'light'),
+            ...designPalette(design.palette.light, status.light, 'light'),
             ...extra,
           ],
           [
-            ...paletteDeclarations(design.palette.dark, status.dark, 'dark'),
+            ...designPalette(design.palette.dark, status.dark, 'dark'),
             ...extra,
           ],
         ),
@@ -325,7 +413,7 @@ export function buildAppDesigns(tokens, designs) {
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(
-        `@media (prefers-reduced-motion: no-preference) {\n${block(`:root${root} ${APP_DESIGN_SCOPE}`, motion, '  ')}\n}`,
+        `@media (prefers-reduced-motion: no-preference) {\n${block(scoped(':root'), motion, '  ')}\n}`,
       );
   }
 

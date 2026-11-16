@@ -114,6 +114,7 @@ def engine() -> Iterator[Engine]:
     from eimir.engagement import models as _engagement  # noqa: F401
     from eimir.entitlements import models as _entitlements  # noqa: F401
     from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
+    from eimir.heart_hunt import models as _heart_hunt  # noqa: F401
     from eimir.heart_moments import models as _heart_moments  # noqa: F401
     from eimir.identity import models as _identity  # noqa: F401
     from eimir.jobs import models as _jobs  # noqa: F401
@@ -124,6 +125,7 @@ def engine() -> Iterator[Engine]:
     from eimir.outbox import models as _outbox  # noqa: F401
     from eimir.people import models as _people  # noqa: F401
     from eimir.photo_sources import models as _photo_sources  # noqa: F401
+    from eimir.picture_ping_pong import models as _picture_ping_pong  # noqa: F401
     from eimir.places import models as _places  # noqa: F401
     from eimir.plans import models as _plans  # noqa: F401
     from eimir.presence import models as _presence  # noqa: F401

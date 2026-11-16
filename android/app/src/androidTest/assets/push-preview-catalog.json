@@ -1639,10 +1639,104 @@
       }
     },
     {
-      "id": "GARDEN_SEED_ARRIVED-empty",
+      "id": "PICTURE_PING_PONG_TURN-empty",
       "payload": {
         "v": 1,
         "notificationId": "01a19706-45b8-741d-a0d2-3687565a7040",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..v3tly-655adEAiA8.Ki0o9xuX7mgLxe_ftSj3KyZU-PeFK6QIXg035B-vpxchqW5mqfxADqMPAMyZhBmsCK5lKvwQ9KABnYpyATREeFwKP2nNeaDLuA-cjoseVYnCdObkgyBhFE0bEQAMe5fw0Vvu4J7RfCMvOIfVyuHOLaadwaVJzl61O_LvxIS_1GidS9iR3AKj_syzNb5_Nr_6szPoWJYjpXD3bFkRB54_1EWZ4e9YUh1Mnl4odYb06mgCMzOfZ78ngOPd-wdPm-S7cEN9Mw.CeMWqiNGHLDVYlKXET6gTw",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7041",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..oWtz_llVU8bB8IJQ.sUM1H9d7Co2COF0J_AL179P0otnAInC_ZIVbcmSmQmpnVsrHvIsCvEm8wsWjXxowE8bdFpiJDQaT9Fam5-mkKAFM95VA3m7VgdKq4gWMpDWE84wIdHivQp_wrdo65_ZqES7zW8qGdZ9nQs06Y4xBX_bAkpR-Jbw-M747L55pRs4T8gJi_RC3aoi3FDiCXDlXl6uDVWlh1pBay7_ldBFw8UN8uqHFEbY5G0WRX3kTvuc2kHQrcmhlbzLe7q_nZpqcF2JRTb4tu9IHSRab-EvyclA34yVh.q85Dr31Jay7m3aS3tfJ44w",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7042",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1-h0xwHWKH4Ds39U.paEJnmzsNAMWg_MliLMO_zr5nPCntmMgI8TtNi0UtATTtMRSvatA01XGdkgJDXnBKdL7QmFqoTf8OZPBSfQ3Kk0KAASg3mB6SbOYkSJp2OevFWwQZrXqugayKBzkn_mKDzHmNu7ovT4Uics7oyADGePJiSCsNwi4qi3NdApaNTOuv9N2riJEKUrVihkHX4dh4vNdj9OAog9G9MoJ4JcHgaTmG0tZE2MY9a7b4808D6QAYUQTdzg9CA_JNTHzMWI-jIiv_-NnzFO_rsjdFmY.ASgyNLEvjpgrsJ_KHLoNKw",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7043",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9.._PQ27tm6BoLyQIjV.dwqpsIDey-wcBJfNuOECE9VER29Cr7RqjHIUB7l34Zj6YXlJDPcNJ-_sIFFn51Jbfz4pDCfPQMFAgatSYROOd6vTsoHabLVqGllS2WpZPnhtSsI-XT4qwQIx3Q4DvKryLcMgv5XgclsHcWO2pXZXGcP4Vg8BJkd4xP-EPIEFhcenGMyGcP1JcpAIraATdlE9kmAMkstq1XEqHlYYsLlw8juA_sH8nkodmji7x9jaDFq57rRs7-n7AEqefkAHOvVZb3NkFv_MSJbbvdotQ6JeNI28UWAUjexxdZMT4v9qZA.M5NaU9GVvWcU2xxaFwcsTg",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "GARDEN_SEED_ARRIVED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7044",
         "kind": "GARDEN_SEED_ARRIVED",
         "name": "Alex",
         "title": "",
@@ -1651,7 +1745,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..I-NwtY68y5ImE_-x.RxNa96LH0-9wO8bZD5pdGlnGnv7z2WQNQOpOVitUJjiGYde75fpWtCWS5rVwZlhjjKQX-yi5EuCOHhGtK18sAtHjFwAMdhYnMdS7vEUHnbLpykSCMrOQqXI3dC6eo9ZQ9-6Zj5hN1-VfXsCPJGWgZvPKcyIXpUegM2Q4TdmJCV_JbIn3G1QXzISEnxXHIurea8sQ2ktEyRqST4smutUhu2cn1h4We-P609cLeD27HgtZt6-OTlAZf63Xja-kg-t7.cYlv4VzDjY9gcfMQV1Nx5g",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..LjpJHn60-zq-9xAM.1UzJC5bMd5HlqPEVnFBa5V8hU4nxrvaj6K36VdRIDgPxkfS1Lilgi8W6lDlr5aA1zZBZct_Tef3YDTFAPdTsNyKzZGM0NgQc9VOtZa0czlforZMabUJgwLQNkFncjVjAsxe2pQl1wn-erB1-xiTBXtAkIVMKbaJsw1D_wHFU8-UJiNTCPE-aGQ5edNOWeAverpuslcgIDNOdmmpSUhU_eMM39yz6rGl_odvGFcJo_dZCm-QU3VQiBL8uLyeFrsen.Kjt-ctxo4wvv9z_5wgZp2w",
       "expectedBody": {
         "de": "Alex hat dir einen Samen geschickt.",
         "en": "Alex sent you a seed."
@@ -1665,7 +1759,7 @@
       "id": "GARDEN_SEED_ARRIVED-title",
       "payload": {
         "v": 1,
-        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7041",
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7045",
         "kind": "GARDEN_SEED_ARRIVED",
         "name": "Alex",
         "title": "Unser Spaziergang",
@@ -1674,7 +1768,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..kQNa9TQ6lzM20e8k.TjPftSAO35JVwX71STafpuduBAHDBG8opCxPqnmpKXlzOcsRpa4TT3fXeQLjVhSLat5Smc1-tSA5GKBvnqubz6vmXHbBymVskbYcluW32TpfhLBSx9LxE7kDnPiunNiBA6VQmu7qdJIh8xAtn816GGr17OhhzXPH9HtpcQwA-Zuoi6nyvwosv2vVThIYBfN9ij5JTosVLIpPbpxPjjGNmjvBgIhEKtsSyTRLF-0_KPqlhOTTI-Gj3jqlLx3uW_-fqDIfblpEOektk-orGwpHkBk.9gLjvHs_H1bBnIbXGvV6oQ",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..qOf-eYm7NlIg4uKv.d8_vhs2PZHHzy-Ocx8iIV783J13prRUjRNPN6U_HP5k7jbvbJWKMRh53v5bv08DIFEbzWkmnHp-KwN8V7l5JxNuNENwcSiMFf92Z0He0M_6ycqmtcn4nXDbklSWVc79iERrJukiJXXpOz4kCRFmZmw-Ik41R0XTCVCNHlCX9wAhEqXRNoXURRI9V5uKHC8GC3M6dZevTxQWWQJFwfoJsWSCbVJbA3015iNYxC6HS9QwrNKZhAKkvRkEAP4raER6pvGe4SC8uXDI9izaYI9Cf-Pc.dDO8u6GDrfCQi5D5d3g9iA",
       "expectedBody": {
         "de": "Alex hat dir einen Samen geschickt.",
         "en": "Alex sent you a seed."
@@ -1688,7 +1782,7 @@
       "id": "GARDEN_SEED_ARRIVED-v2-empty",
       "payload": {
         "v": 2,
-        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7042",
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7046",
         "kind": "GARDEN_SEED_ARRIVED",
         "name": "Alex",
         "title": "",
@@ -1698,7 +1792,7 @@
         "expiresAt": 1300,
         "body": ""
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..CNCXmjud1BNnuyXZ.K2HAF_FBb9SQLa7uThBrXnw1Psd7j_36PP8v2je2g5fELyMhAEpFhMtMtLpx_RIhfAdH5GHXLDNfb67NCQIa4R1yW71Xh0H3G-mgAIXxURfb_iMnSKgPF7OXLr65VHoFAWgyZ3ogHzjNCFPUBEg27_9edycZvBSQGTjk8CGE97_nLnNHCnJPeULzUHkeqbm2XCBRXHq3my0FNWljYa52qjO2SmTlPB47GdJ1v7BFESX5j6RO-071o0LFJOtU9PY1ZM_yQ1S-WEEOdg.C6DWdNUURHafyPRRN4F7kg",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..G0GG6oJ2XnIxAi5S.qTItwPjF7w_QEvgWsSX88eonO8fomGJNr1uFXRrMblCp9g6SOuh_56XaurJsdsIvOM7N6LyZdILX5_8dCLrkaWvMCb5EOLyuA3YROTrZMFsem981HVERAMfC2K_Br8ZHkcpBWTNt8s7jpnARyP2uSFURbHbfh7dtc2qprlJ0g0nRgezPRi8D5KOQY6HqaDrTTWH2egJWCpzO8i8ZpSjzvPuNBymEKmNjZD4unF0y8z0ADtN5QJJiJmmP5Qvw_r56jULdhhq2xn8nQA.ic-uuG6AxwHJjlCTv3bRew",
       "expectedBody": {
         "de": "Alex hat dir einen Samen geschickt.",
         "en": "Alex sent you a seed."
@@ -1712,7 +1806,7 @@
       "id": "GARDEN_SEED_ARRIVED-v2-title",
       "payload": {
         "v": 2,
-        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7043",
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7047",
         "kind": "GARDEN_SEED_ARRIVED",
         "name": "Alex",
         "title": "Unser Spaziergang",
@@ -1722,7 +1816,7 @@
         "expiresAt": 1300,
         "body": ""
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..vZuaXLSe0O8kCIxW.p1jPBZgQaQUSmzT-AUKM-63AJxFIXDKjPAduS2n8RLBZz93QK4lu_9G_b_LwHtE57ybHPpbzUH5YUa4kqaeGXQVCkPib1saECJLtSDkEcHZ1aKxHKJtyJBi1KivFohehUn-KjuNgOv8YSxqtQNCWdHRdE_oQRleb3M-i17O85TdBbs2fdJJ7G0cnftL-3dcm-5klyk81lnpD9PxD3kl1vE9TxnyO5FbxC3W2yZrdIuIpk2fEiCChR6vM8_Kf2oaKps4NnPnhYJH5AfiMwZEu8-4jQOiVhZEqsiFL.Sv-5ZDGVK--jIoi6rphvCg",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yeGPp_YNDNsin09_.aJ8b_FY2hVrvqxjsNX6t0getzqSiOI27wAnDJEWvjXmEcCDk4FeElRw4P7UJAXLVqkUbMNk_Vieu-Oz86gLqymvpfc2YGb-t2SbKQwVU4WChElSESkYHdhQeFTiaNCuda-63wmAPYPMsq2vmZnz3GMoha8XqKs4EOS7iCvCSCly2bKnL8LwX10gEk3vrjp44B2xAjwUByPtU_gkZ83RUzRu6UeI5OLI1pCb3KxzYImI1D8aMAhKFwIITRwjE4bX5p5WwW1aiXVaCufnv0gs_CCsLP2QfJwSvnFO5.Hl-I-m5Hhpu7ZhrFs3jeLg",
       "expectedBody": {
         "de": "Alex hat dir einen Samen geschickt.",
         "en": "Alex sent you a seed."

@@ -364,6 +364,10 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
     },
+    "picture-ping-pong.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
@@ -430,7 +434,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 22,
+      "baselineTests": 23,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {

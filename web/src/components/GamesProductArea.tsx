@@ -7,6 +7,7 @@ import {
   GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   proPaywallPath,
 } from '../client/routes';
@@ -30,6 +31,7 @@ const GAME_ENTRIES = [
   'wishes',
   'perspective',
   'heartHunt',
+  'pingPong',
   'garden',
 ] as const;
 
@@ -39,6 +41,7 @@ function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
   if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
+  if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
   if (entry === 'garden') return GAMES_GARDEN_ROUTE;
   return null;
 }
@@ -154,6 +157,7 @@ export function GamesProductArea({
                           'wuensche',
                           'gemeinsam',
                           'momente',
+                          'spiele',
                           'spiele',
                         ] satisfies EimirIconName[]
                       )[index]

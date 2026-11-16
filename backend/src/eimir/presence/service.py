@@ -28,6 +28,7 @@ from eimir.presence import geo
 from eimir.presence.models import (
     PartnerLocationConsent,
     PresenceDeviceCredential,
+    PresencePositionPayload,
     PresenceSnapshot,
     SharingLevel,
 )
@@ -354,9 +355,11 @@ def publish_snapshot(
             space_id=authorization.space_id, account_id=authorization.account_id
         )
         session.add(snapshot)
-    snapshot.latitude = geo.snap_coordinate(latitude)
-    snapshot.longitude = geo.snap_coordinate(longitude)
-    snapshot.accuracy_meters = geo.stored_accuracy(accuracy_meters)
+    snapshot.payload = PresencePositionPayload(
+        latitude=geo.snap_coordinate(latitude),
+        longitude=geo.snap_coordinate(longitude),
+        accuracy_meters=geo.stored_accuracy(accuracy_meters),
+    )
     snapshot.captured_at = captured_at
     snapshot.expires_at = captured_at + SNAPSHOT_TTL
     snapshot.consent_generation = consent.generation
@@ -423,8 +426,9 @@ def partner_distance(
     snapshot = _readable_partner_snapshot(session, authorization, levels=_DISTANCE_LEVELS, at=at)
     if snapshot is None:
         return UNAVAILABLE_DISTANCE
+    position = snapshot.payload
     kilometres = geo.haversine_km(
-        float(snapshot.latitude), float(snapshot.longitude), latitude, longitude
+        float(position.latitude), float(position.longitude), latitude, longitude
     )
     return DistanceView(
         available=True,
@@ -451,10 +455,11 @@ def partner_map(session: Session, authorization: AuthorizationContext) -> MapVie
     )
     if snapshot is None:
         return UNAVAILABLE_MAP
+    position = snapshot.payload
     return MapView(
         available=True,
-        latitude=float(snapshot.latitude),
-        longitude=float(snapshot.longitude),
-        radius_meters=geo.map_radius(snapshot.accuracy_meters),
+        latitude=float(position.latitude),
+        longitude=float(position.longitude),
+        radius_meters=geo.map_radius(position.accuracy_meters),
         captured_at=snapshot.captured_at,
     )

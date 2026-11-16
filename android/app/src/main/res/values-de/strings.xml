@@ -54,6 +54,8 @@
     <string name="push_partner_joined">%1$s ist jetzt mit dir verbunden.</string>
     <string name="push_collection_sent">%1$s hat dir eine Liste geschickt.</string>
     <string name="push_view_list">Liste ansehen</string>
+    <string name="push_picture_turn">%1$s hat am Bild weitergemalt. Du bist dran.</string>
+    <string name="push_view_picture">Weitermalen</string>
     <string name="push_garden_seed">%1$s hat dir einen Samen geschickt.</string>
     <string name="push_garden_bouquet">%1$s hat dir einen Strauß geschenkt.</string>
     <string name="push_view_garden">Garten ansehen</string>

@@ -20,6 +20,7 @@ import {
   APP_DESIGNS,
   type AppDesignLayout,
 } from '../design/appDesigns.generated';
+import { syncDocumentThemeColor } from '../theme';
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
 import {
   ClientProblemError,
@@ -281,13 +282,18 @@ export function WirDesignProvider(
 ) {
   const state = useWirDesignState(props);
   const applied = state.presentationReady ? state.current : undefined;
-  // The design's semantic tokens hang off the root so sheets follow it. A
-  // layout effect applies them in the same frame as the Wir composition.
+  // The design's semantic tokens hang off the root, so every tab, sheet and
+  // the browser theme colour follow it. A layout effect applies them in the
+  // same frame as the Wir composition.
   useLayoutEffect(() => {
     if (!applied) return;
     const root = document.documentElement;
     root.setAttribute('data-app-design', applied);
-    return () => root.removeAttribute('data-app-design');
+    syncDocumentThemeColor();
+    return () => {
+      root.removeAttribute('data-app-design');
+      syncDocumentThemeColor();
+    };
   }, [applied]);
   return <Context.Provider value={state}>{props.children}</Context.Provider>;
 }

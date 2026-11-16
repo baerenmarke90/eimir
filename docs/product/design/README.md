@@ -125,3 +125,7 @@ choices, retaining the quiet task header and existing attachment lifecycles.
 records the approved single Wishes entry row, the composing hub with two sources,
 the catalog pick mode with one filter sheet, private heart favourites and the
 result for several common favourites; the consent-based random pick follows.
+
+[Send a shared list to the partner (#1907 E2)](references/1907-e2-send-list/README.md)
+records the deliberate send from the list menu, the neutral lock-screen notice and the
+list arriving on the partner's Wir.

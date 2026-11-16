@@ -5,15 +5,15 @@ the bounded search marks and the purge deadline. The photo is deleted on that
 deadline by the retention job; the row goes with it. Two notice kinds join the
 catalog (a heart was hidden, a heart was found); neither names a target row.
 
-Revision ID: 0143
-Revises: 0142
+Revision ID: 0144
+Revises: 0143
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0143"
-down_revision = "0142"
+revision = "0144"
+down_revision = "0143"
 branch_labels = None
 depends_on = None
 
@@ -25,7 +25,7 @@ _PREVIOUS_KINDS = (
     "'COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', 'PARTNER_CHECK_IN', 'REMINDER_DUE', "
     "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
     "'WISH_SELECTION_RANDOM_REQUESTED', 'WISH_SELECTION_RANDOM_ACCEPTED', "
-    "'WISH_SELECTION_RANDOM_DECLINED'"
+    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT'"
 )
 _HEART_KINDS = "'HEART_HUNT_HIDDEN', 'HEART_HUNT_FOUND'"
 

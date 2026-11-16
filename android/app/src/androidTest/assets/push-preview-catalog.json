@@ -1453,6 +1453,100 @@
       }
     },
     {
+      "id": "COLLECTION_SENT-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7036",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..WmsyCajW0SmdEIId.zpybiLvGxYqMeHLfm0XNFeIe6lg3B4adpUjyZpUZsPbTSynrHvhPThPCoo0f9HQjkZrlYNedUCFgsRY3Qmg34f5w9SreFKbdchLdP3fThUfaHHIY-DrLJOPy3dgse5Ym7RVFzfdcSV_oWs0m8twXdOlGOCu0Gx3usTY1XDsNdJSN0slsU0Y7m8IV3DnXbFUNYVJ4kPK2laNYVQMG3gClimYihB2oXOCIAvQWvYedcekp_2wu82CzTQu7wA.k7lBZbJmSg4dUPfGazTXpA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7037",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Hpfeg7EqEyxn1fDq.mpjejNGDzvleli-Hi40O7BY1sJlf-Ck1SV-Qy3f37ENywZ0eOx9fCBqvBrlKV0Uf8c7xnlwGX-pPqf4oM2ZsuLYXZATb6lf41sOFJMt1_QgYiIb4N8wNAmYxx-MrP-hGjdMxGd45Si6vB7mtL2_8PS1DiZz4qTqO1dax4paG_qRvB7Xz_okZIYK22I8vCFmNChEKHvgi42H8Wt5JxpMe10FYf6K3YeB6NbvNReRm03r4AB6hiOic1DMyKx4-EXMAg6OHhuj1zoG1f0XH.DQzhynX39Q4Rs4LpYMLM3Q",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7038",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5UkV8u2g8XLKclLX.CSqPBJFMOTZ5u5Q50sh2rEjhS8Qf5WCLD9K_gLMLTh1Tf6tFsF9gci5Tpndr0NYbKuqpie2pgcb0O-WsKvRzgYyI7WctUxCQTst14hBZ6j3a9vLdSwo6njRJGGPNO5TJFIlfAqaKuOqLy67HYoB7r-eLfw7dVeh21YUNUTNfbmf68weRyJ3bk2f1YR3j_J9nb8zps08Yp_Hdmchpru5h72Hebfu_1jGovFmcQElLyNVKZyddkQzDewNowmjxiYAvqWPJRo0.83c9t3wpJkkUYSPI1cA3NA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7039",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..myOWKU0ofSPgPKH9.3w9UnPhZu86Ra1fDYjYTNclfzLaRrflds7ruvbbGAzU5iakUDMBwht1OGn3RvJGvvFg4n1kECoXh3m3IYiFMeEr7Ksokm_xI9TcJc2_RS_jWCDDCsTXlMn-euo3nImzx2JQo_Pe-nt9JuvzNTzK4frz99qPqTFzkPjAxDhsUnNiFsp0TCp6mNv8366Un5TN5OS5TIzF8QHssVAGC7TKcNL0fJW4E0WMsjd9jjiH48NliLPYRJBbVAjgxbMAz8oPBj2SlyDcFrB8S9g2J3N3RPPkinG4eLQ.GXB4a71QATjYjJECpT9_sA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
       "id": "HEART_HUNT_HIDDEN-empty",
       "payload": {
         "v": 1,
@@ -1465,7 +1559,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fL68dixkI8X_YYBW.MDlcN0-dyBWMUc6X9GV2ty81LX2Ts-JPtijUOTWFjok7m3o1YTeyqDX9gzAeNFHZkBChECLBy6tGXXLGsQBBubTaYFGYQ-aDd0nTjMEL7Qbh4_xS90FZOe7_zV_RVgycEhEvI4_zUlUQGztjhl9j7P-klpzYUePlULn7Mi8zK-tRTGkiekBUwLYQJtXrtp9eAcZzROgvXiHWH6l1rhvQqUsAsFmN9_LGOwbDyiIIaHUASa8.ElHsEYoERCENr4AZiM1mew",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6Qy9p6WlsvyqUkX6.QP0pdIZZYslvFNql3fWm-s375ZylTT2xYWyPaxKHoaN98sqlKt0rpAUNMlNBLf4yissEHfnm2A3ui3ajXAQR4E6F0H1VrERrTaGgc8BKHqShEfs7MKF5lt6dyoffKsjHX4AupTkEGjBw1FFpk0RZ_Dg8xFtl0x-ZJfzLEEHVEFaAvCr5QPd_mRgoDpMzACjCF154p4HeP_w__6T8HHERjih1R4R0U6OqB46Ln8p8DV4Z-wg.77vpWa6K3dyXn_tWS007mQ",
       "expectedBody": {
         "de": "Alex hat ein Herz versteckt.",
         "en": "Alex hid a heart."
@@ -1488,7 +1582,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..kzSYLd_cFSJPVp1Z.EVUZPCAqA-I69y8l1azO5nmxfaRmJ_FgA_7FQrW5K19nbnILEjuVWME6Cl2NOLMnq9WXzYIFd34pqUoq5WfnkSOhXsDxd3JfoYprqGU1P5kWJlboWGZfOdRwkSWTqdokHC9hFpreW-Er01nQO3glUxlDWu6tiBdwxW2S8vWd6L5dsUTmdQ_v0B38wL0Jyfb2pgl5PZfNh8aUMWPux44Zl0b8j_E-24kIJoxEXz8g9w5Bch0S9z9OFanI3bu_WGnGjTULrg.t6cLpLVq68X3_EBqxA7AYg",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VQRi6lwbzOz-vAjZ.KXX5DYxsCMmL5ZMq4EArClpI2nuBBiinqcDkSWvelE3kG5CzLVIrZGPNnkX3Y5OCuFKq-ZwlWjjsEsUyE60f45Jl_jEpRQITROcIGxVeo0jGmRXn18mZSPZ_Q-Rhnz25cprcwoRCscPkpR69aioZyz6Xo8S56gR4IjgN4R_BqMd7CKaa6jmAkcuIjS4M7TOe4UNXy4CZZXu0eq4iamDExjTpiKCIiLOSi93l-d0hSt0_tEy7uEEwlYFZt9VZ6tavsAnjsw.-H9NVB-tC8zEd4ShnN0Thw",
       "expectedBody": {
         "de": "Alex hat ein Herz versteckt.",
         "en": "Alex hid a heart."
@@ -1511,7 +1605,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..BV7ge9-JEceQVDnx.waMyxj2RgvCJBbcrVdXkbT_JWNJVa7A3G76rxF6slGbC2t9kXuKZEVKlmgEokriXBUbQSvNaB9MpU4hnXajhgzw9xrUewZeBUo7-FW_NVvyPWAhbaD_LhuUGg0jab0B2GBFWfau_cQ7BPg4nVJE1pu2OgJFdFjB0xteMhwkVjdwrqO9TIIE2fpTaJ5dGZe_w32DWAw0ZLxbc8tBTuGOQTWyKdynNMt310Nr78yHE2nFQmQ.O6_5s5zUMz7mXuqx3HtwVg",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fv1H8C2VtpLuAMuH.aXD9VP3st8eOileubvvESqHhJ9Z3er4wXYdeox5MotWbEIrSnLPh79cNvB4YHfkTVsaAGckPE8b1bwRQOfn1r6hRLaoGA2Wlio06Cfq2LE5_CzfR-UGD5FxbFnbTcLJy8LnYcdMQAoqaC34PA7N7MkqbBaEr7raoQGMAsTgyBISWwoZ3RyYxSeUOk4SNwlPKtMecmf5JATEJzIWr_uFTb8KDZj3Vydk-8uT1hnk1w5CFDg.85d4IvZ-DkPf2BSMZCar6g",
       "expectedBody": {
         "de": "Alex hat dein Herz gefunden.",
         "en": "Alex found your heart."
@@ -1534,7 +1628,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..dVmToxHLFy9mkJlE.lhRf8VY8mFjr1QnTuRwH7ob736AnQOzSjpUwGEE0OW9nMOvKD-34CUWDQktP_tTPnBWJts3t3cHi7zkMJRqv_qhrRDzS55IhAAVp0Iy5oW__u1rLGforbqEsZ4GjKvsGil7rv0CISBUCo3F0gxOr4fITU1LJk2WxwKekXLUlYqOXlOmXOmAJVFX-04zuoSFnSvofBRzXACDKzES9fxvC6wnGJEGME19xLYyECNuL3UtPt-PWpHaJfo8F2Kgs8zT0Zv13.VDQkityT9gotDObQu116eQ",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Gn6Xa6eSrlbsscQT.xCsAdTAIWGoJD1-36brvdDEhzKfonO87W5PEwmKBwnKSiXwgZ4zE2s5mExD4b1fXCR8U6PwanG_rfkXQteycWhEFmf84rZ18Dj2CEUBvDjv4pmo-Ljx7_TDJDDa-_U4zi-_Ksq_lCrnVlPa-FGfe8OPvK0NR-tt9wF4v0gftoF2kO4bCEnKwpgQrDhfSaiTDWHuRPfCirF90yNro5sNUgprlBlBOx-1DgpGHAvNptG9sYZa22BgRBl2wjAIHa5usDTaE.OMOqS-gOPRlvl-oR2PVY-Q",
       "expectedBody": {
         "de": "Alex hat dein Herz gefunden.",
         "en": "Alex found your heart."

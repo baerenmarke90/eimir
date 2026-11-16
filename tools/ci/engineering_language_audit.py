@@ -376,6 +376,9 @@ ALLOWED_LOCALIZED_TEXTS = (
     "%1$s hat dein Herz gefunden.",
     "Alex hat ein Herz versteckt.",
     "Alex hat dein Herz gefunden.",
+    # Exact #1907 E2 native push copy for a sent list and its encrypted fixtures.
+    "%1$s hat dir eine Liste geschickt.",
+    "Alex hat dir eine Liste geschickt.",
     # Exact #1910 native localized push copy.
     "%1$s schlägt einen Termin vor",
     "%1$s schlägt einen anderen Termin vor",

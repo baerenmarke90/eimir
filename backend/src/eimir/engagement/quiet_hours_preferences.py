@@ -38,6 +38,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.PARTNER_CHECK_IN,
         NotificationKind.COMMENT_CREATED,
         NotificationKind.PHOTO_REACTION,
+        NotificationKind.COLLECTION_SENT,
         *WISH_DATE_NOTICE_KINDS,
     }
 )

@@ -521,3 +521,13 @@
 .shared-list-flight {
   background: var(--person-surface);
 }
+.shared-list-sent {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-shared-surface);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  justify-self: start;
+}

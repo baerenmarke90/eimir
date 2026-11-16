@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { WishSelectionDecisionView } from './WishSelectionDecisionView';
+import {
+    WishSelectionDecisionViewFromJSON,
+    WishSelectionDecisionViewFromJSONTyped,
+    WishSelectionDecisionViewToJSON,
+    WishSelectionDecisionViewToJSONTyped,
+} from './WishSelectionDecisionView';
 import type { WishSelectionCandidateView } from './WishSelectionCandidateView';
 import {
     WishSelectionCandidateViewFromJSON,
@@ -28,13 +35,12 @@ import {
     WishSelectionOwnViewToJSONTyped,
 } from './WishSelectionOwnView';
 import type { WishSelectionDateIdeaCandidateView } from './WishSelectionDateIdeaCandidateView';
-import type { WishSelectionDecisionView } from './WishSelectionDecisionView';
 import {
-    WishSelectionDecisionViewFromJSON,
-    WishSelectionDecisionViewFromJSONTyped,
-    WishSelectionDecisionViewToJSON,
-    WishSelectionDecisionViewToJSONTyped,
-} from './WishSelectionDecisionView';
+    WishSelectionDateIdeaCandidateViewFromJSON,
+    WishSelectionDateIdeaCandidateViewFromJSONTyped,
+    WishSelectionDateIdeaCandidateViewToJSON,
+    WishSelectionDateIdeaCandidateViewToJSONTyped,
+} from './WishSelectionDateIdeaCandidateView';
 import type { WishSelectionRandomRequestView } from './WishSelectionRandomRequestView';
 import {
     WishSelectionRandomRequestViewFromJSON,
@@ -42,12 +48,6 @@ import {
     WishSelectionRandomRequestViewToJSON,
     WishSelectionRandomRequestViewToJSONTyped,
 } from './WishSelectionRandomRequestView';
-import {
-    WishSelectionDateIdeaCandidateViewFromJSON,
-    WishSelectionDateIdeaCandidateViewFromJSONTyped,
-    WishSelectionDateIdeaCandidateViewToJSON,
-    WishSelectionDateIdeaCandidateViewToJSONTyped,
-} from './WishSelectionDateIdeaCandidateView';
 
 /**
  * 
@@ -104,7 +104,7 @@ export interface WishSelectionView {
      */
     randomPool?: WishSelectionViewRandomPoolEnum | null;
     /**
-     *
+     * 
      * @type {WishSelectionRandomRequestView}
      * @memberof WishSelectionView
      */

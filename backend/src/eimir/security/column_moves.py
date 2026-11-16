@@ -73,10 +73,12 @@ class ColumnMove:
 
 def moves() -> tuple[ColumnMove, ...]:
     """Every registered move. Imported lazily: the models import this package."""
+    from eimir.daily_checkins.models import DailyCheckInPayload
     from eimir.places.models import PlacePayload
     from eimir.profiles.models import ProfilePreferencePayload
 
     return (
+        ColumnMove("daily_check_ins", DailyCheckInPayload, ("vibe", "energy_level")),
         ColumnMove(
             "places",
             PlacePayload,
@@ -136,7 +138,8 @@ def _move_batch(
     extra = f", {move.also_set}" if move.also_set else ""
     update = text(
         f"UPDATE {move.table} SET payload = CAST(:new AS jsonb), crypto_version = :version, "
-        f"{cleared}{extra} WHERE id = :id AND payload = CAST(:old AS jsonb)"
+        # NULL-safe: a table whose payload column is new has no payload yet.
+        f"{cleared}{extra} WHERE id = :id AND payload IS NOT DISTINCT FROM CAST(:old AS jsonb)"
     )
     result = MoveResult()
     last: UUID | None = None
@@ -144,7 +147,7 @@ def _move_batch(
         row_id, stored = row[0], row[1]
         last = row_id
         try:
-            merged = dict(protector.reveal(stored, context=context))
+            merged = dict(protector.reveal(stored, context=context)) if stored is not None else {}
             for column, value in zip(move.columns, row[2:], strict=True):
                 # A value already in the payload is newer than its legacy column.
                 if value is not None and merged.get(column) is None:
@@ -163,7 +166,7 @@ def _move_batch(
                 update,
                 {
                     "id": row_id,
-                    "old": json.dumps(stored),
+                    "old": json.dumps(stored) if stored is not None else None,
                     "new": json.dumps(sealed),
                     "version": protector.write_crypto_version,
                 },

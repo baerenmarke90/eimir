@@ -1,7 +1,7 @@
 export default {
-  title: 'Wir-Design',
-  intro: 'So fühlt sich deine Wir-Seite an. Nur deine Ansicht ändert sich.',
-  choices: 'Dein Wir-Design',
+  title: 'App-Design',
+  intro: 'So fühlt sich eimir. für dich an. Nur deine Ansicht ändert sich.',
+  choices: 'Dein App-Design',
   change: 'Design auswählen',
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
@@ -37,7 +37,7 @@ export default {
   save: 'Auswahl speichern',
   saving: 'Wird gespeichert …',
   selected: 'Bereits ausgewählt',
-  saved: 'Dein Wir-Design ist gespeichert.',
+  saved: 'Dein App-Design ist gespeichert.',
   close: 'Schließen',
   conflict:
     'Deine Darstellung wurde inzwischen geändert. Lade den aktuellen Stand und bestätige deine Auswahl danach erneut.',

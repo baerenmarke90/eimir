@@ -158,14 +158,15 @@ metadata (`mime_type`, `size`, `width`, `height`, `has_thumbnail`) also stays pl
 because it drives validation and rendering.
 
 **Moved into the payload after the first version of this document:** the preference
-topic (`profile_preferences.topic`) and Place coordinates (`places.latitude`,
-`places.longitude`). New writes store them in the row's payload and leave the columns
+topic (`profile_preferences.topic`), Place coordinates (`places.latitude`,
+`places.longitude`) and the daily check-in values (`daily_check_ins.vibe`,
+`energy_level`). New writes store them in the row's payload and leave the columns
 NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows written
 earlier are moved as described in section 8, "Legacy plain columns".
 
 **Outside the ProtectedPayload boundary today:** account display names, email
-addresses, daily check-in vibe and energy, birthdays and relationship kinds of related
-persons, and the relationship start date. They are listed as follow-ups in section 12.
+addresses, birthdays and relationship kinds of related persons, and the relationship
+start date. They are listed as follow-ups in section 12.
 
 ## 6. Data flows
 
@@ -252,8 +253,12 @@ signal.
 
 A value that predates the payload boundary sits in an ordinary column, where this
 encryption does not reach it. `eimir.security.column_moves` registers such columns
-(currently `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
-their values into the row's payload:
+(first `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
+their values into the row's payload. `daily_check_ins.vibe`/`energy_level` are
+registered too; that table had no payload column, so migration 0147 adds a **nullable**
+one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
+move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
+a row through `legacy_plain_columns`, not as a malformed envelope:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered
   column still holds a value and repeats it until none does. It needs no operator
@@ -290,13 +295,43 @@ python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 Configuration (`Settings`):
 
 - `EIMIR_ENCRYPTION_KEYS`: JSON object `{"<key id>": "<base64 32-byte key>", ...}`
+- `EIMIR_ENCRYPTION_KEYS_FILE`: alternatively, the absolute path of a private file that
+  holds the same JSON object. Set one of the two, never both.
 - `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`: the id new writes are wrapped with
+
+**Key file instead of an environment value.** An environment value is visible to anyone
+who can inspect the container or open the project in a container manager. The optional
+fragment `deploy/encryption-keys.compose.yaml` mounts one host file read-only at
+`/run/secrets/eimir-encryption-keys.json` and sets `EIMIR_ENCRYPTION_KEYS_FILE` for every
+role that receives the keys (API, worker, video worker and demo initialization, in both
+profiles):
+
+```bash
+# on the Docker host, outside the checkout and outside any backup of data;
+# the backend runs as UID 10001, which must be the only reader
+install -m 600 -o 10001 -g 10001 /dev/null /ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+# write {"<key id>": "<base64 32-byte key>"} into that file, then:
+EIMIR_ENCRYPTION_KEYS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+EIMIR_ENCRYPTION_KEYS=            # must stay empty
+docker compose --env-file /ABSOLUTE/PATH/operator.env \
+  --file compose.yaml --file deploy/encryption-keys.compose.yaml \
+  --profile self-hosted config --quiet
+```
+
+The file is read once at startup and validated exactly like the inline value; a missing,
+unreadable, oversized or malformed file refuses to start, and no message quotes its
+content. A missing host path refuses instead of creating a directory. This narrows who
+can see the key; it
+does not change the threat model of section 12: whoever controls the running host can
+still read it. The released operator bundle and its launcher do not ship this fragment
+yet; it is available to deployments that combine Compose files themselves.
 
 Rules:
 
 - Production keys differ from Development, Demo, and every other project
   (`scripts/check_environment_isolation.py` fails when a Development and a Production
-  file share `EIMIR_ENCRYPTION_KEYS`).
+  file share `EIMIR_ENCRYPTION_KEYS` or point `EIMIR_ENCRYPTION_KEYS_HOST_FILE` at the
+  same file).
 - Keep the keys in a secret store **separate from database and object-store
   backups**. A backup and its keys must not be recoverable from the same place.
 - API and worker need read access to the keys; the release-guard one-shot does not
@@ -379,8 +414,8 @@ Known limits and follow-ups (deliberately not implemented here):
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
 - Columns outside the `ProtectedPayload` contract remain plaintext: display names,
-  e-mail addresses, daily check-in vibe and energy, birthdays, relationship kinds and the
-  relationship start date. `places.has_coordinates` (whether a place has a position,
+  e-mail addresses, birthdays, relationship kinds and the relationship start date. The
+  check-in day itself (who checked in on which date) stays plain metadata. `places.has_coordinates` (whether a place has a position,
   not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
   lookups, uniqueness and administrative search need them in SQL.
 - Object listing is not part of `MediaStore`, so orphaned pre-cutover objects
@@ -501,8 +536,9 @@ Product Owner decisions still required before the remaining items can be built:
   (a new scheme number and migration) before Cloud go-live.
 - **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
   and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
-  the partner-location position before them. Display names, check-in values, birthdays
-  and relationship kinds are open follow-ups; e-mail addresses stay plaintext.
+  the partner-location position before them and the daily check-in values after them.
+  Display names, birthdays and relationship kinds are open follow-ups; e-mail addresses
+  stay plaintext.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

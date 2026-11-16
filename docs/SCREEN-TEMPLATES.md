@@ -44,10 +44,15 @@ surfaces MAY place the primary content before secondary title/metadata treatment
 when that better communicates the human meaning. Privacy, permission, and
 critical system state remain visible where they affect the action.
 
-Every secondary page has one icon-only chevron button at the upper left, supplied
-automatically by the shared shell. Use the shared task Back components to retain
-page-specific exit guards and destinations. This applies to future secondary
-pages without maintaining a separate route opt-in list; primary roots have none.
+Every secondary page opens with one header row: an icon-only Back chevron at the
+upper left, supplied automatically by the shared shell, plus either the page title
+(overviews, settings, games, tasks) or, for a page that shows one named item, a
+centered type label and the item's edit action with the item's name as the heading
+below. New pages choose the variant by this rule; see
+[Secondary-page header](./COMPONENT-CONTRACTS.md#54-secondary-page-header). Use
+the shared task Back components to retain page-specific exit guards and
+destinations. This applies to future secondary pages without maintaining a
+separate route opt-in list; primary roots have none.
 
 On Compact, a Floating Action Button-like action is used only when it is unambiguous, frequent, and cannot be confused with Bottom Navigation.
 

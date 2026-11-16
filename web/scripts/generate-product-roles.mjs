@@ -104,6 +104,7 @@ typography(
   'display',
   value('font.weight.semibold'),
 );
+typography('subpage-title', 'heading2', 'display', value('font.weight.bold'));
 typography('content-heading', 'heading3', 'display');
 typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
 typography('memory-detail-heading', 'memoryDetailHeading');

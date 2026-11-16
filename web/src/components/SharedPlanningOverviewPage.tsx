@@ -20,7 +20,7 @@ import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { useFirstContentSettle } from '../client/firstContentSettle';
-import { quietHintRetired, useQuietHint } from '../client/quietHints';
+import { useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   MEMORY_CREATE_ROUTE,
@@ -685,32 +685,20 @@ export function SharedPlanningOverviewPage({
       ? wishItems.length === 0
       : undefined,
   );
-  // The wish-to-plan tip retires once any wish became a plan.
-  const planFromWishHint = 'tip:plan-from-wish';
-  const convertedWish = useQuery({
-    queryKey: ['m5-s3', 'wishes', spaceId, 'converted-probe'],
-    staleTime: OVERVIEW_STALE_TIME,
-    retry: false,
-    enabled:
-      openWishesShown &&
-      wishItems.length > 0 &&
-      !quietHintRetired(accountId, spaceId, planFromWishHint),
-    queryFn: async ({ signal }) => {
-      for (const status of ['PLANNED', 'COMPLETED'] as const) {
-        const result = await apiCall(() =>
-          apis.wishes.listWishes({ spaceId, limit: 1, status }, { signal }),
-        );
-        if (result.items.length) return true;
-      }
-      return false;
-    },
-  });
+  // The wish-to-plan tip retires once any wish became a plan. It reads only
+  // data the overview already loaded, so it adds no request of its own.
+  const wishBecamePlan =
+    Boolean(journeyWishes.data?.length) ||
+    Boolean(
+      plans.data?.pages.some((page) =>
+        page.items.some((plan) => Boolean(plan.sourceWishId)),
+      ),
+    );
   const wishHint = useQuietHint(accountId, spaceId, [
     {
-      id: planFromWishHint,
-      eligible:
-        openWishesShown && wishItems.length > 0 && convertedWish.data === false,
-      used: convertedWish.data === true,
+      id: 'tip:plan-from-wish',
+      eligible: openWishesShown && wishItems.length > 0 && !wishBecamePlan,
+      used: wishBecamePlan,
     },
   ]);
 

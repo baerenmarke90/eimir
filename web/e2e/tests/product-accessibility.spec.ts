@@ -9,6 +9,7 @@ import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import privateArea from '../../src/i18n/locales/privateArea';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import quietHints from '../../src/i18n/locales/quietHints';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -1267,7 +1268,8 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
       level: 2,
     }),
   ).toBeVisible();
-  await expect(page.getByText(m5s5.dashboard.newSpaceIntro)).toBeVisible();
+  // #1907 I1: without a partner the move-in invites the first picture.
+  await expect(page.getByText(quietHints.moveIn.solo)).toBeVisible();
 
   const skipLink = page.getByRole('link', {
     name: de.navigation.skipToContent,

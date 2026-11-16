@@ -97,6 +97,11 @@
     "visibility": {
       "onlyYou": "Only you can see this"
     },
+    "accountId": {
+      "copy": "Copy account ID",
+      "copied": "Account ID copied",
+      "failed": "Copying did not work. Your account ID:"
+    },
     "eyebrow": "More",
     "title": "Everything else",
     "intro": "Personal details, shared lists and settings.",

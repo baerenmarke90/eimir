@@ -613,6 +613,12 @@
 }
 
 @media (min-width: 840px) {
+  /* Align Wir with the Planen reading column while the backdrop can bleed. */
+  .today-page > :is(.today-content, .ui-state, .overview-cache-notice-slot) {
+    max-inline-size: var(--reading-max);
+    margin-inline: auto;
+  }
+
   /* Expanded: the sparse welcome sits under the centered hero, not at the edge. */
   .new-space-experience {
     margin-inline: auto;
@@ -1374,5 +1380,14 @@
   .today-activity-trace > .activity-result-wrapper {
     flex: 1 1 220px;
     max-width: 18rem;
+  }
+}
+
+@media (min-width: 840px) {
+  /* Keep tile widths consistent across modules with different item counts. */
+  .today-agenda-row,
+  .today-agenda-list:has(> .today-agenda-row:nth-child(2)) > .today-agenda-row,
+  .today-activity-trace > .activity-result-wrapper {
+    flex: 0 1 18rem;
   }
 }

@@ -2,6 +2,8 @@ const photoEdit = {
   edit: 'Bearbeiten',
   editLabel: 'Foto bearbeiten: {{name}}',
   title: 'Foto bearbeiten',
+  replacesSaved:
+    'Das bearbeitete Foto ersetzt das gespeicherte, sobald du den Eintrag speicherst.',
   tools: 'Werkzeug',
   toolNames: {
     crop: 'Zuschneiden',

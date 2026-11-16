@@ -29,6 +29,8 @@ from eimir.api.v1.attachments import (
     AttachmentSummary,
     OrderedAttachmentSummary,
     public_attachment_status,
+    reject_replacements,
+    replacements_of,
 )
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment, can_edit_sensitivity
 from eimir.attachments.models import Attachment, MediaType
@@ -303,6 +305,7 @@ def create_heart_moment(
     body: HeartMomentCreate,
     idempotency_key: IdempotencyKey,
 ) -> HeartMomentDetail:
+    reject_replacements(body.attachments)
     result = service.create_heart_moment_once(
         session,
         authorization,
@@ -418,6 +421,7 @@ def update_heart_moment(
         tags=body.tags,
         attachments=_selection(body.attachments),
         selected_cover_attachment_id=body.selected_cover_attachment_id,
+        attachment_replacements=replacements_of(body.attachments),
     )
     record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(heart_moment.version)

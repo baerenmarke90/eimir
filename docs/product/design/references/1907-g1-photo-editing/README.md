@@ -85,3 +85,22 @@ content):
 | Edited photo in the composer, 390 Light | ![](evidence/applied-390-light.png) |
 | Profile photo turned before cropping, 390 Light | ![](evidence/avatar-turned-390-light.png) |
 | Person avatar from Immich after the crop step, 390 Dark | ![](evidence/person-avatar-immich-390-dark.png) |
+
+## Follow-up: editing saved photos
+
+Product Owner decisions (2026-11-16), after the first slice was merged:
+editing photos that are already saved is approved, but only after the whole
+entry has been opened with its own edit action. Confirmed choices:
+the edit replaces the saved photo (no server copy), the same people who may
+remove a photo may edit it, photo reactions move to the edited photo, and the
+edited photo adds no second Place.
+
+| Aspect | Contract |
+| --- | --- |
+| Entry | Only in the entry's own edit mode (Memory, Plan, HeartMoment `Bearbeiten`): the `Bearbeiten` overlay on a saved image the viewer may remove. Reading an entry never offers it. |
+| Sheet | The same edit step with one line: `photoEdit.replacesSaved`. |
+| Result | The edited photo takes the original's place, cover and sensitivity in the editor at once; nothing is written until the entry is saved. Cancelling the entry edit keeps the saved photo. |
+| Save | The gallery write sends the new photo with `replacesAttachmentId`; the server deletes the original like a removed photo, moves photo reactions and consumes the edited photo's location without a second Place. |
+| Errors | A saved original the device cannot decode (for example HEIC) shows `photoEdit.unavailable`; a failed upload uses the composer's retry. |
+
+![Editing a saved diary photo, 390 px Light](evidence/saved-photo-390-light.png)

@@ -541,8 +541,8 @@
     },
     "photo-edit.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5,
-      "reason": "Feature-owned photo edit step before upload (#1907 G1): turn, frame handles, wheel zoom and pan under the fixed frame, pen, text with a typeface and the resize grip, then the edited photo replaces the draft and keeps its EXIF date and place; Compact 360/390/430 and Expanded 1280, Light and Dark, with and without reduced motion."
+      "baselineTests": 6,
+      "reason": "Feature-owned photo edit step before upload (#1907 G1): turn, frame handles, wheel zoom and pan under the fixed frame, pen, text with a typeface and the resize grip, then the edited photo replaces the draft and keeps its EXIF date and place; Compact 360/390/430 and Expanded 1280, Light and Dark, with and without reduced motion. A saved diary photo is editable only from the entry editor and is replaced on save, with its cover and the replaced id sent to the gallery write."
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",

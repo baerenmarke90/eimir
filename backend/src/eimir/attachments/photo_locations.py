@@ -99,6 +99,12 @@ def stage(
     )
 
 
+def discard(session: Session, attachment_ids: list[UUID]) -> None:
+    """Consume staged locations without creating Places (edited replacements)."""
+    if attachment_ids:
+        session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id.in_(attachment_ids)))
+
+
 def bind(
     session: Session,
     context: AuthorizationContext,

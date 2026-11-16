@@ -1,10 +1,13 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import photoEdit from '../../src/i18n/locales/photoEdit';
 import { waitForSettledMotion } from '../support/settledMotion';
 import {
+  CAPABILITIES,
   captureScreenshot,
   installMocks,
+  ME,
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -400,7 +403,8 @@ for (const view of [
     );
 
     await sheet.getByRole('button', { name: photoEdit.confirm }).click();
-    await expect(sheet).toBeHidden();
+    // Rendering the full-size edit is real work on a busy runner.
+    await expect(sheet).toBeHidden({ timeout: 20_000 });
     await expect.poll(() => state.bodies.size).toBe(2);
     await waitForSettledMotion(page);
     await page.mouse.move(0, 0);
@@ -425,3 +429,136 @@ for (const view of [
     expect(size.width).toBeLessThan(1600);
   });
 }
+
+test('a saved diary photo is edited only from the entry editor and replaces the original on save', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await installUploads(page);
+  const original = await sidewaysLakePhoto(page);
+  const savedPhoto = {
+    id: 'saved-lake',
+    position: 0,
+    status: 'READY',
+    mediaType: 'IMAGE',
+    mimeType: 'image/jpeg',
+    size: original.length,
+    width: 1200,
+    height: 1600,
+    hasThumbnail: false,
+    isSensitive: false,
+    canEditSensitivity: true,
+  };
+  let memory = {
+    id: 'mem-lake',
+    spaceId: SPACE_ID,
+    authorId: ME.id,
+    author: ME,
+    title: 'Evening at the lake',
+    body: '',
+    tags: [],
+    happenedOn: '2026-08-14',
+    createdAt: '2026-08-14T18:00:00Z',
+    updatedAt: '2026-08-14T18:00:00Z',
+    version: 1,
+    capabilities: CAPABILITIES,
+    selectedCoverAttachmentId: 'saved-lake',
+    attachments: [savedPhoto],
+  };
+  const galleryWrites: {
+    attachments: Record<string, unknown>[];
+    selectedCoverAttachmentId?: string | null;
+  }[] = [];
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === `${base}/memories/mem-lake`) {
+      if (request.method() === 'PATCH')
+        memory = { ...memory, version: memory.version + 1 };
+      return route.fulfill({ json: memory });
+    }
+    if (
+      path === `${base}/memories/mem-lake/attachments` &&
+      request.method() === 'PUT'
+    ) {
+      const body = request.postDataJSON();
+      galleryWrites.push(body);
+      memory = {
+        ...memory,
+        version: memory.version + 1,
+        selectedCoverAttachmentId: body.selectedCoverAttachmentId,
+        attachments: body.attachments.map(
+          (entry: { attachmentId: string; position: number }) => ({
+            ...savedPhoto,
+            id: entry.attachmentId,
+            position: entry.position,
+          }),
+        ),
+      };
+      return route.fulfill({ json: memory });
+    }
+    if (path.endsWith('/attachments/saved-lake/read-access'))
+      return route.fulfill({
+        json: {
+          method: 'STREAM',
+          url: `${base}/attachments/saved-lake/content`,
+          mediaType: 'IMAGE',
+        },
+      });
+    if (path.endsWith('/attachments/saved-lake/content'))
+      return route.fulfill({ contentType: 'image/jpeg', body: original });
+    return route.fallback();
+  });
+  await signIn(page);
+  const editPhoto = page.getByRole('button', {
+    name: new RegExp(`^${photoEdit.editLabel.replace(' {{name}}', '')}`),
+  });
+
+  // Reading the entry offers no photo editing; only the entry editor does.
+  await page.goto('/story/memories/mem-lake');
+  await expect(
+    page.getByRole('heading', { name: memory.title }).first(),
+  ).toBeVisible();
+  await expect(editPhoto).toHaveCount(0);
+
+  await page.goto('/story/memories/mem-lake/edit');
+  await expect(editPhoto).toBeVisible();
+  await editPhoto.click();
+  const sheet = page.getByRole('dialog', {
+    name: photoEdit.title,
+    exact: true,
+  });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText(photoEdit.replacesSaved)).toBeVisible();
+  await waitForSettledMotion(page);
+  await captureScreenshot(page, info, 'photo-edit-saved-390-light.png');
+  await sheet.getByRole('button', { name: photoEdit.turn }).click();
+  await sheet.getByRole('button', { name: photoEdit.confirm }).click();
+  // Rendering the full-size edit is real work on a busy runner.
+  await expect(sheet).toBeHidden({ timeout: 20_000 });
+  await expect.poll(() => state.bodies.size).toBe(1);
+  expect(galleryWrites).toEqual([]);
+
+  await page
+    .getByRole('button', { name: memoryCopy.save, exact: true })
+    .click();
+  await expect.poll(() => galleryWrites.length).toBe(1);
+  expect(galleryWrites[0]).toEqual({
+    selectedCoverAttachmentId: 'edited-photo-1',
+    attachments: [
+      {
+        attachmentId: 'edited-photo-1',
+        position: 0,
+        isSensitive: false,
+        replacesAttachmentId: 'saved-lake',
+      },
+    ],
+  });
+  expect(state.creates[0].preserveMetadata).toBe(true);
+  const edited = state.bodies.get('edited-photo-1');
+  if (!edited) throw new Error('The edited photo was not uploaded.');
+  expect(edited.includes(Buffer.from(CAPTURED_AT, 'ascii'))).toBe(true);
+  const size = await decodedSize(page, edited);
+  expect(size.width).toBeGreaterThan(size.height);
+});

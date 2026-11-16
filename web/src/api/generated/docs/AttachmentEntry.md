@@ -10,6 +10,7 @@ Name | Type
 `attachmentId` | string
 `isSensitive` | boolean
 `position` | number
+`replacesAttachmentId` | string
 
 ## Example
 
@@ -21,6 +22,7 @@ const example = {
   "attachmentId": null,
   "isSensitive": null,
   "position": null,
+  "replacesAttachmentId": null,
 } satisfies AttachmentEntry
 
 console.log(example)

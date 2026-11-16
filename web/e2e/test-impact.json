@@ -1078,7 +1078,9 @@
         "web/src/client/useAttachmentDrafts.ts",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/MemoryProductPage.tsx",
-        "web/src/components/PlanPhotosEditor.tsx"
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/client/useOrderedPhotoDrafts.ts",
+        "web/src/client/savedPhotoFile.ts"
       ]
     },
     "profile-photo-crop.spec.ts": {

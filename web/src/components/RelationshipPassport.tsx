@@ -18,6 +18,11 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import {
+  type MilestoneRef,
+  nextMilestoneAnniversary,
+  waymarkToday,
+} from '../client/storyWaymarks';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -30,8 +35,14 @@ import {
   type StoryOccasion,
   StoryPlaces,
   useFulfilledWishes,
+  useStoryMilestones,
   useStoryOccasions,
 } from './RelationshipStoryExtras';
+import {
+  PassportWaymarks,
+  passportDate,
+  useWaymarkLabel,
+} from './RelationshipWaymarks';
 import { SharedStorySummary } from './SharedStorySummary';
 import './RelationshipReflections.css';
 
@@ -240,6 +251,7 @@ function PassportContent({
     spaceId: props.spaceId,
   };
   const fulfilledWishes = useFulfilledWishes(storyScope);
+  const milestones = useStoryMilestones(storyScope);
   const occasions = useStoryOccasions(
     storyScope,
     partner
@@ -345,6 +357,11 @@ function PassportContent({
       <PassportLandmarks
         duration={value.relationshipDuration}
         occasions={occasions}
+        milestones={milestones}
+      />
+      <PassportWaymarks
+        duration={value.relationshipDuration}
+        milestones={milestones}
       />
       {empty ? (
         <div>
@@ -386,25 +403,23 @@ function PassportContent({
   );
 }
 
-function passportDate(value: Date): string {
-  return new Intl.DateTimeFormat(resolvedLocale(), {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(value);
-}
-
 function PassportLandmarks({
   duration,
   occasions,
+  milestones,
 }: {
   duration: DashboardRelationshipDuration | null;
   occasions: readonly StoryOccasion[];
+  milestones: readonly MilestoneRef[];
 }) {
   const { t } = useTranslation();
+  const waymarkLabel = useWaymarkLabel();
   const landmarks = passportLandmarks(duration);
   if (!landmarks) return null;
+  const upcomingMilestone = nextMilestoneAnniversary(
+    milestones,
+    waymarkToday(duration),
+  );
   const remaining = (count: number) =>
     count === 0
       ? t('relationshipReflections.passport.landmarkToday')
@@ -421,18 +436,41 @@ function PassportLandmarks({
       daysRemaining: landmarks.anniversary.daysRemaining,
       progress: 1 - landmarks.anniversary.daysRemaining / 365,
     },
-    {
-      key: 'roundDay',
-      label: t('relationshipReflections.passport.roundDay', {
-        count: landmarks.roundDay.days,
-        days: new Intl.NumberFormat(resolvedLocale()).format(
-          landmarks.roundDay.days,
-        ),
-      }),
-      date: landmarks.roundDay.date,
-      daysRemaining: landmarks.roundDay.daysRemaining,
-      progress: 1 - landmarks.roundDay.daysRemaining / landmarks.roundDay.days,
-    },
+    ...(landmarks.roundDay
+      ? [
+          {
+            key: 'roundDay',
+            label: waymarkLabel({
+              kind: 'roundDay',
+              key: 'next-round-day',
+              date: landmarks.roundDay.date,
+              days: landmarks.roundDay.days,
+            }),
+            date: landmarks.roundDay.date,
+            daysRemaining: landmarks.roundDay.daysRemaining,
+            progress:
+              1 - landmarks.roundDay.daysRemaining / landmarks.roundDay.days,
+          },
+        ]
+      : []),
+    ...(upcomingMilestone
+      ? [
+          {
+            key: `milestone-anniversary:${upcomingMilestone.milestoneId}`,
+            label: waymarkLabel({
+              kind: 'milestoneAnniversary',
+              key: 'next-milestone-anniversary',
+              date: upcomingMilestone.date,
+              years: upcomingMilestone.years,
+              milestoneId: upcomingMilestone.milestoneId,
+              title: upcomingMilestone.title,
+            }),
+            date: upcomingMilestone.date,
+            daysRemaining: upcomingMilestone.daysRemaining,
+            progress: 1 - upcomingMilestone.daysRemaining / 365,
+          },
+        ]
+      : []),
     ...occasions.map((occasion) => ({
       key: occasion.key,
       label: occasion.label,

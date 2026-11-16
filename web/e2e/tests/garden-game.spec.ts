@@ -6,6 +6,7 @@ import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { CAPABILITIES } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -53,15 +54,28 @@ function gardenView(overrides: Record<string, unknown> = {}) {
     wateredToday: null,
     partnerWateredToday: null,
     offer: ['POPPY', 'BELLFLOWER', 'STARFLOWER'],
+    sleeping: false,
+    reunionOn: null,
+    reunionToday: false,
     ...overrides,
   };
 }
 
-async function installMocks(page: Page) {
+const MEMORY_ID = '88888888-8888-4888-8888-888888888888';
+const UPLOAD_ID = '99999999-9999-4999-8999-999999999999';
+
+async function installMocks(
+  page: Page,
+  initial: ReturnType<typeof gardenView> = gardenView(),
+) {
   const unexpected: string[] = [];
   const writes: string[] = [];
-  let garden = gardenView();
-  const planted = { ...garden.incoming, slot: 1, stage: 0 };
+  const moment: {
+    bytes: Buffer | null;
+    create: Record<string, unknown> | null;
+  } = { bytes: null, create: null };
+  let garden = initial;
+  const planted = { ...gardenView().incoming, slot: 1, stage: 0 };
   const responses: Record<string, unknown> = {
     '/api/v1/instance/status': {
       maintenanceMode: false,
@@ -141,6 +155,75 @@ async function installMocks(page: Page) {
       await route.fulfill({ json: { state: null } });
       return;
     }
+    const upload = {
+      id: UPLOAD_ID,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      mimeType: 'image/png',
+      size: moment.bytes?.length ?? 1,
+      width: 1080,
+      height: 667,
+      version: 1,
+      hasThumbnail: false,
+      isSensitive: false,
+      createdAt: '2026-11-16T10:00:00Z',
+      durationSeconds: null,
+    };
+    if (method === 'POST' && pathname === `${SPACE_PATH}/attachments`) {
+      writes.push('POST /attachments');
+      await route.fulfill({
+        status: 201,
+        json: {
+          attachment: { ...upload, status: 'PENDING' },
+          method: 'STREAM',
+          requiredHeaders: {},
+          uploadUrl: `${SPACE_PATH}/attachments/${UPLOAD_ID}/content`,
+        },
+      });
+      return;
+    }
+    if (pathname.startsWith(`${SPACE_PATH}/attachments/${UPLOAD_ID}`)) {
+      if (method === 'PUT') {
+        moment.bytes = request.postDataBuffer() ?? Buffer.alloc(0);
+        await route.fulfill({ status: 204 });
+        return;
+      }
+      await route.fulfill({ json: upload });
+      return;
+    }
+    const memory = {
+      id: MEMORY_ID,
+      spaceId: SPACE_ID,
+      authorId: ACCOUNT_ID,
+      author: { id: ACCOUNT_ID, displayName: 'Lea' },
+      title: copy.reunion.memoryTitle,
+      body: copy.reunion.memoryBody,
+      tags: [],
+      happenedOn: '2026-11-16',
+      createdAt: '2026-11-16T10:00:00Z',
+      updatedAt: '2026-11-16T10:00:00Z',
+      version: 1,
+      capabilities: CAPABILITIES,
+      selectedCoverAttachmentId: UPLOAD_ID,
+      attachments: [],
+    };
+    if (method === 'POST' && pathname === `${SPACE_PATH}/memories`) {
+      writes.push('POST /memories');
+      moment.create = request.postDataJSON() as Record<string, unknown>;
+      await route.fulfill({ status: 201, json: memory });
+      return;
+    }
+    if (pathname === `${SPACE_PATH}/memories/${MEMORY_ID}/attachments`) {
+      writes.push(`${method} /memories/attachments`);
+      await route.fulfill({
+        json: {
+          ...memory,
+          version: 2,
+          attachments: [{ ...upload, position: 0, canEditSensitivity: true }],
+        },
+      });
+      return;
+    }
     if (pathname.startsWith(GARDEN_PATH)) {
       if (method !== 'GET')
         writes.push(`${method} ${pathname.slice(GARDEN_PATH.length)}`);
@@ -189,7 +272,7 @@ async function installMocks(page: Page) {
       json: { code: 'E2E_UNEXPECTED_REQUEST' },
     });
   });
-  return { unexpected, writes };
+  return { unexpected, writes, moment };
 }
 
 async function openGarden(page: Page) {
@@ -336,3 +419,172 @@ test('garden reflows at 320 px with 200% text', async ({ page }) => {
   await expectReflow(page);
   expect(network.unexpected).toEqual([]);
 });
+
+async function expectNoAxeViolations(page: Page) {
+  const axe = await new AxeBuilder({ page })
+    .include('.garden-game-page')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(axe.violations).toEqual([]);
+}
+
+async function prepare(
+  page: Page,
+  scenario: { width: number; theme: 'light' | 'dark'; reduce: boolean },
+) {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setViewportSize({ width: scenario.width, height: 844 });
+  await page.emulateMedia({
+    colorScheme: scenario.theme,
+    reducedMotion: scenario.reduce ? 'reduce' : 'no-preference',
+  });
+  return errors;
+}
+
+for (const scenario of [
+  { width: 390, theme: 'light', reduce: false },
+  { width: 360, theme: 'dark', reduce: true },
+] as const) {
+  test(`garden sleeps after a pause of both, wakes and waits for a reunion at ${scenario.width}px ${scenario.theme}`, async ({
+    page,
+  }, info) => {
+    const network = await installMocks(
+      page,
+      gardenView({ sleeping: true, incoming: null, reunionOn: '2026-11-20' }),
+    );
+    const errors = await prepare(page, scenario);
+    await openGarden(page);
+    const frame = page.getByTestId('garden-frame');
+    await expect(frame).toHaveAttribute('data-season', 'autumn');
+    if (!scenario.reduce) {
+      // Mist, closed blossoms and dark lanterns first; never anyone's fault.
+      await expect(
+        page.getByRole('heading', { name: copy.sleep.title }),
+      ).toBeVisible();
+      await expect(frame).toHaveAttribute('data-sleep', 'asleep');
+      await expect(page.getByTestId('garden-lantern-partner')).toHaveAttribute(
+        'data-lit',
+        'false',
+      );
+      await capture(
+        page,
+        info,
+        `garden-sleeping-${scenario.width}-${scenario.theme}.png`,
+      );
+    }
+    await expect(
+      page.getByRole('heading', { name: copy.sleep.wokeTitle }),
+    ).toBeVisible({ timeout: 6_000 });
+    await expect(page.getByText(copy.sleep.wokeBody)).toBeVisible();
+    await expect(frame).toHaveAttribute('data-sleep', 'awake', {
+      timeout: 6_000,
+    });
+    await expect(page.getByTestId('garden-mist')).toHaveCount(0);
+    await expect(page.getByTestId('garden-lantern-partner')).toHaveAttribute(
+      'data-lit',
+      'true',
+    );
+    await expect(page.getByTestId('garden-lantern-own')).toHaveAttribute(
+      'data-lit',
+      'false',
+    );
+    // The reunion from Plans: a gate and a calm card with the date only.
+    await expect(page.getByTestId('garden-reunion-gate')).toBeVisible();
+    await expect(page.getByTestId('garden-reunion-soon')).toContainText(
+      copy.reunion.soonBody,
+    );
+    await expect(page.getByRole('button', { name: copy.send })).toBeVisible();
+    await expectReflow(page);
+    await capture(
+      page,
+      info,
+      `garden-woke-reunion-soon-${scenario.width}-${scenario.theme}.png`,
+    );
+    await page.getByRole('button', { name: copy.sleep.wokeClose }).click();
+    await expect(
+      page.getByRole('heading', { name: copy.sleep.wokeTitle }),
+    ).toHaveCount(0);
+    await expectNoAxeViolations(page);
+    // Waking and the reunion are presentation only: nothing was written.
+    expect(network.writes).toEqual([]);
+    expect(network.unexpected).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test(`garden blooms on the reunion day and keeps it as a Moment at ${scenario.width}px ${scenario.theme}`, async ({
+    page,
+  }, info) => {
+    const network = await installMocks(
+      page,
+      gardenView({
+        incoming: null,
+        reunionOn: '2026-11-16',
+        reunionToday: true,
+        plants: [bloom, { ...gardenView().incoming, slot: 1, stage: 0 }],
+      }),
+    );
+    const errors = await prepare(page, scenario);
+    await openGarden(page);
+    await expect(
+      page.getByRole('heading', { name: copy.reunion.todayTitle }),
+    ).toBeVisible();
+    await expect(page.getByTestId('garden-bunting')).toBeVisible();
+    await expect(page.getByRole('button', { name: copy.send })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: copy.water })).toHaveCount(0);
+    // Let the one-shot bloom settle before the still is taken.
+    await page.waitForTimeout(1_500);
+    await expectReflow(page);
+    await capture(
+      page,
+      info,
+      `garden-reunion-day-${scenario.width}-${scenario.theme}.png`,
+    );
+    await page.getByRole('button', { name: copy.reunion.save }).click();
+    await expect(
+      page.getByRole('link', { name: copy.reunion.openMoment }),
+    ).toHaveAttribute('href', `/story/memories/${MEMORY_ID}`);
+    await expect(page.getByText(copy.reunion.saved)).toBeVisible();
+    // A real PNG still of the garden went through the existing media path.
+    const bytes = network.moment.bytes;
+    expect(bytes?.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(bytes?.length ?? 0).toBeGreaterThan(5_000);
+    expect(network.moment.create).toMatchObject({
+      title: copy.reunion.memoryTitle,
+      body: copy.reunion.memoryBody,
+      happenedOn: '2026-11-16',
+    });
+    await expectNoAxeViolations(page);
+    expect(network.writes).toEqual([
+      'POST /attachments',
+      'POST /memories',
+      'PUT /memories/attachments',
+    ]);
+    expect(network.unexpected).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const [localDate, season, layer] of [
+  ['2026-04-10', 'spring', 'garden-blossoms'],
+  ['2026-07-10', 'summer', null],
+  ['2027-01-12', 'winter', 'garden-snow'],
+] as const) {
+  test(`garden shows ${season} from the calendar month`, async ({
+    page,
+  }, info) => {
+    const network = await installMocks(
+      page,
+      gardenView({ localDate, incoming: null }),
+    );
+    await prepare(page, { width: 390, theme: 'light', reduce: true });
+    await openGarden(page);
+    await expect(page.getByTestId('garden-frame')).toHaveAttribute(
+      'data-season',
+      season,
+    );
+    if (layer) await expect(page.getByTestId(layer)).toBeVisible();
+    await capture(page, info, `garden-season-${season}-390-light.png`);
+    expect(network.unexpected).toEqual([]);
+  });
+}

@@ -14,6 +14,12 @@ import { gardenFlight } from '../client/garden';
 import games from '../i18n/locales/games';
 import { GardenGamePage, type GardenServices } from './GardenGamePage';
 
+vi.mock('../client/gardenPresentation', async (original) => ({
+  ...(await original<typeof import('../client/gardenPresentation')>()),
+  // jsdom cannot rasterize SVG; the still itself is covered in the browser.
+  gardenSceneImage: vi.fn().mockResolvedValue(new Blob(['png'])),
+}));
+
 const ME = 'me';
 const PARTNER = 'partner';
 const PARTNERS = [
@@ -34,6 +40,9 @@ function view(overrides: Partial<GardenView> = {}): GardenView {
     wateredToday: null,
     partnerWateredToday: null,
     offer: ['POPPY', 'BELLFLOWER', 'STARFLOWER'],
+    sleeping: false,
+    reunionOn: null,
+    reunionToday: false,
     ...overrides,
   };
 }
@@ -108,6 +117,17 @@ function renderPage(
         />
       </MemoryRouter>
     </QueryClientProvider>,
+  );
+}
+
+function reducedMotion(matches: boolean) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockReturnValue({
+      matches,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }),
   );
 }
 
@@ -288,5 +308,123 @@ describe('GardenGamePage', () => {
     renderPage(api);
     await screen.findByRole('heading', { name: copy.sharedTitle });
     expect(screen.getByText(copy.footnote)).toBeTruthy();
+  });
+
+  it('tints the season and lights the lantern of who was here today', async () => {
+    const api = services(
+      view({
+        localDate: new Date('2027-01-12T00:00:00Z'),
+        plants: [plant('p1', 0, 2)],
+        sentToday: plant('mine', 1, 0, ME),
+      }),
+    );
+    renderPage(api);
+    const frame = await screen.findByTestId('garden-frame');
+    expect(frame.getAttribute('data-season')).toBe('winter');
+    expect(screen.getByTestId('garden-snow')).toBeTruthy();
+    expect(
+      screen.getByTestId('garden-lantern-own').getAttribute('data-lit'),
+    ).toBe('true');
+    expect(
+      screen.getByTestId('garden-lantern-partner').getAttribute('data-lit'),
+    ).toBe('false');
+    const label = screen.getByTestId('garden-scene').getAttribute('aria-label');
+    expect(label).toContain(copy.seasons.winter);
+    expect(label).toContain(copy.lanterns.own);
+    // "Today in the garden", never a time.
+    expect(label).not.toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it('welcomes the reader into a garden that slept, at once with reduced motion', async () => {
+    const api = services(view({ sleeping: true, plants: [plant('p1', 0, 3)] }));
+    renderPage(api);
+    await screen.findByRole('heading', { name: copy.sleep.wokeTitle });
+    expect(screen.getByText(copy.sleep.wokeBody)).toBeTruthy();
+    expect(screen.queryByTestId('garden-mist')).toBeNull();
+    // Nothing is lost and today's step stays available.
+    expect(
+      screen.getByRole('heading', {
+        name: fill(copy.todayTitle, { name: 'Alex' }),
+      }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.sleep.wokeClose }));
+    expect(
+      screen.queryByRole('heading', { name: copy.sleep.wokeTitle }),
+    ).toBeNull();
+  });
+
+  it('shows the sleeping garden under mist before it wakes', async () => {
+    reducedMotion(false);
+    const api = services(
+      view({
+        sleeping: true,
+        plants: [plant('p1', 0, 3)],
+        sentToday: plant('mine', 1, 0, ME),
+      }),
+    );
+    renderPage(api);
+    await screen.findByRole('heading', { name: copy.sleep.title });
+    expect(screen.getByTestId('garden-mist')).toBeTruthy();
+    expect(screen.getByTestId('garden-frame').getAttribute('data-sleep')).toBe(
+      'asleep',
+    );
+    expect(
+      screen.getByTestId('garden-lantern-own').getAttribute('data-lit'),
+    ).toBe('false');
+    await screen.findByRole(
+      'heading',
+      { name: copy.sleep.wokeTitle },
+      { timeout: 4000 },
+    );
+    expect(
+      screen.getByTestId('garden-lantern-own').getAttribute('data-lit'),
+    ).toBe('true');
+  });
+
+  it('waits for an upcoming reunion behind a garden gate', async () => {
+    const api = services(view({ reunionOn: new Date('2026-11-20T00:00:00Z') }));
+    renderPage(api);
+    const card = await screen.findByTestId('garden-reunion-soon');
+    expect(card.textContent).toContain(copy.reunion.eyebrow);
+    expect(card.textContent).toContain(copy.reunion.soonBody);
+    expect(screen.getByTestId('garden-reunion-gate')).toBeTruthy();
+    expect(screen.queryByTestId('garden-bunting')).toBeNull();
+    expect(screen.getByRole('button', { name: copy.send })).toBeTruthy();
+  });
+
+  it('lets everything bloom on the reunion day and keeps it as a Moment', async () => {
+    const saveMoment = vi.fn().mockResolvedValue({ memoryId: 'memory-1' });
+    const api = {
+      ...services(
+        view({
+          reunionOn: DAY,
+          reunionToday: true,
+          plants: [plant('p1', 0, 0), plant('p2', 1, 3, ME)],
+        }),
+      ),
+      saveMoment,
+    };
+    renderPage(api);
+    await screen.findByRole('heading', { name: copy.reunion.todayTitle });
+    expect(screen.getByTestId('garden-bunting')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: copy.send })).toBeNull();
+    expect(screen.queryByRole('button', { name: copy.water })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: copy.reunion.save }));
+    await waitFor(() =>
+      expect(saveMoment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: copy.reunion.memoryTitle,
+          body: copy.reunion.memoryBody,
+          happenedOn: DAY,
+        }),
+      ),
+    );
+    const link = await screen.findByRole('link', {
+      name: copy.reunion.openMoment,
+    });
+    expect(link.getAttribute('href')).toBe('/story/memories/memory-1');
+    expect(
+      screen.queryByRole('button', { name: copy.reunion.save }),
+    ).toBeNull();
   });
 });

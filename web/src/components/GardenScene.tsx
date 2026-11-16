@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type ReactElement,
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -265,6 +266,7 @@ export function GardenScene({
   wateredPlantId,
   lively,
   label,
+  layers,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -276,6 +278,13 @@ export function GardenScene({
   wateredPlantId: string | null;
   lively: boolean;
   label: string;
+  /** Presentation layers (seasons, lanterns, reunion, mist; PR 2). */
+  layers?: {
+    sky?: ReactNode;
+    ground?: ReactNode;
+    meadow?: ReactNode;
+    overlay?: ReactNode;
+  };
 }) {
   const id = useId().replace(/:/g, '');
   const skyId = `garden-sky-${id}`;
@@ -414,6 +423,7 @@ export function GardenScene({
           </g>
           <SunAndMoon haloId={haloId} />
         </g>
+        {layers?.sky}
         <path d={groundPath(groundBack, width)} fill={`url(#${hillBackId})`} />
         <Tufts
           ground={groundBack}
@@ -428,6 +438,7 @@ export function GardenScene({
           d={groundPath(groundFront, width)}
           fill={`url(#${hillFrontId})`}
         />
+        {layers?.ground}
         <Tufts
           ground={groundFront}
           count={Math.round((40 * width) / 340)}
@@ -444,6 +455,7 @@ export function GardenScene({
             fill={dot.sun ? 'var(--garden-sun)' : 'var(--garden-meadow-dot)'}
           />
         ))}
+        {layers?.meadow}
         {plants.map((plant) => (
           <Plant key={plant.id} plant={plant} />
         ))}
@@ -503,6 +515,7 @@ export function GardenScene({
             ))}
           </g>
         ) : null}
+        {layers?.overlay}
       </g>
       {plants.map((plant) => {
         const { x, y } = slotPosition(plant.slot);

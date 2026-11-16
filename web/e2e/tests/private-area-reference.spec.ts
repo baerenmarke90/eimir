@@ -47,6 +47,22 @@ async function openPrivateSection(page: Page, kind: string): Promise<void> {
   await page.locator(`a[href="/more/private/${kind}"]`).first().click();
 }
 
+/**
+ * Opens a section read anew. The area opens on the notes before a journey
+ * installs its own mocks, so a journey that starts from a section reloads it.
+ * Journeys with a request still in flight use `openPrivateSection` instead.
+ */
+async function openFreshPrivateSection(
+  page: Page,
+  kind: string,
+): Promise<void> {
+  if (kind === 'notes') {
+    await page.goto('/more/private/notes');
+    return;
+  }
+  await openPrivateSection(page, kind);
+}
+
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
     .withTags([
@@ -2026,7 +2042,7 @@ for (const view of [
         exact: true,
       });
       const dock = page.locator('.mobile-bottom-shell');
-      await openPrivateSection(page, definition.kind);
+      await openFreshPrivateSection(page, definition.kind);
       await expect(
         page.getByText(definition.copy.emptyTitle, { exact: true }),
       ).toBeVisible();
@@ -2173,7 +2189,7 @@ for (const view of privateEditorViews) {
           ? privateCreateCases[1]
           : privateCreateCases[0];
       await installHeldPrivateCreate(page, destination.kind);
-      await openPrivateSection(page, definition.kind);
+      await openFreshPrivateSection(page, definition.kind);
       await page
         .getByRole('link', { name: definition.copy.add, exact: true })
         .click();
@@ -2271,7 +2287,7 @@ for (const view of privateEditorViews) {
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateCreate(page, 'notes');
-    await openPrivateSection(page, 'notes');
+    await openFreshPrivateSection(page, 'notes');
     await page
       .getByRole('link', { name: privateArea.notes.add, exact: true })
       .click();
@@ -2435,7 +2451,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await openPrivateSection(page, 'notes');
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await expect(
       page.getByRole('heading', { name: 'Hidden cabin idea' }),
@@ -2497,7 +2513,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await openPrivateSection(page, 'notes');
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await page
       .getByRole('link', { name: privateArea.edit, exact: true })
@@ -2575,7 +2591,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await openPrivateSection(page, 'notes');
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await page
       .getByRole('link', { name: privateArea.edit, exact: true })
@@ -2710,7 +2726,7 @@ for (const view of [
         );
         const unexpected = await signInAndOpenPrivateArea(page);
         const fixture = await installHeldPrivateDelete(page, definition.kind);
-        await openPrivateSection(page, definition.kind);
+        await openFreshPrivateSection(page, definition.kind);
         await page
           .getByRole('link', { name: new RegExp(fixture.title) })
           .click();

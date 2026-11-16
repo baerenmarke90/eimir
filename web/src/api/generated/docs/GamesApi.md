@@ -88,6 +88,7 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
 ## getCoupleExperienceQuestions
 
 > CoupleExperienceQuestions getCoupleExperienceQuestions(kind, spaceId)
@@ -300,6 +301,7 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
 ## getHeartHunt
 
 > HeartHuntState getHeartHunt(spaceId)
@@ -368,6 +370,7 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## keepHeartHuntRound
 
@@ -445,6 +448,7 @@ No authorization required
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## tapHeartHuntRound
 

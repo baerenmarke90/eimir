@@ -1,6 +1,7 @@
+
 # HeartHuntRoundView
 
-One round as the caller may see it.  `heart` is present for the hider and, for the seeker, only after the round is FOUND. The seeker's search never receives it earlier.
+One round as the caller may see it.  `heart` is present for the hider and, for the seeker, only after the round is FOUND. The seeker\'s search never receives it earlier.
 
 ## Properties
 
@@ -54,4 +55,5 @@ console.log(exampleParsed)
 ```
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 

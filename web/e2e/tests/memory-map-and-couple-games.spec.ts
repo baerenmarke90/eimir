@@ -1059,10 +1059,15 @@ test('dated plan hands off an RFC calendar file without changing the plan', asyn
   );
   await signIn(page);
   await page.goto('/plan/plans/calendar-plan');
+  // The date opens the calendar sheet with the hand-off.
+  await page.locator('.planen-detail-schedule-action').click();
+  const calendarSheet = page.getByRole('dialog', {
+    name: calendarCopy.sheetTitle,
+  });
   await expect(
-    page.getByRole('link', { name: calendarCopy.add }),
+    calendarSheet.getByRole('link', { name: calendarCopy.add }),
   ).toBeVisible();
-  const calendar = await page
+  const calendar = await calendarSheet
     .getByRole('link', { name: calendarCopy.add })
     .getAttribute('href');
   const content = await page.evaluate(

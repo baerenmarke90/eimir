@@ -46,7 +46,7 @@
 
 .discreet-title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   min-width: 0;
@@ -257,4 +257,42 @@
   .discreet-suggestion {
     transition: none;
   }
+}
+
+/* The lock shares the title's line and is centred on it, in Wir rows. */
+.today-agenda-title:has(.discreet-lock) {
+  display: flex;
+  align-items: center;
+}
+
+.today-agenda-title .discreet-lock {
+  vertical-align: baseline;
+}
+
+/* In the countdown the lock is as small as in the other rows and sits on the
+   title's line. */
+.anticipation-event .discreet-title-row {
+  justify-content: flex-start;
+  gap: var(--space-2);
+}
+
+.anticipation-event .discreet-lock {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.anticipation-event .discreet-lock .eimir-icon {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+/* Activity rows: the lock sits beside the title, not under it. */
+.activity-card-target:has(.discreet-lock) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.activity-card-target .discreet-lock {
+  margin-inline-start: 0;
 }

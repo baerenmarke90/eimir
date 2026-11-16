@@ -84,7 +84,7 @@
       "lists": "Lists"
     },
     "subtitles": {
-      "private": "Notes and gift ideas · {{visibility}}",
+      "private": "Notes, gift ideas and lists · {{visibility}}",
       "media": "All photos and videos",
       "chapters": "Trips, moves, big chapters",
       "yearsAndRecaps": "Your months and years at a glance",
@@ -120,7 +120,7 @@
     },
     "private": {
       "title": "Only for me",
-      "description": "Notes, gift ideas and thoughts meant only for you."
+      "description": "Notes, gift ideas and lists only you can see."
     },
     "notifications": {
       "title": "Notifications",
@@ -1350,19 +1350,13 @@
     "intro": "Choose how your partner sees you in eimir.",
     "previewLabel": "Preview for your partner",
     "displayNameLabel": "Display name",
-    "displayNameHelp": "Your display name only changes how you appear. Your sign-in and account stay the same.",
     "editProfile": "Edit profile",
-    "closeProfileEdit": "Close editing",
-    "editName": "Change name",
     "birthdayLabel": "Birthday",
     "birthdayValue": "Birthday: {{date}}",
-    "birthdayHelp": "Optional. Your birthday is visible to your active partner and automatically included in your special days. Leave blank to remove it.",
-    "editBirthday": "Change birthday",
-    "saveBirthday": "Save birthday",
-    "savingBirthday": "Saving …",
+    "birthdayHelp": "Your birthday is visible to your active partner and automatically included in your special days. Leave blank to remove it.",
     "birthdaySaveError": "Your birthday could not be saved.",
-    "saveName": "Save display name",
-    "savingName": "Saving …",
+    "saveProfile": "Save",
+    "savingProfile": "Saving …",
     "saved": "Profile saved.",
     "avatarLabel": "Profile picture",
     "avatarHelp": "Choose an image. Without a profile picture, eimir. automatically uses your initials.",
@@ -1599,7 +1593,6 @@
     "anniversaryInDays_one": "in 1 day",
     "anniversaryInDays_other": "in {{count}} days",
     "relationshipSavedSubtle": "✓ Saved",
-    "relationshipNotificationHint": "Manage anniversary reminders in notification settings",
     "relationshipCurrent": "Current: {{duration}}",
     "relationshipDurationTitle": "Your time",
     "relationshipNotAvailable": "Add the date you have been together since.",
@@ -1883,7 +1876,6 @@
     "eyebrow": "For me",
     "intro": "Not shared with your partner in eimir.",
     "privacyLabel": "Only for me",
-    "createAction": "Add private entry",
     "backToMore": "← Back to More",
     "backToHub": "← Back to Only for me",
     "backToSearch": "← Back to search",
@@ -4494,7 +4486,9 @@
     "capacity": "A plan can hold up to 20 PDF files."
   },
   "calendarPlan": {
-    "add": "Add to calendar",
+    "sheetTitle": "Calendar",
+    "sheetClose": "Close calendar",
+    "add": "Add to my calendar",
     "download": "Download calendar file",
     "copyHint": "A one-time copy as a calendar event. Later changes to the plan are not automatically synchronized.",
     "unavailable": "The calendar file could not be created.",
@@ -4979,7 +4973,7 @@
       "originalHelp": "The title stays visible everywhere. Description, place and photos stay concealed until you tap."
     },
     "detail": {
-      "concealedBody": "This plan is concealed. You can both look at it any time. It only stays hidden from onlookers.",
+      "concealedBody": "This plan is concealed.",
       "reveal": "Show",
       "conceal": "Conceal again",
       "revealed": "Plan is shown.",
@@ -5277,7 +5271,7 @@
     "sharedHeading": "Shared calendar",
     "pro": "Pro",
     "sharedIntro": "Choose a calendar you both already use. New and changed plans appear there automatically – once, for both of you.",
-    "handoffStaysFree": "“Add to calendar” for single plans stays free.",
+    "handoffStaysFree": "“Add to my calendar” for single plans stays free.",
     "proRequired": "Automatic sync is part of eimir. Pro and covers both of you.",
     "unavailable": "Calendar sync is not set up on this eimir.",
     "loadFailed": "The calendar settings could not be loaded.",
@@ -5384,7 +5378,7 @@
       "fallback": "That didn’t work. Please try again."
     },
     "plan": {
-      "SYNCED": "In your shared calendar",
+      "SYNCED": "Added to the shared calendar",
       "PENDING": "Being transferred to your calendar",
       "FAILED": "Could not be transferred",
       "CONFLICT": "Changed in the calendar",

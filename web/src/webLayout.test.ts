@@ -153,7 +153,7 @@ describe('module boundary rhythm', () => {
       ],
       [
         './components/ProfileIdentityPanel.css',
-        '.profile-name-inline-form,\n.profile-birthday-inline-form',
+        '.profile-identity-edit-form',
         'border-top',
       ],
       [

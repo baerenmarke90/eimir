@@ -473,6 +473,12 @@ const de = {
   header: {
     sharedArea: 'Gemeinsamer Bereich',
     logout: 'Abmelden',
+    logoutDeviceTitle: 'Abmelden?',
+    logoutDeviceBody:
+      'Beim Abmelden wird alles von diesem Handy gelöscht: Fotos, offline gespeicherte Inhalte und Entwürfe, die du noch nicht gespeichert hast. Laufende Uploads werden abgebrochen.',
+    logoutDeviceKept:
+      'In eimir. bleibt alles erhalten. Nach dem nächsten Anmelden lädt die App deine Fotos wieder.',
+    logoutDeviceCancel: 'Abbrechen',
   },
   media: {
     unavailable: 'Foto derzeit nicht verfügbar',

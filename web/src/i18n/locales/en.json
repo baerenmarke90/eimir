@@ -504,7 +504,11 @@
   },
   "header": {
     "sharedArea": "Shared space",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "logoutDeviceTitle": "Sign out?",
+    "logoutDeviceBody": "Signing out deletes everything stored on this phone: photos, content saved for offline use and drafts you have not saved yet. Uploads in progress are cancelled.",
+    "logoutDeviceKept": "Everything stays in eimir. After you sign in again, the app loads your photos again.",
+    "logoutDeviceCancel": "Cancel"
   },
   "brand": {
     "homeAria": "eimir. – go to your shared home",

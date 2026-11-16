@@ -65,6 +65,14 @@ Such bytes stay in the session-memory caches only. Once a parent is known to
 be private, it stays session-only for the rest of the login even for a view
 that does not know its visibility, and any copy stored while it was still
 shared is removed.
+The Android app is the exception (M2-D18 #4, Product Owner decision of
+2026-11-16): `deviceMediaSeal.ts` seals every durable image row, shared and
+private, with AES-GCM under a per-login key from `NativeSessionStorage`, so
+`persist: false` has no effect there. The app keeps no plaintext rows (the v3
+store upgrade drops earlier ones), writes nothing without the key, and drops a
+row it cannot open. Logout deletes the key natively; before that, a
+confirmation sheet on the More page names what signing out deletes from the
+phone. Browsers and iOS keep the behavior above.
 
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all

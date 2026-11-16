@@ -19,7 +19,7 @@ import { loadAuthorizedStoryImage } from './storyMediaLoader';
 
 function storedKeys(): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('eimir-authorized-media-v1', 2);
+    const request = indexedDB.open('eimir-authorized-media-v1', 3);
     request.onerror = () => reject(request.error);
     request.onupgradeneeded = () => {
       request.result.createObjectStore('media', { keyPath: 'key' });

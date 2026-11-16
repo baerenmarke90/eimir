@@ -1,3 +1,4 @@
+import { sealsDeviceMedia } from './deviceMediaSeal';
 import {
   captureDurableMediaEpoch,
   clearDurableMediaStore,
@@ -235,11 +236,14 @@ function isSessionOnly(
  * Keep every media identity under this prefix in session memory only for
  * the rest of this login. Bytes this device stored earlier (for example while
  * the parent was still shared) are removed from the durable store once.
+ * A sealing device (the Android app) keeps private images too: its store holds
+ * only ciphertext under a per-login Keystore key, so this is a no-op there.
  */
 export function keepMediaInSession(
   lease: CacheLease,
   identityPrefix: readonly string[],
 ): void {
+  if (sealsDeviceMedia()) return;
   const key = keyPrefix(lease, identityPrefix);
   if (sessionOnly.has(key)) return;
   sessionOnly.add(key);

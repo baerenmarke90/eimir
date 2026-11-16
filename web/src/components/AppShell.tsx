@@ -12,6 +12,7 @@ import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
+import { isAndroidApp } from '../client/config';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -48,6 +49,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { LogoutDeviceDataSheet } from './LogoutDeviceDataSheet';
 import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -224,6 +226,13 @@ function AuthenticatedAppShell({
     });
   }
 
+  // The Android app names what leaves the phone before signing out.
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  function requestLogout(): void {
+    if (isAndroidApp()) setConfirmingLogout(true);
+    else logout();
+  }
+
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const pathname = location.pathname.replace(/\/$/, '');
@@ -316,8 +325,16 @@ function AuthenticatedAppShell({
 
   return (
     <ShellUtilitiesContext.Provider
-      value={{ unreadCount, serverAdmin, onLogout: logout }}
+      value={{ unreadCount, serverAdmin, onLogout: requestLogout }}
     >
+      <LogoutDeviceDataSheet
+        open={confirmingLogout}
+        onCancel={() => setConfirmingLogout(false)}
+        onConfirm={() => {
+          setConfirmingLogout(false);
+          logout();
+        }}
+      />
       <div
         className="product-shell"
         data-focused-task={isFocusedTask}

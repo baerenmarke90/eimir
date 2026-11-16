@@ -141,7 +141,7 @@ export function PlanPhotosEditor({
               }
             : undefined
         }
-        gallery={
+        gallery={(_, editDraft) =>
           controller.items.length ? (
             <PhotoDraftGallery
               addAction={
@@ -292,6 +292,16 @@ export function PlanPhotosEditor({
                 )?.draft;
                 if (draft) controller.uploads.retry(draft);
               }}
+              onEdit={
+                editDraft
+                  ? (key) => {
+                      const draft = controller.items.find(
+                        (item) => item.key === key,
+                      )?.draft;
+                      if (draft) editDraft(draft.id);
+                    }
+                  : undefined
+              }
             />
           ) : undefined
         }

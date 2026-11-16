@@ -7,7 +7,6 @@ import {
   useState,
 } from 'react';
 import { i18n } from '../i18n';
-import { cancelVideoTransfer } from './backgroundVideoUploads';
 import {
   type AttachmentDraft,
   type AttachmentDraftAction,
@@ -15,6 +14,7 @@ import {
   hasPendingAttachments,
   readyAttachmentIds,
 } from './attachmentDraftState';
+import { cancelVideoTransfer } from './backgroundVideoUploads';
 import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
@@ -619,6 +619,30 @@ export function useAttachmentDrafts({
     [apis, spaceId, enqueue],
   );
 
+  const replaceFile = useCallback(
+    (id: string, file: File) => {
+      if (!currentItems.current.some((item) => item.id === id)) return;
+      cancel(id);
+      const preview = createPreviews ? createOwnedObjectUrl(file) : undefined;
+      previewUrls.current.get(id)?.dispose();
+      if (preview) previewUrls.current.set(id, preview);
+      else previewUrls.current.delete(id);
+      dispatch({
+        type: 'draft_action',
+        contextKey: committedContextKey.current,
+        generation: currentGeneration.current,
+        action: {
+          type: 'replaced',
+          id,
+          file,
+          previewUrl: preview?.url ?? '',
+        },
+      });
+      enqueue(id, file);
+    },
+    [cancel, createPreviews, enqueue],
+  );
+
   const clear = useCallback(() => {
     currentGeneration.current += 1;
     abortSelections(selections.current);
@@ -667,6 +691,7 @@ export function useAttachmentDrafts({
     beginSelection,
     restore,
     replaceReadyId,
+    replaceFile,
     move,
     cancel,
     remove,

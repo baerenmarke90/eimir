@@ -37,6 +37,7 @@ import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
 import personColours from './locales/personColours';
 import photoCrop from './locales/photoCrop';
+import photoEdit from './locales/photoEdit';
 import photoPlaces from './locales/photoPlaces';
 import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
@@ -131,6 +132,7 @@ export const germanResources = {
   composer,
   mediaOverview,
   photoCrop,
+  photoEdit,
   photoSources,
   photoPlaces,
   photoReactions,

@@ -1,0 +1,517 @@
+<meta charset="utf-8">
+<title>Leise Wegweiser</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap">
+<style>
+/* Layout: control rail beside one 390 px eimir. phone; stacked on narrow screens.
+   Colors: eimir. identity roles (web/src/design/identity-roles.css, main@06af723f2).
+   Motion: eimir. tokens fast 120 / standard 180 / emphasized 280 / sequenceBeat 200 / gestureMoment 900 ms. */
+:root {
+  --color-background: #e6ebfa;
+  --color-surface: #f3f5fc;
+  --color-surface-raised: #ffffff;
+  --color-text: #19233e;
+  --color-text-secondary: #58627b;
+  --color-brand-text: #3055b8;
+  --color-brand-strong: #3055b8;
+  --color-on-accent: #ffffff;
+  --color-partner-a: #aa4c86;
+  --color-partner-b: #5685d1;
+  --color-partner-a-surface: #f6e3ef;
+  --color-partner-b-surface: #e1eafb;
+  --color-shared-surface: #d6e1f7;
+  --color-focus: #335dca;
+  --color-discovery: #87561b;
+  --color-discovery-surface: #fff3dd;
+  --color-glow: rgb(76 110 208 / 32%);
+  --segment-track: #d9e1f6;
+  --nav-surface: rgb(237 241 251 / 94%);
+  --scrim: rgb(25 35 62 / 40%);
+  --stage: #d5dcef;
+  --card-shadow: 0 1px 2px rgb(25 35 62 / 6%), 0 8px 24px rgb(25 35 62 / 6%);
+  --photo-a: #8fa7d8; --photo-b: #e5b6c9; --photo-c: #f2d6a8;
+  --font-ui: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-content: "Literata", Georgia, serif;
+  --radius-content: 1.25rem;
+  --duration-feedback: 120ms;
+  --duration-transition: 180ms;
+  --duration-context: 280ms;
+  --duration-sequence-beat: 200ms;
+  --duration-gesture-moment: 900ms;
+  --easing-enter: cubic-bezier(0, 0, 0.2, 1);
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-background: #171b2f; --color-surface: #252b43; --color-surface-raised: #303751;
+    --color-text: #f6f7ff; --color-text-secondary: #c4cee8; --color-brand-text: #b7c8ff;
+    --color-brand-strong: #42558c; --color-on-accent: #ffffff; --color-partner-a: #f1b3d7;
+    --color-partner-b: #aed1fa; --color-partner-a-surface: #46394f; --color-partner-b-surface: #303f62;
+    --color-shared-surface: #303f62; --color-focus: #b7c8ff; --color-discovery: #ffd194;
+    --color-discovery-surface: #4c3826; --color-glow: rgb(183 200 255 / 30%); --segment-track: #252b43;
+    --nav-surface: rgb(31 36 57 / 94%); --scrim: rgb(5 8 18 / 60%); --stage: #10131f; --card-shadow: none;
+    --photo-a: #44588c; --photo-b: #7a4a63; --photo-c: #7d6440; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-background: #171b2f; --color-surface: #252b43; --color-surface-raised: #303751;
+  --color-text: #f6f7ff; --color-text-secondary: #c4cee8; --color-brand-text: #b7c8ff;
+  --color-brand-strong: #42558c; --color-on-accent: #ffffff; --color-partner-a: #f1b3d7;
+  --color-partner-b: #aed1fa; --color-partner-a-surface: #46394f; --color-partner-b-surface: #303f62;
+  --color-shared-surface: #303f62; --color-focus: #b7c8ff; --color-discovery: #ffd194;
+  --color-discovery-surface: #4c3826; --color-glow: rgb(183 200 255 / 30%); --segment-track: #252b43;
+  --nav-surface: rgb(31 36 57 / 94%); --scrim: rgb(5 8 18 / 60%); --stage: #10131f; --card-shadow: none;
+  --photo-a: #44588c; --photo-b: #7a4a63; --photo-c: #7d6440; color-scheme: dark;
+}
+.reduced { --duration-feedback: 0ms; --duration-transition: 0ms; --duration-context: 0ms; --duration-sequence-beat: 0ms; --duration-gesture-moment: 0ms; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body { background: var(--stage); color: var(--color-text); font-family: var(--font-ui); font-size: 15px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+.shell {
+  display: grid; gap: 28px; justify-content: center; align-items: start;
+  grid-template-columns: minmax(0, 400px) 390px;
+  padding-block: 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (max-width: 860px) { .shell { grid-template-columns: minmax(0, 390px); } }
+
+/* Rail */
+.rail { display: grid; gap: 18px; min-width: 0; }
+.rail h1 { margin: 0; font: 700 26px/1.2 var(--font-content); text-wrap: balance; }
+.rail > p { margin: 0; line-height: 1.5; color: var(--color-text-secondary); }
+.group { display: grid; gap: 8px; }
+.label { font: 700 12px var(--font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-secondary); }
+.switch { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 22px; background: var(--segment-track); }
+.switch button { flex: 1 1 auto; border: 0; background: transparent; border-radius: 999px; min-height: 40px; padding: 0 12px; font-weight: 600; color: var(--color-text-secondary); }
+.switch button[aria-pressed="true"] { background: var(--color-brand-strong); color: var(--color-on-accent); }
+.scenes { display: grid; gap: 6px; }
+.scenes button { display: grid; gap: 2px; text-align: left; border: 0; border-radius: 14px; padding: 10px 14px; background: transparent; }
+.scenes button span { font-size: 13px; color: var(--color-text-secondary); }
+.scenes button[aria-pressed="true"] { background: var(--color-surface-raised); box-shadow: var(--card-shadow); }
+.scenes button b { font-weight: 600; }
+.explain { background: var(--color-surface); border-radius: var(--radius-content); padding: 16px 18px; display: grid; gap: 10px; }
+.explain h2 { margin: 0; font: 700 18px/1.3 var(--font-content); }
+.explain dl { margin: 0; display: grid; gap: 8px; }
+.explain dt { font: 700 12px var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--color-text-secondary); }
+.explain dd { margin: 0; line-height: 1.45; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool { border: 0; border-radius: 999px; min-height: 40px; padding: 0 16px; background: var(--color-surface-raised); font-weight: 600; box-shadow: var(--card-shadow); }
+.tool[aria-pressed="true"] { background: var(--color-shared-surface); color: var(--color-brand-text); }
+.limits { margin: 0; padding-left: 18px; display: grid; gap: 4px; line-height: 1.45; color: var(--color-text-secondary); }
+
+/* Device */
+.device { width: 390px; max-width: 100%; height: 844px; border-radius: 44px; background: var(--color-background); overflow: hidden; position: relative; box-shadow: 0 30px 60px rgb(25 35 62 / 22%); display: flex; flex-direction: column; }
+.status { height: 44px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; font-weight: 600; font-size: 14px; }
+.topbar { flex: none; display: flex; align-items: center; gap: 6px; padding: 6px 20px 4px; }
+.logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--color-partner-a), var(--color-partner-b)); }
+.topbar .sp { flex: 1; }
+.iconbtn { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 999px; display: grid; place-items: center; color: var(--color-text); }
+.me { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: var(--color-partner-a-surface); color: var(--color-partner-a); font-weight: 700; font-size: 14px; }
+.screen { flex: 1; overflow-y: auto; padding: 8px 20px 120px; display: grid; gap: 22px; align-content: start; scrollbar-width: none; }
+.nav { position: absolute; left: 12px; right: 12px; bottom: 18px; height: 66px; border-radius: 26px; background: var(--nav-surface); box-shadow: var(--card-shadow); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; backdrop-filter: blur(12px); }
+.nav button { border: 0; background: transparent; display: grid; justify-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); padding: 6px 0; border-radius: 18px; margin: 0 4px; }
+.nav button[aria-current="page"] { background: var(--color-shared-surface); color: var(--color-text); }
+.nav .plus { width: 52px; height: 52px; margin: 0 auto; border-radius: 999px; background: var(--color-brand-strong); color: var(--color-on-accent); display: grid; place-items: center; padding: 0; }
+
+/* Shared product pieces */
+h2.page { margin: 0; font: 700 30px/1.15 var(--font-content); }
+.eyebrow { font: 700 12px var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--color-partner-a); }
+.sect { display: grid; gap: 10px; }
+.sect h3 { margin: 0; font: 700 20px/1.25 var(--font-content); }
+.add-pill { justify-self: start; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; min-height: 48px; padding: 0 20px 0 16px; background: var(--color-brand-strong); color: var(--color-on-accent); font-weight: 600; transition: transform var(--duration-feedback) var(--easing-standard); }
+.add-pill:active { transform: scale(.98); }
+.quiet-link { justify-self: start; border: 0; background: transparent; padding: 8px 0; color: var(--color-brand-text); font-weight: 600; display: inline-flex; gap: 6px; align-items: center; min-height: 44px; }
+.segments { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--segment-track); }
+.segments button { flex: 1; border: 0; background: transparent; min-height: 38px; border-radius: 999px; font-weight: 600; color: var(--color-text-secondary); }
+.segments button[aria-pressed="true"] { background: var(--color-surface-raised); color: var(--color-text); box-shadow: var(--card-shadow); }
+
+/* Wir hero */
+.hero { display: grid; justify-items: center; gap: 6px; padding-top: 10px; text-align: center; }
+.pair { position: relative; width: 190px; height: 104px; }
+.av { position: absolute; top: 0; width: 104px; height: 104px; border-radius: 999px; display: grid; place-items: center; font: 700 30px var(--font-ui); border: 4px solid var(--color-surface-raised); }
+.av.a { left: 0; background: var(--color-partner-a-surface); color: var(--color-partner-a); z-index: 1; }
+.av.b { right: 0; background: var(--color-partner-b-surface); color: var(--color-partner-b); }
+.av.ghost { background: transparent; border: 2px dashed var(--color-text-secondary); color: var(--color-text-secondary); opacity: .55; font-size: 34px; font-weight: 400; }
+.hero .sub { color: var(--color-text-secondary); font-size: 14px; letter-spacing: .02em; }
+.hero h2 { margin: 0; font: 700 30px/1.2 var(--font-content); }
+.hero .days { color: var(--color-text-secondary); font-size: 14px; }
+
+/* The proposal: move-in, empty states, quiet hint, new note */
+.movein { display: grid; gap: 12px; text-align: left; }
+.movein h3 { margin: 0; font: 700 24px/1.25 var(--font-content); text-wrap: balance; }
+.movein p { margin: 0; line-height: 1.5; color: var(--color-text-secondary); }
+.wall { height: 150px; border-radius: var(--radius-content); background: var(--color-surface); display: grid; place-items: center; color: var(--color-text-secondary); position: relative; }
+.wall .frame { width: 92px; height: 74px; border-radius: 10px; border: 2px dashed currentColor; opacity: .5; display: grid; place-items: center; }
+.wall .nail { position: absolute; top: 26px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 99px; background: currentColor; opacity: .5; }
+.empty { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 24px 8px 8px; }
+.empty .mark { width: 64px; height: 64px; border-radius: 999px; display: grid; place-items: center; background: var(--color-partner-a-surface); color: var(--color-partner-a); }
+.empty h3 { margin: 0; font: 700 22px/1.25 var(--font-content); }
+.empty p { margin: 0; color: var(--color-text-secondary); line-height: 1.5; max-width: 30ch; }
+.empty .add-pill { justify-self: center; margin-top: 4px; }
+
+.hint-wrap { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--duration-transition) var(--easing-standard), opacity var(--duration-transition) var(--easing-standard); }
+.hint-wrap.gone { grid-template-rows: 0fr; opacity: 0; }
+.hint-wrap > * { overflow: hidden; }
+.hint { display: grid; grid-template-columns: 28px 1fr; gap: 4px 10px; padding: 14px 16px; border-radius: 18px; background: var(--color-shared-surface); }
+.hint .ic { grid-row: span 2; color: var(--color-brand-text); padding-top: 1px; }
+.hint p { margin: 0; line-height: 1.45; }
+.hint .acts { display: flex; gap: 16px; }
+.hint .acts button { border: 0; background: transparent; padding: 6px 0; min-height: 40px; font-weight: 600; color: var(--color-brand-text); }
+.hint .acts button.dim { color: var(--color-text-secondary); }
+.hint.new { background: var(--color-discovery-surface); }
+.hint.new .ic, .hint.new .tag { color: var(--color-discovery); }
+.tag { font: 700 11px var(--font-ui); letter-spacing: .08em; text-transform: uppercase; }
+
+.memory { border-radius: var(--radius-content); overflow: hidden; position: relative; height: 240px; background: linear-gradient(160deg, var(--photo-a), var(--photo-b) 60%, var(--photo-c)); color: #fff; display: flex; align-items: flex-end; }
+.memory .cap { padding: 16px 18px; background: linear-gradient(transparent, rgb(10 14 30 / 55%)); width: 100%; }
+.memory .cap b { display: block; font: 700 20px/1.25 var(--font-content); }
+.memory .cap span { font-size: 13px; opacity: .9; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile { height: 120px; border-radius: 16px; background: linear-gradient(150deg, var(--photo-b), var(--photo-a)); }
+.tile:nth-child(2) { background: linear-gradient(150deg, var(--photo-c), var(--photo-b)); }
+.tile:nth-child(3) { background: linear-gradient(150deg, var(--photo-a), var(--photo-c)); }
+.rows { display: grid; gap: 4px; }
+.row { display: grid; grid-template-columns: 40px 1fr 20px; gap: 12px; align-items: center; padding: 10px 4px; border: 0; background: transparent; text-align: left; border-radius: 14px; }
+.row .badge { width: 40px; height: 40px; border-radius: 12px; background: var(--color-shared-surface); color: var(--color-brand-text); display: grid; place-items: center; }
+.row b { display: block; font-weight: 600; }
+.row span { font-size: 13px; color: var(--color-text-secondary); }
+.wish { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: var(--color-surface-raised); box-shadow: var(--card-shadow); }
+.wish b { font: 700 17px/1.3 var(--font-content); }
+.wish span { font-size: 13px; color: var(--color-text-secondary); }
+.wish .who { color: var(--color-partner-a); }
+.wish .who.b { color: var(--color-partner-b); }
+.invite { display: grid; gap: 10px; padding: 16px; border-radius: 20px; background: var(--color-shared-surface); }
+.invite b { font: 700 18px/1.3 var(--font-content); }
+.next { display: grid; gap: 8px; padding: 14px 16px; border-radius: 18px; background: var(--color-surface); }
+.next p { margin: 0; line-height: 1.45; }
+.next .acts { display: flex; gap: 14px; align-items: center; }
+
+/* Sheet */
+.scrim { position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: flex-end; z-index: 5; animation: fade var(--duration-transition) var(--easing-enter); }
+.sheet { width: 100%; background: var(--color-surface-raised); border-radius: 28px 28px 0 0; padding: 12px 20px 34px; display: grid; gap: 14px; animation: rise-sheet var(--duration-context) var(--easing-enter); }
+.grip { width: 40px; height: 5px; border-radius: 99px; background: var(--segment-track); justify-self: center; }
+.sheet h3 { margin: 0; font: 700 22px var(--font-content); }
+.sheet .ph { height: 170px; border-radius: 18px; background: linear-gradient(160deg, var(--photo-a), var(--photo-b) 60%, var(--photo-c)); }
+.sheet .field { padding: 14px 16px; border-radius: 14px; background: var(--color-surface); }
+.sheet .bar { display: flex; justify-content: space-between; align-items: center; }
+.toast { position: absolute; left: 20px; right: 20px; bottom: 98px; padding: 12px 16px; border-radius: 16px; background: var(--color-text); color: var(--color-background); font-size: 14px; z-index: 6; animation: fade var(--duration-transition) var(--easing-enter); }
+
+/* Motion proposal */
+.intro > * { animation: root-rise var(--duration-context) var(--easing-enter) both; }
+.intro > *:nth-child(2) { animation-delay: 60ms; } .intro > *:nth-child(3) { animation-delay: 120ms; }
+.intro > *:nth-child(4) { animation-delay: 180ms; } .intro > *:nth-child(5) { animation-delay: 240ms; }
+.intro > *:nth-child(6) { animation-delay: 300ms; }
+.settle { animation: settle var(--duration-context) var(--easing-enter) both, glow var(--duration-gesture-moment) var(--easing-standard) var(--duration-context) both; }
+.join .av.b { animation: join-in var(--duration-gesture-moment) var(--easing-enter) both; }
+.join .av.a { animation: join-a var(--duration-gesture-moment) var(--easing-enter) both; }
+.join .connected { animation: root-rise var(--duration-context) var(--easing-enter) both; animation-delay: calc(var(--duration-gesture-moment) - 200ms); }
+.heartline { width: 120px; height: 24px; color: var(--color-partner-a); }
+.heartline path { stroke-dasharray: 160; stroke-dashoffset: 0; }
+.join .heartline path { animation: draw var(--duration-gesture-moment) var(--easing-standard) both; animation-delay: calc(var(--duration-gesture-moment) - 300ms); }
+@keyframes root-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes settle { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes glow { 0% { box-shadow: 0 0 0 0 var(--color-glow); } 40% { box-shadow: 0 0 0 10px var(--color-glow); } 100% { box-shadow: 0 0 0 18px transparent; } }
+@keyframes join-in { from { transform: translateX(70px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes join-a { from { transform: translateX(42px); } to { transform: none; } }
+@keyframes draw { from { stroke-dashoffset: 160; } to { stroke-dashoffset: 0; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise-sheet { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+.reduced *, .reduced *::before { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="shell">
+  <section class="rail" aria-label="Steuerung">
+    <h1>Leise Wegweiser</h1>
+    <p>Vorschlag für #1907 I1: mehr Orientierung für neue Paare, ohne Tour und ohne Abzeichen. Klick dich durch die Szenen, das Handy reagiert. Inhalte sind Beispiele.</p>
+    <div class="group">
+      <span class="label" id="opt-l">Variante</span>
+      <div class="switch" role="group" aria-labelledby="opt-l" id="opts">
+        <button type="button" data-opt="A" aria-pressed="true">A · Leise Wegweiser</button>
+        <button type="button" data-opt="B" aria-pressed="false">B · Nur Leerzustände</button>
+        <button type="button" data-opt="C" aria-pressed="false">C · Einzugsbegleiter</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label" id="sc-l">Szene</span>
+      <div class="scenes" role="group" aria-labelledby="sc-l" id="scenes"></div>
+    </div>
+    <div class="tools">
+      <button type="button" class="tool" id="replay">Szene neu abspielen</button>
+      <button type="button" class="tool" id="rm" aria-pressed="false">Weniger Bewegung</button>
+      <button type="button" class="tool" id="theme" aria-pressed="false">Dunkel</button>
+    </div>
+    <div class="explain" aria-live="polite" id="explain"></div>
+    <div class="group">
+      <span class="label">Grenzen in allen Varianten</span>
+      <ul class="limits">
+        <li>Höchstens ein Hinweis pro Bildschirm, höchstens ein neuer pro Tag.</li>
+        <li>Jeder Hinweis verschwindet für immer, sobald ihr die Sache einmal benutzt habt, nach „Verstanden“ oder nach dreimal Sehen.</li>
+        <li>Keine Tour, kein Spotlight, keine roten Punkte, keine Zähler wie „2 von 5“, keine Push-Nachricht für Hinweise.</li>
+        <li>Nichts zur Frage des Tages auf Wir, kein „Alex hat noch nicht …“.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="device" id="device" aria-label="eimir. auf einem Handy, 390 Pixel breit">
+    <div class="status"><span>9:41</span><span aria-hidden="true">● ● ▮</span></div>
+    <div class="topbar">
+      <div class="logo" aria-hidden="true"></div><div class="sp"></div>
+      <button class="iconbtn" type="button" aria-label="Suche"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+      <button class="iconbtn" type="button" aria-label="Mitteilungen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+      <div class="me" aria-hidden="true">LS</div>
+    </div>
+    <main class="screen" id="screen"></main>
+    <nav class="nav" aria-label="Hauptnavigation" id="nav"></nav>
+  </div>
+</div>
+
+<script>
+const I = {
+  heart: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+  heartO: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg>',
+  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  cal: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+  dots: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg>',
+  wir: '<svg width="24" height="22" viewBox="0 0 28 22" aria-hidden="true"><circle cx="10" cy="11" r="7" fill="var(--color-partner-a)" opacity=".85"/><circle cx="18" cy="11" r="7" fill="var(--color-partner-b)" opacity=".85"/></svg>',
+  photo: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-8 8"/></svg>',
+  person: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  bulb: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  spark: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>',
+  chev: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+  flag: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+};
+
+const SCENES = [
+  { id: 'wir-new', tab: 'wir', title: 'Wir · neuer Ort', sub: 'Lea ist allein im neuen Space' },
+  { id: 'wir-join', tab: 'wir', title: 'Wir · Alex kommt dazu', sub: 'einmaliger Moment für beide' },
+  { id: 'moments', tab: 'momente', title: 'Momente · noch leer', sub: 'Leerzustand mit Aktion, erster Inhalt' },
+  { id: 'plan', tab: 'planen', title: 'Planen · Hinweis im Kontext', sub: 'ein Tipp, der von selbst geht' },
+  { id: 'new', tab: 'momente', title: 'Momente · Neu in eimir.', sub: 'nach einem neuen Feature' },
+];
+
+const state = { opt: 'A', scene: 'wir-new', step: 0, seg: 'wishes', hintGone: false, newGone: false, nextGone: false, toast: '' };
+const $ = (s) => document.querySelector(s);
+const screen = $('#screen');
+
+function explain() {
+  const o = state.opt;
+  const T = {
+    'wir-new': {
+      h: 'Einzug auf Wir',
+      show: 'Solange euer gemeinsamer Ort keine Inhalte hat. Wird aus echten Daten abgeleitet, nichts wird gespeichert.',
+      gone: 'Für beide, sobald einer von euch den ersten Moment festhält. Ohne Partner steht darunter leise „Deinen Menschen einladen“.',
+      who: 'Gemeinsam (aus den gemeinsamen Inhalten).',
+      motion: 'Wir bekommt dasselbe sanfte Aufsteigen wie Momente, Planen und Mehr, einmal pro App-Start. Der erste Moment setzt sich mit einem kurzen Schimmer. Weniger Bewegung: alles steht sofort da.',
+      extra: o === 'C' ? 'Variante C: Nach dem ersten Moment erscheint genau ein nächster kleiner Schritt (z. B. Jahrestag eintragen). Nie eine Liste, „Später“ schiebt ihn um eine Woche.' : o === 'B' ? 'Variante B zeigt hier dasselbe wie A.' : '',
+    },
+    'wir-join': {
+      h: 'Ihr seid jetzt verbunden',
+      show: 'Einmal, wenn Alex den Ort zum ersten Mal betritt, und einmal für Lea, wenn sie Alex danach zum ersten Mal hier sieht (#513).',
+      gone: 'Nach dem Abspielen. Danach steht dort für den Rest des Tages „Seit heute gemeinsam hier“.',
+      who: 'Für jede Person einmal, Merkzeichen nur auf dem Gerät.',
+      motion: 'Alex’ Kreis gleitet zu Leas, die Herzlinie zeichnet sich, 900 ms (Token gestureMoment), blockiert nichts. Weniger Bewegung: gleicher Text und Zustand, sofort.',
+      extra: o === 'B' ? 'Variante B: kein eigener Moment, Wir zeigt einfach das Paar.' : '',
+    },
+    'moments': {
+      h: 'Leerzustand mit einer Aktion',
+      show: 'In jedem Bereich ohne Inhalte: Momente, Pläne, Wünsche, Orte, Kapitel, Personen. Ein warmer Satz und genau eine gefüllte Aktion.',
+      gone: 'Für beide, sobald der erste Eintrag da ist.',
+      who: 'Gemeinsam, aus echten Daten.',
+      motion: 'Der Leerzustand blendet aus, der erste Eintrag setzt sich an seinen Platz (280 ms, Token emphasized) mit einem einmaligen Schimmer. Weniger Bewegung: sofortiger Wechsel, der Fokus springt auf den neuen Eintrag.',
+      extra: 'Heute steht dort nur Überschrift und Text. Der Button „Ersten Moment festhalten“ existiert schon als Text, wird aber nirgends benutzt.',
+    },
+    'plan': {
+      h: 'Ein Hinweis im Kontext',
+      show: o === 'B' ? 'Variante B hat keine Kontext-Hinweise. Neue Paare müssen selbst entdecken, dass aus einem Wunsch ein Plan werden kann.' : 'Wenn ihr mindestens einen Wunsch habt, aber noch nie einen Wunsch zum Plan gemacht habt. Nur einer pro Bildschirm, höchstens ein neuer pro Tag.',
+      gone: 'Für immer, sobald du es einmal getan hast, nach „Verstanden“ oder nach dreimal Sehen.',
+      who: 'Pro Person (Lea und Alex sehen ihn unabhängig). Merkzeichen nur auf dem Gerät, ohne Inhalte.',
+      motion: 'Erscheint mit 180 ms, klappt beim Wegtippen zusammen, ohne dass die Liste springt. Weniger Bewegung: sofort.',
+      extra: 'Tipp auf „Pläne“: der leere Pläne-Bereich bekommt ebenfalls seine Aktion.',
+    },
+    'new': {
+      h: 'Neu in eimir.',
+      show: o === 'B' ? 'Variante B hat keine Neu-Hinweise.' : 'Nach einem Update genau dort, wo das Neue wohnt. Nie als Popup beim Start, nie als Liste.',
+      gone: 'Nach dem Öffnen, nach „×“ oder spätestens 14 Tage nach dem Update.',
+      who: 'Pro Person, nur auf dem Gerät. Pro-Funktionen erscheinen für Free-Paare nur mit dem normalen Pro-Zeichen, nie als Werbung.',
+      motion: 'Wie der Kontext-Hinweis. Weniger Bewegung: sofort.',
+      extra: '',
+    },
+  }[state.scene];
+  $('#explain').innerHTML = `<h2>${T.h}</h2><dl>
+    <div><dt>Erscheint</dt><dd>${T.show}</dd></div>
+    <div><dt>Verschwindet</dt><dd>${T.gone}</dd></div>
+    <div><dt>Gilt für</dt><dd>${T.who}</dd></div>
+    <div><dt>Bewegung</dt><dd>${T.motion}</dd></div>
+    ${T.extra ? `<div><dt>Hinweis</dt><dd>${T.extra}</dd></div>` : ''}</dl>`;
+}
+
+function nav(active) {
+  const item = (id, icon, label) => `<button type="button" ${active === id ? 'aria-current="page"' : ''} data-go="${id}">${icon}<span>${label}</span></button>`;
+  $('#nav').innerHTML = item('wir', I.wir, 'Wir') + item('momente', I.heartO, 'Momente') +
+    `<button type="button" class="plus" aria-label="Etwas festhalten">${I.plus}</button>` + item('planen', I.cal, 'Planen') + item('mehr', I.dots, 'Mehr');
+}
+
+function sheet(title) {
+  return `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="${title}">
+    <div class="grip"></div><h3>${title}</h3><div class="ph" aria-hidden="true"></div>
+    <div class="field">Unser erster Abend auf dem Balkon</div>
+    <div class="bar"><button type="button" class="quiet-link" data-act="close">Abbrechen</button>
+    <button type="button" class="add-pill" data-act="save">Speichern</button></div></div></div>`;
+}
+
+const firstMemory = (cls) => `<div class="sect ${cls}"><span class="eyebrow">Euer erster Moment</span><h3>Zuletzt gemeinsam festgehalten</h3>
+  <div class="memory"><div class="cap"><b>Unser erster Abend auf dem Balkon</b><span>Heute</span></div></div></div>`;
+
+function wirNew() {
+  if (state.step === 0) return `<div class="intro" style="display:grid;gap:22px">
+    <div class="hero"><div class="pair"><div class="av a">LS</div><div class="av b ghost" aria-hidden="true">+</div></div>
+      <span class="sub">Unser Platz zu zweit</span><h2>Lea</h2></div>
+    <div class="movein"><h3>Willkommen in eurem gemeinsamen Ort.</h3>
+      <p>Noch hängt nichts an der Wand. Lasst uns das erste Bild aufhängen.</p>
+      <div class="wall" aria-hidden="true"><div class="nail"></div><div class="frame">${I.photo}</div></div>
+      <button type="button" class="add-pill" data-act="open">${I.photo}Ersten Moment festhalten</button>
+      <button type="button" class="quiet-link" data-act="invite">${I.person}Deinen Menschen einladen</button></div></div>`;
+  return `<div style="display:grid;gap:22px">
+    <div class="hero"><div class="pair"><div class="av a">LS</div><div class="av b ghost" aria-hidden="true">+</div></div>
+      <span class="sub">Unser Platz zu zweit</span><h2>Lea</h2></div>
+    ${firstMemory('settle')}
+    ${state.opt === 'C' ? `<div class="hint-wrap ${state.nextGone ? 'gone' : ''}"><div><div class="next"><span class="label">Ein kleiner nächster Schritt</span>
+      <p>Wann hat eure Geschichte angefangen? Dann zählt eimir. eure gemeinsamen Tage.</p>
+      <div class="acts"><button type="button" class="add-pill" data-act="toast" data-msg="Öffnet die bestehenden Beziehungsdaten.">${I.cal}Euren Anfang eintragen</button>
+      <button type="button" class="quiet-link" data-act="next-later">Später</button></div></div></div></div>` : ''}</div>`;
+}
+
+function wirJoin() {
+  const joining = state.opt !== 'B';
+  return `<div class="${joining ? 'join' : ''}" style="display:grid;gap:22px">
+    <div class="hero"><div class="pair"><div class="av a">LS</div><div class="av b">AL</div></div>
+      ${joining ? `<svg class="heartline" viewBox="0 0 120 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 14h40l6-8 6 14 6-10 4 4h54"/></svg>` : '<span class="sub">Unser Platz zu zweit</span>'}
+      <h2>Lea &amp; Alex</h2>
+      ${joining ? `<div class="connected" style="display:grid;gap:4px"><b style="font:700 18px var(--font-content)">Ihr seid jetzt verbunden.</b><span class="days">Seit heute gemeinsam hier</span></div>` : '<span class="days">★ Seit heute zusammen hier</span>'}</div>
+    <div class="movein"><h3>Willkommen in eurem gemeinsamen Ort mit Alex.</h3>
+      <p>Alles ist bereit für eure gemeinsame Geschichte.</p>
+      <button type="button" class="add-pill" data-act="toast" data-msg="Öffnet den bestehenden Moment-Editor.">${I.photo}Ersten Moment festhalten</button></div></div>`;
+}
+
+function momentsTabs(active) {
+  return `<h2 class="page">Momente</h2><div class="segments" role="group" aria-label="Ansicht">
+    ${['Entdecken', 'Timeline', 'Karte'].map((x) => `<button type="button" aria-pressed="${x === active}">${x}</button>`).join('')}</div>`;
+}
+
+function moments() {
+  if (state.step === 0) return `<div class="intro" style="display:grid;gap:18px">${momentsTabs('Entdecken')}
+    <div class="empty"><div class="mark">${I.heart}</div><h3>Eure Geschichte beginnt hier</h3>
+      <p>Haltet euren ersten gemeinsamen Moment fest.</p>
+      <button type="button" class="add-pill" data-act="open">${I.photo}Ersten Moment festhalten</button></div></div>`;
+  return `<div style="display:grid;gap:18px">${momentsTabs('Entdecken')}${firstMemory('settle')}</div>`;
+}
+
+function plan() {
+  const hint = state.opt !== 'B' ? `<div class="hint-wrap ${state.hintGone ? 'gone' : ''}"><div><div class="hint" role="note">
+    <span class="ic">${I.bulb}</span><p>Wird ein Wunsch konkret? Öffne ihn und mach mit einem Tipp einen Plan daraus.</p>
+    <div class="acts"><button type="button" data-act="toast" data-msg="Öffnet „Sonnenaufgang am Meer“, die Aktion „Planen“ ist dort schon da.">Zeig mir wie</button>
+    <button type="button" class="dim" data-act="hint-gone">Verstanden</button></div></div></div></div>` : '';
+  const segs = `<h2 class="page">Planen</h2><div class="segments" role="group" aria-label="Bereich">
+    <button type="button" data-seg="plans" aria-pressed="${state.seg === 'plans'}">Pläne</button>
+    <button type="button" data-seg="wishes" aria-pressed="${state.seg === 'wishes'}">Wünsche</button>
+    <button type="button" data-seg="dates" aria-pressed="false">Termine</button></div>`;
+  if (state.seg === 'plans') return `<div style="display:grid;gap:18px">${segs}
+    <div class="empty"><div class="mark" style="background:var(--color-partner-b-surface);color:var(--color-partner-b)">${I.cal}</div>
+    <h3>Worauf freut ihr euch als Nächstes?</h3><p>Ein Plan braucht erst mal nur eine Idee. Termin und Ort könnt ihr später ergänzen.</p>
+    <button type="button" class="add-pill" data-act="toast" data-msg="Öffnet den bestehenden Plan-Editor.">${I.plus}Plan anlegen</button></div></div>`;
+  return `<div class="intro" style="display:grid;gap:18px">${segs}
+    <div class="invite"><b>Was machen wir als Nächstes?</b><button type="button" class="add-pill" data-act="toast" data-msg="Bestehende gemeinsame Auswahl (J1), unverändert.">Gemeinsam auswählen</button></div>
+    ${hint}
+    <div class="wish"><b>Sonnenaufgang am Meer</b><span class="who">Idee von Lea</span></div>
+    <div class="wish"><b>Zusammen töpfern</b><span class="who b">Idee von Alex</span></div>
+    <div class="wish"><b>Ein Wochenende ohne Handy</b><span class="who">Idee von Lea</span></div></div>`;
+}
+
+function newNote() {
+  const note = state.opt !== 'B' ? `<div class="hint-wrap ${state.newGone ? 'gone' : ''}"><div><div class="hint new" role="note">
+    <span class="ic">${I.spark}</span><p><span class="tag">Neu</span><br>Eure Wegmarken: In „Eure Geschichte“ seht ihr jetzt, welche besonderen Tage hinter euch liegen.</p>
+    <div class="acts"><button type="button" data-act="new-open">Ansehen</button><button type="button" class="dim" data-act="new-gone" aria-label="Hinweis ausblenden">Ausblenden</button></div></div></div></div>` : '';
+  return `<div class="intro" style="display:grid;gap:18px">${momentsTabs('Entdecken')}
+    <div class="sect"><span class="eyebrow">Heute vor einem Jahr</span><div class="tiles"><div class="tile"></div><div class="tile"></div></div></div>
+    <div class="sect"><h3>Zeit für euch</h3>${note}
+      <div class="rows"><button type="button" class="row"><span class="badge">${I.flag}</span><span><b>Eure Geschichte</b><span>Wegmarken und was ihr festgehalten habt</span></span>${I.chev}</button>
+      <button type="button" class="row"><span class="badge">${I.spark}</span><span><b>Glücksmomente</b><span>Was euch froh gemacht hat</span></span>${I.chev}</button></div></div></div>`;
+}
+
+function render() {
+  const sc = SCENES.find((s) => s.id === state.scene);
+  nav(sc.tab);
+  const body = { 'wir-new': wirNew, 'wir-join': wirJoin, moments, plan, new: newNote }[state.scene]();
+  const sheetOpen = state.step === 1 && (state.scene === 'wir-new' || state.scene === 'moments');
+  screen.innerHTML = (sheetOpen ? (state.scene === 'wir-new' ? wirNewStatic() : momentsStatic()) : body);
+  document.querySelector('.scrim')?.remove();
+  document.querySelector('.toast')?.remove();
+  if (sheetOpen) $('#device').insertAdjacentHTML('beforeend', sheet('Neuer Moment'));
+  if (state.toast) { $('#device').insertAdjacentHTML('beforeend', `<div class="toast" role="status">${state.toast}</div>`); }
+  document.querySelectorAll('#scenes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scene === state.scene)));
+  document.querySelectorAll('#opts button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.opt === state.opt)));
+  explain();
+}
+function wirNewStatic() { const s = state.step; state.step = 0; const h = wirNew().replace('class="intro"', ''); state.step = s; return h; }
+function momentsStatic() { const s = state.step; state.step = 0; const h = moments().replace('class="intro"', ''); state.step = s; return h; }
+
+function reset(scene) {
+  Object.assign(state, { scene: scene ?? state.scene, step: 0, hintGone: false, newGone: false, nextGone: false, toast: '', seg: 'wishes' });
+  screen.scrollTop = 0; render();
+}
+let toastTimer;
+function toast(msg) {
+  document.querySelector('.toast')?.remove();
+  $('#device').insertAdjacentHTML('beforeend', `<div class="toast" role="status">${msg}</div>`);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => document.querySelector('.toast')?.remove(), 2600);
+}
+
+$('#scenes').innerHTML = SCENES.map((s) => `<button type="button" data-scene="${s.id}"><b>${s.title}</b><span>${s.sub}</span></button>`).join('');
+$('#scenes').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) reset(b.dataset.scene); });
+$('#opts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { state.opt = b.dataset.opt; reset(); } });
+$('#replay').addEventListener('click', () => reset());
+$('#rm').addEventListener('click', (e) => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', String(on)); $('#device').classList.toggle('reduced', on); reset(); });
+$('#theme').addEventListener('click', (e) => {
+  const dark = document.documentElement.getAttribute('data-theme') !== 'dark' && !(matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.getAttribute('data-theme') !== 'light');
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  e.currentTarget.textContent = dark ? 'Hell' : 'Dunkel';
+});
+$('#device').addEventListener('click', (e) => {
+  const seg = e.target.closest('[data-seg]'); if (seg && seg.dataset.seg !== 'dates') { state.seg = seg.dataset.seg; state.toast = ''; render(); return; }
+  const go = e.target.closest('[data-go]');
+  if (go) { const t = { wir: 'wir-new', momente: 'moments', planen: 'plan' }[go.dataset.go]; if (t) reset(t); else toast('Mehr bleibt unverändert; die kurze Einführung (#796) bleibt dort.'); return; }
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'open') { state.step = 1; render(); }
+  else if (act === 'close') { state.step = 0; render(); }
+  else if (act === 'save') { state.step = 2; render(); }
+  else if (act === 'invite') toast('Öffnet die bestehende Einladung. Heute ist sie nur über Einstellungen erreichbar.');
+  else if (act === 'hint-gone') { state.hintGone = true; document.querySelector('.hint-wrap')?.classList.add('gone'); }
+  else if (act === 'new-gone') { state.newGone = true; document.querySelector('.hint-wrap')?.classList.add('gone'); }
+  else if (act === 'new-open') toast('Öffnet „Eure Geschichte“. Der Hinweis gilt danach als gesehen.');
+  else if (act === 'next-later') { state.nextGone = true; document.querySelector('.hint-wrap')?.classList.add('gone'); }
+  else if (act === 'toast') toast(a.dataset.msg);
+});
+// Evidence mode: #shot-<name>[-dark] renders the bare 390 px device in its settled state.
+const SHOTS = {
+  wirnew: { scene: 'wir-new' }, wirsaved: { scene: 'wir-new', step: 2 }, join: { scene: 'wir-join' },
+  moments: { scene: 'moments' }, plan: { scene: 'plan' }, planempty: { scene: 'plan', seg: 'plans' }, new: { scene: 'new' },
+};
+const shot = /^#shot-([a-z]+)(-dark)?$/.exec(location.hash);
+if (shot && SHOTS[shot[1]]) {
+  document.querySelector('.rail').hidden = true;
+  document.documentElement.setAttribute('data-theme', shot[2] ? 'dark' : 'light');
+  Object.assign(document.querySelector('.shell').style, { padding: '0', display: 'block' });
+  Object.assign($('#device').style, { borderRadius: '0', boxShadow: 'none' });
+  $('#device').classList.add('reduced');
+  Object.assign(state, SHOTS[shot[1]]);
+}
+render();
+</script>

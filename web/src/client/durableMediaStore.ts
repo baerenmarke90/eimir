@@ -1,7 +1,13 @@
-/** Disposable app-owned bytes; credentials and signed URLs never enter this store. */
-export const DURABLE_MEDIA_MAX_BYTES = 128 * 1024 * 1024;
-export const DURABLE_MEDIA_MAX_ENTRIES = 512;
-export const DURABLE_MEDIA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * Disposable app-owned bytes; credentials and signed URLs never enter this store.
+ * Product Owner decision (2026-11-16): keep up to 2000 media items on the device,
+ * bounded by item count rather than bytes. Thumbnail and original of one item
+ * share one slot. There is deliberately no maximum age (PO, same day): the item
+ * limit and the browser quota bound the store, a quota failure frees the least
+ * recently used quarter and retries once, and logout or an Account/Space change
+ * rotates the epoch and clears everything.
+ */
+export const DURABLE_MEDIA_MAX_ENTRIES = 2000;
 const DATABASE = 'eimir-authorized-media-v1';
 const STORE = 'media';
 const METADATA = 'metadata';
@@ -107,13 +113,7 @@ export async function readDurableMedia(
       const request = store.get(key);
       request.onsuccess = () => set(request.result);
     });
-    if (
-      !row ||
-      row.epoch !== capturedEpoch ||
-      epoch() !== capturedEpoch ||
-      row.savedAt > Date.now() ||
-      Date.now() - row.savedAt >= DURABLE_MEDIA_MAX_AGE_MS
-    )
+    if (!row || row.epoch !== capturedEpoch || epoch() !== capturedEpoch)
       return undefined;
     void enqueue(async () => {
       if (epoch() !== capturedEpoch) return;
@@ -132,6 +132,84 @@ export async function readDurableMedia(
     return undefined;
   }
 }
+/** One slot per media item: the key without its trailing variant. */
+function mediaItemKey(key: string): string {
+  try {
+    const parts: unknown = JSON.parse(key);
+    if (Array.isArray(parts) && parts.length > 1)
+      return JSON.stringify(parts.slice(0, -1));
+  } catch {
+    /* Opaque keys form their own slot. */
+  }
+  return key;
+}
+function isQuotaError(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === 'QuotaExceededError' ||
+      error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  );
+}
+function putDurableMedia(
+  key: string,
+  capturedEpoch: string,
+  blob: Blob,
+  isCurrent: () => boolean,
+  shrink: boolean,
+): Promise<void> {
+  return transaction<void>('readwrite', (store) => {
+    const metadata = store.transaction.objectStore(METADATA);
+    const remove = (rowKey: string) => {
+      store.delete(rowKey);
+      metadata.delete(rowKey);
+    };
+    // Eviction scans small metadata only, never the cached media payloads.
+    const request = metadata.getAll();
+    request.onsuccess = () => {
+      if (epoch() !== capturedEpoch || !isCurrent()) return;
+      const now = Date.now();
+      const item = mediaItemKey(key);
+      const items = new Map<string, { usedAt: number; keys: string[] }>();
+      for (const row of request.result as Metadata[]) {
+        if (row.key === key) continue;
+        if (row.epoch !== capturedEpoch) {
+          remove(row.key);
+          continue;
+        }
+        const rowItem = mediaItemKey(row.key);
+        if (rowItem === item) continue;
+        const group = items.get(rowItem) ?? { usedAt: 0, keys: [] };
+        group.usedAt = Math.max(group.usedAt, row.usedAt);
+        group.keys.push(row.key);
+        items.set(rowItem, group);
+      }
+      const others = [...items.values()].sort((a, b) => a.usedAt - b.usedAt);
+      // The written item keeps one slot of its own.
+      const limit = shrink
+        ? Math.floor((others.length * 3) / 4)
+        : DURABLE_MEDIA_MAX_ENTRIES - 1;
+      while (others.length > limit) {
+        const oldest = others.shift();
+        if (!oldest) break;
+        oldest.keys.forEach(remove);
+      }
+      store.put({
+        key,
+        epoch: capturedEpoch,
+        blob,
+        savedAt: now,
+        usedAt: now,
+      } satisfies Row);
+      metadata.put({
+        key,
+        epoch: capturedEpoch,
+        bytes: blob.size,
+        savedAt: now,
+        usedAt: now,
+      } satisfies Metadata);
+    };
+  });
+}
 export function writeDurableMedia(
   key: string,
   capturedEpoch: string,
@@ -141,59 +219,17 @@ export function writeDurableMedia(
   return enqueue(async () => {
     if (
       !blob.type.startsWith('image/') ||
-      blob.size > DURABLE_MEDIA_MAX_BYTES ||
       epoch() !== capturedEpoch ||
       !isCurrent()
     )
       return;
-    await transaction<void>('readwrite', (store) => {
-      const metadata = store.transaction.objectStore(METADATA);
-      const remove = (rowKey: string) => {
-        store.delete(rowKey);
-        metadata.delete(rowKey);
-      };
-      // Eviction scans small metadata only, never the cached media payloads.
-      const request = metadata.getAll();
-      request.onsuccess = () => {
-        if (epoch() !== capturedEpoch || !isCurrent()) return;
-        const now = Date.now();
-        const rows = (request.result as Metadata[])
-          .filter((row) => {
-            const keep =
-              row.key !== key &&
-              row.epoch === capturedEpoch &&
-              row.savedAt <= now &&
-              now - row.savedAt < DURABLE_MEDIA_MAX_AGE_MS;
-            if (!keep) remove(row.key);
-            return keep;
-          })
-          .sort((a, b) => a.usedAt - b.usedAt);
-        let bytes = rows.reduce((sum, row) => sum + row.bytes, 0) + blob.size;
-        while (
-          rows.length >= DURABLE_MEDIA_MAX_ENTRIES ||
-          bytes > DURABLE_MEDIA_MAX_BYTES
-        ) {
-          const oldest = rows.shift();
-          if (!oldest) break;
-          bytes -= oldest.bytes;
-          remove(oldest.key);
-        }
-        store.put({
-          key,
-          epoch: capturedEpoch,
-          blob,
-          savedAt: now,
-          usedAt: now,
-        } satisfies Row);
-        metadata.put({
-          key,
-          epoch: capturedEpoch,
-          bytes: blob.size,
-          savedAt: now,
-          usedAt: now,
-        } satisfies Metadata);
-      };
-    });
+    try {
+      await putDurableMedia(key, capturedEpoch, blob, isCurrent, false);
+    } catch (error) {
+      if (!isQuotaError(error)) throw error;
+      // The device filled up before the item limit: free the oldest quarter.
+      await putDurableMedia(key, capturedEpoch, blob, isCurrent, true);
+    }
   });
 }
 export function evictDurableMedia(prefix: string): void {

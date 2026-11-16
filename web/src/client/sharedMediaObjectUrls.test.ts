@@ -13,6 +13,7 @@ import { ClientProblemError } from './problemDetails';
 import type { ReferenceApis } from './referenceFlow';
 import {
   acquireMediaObjectUrl,
+  captureSynchronousMediaObjectUrl,
   evictMediaObjectUrls,
   MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS,
 } from './sharedMediaObjectUrls';
@@ -116,7 +117,7 @@ it('expires and bounds idle images without revoking an active view', () => {
   active.dispose();
 });
 
-it('reauthorizes reentry before reusing URL/bytes and revokes the parent immediately', async () => {
+it('reuses a known URL synchronously on reentry without a new read grant and revokes the parent immediately', async () => {
   const authorize = vi
     .fn()
     .mockResolvedValue({ method: 'STREAM', url: '/content' });
@@ -138,36 +139,98 @@ it('reauthorizes reentry before reusing URL/bytes and revokes the parent immedia
     { variant: 'thumbnail' },
   );
   first.dispose();
-  let release!: (value: { method: string; url: string }) => void;
-  authorize.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        release = resolve;
-      }),
+  const captured = captureSynchronousMediaObjectUrl(() =>
+    loadAuthorizedStoryImageResource(
+      apis,
+      'space',
+      'MEMORY',
+      'memory',
+      'photo',
+      { variant: 'thumbnail' },
+    ),
   );
-  const pending = loadAuthorizedStoryImageResource(
-    apis,
-    'space',
-    'MEMORY',
-    'memory',
-    'photo',
-    { variant: 'thumbnail' },
-  );
-  expect(authorize).toHaveBeenCalledTimes(2);
-  expect(create).toHaveBeenCalledTimes(1);
-  release({ method: 'STREAM', url: '/content' });
-  const returned = await pending;
+  expect(captured.handle?.url).toBe(first.url);
+  const returned = await captured.result;
   expect(returned.url).toBe(first.url);
+  expect(authorize).toHaveBeenCalledTimes(1);
   expect(content).toHaveBeenCalledTimes(1);
+  expect(create).toHaveBeenCalledTimes(1);
+  returned.dispose();
   const lease = captureMediaCacheLease(apis.attachments, 'space', [
     'attachment',
     'MEMORY',
     'memory',
   ]);
   evictAuthorizedMedia(lease, ['attachment', 'MEMORY', 'memory']);
-  expect(revoke).toHaveBeenCalledWith(returned.url);
-  returned.dispose();
+  expect(revoke).toHaveBeenCalledWith(first.url);
+  captured.handle?.dispose();
   expect(revoke).toHaveBeenCalledTimes(1);
+  expect(
+    captureSynchronousMediaObjectUrl(() =>
+      loadAuthorizedStoryImageResource(
+        apis,
+        'space',
+        'MEMORY',
+        'memory',
+        'photo',
+        { variant: 'thumbnail' },
+      ).then(
+        (resource) => resource.dispose(),
+        () => undefined,
+      ),
+    ).handle,
+  ).toBeNull();
+});
+
+it('never offers a synchronous handle for another Space, parent, variant or after logout', async () => {
+  const apis = {
+    attachments: {
+      createAttachmentReadAccess: vi
+        .fn()
+        .mockResolvedValue({ method: 'STREAM', url: '/content' }),
+      getAttachmentContentRaw: vi.fn(async () => ({
+        raw: new Response(new Blob(['photo'])),
+      })),
+    },
+  } as unknown as ReferenceApis;
+  (
+    await loadAuthorizedStoryImageResource(
+      apis,
+      'space',
+      'MEMORY',
+      'memory',
+      'photo',
+      { variant: 'thumbnail' },
+    )
+  ).dispose();
+  const offered = (
+    spaceId: string,
+    parentId: string,
+    variant?: 'thumbnail',
+  ) => {
+    const captured = captureSynchronousMediaObjectUrl(() =>
+      loadAuthorizedStoryImageResource(
+        apis,
+        spaceId,
+        'MEMORY',
+        parentId,
+        'photo',
+        { variant },
+      ).then(
+        (resource) => resource.dispose(),
+        () => undefined,
+      ),
+    );
+    const handle = captured.handle;
+    handle?.dispose();
+    return handle !== null;
+  };
+  expect(offered('other-space', 'memory', 'thumbnail')).toBe(false);
+  expect(offered('space', 'other-memory', 'thumbnail')).toBe(false);
+  expect(offered('space', 'memory')).toBe(false);
+  expect(offered('space', 'memory', 'thumbnail')).toBe(true);
+  clearAuthorizedMediaCache();
+  expect(offered('space', 'memory', 'thumbnail')).toBe(false);
 });
 
 it('clears active and idle resources synchronously on logout/Space wipe', () => {
@@ -191,7 +254,7 @@ it('does not retain oversized idle images', () => {
   next.dispose();
 });
 
-it('a denied fresh read revokes a previously retained parent image', async () => {
+it('a denied read of another variant revokes a previously retained parent image', async () => {
   const authorize = vi
     .fn()
     .mockResolvedValue({ method: 'STREAM', url: '/content' });
@@ -220,7 +283,6 @@ it('a denied fresh read revokes a previously retained parent image', async () =>
       'MEMORY',
       'memory',
       'photo',
-      { variant: 'thumbnail' },
     ),
   ).rejects.toBeInstanceOf(ClientProblemError);
   expect(revoke).toHaveBeenCalledWith(first.url);
@@ -299,7 +361,7 @@ it('bounds idle decoded originals while retaining their downloaded bytes', async
 });
 
 it.each(['MEMORY', 'HEART_MOMENT', 'PLAN'] as const)(
-  'keeps %s gallery originals and thumbnails stable after tab/back return while authorizing every reentry',
+  'keeps %s gallery originals and thumbnails stable after tab/back return without a new read grant',
   async (parentType) => {
     const authorize = vi
       .fn()
@@ -334,7 +396,7 @@ it.each(['MEMORY', 'HEART_MOMENT', 'PLAN'] as const)(
       expect(next.url).toBe(first.url);
       next.dispose();
     }
-    expect(authorize).toHaveBeenCalledTimes(4);
+    expect(authorize).toHaveBeenCalledTimes(2);
     expect(download).toHaveBeenCalledTimes(2);
     expect(create).toHaveBeenCalledTimes(2);
   },

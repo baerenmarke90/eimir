@@ -51,6 +51,7 @@ from eimir.once_messages import service as once_messages
 from eimir.once_messages.models import OnceMessage
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
+from eimir.picture_ping_pong.models import PicturePingPong, PictureStatus
 from eimir.places.models import Place
 from eimir.plans.models import Plan
 from eimir.relationship.models import Membership, MembershipStatus
@@ -384,6 +385,14 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             event.subject_id,
             NotificationKind(event_type.value),
         )
+    if event_type is EventType.PICTURE_PING_PONG_TURN:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.PICTURE_GAME,
+            event.subject_id,
+            NotificationKind.PICTURE_PING_PONG_TURN,
+        )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
         if _has_photo_reaction(session, event.subject_id, event.actor_id):
             _project_target_notification(
@@ -646,6 +655,8 @@ def _target_is_projectable(
     if target_type is EngagementTarget.WISH_SELECTION:
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
+    if target_type is EngagementTarget.PICTURE_GAME:
+        return session.scalar(_picture_turn_exists(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(model.id == target_id)
     if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
@@ -653,6 +664,15 @@ def _target_is_projectable(
     if target_type is EngagementTarget.REMINDER:
         statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
     return session.execute(statement.with_only_columns(model.id)).scalar_one_or_none() is not None
+
+
+def _picture_turn_exists(context: AuthorizationContext, target_id: Any) -> Any:
+    return select(PicturePingPong.id).where(
+        PicturePingPong.id == target_id,
+        PicturePingPong.space_id == context.space_id,
+        PicturePingPong.status == PictureStatus.DRAWING.value,
+        PicturePingPong.drawer_id == context.account_id,
+    )
 
 
 def _projectable_predicate(
@@ -665,6 +685,13 @@ def _projectable_predicate(
     notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
+    # A turn notice is current only while it is still the recipient's turn.
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.PICTURE_GAME.value,
+            _picture_turn_exists(context, target_id_column).exists(),
+        )
+    )
     for target_type, model in _TARGET_MODELS.items():
         if target_type is EngagementTarget.ONCE_MESSAGE:
             exists = (

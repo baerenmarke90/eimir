@@ -259,7 +259,11 @@ the media abstraction; grants are transient and are never exported.
 
 The dedicated Media Video workflow builds the restricted patched codec, runs
 real parsing/remux/decode/metadata tests, and checks PostgreSQL admission,
-privacy, grant revocation and publication races. Standard required CI, Android
+privacy, grant revocation and publication races. It runs on every push to `main`,
+which the immutable release publisher waits for, and on pull requests that
+change the media, attachment, processing-job, media-encryption or build surfaces
+listed in its path filter. Other Backend pull requests rely on the regular Backend
+Integration suite, whose codec-dependent cases skip without the pinned binaries. Standard required CI, Android
 device/picker acceptance, visual evidence and source/security review remain
 cumulative merge gates. A draft or a green advisory fingerprint is not release
 approval.

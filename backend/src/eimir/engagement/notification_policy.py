@@ -127,6 +127,11 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationPolicy(
             DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
         ),
+        # "Du bist dran" (#1907 H3): a quiet turn signal; the picture itself
+        # never appears in a preview.
+        NotificationKind.PICTURE_PING_PONG_TURN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.PHOTO_REACTION: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),

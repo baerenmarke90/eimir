@@ -52,6 +52,7 @@ export function getNotificationItemTitle(
       'WISH_SELECTION_RANDOM_DECLINED',
       'HEART_HUNT_HIDDEN',
       'HEART_HUNT_FOUND',
+      'PICTURE_PING_PONG_TURN',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
       'COLLECTION_SENT',

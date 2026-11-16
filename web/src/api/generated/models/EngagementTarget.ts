@@ -31,6 +31,7 @@ export const EngagementTarget = {
     PLACE: 'PLACE',
     CHAPTER: 'CHAPTER',
     COLLECTION: 'COLLECTION',
+    PICTURE_GAME: 'PICTURE_GAME',
     SHARED_NOTE: 'SHARED_NOTE'
 } as const;
 export type EngagementTarget = typeof EngagementTarget[keyof typeof EngagementTarget];

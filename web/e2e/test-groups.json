@@ -364,6 +364,10 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
     },
+    "picture-ping-pong.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,

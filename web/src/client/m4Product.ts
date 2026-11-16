@@ -18,6 +18,7 @@ import {
   chapterDetailPath,
   collectionDetailPath,
   GAMES_HEART_HUNT_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   memoryDetailPath,
@@ -151,6 +152,8 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'PICTURE_GAME':
+      return GAMES_PICTURE_PING_PONG_ROUTE;
     case 'SHARED_NOTE':
       return sharedNoteDetailPath(targetId);
     case 'WISH_SELECTION':

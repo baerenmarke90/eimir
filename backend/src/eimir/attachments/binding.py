@@ -305,6 +305,14 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     ).scalar_one_or_none()
     if account_id is not None:
         return "ACCOUNT_PROFILE", account_id
+
+    from eimir.heart_hunt.models import HeartHuntRound
+
+    round_id = session.scalar(
+        select(HeartHuntRound.id).where(HeartHuntRound.attachment_id == attachment_id)
+    )
+    if round_id is not None:
+        return "HEART_HUNT_ROUND", round_id
     return None
 
 

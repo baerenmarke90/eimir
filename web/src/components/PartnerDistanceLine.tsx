@@ -339,3 +339,22 @@ export function WirPartnerDistance({
     />
   );
 }
+
+/**
+ * The band as the short H4 word or value, for compact captions such as the
+ * Herzversteck flight (#1907 H3); never more precise than the server band.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    const distance = formatDistanceBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    return distance ?? t('partnerLocation.distanceNearShort');
+  };
+}

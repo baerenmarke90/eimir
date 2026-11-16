@@ -122,6 +122,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
 }
+.chapter-page .story-card-actions {
+  display: flex;
+  justify-content: end;
+}
 @media (prefers-reduced-motion: reduce) {
   .chapter-shelf-link {
     transition: none;

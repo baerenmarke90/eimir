@@ -166,6 +166,179 @@
   }
 }
 
+[data-design-preview="shared_album"] {
+  --color-background: #f6f4ec;
+  --color-header-surface: #f6f4ec;
+  --color-surface: #fbfaf5;
+  --color-surface-panel: #fbfaf5;
+  --color-surface-overlay: #eeefe4;
+  --color-surface-raised: #fffdf7;
+  --color-text: #162b27;
+  --color-brand-ocean: #162b27;
+  --color-text-secondary: #455a51;
+  --color-text-muted: #53675e;
+  --color-border: #a1ac98;
+  --color-border-subtle: #cbd1c1;
+  --color-header-border: #cbd1c1;
+  --color-brand-text: #215449;
+  --color-link-text: #215449;
+  --color-brand: #245c51;
+  --color-on-accent: #ffffff;
+  --identity-icon-accent: #aa4c86;
+  --identity-icon-warm-fill: #aa4c86;
+  --color-private: #aa4c86;
+  --identity-icon-cool: #5685d1;
+  --identity-icon-cool-fill: #5685d1;
+  --color-shared-accent: #5685d1;
+  --identity-surface-warm: #e0e9da;
+  --color-brand-surface: #e0e9da;
+  --color-page-tint-brand: #eee9de;
+  --identity-surface-cool: #e5ecdb;
+  --color-surface-subtle: #edeee1;
+  --color-surface-panel-tint: #edeee1;
+  --color-shared-surface: #e5ecdb;
+  --color-page-tint-shared: #edf0e3;
+  --color-focus: #35675d;
+  --identity-hover: #e8eeff;
+  --color-brand-strong: #143c34;
+  --color-shared: #245c51;
+  --color-brand-glow: #e2e9db;
+  --color-shadow-brand: #e0e9da;
+  --color-success: #226a57;
+  --color-success-surface: #e8f6ee;
+  --color-warning: #87561b;
+  --color-discovery: #87561b;
+  --color-discovery-surface: #fff3dd;
+  --color-error: #a83f51;
+  --color-error-surface: #fdebf0;
+  --color-technical: #315aa8;
+  --color-technical-surface: #eaf1ff;
+  --identity-premium: #674aa1;
+  --identity-premium-surface: #f1ecfa;
+  --design-decoration: #123a33;
+  --design-on-decoration: #fffdf2;
+  --design-on-decoration-muted: #e0e8d8;
+  --design-highlight: #e5e9b7;
+  --design-on-highlight: #233824;
+  --design-decoration-icon: #8b9c61;
+}
+
+:root[data-theme="dark"] [data-design-preview="shared_album"] {
+  --color-background: #182823;
+  --color-header-surface: #182823;
+  --color-surface: #23362e;
+  --color-surface-panel: #23362e;
+  --color-surface-overlay: #243930;
+  --color-surface-raised: #2a4035;
+  --color-text: #f3f3e6;
+  --color-brand-ocean: #f3f3e6;
+  --color-text-secondary: #ccd6c5;
+  --color-text-muted: #b8c5b1;
+  --color-border: #7e9384;
+  --color-border-subtle: #577065;
+  --color-header-border: #577065;
+  --color-brand-text: #d1e4d2;
+  --color-link-text: #d1e4d2;
+  --color-brand: #b9d4be;
+  --color-on-accent: #182d25;
+  --identity-icon-accent: #f1b3d7;
+  --identity-icon-warm-fill: #f1b3d7;
+  --color-private: #f1b3d7;
+  --identity-icon-cool: #aed1fa;
+  --identity-icon-cool-fill: #aed1fa;
+  --color-shared-accent: #aed1fa;
+  --identity-surface-warm: #324d3f;
+  --color-brand-surface: #324d3f;
+  --color-page-tint-brand: #363f35;
+  --identity-surface-cool: #2d473a;
+  --color-surface-subtle: #26392f;
+  --color-surface-panel-tint: #26392f;
+  --color-shared-surface: #2d473a;
+  --color-page-tint-shared: #223a31;
+  --color-focus: #b1dac5;
+  --identity-hover: #34446d;
+  --color-brand-strong: #e1ecdf;
+  --color-shared: #b9d4be;
+  --color-brand-glow: #334d41;
+  --color-shadow-brand: #324d3f;
+  --color-success: #a2e1ca;
+  --color-success-surface: #23453c;
+  --color-warning: #ffd194;
+  --color-discovery: #ffd194;
+  --color-discovery-surface: #4c3826;
+  --color-error: #ffb1c0;
+  --color-error-surface: #4d2b3a;
+  --color-technical: #b6ceff;
+  --color-technical-surface: #2c3e65;
+  --identity-premium: #d5bdff;
+  --identity-premium-surface: #43365d;
+  --design-decoration: #d7e7d5;
+  --design-on-decoration: #182d25;
+  --design-on-decoration-muted: #344d40;
+  --design-highlight: #d6dfa0;
+  --design-on-highlight: #233824;
+  --design-decoration-icon: #8b9c61;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) [data-design-preview="shared_album"] {
+    --color-background: #182823;
+    --color-header-surface: #182823;
+    --color-surface: #23362e;
+    --color-surface-panel: #23362e;
+    --color-surface-overlay: #243930;
+    --color-surface-raised: #2a4035;
+    --color-text: #f3f3e6;
+    --color-brand-ocean: #f3f3e6;
+    --color-text-secondary: #ccd6c5;
+    --color-text-muted: #b8c5b1;
+    --color-border: #7e9384;
+    --color-border-subtle: #577065;
+    --color-header-border: #577065;
+    --color-brand-text: #d1e4d2;
+    --color-link-text: #d1e4d2;
+    --color-brand: #b9d4be;
+    --color-on-accent: #182d25;
+    --identity-icon-accent: #f1b3d7;
+    --identity-icon-warm-fill: #f1b3d7;
+    --color-private: #f1b3d7;
+    --identity-icon-cool: #aed1fa;
+    --identity-icon-cool-fill: #aed1fa;
+    --color-shared-accent: #aed1fa;
+    --identity-surface-warm: #324d3f;
+    --color-brand-surface: #324d3f;
+    --color-page-tint-brand: #363f35;
+    --identity-surface-cool: #2d473a;
+    --color-surface-subtle: #26392f;
+    --color-surface-panel-tint: #26392f;
+    --color-shared-surface: #2d473a;
+    --color-page-tint-shared: #223a31;
+    --color-focus: #b1dac5;
+    --identity-hover: #34446d;
+    --color-brand-strong: #e1ecdf;
+    --color-shared: #b9d4be;
+    --color-brand-glow: #334d41;
+    --color-shadow-brand: #324d3f;
+    --color-success: #a2e1ca;
+    --color-success-surface: #23453c;
+    --color-warning: #ffd194;
+    --color-discovery: #ffd194;
+    --color-discovery-surface: #4c3826;
+    --color-error: #ffb1c0;
+    --color-error-surface: #4d2b3a;
+    --color-technical: #b6ceff;
+    --color-technical-surface: #2c3e65;
+    --identity-premium: #d5bdff;
+    --identity-premium-surface: #43365d;
+    --design-decoration: #d7e7d5;
+    --design-on-decoration: #182d25;
+    --design-on-decoration-muted: #344d40;
+    --design-highlight: #d6dfa0;
+    --design-on-highlight: #233824;
+    --design-decoration-icon: #8b9c61;
+  }
+}
+
 [data-design-preview="warm"] {
   --color-background: #fff9f6;
   --color-header-surface: #fff9f6;
@@ -173,10 +346,10 @@
   --color-surface-panel: #ffffff;
   --color-surface-overlay: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-text: #432e42;
-  --color-brand-ocean: #432e42;
-  --color-text-secondary: #745f6f;
-  --color-text-muted: #745f6f;
+  --color-text: #2f1f33;
+  --color-brand-ocean: #2f1f33;
+  --color-text-secondary: #6e5969;
+  --color-text-muted: #6e5969;
   --color-border: #efe0e3;
   --color-border-subtle: #efe0e3;
   --color-header-border: #efe0e3;
@@ -321,27 +494,210 @@
   }
 }
 
-:root[data-app-design="classic"] .today-page {
+:root[data-app-design="classic"] {
   --font-heading-family: var(--font-ui);
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-app-design="modern"] .today-page {
+:root[data-app-design="modern"] {
   --font-heading-family: var(--font-ui);
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-app-design="warm"] .today-page {
+:root[data-app-design="shared_album"],
+:root[data-app-design="shared_album"] [data-color-world] {
+  --color-background: #f6f4ec;
+  --color-header-surface: #f6f4ec;
+  --color-surface: #fbfaf5;
+  --color-surface-panel: #fbfaf5;
+  --color-surface-overlay: #eeefe4;
+  --color-surface-raised: #fffdf7;
+  --color-text: #162b27;
+  --color-brand-ocean: #162b27;
+  --color-text-secondary: #455a51;
+  --color-text-muted: #53675e;
+  --color-border: #a1ac98;
+  --color-border-subtle: #cbd1c1;
+  --color-header-border: #cbd1c1;
+  --color-brand-text: #215449;
+  --color-link-text: #215449;
+  --color-brand: #245c51;
+  --color-on-accent: #ffffff;
+  --identity-icon-accent: #aa4c86;
+  --identity-icon-warm-fill: #aa4c86;
+  --color-private: #aa4c86;
+  --identity-icon-cool: #5685d1;
+  --identity-icon-cool-fill: #5685d1;
+  --color-shared-accent: #5685d1;
+  --identity-surface-warm: #e0e9da;
+  --color-brand-surface: #e0e9da;
+  --color-page-tint-brand: #eee9de;
+  --identity-surface-cool: #e5ecdb;
+  --color-surface-subtle: #edeee1;
+  --color-surface-panel-tint: #edeee1;
+  --color-shared-surface: #e5ecdb;
+  --color-page-tint-shared: #edf0e3;
+  --color-focus: #35675d;
+  --identity-hover: #e8eeff;
+  --color-brand-strong: #143c34;
+  --color-shared: #245c51;
+  --color-brand-glow: #e2e9db;
+  --color-shadow-brand: #e0e9da;
+  --color-success: #226a57;
+  --color-success-surface: #e8f6ee;
+  --color-warning: #87561b;
+  --color-discovery: #87561b;
+  --color-discovery-surface: #fff3dd;
+  --color-error: #a83f51;
+  --color-error-surface: #fdebf0;
+  --color-technical: #315aa8;
+  --color-technical-surface: #eaf1ff;
+  --identity-premium: #674aa1;
+  --identity-premium-surface: #f1ecfa;
+  --design-decoration: #123a33;
+  --design-on-decoration: #fffdf2;
+  --design-on-decoration-muted: #e0e8d8;
+  --design-highlight: #e5e9b7;
+  --design-on-highlight: #233824;
+  --design-decoration-icon: #8b9c61;
+  --font-heading-family: var(--font-display);
+  --design-backdrop-glow: transparent;
+}
+
+:root[data-theme="dark"][data-app-design="shared_album"],
+:root[data-theme="dark"][data-app-design="shared_album"] [data-color-world] {
+  --color-background: #182823;
+  --color-header-surface: #182823;
+  --color-surface: #23362e;
+  --color-surface-panel: #23362e;
+  --color-surface-overlay: #243930;
+  --color-surface-raised: #2a4035;
+  --color-text: #f3f3e6;
+  --color-brand-ocean: #f3f3e6;
+  --color-text-secondary: #ccd6c5;
+  --color-text-muted: #b8c5b1;
+  --color-border: #7e9384;
+  --color-border-subtle: #577065;
+  --color-header-border: #577065;
+  --color-brand-text: #d1e4d2;
+  --color-link-text: #d1e4d2;
+  --color-brand: #b9d4be;
+  --color-on-accent: #182d25;
+  --identity-icon-accent: #f1b3d7;
+  --identity-icon-warm-fill: #f1b3d7;
+  --color-private: #f1b3d7;
+  --identity-icon-cool: #aed1fa;
+  --identity-icon-cool-fill: #aed1fa;
+  --color-shared-accent: #aed1fa;
+  --identity-surface-warm: #324d3f;
+  --color-brand-surface: #324d3f;
+  --color-page-tint-brand: #363f35;
+  --identity-surface-cool: #2d473a;
+  --color-surface-subtle: #26392f;
+  --color-surface-panel-tint: #26392f;
+  --color-shared-surface: #2d473a;
+  --color-page-tint-shared: #223a31;
+  --color-focus: #b1dac5;
+  --identity-hover: #34446d;
+  --color-brand-strong: #e1ecdf;
+  --color-shared: #b9d4be;
+  --color-brand-glow: #334d41;
+  --color-shadow-brand: #324d3f;
+  --color-success: #a2e1ca;
+  --color-success-surface: #23453c;
+  --color-warning: #ffd194;
+  --color-discovery: #ffd194;
+  --color-discovery-surface: #4c3826;
+  --color-error: #ffb1c0;
+  --color-error-surface: #4d2b3a;
+  --color-technical: #b6ceff;
+  --color-technical-surface: #2c3e65;
+  --identity-premium: #d5bdff;
+  --identity-premium-surface: #43365d;
+  --design-decoration: #d7e7d5;
+  --design-on-decoration: #182d25;
+  --design-on-decoration-muted: #344d40;
+  --design-highlight: #d6dfa0;
+  --design-on-highlight: #233824;
+  --design-decoration-icon: #8b9c61;
+  --font-heading-family: var(--font-display);
+  --design-backdrop-glow: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme])[data-app-design="shared_album"],
+  :root:not([data-theme])[data-app-design="shared_album"] [data-color-world] {
+    --color-background: #182823;
+    --color-header-surface: #182823;
+    --color-surface: #23362e;
+    --color-surface-panel: #23362e;
+    --color-surface-overlay: #243930;
+    --color-surface-raised: #2a4035;
+    --color-text: #f3f3e6;
+    --color-brand-ocean: #f3f3e6;
+    --color-text-secondary: #ccd6c5;
+    --color-text-muted: #b8c5b1;
+    --color-border: #7e9384;
+    --color-border-subtle: #577065;
+    --color-header-border: #577065;
+    --color-brand-text: #d1e4d2;
+    --color-link-text: #d1e4d2;
+    --color-brand: #b9d4be;
+    --color-on-accent: #182d25;
+    --identity-icon-accent: #f1b3d7;
+    --identity-icon-warm-fill: #f1b3d7;
+    --color-private: #f1b3d7;
+    --identity-icon-cool: #aed1fa;
+    --identity-icon-cool-fill: #aed1fa;
+    --color-shared-accent: #aed1fa;
+    --identity-surface-warm: #324d3f;
+    --color-brand-surface: #324d3f;
+    --color-page-tint-brand: #363f35;
+    --identity-surface-cool: #2d473a;
+    --color-surface-subtle: #26392f;
+    --color-surface-panel-tint: #26392f;
+    --color-shared-surface: #2d473a;
+    --color-page-tint-shared: #223a31;
+    --color-focus: #b1dac5;
+    --identity-hover: #34446d;
+    --color-brand-strong: #e1ecdf;
+    --color-shared: #b9d4be;
+    --color-brand-glow: #334d41;
+    --color-shadow-brand: #324d3f;
+    --color-success: #a2e1ca;
+    --color-success-surface: #23453c;
+    --color-warning: #ffd194;
+    --color-discovery: #ffd194;
+    --color-discovery-surface: #4c3826;
+    --color-error: #ffb1c0;
+    --color-error-surface: #4d2b3a;
+    --color-technical: #b6ceff;
+    --color-technical-surface: #2c3e65;
+    --identity-premium: #d5bdff;
+    --identity-premium-surface: #43365d;
+    --design-decoration: #d7e7d5;
+    --design-on-decoration: #182d25;
+    --design-on-decoration-muted: #344d40;
+    --design-highlight: #d6dfa0;
+    --design-on-highlight: #233824;
+    --design-decoration-icon: #8b9c61;
+    --font-heading-family: var(--font-display);
+    --design-backdrop-glow: transparent;
+  }
+}
+
+:root[data-app-design="warm"],
+:root[data-app-design="warm"] [data-color-world] {
   --color-background: #fff9f6;
   --color-header-surface: #fff9f6;
   --color-surface: #ffffff;
   --color-surface-panel: #ffffff;
   --color-surface-overlay: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-text: #432e42;
-  --color-brand-ocean: #432e42;
-  --color-text-secondary: #745f6f;
-  --color-text-muted: #745f6f;
+  --color-text: #2f1f33;
+  --color-brand-ocean: #2f1f33;
+  --color-text-secondary: #6e5969;
+  --color-text-muted: #6e5969;
   --color-border: #efe0e3;
   --color-border-subtle: #efe0e3;
   --color-header-border: #efe0e3;
@@ -384,7 +740,8 @@
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-theme="dark"][data-app-design="warm"] .today-page {
+:root[data-theme="dark"][data-app-design="warm"],
+:root[data-theme="dark"][data-app-design="warm"] [data-color-world] {
   --color-background: #2c2334;
   --color-header-surface: #2c2334;
   --color-surface: #3a2e43;
@@ -438,7 +795,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="warm"] .today-page {
+  :root:not([data-theme])[data-app-design="warm"],
+  :root:not([data-theme])[data-app-design="warm"] [data-color-world] {
     --color-background: #2c2334;
     --color-header-surface: #2c2334;
     --color-surface: #3a2e43;

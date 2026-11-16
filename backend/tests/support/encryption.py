@@ -73,19 +73,27 @@ class EncryptionConfigurator:
     Accounts carry a protected payload (their display name), and fixtures create
     them before a test chooses its mode. ``carry_accounts`` is called after every
     switch with the previous and the new protector so those rows can be brought
-    into the new mode, as an operator's migration would have done; a test that
-    wants a legacy row creates it itself, after the switch. Rows are only ever
-    sealed on the way, never opened into plaintext: a switch to ``disabled``
-    leaves them as they are, because no migration does that either.
+    into the new mode; a test that wants a legacy row creates it itself, after
+    the switch.
+
+    The first switch of a test leaves the mode the suite was started in, which
+    the test did not choose: the suite also runs with encryption required from
+    the start, where the fixture accounts are sealed before a test switches to
+    ``disabled``. That first switch therefore carries accounts in either
+    direction, so a test meets the same accounts in both lanes. Every later
+    switch is the test's own scenario and only ever seals: a test that encrypts
+    and then turns encryption off expects its rows to stay sealed, because no
+    migration opens them either.
     """
 
     def __init__(
         self,
         monkeypatch: object,
-        carry_accounts: Callable[[PayloadProtector, PayloadProtector], None] | None = None,
+        carry_accounts: Callable[[PayloadProtector, PayloadProtector, bool], None] | None = None,
     ) -> None:
         self._monkeypatch = monkeypatch
         self._carry_accounts = carry_accounts
+        self._left_the_suite_mode = False
 
     def apply(
         self,
@@ -111,6 +119,8 @@ class EncryptionConfigurator:
             )
         reset_encryption_caches()
         current = _protector() if previous is not None else None
+        first_switch = not self._left_the_suite_mode
+        self._left_the_suite_mode = True
         if self._carry_accounts is not None and previous is not None and current is not None:
-            self._carry_accounts(previous, current)
+            self._carry_accounts(previous, current, first_switch)
         return used

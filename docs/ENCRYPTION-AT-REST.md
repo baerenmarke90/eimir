@@ -311,13 +311,43 @@ python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 Configuration (`Settings`):
 
 - `EIMIR_ENCRYPTION_KEYS`: JSON object `{"<key id>": "<base64 32-byte key>", ...}`
+- `EIMIR_ENCRYPTION_KEYS_FILE`: alternatively, the absolute path of a private file that
+  holds the same JSON object. Set one of the two, never both.
 - `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`: the id new writes are wrapped with
+
+**Key file instead of an environment value.** An environment value is visible to anyone
+who can inspect the container or open the project in a container manager. The optional
+fragment `deploy/encryption-keys.compose.yaml` mounts one host file read-only at
+`/run/secrets/eimir-encryption-keys.json` and sets `EIMIR_ENCRYPTION_KEYS_FILE` for every
+role that receives the keys (API, worker, video worker and demo initialization, in both
+profiles):
+
+```bash
+# on the Docker host, outside the checkout and outside any backup of data;
+# the backend runs as UID 10001, which must be the only reader
+install -m 600 -o 10001 -g 10001 /dev/null /ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+# write {"<key id>": "<base64 32-byte key>"} into that file, then:
+EIMIR_ENCRYPTION_KEYS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+EIMIR_ENCRYPTION_KEYS=            # must stay empty
+docker compose --env-file /ABSOLUTE/PATH/operator.env \
+  --file compose.yaml --file deploy/encryption-keys.compose.yaml \
+  --profile self-hosted config --quiet
+```
+
+The file is read once at startup and validated exactly like the inline value; a missing,
+unreadable, oversized or malformed file refuses to start, and no message quotes its
+content. A missing host path refuses instead of creating a directory. This narrows who
+can see the key; it
+does not change the threat model of section 12: whoever controls the running host can
+still read it. The released operator bundle and its launcher do not ship this fragment
+yet; it is available to deployments that combine Compose files themselves.
 
 Rules:
 
 - Production keys differ from Development, Demo, and every other project
   (`scripts/check_environment_isolation.py` fails when a Development and a Production
-  file share `EIMIR_ENCRYPTION_KEYS`).
+  file share `EIMIR_ENCRYPTION_KEYS` or point `EIMIR_ENCRYPTION_KEYS_HOST_FILE` at the
+  same file).
 - Keep the keys in a secret store **separate from database and object-store
   backups**. A backup and its keys must not be recoverable from the same place.
 - API and worker need read access to the keys; the release-guard one-shot does not

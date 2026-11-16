@@ -241,7 +241,7 @@
 }
 
 .garden-quack {
-  animation: garden-pop var(--duration-feedback) ease-out both;
+  animation: garden-pop var(--duration-feedback) var(--easing-enter) both;
   transform-box: fill-box;
   transform-origin: 50% 100%;
 }
@@ -256,8 +256,9 @@
 }
 
 .garden-scene.is-lively .garden-firefly {
-  animation: garden-firefly 2.8s ease-in-out infinite alternate;
-  animation-delay: var(--garden-delay, 0ms);
+  animation: garden-firefly calc(var(--duration-connection-travel) * 0.8)
+    var(--easing-travel) infinite alternate;
+  animation-delay: var(--garden-delay);
 }
 
 .garden-ripple {
@@ -266,11 +267,13 @@
 }
 
 .garden-scene.is-lively .garden-ripple {
-  animation: garden-ripple 3.6s ease-in-out infinite;
+  animation: garden-ripple var(--duration-connection-travel)
+    var(--easing-travel) infinite;
 }
 
 .garden-scene.is-lively .garden-stream-flow {
-  animation: garden-stream 2.4s linear infinite;
+  animation: garden-stream calc(var(--duration-connection-travel) * 0.7)
+    var(--easing-playback) infinite;
 }
 
 @keyframes garden-firefly {

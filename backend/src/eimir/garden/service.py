@@ -16,9 +16,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -385,7 +386,9 @@ def water(session: Session, context: AuthorizationContext, plant_id: UUID) -> Ga
     return state(session, context)
 
 
-def seed_is_waiting(session: Session, context: AuthorizationContext, seed_id: object) -> object:
+def seed_is_waiting(
+    session: Session, context: AuthorizationContext, seed_id: Any
+) -> Select[tuple[UUID]]:
     """Selectable predicate: a seed for the reader that is not planted yet."""
     return select(GardenPlant.id).where(
         GardenPlant.id == seed_id,
@@ -517,7 +520,9 @@ def close_bouquet(
     return state(session, context)
 
 
-def bouquet_is_open(session: Session, context: AuthorizationContext, bouquet_id: object) -> object:
+def bouquet_is_open(
+    session: Session, context: AuthorizationContext, bouquet_id: Any
+) -> Select[tuple[UUID]]:
     """Selectable predicate: a bouquet for the reader that still waits on its card."""
     return select(GardenBouquet.id).where(
         GardenBouquet.id == bouquet_id,

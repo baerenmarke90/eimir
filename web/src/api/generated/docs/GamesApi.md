@@ -95,7 +95,7 @@ No authorization required
 
 Close Garden Bouquet
 
-Close a received bouquet's card, optionally noting it went into Momente.
+Close a received bouquet\&#39;s card, optionally noting it went into Momente.
 
 ### Example
 
@@ -386,7 +386,7 @@ No authorization required
 
 Get Garden
 
-The shared garden and today's step for the reader.
+The shared garden and today\&#39;s step for the reader.
 
 ### Example
 
@@ -681,7 +681,7 @@ No authorization required
 
 Send Garden Seed
 
-Send today's seed to the partner; one per partner and day.
+Send today\&#39;s seed to the partner; one per partner and day.
 
 ### Example
 

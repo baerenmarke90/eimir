@@ -223,7 +223,7 @@ describe('usePullToRefresh', () => {
 
   it.each([
     '<form><button>Save</button></form>',
-    '<div class="leaflet-container"><button>Map</button></div>',
+    '<div class="place-map-viewport"><button>Map</button></div>',
     '<section role="dialog" aria-modal="true"><button>Pick</button></section>',
   ])('leaves owned gestures alone: %s', (html) => {
     const refresh = vi.fn();

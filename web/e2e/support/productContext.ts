@@ -1,4 +1,44 @@
 import type { Route } from '@playwright/test';
+import { NO_WISH_SELECTION_ROUND } from './storyTimelineFixture';
+
+/** Unrelated Wish journeys have no active date exchange. */
+export async function fulfillNoWishDateProposal(
+  route: Route,
+): Promise<boolean> {
+  const request = route.request();
+  const pathname = new URL(request.url()).pathname;
+  if (
+    request.method() !== 'GET' ||
+    !/^\/api\/v1\/spaces\/[^/]+\/wishes\/[^/]+\/date-proposal$/.test(pathname)
+  )
+    return false;
+  await route.fulfill({
+    json: { canPropose: false, proposal: null },
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+  return true;
+}
+
+/**
+ * The Wishes entry row reads whether a shared round is open (#1907 J1).
+ * Unrelated Planning journeys have none; round journeys install their own.
+ */
+export async function fulfillNoWishSelectionRound(
+  route: Route,
+): Promise<boolean> {
+  const request = route.request();
+  const pathname = new URL(request.url()).pathname;
+  if (
+    request.method() !== 'GET' ||
+    !/^\/api\/v1\/spaces\/[^/]+\/wish-selection$/.test(pathname)
+  )
+    return false;
+  await route.fulfill({
+    json: NO_WISH_SELECTION_ROUND,
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+  return true;
+}
 
 /** Narrow defaults for unrelated journeys; feature journeys override them explicitly. */
 export async function fulfillDefaultProductContext(
@@ -15,6 +55,20 @@ export async function fulfillDefaultProductContext(
     await route.fulfill({
       json: { items: [] },
       headers: { 'Cache-Control': 'private, no-store' },
+    });
+    return true;
+  }
+  // Without a saved choice the person sees the automatic blue and rose pair.
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/appearance\/person-colours$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { colours: null, version: 0 },
+      headers: {
+        ETag: '"fixture-person-colours:absent"',
+        'Cache-Control': 'private, no-store',
+      },
     });
     return true;
   }
@@ -49,9 +103,20 @@ export async function fulfillDefaultProductContext(
   }
   if (
     request.method() === 'GET' &&
-    /^\/api\/v1\/spaces\/[^/]+\/memories\/[^/]+\/(plans|wishes)$/.test(pathname)
+    /^\/api\/v1\/spaces\/[^/]+\/(memories\/[^/]+\/(plans|wishes)|(heart-moments|milestones)\/[^/]+\/plans)$/.test(
+      pathname,
+    )
   ) {
     await route.fulfill({ json: { items: [] } });
+    return true;
+  }
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/plans\/[^/]+\/story$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { items: [], nextCursor: null, hasMore: false },
+    });
     return true;
   }
   return false;

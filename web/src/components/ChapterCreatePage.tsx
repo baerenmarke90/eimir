@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -94,7 +95,7 @@ function ChapterCreateTask({ apis, spaceId, accountId }: Props) {
   }
 
   return (
-    <div className="page page-reading create-page chapter-page">
+    <div className="page page-reading create-page chapter-page free-composer">
       <PageHeader
         before={
           <TaskBackButton
@@ -126,9 +127,7 @@ function ChapterCreateTask({ apis, spaceId, accountId }: Props) {
           }}
         >
           <div className="immersive-create-hero">
-            <label htmlFor="chapter-name" className="sr-only">
-              {t('m5s3.common.title')}
-            </label>
+            <label htmlFor="chapter-name">{t('m5s3.common.title')}</label>
             <input
               id="chapter-name"
               name="title"

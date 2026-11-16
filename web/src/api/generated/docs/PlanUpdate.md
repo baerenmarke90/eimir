@@ -12,8 +12,12 @@ Name | Type
 `coverAttachmentId` | string
 `coverIsSensitive` | boolean
 `description` | string
+`discreet` | boolean
+`discreetTitleMode` | [DiscreetTitleMode](DiscreetTitleMode.md)
 `experiencedOn` | Date
+`fileAttachmentChanges` | [PlanFileChanges](PlanFileChanges.md)
 `placeId` | string
+`previewTitle` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
 `selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
@@ -31,8 +35,12 @@ const example = {
   "coverAttachmentId": null,
   "coverIsSensitive": null,
   "description": null,
+  "discreet": null,
+  "discreetTitleMode": null,
   "experiencedOn": null,
+  "fileAttachmentChanges": null,
   "placeId": null,
+  "previewTitle": null,
   "schedule": null,
   "selectedCoverAttachmentId": null,
   "tags": null,

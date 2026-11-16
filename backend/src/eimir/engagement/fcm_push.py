@@ -327,7 +327,7 @@ class FcmPushProvider:
                     "fid": registration.fid,
                     "data": _wake(registration, notification_reference),
                     "android": {
-                        "ttl": "300s",
+                        "ttl": f"{notification_reference.get('ttl', '300')}s",
                         "restricted_package_name": self.android_package,
                         **(
                             {"collapse_key": "eimir-wake"}

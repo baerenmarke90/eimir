@@ -80,6 +80,17 @@
   box-shadow: none;
 }
 
+/* A HeartMoment note follows its feeling like the Diary entry does (#1784):
+   the emotion surface and the shared badge replace the generic gradient and
+   the corner glyph. Notes without an emotion keep the previous treatment. */
+.story-page-unified .momente-tapestry-note[data-heart-emotion] {
+  background: var(--heart-emotion-surface);
+}
+
+.story-page-unified .momente-tapestry-note .heart-emotion-badge {
+  margin-top: var(--space-1);
+}
+
 .story-page-unified .momente-tapestry-milestone {
   border: 0;
   box-shadow: none;

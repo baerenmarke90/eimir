@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import type { CoupleExperienceQuestionState } from '../api/generated/models/CoupleExperienceQuestionState';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import copy from '../i18n/locales/coupleExperiences';
@@ -10,7 +11,21 @@ import { CoupleExperiencePage } from './CoupleExperiencePage';
 
 function setup(
   kind: 'happiness' | 'timeTravel',
-  { pro = true, couple = true, saved = false, questionsFail = false } = {},
+  {
+    pro = true,
+    couple = true,
+    saved = false,
+    questionsFail = false,
+    states,
+    entries,
+  }: {
+    pro?: boolean;
+    couple?: boolean;
+    saved?: boolean;
+    questionsFail?: boolean;
+    states?: CoupleExperienceQuestionState[];
+    entries?: MemoryDetail[];
+  } = {},
 ) {
   return render(
     <QueryClientProvider
@@ -43,18 +58,20 @@ function setup(
               : null
           }
           loadHistory={async () => ({
-            items: saved
-              ? [
-                  {
-                    id: 'saved',
-                    body: 'A real shared note',
-                    experienceKind:
-                      kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
-                    author: { id: 'b', displayName: 'B' },
-                    createdAt: new Date('2026-10-01'),
-                  } as MemoryDetail,
-                ]
-              : [],
+            items: entries
+              ? entries
+              : saved
+                ? [
+                    {
+                      id: 'saved',
+                      body: 'A real shared note',
+                      experienceKind:
+                        kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
+                      author: { id: 'b', displayName: 'B' },
+                      createdAt: new Date('2026-10-01'),
+                    } as MemoryDetail,
+                  ]
+                : [],
             hasMore: false,
             nextCursor: null,
           })}
@@ -65,6 +82,7 @@ function setup(
               kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
               localDate: new Date('2026-11-01'),
               questionIds: Object.keys(copy.questions[kind]).slice(0, 3),
+              ...(states ? { questionStates: states } : {}),
               refreshAfterSeconds: 3600,
             };
           }}
@@ -149,5 +167,120 @@ describe('Authored shared couple experiences', () => {
     expect(
       screen.queryByRole('link', { name: copy.create.timeTravel }),
     ).toBeNull();
+  });
+  it('leads with the question the partner answered and replies in that thread', async () => {
+    const [first, second, third] = Object.keys(copy.questions.happiness);
+    setup('happiness', {
+      states: [
+        { questionId: first, answeredByMe: false, answeredByPartner: false },
+        {
+          questionId: second,
+          memoryId: 'waiting',
+          answeredByMe: false,
+          answeredByPartner: true,
+        },
+        {
+          questionId: third,
+          memoryId: 'done',
+          answeredByMe: true,
+          answeredByPartner: true,
+        },
+      ],
+    });
+    const reply = await screen.findByRole('link', { name: copy.addOwnAnswer });
+    expect(reply.getAttribute('href')).toBe(
+      '/story/happiness/new?replyTo=waiting',
+    );
+    const focus = reply.closest('.experience-question-focus');
+    expect(focus?.textContent).toContain(
+      copy.questionState.partnerAnswered.replace('{{name}}', 'B'),
+    );
+    expect(focus?.textContent).toContain(
+      copy.questions.happiness[second as keyof typeof copy.questions.happiness],
+    );
+    const rows = document.querySelectorAll('.couple-experience-questions li a');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].getAttribute('href')).toBe(
+      `/story/happiness/new?question=${first}`,
+    );
+    expect(rows[0].textContent).toContain(copy.questionState.open);
+    // The state describes the link; the question alone remains its name.
+    const named = screen.getByRole('link', {
+      name: copy.questions.happiness[
+        first as keyof typeof copy.questions.happiness
+      ],
+    });
+    expect(named).toBe(rows[0]);
+    expect(
+      document.getElementById(named.getAttribute('aria-describedby') ?? '')
+        ?.textContent,
+    ).toBe(copy.questionState.open);
+    expect(rows[1].getAttribute('href')).toBe('/story/memories/done');
+    expect(rows[1].textContent).toContain(copy.questionState.bothAnswered);
+  });
+  it('groups history by time and shows each author once with an answer prompt', async () => {
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 86_400_000);
+    const answer = (id: string, author: string, body: string) => ({
+      id,
+      body,
+      author: { id: author, displayName: author.toUpperCase() },
+      version: 1,
+      capabilities: { canEdit: author === 'a', canDelete: author === 'a' },
+    });
+    setup('happiness', {
+      entries: [
+        {
+          id: 'mine',
+          title: 'What made today lovely?',
+          body: '',
+          experienceKind: 'HAPPINESS',
+          author: { id: 'a', displayName: 'A' },
+          createdAt: now,
+          experienceAnswers: [answer('x', 'a', 'Our coffee.')],
+        },
+        {
+          id: 'theirs',
+          title: 'What are you grateful for?',
+          body: '',
+          experienceKind: 'HAPPINESS',
+          author: { id: 'b', displayName: 'B' },
+          createdAt: yesterday,
+          experienceAnswers: [answer('y', 'b', 'Your patience.')],
+        },
+        {
+          id: 'old',
+          title: 'What made you laugh?',
+          body: '',
+          experienceKind: 'HAPPINESS',
+          author: { id: 'b', displayName: 'B' },
+          createdAt: new Date(Date.UTC(2024, 1, 10, 12)),
+          experienceAnswers: [
+            answer('z1', 'b', 'The dog.'),
+            answer('z2', 'a', 'The dog, too.'),
+          ],
+        },
+      ] as MemoryDetail[],
+    });
+    const headings = await screen.findAllByRole('heading', { level: 3 });
+    expect(headings.map((heading) => heading.textContent)).toEqual([
+      copy.historyGroups.today,
+      copy.historyGroups.yesterday,
+      expect.stringContaining('2024'),
+    ]);
+    // One visible name per answer; no repeated entry author above it.
+    const names = [
+      ...document.querySelectorAll('.couple-experience-history strong'),
+    ].map((name) => name.textContent);
+    expect(names).toEqual(['A', 'B', 'B', 'A']);
+    expect(document.querySelector('.couple-experience-author')).toBeNull();
+    const prompts = screen.getAllByRole('link', { name: copy.addOwnAnswer });
+    expect(prompts.map((link) => link.getAttribute('href'))).toEqual([
+      '/story/happiness/new?replyTo=theirs',
+    ]);
+    expect(
+      screen.getByText('Our coffee.').closest('a')?.getAttribute('href'),
+    ).toBe('/story/memories/mine');
+    expect(document.querySelectorAll('time')).toHaveLength(1);
   });
 });

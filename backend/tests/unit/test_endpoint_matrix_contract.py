@@ -4,6 +4,7 @@ from eimir.main import create_app
 from tests.integration.test_endpoint_matrix import (
     AUTHENTICATED_ONLY,
     PLAYBACK_ENDPOINTS,
+    PRESENCE_DEVICE_ENDPOINTS,
     PUBLIC_ENDPOINTS,
     SERVER_ADMIN_ONLY,
     SPACE_ENDPOINTS,
@@ -23,6 +24,7 @@ def test_contract_is_completely_covered() -> None:
         | set(AUTHENTICATED_ONLY)
         | set(SERVER_ADMIN_ONLY)
         | set(PLAYBACK_ENDPOINTS)
+        | set(PRESENCE_DEVICE_ENDPOINTS)
         | set(PUBLIC_ENDPOINTS)
     )
     assert contract == covered

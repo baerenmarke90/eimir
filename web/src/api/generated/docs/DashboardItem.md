@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`concealed` | boolean
 `createdAt` | Date
 `id` | string
 `occurredOn` | Date
@@ -14,6 +15,7 @@ Name | Type
 `previewIsSensitive` | boolean
 `scheduledAt` | Date
 `scheduledOn` | Date
+`scheduledUntil` | Date
 `titleOrText` | string
 `type` | [DashboardItemType](DashboardItemType.md)
 
@@ -24,6 +26,7 @@ import type { DashboardItem } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "concealed": null,
   "createdAt": null,
   "id": null,
   "occurredOn": null,
@@ -32,6 +35,7 @@ const example = {
   "previewIsSensitive": null,
   "scheduledAt": null,
   "scheduledOn": null,
+  "scheduledUntil": null,
   "titleOrText": null,
   "type": null,
 } satisfies DashboardItem

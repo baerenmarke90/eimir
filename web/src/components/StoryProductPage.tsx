@@ -1,4 +1,3 @@
-import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import {
   useInfiniteQuery,
   useQuery,
@@ -21,6 +20,7 @@ import {
 } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import {
@@ -41,9 +41,11 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { storyEntryTone, tapestryEntryTone } from '../client/entryTone';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { photoShape } from '../client/photoShape';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -56,6 +58,7 @@ import {
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   heartMomentDetailPath,
   MEMORY_MAP_ROUTE,
@@ -72,25 +75,45 @@ import {
   storyFiltersToSearch,
   storyRequest,
 } from '../client/storyProduct';
+import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { useTaskListReturn } from '../client/useTaskListReturn';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
-import { MomentCreateMenu } from './MomentCreateMenu';
+import {
+  HeartEmotionBadge,
+  type HeartEmotionValue,
+} from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
+import { RecapDiscoverLead } from './RecapDiscoverLead';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  calendarDayOf,
+  storyRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
+import './StoryHandmade.css';
+import './StoryHandmadeChapters.css';
+import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
-import { DiaryList } from './DiaryList';
 import { groupDiaryEntries } from '../client/diaryEntries';
+import { DiaryList } from './DiaryList';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
@@ -137,8 +160,26 @@ interface TapestryEntry {
   dateTime: string;
   dateLabel: string;
   experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  /** Feeling of a HeartMoment note; drives its surface, badge and name. */
+  emotion?: HeartEmotionValue;
   wide?: boolean;
   mediaShape?: 'landscape' | 'portrait' | 'square';
+}
+
+/**
+ * The link's name replaces its content for assistive technology, so the
+ * HeartMoment feeling shown by the badge has to be part of it.
+ */
+function tapestryAccessibleName(
+  t: TFunction,
+  role: TapestryEntry['role'],
+  title: string,
+  emotion: HeartEmotionValue | undefined,
+): string {
+  const name = `${t(`storyItem.${role}`)}: ${title}`;
+  return role === 'note' && emotion
+    ? `${name}. ${t('heartMomentProduct.emotionLabel')}: ${t(`heartEmotion.${emotion}`)}`
+    : name;
 }
 
 function buildTapestryEntry(
@@ -174,6 +215,8 @@ function buildTapestryEntry(
       item.kind === 'MEMORY' && item.memory.experienceKind
         ? item.memory
         : undefined,
+    emotion:
+      item.kind === 'HEART_MOMENT' ? item.heartMoment.emotion : undefined,
     path,
     memoryId,
     author,
@@ -227,6 +270,8 @@ export function StoryProductPage({
   loadMemoryImage,
   profilesApi,
   dashboardApi,
+  recapsApi,
+  startupReads,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -238,7 +283,10 @@ export function StoryProductPage({
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
+  recapsApi?: RecapsApi;
+  startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
+  const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [renewing, setRenewing] = useState(false);
@@ -265,6 +313,8 @@ export function StoryProductPage({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  // Chosen in Mehr > Einstellungen > Darstellung; read-only here.
+  const [diaryLayout] = useDiaryLayout();
   const [draftFilters, setDraftFilters] = useState<StoryFilters>(
     DEFAULT_STORY_FILTERS,
   );
@@ -294,6 +344,7 @@ export function StoryProductPage({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -301,7 +352,7 @@ export function StoryProductPage({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );
@@ -319,6 +370,7 @@ export function StoryProductPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupReads?.takeTimeline() ??
             apis.story.getStoryTimeline(
               storyRequest(spaceId, effectiveFilters, null),
             ),
@@ -353,7 +405,9 @@ export function StoryProductPage({
         spaceId,
         kind: 'story-discover',
         resourceId: 'discover',
-        load: () => apis.story.getStoryDiscover({ spaceId }),
+        load: () =>
+          startupReads?.takeDiscover() ??
+          apis.story.getStoryDiscover({ spaceId }),
         serialize: DiscoverSelectionToJSON,
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
@@ -530,6 +584,18 @@ export function StoryProductPage({
   // paired with a new Dashboard day or presented as today's retrospective.
   const discoverDay = discoverQuery.data?.value.selectionDate;
   const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
+  // #1907 F4: a new monthly recap leads the experiences only until opened,
+  // on the same viewer day and receipt as the Wir invitation.
+  const recapLead = recapsApi ? (
+    <RecapDiscoverLead
+      api={recapsApi}
+      today={dashboardDay ?? new Date()}
+      mediaApis={apis}
+      account={{ id: accountId }}
+      spaceId={spaceId}
+      onOpen={openDiscoverItem}
+    />
+  ) : null;
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
@@ -668,6 +734,30 @@ export function StoryProductPage({
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const onThisDayKicker =
+    leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay;
+  // #1790 C2: varying wording instead of a bare date as the title. A heart
+  // moment keeps its own (compacted) words as the quote headline.
+  const featuredWording = useRediscoveryWording(
+    featuredItem && featuredPresentation
+      ? {
+          ...storyRediscoverySource(
+            featuredItem,
+            discoverQuery.data?.value.leadRediscovery,
+          ),
+          ...(featuredItem.kind === 'HEART_MOMENT'
+            ? { authoredHeadline: featuredPresentation.title }
+            : {}),
+        }
+      : null,
+    {
+      today: discoverDay ? calendarDayOf(discoverDay) : viewerToday(),
+      // The kicker already says "Heute vor N Jahren".
+      exclude: onThisDayKicker ? ['relativeTime'] : [],
+    },
+  );
+  const featuredHeadline =
+    featuredWording?.headline ?? featuredPresentation?.title ?? '';
   const featuredPath = featuredItem
     ? featuredItem.kind === 'MEMORY'
       ? memoryDetailPath(featuredItem.memory.id)
@@ -795,7 +885,10 @@ export function StoryProductPage({
   );
 
   return (
-    <div className="page story-page story-page-unified">
+    <div
+      className="page story-page story-page-unified"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <strong>{t('story.savedTitle')}</strong>
@@ -810,9 +903,13 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('story.timelineTitle')}
+        action={<MomentCreateMenu floating />}
+      />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
-      <MomentCreateMenu />
 
       <div
         id="momente-panel-discover"
@@ -850,14 +947,22 @@ export function StoryProductPage({
               renewing || storyQuery.isFetching || discoverQuery.isFetching
             }
             aria-labelledby="momente-tab-discover"
+            data-diary-layout={diaryLayout}
           >
             {/* 1. Featured Editorial Highlight */}
             {featuredItem && featuredPresentation ? (
-              <article className="momente-hero-highlight">
+              <article
+                className="momente-hero-highlight"
+                data-tone={storyEntryTone(featuredItem, Boolean(featuredMedia))}
+                data-photo-shape={
+                  featuredMedia ? photoShape(featuredMedia) : undefined
+                }
+                data-color-world={featuredMedia ? undefined : 'warm'}
+              >
                 <Link
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
-                  aria-label={`${t('story.featuredHighlight')}: ${featuredPresentation.title}`}
+                  aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}
                   onClick={(event) => openDiscoverItem(event, featuredPath)}
                 >
                   {featuredMedia ? (
@@ -889,7 +994,7 @@ export function StoryProductPage({
                         <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                       </svg>
                       <span>
-                        {leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay
+                        {onThisDayKicker
                           ? t('story.onThisDay', {
                               count: leadContext.yearsAgo,
                             })
@@ -898,30 +1003,29 @@ export function StoryProductPage({
                     </span>
                     {featuredItem.kind === 'HEART_MOMENT' ? (
                       <blockquote className="momente-hero-quote">
-                        "{featuredPresentation.title}"
+                        "{featuredHeadline}"
                       </blockquote>
                     ) : (
-                      <h3 className="momente-hero-title">
-                        {featuredPresentation.title}
-                      </h3>
+                      <h3 className="momente-hero-title">{featuredHeadline}</h3>
                     )}
                     <div className="momente-hero-meta">
-                      {!featuredPresentation.titleIsDate ? (
-                        <time
-                          dateTime={featuredItem.effectiveDate
-                            .toISOString()
-                            .slice(0, 10)}
-                        >
-                          {formatStoryDate(featuredItem.effectiveDate, locale)}
-                        </time>
-                      ) : null}
+                      <RediscoverySecondaryLine
+                        variantLine={featuredWording?.variantLine ?? null}
+                        date={formatStoryDate(
+                          featuredItem.effectiveDate,
+                          locale,
+                        )}
+                        dateTime={featuredItem.effectiveDate
+                          .toISOString()
+                          .slice(0, 10)}
+                      />
                     </div>
                   </div>
                 </Link>
               </article>
             ) : null}
 
-            <CoupleExperienceLinks onOpen={openDiscoverItem} />
+            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
 
             {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
               not a fixed-width carousel of equal cards. Column height is the
@@ -951,6 +1055,12 @@ export function StoryProductPage({
                         <StoryRetrospective
                           compact
                           item={visibleRetrospective}
+                          rediscovery={
+                            retrospectiveQuery.data?.retrospectiveRediscovery
+                          }
+                          viewerLocalDate={
+                            retrospectiveQuery.data?.viewerLocalDate
+                          }
                           loadMemoryImage={loadMemoryImage}
                           onOpen={openDiscoverItem}
                         />
@@ -976,6 +1086,7 @@ export function StoryProductPage({
                               }
                               to={path}
                               className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
+                              data-tone="playful"
                               data-discover-reveal-key={`item:${entry.key}`}
                               aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
                               onClick={(event) => openDiscoverItem(event, path)}
@@ -1020,9 +1131,29 @@ export function StoryProductPage({
                             }
                             to={path}
                             data-media-shape={entry.mediaShape}
+                            data-photo-shape={
+                              role === 'media' && entry.firstAttachment
+                                ? photoShape(entry.firstAttachment)
+                                : undefined
+                            }
+                            data-heart-emotion={
+                              role === 'note' ? entry.emotion : undefined
+                            }
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
+                            data-tone={tapestryEntryTone(
+                              role,
+                              entry.experience?.experienceKind,
+                            )}
+                            data-color-world={
+                              role === 'text' ? 'warm' : undefined
+                            }
                             data-discover-reveal-key={`item:${entry.key}`}
-                            aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
+                            aria-label={tapestryAccessibleName(
+                              t,
+                              role,
+                              presentation.title,
+                              entry.emotion,
+                            )}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
                             {role === 'media' && entry.firstAttachment ? (
@@ -1042,16 +1173,20 @@ export function StoryProductPage({
                               </div>
                             ) : null}
                             <div className="momente-tapestry-body">
-                              <span
-                                className="momente-tapestry-kind"
-                                aria-hidden="true"
-                              >
-                                <EimirIcon
-                                  name={
-                                    role === 'note' ? 'momente' : 'erinnerungen'
-                                  }
-                                />
-                              </span>
+                              {role === 'note' && entry.emotion ? null : (
+                                <span
+                                  className="momente-tapestry-kind"
+                                  aria-hidden="true"
+                                >
+                                  <EimirIcon
+                                    name={
+                                      role === 'note'
+                                        ? 'momente'
+                                        : 'erinnerungen'
+                                    }
+                                  />
+                                </span>
+                              )}
                               {role === 'note' ? (
                                 <blockquote className="momente-tapestry-quote">
                                   "{presentation.title}"
@@ -1061,6 +1196,9 @@ export function StoryProductPage({
                                   {presentation.title}
                                 </h4>
                               )}
+                              {role === 'note' && entry.emotion ? (
+                                <HeartEmotionBadge emotion={entry.emotion} />
+                              ) : null}
                               {entry.experience?.experienceKind ? (
                                 <ExperienceAnswers
                                   answers={
@@ -1105,7 +1243,7 @@ export function StoryProductPage({
         {activeView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-          <CoupleExperienceLinks onOpen={openDiscoverItem} />
+          <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
         ) : null}
       </div>
       <div
@@ -1134,6 +1272,7 @@ export function StoryProductPage({
           id="momente-diary"
           aria-labelledby="momente-tab-timeline"
           className="momente-diary-section"
+          data-diary-layout={diaryLayout}
         >
           {timelineMonthGroups.length === 0 ? (
             <header className="momente-section-header">{filterTrigger}</header>

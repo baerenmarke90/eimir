@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
+import type { PhotoSelectionItemView } from '../api/generated/models/PhotoSelectionItemView';
 import type { PhotoSelectionView } from '../api/generated/models/PhotoSelectionView';
 import {
   createOwnedObjectUrl,
@@ -7,21 +8,45 @@ import {
 } from '../client/objectUrlResource';
 import {
   closePhotoBrowser,
+  type ItemOutcome,
+  importFailure,
+  initialOutcomes,
+  itemAvailability,
+  itemKind,
   openPhotoBrowser,
   photoFile,
   preparePhotoBrowser,
   readPhotoThumbnail,
+  selectionIsTyped,
   selectionReady,
+  videoVerdictReason,
   waitForPhotoPoll,
+  watchGoogleAppReturn,
+  watchPhotoBrowserReturn,
 } from '../client/photoSources';
+import { normalizeClientError } from '../client/problemDetails';
+import {
+  ReferenceFlowError,
+  waitUntilAttachmentReady,
+} from '../client/referenceFlow';
+import type {
+  AttachmentDraftSelection,
+  StagedVideo,
+} from '../client/useAttachmentDrafts';
 import { usePhotoSources } from '../client/usePhotoSources';
-import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
-import { ProMark } from './ProMark';
+import { isCapacitorNative } from '../pwa';
+import { AutoLoadTrigger } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
-import { AutoLoadTrigger } from './AutoLoadMore';
+import type { VideoCaptureContext } from './VideoUploadAction';
 import './PhotoSourcePicker.css';
+import { MediaIntakeButton } from './MediaIntakeButton';
+
+// How long one imported video may take to be checked before it is added as "still preparing".
+const VIDEO_CHECK_MILLISECONDS = 90_000;
+// Google answers still awaited after the person closed its browser in the app.
+const RETURN_POLLS = 2;
 
 interface SelectionTask {
   api: PhotoSourcesApi;
@@ -130,6 +155,10 @@ export function PhotoSourcePicker({
   beginSelection,
   disabled = false,
   devicePicker,
+  unified = false,
+  videoContext,
+  renderTrigger,
+  onExternalAvailability,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -138,20 +167,49 @@ export function PhotoSourcePicker({
   remaining: number;
   beginSelection: () => AttachmentDraftSelection;
   disabled?: boolean;
-  devicePicker?: (close: () => void) => ReactNode;
+  devicePicker?: (
+    close: () => void,
+    actionContainer?: HTMLElement | null,
+    blocked?: boolean,
+  ) => ReactNode;
+  unified?: boolean;
+  /** Present only where the destination accepts videos; Plans and avatars stay image-only. */
+  videoContext?: VideoCaptureContext;
+  renderTrigger?: (open: () => void, openExternal: () => void) => ReactNode;
+  /** Reports whether an external source (Immich, Google Photos) is offered. */
+  onExternalAvailability?: (available: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { apiRef, availability } = usePhotoSources({
+  const { apiRef, availability, loading } = usePhotoSources({
     apiBaseUrl,
     accessToken,
     accountId,
     spaceId,
   });
+  const externalAvailable = Boolean(
+    availability?.enabled || availability?.immichConnected,
+  );
+  useEffect(() => {
+    onExternalAvailability?.(externalAvailable);
+  }, [externalAvailable, onExternalAvailability]);
   const [open, setOpen] = useState(false);
+  const [externalOnly, setExternalOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  // Google only: true while the person chooses in Google, and the photos still to retry.
+  const [awaitingGoogle, setAwaitingGoogle] = useState(false);
+  const [retry, setRetry] = useState<{
+    ready: PhotoSelectionView;
+    ids: string[];
+  } | null>(null);
+  // Typed Google selection: what Google returned and what became of each item.
+  const [overview, setOverview] = useState<PhotoSelectionView | null>(null);
+  const [outcomes, setOutcomes] = useState<Record<string, ItemOutcome>>({});
+  const outcomesRef = useRef<Record<string, ItemOutcome>>({});
+  const allowVideo = Boolean(videoContext);
+  const [deviceTarget, setDeviceTarget] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const task = useRef<SelectionTask | null>(null);
   const lifetime = useRef(new AbortController());
@@ -178,6 +236,10 @@ export function PhotoSourcePicker({
     setOpen(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
+    setOverview(null);
+    setAllOutcomes({});
     setMessage('');
     setBusy(false);
     return () => {
@@ -186,12 +248,183 @@ export function PhotoSourcePicker({
     };
   }, [apiBaseUrl, accountId, spaceId]);
 
+  function setAllOutcomes(next: Record<string, ItemOutcome>) {
+    outcomesRef.current = next;
+    setOutcomes(next);
+  }
+
   function close() {
     release();
     setOpen(false);
     setBusy(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
+    setOverview(null);
+    setAllOutcomes({});
+  }
+
+  function renewTicket(current: SelectionTask) {
+    current.ticket = beginSelection();
+    current.ticket.signal.addEventListener(
+      'abort',
+      () => current.request.abort(),
+      { once: true },
+    );
+  }
+
+  function runImport(
+    current: SelectionTask,
+    ready: PhotoSelectionView,
+    ids: string[],
+  ) {
+    return selectionIsTyped(ready)
+      ? importTyped(current, ready, ids)
+      : importItems(current, ready, ids);
+  }
+
+  /** Move one provider-ready video through the server and wait for the server's verdict. */
+  async function stageVideo(
+    current: SelectionTask,
+    ready: PhotoSelectionView,
+    item: PhotoSelectionItemView,
+  ): Promise<StagedVideo | ItemOutcome> {
+    const attachment = await current.api.importSelectedVideo(
+      { spaceId, selectionId: ready.id, itemId: item.id },
+      { signal: current.request.signal },
+    );
+    let detail = attachment;
+    if (detail.status !== 'READY' && videoContext) {
+      // The same checks as a device video; a slow one is added as "still preparing".
+      const limit = new AbortController();
+      const stop = () => limit.abort();
+      const timer = setTimeout(stop, VIDEO_CHECK_MILLISECONDS);
+      current.request.signal.addEventListener('abort', stop, { once: true });
+      try {
+        detail = await waitUntilAttachmentReady(
+          videoContext.apis,
+          spaceId,
+          attachment.id,
+          limit.signal,
+        );
+      } catch (error) {
+        if (current.request.signal.aborted) throw error;
+        if (error instanceof ReferenceFlowError)
+          return {
+            state: 'unsupported',
+            reason: videoVerdictReason(error.code),
+          };
+        // Timed out while still being checked: keep it, flagged as preparing.
+      } finally {
+        clearTimeout(timer);
+        current.request.signal.removeEventListener('abort', stop);
+      }
+    }
+    return {
+      attachmentId: detail.id,
+      name: 'video.mp4',
+      mimeType: detail.mimeType ?? 'video/mp4',
+      processing: detail.status !== 'READY',
+      hasThumbnail: detail.hasThumbnail,
+      durationSeconds: detail.durationSeconds,
+    };
+  }
+
+  /** Photos and videos together, in the order Google returned them. */
+  async function importTyped(
+    current: SelectionTask,
+    ready: PhotoSelectionView,
+    ids: string[],
+  ) {
+    const owner = lifetime.current;
+    if (!navigator.onLine) {
+      setMessage(t('photoSources.offline'));
+      return;
+    }
+    const queue = [...ready.items]
+      .filter((item) => ids.includes(item.id))
+      .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
+    let capacity = remaining;
+    const retryIds: string[] = [];
+    const settle = (id: string, outcome: ItemOutcome) =>
+      setAllOutcomes({ ...outcomesRef.current, [id]: outcome });
+    setOverview(ready);
+    setRetry(null);
+    setBusy(true);
+    setMessage('');
+    for (const item of queue) settle(item.id, { state: 'waiting' });
+    try {
+      for (const item of queue) {
+        current.ticket.signal.throwIfAborted();
+        if (capacity <= 0) {
+          settle(item.id, {
+            state: 'unsupported',
+            reason: 'photoSources.itemNoRoom',
+          });
+          continue;
+        }
+        settle(item.id, { state: 'working' });
+        try {
+          let committed: boolean;
+          if (itemKind(item) === 'VIDEO') {
+            const staged = await stageVideo(current, ready, item);
+            if ('state' in staged) {
+              settle(item.id, staged);
+              continue;
+            }
+            committed = current.ticket.commit([], [staged]);
+          } else {
+            const read = () =>
+              current.api.readSelectedPhoto(
+                { spaceId, selectionId: ready.id, itemId: item.id },
+                { signal: current.request.signal, cache: 'no-store' },
+              );
+            // One quiet second attempt, so a brief hiccup never reaches the person.
+            const blob = await read().catch((error) => {
+              if (current.request.signal.aborted) throw error;
+              return read();
+            });
+            committed = current.ticket.commit([
+              photoFile(blob, item.ordinal ?? 0, true),
+            ]);
+          }
+          if (!committed) return;
+          capacity -= 1;
+          renewTicket(current);
+          settle(item.id, { state: 'done' });
+        } catch (error) {
+          if (current.request.signal.aborted || current.ticket.signal.aborted)
+            throw error;
+          const problem = await normalizeClientError(error);
+          // The selection itself is gone: nothing here can continue.
+          if (problem.kind === 'notFound' || problem.kind === 'unauthorized')
+            throw error;
+          const outcome = importFailure(problem);
+          if (outcome.state === 'failed') retryIds.push(item.id);
+          settle(item.id, outcome);
+        }
+      }
+      if (task.current !== current || current.ticket.signal.aborted) return;
+      if (retryIds.length) setRetry({ ready, ids: retryIds });
+      else if (
+        ready.items.every(
+          (item) => outcomesRef.current[item.id]?.state === 'done',
+        )
+      )
+        close();
+    } catch {
+      if (!current.request.signal.aborted) {
+        setMessage(t('photoSources.importFailed'));
+        setRetry({
+          ready,
+          ids: queue.map((item) => item.id),
+        });
+      }
+    } finally {
+      if (!owner.signal.aborted && (!task.current || task.current === current))
+        setBusy(false);
+    }
   }
 
   async function importItems(
@@ -206,16 +439,25 @@ export function PhotoSourcePicker({
     }
     const files: File[] = [];
     const failedIds = ids.slice(remaining);
+    setRetry(null);
     setBusy(true);
     setMessage(t('photoSources.progress'));
     try {
       for (const id of ids.slice(0, remaining)) {
         current.ticket.signal.throwIfAborted();
         try {
-          const blob = await current.api.readSelectedPhoto(
-            { spaceId, selectionId: ready.id, itemId: id },
-            { signal: current.request.signal, cache: 'no-store' },
-          );
+          // One quiet second attempt, so a brief hiccup never reaches the person.
+          const read = () =>
+            current.api.readSelectedPhoto(
+              { spaceId, selectionId: ready.id, itemId: id },
+              { signal: current.request.signal, cache: 'no-store' },
+            );
+          const blob = await read().catch((error) => {
+            // Only the Google task retries quietly; other sources keep their contract.
+            if (ready.source !== 'google' || current.request.signal.aborted)
+              throw error;
+            return read();
+          });
           current.ticket.signal.throwIfAborted();
           files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
@@ -226,6 +468,7 @@ export function PhotoSourcePicker({
       }
       if (task.current !== current || current.ticket.signal.aborted) return;
       if (!files.length) {
+        if (ready.source === 'google') setRetry({ ready, ids: [...failedIds] });
         setMessage(t('photoSources.importFailed'));
         return;
       }
@@ -238,6 +481,7 @@ export function PhotoSourcePicker({
           { once: true },
         );
         setSelected(failedIds);
+        if (ready.source === 'google') setRetry({ ready, ids: failedIds });
         setMessage(t('photoSources.partial', { count: files.length }));
       } else close();
     } catch {
@@ -281,6 +525,10 @@ export function PhotoSourcePicker({
             consent: true,
             mediaRecoveryPolicy:
               source === 'google' ? 'memory-only-v1' : undefined,
+            // The system browser cannot share the app's cookie: Google returns to the app's own link.
+            returnTo:
+              source === 'google' && isCapacitorNative() ? 'app' : undefined,
+            allowVideo: source === 'google' ? allowVideo : undefined,
           },
         },
         { signal: current.request.signal },
@@ -299,9 +547,54 @@ export function PhotoSourcePicker({
       }
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
-      await openPhotoBrowser(ready.authorizationUrl, current.popup);
-      setMessage(t('photoSources.waiting'));
+      if (isCapacitorNative()) {
+        // Sign in at Google, come back through the app's link, then open the Photos picker.
+        const signedIn = watchGoogleAppReturn(current.request.signal);
+        await openPhotoBrowser(ready.authorizationUrl, null);
+        setAwaitingGoogle(true);
+        setMessage(t('photoSources.signingIn'));
+        const result = await signedIn;
+        if (task.current !== current || current.request.signal.aborted) return;
+        if (typeof result === 'string') {
+          release();
+          setAwaitingGoogle(false);
+          setMessage(t('photoSources.nothingChosen'));
+          return;
+        }
+        // The sign-in tab closes itself on the app link; make sure before the next one opens.
+        await closePhotoBrowser(null);
+        ready = await current.api.authorizePhotoSelection(
+          {
+            spaceId,
+            selectionId: ready.id,
+            photoSelectionAuthorize: result,
+          },
+          { signal: current.request.signal },
+        );
+        selectionReady(ready);
+        if (!ready.pickerUri) throw new Error('Photo picker is unavailable.');
+        await openPhotoBrowser(ready.pickerUri, null);
+      } else await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      const watching = new AbortController();
+      current.request.signal.addEventListener('abort', () => watching.abort(), {
+        once: true,
+      });
+      const returned = watchPhotoBrowserReturn(watching.signal);
+      let pollsSinceReturn = 0;
+      setAwaitingGoogle(true);
+      setMessage(
+        t(allowVideo ? 'photoSources.waitingMedia' : 'photoSources.waiting'),
+      );
       while (!selectionReady(ready)) {
+        // Back in the app without a choice: stop waiting after two more
+        // answers from Google, so a just-confirmed choice still arrives.
+        pollsSinceReturn = returned() ? pollsSinceReturn + 1 : 0;
+        if (pollsSinceReturn > RETURN_POLLS) {
+          release();
+          setAwaitingGoogle(false);
+          setMessage(t('photoSources.nothingChosen'));
+          return;
+        }
         await waitForPhotoPoll(
           ready.pollAfterSeconds ?? 5,
           current.request.signal,
@@ -312,8 +605,20 @@ export function PhotoSourcePicker({
         );
         if (task.current !== current) return;
       }
+      watching.abort();
       await closePhotoBrowser(current.popup);
-      if (ready.items.length)
+      setAwaitingGoogle(false);
+      if (selectionIsTyped(ready)) {
+        setAllOutcomes(initialOutcomes(ready));
+        setOverview(ready);
+        await importTyped(
+          current,
+          ready,
+          ready.items
+            .filter((item) => itemAvailability(item) !== 'UNAVAILABLE')
+            .map((item) => item.id),
+        );
+      } else if (ready.items.length)
         await importItems(
           current,
           ready,
@@ -363,24 +668,42 @@ export function PhotoSourcePicker({
     return null;
   const canImport = Boolean(availability?.enabled && availability.canImport);
   const activeTask = task.current;
+  const openChooser = (external = false) => {
+    if (disabled || remaining <= 0) return;
+    if (document.activeElement instanceof HTMLButtonElement)
+      trigger.current = document.activeElement;
+    setMessage('');
+    setExternalOnly(external);
+    setOpen(true);
+  };
   return (
     <>
       <div className="photo-source-actions">
-        {devicePicker?.(() => {})}
-        {availability &&
-        (availability.enabled || availability.immichConnected) ? (
-          <button
+        {unified
+          ? devicePicker?.(close, deviceTarget, busy || remaining <= 0)
+          : devicePicker?.(() => {})}
+        {renderTrigger ? (
+          renderTrigger(
+            () => openChooser(),
+            () => openChooser(true),
+          )
+        ) : unified ||
+          (availability &&
+            (availability.enabled || availability.immichConnected)) ? (
+          <MediaIntakeButton
             ref={trigger}
-            type="button"
-            className="secondary photo-source-trigger"
+            label={t(unified ? 'photoSources.addMedia' : 'photoSources.more')}
+            icon={unified ? 'foto' : 'photo-library'}
+            variant={unified ? 'entry' : 'source'}
+            proLabel={unified ? undefined : t('photoSources.pro')}
+            className={
+              unified ? 'photo-source-composer-trigger' : 'photo-source-trigger'
+            }
+            aria-haspopup="dialog"
+            aria-expanded={open}
             disabled={disabled || remaining <= 0}
-            onClick={() => {
-              setMessage('');
-              setOpen(true);
-            }}
-          >
-            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
-          </button>
+            onClick={() => openChooser()}
+          />
         ) : null}
       </div>
       <ShortTaskSheet
@@ -395,6 +718,18 @@ export function PhotoSourcePicker({
             <button type="button" className="secondary" onClick={close}>
               {t('taskSheets.close')}
             </button>
+            {retry && !view ? (
+              <button
+                type="button"
+                disabled={busy || remaining <= 0}
+                onClick={() => {
+                  if (task.current)
+                    void runImport(task.current, retry.ready, retry.ids);
+                }}
+              >
+                {t('photoSources.retryImport')}
+              </button>
+            ) : null}
             {view ? (
               <button
                 type="button"
@@ -411,6 +746,58 @@ export function PhotoSourcePicker({
         }
       >
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
+        {overview ? (
+          <ul
+            className="photo-source-results"
+            aria-label={t('photoSources.resultsLabel')}
+          >
+            {[...overview.items]
+              .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0))
+              .map((item) => {
+                const kind = itemKind(item);
+                const outcome = outcomes[item.id];
+                const state = outcome?.state ?? 'waiting';
+                return (
+                  <li
+                    key={item.id}
+                    className="photo-source-result"
+                    data-state={state}
+                  >
+                    <span
+                      className="photo-source-result-icon"
+                      aria-hidden="true"
+                    >
+                      <EimirIcon name={kind === 'VIDEO' ? 'video' : 'foto'} />
+                    </span>
+                    <span className="photo-source-result-name">
+                      {t(
+                        kind === 'VIDEO'
+                          ? 'photoSources.video'
+                          : kind === 'IMAGE'
+                            ? 'photoSources.photo'
+                            : 'photoSources.file',
+                        { number: (item.ordinal ?? 0) + 1 },
+                      )}
+                    </span>
+                    <span
+                      className="photo-source-result-state"
+                      role={state === 'failed' ? 'alert' : undefined}
+                    >
+                      {outcome && 'reason' in outcome
+                        ? t(outcome.reason)
+                        : t(
+                            state === 'done'
+                              ? 'photoSources.itemDone'
+                              : state === 'working'
+                                ? 'photoSources.itemWorking'
+                                : 'photoSources.itemWaiting',
+                          )}
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+        ) : null}
         {view && activeTask ? (
           <>
             <p role="status">
@@ -465,25 +852,36 @@ export function PhotoSourcePicker({
               </AutoLoadTrigger>
             ) : null}
           </>
-        ) : (
+        ) : awaitingGoogle || retry || overview ? null : (
           <>
+            {unified && !externalOnly ? (
+              <div className="photo-source-device-slot" ref={setDeviceTarget} />
+            ) : null}
+            {externalOnly &&
+            !availability?.enabled &&
+            !availability?.immichConnected ? (
+              <p role="status">
+                {t(
+                  loading ? 'states.loading.title' : 'photoSources.unavailable',
+                )}
+              </p>
+            ) : null}
             {canImport && availability?.googleAvailable ? (
-              <button
-                type="button"
-                className="secondary photo-source-trigger"
+              <MediaIntakeButton
+                label={t('photoSources.google')}
+                icon="photo-library"
+                proLabel={t('photoSources.pro')}
+                className="photo-source-trigger"
                 disabled={busy || disabled}
                 onClick={() => void start('google')}
-              >
-                <EimirIcon name="foto" /> {t('photoSources.google')}
-              </button>
-            ) : null}
-            {canImport && availability?.googleAvailable ? (
-              <p>{t('photoSources.googleConsent')}</p>
+              />
             ) : null}
             {availability?.enabled || availability?.immichConnected ? (
-              <button
-                type="button"
-                className="secondary photo-source-trigger"
+              <MediaIntakeButton
+                label={t('photoSources.immich')}
+                icon="photo-library"
+                proLabel={t('photoSources.pro')}
+                className="photo-source-trigger"
                 disabled={
                   busy ||
                   disabled ||
@@ -496,9 +894,7 @@ export function PhotoSourcePicker({
                     : t('photoSources.configureInSettings')
                 }
                 onClick={() => void start('immich')}
-              >
-                <EimirIcon name="foto" /> {t('photoSources.immich')}
-              </button>
+              />
             ) : null}
           </>
         )}

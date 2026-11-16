@@ -1,0 +1,104 @@
+{
+  "browser": "Chromium 153.0.8010.0 from temporary @sparticuz/chromium 153.0.0; standard Playwright context isolation; no runtime project dependency added",
+  "privacy": "Existing synthetic repository fixtures only; PO screenshot not copied",
+  "files": [
+    {
+      "file": "planning-map-stacks-360-light.png",
+      "sha256": "7065bdf4fbbc8999f1bd9893c0e78fd78999ca12855bc1f8a5eb0c799bdaa4f1"
+    },
+    {
+      "file": "planning-map-stacks-fullscreen-390-dark.png",
+      "sha256": "2aabf09769d9ac85189f5ac4159930219e61d785468b7027b4e1b842d676d444"
+    },
+    {
+      "file": "planning-map-stacks-430-light.png",
+      "sha256": "07111080d1ce91878a58a39d29cddb28a2d8f77cf829f5eb6b744d789f809dd4"
+    },
+    {
+      "file": "planning-map-stacks-fullscreen-1280-dark.png",
+      "sha256": "b538b69c9d3bef61a89a6c88c75947dfe5f0c0f2fbd585712d01b7aea23dd3df"
+    },
+    {
+      "file": "planning-map-stacks-320-dark-large-sensitive.png",
+      "sha256": "39fd82fa2fe5b5839364703cebd754458ecb9d1b5f20beffc6f6feabb7a5c1b0"
+    },
+    {
+      "file": "photo-zoom-360-light.png",
+      "sha256": "e6b2757eb71845b75fb4750d127758c46d804e6b3469523bf532b87455a269b8"
+    },
+    {
+      "file": "photo-zoom-390-dark.png",
+      "sha256": "9f0e06c458784059310a5d85decccb2512f32dd5090e30d9ad96906b4a0f0555"
+    },
+    {
+      "file": "photo-zoom-430-light.png",
+      "sha256": "9c25730780faf8d8f1f149ec19fa61bc37a4ee6ee214412fdeed036850d9b56a"
+    },
+    {
+      "file": "photo-zoom-1280-dark.png",
+      "sha256": "abbf671050113d081b8b90abd50e375b70145b7a631d9f55b8053049a3fea01a"
+    },
+    {
+      "file": "photo-zoom-320-light.png",
+      "sha256": "61a46939f2285cae3f9b7f68a5fbf00de6b2658f1f4ee1ae93046a0228185957"
+    }
+  ],
+  "runtime_sources": [
+    {
+      "path": "design/tokens.json",
+      "sha256": "b02a5f5362deec921dc0e903974d6688febf2aa734db39af8805b61fc553556e"
+    },
+    {
+      "path": "web/src/design/product-roles.css",
+      "sha256": "722e9eefacabc2452be04bc4b64bdae3933e72b0e9f2009af7d9ffb6b6be3cb0"
+    },
+    {
+      "path": "web/src/components/PlaceMapCanvas.tsx",
+      "sha256": "4fd122be25103e3ea9020eb25ad722ddf226e70da0f9140dd7d816dfc1b17d7a"
+    },
+    {
+      "path": "web/src/components/MemoryMapPage.css",
+      "sha256": "d6824e02ecc5d601fd2c7bbf233b3df7e7cf5f7d989f21073a86a4b4bf765867"
+    },
+    {
+      "path": "web/src/components/ZoomablePhoto.tsx",
+      "sha256": "435bef0f93a46ce1242d6b5a1c5b41546c371a7192b6d192fbc45d34d09b0b62"
+    },
+    {
+      "path": "web/src/client/backgroundVideoUploads.ts",
+      "sha256": "83c7f8c08993553f04a6b08d02e05a4e81d59282119580ae7409cc1d866e1774"
+    },
+    {
+      "path": "web/src/client/useVideoTransferNavigation.ts",
+      "sha256": "566babbcf835000bec28eb5f2eadabf3c66e52c0c72872b8fc2c2b590ab11378"
+    },
+    {
+      "path": "web/src/client/memoryAttachmentDraft.ts",
+      "sha256": "03ab10f0b822f0261126f62422fed81d061c348f6704f278202b8ad7344bf8ab"
+    },
+    {
+      "path": "web/src/components/MemoryProductPage.tsx",
+      "sha256": "c746661db005ea97845b32c6278bb9320f73b8ae3f05e97f36c6ca1e8a7e2b2a"
+    },
+    {
+      "path": "web/src/components/HeartMomentProductPage.tsx",
+      "sha256": "51105d35e88422abf1e48b933aa93b3682911b3c215dc1150b47debf1229225a"
+    },
+    {
+      "path": "web/src/App.tsx",
+      "sha256": "1b223a36f353e0c17473bb72c9224af5de5a56a3c559cfbc1aeae17af476d034"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/BackgroundMediaTransfers.java",
+      "sha256": "96b799441563bd5a3b21e853c9ee1a845b10d5a09711395886dd4dd134255076"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/BackgroundMediaUploadJob.java",
+      "sha256": "1447571d5780b4f30cb1d24b4579422977b870d904d498fe63bb794c2f255378"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/BackgroundMediaUploadsPlugin.java",
+      "sha256": "2d788df788d9df737b68bfcdf7e7e746900b96151ab70487411d1b4e431adc91"
+    }
+  ]
+}

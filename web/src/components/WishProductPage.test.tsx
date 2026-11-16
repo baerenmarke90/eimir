@@ -8,7 +8,9 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import type { WishToPlanResponse } from '../api/generated/models/WishToPlanResponse';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { planDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { wishPlanDateLabel } from '../client/wishJourney';
 import { i18n } from '../i18n';
 import { WishProductPage } from './WishProductPage';
 
@@ -17,6 +19,11 @@ const OPEN_WISH: WishDetail = {
   createdAt: new Date('2026-09-01T10:00:00Z'),
   createdBy: 'account-anna',
   creator: { id: 'account-anna', displayName: 'Anna' },
+  plan: null,
+  hasMemory: false,
+  followedFromWishId: null,
+  seriesId: 'wish-1',
+  seriesPosition: 1,
   id: 'wish-1',
   spaceId: 'space-1',
   status: 'OPEN',
@@ -182,6 +189,41 @@ describe('WishProductPage direct completion', () => {
     renderWish(OPEN_WISH, undefined, [{ id: 'place-lake', name: 'Lake' }]);
 
     expect(screen.getByRole('option', { name: 'Lake' })).toBeTruthy();
+  });
+
+  it('replaces the status word with the journey path and leads a planned wish to its plan (#1790 F2)', () => {
+    const day = new Date('2026-11-21T00:00:00Z');
+    renderWish({
+      ...OPEN_WISH,
+      status: 'PLANNED',
+      version: 2,
+      plan: {
+        id: 'plan-authoritative',
+        status: 'PLANNED',
+        plannedOn: day,
+        plannedStart: null,
+        experiencedOn: null,
+      },
+    });
+
+    expect(screen.queryByText(i18n.t('m5s3.wish.status.PLANNED'))).toBeNull();
+    const path = screen.getByRole('list', {
+      name: i18n.t('wishJourney.pathLabel'),
+    });
+    expect(path.querySelector('[aria-current="step"]')?.textContent).toBe(
+      i18n.t('wishJourney.stages.planned'),
+    );
+    const toPlan = screen.getByRole('link', {
+      name: i18n.t('wishJourney.openPlanOn', {
+        date: wishPlanDateLabel({ plannedOn: day, plannedStart: null }),
+      }),
+    });
+    expect(toPlan.getAttribute('href')).toBe(
+      planDetailPath('plan-authoritative'),
+    );
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.wish.complete') }),
+    ).toBeNull();
   });
 
   it('offers direct completion only while the Wish is open', () => {

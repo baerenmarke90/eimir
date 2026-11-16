@@ -1,6 +1,7 @@
 import { type RefObject, useEffect, useId, useRef } from 'react';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 export function usePlanningEditorLifecycle({
   isActive = true,
@@ -95,5 +96,45 @@ export function PlanningDiscardConfirmation({
         </button>
       </div>
     </section>
+  );
+}
+
+export function PlanningDiscardSheet({
+  open,
+  onKeepEditing,
+  onDiscard,
+}: {
+  open: boolean;
+  onKeepEditing: () => void;
+  onDiscard: () => void;
+}) {
+  const { t } = useTranslation();
+  const sheet = useRef<ShortTaskSheetHandle>(null);
+  return (
+    <ShortTaskSheet
+      ref={sheet}
+      open={open}
+      role="alertdialog"
+      title={t('taskBoundary.discardTitle')}
+      onClose={onKeepEditing}
+    >
+      <p>{t('taskBoundary.discardBody')}</p>
+      <div className="form-actions">
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => sheet.current?.requestClose()}
+        >
+          {t('taskBoundary.keepEditing')}
+        </button>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => sheet.current?.closeForNavigation(onDiscard)}
+        >
+          {t('taskBoundary.discard')}
+        </button>
+      </div>
+    </ShortTaskSheet>
   );
 }

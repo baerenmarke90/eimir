@@ -38,6 +38,7 @@ from eimir.authorization import (
     require_writable_locked,
 )
 from eimir.chapters.models import Chapter
+from eimir.collections.models import Collection
 from eimir.core.errors import DomainError, NotFoundError
 from eimir.db.base import Base
 from eimir.db.locks import lock_subject
@@ -52,11 +53,14 @@ from eimir.relations.models import (
     ChapterHeartMoment,
     ChapterMemory,
     ChapterMilestone,
+    HeartMomentPlan,
     MemoryPlan,
     MemoryWish,
+    MilestonePlan,
     PlaceHeartMoment,
     PlaceMemory,
     PlaceMilestone,
+    PlanCollection,
 )
 from eimir.wishes.models import Wish
 
@@ -80,6 +84,7 @@ class RelationParent(Protocol):
     id: UUID
     space_id: UUID
     version: int
+    privacy_class: str
 
 
 RELATION_TARGET_NOT_FOUND = "RELATION_TARGET_NOT_FOUND"
@@ -99,13 +104,35 @@ class RelationKind:
     relation: type[Base]
     parent: type[PrivateResourceMixin]
     parent_column: str
-    subject_type: Literal["place_relation", "chapter_relation", "memory_relation"]
+    subject_type: Literal[
+        "place_relation",
+        "chapter_relation",
+        "memory_relation",
+        "plan_relation",
+        "heart_moment_relation",
+        "milestone_relation",
+    ]
     target: type[PrivateResourceMixin]
     target_column: str
-    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"]
+    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION"]
     linked_event: EventType
     unlinked_event: EventType
     shared_target_only: bool = False
+    shared_parent_only: bool = False
+
+
+PLAN_COLLECTIONS = RelationKind(
+    slug="collections",
+    relation=PlanCollection,
+    parent=Plan,
+    parent_column="plan_id",
+    subject_type="plan_relation",
+    target=Collection,
+    target_column="collection_id",
+    event_target_type="COLLECTION",
+    linked_event=EventType.PLAN_COLLECTION_LINKED,
+    unlinked_event=EventType.PLAN_COLLECTION_UNLINKED,
+)
 
 
 MEMORY_PLANS = RelationKind(
@@ -132,6 +159,33 @@ MEMORY_WISHES = RelationKind(
     linked_event=EventType.MEMORY_WISH_LINKED,
     unlinked_event=EventType.MEMORY_WISH_UNLINKED,
 )
+
+HEART_MOMENT_PLANS = RelationKind(
+    slug="plans",
+    relation=HeartMomentPlan,
+    parent=HeartMoment,
+    parent_column="heart_moment_id",
+    subject_type="heart_moment_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.HEART_MOMENT_PLAN_LINKED,
+    unlinked_event=EventType.HEART_MOMENT_PLAN_UNLINKED,
+    shared_parent_only=True,
+)
+MILESTONE_PLANS = RelationKind(
+    slug="plans",
+    relation=MilestonePlan,
+    parent=Milestone,
+    parent_column="milestone_id",
+    subject_type="milestone_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.MILESTONE_PLAN_LINKED,
+    unlinked_event=EventType.MILESTONE_PLAN_UNLINKED,
+)
+STORY_PLANNING_KINDS = (MEMORY_PLANS, MEMORY_WISHES, HEART_MOMENT_PLANS, MILESTONE_PLANS)
 
 
 PLACE_MEMORIES = RelationKind(
@@ -301,12 +355,12 @@ def link(
     """Link parent and target idempotently using Parent -> Target lock order."""
     parent = cast(
         "RelationParent",
-        (
-            require_editable_locked
-            if kind in (MEMORY_PLANS, MEMORY_WISHES)
-            else require_writable_locked
-        )(session, kind.parent, context, parent_id),
+        (require_editable_locked if kind in STORY_PLANNING_KINDS else require_writable_locked)(
+            session, kind.parent, context, parent_id
+        ),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        raise target_not_found()
     target = _require_relatable_target(session, context, kind, target_id)
 
     if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
@@ -320,6 +374,8 @@ def link(
     }
     if kind.shared_target_only:
         values["target_privacy_class"] = target.privacy_class
+    if kind.shared_parent_only:
+        values["source_privacy_class"] = parent.privacy_class
     if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
         values["photo_generated"] = automatic
 
@@ -358,12 +414,12 @@ def unlink(
     """Remove only the link; both original resources remain unchanged."""
     parent = cast(
         "RelationParent",
-        (
-            require_editable_locked
-            if kind in (MEMORY_PLANS, MEMORY_WISHES)
-            else require_writable_locked
-        )(session, kind.parent, context, parent_id),
+        (require_editable_locked if kind in STORY_PLANNING_KINDS else require_writable_locked)(
+            session, kind.parent, context, parent_id
+        ),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        raise target_not_found()
     target = _require_relatable_target(session, context, kind, target_id)
     if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
         lock_subject(session, "photo-place-target", str(target.id))
@@ -394,6 +450,8 @@ def list_targets(
         "RelationParent",
         require_readable(session, kind.parent, context, parent_id),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        return []
     table = kind.relation.__table__
     rows = session.execute(
         select(table.c[kind.target_column])
@@ -482,5 +540,8 @@ def drop_shared_relations_of_heart_moment(session: Session, heart_moment: HeartM
     )
     session.execute(
         delete(ChapterHeartMoment).where(chapter_table.c.heart_moment_id == heart_moment.id)
+    )
+    session.execute(
+        delete(HeartMomentPlan).where(HeartMomentPlan.heart_moment_id == heart_moment.id)
     )
     session.flush()

@@ -1,8 +1,10 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RulesApi } from '../api/generated/apis/RulesApi';
 import type { RulePreferenceUpdate } from '../api/generated/models/RulePreferenceUpdate';
 import { useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 
 export interface AnniversaryReminderSettingsProps {
@@ -23,13 +25,19 @@ interface RuleReminderSettingsProps {
   spaceId: string;
   ruleKey: string;
   idPrefix: string;
+  icon: EimirIconName;
   defaultDaysBefore: number[];
   dayPresets: DayPreset[];
   toggleLabelKey: string;
   toggleHelpKey: string;
-  daysHeadingKey: string;
   timeLabelKey: string;
   loadingKey: string;
+}
+
+interface ReminderDraft {
+  enabled: boolean;
+  daysBefore: number[];
+  localTime: string;
 }
 
 const ANNIVERSARY_RULE_KEY = 'relationship_anniversary_reminder';
@@ -62,11 +70,11 @@ function RuleReminderSettings({
   spaceId,
   ruleKey,
   idPrefix,
+  icon,
   defaultDaysBefore,
   dayPresets,
   toggleLabelKey,
   toggleHelpKey,
-  daysHeadingKey,
   timeLabelKey,
   loadingKey,
 }: RuleReminderSettingsProps) {
@@ -84,16 +92,19 @@ function RuleReminderSettings({
     queryFn: () => rulesApi.getRulePreference({ spaceId, ruleKey }),
   });
 
-  const [enabled, setEnabled] = useState(true);
-  const [daysBefore, setDaysBefore] = useState<number[]>(defaultDaysBefore);
-  const [localTime, setLocalTime] = useState('09:00');
-  const [saved, setSaved] = useState(false);
+  const [draft, setDraft] = useState<ReminderDraft>({
+    enabled: true,
+    daysBefore: [...defaultDaysBefore],
+    localTime: '09:00',
+  });
 
   useEffect(() => {
     if (!preference) return;
-    setEnabled(preference.enabled);
-    setDaysBefore(preference.parameters.daysBefore ?? defaultDaysBefore);
-    setLocalTime(preference.parameters.localTime?.slice(0, 5) ?? '09:00');
+    setDraft({
+      enabled: preference.enabled,
+      daysBefore: preference.parameters.daysBefore ?? defaultDaysBefore,
+      localTime: preference.parameters.localTime?.slice(0, 5) ?? '09:00',
+    });
   }, [defaultDaysBefore, preference]);
 
   const mutation = useMutation({
@@ -105,126 +116,215 @@ function RuleReminderSettings({
       }),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKey, updated);
-      setSaved(true);
+    },
+    onError: () => {
+      if (!preference) return;
+      setDraft({
+        enabled: preference.enabled,
+        daysBefore: preference.parameters.daysBefore ?? defaultDaysBefore,
+        localTime: preference.parameters.localTime?.slice(0, 5) ?? '09:00',
+      });
     },
   });
 
-  if (isLoading) {
-    return <p className="form-hint">{t(loadingKey)}</p>;
-  }
-
-  if (error) {
-    return <ProblemState error={error} onRetry={() => void refetch()} />;
-  }
-
-  const initialEnabled = preference?.enabled ?? true;
-  const initialDaysBefore =
-    preference?.parameters.daysBefore ?? defaultDaysBefore;
-  const initialLocalTime =
-    preference?.parameters.localTime?.slice(0, 5) ?? '09:00';
-  const isDirty =
-    enabled !== initialEnabled ||
-    localTime !== initialLocalTime ||
-    !sameDays(daysBefore, initialDaysBefore);
-
-  function toggleDay(day: number) {
-    setDaysBefore((current) =>
-      current.includes(day)
-        ? current.filter((value) => value !== day)
-        : [...current, day].sort((a, b) => b - a),
-    );
-    setSaved(false);
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!isDirty || mutation.isPending) return;
+  function savePreference(next: ReminderDraft) {
+    if (!preference || mutation.isPending) return;
+    const normalized: ReminderDraft = {
+      ...next,
+      daysBefore: [...next.daysBefore].sort((a, b) => b - a),
+    };
+    setDraft(normalized);
+    const storedTime = preference.parameters.localTime?.slice(0, 5) ?? '09:00';
+    if (
+      normalized.enabled === preference.enabled &&
+      sameDays(
+        normalized.daysBefore,
+        preference.parameters.daysBefore ?? defaultDaysBefore,
+      ) &&
+      normalized.localTime === storedTime
+    ) {
+      return;
+    }
+    mutation.reset();
     mutation.mutate({
-      enabled,
+      enabled: normalized.enabled,
       parameters: {
-        daysBefore: [...daysBefore].sort((a, b) => b - a),
-        localTime: localTime ? `${localTime}:00` : null,
+        daysBefore: normalized.daysBefore,
+        localTime: normalized.localTime + ':00',
       },
     });
   }
 
-  const enabledId = `${idPrefix}-enabled`;
-  const timeId = `${idPrefix}-time`;
+  const label = t(toggleLabelKey);
+  const supportedDays = new Set(dayPresets.map((preset) => preset.days));
+  const customDays = draft.daysBefore.filter((day) => !supportedDays.has(day));
+  const activeDays = [
+    ...dayPresets
+      .filter((preset) => draft.daysBefore.includes(preset.days))
+      .map((preset) => t(preset.labelKey)),
+    ...customDays.map((day) =>
+      t('profileIdentity.importantDatesOtherDay', { count: day }),
+    ),
+  ];
+  const summary = [
+    activeDays.length
+      ? activeDays.join(' · ')
+      : t('profileIdentity.importantDatesChooseDays'),
+    draft.localTime,
+  ].join(' · ');
+
+  if (isLoading) {
+    return (
+      <div className="important-date-reminder-card" role="status">
+        {t(loadingKey)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="important-date-reminder-card">
+        <ProblemState error={error} onRetry={() => void refetch()} />
+      </div>
+    );
+  }
 
   return (
-    <form
-      className="anniversary-reminder-form rule-reminder-form"
-      onSubmit={handleSubmit}
-    >
-      <label htmlFor={enabledId} className="form-checkbox-label">
-        <input
-          id={enabledId}
-          name={`${idPrefix}Enabled`}
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => {
-            setEnabled(event.target.checked);
-            setSaved(false);
-          }}
-        />
-        <span>
-          <strong>{t(toggleLabelKey)}</strong>
-          <small>{t(toggleHelpKey)}</small>
+    <article className="important-date-reminder-card" aria-label={label}>
+      <div className="important-date-card-head">
+        <span className="important-date-icon" aria-hidden="true">
+          <EimirIcon name={icon} variant="duotone" />
         </span>
-      </label>
-
-      {enabled ? (
-        <div className="anniversary-reminder-config rule-reminder-config">
-          <fieldset className="field-group">
-            <legend>{t(daysHeadingKey)}</legend>
-            <div className="anniversary-reminder-days">
-              {dayPresets.map((preset) => (
-                <label
-                  key={preset.days}
-                  className="anniversary-reminder-day-option"
-                >
-                  <input
-                    type="checkbox"
-                    checked={daysBefore.includes(preset.days)}
-                    onChange={() => toggleDay(preset.days)}
-                  />
-                  <span>{t(preset.labelKey)}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <div className="field-group">
-            <label htmlFor={timeId}>{t(timeLabelKey)}</label>
-            <input
-              id={timeId}
-              name={`${idPrefix}Time`}
-              type="time"
-              value={localTime}
-              onChange={(event) => {
-                setLocalTime(event.target.value);
-                setSaved(false);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      <div className="form-actions">
-        <button type="submit" disabled={!isDirty || mutation.isPending}>
-          {mutation.isPending
-            ? t('profileIdentity.anniversaryReminderSaving')
-            : t('profileIdentity.anniversaryReminderSave')}
-        </button>
-        {saved && !isDirty ? (
-          <span className="relationship-saved-feedback" role="status">
-            {t('profileIdentity.anniversaryReminderSaved')}
-          </span>
-        ) : null}
+        <PreferenceSwitch
+          className="important-date-switch"
+          label={label}
+          description={t(toggleHelpKey)}
+          checked={draft.enabled}
+          disabled={mutation.isPending}
+          onCheckedChange={(enabled) => savePreference({ ...draft, enabled })}
+        />
       </div>
 
+      {draft.enabled ? (
+        <details className="important-date-details">
+          <summary>
+            <span className="important-date-summary-copy">
+              <strong>{t('profileIdentity.importantDatesSchedule')}</strong>
+              <span>{summary}</span>
+            </span>
+            <EimirIcon name="chevron-right" />
+          </summary>
+          <div className="important-date-edit">
+            <fieldset
+              className="important-date-day-fieldset"
+              disabled={mutation.isPending}
+            >
+              <legend>{t('profileIdentity.importantDatesChooseDays')}</legend>
+              <div className="important-date-day-grid">
+                {dayPresets.map((preset) => {
+                  const selected = draft.daysBefore.includes(preset.days);
+                  return (
+                    <label
+                      key={preset.days}
+                      className={
+                        'important-date-day-chip' +
+                        (selected ? ' is-selected' : '')
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={selected && draft.daysBefore.length === 1}
+                        onChange={() => {
+                          const nextDays = selected
+                            ? draft.daysBefore.filter(
+                                (day) => day !== preset.days,
+                              )
+                            : [...draft.daysBefore, preset.days];
+                          savePreference({ ...draft, daysBefore: nextDays });
+                        }}
+                      />
+                      <span>{t(preset.labelKey)}</span>
+                    </label>
+                  );
+                })}
+                {customDays.map((day) => (
+                  <label
+                    key={day}
+                    className="important-date-day-chip is-selected"
+                  >
+                    <input
+                      type="checkbox"
+                      checked
+                      disabled={draft.daysBefore.length === 1}
+                      onChange={() =>
+                        savePreference({
+                          ...draft,
+                          daysBefore: draft.daysBefore.filter(
+                            (value) => value !== day,
+                          ),
+                        })
+                      }
+                    />
+                    <span>
+                      {t('profileIdentity.importantDatesOtherDay', {
+                        count: day,
+                      })}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="important-date-minimum">
+                {t('profileIdentity.importantDatesAtLeastOne')}
+              </p>
+            </fieldset>
+            <div className="important-date-time-row">
+              <label htmlFor={idPrefix + '-time'}>{t(timeLabelKey)}</label>
+              <input
+                id={idPrefix + '-time'}
+                name={idPrefix + 'Time'}
+                type="time"
+                required
+                value={draft.localTime}
+                disabled={mutation.isPending}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    localTime: event.target.value,
+                  }))
+                }
+                onBlur={() => {
+                  if (
+                    draft.localTime &&
+                    /^\d{2}:\d{2}$/.test(draft.localTime)
+                  ) {
+                    savePreference(draft);
+                  } else {
+                    setDraft((current) => ({
+                      ...current,
+                      localTime:
+                        preference?.parameters.localTime?.slice(0, 5) ??
+                        '09:00',
+                    }));
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </details>
+      ) : null}
+
+      {mutation.isPending || mutation.isSuccess ? (
+        <p className="important-date-feedback" role="status" aria-live="polite">
+          {t(
+            mutation.isPending
+              ? 'profileIdentity.anniversaryReminderSaving'
+              : 'profileIdentity.anniversaryReminderSaved',
+          )}
+        </p>
+      ) : null}
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
-    </form>
+    </article>
   );
 }
 
@@ -238,11 +338,11 @@ export function AnniversaryReminderSettings({
       spaceId={spaceId}
       ruleKey={ANNIVERSARY_RULE_KEY}
       idPrefix="anniversary-reminder"
+      icon="jahrestag"
       defaultDaysBefore={ANNIVERSARY_DEFAULT_DAYS}
       dayPresets={ANNIVERSARY_DAY_PRESETS}
       toggleLabelKey="profileIdentity.anniversaryReminderToggle"
       toggleHelpKey="profileIdentity.anniversaryReminderToggleHelp"
-      daysHeadingKey="profileIdentity.anniversaryReminderDaysHeading"
       timeLabelKey="profileIdentity.anniversaryReminderTimeLabel"
       loadingKey="profileIdentity.anniversaryReminderLoading"
     />
@@ -259,11 +359,11 @@ export function PartnerBirthdayReminderSettings({
       spaceId={spaceId}
       ruleKey={PARTNER_BIRTHDAY_RULE_KEY}
       idPrefix="partner-birthday-reminder"
+      icon="geburtstag"
       defaultDaysBefore={PARTNER_BIRTHDAY_DEFAULT_DAYS}
       dayPresets={PARTNER_BIRTHDAY_DAY_PRESETS}
       toggleLabelKey="profileIdentity.partnerBirthdayReminderToggle"
       toggleHelpKey="profileIdentity.partnerBirthdayReminderToggleHelp"
-      daysHeadingKey="profileIdentity.partnerBirthdayReminderDaysHeading"
       timeLabelKey="profileIdentity.partnerBirthdayReminderTimeLabel"
       loadingKey="profileIdentity.partnerBirthdayReminderLoading"
     />

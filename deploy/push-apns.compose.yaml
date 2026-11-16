@@ -1,0 +1,25 @@
+# Explicit APNs opt-in for API/worker in either canonical Compose profile.
+x-apns-runtime: &apns-runtime
+  environment:
+    EIMIR_PUSH_APNS_BUNDLE_ID: "${EIMIR_PUSH_APNS_BUNDLE_ID:?Set the iOS bundle ID}"
+    EIMIR_PUSH_APNS_TEAM_ID: "${EIMIR_PUSH_APNS_TEAM_ID:?Set the Apple Team ID}"
+    EIMIR_PUSH_APNS_KEY_ID: "${EIMIR_PUSH_APNS_KEY_ID:?Set the APNs key ID}"
+    EIMIR_PUSH_APNS_ENVIRONMENT: "${EIMIR_PUSH_APNS_ENVIRONMENT:-production}"
+    EIMIR_PUSH_APNS_KEY_FILE: /run/secrets/eimir-apns-sender.p8
+  volumes:
+    - type: bind
+      source: "${EIMIR_PUSH_APNS_KEY_HOST_FILE:?Set the absolute APNs private key path}"
+      target: /run/secrets/eimir-apns-sender.p8
+      read_only: true
+      bind:
+        create_host_path: false
+
+services:
+  api:
+    <<: *apns-runtime
+  worker:
+    <<: *apns-runtime
+  cloud-api:
+    <<: *apns-runtime
+  cloud-worker:
+    <<: *apns-runtime

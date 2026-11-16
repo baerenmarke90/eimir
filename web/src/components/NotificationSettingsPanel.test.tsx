@@ -6,6 +6,7 @@ import { NotificationChannel } from '../api/generated/models/NotificationChannel
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import type { DevicePushController } from '../client/devicePush';
+import de from '../i18n/locales/de';
 import notificationSettings from '../i18n/locales/notificationSettings';
 import gentleCopy from '../i18n/locales/gentlePrompts';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
@@ -300,7 +301,65 @@ describe('NotificationSettingsPanel', () => {
     expect(update).toHaveBeenCalledTimes(1);
   });
 
-  it('offers system settings after permission denial without a disable action for an unregistered device', async () => {
+  it.each(['off', 'on'] as const)(
+    'uses the shared device switch when push is %s',
+    (state) => {
+      const device = deviceController({ state, registered: state === 'on' });
+      const { update } = setup(view(), undefined, device);
+      const toggle = screen.getByRole('switch', {
+        name: notificationSettings.deviceToggle,
+      });
+      expect(toggle.getAttribute('aria-checked')).toBe(String(state === 'on'));
+      expect(screen.queryByText(notificationSettings.deviceIntro)).toBeNull();
+      expect(
+        screen.queryByText(
+          state === 'on'
+            ? notificationSettings.deviceOn
+            : notificationSettings.deviceOff,
+        ),
+      ).toBeNull();
+      fireEvent.click(toggle);
+      expect(
+        state === 'on' ? device.disable : device.enable,
+      ).toHaveBeenCalledOnce();
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps activation pending until confirmation and allows cancellation', () => {
+    const device = deviceController({ state: 'connecting', registered: true });
+    setup(view(), undefined, device);
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
+    expect(
+      screen.getByText(notificationSettings.deviceConnecting),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
+    expect(device.disable).toHaveBeenCalledOnce();
+  });
+
+  it('retries a failed device deactivation with the same switch', () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'PUSH_DEVICE_DISABLE_FAILED',
+    });
+    setup(view(), undefined, device);
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(
+      screen.getByText(notificationSettings.deviceDisableFailed),
+    ).toBeDefined();
+    fireEvent.click(toggle);
+    expect(device.disable).toHaveBeenCalledOnce();
+    expect(device.enable).not.toHaveBeenCalled();
+  });
+
+  it('offers system settings after permission denial on an unregistered device', async () => {
     const device = deviceController({
       state: 'error',
       error: 'NOTIFICATION_PERMISSION_DENIED',
@@ -310,14 +369,11 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.devicePermissionDenied),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
     fireEvent.click(
       screen.getByRole('button', {
         name: notificationSettings.deviceOpenSettings,
@@ -335,9 +391,11 @@ describe('NotificationSettingsPanel', () => {
     });
     setup(view(), undefined, device);
     await screen.findByRole('switch', { name: 'Kommentare: Push' });
-    fireEvent.click(
-      screen.getByRole('button', { name: notificationSettings.deviceDisable }),
-    );
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle);
     expect(device.disable).toHaveBeenCalledOnce();
     expect(
       screen.getByRole('button', {
@@ -356,14 +414,11 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.deviceUnsupported),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
   });
 
   it('keeps device status retry reachable when notification preferences fail', async () => {
@@ -384,14 +439,10 @@ describe('NotificationSettingsPanel', () => {
       screen.getByText(notificationSettings.deviceStatusUnavailable),
     ).toBeDefined();
     fireEvent.click(
-      screen.getByRole('button', { name: notificationSettings.deviceEnable }),
+      screen.getByRole('switch', { name: notificationSettings.deviceToggle }),
     );
     expect(device.enable).toHaveBeenCalledOnce();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    expect(device.disable).not.toHaveBeenCalled();
   });
 
   it('explains an unconfigured installation without offering activation', async () => {
@@ -400,20 +451,19 @@ describe('NotificationSettingsPanel', () => {
     expect(
       screen.getByText(notificationSettings.deviceUnavailable),
     ).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', {
-        name: notificationSettings.deviceDisable,
-      }),
-    ).toBeNull();
+    const toggle = screen.getByRole('switch', {
+      name: notificationSettings.deviceToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.hasAttribute('disabled')).toBe(true);
   });
 
   it('omits the device control on the Web client', async () => {
     setup(view(), undefined, deviceController({ available: false }));
     await screen.findByRole('switch', { name: 'Kommentare: Push' });
-    expect(screen.queryByText(notificationSettings.deviceTitle)).toBeNull();
+    expect(
+      screen.queryByRole('switch', { name: notificationSettings.deviceToggle }),
+    ).toBeNull();
   });
 
   it('saves an explicit comment digest choice while transport is unavailable', async () => {

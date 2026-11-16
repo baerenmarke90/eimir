@@ -1,26 +1,47 @@
-import de from '../../src/i18n/locales/de';
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { expect, type Page, test } from '@playwright/test';
+import { recapDetailPath } from '../../src/client/routes';
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
+import { fulfillDefaultProductContext } from '../support/productContext';
+
 const fixtureCopy = fixtures.recaps;
+
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
+  getTimelineItems,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
+/** Fill the `{{name}}` placeholders of a localised string. */
+const fill = (text: string, values: Record<string, number | string>) =>
+  Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{{${name}}}`, String(value)),
+    text,
+  );
 const BASE = `/api/v1/spaces/${SPACE_ID}/recaps`;
 const PHOTO = readFileSync(
   fileURLToPath(new URL('../fixtures/recap-lake.webp', import.meta.url)),
+);
+const VARIANTS = Object.fromEntries(
+  ['dusk', 'warm', 'detail', 'mono'].map((name) => [
+    `recap-photo-${name}`,
+    readFileSync(
+      fileURLToPath(
+        new URL(`../fixtures/recap-lake-${name}.webp`, import.meta.url),
+      ),
+    ),
+  ]),
 );
 const source = (id: string, title: string, kind = 'MEMORY') => ({
   key: `${kind}:${id}`,
@@ -64,6 +85,90 @@ const initial = (id = 'october', year = false) => ({
   }[],
   ownDraft: null as { text: string; version: number } | null,
 });
+/** A full month: eight mixed highlights and server-counted facts. */
+function denseSources() {
+  const copy = fixtureCopy.dense;
+  const entry = (
+    id: string,
+    kind: string,
+    day: string,
+    title: string,
+    excerpt: string | null,
+    photo: string | null,
+  ) => ({
+    key: `${kind}:${id}`,
+    id,
+    kind,
+    occurredOn: `2026-10-${day}`,
+    version: 1,
+    title,
+    excerpt,
+    previewAttachmentId: photo,
+    previewIsSensitive: false,
+    available: true,
+  });
+  return [
+    entry(
+      'mem-canal',
+      'MEMORY',
+      '03',
+      fixtureCopy.photoTitle,
+      fixtureCopy.excerpt,
+      'recap-photo',
+    ),
+    entry(
+      'heart-coffee',
+      'HEART_MOMENT',
+      '06',
+      fixtureCopy.wordsTitle,
+      fixtureCopy.wordsTitle,
+      null,
+    ),
+    entry(
+      'plan-market',
+      'PLAN',
+      '10',
+      copy.market,
+      copy.marketText,
+      'recap-photo-warm',
+    ),
+    entry(
+      'mem-breakfast',
+      'MEMORY',
+      '12',
+      copy.breakfast,
+      copy.breakfastText,
+      'recap-photo-detail',
+    ),
+    entry('mile-key', 'MILESTONE', '15', copy.key, copy.keyText, null),
+    entry(
+      'mem-jetty',
+      'MEMORY',
+      '17',
+      copy.jetty,
+      copy.jettyText,
+      'recap-photo-dusk',
+    ),
+    entry('heart-thanks', 'HEART_MOMENT', '22', copy.thanks, copy.thanks, null),
+    entry(
+      'chapter-autumn',
+      'CHAPTER',
+      '01',
+      copy.chapter,
+      copy.chapterText,
+      null,
+    ),
+  ];
+}
+const DENSE_FACTS = {
+  memories: 11,
+  heartMoments: 6,
+  milestones: 1,
+  chapters: 1,
+  plans: 3,
+  activeDays: 14,
+  busiestMonth: null,
+};
 async function setup(
   page: Page,
   options: {
@@ -71,8 +176,13 @@ async function setup(
     fail?: boolean;
     empty?: boolean;
     pending?: boolean;
-    start?: 'wir' | 'library';
+    start?: 'wir' | 'library' | 'momente';
     hideMonthly?: boolean;
+    dense?: boolean;
+    ownWords?: boolean;
+    rhythm?: boolean;
+    native?: boolean;
+    earlier?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -82,9 +192,81 @@ async function setup(
       localStorage.setItem(`eimir:product-tour:v1:${account}:${space}`, 'seen'),
     { account: ACCOUNT_ID, space: SPACE_ID },
   );
+  if (options.native) await installNativeAppLifecycle(page);
   const unexpected = await installMocks(page);
   const month = initial();
   const year = initial('year', true);
+  const september = {
+    ...initial('september'),
+    month: 9,
+    startsOn: '2026-09-01',
+    throughOn: '2026-09-30',
+    isPartial: false,
+    savedAt: '2026-10-08T03:00:00Z',
+    headline: fixtureCopy.previousHeadline,
+  };
+  const august = {
+    ...initial('august'),
+    month: 8,
+    startsOn: '2026-08-01',
+    throughOn: '2026-08-31',
+    isPartial: false,
+    headline: fixtureCopy.previousHeadline,
+    sources: [
+      {
+        ...source('mem-canal', fixtureCopy.photoTitle),
+        previewIsSensitive: true,
+      },
+    ],
+  };
+  if (options.dense && options.ownWords) {
+    const words = fixtureCopy.ownWords;
+    const decorate = (sources: ReturnType<typeof denseSources>) =>
+      sources.map((entry) =>
+        entry.id === 'mem-canal'
+          ? {
+              ...entry,
+              quote: {
+                text: words.photoQuote,
+                authorId: 'partner',
+                authorName: 'Ben',
+              },
+            }
+          : entry.id === 'mem-breakfast'
+            ? { ...entry, mutualReaction: 'LOVE' }
+            : entry.id === 'heart-thanks'
+              ? {
+                  ...entry,
+                  quote: {
+                    text: words.wordsQuote,
+                    authorId: 'partner',
+                    authorName: 'Anna',
+                  },
+                }
+              : entry,
+      );
+    month.sources = decorate(denseSources()) as typeof month.sources;
+  }
+  if (options.dense)
+    Object.assign(month, {
+      sources: options.ownWords ? month.sources : denseSources(),
+      facts: DENSE_FACTS,
+      headline: fixtureCopy.dense.headline,
+      introduction: fixtureCopy.dense.introduction,
+    });
+  if (options.dense && options.rhythm)
+    Object.assign(month, {
+      mood: {
+        buckets: [
+          { index: 1, mutualDays: 4, goodDays: 3 },
+          { index: 2, mutualDays: 3, goodDays: 2 },
+          { index: 3, mutualDays: 4, goodDays: 4 },
+          { index: 4, mutualDays: 0, goodDays: 0 },
+          { index: 5, mutualDays: 0, goodDays: 0 },
+        ],
+        leading: 3,
+      },
+    });
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
@@ -94,6 +276,7 @@ async function setup(
   let fail = options.fail === true;
   let writes = 0;
   let prepares = 0;
+  let earlierReady = false;
   let deniedOverview = false;
   let overviewReads = 0;
   await page.route('**/api/v1/**', async (route) => {
@@ -111,19 +294,16 @@ async function setup(
       return route.fulfill({
         json: {
           canCompose: options.pro !== false,
-          editions: [
-            month,
-            {
-              ...initial('september'),
-              month: 9,
-              startsOn: '2026-09-01',
-              throughOn: '2026-09-30',
-              isPartial: false,
-              headline: fixtureCopy.previousHeadline,
-            },
-            year,
-          ],
-          periods: [],
+          editions: [month, september, ...(earlierReady ? [august] : []), year],
+          periods: options.earlier
+            ? [
+                ...(earlierReady
+                  ? []
+                  : [{ kind: 'MONTH', year: 2026, month: 8 }]),
+                { kind: 'MONTH', year: 2026, month: 7 },
+                { kind: 'YEAR', year: 2025, month: 0 },
+              ]
+            : [],
           hasMore: false,
         },
       });
@@ -158,6 +338,42 @@ async function setup(
           retrospective: null,
           thinkingOfYouAvailableAt: null,
           sharedStorySummary: { memories: 2, heartMoments: 1, milestones: 0 },
+        },
+      });
+    }
+    // Momente reads the same viewer day as Wir, so its Discover selection and
+    // Dashboard day follow this spec's clock instead of the shared fixture.
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/dashboard') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: {
+          space: {
+            spaceId: SPACE_ID,
+            partner: { id: 'partner', displayName: 'Alex' },
+          },
+          viewerLocalDate: '2026-10-30',
+          relationshipDuration: null,
+          recentShared: [],
+          upcoming: [],
+          retrospective: null,
+        },
+      });
+    }
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/discover') &&
+      method === 'GET'
+    ) {
+      const items = getTimelineItems();
+      return route.fulfill({
+        json: {
+          selectionDate: '2026-10-30',
+          lead: items[0] ?? null,
+          items: items.slice(1),
+          leadContext: null,
         },
       });
     }
@@ -203,7 +419,10 @@ async function setup(
             selectedKeys: month.sources.map((item) => item.key),
           },
         });
-      return route.fulfill({ json: path.endsWith('/year') ? year : month });
+      const edition = [month, september, august, year].find(
+        ({ id }) => path === `${BASE}/${id}`,
+      );
+      if (edition) return route.fulfill({ json: edition });
     }
     if (path.startsWith(BASE) && ['PUT', 'POST', 'DELETE'].includes(method)) {
       writes++;
@@ -238,10 +457,6 @@ async function setup(
         );
         month.version++;
       }
-      if (path.endsWith('/save')) {
-        month.savedAt = '2026-10-30T12:00:00Z';
-        month.version++;
-      }
       return route.fulfill({ json: month });
     }
     if (path.endsWith('/entitlements'))
@@ -268,7 +483,10 @@ async function setup(
         },
       });
     if (path.includes('/attachments/') && path.endsWith('/content'))
-      return route.fulfill({ contentType: 'image/webp', body: PHOTO });
+      return route.fulfill({
+        contentType: 'image/webp',
+        body: VARIANTS[path.split('/attachments/')[1].split('/')[0]] ?? PHOTO,
+      });
     return route.fallback();
   });
   await signIn(page);
@@ -279,11 +497,32 @@ async function setup(
     },
     writes: () => writes,
     prepares: () => prepares,
+    finalise: () => {
+      Object.assign(month, {
+        savedAt: '2026-11-08T03:00:00Z',
+        isPartial: false,
+        throughOn: '2026-10-31',
+        version: month.version + 1,
+      });
+    },
+    finishEarlier: () => {
+      earlierReady = true;
+    },
     overviewReads: () => overviewReads,
     denyOverview: () => {
       deniedOverview = true;
     },
   };
+  if (options.start === 'momente') {
+    await page
+      .locator(
+        '.mobile-bottom-nav a[href="/story"], .shell-nav a[href="/story"]',
+      )
+      .filter({ visible: true })
+      .click();
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    return state;
+  }
   if (options.start === 'wir') {
     await page
       .locator(
@@ -298,8 +537,15 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
+  // #1790 E1: Mehr opens years and recaps together; the years index leads on.
   await page
-    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .getByRole('link', {
+      name: de.more.destinations.yearsAndRecaps,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
     .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
@@ -362,7 +608,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Watch now advances automatically, pauses for a source, and finishes without looping', async ({
+test('Watch now advances automatically, resumes after a source, and finishes without looping', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -384,11 +630,18 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
     await page.clock.runFor(dwell + 1);
   }
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
-  await expect(page).toHaveURL(/\/more\/passport\/october$/);
+  await expect(page).toHaveURL(/\/story\/recaps\/october$/);
   await expect(page.locator('.recap-reader')).toHaveAttribute(
     'data-playing',
     'true',
   );
+  await reader
+    .getByRole('button', { name: copy.pause, exact: true })
+    .press('Space');
+  await expect(reader).toHaveAttribute('data-playing', 'false');
+  await reader
+    .getByRole('button', { name: copy.play, exact: true })
+    .press('Enter');
   await advanceSpread(fixtureCopy.monthHeadline);
   await expect(page).toHaveURL(/page=1/);
   await page.getByRole('link', { name: new RegExp(copy.source) }).click();
@@ -396,17 +649,8 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
     .getByRole('button', { name: new RegExp(taskBoundary.back) })
     .first()
     .click();
-  await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
-  await expect(
-    page.getByRole('button', { name: copy.play, exact: true }),
-  ).toBeVisible();
-  await page.clock.fastForward(90001);
-  await expect(page).toHaveURL(/page=1/);
-  await page.getByRole('button', { name: copy.play, exact: true }).click();
-  await expect(page.locator('.recap-reader')).toHaveAttribute(
-    'data-playing',
-    'true',
-  );
+  await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
+  // Like a photo memory, playback resumes on the restored page after a source.
   await advanceSpread(fixtureCopy.photoTitle);
   await expect(page).toHaveURL(/page=2/);
   await expect(
@@ -419,7 +663,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.recap-reader-top .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
@@ -455,18 +699,25 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
     .getByRole('button', { name: taskSheets.close, exact: true })
     .click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  const controlLines = await page
-    .locator('.recap-playback-toggle')
+  // On a photo the toggle is an icon on the picture; large text must keep it
+  // inside the stage and above the caption.
+  const toggleClearsCaption = await page
+    .locator('.recap-spread .recap-playback-overlay')
     .evaluate((button) => {
-      const label = [...button.childNodes].find(
-        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      const box = button.getBoundingClientRect();
+      const spread = button.closest('.recap-spread')!;
+      const stage = spread.getBoundingClientRect();
+      const caption = spread
+        .querySelector('.recap-scene-copy')!
+        .getBoundingClientRect();
+      return (
+        box.left >= stage.left &&
+        box.right <= stage.right &&
+        box.top >= stage.top &&
+        box.bottom <= caption.top
       );
-      if (!label) return 0;
-      const range = document.createRange();
-      range.selectNodeContents(label);
-      return range.getClientRects().length;
     });
-  expect(controlLines).toBe(1);
+  expect(toggleClearsCaption).toBe(true);
   const controlsDoNotOverlap = await page
     .locator('.recap-page-controls button')
     .evaluateAll((buttons) => {
@@ -589,14 +840,19 @@ for (const [width, theme] of [
       fixtureCopy.monthHeadline,
     );
     await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
-    await page.getByRole('button', { name: copy.next, exact: true }).click();
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await expect(next).toHaveText(copy.next);
+    await expect(
+      page.getByRole('button', { name: copy.previous, exact: true }),
+    ).toHaveText(copy.previous);
+    await next.click();
     await expect(page.locator('.recap-spread h1')).toHaveText(
       fixtureCopy.photoTitle,
     );
     await expect
       .poll(() =>
         page
-          .locator('.recap-reader-photo img')
+          .locator('.recap-scene-media img')
           .evaluate(
             (img: HTMLImageElement) =>
               img.complete && img.naturalWidth === 1536,
@@ -604,11 +860,11 @@ for (const [width, theme] of [
       )
       .toBe(true);
     await page
-      .locator('.recap-reader-photo img')
+      .locator('.recap-scene-media img')
       .evaluate((img: HTMLImageElement) => img.decode());
     // Capture decoded media before the full-page frame; Chromium lazily paints blob images.
     await page
-      .locator('.recap-reader-photo')
+      .locator('.recap-scene-media')
       .screenshot({ path: info.outputPath('decoded-photo.png') });
     await captureScreenshot(page, info, `recaps-reader-${width}-${theme}.png`, {
       fullPage: true,
@@ -617,7 +873,9 @@ for (const [width, theme] of [
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())
         .violations,
     ).toEqual([]);
-    await page.getByRole('link', { name: /Original öffnen/ }).click();
+    const original = page.getByRole('link', { name: copy.source });
+    await expect(original).toHaveText(copy.source);
+    await original.click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
     await page
       .getByRole('button', {
@@ -626,7 +884,7 @@ for (const [width, theme] of [
       })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
+    await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
     await expect(page.locator('.recap-spread h1')).toHaveText(
       fixtureCopy.photoTitle,
     );
@@ -635,7 +893,7 @@ for (const [width, theme] of [
   });
 }
 
-test('selection, private draft, explicit sharing, save and withdrawal keep confirmed state', async ({
+test('selection, private draft, explicit sharing, automatic retention and withdrawal keep confirmed state', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -668,12 +926,16 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
   await expect(page.locator('blockquote')).toContainText(
     fixtureCopy.reflection,
   );
-  await page.getByRole('button', { name: copy.save, exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: copy.saveConfirm })
-    .click();
+  // Nothing has to be kept by hand: the server retains a completed period.
+  state.finalise();
+  await page.reload();
   await expect(page.getByText(copy.savedHelp)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.edit, exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: copy.ownWords, exact: true }).first(),
+  ).toBeVisible();
   await captureScreenshot(page, info, 'recaps-saved-reflections.png', {
     fullPage: true,
   });
@@ -683,31 +945,107 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
     .getByRole('button', { name: copy.withdraw, exact: true })
     .click();
   await expect(page.locator('blockquote')).toHaveCount(0);
-  expect(state.writes()).toBe(6);
+  expect(state.writes()).toBe(5);
 });
 
 test('Free reads retained editions without preparing or exposing composition', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await setup(page, { pro: false });
-  await expect(page.getByText(copy.gateBody)).toBeVisible();
-  await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
-    .click();
-  await expect(page.locator('.recap-spread h1')).toBeVisible();
+  const archive = page.getByRole('region', { name: copy.archive });
+  await expect(
+    page.locator('.recap-cover-featured .recap-period-note'),
+  ).toHaveText(copy.partialThrough.replace('{{date}}', '30. Okt. 2026'));
+  await expect(page.locator('.recap-archive ~ .recap-gate')).toContainText(
+    copy.gateBody,
+  );
+  await archive
+    .getByRole('heading')
+    .evaluate((heading) => heading.scrollIntoView({ block: 'center' }));
+  await captureScreenshot(page, info, 'recaps-retained-library-390-light.png');
+  await archive.getByRole('link', { name: /^September 2026/ }).click();
+  await expect(page).toHaveURL(/\/story\/recaps\/september$/);
+  await expect(page.locator('.recap-spread h1')).toHaveText(
+    fixtureCopy.previousHeadline,
+  );
   await expect(page.getByRole('button', { name: copy.edit })).toHaveCount(0);
   expect(state.prepares()).toBe(0);
 });
 
+for (const theme of ['light', 'dark'] as const) {
+  test(`earlier periods appear by themselves at 390 ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { earlier: true });
+    const month = (value: number) =>
+      new Intl.DateTimeFormat('de-DE', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(Date.UTC(2026, value - 1, 1)));
+    const preparing = page
+      .getByRole('region', { name: copy.otherPeriods })
+      .getByRole('listitem');
+    await expect(preparing).toHaveCount(2);
+    await expect(preparing.first()).toContainText(month(8));
+    await expect(preparing.first()).toContainText(copy.preparing);
+    await expect(preparing.last()).toContainText(month(7));
+    // Nothing has to be requested per period any more.
+    await expect(
+      page.locator('#recap-library-panel').getByRole('button'),
+    ).toHaveCount(0);
+    await expect(preparing.getByRole('link')).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-immersive-library-preparing-390-${theme}.png`,
+      { fullPage: true },
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-library').analyze())
+        .violations,
+    ).toEqual([]);
+
+    // The years shelf only carries its own waiting period.
+    await page.getByRole('tab', { name: copy.years }).click();
+    await expect(preparing).toHaveCount(1);
+    await expect(preparing).toContainText('2025');
+    state.finishEarlier();
+    await page.getByRole('tab', { name: copy.months }).click();
+    await expect(preparing).toHaveCount(1);
+    await expect(preparing).toContainText(month(7));
+    const augustEntry = page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: new RegExp(`^${month(8)}`) });
+    await expect(augustEntry).toBeVisible();
+    await expect(augustEntry.locator('.recap-archive-art')).toHaveCount(0);
+    expect(state.prepares()).toBe(1);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
 test('empty periods do not invent shared events', async ({ page }) => {
   await setup(page, { empty: true });
   await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: new RegExp(copy.emptyTitle) })
     .click();
   await expect(page.getByText(copy.emptyBody)).toBeVisible();
-  await expect(page.locator('.recap-reader-photo')).toHaveCount(0);
+  await expect(page.locator('.recap-scene-media')).toHaveCount(0);
   await expect(
     page.getByText(
       copy.page.replace('{{page}}', '1').replace('{{count}}', '2'),
@@ -759,7 +1097,15 @@ test('pending generation remains readable as a background task', async ({
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page, { pending: true });
-  await page.locator('.recap-cover-featured a').click();
+  await expect(
+    page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: /^September 2026/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: /^Oktober 2026/ })
+    .click();
   await expect(
     page.getByText(copy.pendingTitle, { exact: true }),
   ).toBeVisible();
@@ -798,4 +1144,473 @@ test('opening a monthly invitation consumes that edition on return', async ({
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+});
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`a dense month reads as typed scenes with counted facts and gestures at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { dense: true });
+    const featured = page.locator('.recap-cover-featured');
+    await expect(featured.locator('img')).toBeVisible();
+    await featured
+      .locator('img')
+      .evaluate((img: HTMLImageElement) => img.decode());
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-immersive-library-${width}-${theme}.png`,
+      {
+        fullPage: true,
+      },
+    );
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const heading = stage.locator('h1');
+    const settle = async () => {
+      for (const image of await stage.locator('img').all())
+        await image.evaluate((img: HTMLImageElement) => img.decode());
+    };
+    const shot = async (name: string) => {
+      await settle();
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-immersive-${name}-${width}-${theme}.png`,
+      );
+    };
+    await expect(heading).toHaveText(fixtureCopy.dense.headline);
+    await expect(stage.locator('.recap-mosaic-cell')).toHaveCount(4);
+    await expect(stage.locator('.recap-mosaic img')).toHaveCount(4);
+    // On photography the toggle sits on the picture, not in the control row.
+    await expect(
+      stage.locator('.recap-mosaic .recap-playback-overlay'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.recap-page-controls .recap-playback-toggle'),
+    ).toHaveCount(0);
+    await shot('cover');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await next.click();
+    await expect(heading).toHaveText(copy.factsTitle);
+    await expect(stage.locator('.recap-facts li')).toHaveCount(4);
+    await expect(stage.locator('.recap-facts li').first()).toContainText('11');
+    await shot('facts');
+    // A tap on the right of the stage turns the page; a tap on the left returns.
+    const frame = (await stage.boundingBox())!;
+    await page.mouse.click(frame.x + frame.width * 0.8, frame.y + 200);
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await expect(stage.locator('img')).toBeVisible();
+    await shot('photo');
+    await page.mouse.click(frame.x + frame.width * 0.1, frame.y + 200);
+    await expect(heading).toHaveText(copy.factsTitle);
+    await page.mouse.click(frame.x + frame.width * 0.8, frame.y + 200);
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await page.keyboard.press('ArrowRight');
+    await expect(heading).toHaveText(fixtureCopy.wordsTitle);
+    await shot('words');
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.market);
+    await expect(stage.locator('img')).toBeVisible();
+    await shot('plan');
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.breakfast);
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.key);
+    await shot('milestone');
+    for (const title of [
+      fixtureCopy.dense.jetty,
+      fixtureCopy.dense.thanks,
+      fixtureCopy.dense.chapter,
+      copy.finishTitle,
+    ]) {
+      await next.click();
+      await expect(heading).toHaveText(title);
+    }
+    await expect(page).toHaveURL(/page=10/);
+    await shot('closing');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+    if (width !== 390) return;
+    // Large text keeps a photo scene readable and inside the viewport.
+    for (let step = 0; step < 3; step++)
+      await page
+        .getByRole('button', { name: copy.previous, exact: true })
+        .click();
+    await expect(heading).toHaveText(fixtureCopy.dense.jetty);
+    await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await settle();
+    await captureScreenshot(stage, info, 'recaps-immersive-large-text-390.png');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test('the native app hides the page arrows and turns pages by touch', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const touch = await page.context().newCDPSession(page);
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  const state = await setup(page, { dense: true, native: true });
+  await page
+    .getByRole('link', { name: new RegExp(copy.open) })
+    .first()
+    .click();
+  const stage = page.locator('.recap-spread');
+  await expect(stage.locator('h1')).toHaveText(fixtureCopy.dense.headline);
+  // Assistive technology keeps the explicit path; nothing is painted.
+  for (const name of [copy.previous, copy.next])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveClass(
+      /sr-only/,
+    );
+  await expect(page.locator('.recap-gesture-hint')).toBeVisible();
+  await expect(stage.locator('.recap-mosaic img')).toHaveCount(4);
+  for (const image of await stage.locator('img').all())
+    await image.evaluate((img: HTMLImageElement) => img.decode());
+  await captureScreenshot(
+    page,
+    info,
+    'recaps-immersive-native-cover-390-light.png',
+  );
+  const frame = (await stage.boundingBox())!;
+  const right = { x: frame.x + frame.width * 0.85, y: frame.y + 60 };
+  const left = { ...right, x: frame.x + frame.width * 0.15 };
+  const tapRight = async () => {
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [right],
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+  };
+  await tapRight();
+  await tapRight();
+  await expect(stage.locator('h1')).toHaveText(fixtureCopy.photoTitle);
+  await expect(stage.locator('.recap-playback-overlay')).toBeVisible();
+  await stage.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+  await captureScreenshot(
+    page,
+    info,
+    'recaps-immersive-native-photo-390-light.png',
+  );
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [left],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [right],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+  await touch.detach();
+  await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
+  expect(state.unexpected).toEqual([]);
+});
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`quotes and the mutual-reaction line show the couple's own words at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const words = fixtureCopy.ownWords;
+    const state = await setup(page, { dense: true, ownWords: true });
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const heading = stage.locator('h1');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    const settle = async () => {
+      for (const image of await stage.locator('img').all())
+        await image.evaluate((img: HTMLImageElement) => img.decode());
+    };
+    const shot = async (name: string) => {
+      await settle();
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-own-words-${name}-${width}-${theme}.png`,
+      );
+    };
+    await next.click();
+    await next.click();
+    // Photo scene: the newest foreign comment, quoted with its author and German marks.
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await expect(stage.locator('.recap-quote')).toHaveText(
+      `Ben: „${words.photoQuote}“`,
+    );
+    await expect(stage.locator('.recap-reaction-line')).toHaveCount(0);
+    await shot('photo-quote');
+    // Photo scene with a mutual reaction: one calm line, no quote.
+    await next.click();
+    await next.click();
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.breakfast);
+    await expect(stage.locator('.recap-reaction-line')).toHaveText(
+      words.reaction,
+    );
+    await expect(stage.locator('.recap-quote')).toHaveCount(0);
+    await shot('photo-reaction');
+    // Text-led scene with a quote.
+    for (let step = 0; step < 3; step++) await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.thanks);
+    await expect(stage.locator('.recap-quote')).toHaveText(
+      `Anna: „${words.wordsQuote}“`,
+    );
+    await shot('words-quote');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`good days together show as a quiet rhythm with text equivalents at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { dense: true, rhythm: true });
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await next.click();
+    await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
+    await next.click();
+    // The rhythm follows the counted facts and adds one page.
+    await expect(stage.locator('h1')).toHaveText(copy.rhythm.title);
+    await expect(
+      page.getByText(fill(copy.page, { page: 3, count: 12 })),
+    ).toBeVisible();
+    await expect(stage.locator('.recap-reader-intro')).toHaveText(
+      fill(copy.rhythm.summary_other, { count: 9 }),
+    );
+    const items = stage.locator('.recap-rhythm li');
+    await expect(items).toHaveCount(5);
+    await expect(items.locator('.recap-rhythm-label')).toHaveText(
+      [1, 2, 3, 4, 5].map((count) => fill(copy.rhythm.week, { count })),
+    );
+    // Every bar has a text equivalent; only the leading week is marked.
+    await expect(items.first()).toContainText(
+      fill(copy.rhythm.days_other, { count: 3 }),
+    );
+    await expect(items.nth(3)).toContainText(
+      fill(copy.rhythm.days_other, { count: 0 }),
+    );
+    await expect(
+      stage.locator('.recap-rhythm li[data-leading="true"]'),
+    ).toHaveCount(1);
+    await expect(
+      stage.locator(
+        '.recap-rhythm li[data-leading="true"] .recap-rhythm-label',
+      ),
+    ).toHaveText(fill(copy.rhythm.week, { count: 3 }));
+    await captureScreenshot(page, info, `recaps-rhythm-${width}-${theme}.png`);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`Momente leads with a new recap until it is opened and returns at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { start: 'momente' });
+    // #1907 F4: two permanent experiences; the story overview lives on Wir
+    // and More, and the new recap leads only until it is opened.
+    const group = page.locator('.couple-experience-links');
+    const rows = group.locator('.couple-experience-list > li');
+    await expect(rows).toHaveCount(2);
+    await expect(group.locator('a[href="/story/our-story"]')).toHaveCount(0);
+    const lead = group.locator('a.recap-lead-card');
+    await expect(lead).toBeVisible();
+    await expect(lead).toContainText(copy.discoverNew);
+    await expect(lead).toContainText(copy.shortTitle);
+    await expect(lead.locator('img')).toBeVisible();
+    await lead.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+    await group.evaluate((element) =>
+      element.scrollIntoView({ block: 'center' }),
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-entry-${width}-${theme}.png`,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.couple-experience-links')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await lead.click();
+    await expect(page).toHaveURL(
+      // The reader starts playback and drops its one-time play request.
+      new RegExp(`${recapDetailPath('october')}$`),
+    );
+    // The immersive reader names Momente as its Back destination and
+    // returns there, where the card no longer leads.
+    const back = page.getByRole('button', {
+      name: navigation.story,
+      exact: true,
+    });
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    await expect(rows).toHaveCount(2);
+    await expect(lead).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-after-${width}-${theme}.png`,
+    );
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('with motion the opened recap card collapses away after return', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await setup(page, { start: 'momente' });
+  const lead = page.locator('.couple-experience-links a.recap-lead-card');
+  await expect(lead).toBeVisible();
+  await lead.click();
+  await expect(page).toHaveURL(new RegExp(`${recapDetailPath('october')}$`));
+  await page
+    .getByRole('button', { name: navigation.story, exact: true })
+    .click();
+  await expect(page.locator('.momente-discover-page')).toBeVisible();
+  // The card may play its short collapse, but it must not stay.
+  await expect(page.locator('.recap-lead')).toHaveCount(0);
+  await expect(page.locator('.couple-experience-list > li')).toHaveCount(2);
+});
+
+test('Free keeps both Discover experiences with Pro marks at 360 with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const state = await setup(page, { start: 'momente', pro: false });
+  const group = page.locator('.couple-experience-links');
+  const rows = group.locator('.couple-experience-list > li');
+  await expect(rows).toHaveCount(2);
+  for (const row of await rows.all())
+    await expect(row.locator('.pro-mark')).toBeVisible();
+  await page.addStyleTag({
+    content: 'html { font-size: 200% !important; }',
+  });
+  await group.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await captureScreenshot(page, info, 'recaps-momente-free-360-large.png');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('the former More addresses of the recap library and reader redirect with their query', async ({
+  page,
+}) => {
+  await setup(page, { start: 'momente' });
+  const open = (path: string) =>
+    page.evaluate((target) => {
+      window.history.pushState({}, '', target);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, path);
+  // The bare address held the story overview, which is a page of its own
+  // again (#1861); everything below it still opens the recap reader.
+  await open('/more/passport?tab=years');
+  await expect(page).toHaveURL(/\/story\/our-story\?tab=years$/);
+  await open('/more/passport/october?page=2');
+  await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
 });

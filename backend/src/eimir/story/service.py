@@ -45,6 +45,7 @@ from eimir.identity.models import Account
 from eimir.memories import experiences
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.relations.models import HeartMomentPlan, MemoryPlan, MilestonePlan
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
@@ -151,6 +152,7 @@ def _leg(
     *,
     year: int | None,
     shared_only: bool = False,
+    plan_id: UUID | None = None,
 ) -> Select[Any]:
     """Build one authorized union leg before selecting projected columns.
 
@@ -176,6 +178,13 @@ def _leg(
         statement = statement.where(experiences.roots_only())
     if shared_only and kind is StoryKind.HEART_MOMENT:
         statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
+    if plan_id is not None:
+        source, plan = {
+            StoryKind.MEMORY: (MemoryPlan.memory_id, MemoryPlan.plan_id),
+            StoryKind.HEART_MOMENT: (HeartMomentPlan.heart_moment_id, HeartMomentPlan.plan_id),
+            StoryKind.MILESTONE: (MilestonePlan.milestone_id, MilestonePlan.plan_id),
+        }[kind]
+        statement = statement.where(model.id.in_(select(source).where(plan == plan_id)))
     if year is not None:
         statement = statement.where(
             (
@@ -279,12 +288,56 @@ def read_shared_story_counts(
     )
 
 
+def read_shared_story_rows(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    through: date,
+) -> list[StoryRow]:
+    """Return the key of every relationship-shared Story entry up to a day.
+
+    Feeds the Wir lifeline (#1770), which draws the same `shared_only` set
+    that `read_shared_story_counts` counts, so its dots always add up to the
+    shared totals and a private HeartMoment never appears in it. Only the
+    sort key is projected; callers load the few entries they display.
+    """
+    experiences.reconcile(session, context)
+    combined = union_all(
+        *(_leg(kind, context, year=None, shared_only=True) for kind in StoryKind)
+    ).subquery("shared_story_rows")
+    rows = session.execute(
+        select(
+            combined.c.kind_rank,
+            combined.c.effective_date,
+            combined.c.created_at,
+            combined.c.id,
+        )
+        .where(combined.c.effective_date <= through)
+        .order_by(
+            combined.c.effective_date,
+            combined.c.created_at,
+            combined.c.kind_rank,
+            combined.c.id,
+        )
+    ).all()
+    return [
+        StoryRow(
+            kind=_kind_of_rank(int(kind_rank)),
+            effective_date=effective_date,
+            created_at=created_at,
+            id=item_id,
+        )
+        for kind_rank, effective_date, created_at, item_id in rows
+    ]
+
+
 def _cursor_binding(
     context: AuthorizationContext,
     kinds: tuple[StoryKind, ...],
     year: int | None,
     order: StoryOrder,
     include_chapters: bool,
+    plan_id: UUID | None = None,
 ) -> dict[str, Any]:
     """Return the parameters to which a Story cursor is bound.
 
@@ -317,6 +370,8 @@ def _cursor_binding(
         # Preserve cursors from the existing content-only contract while
         # preventing their reuse against the expanded result set (#1635).
         binding["includeChapters"] = True
+    if plan_id is not None:
+        binding["planId"] = str(plan_id)
     return binding
 
 
@@ -328,9 +383,10 @@ def _encode_cursor(
     order: StoryOrder,
     include_chapters: bool,
     item: StoryRow | ChapterTimelineRow,
+    plan_id: UUID | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context, kinds, year, order, include_chapters),
+        binding=_cursor_binding(context, kinds, year, order, include_chapters, plan_id),
         position={
             "effectiveDate": item.effective_date.isoformat(),
             "createdAt": item.created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
@@ -348,9 +404,10 @@ def _decode_cursor(
     year: int | None,
     order: StoryOrder,
     include_chapters: bool,
+    plan_id: UUID | None = None,
 ) -> tuple[date, datetime, int, UUID]:
     position = cursor_codec.decode(
-        token, binding=_cursor_binding(context, kinds, year, order, include_chapters)
+        token, binding=_cursor_binding(context, kinds, year, order, include_chapters, plan_id)
     )
     effective_date_raw = position.get("effectiveDate")
     created_at_raw = position.get("createdAt")
@@ -385,6 +442,7 @@ def read_timeline(
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
     include_chapters: bool = False,
+    plan_id: UUID | None = None,
 ) -> StoryPageResult:
     """Return one page of the viewer-authorized timeline.
 
@@ -398,9 +456,12 @@ def read_timeline(
     position, but never the partner's.
     """
     experiences.reconcile(session, context)
-    include_chapters = include_chapters and not kinds
+    include_chapters = include_chapters and not kinds and plan_id is None
     selected = kinds or tuple(StoryKind)
-    legs = [_leg(kind, context, year=year) for kind in selected]
+    legs = [
+        _leg(kind, context, year=year, shared_only=plan_id is not None, plan_id=plan_id)
+        for kind in selected
+    ]
     if include_chapters:
         legs.append(_chapter_leg(context, year=year))
     combined = union_all(*legs).subquery("story")
@@ -421,6 +482,7 @@ def read_timeline(
             year=year,
             order=order,
             include_chapters=include_chapters,
+            plan_id=plan_id,
         )
         # Row comparison instead of a nested OR cascade: PostgreSQL compares
         # the tuple lexicographically and therefore implements M2-D08 exactly,
@@ -473,6 +535,7 @@ def read_timeline(
             order=order,
             include_chapters=include_chapters,
             item=items[-1],
+            plan_id=plan_id,
         )
     return StoryPageResult(
         items=[item for item in items if isinstance(item, StoryRow)],

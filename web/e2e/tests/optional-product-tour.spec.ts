@@ -160,6 +160,7 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.getByRole('button', { name: productTour.next }).click();
   await expect(page).toHaveURL(/\/plan$/);
   await page.getByRole('button', { name: productTour.next }).click();
+  await expect(page).toHaveURL(/\/story$/);
   await page.getByRole('button', { name: productTour.openCreate }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -230,17 +231,7 @@ test('ordinary More destinations remain usable while the first invitation is vis
     page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
-  await quickCreate.click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(quickCreate).toBeFocused();
-  await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
-  ).toBeVisible();
+  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
 
   await page.setViewportSize({ width: 320, height: 700 });
   await page.emulateMedia({ reducedMotion: 'reduce' });

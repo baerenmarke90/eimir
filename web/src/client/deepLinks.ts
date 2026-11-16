@@ -12,26 +12,26 @@ import {
   appRoutePath,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  chapterDetailPath,
+  collectionDetailPath,
   GAMES_MOMENTS_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
+  heartMomentDetailPath,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
-  PLAN_DETAIL_ROUTE_PATTERN,
-  REMINDER_DETAIL_ROUTE_PATTERN,
-  PLACE_DETAIL_ROUTE_PATTERN,
-  SEARCH_ROUTE,
-  WISH_DETAIL_ROUTE_PATTERN,
-  chapterDetailPath,
-  collectionDetailPath,
-  heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
-  planDetailPath,
+  PLACE_DETAIL_ROUTE_PATTERN,
+  PLAN_DETAIL_ROUTE_PATTERN,
   placeDetailPath,
+  planDetailPath,
+  REMINDER_DETAIL_ROUTE_PATTERN,
+  SEARCH_ROUTE,
+  WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
 } from './routes';
 
@@ -83,6 +83,9 @@ const CANONICAL_RETURN_PATTERNS = [
   SEARCH_ROUTE,
   appRoutePath('more'),
   MORE_PEOPLE_ROUTE,
+  `${MORE_PEOPLE_ROUTE}/new`,
+  `${MORE_PEOPLE_ROUTE}/:personId`,
+  `${MORE_PEOPLE_ROUTE}/:personId/edit`,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
@@ -159,8 +162,11 @@ export function validateAppRelativeReturnTarget(target: string): string | null {
   if (canonicalTarget !== target) return null;
   if (
     parsed.hash &&
-    (parsed.pathname !== MORE_SETTINGS_ROUTE ||
-      !SETTINGS_AUTH_RETURN_HASHES.some((hash) => hash === parsed.hash))
+    !(
+      (parsed.pathname === MORE_SETTINGS_ROUTE &&
+        SETTINGS_AUTH_RETURN_HASHES.some((hash) => hash === parsed.hash)) ||
+      (parsed.pathname === appRoutePath('plan') && parsed.hash === '#dates')
+    )
   ) {
     return null;
   }

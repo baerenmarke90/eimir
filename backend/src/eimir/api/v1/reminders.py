@@ -9,14 +9,18 @@ from uuid import UUID
 from fastapi import APIRouter, Path, Response
 from fastapi import status as http_status
 from pydantic import ConfigDict, Field, field_validator
+from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.authorization import AuthorizationContext, readable
+from eimir.plans.models import Plan
 from eimir.reminders import service
 from eimir.reminders.models import ReminderScheduleType, ReminderSource
+from eimir.wishes.models import Wish
 
 router = APIRouter(tags=["reminders"])
 
@@ -80,6 +84,22 @@ class ReminderPreferenceView(ApiModel):
     muted: bool
 
 
+class ReminderWishOrigin(ApiModel):
+    """The Wish a Plan reminder's Plan grew out of (#1816).
+
+    Resolved at read time through ``Plan.sourceWishId``; nothing is stored on
+    the Reminder, so it cannot drift from the Wish/Plan lifecycle. It carries no
+    authored text: the client reads the Wish through its own API, which applies
+    the Wish's own access rules.
+    """
+
+    wish_id: UUID
+    series_position: int = Field(
+        ge=1,
+        description="1 for a first Wish, 2 or more when the Wish repeats an earlier one.",
+    )
+
+
 class ReminderDetail(ApiModel):
     id: UUID
     space_id: UUID
@@ -98,6 +118,12 @@ class ReminderDetail(ApiModel):
     updated_at: datetime
     creator: AuthorSummary
     capabilities: ResourceCapabilities
+    origin_wish: ReminderWishOrigin | None = Field(
+        description=(
+            "The readable Wish behind a Plan reminder whose Plan was created from a Wish; "
+            "null for manual reminders, other sources, direct Plans, or an unreadable Wish."
+        ),
+    )
 
 
 class ReminderList(ApiModel):
@@ -150,10 +176,45 @@ def _schedule_definition(value: ReminderSchedule) -> service.ScheduleDefinition:
     )
 
 
+def origin_wishes(
+    session: DbSession,
+    context: AuthorizationContext,
+    views: list[service.ReminderView],
+) -> dict[UUID, ReminderWishOrigin]:
+    """Resolve the originating Wish of Plan reminders in one query.
+
+    Keyed by reminder ID. Only Wishes the viewer may read are returned, so a
+    reminder never reveals more than the Wish API itself would.
+    """
+    plan_ids = {
+        view.reminder.source_id
+        for view in views
+        if view.reminder.source_type == "PLAN" and view.reminder.source_id is not None
+    }
+    if not plan_ids:
+        return {}
+    readable_wish_ids = readable(Wish, context).with_only_columns(Wish.id)
+    rows = session.execute(
+        select(Plan.id, Wish.id, Wish.series_position)
+        .join(Wish, Wish.id == Plan.source_wish_id)
+        .where(Plan.id.in_(plan_ids), Wish.id.in_(readable_wish_ids))
+    ).all()
+    by_plan = {
+        plan_id: ReminderWishOrigin(wish_id=wish_id, series_position=series_position)
+        for plan_id, wish_id, series_position in rows
+    }
+    return {
+        view.reminder.id: by_plan[view.reminder.source_id]
+        for view in views
+        if view.reminder.source_id in by_plan
+    }
+
+
 def reminder_detail(
     session: DbSession,
     view: service.ReminderView,
     creator: AuthorSummary | None = None,
+    origin_wish: ReminderWishOrigin | None = None,
 ) -> ReminderDetail:
     reminder = view.reminder
     if creator is None:
@@ -181,6 +242,7 @@ def reminder_detail(
             can_delete=manual,
             can_comment=False,
         ),
+        origin_wish=origin_wish,
     )
 
 
@@ -224,9 +286,15 @@ def list_reminders(
     response.headers["Cache-Control"] = "private, no-store"
     views = service.list_reminders(session, authorization)
     creators = resolve_author_summaries(session, {view.reminder.owner_id for view in views})
+    origins = origin_wishes(session, authorization, views)
     return ReminderList(
         items=[
-            reminder_detail(session, view, creator=creators.get(view.reminder.owner_id))
+            reminder_detail(
+                session,
+                view,
+                creator=creators.get(view.reminder.owner_id),
+                origin_wish=origins.get(view.reminder.id),
+            )
             for view in views
         ]
     )
@@ -247,7 +315,8 @@ def get_reminder(
     view = service.get_reminder(session, authorization, reminder_id)
     response.headers["ETag"] = etag_for(view.reminder.version)
     response.headers["Cache-Control"] = "private, no-store"
-    return reminder_detail(session, view)
+    origins = origin_wishes(session, authorization, [view])
+    return reminder_detail(session, view, origin_wish=origins.get(view.reminder.id))
 
 
 @router.put(

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { DashboardAnticipation } from '../api/generated/models/DashboardAnticipation';
-import { planDetailPath } from '../client/routes';
+import { concealedTitle } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { planScheduleLabel } from '../client/planningPresentation';
+import { planDetailPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { DiscreetLock } from './DiscreetPlan';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './RelationshipReflections.css';
 
@@ -37,6 +39,8 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
   }, [target]);
 
   const days = value.daysRemaining;
+  // A discreet Plan's countdown shows its list title and the lock only.
+  const title = value.concealed ? concealedTitle(value.title, t) : value.title;
   if (!Number.isInteger(days) || days < 0) return null;
   const number = new Intl.NumberFormat(resolvedLocale(), {
     minimumIntegerDigits: 2,
@@ -55,7 +59,14 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
     >
       <span className="anticipation-heading">
         <span className="anticipation-event">
-          <strong>{value.title}</strong>
+          {value.concealed ? (
+            <span className="discreet-title-row">
+              <strong>{title}</strong>
+              <DiscreetLock />
+            </span>
+          ) : (
+            <strong>{title}</strong>
+          )}
           <time
             className="anticipation-date"
             dateTime={
@@ -80,7 +91,7 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
           role="timer"
           aria-live="off"
           aria-label={t('relationshipReflections.anticipation.timerLabel', {
-            title: value.title,
+            title,
           })}
         >
           {units.map(([unit, count]) => (

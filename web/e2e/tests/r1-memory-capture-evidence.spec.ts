@@ -1,15 +1,16 @@
-import photoSources from '../../src/i18n/locales/photoSources';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { addComposerMedia } from '../support/mediaIntake';
+import { showComposerDate, showMemoryDetails } from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 /**
  * R1 exact-build visual evidence (#964). Produces named screenshots into
- * docs/product/design/evidence/r1/, mirroring the F2 evidence layout. This
+ * the test output directory, retaining historical R1 evidence. This
  * is supplementary to the behavioral regression coverage in
  * memory-create-defaults.spec.ts / create-surface-visual-checks.spec.ts /
  * f2-task-boundaries.spec.ts, not a replacement for it.
@@ -20,17 +21,6 @@ const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const MEMORY_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-16T10:00:00Z';
-const EVIDENCE_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'docs',
-  'product',
-  'design',
-  'evidence',
-  'r1',
-);
 const CABIN_FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -53,6 +43,7 @@ async function installApiMocks(page: Page): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
@@ -292,7 +283,7 @@ test.describe('R1 Memory Create evidence', () => {
         await page.setViewportSize({ width, height: 900 });
         await openMemoryCreate(page);
         await page.screenshot({
-          path: path.join(EVIDENCE_DIR, `r1-empty-${width}-${colorScheme}.png`),
+          path: test.info().outputPath(`r1-empty-${width}-${colorScheme}.png`),
         });
       });
     }
@@ -307,7 +298,7 @@ test.describe('R1 Memory Create evidence', () => {
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill('Wir haben heute den ganzen Nachmittag am See verbracht.');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-text-only-390-light.png'),
+      path: test.info().outputPath('r1-text-only-390-light.png'),
     });
   });
 
@@ -321,7 +312,7 @@ test.describe('R1 Memory Create evidence', () => {
       .getByLabel(de.memory.titleLabelOptional, { exact: true })
       .fill('Unser Tag am See');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-title-only-390-light.png'),
+      path: test.info().outputPath('r1-title-only-390-light.png'),
     });
   });
 
@@ -330,15 +321,12 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
+    await addComposerMedia(page, CABIN_FIXTURE);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-photo-only-390-light.png'),
+      path: test.info().outputPath('r1-photo-only-390-light.png'),
     });
   });
 
@@ -349,10 +337,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width: 390, height: 1000 });
       await openMemoryCreate(page);
-      await page
-        .getByRole('button', { name: photoSources.addMedia, exact: true })
-        .click();
-      await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
+      await addComposerMedia(page, CABIN_FIXTURE);
       await expect(
         page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
       ).toBeVisible();
@@ -364,17 +349,16 @@ test.describe('R1 Memory Create evidence', () => {
         .getByLabel(de.memory.titleLabelOptional, { exact: true })
         .fill('Unser Tag am See');
       await page.screenshot({
-        path: path.join(EVIDENCE_DIR, `r1-mixed-390-${colorScheme}.png`),
+        path: test.info().outputPath(`r1-mixed-390-${colorScheme}.png`),
       });
-      const date = page.getByLabel(de.memory.dateLabel, { exact: true });
+      const date = await showComposerDate(page);
       await expect(date).toHaveAttribute('type', 'date');
       await date.fill('2026-08-15');
       await expect(date).toHaveValue('2026-08-15');
       await page.screenshot({
-        path: path.join(
-          EVIDENCE_DIR,
-          `r1-mixed-date-open-390-${colorScheme}.png`,
-        ),
+        path: test
+          .info()
+          .outputPath(`r1-mixed-date-open-390-${colorScheme}.png`),
       });
     });
   }
@@ -400,7 +384,7 @@ test.describe('R1 Memory Create evidence', () => {
       page.getByRole('button', { name: de.memory.save }),
     ).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-200pct-text-390-light.png'),
+      path: test.info().outputPath('r1-200pct-text-390-light.png'),
       fullPage: true,
     });
   });
@@ -412,7 +396,7 @@ test.describe('R1 Memory Create evidence', () => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-reduced-motion-390-light.png'),
+      path: test.info().outputPath('r1-reduced-motion-390-light.png'),
     });
   });
 
@@ -425,7 +409,7 @@ test.describe('R1 Memory Create evidence', () => {
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}`));
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, 'r1-confirmed-result-390-light.png'),
+      path: test.info().outputPath('r1-confirmed-result-390-light.png'),
     });
   });
 });

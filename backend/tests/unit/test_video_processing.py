@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import json
 import os
 import subprocess
@@ -11,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageChops
 
 from eimir.attachments import videos
 from eimir.config import get_settings
@@ -20,7 +19,7 @@ from tests.support.video import processor as processor
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"
 
 
-def audio_packet_hashes(path: Path) -> list[str]:
+def packet_hashes(path: Path, stream: str) -> list[str]:
     content = videos._run(
         [
             get_settings().ffprobe_path,
@@ -28,7 +27,7 @@ def audio_packet_hashes(path: Path) -> list[str]:
             "error",
             *videos._input(path),
             "-select_streams",
-            "a:0",
+            stream,
             "-show_packets",
             "-show_data_hash",
             "sha256",
@@ -40,6 +39,31 @@ def audio_packet_hashes(path: Path) -> list[str]:
         probe=True,
     )
     return [packet["data_hash"] for packet in json.loads(content)["packets"]]
+
+
+def decoded_frame(path: Path, target: Path) -> Image.Image:
+    videos._run(
+        [
+            get_settings().ffmpeg_path,
+            "-nostdin",
+            "-v",
+            "error",
+            "-y",
+            *videos._input(path),
+            "-ss",
+            "0.5",
+            "-frames:v",
+            "1",
+            "-an",
+            "-q:v",
+            "2",
+            "-f",
+            "image2",
+            str(target),
+        ]
+    )
+    with Image.open(target) as image:
+        return image.convert("RGB")
 
 
 def test_standalone_worker_can_prepare_attachment_persistence_without_api_bootstrap() -> None:
@@ -74,6 +98,14 @@ def test_real_video_is_sanitized_fully_decoded_and_has_clean_poster(
         assert private not in content
         assert private not in result.thumbnail
     assert videos._metadata(videos._probe(result.path), clean=True) == (96, 64, 1)
+    # SEI is deliberately stripped; decoded pixels must still remain identical.
+    assert (
+        ImageChops.difference(
+            decoded_frame(SAMPLE, tmp_path / "original.jpg"),
+            decoded_frame(result.path, tmp_path / "retained.jpg"),
+        ).getbbox()
+        is None
+    )
 
 
 def test_truncated_video_never_produces_ready_content(processor, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
@@ -158,57 +190,88 @@ def test_normalizable_input_does_not_relax_retained_playback_contract(
         videos._metadata(info, clean=True)
 
 
+@pytest.mark.parametrize("dimensions", [(3840, 2160), (2160, 3840), (1920, 1440)])
+def test_unprepared_high_resolution_video_is_rejected_without_server_encoding(
+    dimensions: tuple[int, int],
+) -> None:
+    stream = {
+        "index": 0,
+        "codec_type": "video",
+        "codec_name": "h264",
+        "pix_fmt": "yuv420p",
+        "width": dimensions[0],
+        "height": dimensions[1],
+    }
+    info = {"streams": [stream], "format": {"duration": "1"}}
+    assert videos._metadata(info)[:2] == dimensions
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_DIMENSIONS_EXCEEDED"):
+        videos._normalization(info)
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_DIMENSIONS_EXCEEDED"):
+        videos._metadata(info, clean=True)
+
+
+@pytest.mark.parametrize("dimensions", [(1920, 1080), (1080, 1920), (640, 480)])
+def test_compatible_1080p_and_smaller_recordings_keep_the_lossless_path(
+    dimensions: tuple[int, int],
+) -> None:
+    stream = {
+        "index": 0,
+        "codec_type": "video",
+        "codec_name": "h264",
+        "pix_fmt": "yuv420p",
+        "width": dimensions[0],
+        "height": dimensions[1],
+    }
+    info = {"streams": [stream], "format": {"duration": "1"}}
+    options = videos._normalization(info)
+    assert options[options.index("-c:v") + 1] == "copy"
+    assert videos._metadata(info, clean=True)[:2] == dimensions
+
+
 @pytest.mark.parametrize(
-    ("filename", "dimensions", "has_audio"),
+    "filename",
     [
-        ("hevc-sdr.mp4", (96, 64), True),
-        ("hevc-hlg.mp4", (96, 64), True),
-        ("hevc-pq.mp4", (96, 64), True),
-        ("hevc-main10.mov", (96, 64), False),
-        ("hevc-rotated.mov", (64, 96), False),
-        ("h264-high10-pcm.mov", (96, 64), True),
-        ("h264-mp3.mp4", (96, 64), True),
+        "hevc-sdr.mp4",
+        "hevc-hlg.mp4",
+        "hevc-pq.mp4",
+        "hevc-main10.mov",
+        "hevc-rotated.mov",
+        "h264-high10-pcm.mov",
+        "h264-mp3.mp4",
+        "pq-highlight-steps.mp4",
+        "pq-mastered-steps.mp4",
+        "hlg-highlight-steps.mp4",
     ],
 )
-def test_common_smartphone_recordings_produce_clean_playable_media(
-    processor, tmp_path: Path, filename: str, dimensions: tuple[int, int], has_audio: bool
+def test_real_unprepared_recordings_are_never_reencoded_or_published(
+    processor, tmp_path: Path, filename: str
 ) -> None:  # type: ignore[no-untyped-def]
-    source = SAMPLE.parent / filename
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_CODEC_UNSUPPORTED"):
+        videos.process(SAMPLE.parent / filename, tmp_path)
+    assert not (tmp_path / "sanitized.mp4").exists()
+
+
+def test_real_device_prepared_1080p_preserves_every_decoded_pixel(
+    processor, tmp_path: Path
+) -> None:  # type: ignore[no-untyped-def]
+    source = SAMPLE.parent / "detail-motion-1080p-avc.mp4"
     result = videos.process(source, tmp_path)
-    assert (result.width, result.height) == dimensions
-    assert result.thumbnail
-    info = videos._probe(result.path)
-    primary, audio = videos._streams(info)
-    assert primary["codec_name"] == "h264"
-    assert primary["pix_fmt"] in {"yuv420p", "yuvj420p"}
-    assert len(audio) == int(has_audio)
-    assert all(s["codec_name"] == "aac" for s in audio)
-    assert abs(float(info["format"]["duration"]) - 1) < 0.1
-    assert all(s["codec_type"] in {"video", "audio"} for s in info["streams"])
-    if filename.startswith("hevc"):
-        assert not any("rotation" in side for side in primary.get("side_data_list", []))
-    assert b"synthetic-private" not in result.path.read_bytes()
-    assert b"synthetic-private" not in result.thumbnail
-    if filename in {"hevc-sdr.mp4", "hevc-hlg.mp4", "hevc-pq.mp4"}:
-        # The existing AAC recording survives normalization byte for byte.
-        original_audio = audio_packet_hashes(source)
-        assert original_audio and audio_packet_hashes(result.path) == original_audio
-    if filename in {"hevc-hlg.mp4", "hevc-pq.mp4"}:
-        assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
-        assert primary["color_space"] == "bt709"
-        assert not primary.get("side_data_list")
-        # Known flat red/green/blue bars in the synthetic source must retain
-        # readable brightness and their dominant hue after actual tone mapping.
-        # Merely relabelling the HDR YUV samples does not satisfy these bounds.
-        with Image.open(io.BytesIO(result.thumbnail)) as poster:
-            rgb = poster.convert("RGB")
-            for channel, x in enumerate([50, 130, 360]):
-                pixel = rgb.getpixel((x, 400))
-                assert pixel[channel] > 160
-                assert all(
-                    value < pixel[channel] / 2 for c, value in enumerate(pixel) if c != channel
-                )
-    assert videos._metadata(info, clean=True)[:2] == dimensions
+    assert (result.width, result.height) == (1920, 1080)
+    assert (
+        ImageChops.difference(
+            decoded_frame(source, tmp_path / "source.jpg"),
+            decoded_frame(result.path, tmp_path / "retained.jpg"),
+        ).getbbox()
+        is None
+    )
+
+
+def test_real_prepared_audio_packets_survive_server_validation_unchanged(
+    processor, tmp_path: Path
+) -> None:  # type: ignore[no-untyped-def]
+    result = videos.process(SAMPLE, tmp_path)
+    packets = packet_hashes(SAMPLE, "a:0")
+    assert packets and packet_hashes(result.path, "a:0") == packets
 
 
 def test_non_media_tracks_and_attached_pictures_cannot_replace_the_recording() -> None:
@@ -221,7 +284,14 @@ def test_non_media_tracks_and_attached_pictures_cannot_replace_the_recording() -
                 "disposition": {"attached_pic": 1},
             },
             {"index": 3, "codec_type": "data"},
-            {"index": 5, "codec_type": "video", "codec_name": "h264", "pix_fmt": "yuv420p"},
+            {
+                "index": 5,
+                "codec_type": "video",
+                "codec_name": "h264",
+                "pix_fmt": "yuv420p",
+                "width": 96,
+                "height": 64,
+            },
             {"index": 6, "codec_type": "audio", "codec_name": "aac"},
         ]
     }

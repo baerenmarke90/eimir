@@ -3,6 +3,19 @@ import { App } from '@capacitor/app';
 import { focusManager } from '@tanstack/react-query';
 import { isCapacitorNative } from './pwa';
 
+/**
+ * Marks the document as running inside the native app so platform
+ * conventions (such as hidden touch scrollbars) follow the runtime platform,
+ * never the viewport width. Browsers keep their own scrollbar behavior.
+ */
+export function markNativeRuntime(
+  root: HTMLElement = document.documentElement,
+  isNative: boolean = isCapacitorNative(),
+): void {
+  if (isNative) root.dataset.runtime = 'native';
+  else delete root.dataset.runtime;
+}
+
 export function handleNativeBackButton(canGoBack: boolean): void {
   if (canGoBack) {
     window.history.back();

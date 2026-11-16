@@ -10,6 +10,7 @@ Name | Type
 `birthday` | Date
 `birthdayYearKnown` | boolean
 `displayName` | string
+`note` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
 `showBirthdayOnDashboard` | boolean
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -25,6 +26,7 @@ const example = {
   "birthday": null,
   "birthdayYearKnown": null,
   "displayName": null,
+  "note": null,
   "relationship": null,
   "showBirthdayOnDashboard": null,
   "visibility": null,

@@ -94,7 +94,7 @@ test('cross-surface journeys follow their real destination rather than their his
     ['DailyInsightsPage', 'today-pro-insights'],
     ['PlaceProductPage', 'moment-relation-picker'],
     ['PlanProductPage', 'relationship-reflections'],
-    ['SharedPhotosPage', 'story-discover-tapestry'],
+    ['MediaOverviewPage', 'story-discover-tapestry'],
     ['CollectionProductPage', 'today-pinned-collection'],
     ['M4ProductPages', 'private-area-reference'],
   ]) {

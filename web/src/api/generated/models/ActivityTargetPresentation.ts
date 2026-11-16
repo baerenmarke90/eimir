@@ -29,6 +29,12 @@ import {
 export interface ActivityTargetPresentation {
     /**
      * 
+     * @type {boolean}
+     * @memberof ActivityTargetPresentation
+     */
+    concealed?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof ActivityTargetPresentation
      */
@@ -68,6 +74,7 @@ export function ActivityTargetPresentationFromJSONTyped(json: any, ignoreDiscrim
     }
     return {
         
+        'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'targetId': json['targetId'],
         'targetType': EngagementTargetFromJSON(json['targetType']),
         'title': json['title'] === undefined ? undefined : json['title'] === null ? null : json['title'],
@@ -85,6 +92,7 @@ export function ActivityTargetPresentationToJSONTyped(value?: ActivityTargetPres
 
     return {
         
+        'concealed': value['concealed'],
         'targetId': value['targetId'],
         'targetType': EngagementTargetToJSON(value['targetType']),
         'title': value['title'],

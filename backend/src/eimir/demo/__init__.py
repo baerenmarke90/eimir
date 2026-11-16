@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from eimir.config import Environment
 from eimir.core import clock
+from eimir.demo.feature_examples import ensure_feature_examples
 from eimir.demo.finalize import ensure_story_structure
 from eimir.demo.presentation import normalize_demo_content
 from eimir.demo.reminders import ensure_reminder_examples
@@ -16,19 +17,13 @@ from eimir.demo.service import create_demo_space as _create_demo_space
 from eimir.demo.service import reset_demo_space as _reset_demo_space
 from eimir.demo.wish_detective import ensure_wish_detective_examples
 from eimir.entitlements import service as entitlement_service
-from eimir.entitlements.models import (
-    Capability,
-    EntitlementSourceType,
-    EntitlementStatus,
-    EntitlementTier,
-)
+from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 
-_DEMO_GAMES_ENTITLEMENT_REFERENCE = "canonical-demo-games"
-_DEMO_TODAY_PRO_ENTITLEMENT_REFERENCE = "canonical-demo-today-pro"
+_DEMO_PRO_ENTITLEMENT_REFERENCE = "canonical-demo-pro"
 
 
-def _ensure_games_entitlement(session: Session, result: DemoSeedResult) -> None:
-    """Keep the canonical demo playable through the normalized Premium boundary."""
+def _ensure_pro_entitlement(session: Session, result: DemoSeedResult) -> None:
+    """Give both demo personas the standard Pro capabilities for their Space."""
     instant = clock.now()
     entitlement_service.record_grant(
         session,
@@ -38,34 +33,10 @@ def _ensure_games_entitlement(session: Session, result: DemoSeedResult) -> None:
         status=EntitlementStatus.ACTIVE,
         tier=EntitlementTier.PREMIUM,
         effective_from=instant,
-        effective_until=None,
-        external_reference=_DEMO_GAMES_ENTITLEMENT_REFERENCE,
+        external_reference=_DEMO_PRO_ENTITLEMENT_REFERENCE,
         source_event_at=instant,
-        capabilities=[Capability.GAMES_COUPLE.value],
-        metadata={"fixture": "canonical_demo_games"},
-    )
-
-
-def _ensure_today_pro_entitlement(session: Session, result: DemoSeedResult) -> None:
-    """Keep the canonical demo Today Pro capabilities active through the normalized boundary."""
-    instant = clock.now()
-    entitlement_service.record_grant(
-        session,
-        space_id=result.space_id,
-        account_id=result.lea_id,
-        source_type=EntitlementSourceType.TEST_FIXTURE,
-        status=EntitlementStatus.ACTIVE,
-        tier=EntitlementTier.PREMIUM,
-        effective_from=instant,
-        effective_until=None,
-        external_reference=_DEMO_TODAY_PRO_ENTITLEMENT_REFERENCE,
-        source_event_at=instant,
-        capabilities=[
-            Capability.DAILY_INSIGHTS.value,
-            Capability.DAILY_QUOTE.value,
-            Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
-        ],
-        metadata={"fixture": "canonical_demo_today_pro"},
+        capabilities=None,  # Resolve the current Pro catalog through the entitlement service.
+        metadata={"fixture": "canonical_demo_pro"},
     )
 
 
@@ -107,9 +78,13 @@ def _ensure_product_examples(
         lea_id=result.lea_id,
         alex_id=result.alex_id,
     )
-    _ensure_games_entitlement(session, result)
-    _ensure_today_pro_entitlement(session, result)
+    _ensure_pro_entitlement(session, result)
     _ensure_demo_quote_preferences(session, result)
+    if result.created:
+        # Like the story structure, only a new canonical Space or a reset gets
+        # these, so ``ensure`` never restores content a visitor removed. After
+        # the Pro grant: partner location is a Pro capability.
+        ensure_feature_examples(session, result, reference_date=reference_date)
 
 
 def create_demo_space(

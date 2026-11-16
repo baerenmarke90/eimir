@@ -129,6 +129,53 @@
       }
     },
     {
+      "id": "WISH_REMINDER_DUE-v1",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a71f1",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OShHtQCwnuBJBmVU.7Vj4JggxDtXKgV7dzurKBZrSxFjvaudYkE5WRr9JxaXiaGtZxkzBJuLaZBSAKf6sijJltYEkcGGDlF5Ilgpx5ZNIF5ALDWqQ122pRXPBK51-PlH2AOf-mDVUZukDXX4MFR48lTfc4UwIgijQl_UBKxIZtcfR_ObbLylXYb_N1RAADA4RI-Tmq8Bm7u5OuELVNVcKw2mqvmmafphhRmBqFQNC0nCLCdG4iYCxMU_1Hy__fiZy45jxHKn-c0rn0xZy7vAmfg.b7pbYrAPmxS654milCZozg",
+      "expectedBody": {
+        "de": "Du wolltest dich an einen Wunsch erinnern lassen.",
+        "en": "You asked to be reminded about a wish."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
+      "id": "WISH_REMINDER_DUE-v2-ignored-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a71f2",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "This text must stay out of the preview."
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..NnAzscNZosV9KD3A.BiGap3zfHoLtbRAPBjH2e033vQMsgqFrbRQMQJZay98-0gHDhABdwt2gzg7RYPvwdXoe5AfPP0QtWnU4frfry0uvKJ6vaFPCGpc4Gv1yEKIRHS-dOMRp5XBCQGWr-aXOE5XpszDNWrjHwXO2xVS_lV3UE-1FfXdCOg6dXMoCE8FYH4dnbCJ6G_lQJYt4uiSjAOldsM04U9rVVCL6EWIosRSkhkaT4BoSwBF_FbMjrIZQhHGSAajSN8oGuH38HBjwEYZmM8Xa0EajBUps50Uz73kH35weHALquKi6uU4uRKWAgqXJ8cjZrYvTfKcEsTbJAgTicAxaLO1yMT5bzpjQBnP5tXxyFPT2.o72ykmTb-Sr9fgRlTpfpmA",
+      "expectedBody": {
+        "de": "Du wolltest dich an einen Wunsch erinnern lassen.",
+        "en": "You asked to be reminded about a wish."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
       "id": "REMINDER_DUE-empty",
       "payload": {
         "v": 1,
@@ -559,12 +606,12 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..E8wLAtxVLQw_mF3B.ue-_6hMPeGMhVHAlNAlpqbaVfqmbNmLlqk8q5bm8VLmahkG4YdBI7S0BReIES_MJik-OTnuAFcIUL6feLiP-LsIzUwrBY7wwxhYIzcINyVJaaE5EUGInNSA_Tnk2fMXmeBpM82Z1tFYksbsdyn9P0XxpsHUdvvvSLEeotGm0sl6ZSm3MMEtSllBWf1hM_4PhDQOqcg134fa61zmFMuAxJVVmLnNu1shttoq-3BykBaMYuskq8mklj_rvWzxk7HeHslKZnKg.YKnZaZvBKePh3CWl8sP1mw",
       "expectedBody": {
-        "de": "Alex möchte mit dir Wünsche auswählen.",
-        "en": "Alex would like to choose wishes with you."
+        "de": "Alex fragt: Was machen wir als Nächstes? Markiere deine Favoriten.",
+        "en": "Alex asks: What shall we do next? Mark your favourites."
       },
       "expectedAction": {
-        "de": "Wunschauswahl ansehen",
-        "en": "View wish selection"
+        "de": "Favoriten markieren",
+        "en": "Mark favourites"
       }
     },
     {
@@ -582,12 +629,12 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..lj0JFow-DgWtsNEu.HOfq8eLclONgOwu2kquSBIYO_q2P9pC3xLDslWPhQ7OD-SD_CkvcikM5QinNVyo0qs9MTy4ADOrohS-YaF9gTKIlNX2fEInuEJZAPXdAFcqxVFYkmUKDQd_QLbmWaDRDnTmHFOe8sSlkUNHldLQ0dtjkCZNz9gBUhzzDqEZ79OCEekcTJ0mAsj467eol5NGW80bdQOlf4-PU1sez32ZaB_THI4zQJAxC_NTonY3SI_ppygMZJxwExhOlqCckT1gGpVZz6nMnYrKXYx1uKoFa7zEAqXcijg.79UjV9qkzIhSpd2NFFF6Cg",
       "expectedBody": {
-        "de": "Alex möchte mit dir Wünsche auswählen.",
-        "en": "Alex would like to choose wishes with you."
+        "de": "Alex fragt: Was machen wir als Nächstes? Markiere deine Favoriten.",
+        "en": "Alex asks: What shall we do next? Mark your favourites."
       },
       "expectedAction": {
-        "de": "Wunschauswahl ansehen",
-        "en": "View wish selection"
+        "de": "Favoriten markieren",
+        "en": "Mark favourites"
       }
     },
     {
@@ -605,12 +652,12 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mQsj1-NWcPpMa0DV.W4jNRBbtepgtT5nI9LsxElmWexjxDyCMfQXarOIPhVKR7V0iLI8sd_J8WW48Z434OveEBMr5mpgz9hxTAB9lor0dl4Ky6B3V6lElsH9rAsTOHSKwLauxLORAoWfYUnTMbu8-gj161EGipBAFoJKN4MOgs-zvEhlYygDdwF-IjQcBNMeorWnhr_zDB7tv9Mc8EBIzXWPMrAdlz8iWQGoLY_cmkN7Qp-RPhJh4YfD5zVoa36i7AlXbrIvMit_Bpk5tHwm19Q.qgox8C_ISu9AIMRvccTrKQ",
       "expectedBody": {
-        "de": "Eure gemeinsame Wunschauswahl steht fest.",
-        "en": "Your shared wish selection is ready."
+        "de": "Was machen wir als Nächstes? Alex hat auch gewählt, euer Ergebnis ist da.",
+        "en": "What shall we do next? Alex has chosen too, your result is here."
       },
       "expectedAction": {
-        "de": "Wunschauswahl ansehen",
-        "en": "View wish selection"
+        "de": "Ergebnis ansehen",
+        "en": "View result"
       }
     },
     {
@@ -628,12 +675,128 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..oooND0kep3D2tSem.vqIsBnDKt6eorJ31TVc4rIJrhICRaWIJXYL6WvQCENFPCC1C2dUIkbyDVGuVUTGcMPXvnDWa0NCnWjSbrsKnPD1SmRUWb5dJP4tp8xDNPj-853DwGwuReTp3jbICiBsssavGaKcBqZGRWElkO_bZq1ttIKEg9Yp8-FBuRCPnmqkwx3soiLcVYwUbEp17j5dz_1-Tf3sdhou0OX5ZkxacmAgo-aPIcW7_XX5remAbnu8PJH021U5Lga9eqII4DfFR6DG_DqtmSLEVyaw8q1j6NAS51bpx.xwrD8pBTfUhEhfBGgjzixg",
       "expectedBody": {
-        "de": "Eure gemeinsame Wunschauswahl steht fest.",
-        "en": "Your shared wish selection is ready."
+        "de": "Was machen wir als Nächstes? Alex hat auch gewählt, euer Ergebnis ist da.",
+        "en": "What shall we do next? Alex has chosen too, your result is here."
       },
       "expectedAction": {
-        "de": "Wunschauswahl ansehen",
-        "en": "View wish selection"
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "WISH_SELECTION_RANDOM_REQUESTED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7101",
+        "kind": "WISH_SELECTION_RANDOM_REQUESTED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..FdoOInWFNbqt-MEF.xFXs-mO86JDZTdPLBGdDNCKInHDFWYFGKCyahXCM_lz8sdp_2lqW1QkjS7JGGaaXr8-fDey5F9nn9uISr7TVYkbb6_UZ7rGpVlkSS8pgKxXwW-r_OycsLHOI1NGYL7JTEPL2Lre2ISiaGTsPB17RxqT9PErPdhnAsf2aM7h2bbQmyVgW3sQ140Gm0svWFIOFjEnTwJrKBnOAHiYhligRlbgV26WACEpOkA2eYNSXXsqLir8VhZsZzYasP9HyybM8G0IdYc5lNBvOzSk5h836.vp1hzAMVxsP7X7sEzjq6gw",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex möchte den Zufall entscheiden lassen.",
+        "en": "What shall we do next? Alex would like chance to decide."
+      },
+      "expectedAction": {
+        "de": "Antworten",
+        "en": "Reply"
+      }
+    },
+    {
+      "id": "WISH_SELECTION_RANDOM_REQUESTED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7102",
+        "kind": "WISH_SELECTION_RANDOM_REQUESTED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..7Op9R6eGT9txLZAJ.ysSoAY6PPoD_aDoUyR0ZeTzV-H-TVStRaL_o66_1Z8X3wFvEN5ahHu62SlC-rsOAqP43BntRVym-dAVk9tIwiSwX6kiWKmvFIOam4dTi_MAVRkq8pufgVM9ibPy2_BRAKIc0NASGyRWFzxPZf_Tc4TsSb6pq-veAJkUg7yfx-OYhFRO1Dy0f6zwrVIB0oiWH3Iyribp4rqqcYFm2EjNsSZWKlNXTm8FsRHrc67xHM0uIwm1RmLeaPZo_ai2qgRsZym7v72HFiYTB17usfU7KHqYKI5BxPG4xFwAwIGmK_28.6sJ9freseOoMK1doOPRQGw",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex möchte den Zufall entscheiden lassen.",
+        "en": "What shall we do next? Alex would like chance to decide."
+      },
+      "expectedAction": {
+        "de": "Antworten",
+        "en": "Reply"
+      }
+    },
+    {
+      "id": "WISH_SELECTION_RANDOM_ACCEPTED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7103",
+        "kind": "WISH_SELECTION_RANDOM_ACCEPTED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..AjQkL6NBLg50AmJS.EE9xu25eEyFkXo7j1opsa-mb4QdmFhsBEKcah93yvpye6EF6MMlcFtPlsKEFVbgvx1oPYNVFDtSMViWTm0MXPfCjSyDzv9nYarAaZHf7r2daYn0gpB199ewyjDFfJqmgZbkC2LZRp5CoGaYsYVvu1toyTXlEwz_eXqxijajDmlRlxcd256yqjEWTh_RyrLQfizgoV-1kOBxh7HDqc0aRQDsLfFjJyqI4T6oreI_e1OSPVDirxbBPHrMw_6-1I6wKrwSYTX7oslHjcrnyuhY.7uUcCw9JSwkLmyTMKlxseQ",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat zugestimmt, der Zufall hat entschieden.",
+        "en": "What shall we do next? Alex agreed, chance has decided."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "WISH_SELECTION_RANDOM_ACCEPTED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7104",
+        "kind": "WISH_SELECTION_RANDOM_ACCEPTED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YRm2pvnSDpXaLufp.ZYaXq0WIKDi-qslUVCh9lnrghRfJRU9RayKu8LDZvV-ic-84NFa9bA5QKI7rYKLgrzkB1JuC9ok11pHHy6QrQLw0d0DJ4GAzFEydJJJtQA4IAoLQUQ1KSqybCcbwyY3LzDr5zNj5sh3im-bwkRCtyB0uot75myuR2DrgkK6Zhxokyor8zkcTBmlf-UFuUCggojZSJuM8Ke7WPyQtXow7vJ5ajoPYFTwIJz12g8f1QHy6MgA6k3tZlqNGFzUFxyu-uTUjBQPfwy9mi7VbnQGK7MQSS_MDn_C0qS4T7AzZhw.AAYUHKv6_yxhPh1wYa252A",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat zugestimmt, der Zufall hat entschieden.",
+        "en": "What shall we do next? Alex agreed, chance has decided."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "WISH_SELECTION_SHARED-v2-count",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7105",
+        "kind": "WISH_SELECTION_SHARED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "3"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..hrc8TrlA9ZqU0hHQ.d-jqfNhqMIR79kfnwBGswl5ENHRBp0dYdcHsZefX5MZqWxS9pJZHK2q-6Zxprg2iU8jyo-NUe-2UMeU2nfFg2oYP7MJz4Z77taZiqv9cYweTnSGw9UNkHijZfAycAzKmtadUVEIDkN3IgddUkx3geeyNyKCH2-gfSzEA0790Zijp0A8DkuHM9C6sKJpHobcGZTyZLqjqfO6ljBG3wONvf4ZoPGfZYSwF4JxF498XEFU8K80pkz27qgl5-M2HlCwqQrCUufK68qqv8dBTP2xuhHQ9oZ_1gkSp24rFn_dpFfoF.n0JzpCPBCvNfhm8aTqSWXA",
+      "expectedBody": {
+        "de": "Alex fragt: Was machen wir als Nächstes? Markiere deine Favoriten unter 3 Ideen.",
+        "en": "Alex asks: What shall we do next? Mark your favourites among 3 ideas."
+      },
+      "expectedAction": {
+        "de": "Favoriten markieren",
+        "en": "Mark favourites"
       }
     },
     {
@@ -1287,6 +1450,100 @@
       "expectedAction": {
         "de": "Moment ansehen",
         "en": "View moment"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7036",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..WmsyCajW0SmdEIId.zpybiLvGxYqMeHLfm0XNFeIe6lg3B4adpUjyZpUZsPbTSynrHvhPThPCoo0f9HQjkZrlYNedUCFgsRY3Qmg34f5w9SreFKbdchLdP3fThUfaHHIY-DrLJOPy3dgse5Ym7RVFzfdcSV_oWs0m8twXdOlGOCu0Gx3usTY1XDsNdJSN0slsU0Y7m8IV3DnXbFUNYVJ4kPK2laNYVQMG3gClimYihB2oXOCIAvQWvYedcekp_2wu82CzTQu7wA.k7lBZbJmSg4dUPfGazTXpA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7037",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Hpfeg7EqEyxn1fDq.mpjejNGDzvleli-Hi40O7BY1sJlf-Ck1SV-Qy3f37ENywZ0eOx9fCBqvBrlKV0Uf8c7xnlwGX-pPqf4oM2ZsuLYXZATb6lf41sOFJMt1_QgYiIb4N8wNAmYxx-MrP-hGjdMxGd45Si6vB7mtL2_8PS1DiZz4qTqO1dax4paG_qRvB7Xz_okZIYK22I8vCFmNChEKHvgi42H8Wt5JxpMe10FYf6K3YeB6NbvNReRm03r4AB6hiOic1DMyKx4-EXMAg6OHhuj1zoG1f0XH.DQzhynX39Q4Rs4LpYMLM3Q",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7038",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5UkV8u2g8XLKclLX.CSqPBJFMOTZ5u5Q50sh2rEjhS8Qf5WCLD9K_gLMLTh1Tf6tFsF9gci5Tpndr0NYbKuqpie2pgcb0O-WsKvRzgYyI7WctUxCQTst14hBZ6j3a9vLdSwo6njRJGGPNO5TJFIlfAqaKuOqLy67HYoB7r-eLfw7dVeh21YUNUTNfbmf68weRyJ3bk2f1YR3j_J9nb8zps08Yp_Hdmchpru5h72Hebfu_1jGovFmcQElLyNVKZyddkQzDewNowmjxiYAvqWPJRo0.83c9t3wpJkkUYSPI1cA3NA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7039",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..myOWKU0ofSPgPKH9.3w9UnPhZu86Ra1fDYjYTNclfzLaRrflds7ruvbbGAzU5iakUDMBwht1OGn3RvJGvvFg4n1kECoXh3m3IYiFMeEr7Ksokm_xI9TcJc2_RS_jWCDDCsTXlMn-euo3nImzx2JQo_Pe-nt9JuvzNTzK4frz99qPqTFzkPjAxDhsUnNiFsp0TCp6mNv8366Un5TN5OS5TIzF8QHssVAGC7TKcNL0fJW4E0WMsjd9jjiH48NliLPYRJBbVAjgxbMAz8oPBj2SlyDcFrB8S9g2J3N3RPPkinG4eLQ.GXB4a71QATjYjJECpT9_sA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
       }
     }
   ]

@@ -37,7 +37,7 @@ const photoPlaces = {
   actionButton: 'Aktionen',
   edit: 'Ort ansehen',
   maps: 'In Google Maps öffnen (extern)',
-  mapAddress: '{{address}} – in Google Maps öffnen (extern)',
+  mapAddress: '{{address}} – auf eurer Karte ansehen',
   viewMap: 'Auf Karte ansehen',
   locationFallback: 'Aufnahmeort',
   remove: 'Zuordnung entfernen',

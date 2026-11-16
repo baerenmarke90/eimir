@@ -52,3 +52,60 @@
   display: grid;
   gap: var(--space-3);
 }
+
+.experience-answers-preview {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+}
+.experience-answer-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.experience-answer-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 var(--space-8);
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--identity-icon-accent);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  overflow: hidden;
+}
+.experience-answer-avatar img {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.experience-answer-preview[data-own] .experience-answer-avatar {
+  border-color: var(--identity-icon-cool);
+}
+.experience-answer-preview-words {
+  display: grid;
+  min-width: 0;
+}
+.experience-answer-preview-words strong {
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.experience-answer-preview-words > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

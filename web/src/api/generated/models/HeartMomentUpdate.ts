@@ -27,6 +27,13 @@ import {
     AttachmentEntryToJSON,
     AttachmentEntryToJSONTyped,
 } from './AttachmentEntry';
+import type { HeartMomentLocation } from './HeartMomentLocation';
+import {
+    HeartMomentLocationFromJSON,
+    HeartMomentLocationFromJSONTyped,
+    HeartMomentLocationToJSON,
+    HeartMomentLocationToJSONTyped,
+} from './HeartMomentLocation';
 
 /**
  * Content update payload.
@@ -82,6 +89,12 @@ export interface HeartMomentUpdate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {HeartMomentLocation}
+     * @memberof HeartMomentUpdate
+     */
+    location?: HeartMomentLocation | null;
+    /**
+     * 
      * @type {string}
      * @memberof HeartMomentUpdate
      */
@@ -126,6 +139,7 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
         'audioTitle': json['audioTitle'] === undefined ? undefined : json['audioTitle'] === null ? null : json['audioTitle'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'location': json['location'] === undefined ? undefined : json['location'] === null ? null : HeartMomentLocationFromJSON(json['location']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'text': json['text'] === undefined ? undefined : json['text'] === null ? null : json['text'],
@@ -150,6 +164,7 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
         'audioTitle': value['audioTitle'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'location': HeartMomentLocationToJSON(value['location']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],
         'text': value['text'],

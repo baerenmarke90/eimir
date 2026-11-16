@@ -1,0 +1,158 @@
+/*
+ * eimir. public main site. Static, no JavaScript.
+ * Color variables intentionally reuse the names and values of web/src/styles.css and
+ * web/src/theme.css (the Web design-system adapter); tools/ci/test_main_site.py fails on drift.
+ */
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/literata-latin-variable.woff2") format("woff2");
+  font-weight: 200 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans-latin-variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --color-background: #e6ebfa;
+  --color-surface: #f3f5fc;
+  --color-surface-subtle: #d6e1f7;
+  --color-border: #bbc9e5;
+  --color-text: #19233e;
+  --color-text-secondary: #58627b;
+  --color-brand-strong: #3055b8;
+  --color-brand-text: #3055b8;
+  --color-brand-glow: #f9eaf4;
+  --color-on-accent: #ffffff;
+  --color-focus: #335dca;
+  --color-text-inverse: #ffffff;
+  --color-text-inverse-muted: rgb(255 255 255 / 90%);
+  --color-entry-hero-start: #23121d;
+  --color-entry-hero-middle: #47192a;
+  --color-entry-hero-end: #75223e;
+  --color-entry-mark-surface: #ffffff16;
+  --color-entry-mark-border: #ffffff45;
+  --color-entry-trust-accent: #aee7d9;
+  --color-action-hero: #b7c8ff;
+  --color-action-hero-hover: #ffffff;
+  --color-on-action-hero: #171b2f;
+  --font-display: "Literata", Georgia, serif;
+  --font-ui: "Instrument Sans", Arial, sans-serif;
+  --radius-pill: 999px;
+  --gutter: 16px;
+}
+:root[data-theme="dark"] {
+  --color-background: #171b2f;
+  --color-surface: #252b43;
+  --color-surface-subtle: #303f62;
+  --color-border: #46506f;
+  --color-text: #f6f7ff;
+  --color-text-secondary: #c4cee8;
+  --color-brand-text: #b7c8ff;
+  --color-brand-glow: #46394f;
+  --color-focus: #b7c8ff;
+  --color-entry-hero-start: #140b12;
+  --color-entry-hero-middle: #29101d;
+  --color-entry-hero-end: #4a182d;
+  --color-entry-mark-surface: #ffffff12;
+  --color-entry-mark-border: #ffffff38;
+  --color-entry-trust-accent: #72d8c4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-background: #171b2f;
+    --color-surface: #252b43;
+    --color-surface-subtle: #303f62;
+    --color-border: #46506f;
+    --color-text: #f6f7ff;
+    --color-text-secondary: #c4cee8;
+    --color-brand-text: #b7c8ff;
+    --color-brand-glow: #46394f;
+    --color-focus: #b7c8ff;
+    --color-entry-hero-start: #140b12;
+    --color-entry-hero-middle: #29101d;
+    --color-entry-hero-end: #4a182d;
+    --color-entry-mark-surface: #ffffff12;
+    --color-entry-mark-border: #ffffff38;
+    --color-entry-trust-accent: #72d8c4;
+  }
+}
+@media (min-width: 390px) { :root { --gutter: 20px; } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font: 400 1.0625rem/1.6 var(--font-ui);
+}
+a { color: var(--color-brand-text); text-underline-offset: 0.2em; }
+a:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; border-radius: 4px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; line-height: 1.15; margin: 0; }
+.wrap { width: min(100% - 2 * var(--gutter), 70rem); margin-inline: auto; }
+
+/* Hero: same rose gradient family as the app's entry screen. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  color: var(--color-text-inverse);
+  background: linear-gradient(160deg, var(--color-entry-hero-start), var(--color-entry-hero-middle) 55%, var(--color-entry-hero-end));
+}
+.topbar { display: flex; align-items: center; justify-content: space-between; padding-block: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font: 600 1.5rem var(--font-display); }
+.brand img { width: 36px; height: 36px; border-radius: 10px; }
+.topbar a.login { color: inherit; min-height: 44px; display: inline-flex; align-items: center; padding-inline: 4px; }
+.hero-body { display: grid; gap: 32px; padding-block: 40px 72px; position: relative; }
+.eyebrow { margin: 0 0 12px; font: 600 0.8125rem var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-entry-trust-accent); }
+.hero h1 { font-size: clamp(2.25rem, 9vw, 3.75rem); max-width: 14ch; }
+.hero p.lead { margin: 18px 0 0; max-width: 34rem; font-size: 1.1875rem; color: var(--color-text-inverse-muted); }
+.hero .hint { margin: 14px 0 0; font-size: 0.9375rem; color: var(--color-text-inverse-muted); }
+
+/* Primary action: visibly filled pill, high contrast on the dark hero. */
+.button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; margin-top: 28px; padding: 0 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-hero); color: var(--color-on-action-hero);
+  font: 600 1.0625rem var(--font-ui); text-decoration: none;
+}
+.button:hover { background: var(--color-action-hero-hover); }
+.button:focus-visible { outline: 3px solid var(--color-action-hero-hover); outline-offset: 3px; }
+
+.orbits { display: none; }
+.hero .orbit { position: absolute; border-radius: 50%; border: 1px solid var(--color-entry-mark-border); background: var(--color-entry-mark-surface); }
+.mark { position: absolute; font: 400 3rem var(--font-display); color: var(--color-text-inverse); }
+
+/* Content: bare page, one heading per section, no card wall. */
+main section.topic { padding-block: 40px; border-top: 1px solid var(--color-border); }
+main section.topic:first-of-type { border-top: 0; }
+.topic h2 { font-size: clamp(1.625rem, 6vw, 2.25rem); }
+.topic p { margin: 14px 0 0; max-width: 40rem; color: var(--color-text-secondary); }
+.topic .tag { display: inline-block; margin-bottom: 10px; font: 600 0.8125rem var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-brand-text); }
+.legal main { padding-block: 40px 56px; overflow-wrap: anywhere; }
+.legal h1 { font-size: clamp(1.875rem, 7vw, 2.5rem); }
+.legal h2 { font-size: 1.375rem; margin-top: 32px; }
+.legal p, .legal address { margin: 12px 0 0; max-width: 40rem; font-style: normal; }
+.notice { padding: 14px 16px; border-radius: 12px; background: var(--color-brand-glow); max-width: 40rem; }
+
+footer { border-top: 1px solid var(--color-border); padding-block: 28px 40px; color: var(--color-text-secondary); font-size: 0.9375rem; }
+footer ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0; margin: 0 0 14px; }
+footer a { display: inline-flex; align-items: center; min-height: 44px; }
+
+@media (min-width: 900px) {
+  .hero-body { grid-template-columns: 1.1fr 0.9fr; align-items: center; padding-block: 72px 104px; }
+  .orbits { display: block; position: relative; min-height: 340px; }
+  .orbit.large { width: 320px; height: 320px; right: 0; top: 0; }
+  .orbit.small { width: 150px; height: 150px; left: 10px; bottom: 0; }
+  .mark { right: 138px; top: 128px; font-size: 4.5rem; }
+  main section.topic { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 40px; padding-block: 56px; }
+  .topic p { margin-top: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .button { transition: background-color 160ms ease-out; }
+}

@@ -23,7 +23,7 @@ const productTour = {
   },
   create: {
     title: 'Etwas festhalten',
-    body: 'Mit dem Plus kannst du einen Moment, einen Wunsch oder einen Plan direkt beginnen.',
+    body: 'Mit dem Plus in Momente kannst du einen Tagebucheintrag, einen Herzmoment oder einen Meilenstein festhalten.',
   },
 };
 

@@ -96,6 +96,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     keys = [definition.key.value for definition in CATALOG]
     assert keys == [
         "relationship_presence",
+        "partner_distance",
         "shared_experience",
         "daily_quote",
         "keepsake",
@@ -195,6 +196,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
     assert response.json() == {
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
+            {"moduleKey": "partner_distance", "visible": True},
             {"moduleKey": "shared_experience", "visible": True},
             {"moduleKey": "daily_quote", "visible": True},
             {"moduleKey": "keepsake", "visible": True},
@@ -289,6 +291,7 @@ def test_pinned_collection_selection_persists_per_account_and_can_be_cleared(
         "moduleKey": "pinned_collection",
         "visible": True,
         "selectedCollectionId": str(collection.id),
+        "selectedCollectionIds": [str(collection.id)],
     }
 
     # The choice is personal even though the Collection itself is shared.
@@ -696,3 +699,226 @@ def test_legacy_order_inserts_rediscovery_and_preserves_independent_visibility(
     partner = _preferences(client, space_id, couple["token_b"]).json()
     assert _item(partner, "retrospective")["visible"] is True
     assert _item(partner, "relationship_signal")["visible"] is True
+
+
+def test_older_clients_without_partner_distance_keep_their_order(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    """#1792 adds `partner_distance`; complete older orders stay valid."""
+    older = [key for key in ALL_MODULE_KEYS if key != "partner_distance"]
+    older = [older[0], *reversed(older[1:])]
+    response = client.put(
+        f"/api/v1/spaces/{couple['space'].id}/dashboard/preferences/order",
+        json={"moduleKeys": older},
+        headers=auth(couple["token_a"]),
+    )
+    assert response.status_code == 200, response.text
+    keys = [item["moduleKey"] for item in response.json()["items"]]
+    assert keys[:2] == ["relationship_presence", "partner_distance"]
+    assert [key for key in keys if key != "partner_distance"] == older
+
+
+# --- Several pinned lists (#1808) ---------------------------------------------
+
+
+def _pin(client, couple, token_key: str, ids: list):  # type: ignore[no-untyped-def]
+    return _patch(
+        client,
+        couple["space"].id,
+        couple[token_key],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionIds": [str(identifier) for identifier in ids]},
+    )
+
+
+def _three_collections(session: Session, couple):  # type: ignore[no-untyped-def]
+    return [
+        _make_collection(session, space=couple["space"], owner=couple["anna"], title=title)
+        for title in ("Einkauf", "Packliste", "Bucket List")
+    ]
+
+
+def test_several_pinned_lists_keep_the_persons_order_and_mirror_the_first(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, bucket = _three_collections(session, couple)
+
+    pinned = _pin(client, couple, "token_a", [packing.id, shopping.id, bucket.id])
+    assert pinned.status_code == 200, pinned.text
+    assert pinned.json() == {
+        "moduleKey": "pinned_collection",
+        "visible": True,
+        "selectedCollectionId": str(packing.id),
+        "selectedCollectionIds": [str(packing.id), str(shopping.id), str(bucket.id)],
+    }
+    reloaded = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert reloaded["selectedCollectionIds"] == [str(packing.id), str(shopping.id), str(bucket.id)]
+
+    reordered = _pin(client, couple, "token_a", [bucket.id, packing.id])
+    assert reordered.json()["selectedCollectionIds"] == [str(bucket.id), str(packing.id)]
+    row = session.scalar(
+        select(DashboardModulePreference).where(
+            DashboardModulePreference.account_id == couple["anna"].id,
+            DashboardModulePreference.module_key == "pinned_collection",
+        )
+    )
+    session.refresh(row)
+    assert row.selected_collection_id == bucket.id
+
+
+def test_the_single_selection_field_still_replaces_the_whole_selection(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, _ = _three_collections(session, couple)
+    _pin(client, couple, "token_a", [shopping.id, packing.id])
+
+    single = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        "pinned_collection",
+        {"selectedCollectionId": str(packing.id)},
+    )
+    assert single.status_code == 200, single.text
+    assert single.json()["selectedCollectionIds"] == [str(packing.id)]
+
+    cleared = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        "pinned_collection",
+        {"selectedCollectionId": None},
+    )
+    assert "selectedCollectionId" not in cleared.json()
+    assert "selectedCollectionIds" not in cleared.json()
+
+
+def test_an_empty_list_clears_the_selection(client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, _ = _three_collections(session, couple)
+    _pin(client, couple, "token_a", [shopping.id, packing.id])
+
+    cleared = _pin(client, couple, "token_a", [])
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json() == {"moduleKey": "pinned_collection", "visible": True}
+    reloaded = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert "selectedCollectionIds" not in reloaded
+
+
+def test_invalid_selections_are_rejected_without_changing_the_current_one(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, _ = _three_collections(session, couple)
+    outsider_collection = _make_collection(
+        session, space=couple["foreign_space"], owner=couple["outsider"], title="Foreign"
+    )
+    _pin(client, couple, "token_a", [shopping.id])
+
+    duplicate = _pin(client, couple, "token_a", [packing.id, packing.id])
+    assert duplicate.status_code == 422
+    assert duplicate.json()["code"] == "DASHBOARD_MODULE_INVALID_SELECTION"
+
+    too_many = _pin(client, couple, "token_a", [shopping.id] * 21)
+    assert too_many.status_code == 422
+
+    foreign = _pin(client, couple, "token_a", [packing.id, outsider_collection.id])
+    assert foreign.status_code == 404
+
+    both = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        "pinned_collection",
+        {"selectedCollectionId": str(shopping.id), "selectedCollectionIds": [str(packing.id)]},
+    )
+    assert both.status_code == 422
+
+    null_list = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        "pinned_collection",
+        {"selectedCollectionIds": None},
+    )
+    assert null_list.status_code == 422
+
+    unsupported = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        "keepsake",
+        {"selectedCollectionIds": [str(shopping.id)]},
+    )
+    assert unsupported.status_code == 422
+    assert unsupported.json()["code"] == "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
+
+    reloaded = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert reloaded["selectedCollectionIds"] == [str(shopping.id)]
+
+
+def test_the_selection_of_several_lists_is_personal(client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, _ = _three_collections(session, couple)
+    _pin(client, couple, "token_a", [shopping.id, packing.id])
+
+    ben = _item(
+        _preferences(client, couple["space"].id, couple["token_b"]).json(), "pinned_collection"
+    )
+    assert "selectedCollectionIds" not in ben
+    _pin(client, couple, "token_b", [packing.id])
+    anna = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert anna["selectedCollectionIds"] == [str(shopping.id), str(packing.id)]
+
+
+def test_a_deleted_list_leaves_the_selection_but_keeps_the_others(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    shopping, packing, bucket = _three_collections(session, couple)
+    _pin(client, couple, "token_a", [shopping.id, packing.id, bucket.id])
+
+    session.delete(shopping)
+    session.flush()
+    session.expire_all()
+
+    reloaded = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert reloaded["selectedCollectionIds"] == [str(packing.id), str(bucket.id)]
+    assert reloaded["selectedCollectionId"] == str(packing.id)
+
+
+def test_a_selection_written_by_an_older_version_is_still_read(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    shopping, _, _ = _three_collections(session, couple)
+    session.add(
+        DashboardModulePreference(
+            account_id=couple["anna"].id,
+            space_id=couple["space"].id,
+            module_key="pinned_collection",
+            selected_collection_id=shopping.id,
+        )
+    )
+    session.flush()
+
+    reloaded = _item(
+        _preferences(client, couple["space"].id, couple["token_a"]).json(), "pinned_collection"
+    )
+    assert reloaded["selectedCollectionId"] == str(shopping.id)
+    assert reloaded["selectedCollectionIds"] == [str(shopping.id)]

@@ -27,6 +27,8 @@ from eimir.attachments import binding as _binding  # noqa: F401
 # Register models. These imports look unused, but they are not.
 from eimir.attachments import models as _attachments  # noqa: F401
 from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
+from eimir.billing import models as _billing  # noqa: F401
+from eimir.calendar_sync import models as _calendar_sync  # noqa: F401
 from eimir.chapters import models as _chapters  # noqa: F401
 from eimir.collections import models as _collections  # noqa: F401
 from eimir.comments import models as _comments  # noqa: F401
@@ -52,6 +54,7 @@ from eimir.people import models as _people  # noqa: F401
 from eimir.photo_sources import models as _photo_sources  # noqa: F401
 from eimir.places import models as _places  # noqa: F401
 from eimir.plans import models as _plans  # noqa: F401
+from eimir.presence import models as _presence  # noqa: F401
 from eimir.private_collections import models as _private_collections  # noqa: F401
 from eimir.private_notes import models as _private_notes  # noqa: F401
 from eimir.profiles import models as _profiles  # noqa: F401

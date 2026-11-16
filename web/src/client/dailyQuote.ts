@@ -1,5 +1,4 @@
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
-import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCatalogView';
 import type { DailyQuotePreferencePatch } from '../api/generated/models/DailyQuotePreferencePatch';
 import type { DailyQuotePreferenceView } from '../api/generated/models/DailyQuotePreferenceView';
@@ -13,13 +12,6 @@ export const RESOURCE_VERSION_CONFLICT = 'RESOURCE_VERSION_CONFLICT';
 export interface DailyQuotePreferenceSnapshot {
   preference: DailyQuotePreferenceView;
   etag: string;
-}
-
-export function dailyQuoteEntitlementQueryKey(
-  accountId: string,
-  spaceId: string,
-): readonly ['daily-quote', 'entitlement', string, string] {
-  return ['daily-quote', 'entitlement', accountId, spaceId] as const;
 }
 
 export function dailyQuoteQueryKey(
@@ -41,23 +33,6 @@ export function dailyQuotePreferencesQueryKey(
   spaceId: string,
 ): readonly ['daily-quote', 'preferences', string, string] {
   return ['daily-quote', 'preferences', accountId, spaceId] as const;
-}
-
-export async function loadDailyQuoteCapability(
-  api: EntitlementsApi,
-  spaceId: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
-  try {
-    const entitlement =
-      await api.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-        { spaceId },
-        signal ? { signal } : undefined,
-      );
-    return entitlement.capabilities.includes(DAILY_QUOTE_CAPABILITY);
-  } catch (error) {
-    throw await normalizeClientError(error);
-  }
 }
 
 export async function loadDailyQuote(

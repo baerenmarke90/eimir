@@ -2,6 +2,8 @@
  * Relationship anniversary and duration preview helpers.
  */
 
+import { dateInputValueToApiDate, localDateInputValue } from './dateInput';
+
 export interface NextAnniversary {
   nextDate: Date;
   daysRemaining: number;
@@ -122,62 +124,35 @@ export function formatRelationshipDuration(
 }
 
 /**
- * Calculates the next occurrence of a relationship anniversary.
- * Handles year boundaries, leap years, and exact current-day matches.
+ * Calculates the next occurrence of an annually repeating calendar day.
+ * The source and reference use UTC calendar components.
  */
 export function calculateNextAnniversary(
   startDateInput: Date | string | null | undefined,
   referenceDate?: Date,
 ): NextAnniversary | null {
   const start = parseDateInput(startDateInput);
-  if (!start) return null;
+  const ref = referenceDate ?? dateInputValueToApiDate(localDateInputValue());
+  if (!start || Number.isNaN(ref.getTime())) return null;
 
-  const ref = referenceDate ?? new Date();
   const startMonth = start.getUTCMonth();
   const startDay = start.getUTCDate();
-
   const refYear = ref.getUTCFullYear();
-  const refMonth = ref.getUTCMonth();
-  const refDay = ref.getUTCDate();
-
-  // If today matches the anniversary month and day:
-  if (refMonth === startMonth && refDay === startDay) {
-    const nextDate = new Date(Date.UTC(refYear, startMonth, startDay));
-    return {
-      nextDate,
-      daysRemaining: 0,
-      isToday: true,
-    };
-  }
-
-  // Determine whether this year's anniversary has already passed:
-  const hasPassedThisYear =
-    refMonth > startMonth || (refMonth === startMonth && refDay > startDay);
-  const targetYear = hasPassedThisYear ? refYear + 1 : refYear;
-
-  // Leap year adjustment for February 29:
-  let targetDay = startDay;
-  if (startMonth === 1 && startDay === 29) {
-    const isLeapYear =
-      (targetYear % 4 === 0 && targetYear % 100 !== 0) ||
-      targetYear % 400 === 0;
-    if (!isLeapYear) {
-      targetDay = 28;
-    }
-  }
-
-  const nextDate = new Date(Date.UTC(targetYear, startMonth, targetDay));
-  const refMidnight = Date.UTC(refYear, refMonth, refDay);
+  const refMidnight = Date.UTC(refYear, ref.getUTCMonth(), ref.getUTCDate());
+  const occurrenceIn = (year: number) => {
+    const lastDay = new Date(Date.UTC(year, startMonth + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(year, startMonth, Math.min(startDay, lastDay)));
+  };
+  const thisYear = occurrenceIn(refYear);
+  const nextDate =
+    thisYear.getTime() >= refMidnight ? thisYear : occurrenceIn(refYear + 1);
   const msPerDay = 1000 * 60 * 60 * 24;
-  const daysRemaining = Math.max(
-    1,
-    Math.round((nextDate.getTime() - refMidnight) / msPerDay),
-  );
+  const daysRemaining = (nextDate.getTime() - refMidnight) / msPerDay;
 
   return {
     nextDate,
     daysRemaining,
-    isToday: false,
+    isToday: daysRemaining === 0,
   };
 }
 

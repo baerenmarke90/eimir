@@ -85,11 +85,17 @@ class TestCrud:
         client,
         couple,
     ) -> None:
-        created = create_wish(client, couple)
+        description = "A cabin by the lake.\nBring warm blankets."
+        created = client.post(
+            path(couple["space"].id),
+            json={**body(), "description": f"  {description}  "},
+            headers=auth(couple["token_a"]),
+        )
         assert created.status_code == 201
         wish = created.json()
         assert UUID(wish["id"]).version == 7
         assert wish["title"] == "Nordlichter sehen"
+        assert wish["description"] == description
         assert wish["status"] == "OPEN"
         assert wish["createdBy"] == str(couple["anna"].id)
         assert wish["creator"]["displayName"] == "Anna"
@@ -102,9 +108,10 @@ class TestCrud:
         assert created.headers["ETag"] == '"1"'
 
         read_response = client.get(
-            f"{path(couple['space'].id)}/{wish['id']}", headers=auth(couple["token_a"])
+            f"{path(couple['space'].id)}/{wish['id']}", headers=auth(couple["token_b"])
         )
         assert read_response.status_code == 200
+        assert read_response.json()["description"] == description
         assert read_response.headers["ETag"] == '"1"'
 
         updated = client.patch(
@@ -114,12 +121,22 @@ class TestCrud:
         )
         assert updated.status_code == 200
         assert updated.json()["title"] == "Nordlichter in Tromsoe sehen"
+        assert updated.json()["description"] == description
         assert updated.json()["version"] == 2
         assert updated.headers["ETag"] == '"2"'
 
+        cleared = client.patch(
+            f"{path(couple['space'].id)}/{wish['id']}",
+            json={"description": None},
+            headers=if_match(couple["token_b"], 2),
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["description"] is None
+        assert cleared.headers["ETag"] == '"3"'
+
         deleted = client.delete(
             f"{path(couple['space'].id)}/{wish['id']}",
-            headers=if_match(couple["token_a"], 2),
+            headers=if_match(couple["token_a"], 3),
         )
         assert deleted.status_code == 204
         afterwards = client.get(
@@ -141,6 +158,7 @@ class TestCrud:
 
         page = client.get(path(couple["space"].id), headers=auth(couple["token_a"])).json()
         assert [entry["id"] for entry in page["items"]] == [second["id"], first["id"]]
+        assert all(entry["description"] is None for entry in page["items"])
         assert page["hasMore"] is False
         assert page["nextCursor"] is None
 

@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session
 from eimir.engagement import notification_preferences
 from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
 from eimir.outbox.models import OutboxEvent
+from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.models import Reminder, ReminderSource
+from eimir.reminders.rules import PLAN_START_RULE
 
 
 def project_notification(session: Session, event: OutboxEvent) -> None:
@@ -30,15 +32,17 @@ def project_notification(session: Session, event: OutboxEvent) -> None:
     if active_recipient is None:
         return
 
-    # Only an ordinary shared manual reminder can expose its definition. Rules
-    # derived from private sources retain the existing content-free due notice.
-    reminder = session.scalar(
-        select(Reminder).where(
-            Reminder.id == event.subject_id,
-            Reminder.space_id == event.space_id,
-            Reminder.source == ReminderSource.MANUAL.value,
-        )
-    )
+    reminder = session.get(Reminder, event.subject_id)
+    target_type, target_id = None, None
+    if reminder is not None and reminder.space_id == event.space_id:
+        if reminder.source == ReminderSource.MANUAL.value:
+            target_type, target_id = EngagementTarget.REMINDER.value, reminder.id
+        elif reminder.rule_key == PLAN_START_RULE:
+            plan = session.get(Plan, reminder.source_id) if reminder.source_id else None
+            if plan is None or plan.status != PlanStatus.PLANNED.value:
+                return
+            # The start reminder may be the only external alert for a new Plan.
+            target_type, target_id = EngagementTarget.PLAN.value, plan.id
 
     statement = (
         postgresql.insert(Notification)
@@ -48,8 +52,8 @@ def project_notification(session: Session, event: OutboxEvent) -> None:
             source_event_id=event.id,
             kind=NotificationKind.REMINDER_DUE.value,
             actor_id=None,
-            target_type=EngagementTarget.REMINDER.value if reminder is not None else None,
-            target_id=reminder.id if reminder is not None else None,
+            target_type=target_type,
+            target_id=target_id,
             created_at=event.created_at,
             in_app_visible=notification_preferences.in_app_enabled(
                 session, account_id=recipient_id, kind=NotificationKind.REMINDER_DUE.value

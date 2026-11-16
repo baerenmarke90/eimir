@@ -23,6 +23,22 @@ export const DEFAULT_STORY_FILTERS: StoryFilters = {
   order: StoryOrder.DESC,
 };
 
+export function parseStoryYear(raw: string | undefined): number | null {
+  if (!raw || !/^\d{4}$/.test(raw)) return null;
+  const year = Number(raw);
+  return year >= 1900 && year <= 2100 ? year : null;
+}
+
+export function storyYearFilters(year: number | null): StoryFilters {
+  return { kind: null, year, order: StoryOrder.ASC };
+}
+
+export function storyYearsIndexRequest(
+  spaceId: string,
+): GetStoryTimelineRequest {
+  return { spaceId, order: StoryOrder.DESC, limit: 1, includeChapters: true };
+}
+
 function isStoryKind(value: string | null): value is StoryKindValue {
   return (
     value !== null && Object.values(StoryKind).includes(value as StoryKindValue)

@@ -1,36 +1,41 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type ReactNode,
   type RefObject,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { M4ProductApis } from '../client/m4Product';
 import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import {
-  loadPartnerQuickActionsCapability,
+  PARTNER_QUICK_ACTIONS_CAPABILITY,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
-  partnerQuickActionsEntitlementQueryKey,
 } from '../client/partnerQuickActions';
-import { ClientProblemError } from '../client/problemDetails';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useMediaQuery } from '../client/useMediaQuery';
-import type { M4ProductApis } from '../client/m4Product';
 import { useTranslation } from '../i18n';
+import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
 import {
   isGestureCooldown,
-  usePartnerGesture,
   type PartnerAction,
+  usePartnerGesture,
 } from './usePartnerGesture';
 import './PartnerQuickActions.css';
 
@@ -47,7 +52,14 @@ export interface PartnerQuickActionsProps {
   accountId: string;
   spaceId: string;
   partnerName: string;
+  partnerPhotoUrl?: string | null;
+  partnerPhotoIdentity?: string;
   thinkingOfYouAvailableAt: Date | null;
+  /**
+   * Partner context shown above the unchanged quick actions, e.g. today's
+   * shared vibe and energy (#1790 slice A). Rendered only while open.
+   */
+  header?: ReactNode;
   children: (
     avatarAction: CouplePresenceAvatarAction,
     avatarOverlay: ReactNode,
@@ -68,6 +80,9 @@ export function PartnerQuickActions({
   spaceId,
   partnerName,
   thinkingOfYouAvailableAt,
+  partnerPhotoUrl,
+  partnerPhotoIdentity,
+  header,
   children,
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
@@ -76,6 +91,7 @@ export function PartnerQuickActions({
   const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
+  const photoRef = useRef<AvatarPhotoHandle>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
   const titleId = useId();
   const [compactPresent, setCompactPresent] = useState(false);
@@ -88,6 +104,19 @@ export function PartnerQuickActions({
     },
   );
   const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  // The Expanded popover owns a history entry like the Compact sheet, so
+  // system Back closes it. Handoffs release that entry before navigating.
+  const releaseExpanded = useEditorHistoryEntry({
+    isActive: desiredExpandedOpen,
+    isDirty: false,
+    onClose: close,
+    onDiscardRequested: close,
+  });
+  const closeExpandedThen = (next: () => void) =>
+    releaseExpanded(() => {
+      close();
+      next();
+    });
   useEffect(() => {
     const key = (location.state as { taskReturnKey?: unknown } | null)
       ?.taskReturnKey;
@@ -116,21 +145,19 @@ export function PartnerQuickActions({
   } = usePresentationPresence(desiredExpandedOpen);
   const compactOpen = isOpen && !isExpanded && !expandedPresent;
 
-  const capabilityQuery = useQuery({
-    queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
-    queryFn: ({ signal }) => {
-      if (!entitlementApi) {
-        throw new ClientProblemError(
-          'server',
-          undefined,
-          'ENTITLEMENT_API_UNAVAILABLE',
-        );
-      }
-      return loadPartnerQuickActionsCapability(entitlementApi, spaceId, signal);
-    },
+  const loadEntitlement = useMemo(
+    () =>
+      entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start; opening the
+  // sheet only reads it when that startup read has not completed.
+  const capabilityQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
     enabled: isOpen,
-    retry: false,
-    staleTime: 60_000,
+    capability: PARTNER_QUICK_ACTIONS_CAPABILITY,
   });
 
   const gesture = usePartnerGesture({
@@ -217,13 +244,12 @@ export function PartnerQuickActions({
 
   const navigateToPro = () => {
     if (gesture.isInFlight()) return;
-    const destination = PRO_INFORMATION_ROUTE;
+    const destination = proPaywallPath();
     if (!isExpanded && sheetRef.current) {
       sheetRef.current.closeForNavigation(() => navigate(destination));
       return;
     }
-    close();
-    navigate(destination);
+    closeExpandedThen(() => navigate(destination));
   };
 
   const openOnceComposer = () => {
@@ -237,10 +263,7 @@ export function PartnerQuickActions({
       });
     };
     if (compactPresent) sheetRef.current?.closeForNavigation(handoff);
-    else {
-      close();
-      handoff();
-    }
+    else closeExpandedThen(handoff);
   };
 
   const hasExtendedCapability = capabilityQuery.data === true;
@@ -248,6 +271,7 @@ export function PartnerQuickActions({
 
   const actionList = (
     <div className="partner-quick-actions-content">
+      {header}
       {gesture.pendingAction ? (
         <p
           className="partner-quick-actions-pending"
@@ -264,6 +288,31 @@ export function PartnerQuickActions({
         </p>
       ) : null}
       <div className="partner-quick-actions-list">
+        {partnerPhotoUrl ? (
+          <button
+            type="button"
+            className="partner-quick-action"
+            disabled={gesture.isPending}
+            onClick={() => {
+              if (gesture.isInFlight()) return;
+              const showPhoto = () => {
+                triggerRef.current?.focus({ preventScroll: true });
+                photoRef.current?.open();
+              };
+              if (compactPresent)
+                sheetRef.current?.closeForNavigation(showPhoto);
+              else closeExpandedThen(showPhoto);
+            }}
+          >
+            <span className="partner-quick-action-icon" aria-hidden="true">
+              <EimirIcon name="expand" />
+            </span>
+            <span className="partner-quick-action-copy">
+              <strong>{t('people.photoAction')}</strong>
+            </span>
+          </button>
+        ) : null}
+
         <button
           ref={firstActionRef}
           type="button"
@@ -347,11 +396,9 @@ export function PartnerQuickActions({
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.checkIn')}</strong>
-                <span>
-                  {hasExtendedCapability && checkInCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.checkInHint')}
-                </span>
+                {hasExtendedCapability && checkInCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />
@@ -458,6 +505,15 @@ export function PartnerQuickActions({
 
   return (
     <>
+      {partnerPhotoUrl ? (
+        <AvatarPhoto
+          ref={photoRef}
+          name={partnerName}
+          url={partnerPhotoUrl}
+          identity={partnerPhotoIdentity ?? `${spaceId}:partner-photo`}
+          renderTrigger={() => null}
+        />
+      ) : null}
       {children(avatarAction, expandedPopover)}
       <ShortTaskSheet
         ref={sheetRef}

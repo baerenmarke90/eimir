@@ -1,6 +1,7 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -13,6 +14,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const accountId = '11111111-1111-4111-8111-111111111111';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -43,6 +45,7 @@ async function installFixture(page: Page) {
   let deleted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, spaceId)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -148,6 +151,15 @@ async function installFixture(page: Page) {
       held.push(route);
       return;
     }
+    // Momente reads the recap overview for its own entry row; this fixture has none.
+    if (local === '/recaps' && method === 'GET')
+      return json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+    if (await fulfillNoOccasionSources(route)) return;
     unknown.push(`${method} ${pathname}`);
     return json({ code: 'UNEXPECTED_FIXTURE_REQUEST' }, 500);
   });
@@ -195,7 +207,7 @@ async function openEditor(page: Page, largeText = false) {
     new RegExp(`/story/milestones/${milestone.id}$`),
   );
   await expect(
-    page.getByRole('heading', { name: milestone.title, exact: true, level: 1 }),
+    page.getByRole('heading', { name: milestone.title, exact: true, level: 2 }),
   ).toBeVisible();
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   if (largeText)
@@ -381,7 +393,8 @@ for (const theme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: copy.deleting }),
     ).toBeDisabled();
     await fixture.respond(204);
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(page.locator('.story-card-milestone')).toHaveCount(0);
     expect(fixture.deletions).toEqual([{ id: milestone.id, version: '1' }]);
     expect(fixture.unknown).toEqual([]);

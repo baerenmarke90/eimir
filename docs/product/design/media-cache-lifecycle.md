@@ -142,3 +142,61 @@ journey through Wir/Moments tabs. Reuse avoids repeat binary transfer and URL
 creation without suppressing fresh parent authorization. Idle images can load
 again after eviction/expiry or privacy revocation; this is deliberate bounded
 ownership rather than an unlimited retention promise.
+
+## Parallel reads during session restoration — 2026-11-12
+
+The Product Owner’s follow-up to #1517 and #1603 addressed the Diary and its
+photos appearing in separate network-bound stages after the membership response. On a restored
+Story route, the client now starts the active authorized network reads while
+membership and Account restoration run. Diary prepares Timeline and Discover;
+the Years index, selected year and read-mode Memory, Heart Moment and Milestone
+prepare their own first read. Create and edit routes use their existing reads.
+
+The public startup view remains until the active Space is authorized. A result
+belongs to its Account, Space and exact route, and the matching query can take
+it once. Abandoning the route or losing membership cancels unconsumed work.
+The existing product read-cache handles persistence and availability fallback
+after the Space is admitted. The warm overview exceptions in M2-D18 remain
+scoped to their approved surfaces.
+
+For a photo without a fresh projection proof, the loader starts its local byte
+lookup alongside the normal parent read-access request. Display still requires
+that request to succeed. A fresh projection can supply the existing preview
+proof. Cache misses still download through the authorized transport. A
+401/403/404 prevents display and evicts the parent’s variants and display
+URLs. The existing cache namespaces, retention limits and expiry apply.
+
+The browser tests hold the membership response until the Timeline, Discover
+or Memory read completes, verify the public startup view while it is held, and
+verify one read per projection after admission. The Diary reload reuses its
+photo bytes. A revoked membership keeps the Diary closed and removes stored
+photos. A separate journey verifies the photo stays hidden while parent access
+is pending and that a 404 evicts its bytes. Representative Compact and Expanded
+renders are in [the startup evidence folder](evidence/story-startup/). The
+native session lifecycle is simulated in Chromium.
+
+## Kept primary tabs — 2026-11-12
+
+The Product Owner's screen recording of the Android test build showed every
+switch between Wir, Momente, Planen and Mehr rebuilding the destination:
+loading card, then the stored overview notice, then empty media frames, then
+photos popping in once their parent read-access returned. The byte and URL
+tiers were working; the views themselves were discarded on every tab change.
+
+Visited primary tabs now stay mounted, as on a native tab bar. The inactive
+tabs are `hidden` (out of layout, focus order and the accessibility tree) and
+see the location they last had, so they never react to another tab's route or
+publish task-origin metadata. Returning to a tab shows the same view, photos
+and scroll position immediately; a detail route opened from a tab returns to
+the kept view as well. Re-selecting the active tab still returns to its top.
+
+This does not change the authorization contract above: a kept view keeps its
+already authorized display handles, exactly as a view that stays on screen.
+Any new delivery (a newly mounted preview, a detail, an original) still checks
+parent read-access first. Hidden tabs keep their query observers, so the
+existing freshness, invalidation, revocation and logout/Space wipes apply to
+them unchanged. Memory is bounded by the four primary tabs.
+
+Images that do mount now fade in once decoded (`useMediaReveal`) instead of
+replacing the frame abruptly; the fade uses `--duration-context`, which is
+zero under reduced motion, and failed images settle visibly.

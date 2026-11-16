@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -7,6 +8,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import composer from '../../src/i18n/locales/composer';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -69,6 +71,7 @@ async function installPlanningApiMocks(
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
@@ -317,13 +320,14 @@ async function openPlanCreateForm(page: Page) {
   await page.goto('/plan/plans/new');
   const form = planCreateForm(page);
   await form.getByLabel(m5s3.plan.intentionLabel).fill(PLAN_DRAFT_TITLE);
-  await form.getByText(m5s3.plan.addDetails).click();
+  await expect(form.getByLabel(m5s3.common.description)).toBeVisible();
   return form;
 }
 
 async function openPlaceChoice(page: Page) {
   await planCreateForm(page)
-    .getByRole('button', { name: m5s3.common.place, exact: true })
+    .locator('.composer-tool-row')
+    .getByRole('button', { name: composer.place, exact: true })
     .click();
   return page.getByRole('dialog', { name: m5s3.common.place, exact: true });
 }
@@ -340,7 +344,7 @@ async function selectNewPlace(page: Page) {
     .getByRole('button', { name: 'Colmar, Alsace', exact: true })
     .click();
   await map
-    .getByRole('button', { name: m5s3.map.confirm, exact: true })
+    .getByRole('button', { name: placeCopy.saveSharedPlace, exact: true })
     .click();
   return picker;
 }

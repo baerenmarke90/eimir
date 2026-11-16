@@ -4,17 +4,26 @@
   min-width: 0;
 }
 .voice-add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   justify-self: start;
 }
-.voice-add svg {
-  width: var(--icon-size, 24px);
-  height: var(--icon-size, 24px);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.65;
+.voice-note-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.voice-note-preview > svg {
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  flex-shrink: 0;
 }
 .voice-player {
   padding: var(--space-5);

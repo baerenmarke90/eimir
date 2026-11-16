@@ -23,11 +23,9 @@ function Fixture({
         Replay from More
       </button>
       <Link to="/today">Use app normally</Link>
-      <div className="mobile-quick-create">
-        <button type="button" className="quick-create-trigger">
-          Actual plus
-        </button>
-      </div>
+      <button type="button" data-task-item-key="moment-create">
+        Actual plus
+      </button>
       <span>
         {accountId}:{spaceId}
       </span>
@@ -96,7 +94,6 @@ describe('optional product tour', () => {
   });
 
   it('visits the real routes and opens the real plus action without blocking ordinary use', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
     const plus = vi.fn();
     renderTour();
     screen
@@ -109,6 +106,7 @@ describe('optional product tour', () => {
     fireEvent.click(screen.getByRole('button', { name: productTour.next }));
     expect(screen.getByRole('main').textContent).toBe('/plan');
     fireEvent.click(screen.getByRole('button', { name: productTour.next }));
+    expect(screen.getByRole('main').textContent).toBe('/story');
     expect(
       screen.getByRole('heading', { name: productTour.create.title }),
     ).toBeTruthy();

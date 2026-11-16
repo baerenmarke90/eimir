@@ -43,6 +43,21 @@ M2 uses **exclusive Attachment ownership per Domain target**:
 
 This exclusive binding makes Cleanup and Privacy deterministic and avoids implicit many-to-many Authorization.
 
+### Current video placeholder exception (#1655, #1701)
+
+The video delivery extends exclusive binding to admitted VIDEO reservations in
+PENDING/UPLOADING and finalized VALIDATING/FAILED states, so Memory/HeartMoment
+text can save before transfer/processing completes. This is no read permission:
+only READY media can receive a content or playback grant. Images keep their
+existing READY-only binding. Same-Space immutable owner, exclusive parent,
+expiry, aggregate reservation, sensitivity, deletion and authorization rules
+still apply. Unfinished bound uploads retain an editable failed placeholder
+after cleanup; unvalidated bytes never enter completed-media export. See
+[Short video uploads](../operations/video-uploads.md) for the current windows,
+native staging/background ownership and 1080p output contract. Later ordered
+HeartMoment galleries supersede the historical single-attachment count above;
+the existing twenty-media / 500 MiB shared limit remains authoritative.
+
 ## 3. Components
 
 ```text

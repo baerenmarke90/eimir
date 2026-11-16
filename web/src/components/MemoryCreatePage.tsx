@@ -1,5 +1,12 @@
-import { TaskBackButton } from './TaskBackButton';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createPortal } from 'react-dom';
+import {
+  StoryPlanningDraftLinks,
+  linkDraftPlanningTargets,
+  type StoryPlanningTarget,
+} from './StoryPlanningLinks';
+import { ComposerTool, ComposerToolRow } from './PageComposer';
+import { EimirIcon } from './EimirIcon';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -10,10 +17,8 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { PlansApi } from '../api/generated/apis/PlansApi';
 import type { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { Configuration } from '../client/apiConfiguration';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
@@ -49,18 +54,24 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import type { MomentPlaceSelection } from './MomentPlaceField';
+import { NativeDateField } from './NativeDateField';
 import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
 import { PageHeader } from './PageHeader';
-import { NativeDateField, NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { StoryCreatePageShell } from './StoryFormPageShell';
+import { ComposerHeader, StoryCreatePageShell } from './StoryFormPageShell';
+import { TaskBackButton } from './TaskBackButton';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -73,6 +84,7 @@ export function MemoryCreatePage({
   experienceKind,
   partnerName,
   experienceQuestion,
+  experienceQuestionId,
   experienceReply,
 }: {
   accessToken: string;
@@ -83,6 +95,8 @@ export function MemoryCreatePage({
   experienceKind?: ExperienceKind;
   partnerName?: string;
   experienceQuestion?: string;
+  /** Editorial key of the selected daily question, sent with a new experience. */
+  experienceQuestionId?: string;
   experienceReply?: MemoryDetail;
 }) {
   const { t } = useTranslation();
@@ -105,6 +119,15 @@ export function MemoryCreatePage({
   );
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState('');
+  const [planningLinks, setPlanningLinks] = useState<StoryPlanningTarget[]>([]);
+  const [linkRecoveryMemory, setLinkRecoveryMemory] = useState<MemoryDetail>();
+  const [emptyContent, setEmptyContent] = useState(false);
+  const [placeToolHost, setPlaceToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
+  const [placeContextHost, setPlaceContextHost] =
+    useState<HTMLSpanElement | null>(null);
   const [places, setPlaces] = useState<MomentPlaceSelection[]>([]);
   const [selectedCoverKey, setSelectedCoverKey] = useState<string | null>(null);
   const [happenedUntil, setHappenedUntil] = useState('');
@@ -114,10 +137,11 @@ export function MemoryCreatePage({
   const [tagDraftText, setTagDraftText] = useState('');
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const bodyInputRef = useRef<HTMLTextAreaElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<ComposerDateContextHandle>(null);
+  const experienceDateRef = useRef<HTMLInputElement>(null);
+  const [questionId, setQuestionId] = useState(experienceQuestionId);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
@@ -180,55 +204,19 @@ export function MemoryCreatePage({
     () => createReferenceApis(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
   );
-  const sourceCandidate = (
-    location.state as {
-      sourcePlan?: {
-        id?: unknown;
-        spaceId?: unknown;
-        accountId?: unknown;
-        instance?: unknown;
-      };
-    } | null
-  )?.sourcePlan;
-  const sourcePlanId =
-    sourceCandidate?.spaceId === spaceId &&
-    sourceCandidate.accountId === accountId &&
-    sourceCandidate.instance === apiBaseUrl &&
-    typeof sourceCandidate.id === 'string'
-      ? sourceCandidate.id
-      : null;
-  const plansApi = useMemo(
-    () =>
-      new PlansApi(
-        new Configuration({
-          basePath: apiBaseUrl,
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }),
-      ),
-    [apiBaseUrl, accessToken],
-  );
-  const sourcePlan = useQuery({
-    queryKey: [
-      'memory-source-plan',
-      apiBaseUrl,
-      accountId,
-      spaceId,
-      sourcePlanId,
-    ],
-    enabled: Boolean(sourcePlanId),
-    retry: false,
-    queryFn: async ({ signal }) => {
-      if (!sourcePlanId) throw new Error('No source Plan selected.');
-      try {
-        return await plansApi.getPlan(
-          { spaceId, planId: sourcePlanId },
-          { signal },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+  const {
+    sourcePlanId,
+    sourcePlan,
+    sourcePlace,
+    loading: sourceLoading,
+  } = usePlanCaptureSource({
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId,
   });
+  const sourcePlaceApplied = useRef(false);
+  const placeManuallyChanged = useRef(false);
   const sourceApplied = useRef(false);
   const attachments = useAttachmentDrafts({
     apis,
@@ -254,6 +242,7 @@ export function MemoryCreatePage({
     (experienceQuestion ? title !== initialTitle : title) ||
       body ||
       tags.length ||
+      planningLinks.length ||
       tagDraftDirty ||
       places.length ||
       happenedUntil ||
@@ -268,7 +257,10 @@ export function MemoryCreatePage({
   const draftSnapshot = useMemo<MemoryDiaryDraft>(
     () => ({
       title,
+      experienceQuestionId: questionId,
       body,
+      planningLinks,
+      linkRecoveryMemory,
       tags,
       tagDraft: tagDraftText,
       happenedOn,
@@ -291,7 +283,10 @@ export function MemoryCreatePage({
       partial: null,
     }),
     [
+      planningLinks,
+      linkRecoveryMemory,
       title,
+      questionId,
       body,
       tags,
       tagDraftText,
@@ -338,7 +333,6 @@ export function MemoryCreatePage({
     setBody(source.description ?? '');
     if (source.experiencedOn)
       setHappenedOn(source.experiencedOn.toISOString().slice(0, 10));
-    setDetailsOpen(true);
   }, [
     sourcePlanId,
     sourcePlan.data,
@@ -387,7 +381,10 @@ export function MemoryCreatePage({
       }
       controller.signal.throwIfAborted();
       if (!owner.current.active || scope !== recoveryScopeRef.current) return;
+      setPlanningLinks(draft.planningLinks ?? []);
+      setLinkRecoveryMemory(draft.linkRecoveryMemory);
       setTitle(draft.title);
+      setQuestionId(draft.experienceQuestionId);
       setBody(draft.body);
       setPlaces(draft.places ?? (draft.place ? [draft.place] : []));
       setHappenedUntil(draft.happenedUntil ?? '');
@@ -395,9 +392,6 @@ export function MemoryCreatePage({
       setTagDraftText(draft.tagDraft ?? '');
       setTagDraftDirty(Boolean(draft.tagDraft));
       setHappenedOn(draft.happenedOn);
-      setDetailsOpen(
-        Boolean(draft.title || draft.tags.length || draft.tagDraft),
-      );
       const restoredKeys = attachments.restore(files);
       setSelectedCoverKey(
         draft.selectedCoverPosition != null
@@ -451,6 +445,21 @@ export function MemoryCreatePage({
     requestTaskClose();
   }
 
+  useEffect(() => {
+    if (
+      !sourcePlace.data ||
+      sourcePlaceApplied.current ||
+      placeManuallyChanged.current ||
+      diaryDraft.status === 'loading' ||
+      diaryDraft.recovery ||
+      recoveredDraft.current ||
+      pending
+    )
+      return;
+    sourcePlaceApplied.current = true;
+    setPlaces([sourcePlace.data]);
+  }, [sourcePlace.data, diaryDraft.status, diaryDraft.recovery, pending]);
+
   async function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
     if (!owner.current.active || exitAction.current) return;
     owner.current.pending = true;
@@ -503,6 +512,31 @@ export function MemoryCreatePage({
       const memory = await work();
       if (!session.active) return;
       attemptRef.current = null;
+      if (!experienceKind && planningLinks.length) {
+        try {
+          await linkDraftPlanningTargets({
+            apiBaseUrl,
+            accessToken,
+            spaceId,
+            contentId: memory.id,
+            sourceKind: 'MEMORY',
+            targets: planningLinks,
+            isCurrent: () => session.active,
+          });
+        } catch (error) {
+          if (!session.active) return;
+          setLinkRecoveryMemory(memory);
+          setUncertain(false);
+          setProblem(await normalizeClientError(error));
+          await diaryDraft.checkpoint({
+            ...draftSnapshot,
+            attempt: null,
+            linkRecoveryMemory: memory,
+          });
+          return;
+        }
+      }
+      setLinkRecoveryMemory(undefined);
       await openResult(memory);
     } catch (error) {
       if (!session.active) return;
@@ -572,8 +606,18 @@ export function MemoryCreatePage({
   }
 
   async function save() {
+    if (sourceLoading) return;
+    if (!hasUserContent) {
+      setEmptyContent(true);
+      bodyInputRef.current?.focus();
+      return;
+    }
+    setEmptyContent(false);
+    if (linkRecoveryMemory) {
+      await run(async () => linkRecoveryMemory, { verification: false });
+      return;
+    }
     if (
-      !hasUserContent ||
       diaryDraft.recovery ||
       diaryDraft.status === 'conflict' ||
       owner.current.pending ||
@@ -634,7 +678,8 @@ export function MemoryCreatePage({
     } catch {
       // No request has started: retain an editable draft, never an uncertain save.
       setInvalidDate(true);
-      dateInputRef.current?.focus();
+      if (experienceKind) experienceDateRef.current?.focus();
+      else dateInputRef.current?.focus();
       return;
     }
     setInvalidDate(false);
@@ -643,6 +688,7 @@ export function MemoryCreatePage({
     // unknown outcome of this exact snapshot.
     if (happenedUntil && happenedUntil < date) {
       setInvalidDate(true);
+      dateInputRef.current?.focus('end');
       return;
     }
     const attempt = {
@@ -660,6 +706,9 @@ export function MemoryCreatePage({
                 experienceReplyTo:
                   experienceReply.experienceRootId ?? experienceReply.id,
               }
+            : {}),
+          ...(experienceKind && !experienceReply && questionId
+            ? { experienceQuestionId: questionId }
             : {}),
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,
@@ -699,7 +748,7 @@ export function MemoryCreatePage({
         if (
           metadata.status === 'READY' ||
           (metadata.mediaType === 'VIDEO' &&
-            ['PROCESSING', 'FAILED'].includes(metadata.status))
+            ['PENDING', 'PROCESSING', 'FAILED'].includes(metadata.status))
         )
           continue;
       } catch (error) {
@@ -746,7 +795,25 @@ export function MemoryCreatePage({
       draftSnapshot.files.some(({ file }) => memoryOnlyPhotoDescriptor(file))
         ? { ids: [...attempt.attachmentIds], files: draftSnapshot.files }
         : await recoverReadyFiles(attempt.attachmentIds);
-    const verifiedAttempt = { ...attempt, attachmentIds: recovered.ids };
+    const verifiedAttempt = {
+      ...attempt,
+      attachmentIds: recovered.ids,
+      snapshot:
+        attempt.atomicAttachments && attempt.snapshot.attachments === undefined
+          ? {
+              ...attempt.snapshot,
+              attachments: recovered.ids.map((attachmentId, position) => ({
+                attachmentId,
+                position,
+                isSensitive: attempt.attachmentSensitivity?.[position] ?? false,
+              })),
+              selectedCoverAttachmentId:
+                attempt.selectedCoverPosition == null
+                  ? null
+                  : recovered.ids[attempt.selectedCoverPosition],
+            }
+          : attempt.snapshot,
+    };
     attemptRef.current = verifiedAttempt;
     const allowed = await diaryDraft.checkpoint({
       ...draftSnapshot,
@@ -762,7 +829,7 @@ export function MemoryCreatePage({
     return createMemoryWithReadyAttachments(
       apis,
       spaceId,
-      attempt.snapshot,
+      verifiedAttempt.snapshot,
       recovered.ids,
       {
         idempotencyKey: attempt.idempotencyKey,
@@ -787,6 +854,7 @@ export function MemoryCreatePage({
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (sourceLoading) return;
     void save();
   }
   const narrativeField = (
@@ -804,7 +872,7 @@ export function MemoryCreatePage({
         name="body"
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        rows={6}
+        rows={experienceKind ? 6 : 4}
         maxLength={experienceKind ? 2000 : undefined}
         placeholder={t(
           experienceKind
@@ -817,33 +885,83 @@ export function MemoryCreatePage({
       />
     </div>
   );
+  const saveLabel = pending
+    ? t('memory.saving')
+    : partial
+      ? t('taskBoundary.retryPhotos')
+      : experienceKind
+        ? t('coupleExperiences.share', {
+            name: partnerName ?? t('coupleExperiences.partner'),
+          })
+        : t('memory.save');
+  const saveAction = (
+    <button
+      type="submit"
+      form="memory-create-form"
+      className={!experienceKind ? 'composer-save-action' : undefined}
+      aria-label={saveLabel}
+      data-saveable={hasUserContent}
+      disabled={
+        Boolean(diaryDraft.recovery) ||
+        diaryDraft.status === 'conflict' ||
+        pending ||
+        uncertain ||
+        sourceLoading ||
+        placePending ||
+        attachments.hasPending ||
+        hasBlockingPhotoFailure
+      }
+    >
+      {!experienceKind && !pending && !partial
+        ? t('m5s3.common.save')
+        : saveLabel}
+    </button>
+  );
   return (
     <StoryCreatePageShell
       header={
         <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
-          <PageHeader
-            before={
-              <TaskBackButton
-                type="button"
-                onClick={requestClose}
-                aria-disabled={pending}
-              >
-                {t('taskBoundary.close')}
-              </TaskBackButton>
-            }
-            title={t(
-              experienceKind
-                ? `coupleExperiences.entries.${experienceName}.title`
-                : 'memory.heading',
-            )}
-            className="create-heading"
-          />
+          {experienceKind ? (
+            <PageHeader
+              before={
+                <TaskBackButton
+                  type="button"
+                  onClick={requestClose}
+                  aria-disabled={pending}
+                >
+                  {t('taskBoundary.close')}
+                </TaskBackButton>
+              }
+              title={t(
+                experienceKind
+                  ? `coupleExperiences.entries.${experienceName}.title`
+                  : 'memory.heading',
+              )}
+              className="create-heading"
+            />
+          ) : (
+            <ComposerHeader
+              before={
+                <TaskBackButton
+                  inline
+                  type="button"
+                  onClick={requestClose}
+                  aria-disabled={pending}
+                >
+                  {t('taskBoundary.close')}
+                </TaskBackButton>
+              }
+              title={t('memory.heading')}
+              action={saveAction}
+              className="create-heading"
+            />
+          )}
         </div>
       }
       pageClassName={
         experienceKind
           ? 'memory-task-page couple-experience-compose'
-          : 'memory-task-page'
+          : 'memory-task-page quiet-composer page-composer'
       }
       labelledBy="memory-form-heading"
     >
@@ -851,6 +969,15 @@ export function MemoryCreatePage({
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
+        {sourceLoading ? (
+          <p role="status">{t('m5s3.planStory.loadingSource')}</p>
+        ) : null}
+        {sourcePlace.error ? (
+          <ProblemState
+            error={sourcePlace.error}
+            onRetry={() => void sourcePlace.refetch()}
+          />
+        ) : null}
         {sourcePlanId && sourcePlan.error ? (
           <ProblemState
             error={sourcePlan.error}
@@ -886,18 +1013,82 @@ export function MemoryCreatePage({
             </div>
           </section>
         ) : null}
-        <form onSubmit={submit} className="immersive-create-form">
+        <form
+          id="memory-create-form"
+          onSubmit={submit}
+          className="immersive-create-form"
+        >
           <fieldset
             className="memory-task-fields"
             disabled={
               pending ||
               Boolean(partial) ||
+              Boolean(linkRecoveryMemory) ||
               uncertain ||
               Boolean(diaryDraft.recovery)
             }
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
+            <div className="composer-context">
+              {!experienceKind ? (
+                <ComposerDateContext
+                  ref={dateInputRef}
+                  idPrefix="happenedOn"
+                  label={t('memory.dateLabel')}
+                  value={happenedOn}
+                  onChange={(value) => {
+                    setHappenedOn(value);
+                    setInvalidDate(false);
+                  }}
+                  allowRange
+                  endValue={happenedUntil}
+                  onEndChange={(value) => {
+                    setHappenedUntil(value);
+                    setInvalidDate(false);
+                  }}
+                  disabled={
+                    pending ||
+                    Boolean(partial) ||
+                    uncertain ||
+                    Boolean(diaryDraft.recovery)
+                  }
+                  error={
+                    invalidDate &&
+                    !(happenedUntil && happenedUntil < happenedOn)
+                      ? t('taskBoundary.invalidDate')
+                      : undefined
+                  }
+                  endError={
+                    invalidDate && happenedUntil && happenedUntil < happenedOn
+                      ? t('experiences.invalidPeriod')
+                      : undefined
+                  }
+                />
+              ) : experienceKind !== 'HAPPINESS' && !experienceReply ? (
+                <NativeDateField
+                  ref={experienceDateRef}
+                  id="happenedOn"
+                  name="happenedOn"
+                  label={t('memory.dateLabel')}
+                  value={happenedOn}
+                  error={
+                    invalidDate ? t('taskBoundary.invalidDate') : undefined
+                  }
+                  fieldClassName="immersive-create-date-field"
+                  onChange={(event) => {
+                    setHappenedOn(event.target.value);
+                    setInvalidDate(false);
+                  }}
+                />
+              ) : null}
+              {!experienceKind ? (
+                <span
+                  ref={setPlaceContextHost}
+                  className="composer-context-row"
+                />
+              ) : null}
+            </div>
             {experienceKind && title ? (
               <section
                 className="experience-selected-question"
@@ -909,141 +1100,213 @@ export function MemoryCreatePage({
             ) : null}
             {experienceKind ? narrativeField : null}
             {!experienceKind ? (
-              <div className="field-group immersive-create-title-field">
-                <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-                <input
-                  id="title"
-                  name="title"
-                  maxLength={200}
-                  placeholder={t('memory.titlePlaceholder')}
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className="immersive-create-title-input"
-                />
-              </div>
-            ) : null}
-
-            {experienceKind !== 'HAPPINESS' && !experienceReply ? (
-              <NativeDateField
-                ref={dateInputRef}
-                id="happenedOn"
-                name="happenedOn"
-                label={t('memory.dateLabel')}
-                value={happenedOn}
-                error={invalidDate ? t('taskBoundary.invalidDate') : undefined}
-                fieldClassName="immersive-create-date-field"
-                onChange={(event) => {
-                  setHappenedOn(event.target.value);
-                  setInvalidDate(false);
-                }}
-              />
-            ) : null}
-
-            {!experienceKind ? (
-              <div className="field-group">
-                {happenedUntil ? (
-                  <>
-                    <label htmlFor="memory-create-through">
-                      {t('experiences.through')}
+              <div className="composer-content">
+                <div className="immersive-create-media">
+                  <AttachmentDraftPicker
+                    presentation="diary"
+                    pageWideDrop
+                    id="memory-create-images"
+                    videoContext={{ apis, accountId, spaceId }}
+                    attachments={attachments}
+                    selectedCoverKey={
+                      selectedCoverKey &&
+                      attachments.items.some(
+                        (item) => item.id === selectedCoverKey,
+                      )
+                        ? selectedCoverKey
+                        : null
+                    }
+                    onSelectCover={setSelectedCoverKey}
+                    sourceContext={{
+                      apiBaseUrl,
+                      accessToken,
+                      accountId,
+                      spaceId,
+                      remaining: Math.max(
+                        0,
+                        MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                      ),
+                      beginSelection: attachments.beginSelection,
+                    }}
+                    multiple
+                  />
+                </div>
+                <div className="composer-writing-surface composer-authored-surface">
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="title">
+                      {t('memory.titleLabelOptional')}
                     </label>
-                    <NativeDateInput
-                      id="memory-create-through"
-                      min={happenedOn}
-                      value={happenedUntil}
-                      onChange={(event) => {
-                        setHappenedUntil(event.target.value);
-                        setInvalidDate(false);
-                      }}
+                    <input
+                      id="title"
+                      name="title"
+                      maxLength={200}
+                      placeholder={t('memory.titleLabelOptional')}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="immersive-create-title-input"
                     />
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => setHappenedUntil('')}
-                    >
-                      {t('experiences.removePeriod')}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="tertiary"
-                    onClick={() => setHappenedUntil(happenedOn || initialDate)}
-                  >
-                    {t('experiences.addPeriod')}
-                  </button>
-                )}
-                {invalidDate && happenedUntil && happenedUntil < happenedOn ? (
-                  <p role="alert">{t('experiences.invalidPeriod')}</p>
-                ) : null}
+                  </div>
+                  {narrativeField}
+                </div>
               </div>
             ) : null}
-            {!experienceKind ? narrativeField : null}
 
-            {!experienceKind ? (
-              <div className="immersive-create-media">
-                <AttachmentDraftPicker
-                  id="memory-create-images"
-                  videoContext={{ apis, accountId, spaceId }}
-                  attachments={attachments}
-                  selectedCoverKey={
-                    selectedCoverKey &&
-                    attachments.items.some(
-                      (item) => item.id === selectedCoverKey,
-                    )
-                      ? selectedCoverKey
+            <div
+              className={!experienceKind ? 'composer-enrichment' : undefined}
+            >
+              <OrderedMomentPlacesField
+                presentation={!experienceKind ? 'composer' : 'default'}
+                renderTrigger={
+                  !experienceKind
+                    ? (open) =>
+                        placeToolHost
+                          ? createPortal(
+                              <ComposerTool
+                                icon="orte"
+                                label={t('composer.place')}
+                                active={places.length > 0}
+                                disabled={
+                                  pending ||
+                                  uncertain ||
+                                  Boolean(partial) ||
+                                  Boolean(diaryDraft.recovery)
+                                }
+                                onClick={open}
+                              />,
+                              placeToolHost,
+                            )
+                          : null
+                    : undefined
+                }
+                renderSelection={
+                  !experienceKind
+                    ? (selected, open) =>
+                        selected.length && placeContextHost
+                          ? createPortal(
+                              <button
+                                type="button"
+                                className="tertiary composer-place-context"
+                                aria-label={t('composer.editPlace', {
+                                  name: selected[0].name,
+                                })}
+                                onClick={open}
+                              >
+                                <EimirIcon name="orte" />
+                                <span>
+                                  {selected[0].name}
+                                  {selected.length > 1
+                                    ? ` +${selected.length - 1}`
+                                    : ''}
+                                </span>
+                              </button>,
+                              placeContextHost,
+                            )
+                          : null
+                    : undefined
+                }
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={accountId}
+                spaceId={spaceId}
+                value={places}
+                onChange={(next) => {
+                  placeManuallyChanged.current = true;
+                  setPlaces(next);
+                }}
+                disabled={
+                  pending ||
+                  uncertain ||
+                  Boolean(partial) ||
+                  Boolean(diaryDraft.recovery)
+                }
+                onPendingChange={setPlacePending}
+              />
+
+              {!experienceKind ? (
+                <MemoryTagChoices
+                  presentation="composer"
+                  renderTrigger={(open) =>
+                    tagToolHost
+                      ? createPortal(
+                          <ComposerTool
+                            icon="tag"
+                            label={t('composer.tag')}
+                            active={tags.length > 0}
+                            disabled={
+                              pending ||
+                              uncertain ||
+                              Boolean(partial) ||
+                              Boolean(diaryDraft.recovery)
+                            }
+                            onClick={open}
+                          />,
+                          tagToolHost,
+                        )
                       : null
                   }
-                  onSelectCover={setSelectedCoverKey}
-                  sourceContext={{
-                    apiBaseUrl,
-                    accessToken,
-                    accountId,
-                    spaceId,
-                    remaining: Math.max(
-                      0,
-                      MAX_MEMORY_ATTACHMENTS - attachments.items.length,
-                    ),
-                    beginSelection: attachments.beginSelection,
-                  }}
-                  multiple
-                />
-              </div>
-            ) : null}
-
-            <OrderedMomentPlacesField
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={accountId}
-              spaceId={spaceId}
-              value={places}
-              onChange={setPlaces}
-              disabled={
-                pending ||
-                uncertain ||
-                Boolean(partial) ||
-                Boolean(diaryDraft.recovery)
-              }
-              onPendingChange={setPlacePending}
-            />
-
-            {!experienceKind ? (
-              <details
-                className="memory-diary-details"
-                open={detailsOpen}
-                onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-              >
-                <summary>{t('memory.diary.optionalDetails')}</summary>
-                <MemoryTagChoices
                   editorRef={tagEditorRef}
                   selected={tags}
                   onChange={setTags}
                   onDraftChange={setTagDraftDirty}
                   draftValue={tagDraftText}
                   onDraftValueChange={setTagDraftText}
+                  discloseEmpty
                 />
-              </details>
+              ) : null}
+            </div>
+            {!experienceKind && (hasUserContent || planningLinks.length > 0) ? (
+              <StoryPlanningDraftLinks
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={accountId}
+                spaceId={spaceId}
+                targets={planningLinks}
+                onChange={setPlanningLinks}
+                disabled={
+                  pending ||
+                  uncertain ||
+                  Boolean(partial) ||
+                  Boolean(linkRecoveryMemory) ||
+                  Boolean(diaryDraft.recovery)
+                }
+              />
             ) : null}
           </fieldset>
+          {emptyContent ? (
+            <p className="field-error" role="alert">
+              {t('composer.emptyContent')}
+            </p>
+          ) : null}
+          {linkRecoveryMemory ? (
+            <div className="inline-message" role="status">
+              <p>{t('composer.linkRecovery')}</p>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  void run(async () => linkRecoveryMemory, {
+                    verification: false,
+                  })
+                }
+              >
+                {t('common.retry')}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={pending}
+                onClick={() => void openResult(linkRecoveryMemory)}
+              >
+                {t('taskBoundary.openSaved')}
+              </button>
+            </div>
+          ) : null}
+          {!experienceKind ? (
+            <ComposerToolRow>
+              <span className="composer-tool-slot" ref={setPlaceToolHost} />
+              <span className="composer-tool-slot" ref={setTagToolHost} />
+            </ComposerToolRow>
+          ) : null}
           {dirty &&
           !diaryDraft.recovery &&
           !pending &&
@@ -1065,39 +1328,19 @@ export function MemoryCreatePage({
               )}
             </p>
           ) : null}
-          <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={
-                !hasUserContent ||
-                Boolean(diaryDraft.recovery) ||
-                diaryDraft.status === 'conflict' ||
-                pending ||
-                uncertain ||
-                placePending ||
-                attachments.hasPending ||
-                hasBlockingPhotoFailure
-              }
-            >
-              {pending
-                ? t('memory.saving')
-                : partial
-                  ? t('taskBoundary.retryPhotos')
-                  : experienceKind
-                    ? t('coupleExperiences.share', {
-                        name: partnerName ?? t('coupleExperiences.partner'),
-                      })
-                    : t('memory.save')}
-            </button>
-          </div>
+          {experienceKind ? (
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={requestClose}
+                aria-disabled={pending}
+              >
+                {t('common.cancel')}
+              </button>
+              {saveAction}
+            </div>
+          ) : null}
         </form>
         {pending ? (
           <p className="status" role="status" aria-live="polite">

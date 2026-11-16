@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import contextlib
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.engagement import presentation, service, thinking
+from eimir.engagement import presentation, service, thinking, wish_date_notice
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -33,6 +34,8 @@ class ActivityTargetPresentation(ApiModel):
     target_type: EngagementTarget
     target_id: UUID
     title: str | None = None
+    concealed: bool = False
+    """``title`` is the list title of a discreet Plan; show no other content."""
 
 
 class ActivityItem(ApiModel):
@@ -63,6 +66,11 @@ class NotificationItem(ApiModel):
     target_type: EngagementTarget | None
     target_id: UUID | None
     target: ActivityTargetPresentation | None = None
+    appointment_start: datetime | None = None
+    selection_size: int | None = Field(
+        default=None,
+        description="Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+    )
     created_at: datetime
     read_at: datetime | None
 
@@ -227,7 +235,7 @@ def _present_opened_notification(
         if notification.actor_id is not None
         else {}
     )
-    target_titles = {}
+    target_titles = None
     if notification.target_type is not None and notification.target_id is not None:
         with contextlib.suppress(ValueError):
             target_titles = _resolve_target_titles(
@@ -371,23 +379,43 @@ def _resolve_target_titles(
     session: DbSession,
     authorization: Authorization,
     targets: set[tuple[EngagementTarget, UUID]],
-) -> dict[tuple[EngagementTarget, UUID], str]:
-    return presentation.target_titles(session, authorization, targets)
+) -> TargetTitles:
+    titles = presentation.target_titles(session, authorization, targets)
+    return TargetTitles(
+        titles,
+        presentation.concealed_targets(session, targets),
+        presentation.selection_sizes(session, authorization, targets),
+    )
+
+
+@dataclass(frozen=True)
+class TargetTitles:
+    titles: dict[tuple[EngagementTarget, UUID], str]
+    concealed: set[tuple[EngagementTarget, UUID]]
+    selection_sizes: dict[UUID, int] = field(default_factory=dict)
+
+    def presentation(
+        self, target_type: EngagementTarget, target_id: UUID
+    ) -> ActivityTargetPresentation:
+        key = (target_type, target_id)
+        return ActivityTargetPresentation(
+            target_type=target_type,
+            target_id=target_id,
+            title=self.titles.get(key),
+            concealed=key in self.concealed,
+        )
 
 
 def _activity_item(
     item: Activity,
     actors: dict[UUID, AuthorSummary],
-    target_titles: dict[tuple[EngagementTarget, UUID], str],
+    target_titles: TargetTitles,
 ) -> ActivityItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)),
+            target_presentation = target_titles.presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
 
     return ActivityItem(
@@ -407,17 +435,19 @@ def _activity_item(
 def _notification_item(
     item: Notification,
     actors: dict[UUID, AuthorSummary] | None = None,
-    target_titles: dict[tuple[EngagementTarget, UUID], str] | None = None,
+    target_titles: TargetTitles | None = None,
 ) -> NotificationItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)) if target_titles else None,
+            target_presentation = (target_titles or TargetTitles({}, set())).presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
+    selection_size = None
+    if item.kind == NotificationKind.WISH_SELECTION_SHARED.value and item.target_id is not None:
+        selection_size = (target_titles.selection_sizes if target_titles else {}).get(
+            item.target_id
+        )
     return NotificationItem(
         id=item.id,
         source_event_id=item.source_event_id,
@@ -427,6 +457,10 @@ def _notification_item(
         target_type=EngagementTarget(item.target_type) if item.target_type is not None else None,
         target_id=item.target_id,
         target=target_presentation,
+        appointment_start=wish_date_notice.appointment_start(
+            item, concealed=bool(target_presentation and target_presentation.concealed)
+        ),
+        selection_size=selection_size,
         created_at=item.created_at,
         read_at=item.read_at,
     )

@@ -42,6 +42,30 @@ const relationshipComponents = {
       'Das Senden konnte nicht bestätigt werden. Bitte versuche es noch einmal.',
   },
 
+  partnerGestureReceipt: {
+    label: 'Geste von {{name}}',
+    labelAnon: 'Geste von deinem Partner',
+    close: 'Schließen',
+    thinking: {
+      title: '{{name}} denkt gerade an dich',
+      titleAnon: 'Jemand denkt gerade an dich',
+      detail: 'Ein kleiner Gruß nur für dich.',
+      reply: 'Zurückschicken',
+    },
+    kiss: {
+      title: 'Ein Kuss von {{name}}',
+      titleAnon: 'Ein Kuss für dich',
+      detail: 'Für dich.',
+      reply: 'Kuss zurückschicken',
+    },
+    checkIn: {
+      title: '{{name}} möchte wissen, wie es dir geht',
+      titleAnon: 'Dein Partner möchte wissen, wie es dir geht',
+      detail: 'Nur wenn du magst.',
+      reply: 'Gefühl teilen',
+    },
+  },
+
   visibilityShared: 'Mit Partner geteilt',
   visibilityPrivate: 'Nur für mich',
   visibilityTemporary: 'Zeitlich geteilt',

@@ -51,7 +51,7 @@ it('defaults off, shares a deliberate personal opt-in, isolates owners and fails
   expect(result.current.enabled).toBe(false);
   pro = false;
   await act(async () => {
-    await client.invalidateQueries({ queryKey: ['wir-statistics-grant'] });
+    await client.invalidateQueries({ queryKey: ['space-entitlement'] });
   });
   await waitFor(() => expect(second.result.current.allowed).toBe(false));
   expect(second.result.current.enabled).toBe(true);

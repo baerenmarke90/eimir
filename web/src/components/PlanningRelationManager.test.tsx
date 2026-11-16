@@ -28,6 +28,8 @@ import {
   PlanningRelationManager,
 } from './PlanningRelationManager';
 
+const memoryAuthor = { id: 'account-1', displayName: 'Lea' };
+
 function memoryStory(id: string, title: string): StoryItem {
   return {
     kind: 'MEMORY',
@@ -105,7 +107,6 @@ async function openPicker() {
 
 describe('PlanningRelationManager pagination', () => {
   it('reaches an opaque 21st page beyond the former 1,000-item cap', async () => {
-    const user = userEvent.setup();
     const getStoryTimeline = vi.fn(
       async ({ cursor }: { cursor: string | null }) => {
         const index = cursor ? Number(cursor.slice('opaque-'.length)) : 0;
@@ -118,17 +119,38 @@ describe('PlanningRelationManager pagination', () => {
     renderManager(relationApis({ story: { getStoryTimeline } }));
 
     await openPicker();
+    const picker = await screen.findByRole('dialog');
+    await within(picker).findByRole('button', {
+      name: i18n.t('m5s3.common.loadMore'),
+    });
     for (let page = 1; page <= 20; page += 1) {
-      await user.click(
-        await screen.findByRole('button', {
-          name: i18n.t('m5s3.common.loadMore'),
-        }),
-      );
+      const button = await waitFor(() => {
+        const control = picker.querySelector<HTMLButtonElement>(
+          '.relation-moment-more',
+        );
+        if (!control || control.disabled) {
+          throw new Error('Waiting for the next page control');
+        }
+        return control;
+      });
+      fireEvent.click(button);
+      await waitFor(() => {
+        const lastChoice = picker.querySelector(
+          '.relation-moment-choices li:last-child strong',
+        );
+        expect(lastChoice?.textContent).toBe(`Memory ${page}`);
+      });
     }
 
     expect(
       await screen.findByRole('checkbox', { name: /Memory 20/ }),
     ).toBeTruthy();
+    expect(
+      getStoryTimeline.mock.calls.map(([request]) => request.cursor),
+    ).toEqual([
+      null,
+      ...Array.from({ length: 20 }, (_, index) => `opaque-${index + 1}`),
+    ]);
     expect(getStoryTimeline).toHaveBeenLastCalledWith(
       {
         spaceId: 'space-1',
@@ -176,6 +198,8 @@ describe('PlanningRelationManager pagination', () => {
     const getMemory = vi.fn().mockResolvedValue({
       id: 'memory-late',
       title: 'Our older memory',
+      author: memoryAuthor,
+      attachments: [],
       happenedOn: new Date('2020-01-02T00:00:00Z'),
       createdAt: new Date('2020-01-03T00:00:00Z'),
     });
@@ -239,6 +263,57 @@ describe('PlanningRelationManager pagination', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 
+  it('uses the same saved gallery cover and voice title on a linked Heart Moment card', async () => {
+    const firstImage = {
+      id: 'landscape',
+      position: 0,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      width: 800,
+      height: 400,
+    };
+    const coverImage = {
+      ...firstImage,
+      id: 'portrait',
+      position: 1,
+      width: 400,
+      height: 800,
+    };
+    renderManager(
+      relationApis({
+        chapterRelations: {
+          listChapterContent: vi.fn().mockResolvedValue({
+            items: [{ targetId: 'heart', targetType: 'HEART_MOMENT' }],
+          }),
+        },
+        heartMoments: {
+          getHeartMoment: vi.fn().mockResolvedValue({
+            id: 'heart',
+            text: '',
+            audioTitle: 'Our recorded note',
+            visibility: 'SHARED',
+            emotion: 'HAPPY',
+            author: memoryAuthor,
+            happenedOn: new Date('2026-09-01T00:00:00Z'),
+            attachment: firstImage,
+            attachments: [firstImage, coverImage],
+            selectedCoverAttachmentId: coverImage.id,
+          }),
+        },
+      }),
+    );
+
+    const link = await screen.findByRole('link', { name: /Our recorded note/ });
+    expect(
+      link.closest('[data-photo-shape]')?.getAttribute('data-photo-shape'),
+    ).toBe('portrait');
+    expect(
+      within(link).getByRole('img', {
+        name: i18n.t('story.photos', { count: 2 }),
+      }),
+    ).toBeTruthy();
+  });
+
   it('uses the owner capability for relation mutation affordances', async () => {
     const getStoryTimeline = vi.fn().mockResolvedValue({
       items: [memoryStory('candidate', 'Candidate')],
@@ -257,6 +332,8 @@ describe('PlanningRelationManager pagination', () => {
           getMemory: vi.fn().mockResolvedValue({
             id: 'memory-late',
             title: 'Readable memory',
+            author: memoryAuthor,
+            attachments: [],
             happenedOn: new Date('2026-09-01T00:00:00Z'),
             createdAt: new Date('2026-09-01T00:00:00Z'),
           }),
@@ -312,6 +389,7 @@ describe('PlanningRelationManager moment picker', () => {
         getMemory: vi.fn(async ({ memoryId }) => ({
           id: memoryId,
           title: memoryId === 'a' ? 'Summer together' : 'Our picnic',
+          author: memoryAuthor,
           createdAt: new Date('2026-09-01'),
           attachments: [],
         })),
@@ -494,6 +572,8 @@ describe('PlanningRelationManager moment picker', () => {
           getMemory: vi.fn(async ({ memoryId }) => ({
             id: memoryId,
             title: 'Saved first',
+            author: memoryAuthor,
+            attachments: [],
             createdAt: new Date('2026-09-01'),
           })),
         },

@@ -55,6 +55,9 @@ class NotificationKind(StrEnum):
     PLAN_CANCELLED = "PLAN_CANCELLED"
     WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
     WISH_SELECTION_READY = "WISH_SELECTION_READY"
+    WISH_SELECTION_RANDOM_REQUESTED = "WISH_SELECTION_RANDOM_REQUESTED"
+    WISH_SELECTION_RANDOM_ACCEPTED = "WISH_SELECTION_RANDOM_ACCEPTED"
+    WISH_SELECTION_RANDOM_DECLINED = "WISH_SELECTION_RANDOM_DECLINED"
     PHOTO_REACTION = "PHOTO_REACTION"
     PARTNER_JOINED = "PARTNER_JOINED"
     COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
@@ -63,6 +66,40 @@ class NotificationKind(StrEnum):
     PARTNER_KISS = "PARTNER_KISS"
     PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
+    WISH_REMINDER_DUE = "WISH_REMINDER_DUE"
+    WISH_DATE_PROPOSED = "WISH_DATE_PROPOSED"
+    WISH_DATE_COUNTERED = "WISH_DATE_COUNTERED"
+    WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
+    COLLECTION_SENT = "COLLECTION_SENT"
+
+
+WISH_DATE_NOTICE_KINDS = frozenset(
+    {
+        NotificationKind.WISH_DATE_PROPOSED,
+        NotificationKind.WISH_DATE_COUNTERED,
+        NotificationKind.WISH_DATE_ACCEPTED,
+    }
+)
+
+
+# Consent-based random pick of a revealed wish-selection round (#1907 J1).
+WISH_SELECTION_RANDOM_KINDS = frozenset(
+    {
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.WISH_SELECTION_RANDOM_DECLINED,
+    }
+)
+# One current notice per recipient, kind and target; a newer event replaces it.
+COALESCED_NOTIFICATION_KINDS = (
+    "PHOTO_REACTION",
+    "WISH_SELECTION_SHARED",
+    "WISH_SELECTION_READY",
+    "WISH_SELECTION_RANDOM_REQUESTED",
+    "WISH_SELECTION_RANDOM_ACCEPTED",
+    "WISH_SELECTION_RANDOM_DECLINED",
+    "COLLECTION_SENT",
+)
 
 
 class NotificationChannel(StrEnum):
@@ -298,7 +335,7 @@ class Notification(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text(
-                "kind IN ('PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY')"
+                "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
             ),
         ),
         Index(
@@ -461,6 +498,12 @@ class PushEndpoint(IdMixin, Base):
         ForeignKey("accounts.id", ondelete="CASCADE"),
         nullable=False,
     )
+    device_session_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     provider_key: Mapped[str] = mapped_column(String(64), nullable=False)
     endpoint_value: Mapped[str] = mapped_column(String(2048), nullable=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -477,6 +520,12 @@ class PushEndpoint(IdMixin, Base):
             name="uq_push_endpoints_account_provider_fingerprint",
         ),
         Index("ix_push_endpoints_account_active", "account_id", "disabled_at"),
+        Index(
+            "ix_push_endpoints_active_destination",
+            "provider_key",
+            "fingerprint",
+            postgresql_where=text("disabled_at IS NULL AND provider_key IN ('apns', 'webpush')"),
+        ),
     )
 
 
@@ -533,6 +582,9 @@ class PushPreviewSecret(IdMixin, Base):
     )
     preview_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=1, server_default=text("1")
+    )
+    neutral_reference: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
     )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")

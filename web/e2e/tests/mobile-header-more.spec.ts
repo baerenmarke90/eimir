@@ -1,14 +1,16 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import navigation from '../../src/i18n/locales/navigation';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
+import AxeBuilder from '../support/axe';
+import { storyDetailBack } from '../support/memoryDiary';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -233,7 +235,7 @@ test('headerless Compact content consumes the safe area once and retains Story r
     document.querySelector('.demo-instance-banner')?.remove(),
   );
   await page.goto('/story/memories/mem-canal');
-  const back = page.locator('.shell-detail-context button');
+  const back = storyDetailBack(page);
   await expect(back).toBeVisible();
   await captureScreenshot(page, info, 'memory-390-headerless-return.png');
   await back.click();
@@ -260,3 +262,65 @@ for (const admin of [false, true]) {
     await expect(page.locator('.product-shell')).toHaveCount(0);
   });
 }
+
+test('the Android app names what signing out deletes from the phone', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installNativeAppLifecycle(page);
+  const state = await setup(page);
+  const mediaKey = () =>
+    page.evaluate(() =>
+      sessionStorage.getItem('native-continuity-test-media-key'),
+    );
+  await page.evaluate(() =>
+    sessionStorage.setItem('native-continuity-test-media-key', 'sealed'),
+  );
+  const logout = page.locator('.more-logout');
+  const sheet = page.getByRole('alertdialog', {
+    name: de.header.logoutDeviceTitle,
+  });
+  const cancel = sheet.getByRole('button', {
+    name: de.header.logoutDeviceCancel,
+  });
+
+  await logout.click();
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText(de.header.logoutDeviceBody);
+  await expect(sheet).toContainText(de.header.logoutDeviceKept);
+  await expect(cancel).toBeFocused();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('.logout-device-data-sheet')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.evaluate((value) => {
+      localStorage.setItem('eimir.theme', value);
+      window.dispatchEvent(new StorageEvent('storage', { key: 'eimir.theme' }));
+    }, theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await captureScreenshot(
+      page,
+      info,
+      `more-logout-device-data-390-${theme}.png`,
+    );
+  }
+
+  await cancel.click();
+  await expect(sheet).toBeHidden();
+  expect(state.signOuts()).toBe(0);
+  expect(await mediaKey()).toBe('sealed');
+
+  await logout.click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
+    sheet.getByRole('button', { name: de.header.logout, exact: true }).click(),
+  ]);
+  await expect.poll(state.signOuts).toBe(1);
+  await expect(page.getByLabel(de.login.email)).toBeVisible();
+  expect(await mediaKey()).toBeNull();
+});

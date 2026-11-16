@@ -13,7 +13,12 @@ export type ProductCacheKind =
   | 'story-discover'
   | 'dashboard-overview'
   | 'plans-overview'
-  | 'shared-list';
+  | 'shared-list'
+  // A shared Collection detail (#1808), so a shopping list opens without a
+  // connection from its last saved copy.
+  | 'collection'
+  // Changes to one shopping list that are waiting to be sent (#1808).
+  | 'collection-outbox';
 export type ProductReadSource = 'network' | 'cache';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 
@@ -679,6 +684,20 @@ export function canPersistProductReadPayload(
       return false;
     }
   }
+  if (kind === 'collection' || kind === 'collection-outbox') {
+    if (!payload || typeof payload !== 'object') return false;
+    try {
+      // Bounded like the other shared snapshots; a Collection is always
+      // space-shared, and a snapshot that says otherwise is refused.
+      const encoded = JSON.stringify(payload);
+      return (
+        encoded.length <= 256 * 1024 &&
+        !/"(?:visibility|privacyClass)":"(?:PRIVATE|OWNER_ONLY)"/.test(encoded)
+      );
+    } catch {
+      return false;
+    }
+  }
   if (kind === 'dashboard-overview' || kind === 'plans-overview') {
     try {
       // Overview snapshots are an optimization, never an unbounded archive.
@@ -1127,6 +1146,84 @@ export function revokeSharedListCache(spaceId: string): void {
  */
 export function clearProductReadCacheInBackground(): void {
   void clearProductReadCache().catch(() => undefined);
+}
+
+/** Read the changes of one shopping list that are waiting to be sent (#1808).
+ *
+ * They live in the same store and generation as the cached reads, so every
+ * lifecycle that wipes the cache (sign-out, leaving the Space, Account
+ * deletion, an import) wipes them too and a new generation cannot reach them.
+ */
+export async function readCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<unknown | null> {
+  const lease = captureCacheLease(accountId, spaceId);
+  const record = await readRecord(
+    {
+      key: cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+      accountId,
+      spaceId,
+      generation: lease.generation,
+      kind: 'collection-outbox',
+      resourceId: collectionId,
+    },
+    lease,
+  );
+  return record ? record.payload : null;
+}
+
+/** Store the waiting changes of one shopping list and say whether it worked.
+ *
+ * Unlike a cache write this reports failure: a change that was only kept in
+ * memory must not look as if it survived a restart. Returns `false` when the
+ * payload is not allowed, the cache context is no longer current, or the
+ * storage refused it.
+ */
+export async function writeCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+  payload: unknown,
+): Promise<boolean> {
+  const lease = captureCacheLease(accountId, spaceId);
+  if (!canPersistProductReadPayload('collection-outbox', payload)) return false;
+  const key = cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId);
+  try {
+    await enqueueCacheMutation(async () => {
+      if (!isLeaseCurrent(lease)) throw new Error('The cache context changed.');
+      await cacheStorage.write({
+        schemaVersion: 3,
+        key,
+        accountId,
+        spaceId,
+        generation: lease.generation,
+        privacyScope: SHARED_SCOPE,
+        kind: 'collection-outbox',
+        resourceId: collectionId,
+        payload,
+        refreshedAt: new Date().toISOString(),
+      } satisfies ProductCacheRecord);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Remove the waiting changes of one shopping list once nothing is left to send. */
+export async function deleteCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<void> {
+  const lease = currentCacheLease(accountId, spaceId);
+  if (!lease) return;
+  await deleteRecordByKey(
+    cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+    lease,
+  );
 }
 
 export function __setProductReadCacheStorageForTests(

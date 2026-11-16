@@ -3,6 +3,8 @@ export default {
   label: 'Fotos & Videos',
   preview: 'Video-Vorschau',
   preparing: 'Video wird auf deinem Gerät vorbereitet …',
+  preparationFailed:
+    'Dieses Video kann auf deinem Gerät gerade nicht vorbereitet werden. Deine Auswahl bleibt erhalten. Versuche es erneut oder wähle ein anderes Video.',
   processing: 'Video wird verarbeitet …',
   processingShort: 'Wird vorbereitet',
   savedFailedShort: 'Nicht verfügbar',
@@ -11,13 +13,23 @@ export default {
   play: 'Video abspielen',
   unavailable: 'Das Video kann gerade nicht abgespielt werden.',
   retry: 'Erneut laden',
-  formats: 'MP4 oder MOV · bis 3 Minuten und 250 MiB',
+  formats:
+    'MP4 oder MOV · bis 3 Minuten und 250 MiB · gespeichert mit maximal 1080p',
+  uploading: 'Video wird hochgeladen …',
+  startFailed: 'Der Video-Upload konnte nicht gestartet werden.',
+  uploadInterrupted: 'Upload unterbrochen',
+  uploadFailed:
+    'Der Video-Upload wurde unterbrochen. Du kannst ihn fortsetzen.',
+  retryUpload: 'Upload fortsetzen',
+  retryUnavailable:
+    'Der Upload konnte gerade nicht gestartet werden. Öffne die App mit Internetverbindung und versuche es erneut.',
   unsupported:
     'Dieses Videoformat wird noch nicht unterstützt. Bitte wähle ein MP4- oder MOV-Video mit H.264.',
   tooLarge: 'Das Video ist zu groß. Möglich sind bis zu 250 MiB.',
   empty: 'Dieses Video ist leer. Bitte wähle ein anderes aus.',
   tooLong: 'Das Video ist zu lang. Möglich sind bis zu 3 Minuten.',
-  dimensions: 'Das Video hat eine zu hohe Auflösung. Möglich ist bis zu 4K.',
+  dimensions:
+    'Dieses Video kann nicht vorbereitet werden. Wähle eine Aufnahme mit höchstens 4K; gespeichert wird sie mit maximal 1080p.',
   failed:
     'Das Video konnte nicht verarbeitet werden. Deine Auswahl bleibt erhalten.',
   proTitle: 'Eure Augenblicke in Bewegung',
@@ -37,7 +49,7 @@ export default {
   showAll: 'Alle {{count}} Aufnahmen anzeigen',
   missing: 'Bitte entferne dieses Video und wähle es erneut aus.',
   failedNotSaved:
-    'Dieses Video wird erst nach erfolgreichem Upload gespeichert.',
+    'Deine Auswahl bleibt erhalten. Versuche den Upload erneut oder entferne das Video, um deinen Moment ohne dieses Video zu speichern.',
   volatile:
-    'Lass die App für den Upload geöffnet. Danach verarbeitet der Server das Video.',
+    'Das Video wird für den Upload vorbereitet. Danach kannst du deinen Moment speichern. In der Android-App lädt es im Hintergrund weiter; im Browser bleibt der Tab dafür geöffnet.',
 };

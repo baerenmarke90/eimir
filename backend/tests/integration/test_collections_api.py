@@ -443,3 +443,142 @@ class TestCollectionLifecycle:
         )
         assert SECRET_COLLECTION_TITLE not in serialized
         assert SECRET_ITEM_TITLE not in serialized
+
+
+class TestCollectionScopesAndPlanLinks:
+    def test_scope_is_derived_before_pagination_and_empty_lists_remain_open(self, client, couple):
+        headers = auth(couple["token_a"])
+        empty = create_collection(client, couple, title="Empty").json()
+        mixed = create_collection(client, couple, title="Packing").json()
+        done = create_collection(client, couple, title="Booked").json()
+        for collection, completed in ((mixed, True), (mixed, False), (done, True)):
+            response = client.post(
+                f"{path(couple['space'].id)}/{collection['id']}/items",
+                json={"title": "One thing", "completed": completed},
+                headers=headers,
+            )
+            assert response.status_code == 201
+        first = client.get(
+            path(couple["space"].id), params={"scope": "OPEN", "limit": 1}, headers=headers
+        )
+        assert first.status_code == 200
+        assert [row["id"] for row in first.json()["items"]] == [mixed["id"]]
+        assert first.json()["hasMore"] is True
+        second = client.get(
+            path(couple["space"].id),
+            params={"scope": "OPEN", "limit": 1, "cursor": first.json()["nextCursor"]},
+            headers=headers,
+        )
+        assert [row["id"] for row in second.json()["items"]] == [empty["id"]]
+        assert second.json()["hasMore"] is False
+        completed_page = client.get(
+            path(couple["space"].id), params={"scope": "COMPLETED"}, headers=headers
+        )
+        assert [row["id"] for row in completed_page.json()["items"]] == [done["id"]]
+        assert len(client.get(path(couple["space"].id), headers=headers).json()["items"]) == 3
+        cursor_mismatch = client.get(
+            path(couple["space"].id),
+            params={"scope": "COMPLETED", "cursor": first.json()["nextCursor"]},
+            headers=headers,
+        )
+        assert cursor_mismatch.status_code == 400
+        item = completed_page.json()["items"][0]["items"][0]
+        reopened = client.patch(
+            f"{path(couple['space'].id)}/{done['id']}/items/{item['id']}",
+            json={"completed": False},
+            headers=if_match(couple["token_a"], item["version"]),
+        )
+        assert reopened.status_code == 200
+        assert (
+            client.get(
+                path(couple["space"].id), params={"scope": "COMPLETED"}, headers=headers
+            ).json()["items"]
+            == []
+        )
+
+    def test_links_are_many_to_many_idempotent_and_keep_independent_completion(
+        self, client, couple, session
+    ):
+        headers = auth(couple["token_a"])
+        base = f"/api/v1/spaces/{couple['space'].id}/plans"
+        plans = [
+            client.post(base, json={"title": title}, headers=headers).json()
+            for title in ("Trip", "Weekend")
+        ]
+        collections = [
+            create_collection(client, couple, title=title).json()
+            for title in ("Packing", "Bookings")
+        ]
+        for plan in plans:
+            for collection in collections:
+                link = f"{base}/{plan['id']}/collections/{collection['id']}"
+                assert client.put(link, headers=headers).status_code == 204
+                assert client.put(link, headers=auth(couple["token_b"])).status_code == 204
+        for plan in plans:
+            response = client.get(
+                f"{base}/{plan['id']}/collections", headers=auth(couple["token_b"])
+            )
+            assert {row["id"] for row in response.json()} == {row["id"] for row in collections}
+        completed = client.post(
+            f"{base}/{plans[0]['id']}/complete",
+            json={"experiencedOn": "2026-11-09"},
+            headers=if_match(couple["token_a"], plans[0]["version"]),
+        )
+        assert completed.status_code == 200, completed.text
+        assert all(
+            not row["items"]
+            for row in client.get(f"{base}/{plans[0]['id']}/collections", headers=headers).json()
+        )
+        assert client.get(f"{base}/{plans[1]['id']}", headers=headers).json()["status"] == "IDEA"
+        link = f"{base}/{plans[0]['id']}/collections/{collections[0]['id']}"
+        assert client.delete(link, headers=headers).status_code == 204
+        assert (
+            client.get(
+                f"{path(couple['space'].id)}/{collections[0]['id']}", headers=headers
+            ).status_code
+            == 200
+        )
+        assert len(client.get(f"{base}/{plans[1]['id']}/collections", headers=headers).json()) == 2
+        events = list(
+            session.scalars(
+                select(OutboxEvent).where(OutboxEvent.event_type == "PLAN_COLLECTION_LINKED")
+            )
+        )
+        assert len(events) == 4
+        assert all(
+            set(event.payload.model_dump(exclude_none=True)) <= {"target_type", "target_id"}
+            for event in events
+        )
+
+    def test_link_target_absence_is_privacy_safe_and_deletion_cascades_only_the_link(
+        self, client, couple
+    ):
+        headers = auth(couple["token_b"])
+        base = f"/api/v1/spaces/{couple['space'].id}/plans"
+        plan = client.post(base, json={"title": "Trip"}, headers=headers).json()
+        foreign = client.post(
+            path(couple["foreign_space"].id), json={"title": "Hidden"}, headers=headers
+        ).json()
+        codes = []
+        for target in (foreign["id"], str(uuid4())):
+            response = client.put(f"{base}/{plan['id']}/collections/{target}", headers=headers)
+            assert response.status_code == 404
+            codes.append(response.json()["code"])
+        assert codes == ["RELATION_TARGET_NOT_FOUND", "RELATION_TARGET_NOT_FOUND"]
+        collection = create_collection(client, couple).json()
+        assert (
+            client.put(
+                f"{base}/{plan['id']}/collections/{collection['id']}", headers=headers
+            ).status_code
+            == 204
+        )
+        deleted = client.delete(
+            f"{base}/{plan['id']}", headers=if_match(couple["token_b"], plan["version"])
+        )
+        assert deleted.status_code == 204
+        assert (
+            client.get(
+                f"{path(couple['space'].id)}/{collection['id']}", headers=headers
+            ).status_code
+            == 200
+        )

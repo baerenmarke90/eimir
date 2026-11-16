@@ -32,7 +32,10 @@ are triggered by successful completions of the required main workflows:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
-   SBOM, provenance and offline verification. Nothing builds on the Docker host.
+   SBOM, provenance and offline verification. Release Evidence requires a fresh
+   codec advisory check before building the derivative. An unreviewed finding or
+   a failed feed check keeps the previous channel in place. Nothing builds on the
+   Docker host.
 4. Loads all three archives, verifies source/version/platform labels, publishes to the
    existing GHCR backend/Web/media packages and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
@@ -181,6 +184,38 @@ This is the product callback; the older standalone probe callback is separate.
 Google stays hidden until configured and still requires the operator's appropriate
 testing audience/verification. Personal Immich requires no shared operator key.
 See [the source contract](product/integrations/1444-photo-source-delivery.md).
+
+Google import remains blocked by the application gate (#1467). The only path past it is the
+private-test eligibility: `EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS` is a JSON list of at most ten
+verified Account email addresses (empty by default). An Account may use the Google import only when
+one of its **verified** addresses is listed and photo sources, required encryption, an HTTPS public
+address and a valid Google OAuth configuration are all in place; the `integration.external_sync`
+entitlement and every ownership check still apply, and demo instances never qualify. Emptying the
+list stops polling and reading immediately; cancelling and cleanup keep working. The list is
+operator-local, never committed, and not a production enablement: independent review and the
+remaining acceptance in #1467 are still required before the gate itself changes.
+
+Operator notes: list only addresses that the intended tester has already registered and verified,
+because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
+addresses as verified). Settings are cached per process, so a change to the list takes effect after the
+API is restarted or redeployed.
+## Optional calendar sync
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_CALENDAR_SYNC_ENABLED` (default true), `EIMIR_GOOGLE_CALENDAR_CLIENT_ID`
+and `EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET` (both empty by default). CalDAV needs no
+operator value. Private CalDAV hosts are a Self-Hosted option and are never passed
+to this Cloud-profile channel.
+
+To offer Google Calendar, append the Google Web OAuth client values to the existing
+Arcane environment without replacing any current key, register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/calendar-sync/google/callback` redirect, enable the
+Google Calendar API and add the `calendar.calendarlist.readonly` and `calendar.events`
+scopes. The Google Photos client may be reused when both redirects are registered.
+Redeploy so API and worker read the values. While the Google app is in testing,
+only listed test users can consent and Google expires their grants after seven days.
+See [calendar sync operations](product/integrations/1895-calendar-sync.md).
+
 ## Configure the selected live FCM transport
 
 The Product Owner selected FCM-only operation on 2026-11-01, superseding the

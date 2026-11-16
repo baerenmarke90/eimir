@@ -64,6 +64,7 @@ function SortableMedia({
       <button
         type="button"
         className="photo-draft-tile"
+        data-media-key={item.key}
         aria-pressed={selected}
         onClick={onSelect}
         aria-label={

@@ -8,10 +8,12 @@ Name | Type
 ------------ | -------------
 `actor` | [AuthorSummary](AuthorSummary.md)
 `actorId` | string
+`appointmentStart` | Date
 `createdAt` | Date
 `id` | string
 `kind` | [NotificationKind](NotificationKind.md)
 `readAt` | Date
+`selectionSize` | number
 `sourceEventId` | string
 `target` | [ActivityTargetPresentation](ActivityTargetPresentation.md)
 `targetId` | string
@@ -26,10 +28,12 @@ import type { NotificationItem } from ''
 const example = {
   "actor": null,
   "actorId": null,
+  "appointmentStart": null,
   "createdAt": null,
   "id": null,
   "kind": null,
   "readAt": null,
+  "selectionSize": null,
   "sourceEventId": null,
   "target": null,
   "targetId": null,

@@ -13,6 +13,7 @@ Name | Type
 `audioTitle` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`location` | [HeartMomentLocation](HeartMomentLocation.md)
 `placeId` | string
 `selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
@@ -33,6 +34,7 @@ const example = {
   "audioTitle": null,
   "emotion": null,
   "happenedOn": null,
+  "location": null,
   "placeId": null,
   "selectedCoverAttachmentId": null,
   "tags": null,

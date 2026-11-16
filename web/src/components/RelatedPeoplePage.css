@@ -188,17 +188,6 @@
   font-weight: 700;
 }
 
-.important-date-marker-month {
-  max-width: 100%;
-  padding-inline: var(--space-1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.3;
-}
-
 .important-date-timeline-body {
   display: grid;
   gap: 0.2rem;
@@ -490,6 +479,18 @@ button.danger:hover:not(:disabled) {
   background: var(--color-surface-raised);
   color: var(--color-text);
   box-shadow: 0 -16px 48px rgb(20 15 24 / 22%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .focused-editor-backdrop[data-create-entry] {
+    animation: eimir-create-entry-fade var(--duration-context)
+      var(--easing-enter);
+  }
+
+  .focused-editor-backdrop[data-create-entry] > .focused-editor-sheet {
+    animation: eimir-create-entry-rise var(--duration-context)
+      var(--easing-enter);
+  }
 }
 
 .focused-editor-header {

@@ -21,6 +21,12 @@ import { mapValues } from '../runtime';
 export interface DashboardAnticipation {
     /**
      * 
+     * @type {boolean}
+     * @memberof DashboardAnticipation
+     */
+    concealed?: boolean;
+    /**
+     * 
      * @type {number}
      * @memberof DashboardAnticipation
      */
@@ -72,6 +78,7 @@ export function DashboardAnticipationFromJSONTyped(json: any, ignoreDiscriminato
     }
     return {
         
+        'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'daysRemaining': json['daysRemaining'],
         'eventAt': json['eventAt'] === undefined ? undefined : json['eventAt'] === null ? null : (new Date(json['eventAt'])),
         'eventOn': (new Date(json['eventOn'])),
@@ -91,6 +98,7 @@ export function DashboardAnticipationToJSONTyped(value?: DashboardAnticipation |
 
     return {
         
+        'concealed': value['concealed'],
         'daysRemaining': value['daysRemaining'],
         'eventAt': value['eventAt'] == null ? value['eventAt'] : value['eventAt'].toISOString(),
         'eventOn': value['eventOn'].toISOString().substring(0,10),

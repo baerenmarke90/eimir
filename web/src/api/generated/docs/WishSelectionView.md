@@ -7,9 +7,14 @@
 Name | Type
 ------------ | -------------
 `candidates` | [Array&lt;WishSelectionCandidateView&gt;](WishSelectionCandidateView.md)
+`commonDateIdeaIds` | Array&lt;string&gt;
 `commonWishIds` | Array&lt;string&gt;
+`dateIdeaCandidates` | [Array&lt;WishSelectionDateIdeaCandidateView&gt;](WishSelectionDateIdeaCandidateView.md)
+`decision` | [WishSelectionDecisionView](WishSelectionDecisionView.md)
 `id` | string
 `own` | [WishSelectionOwnView](WishSelectionOwnView.md)
+`randomPool` | string
+`randomRequest` | [WishSelectionRandomRequestView](WishSelectionRandomRequestView.md)
 `resultState` | string
 `roundToken` | string
 `selectionToken` | string
@@ -24,9 +29,14 @@ import type { WishSelectionView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "candidates": null,
+  "commonDateIdeaIds": null,
   "commonWishIds": null,
+  "dateIdeaCandidates": null,
+  "decision": null,
   "id": null,
   "own": null,
+  "randomPool": null,
+  "randomRequest": null,
   "resultState": null,
   "roundToken": null,
   "selectionToken": null,

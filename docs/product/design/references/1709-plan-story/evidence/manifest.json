@@ -1,0 +1,45 @@
+{
+  "source": "Final feature-owned Playwright run: 17 passed; synthetic fixtures only.",
+  "files": [
+    {
+      "file": "heart-plan-backlink-360-light.png",
+      "sha256": "09095a4bcbfc8d4f75b83424b835bb48245c2984d665d7a9658feefb4d9b68ff"
+    },
+    {
+      "file": "plan-story-360-light.png",
+      "sha256": "366088ee54f90eeb5dc4e100b847d83c8eaed0aa16e21c795d36c46dadee8a68"
+    },
+    {
+      "file": "heart-plan-backlink-1280-dark.png",
+      "sha256": "7efa73d3e1f76a0e6742e96b9811268d2aa1cb58c8696a95590fcc1e043c1e59"
+    },
+    {
+      "file": "plan-story-1280-dark.png",
+      "sha256": "59bc384bd6c8d227e53ee4a86f5a8d84367d47379b2c202a0958b3482b77dc3e"
+    },
+    {
+      "file": "heart-plan-backlink-320-light.png",
+      "sha256": "85538fc72f8b73d4c3b52aaa543bd3eb646344c8405e928128eb4eb7914cd8cb"
+    },
+    {
+      "file": "plan-story-320-light.png",
+      "sha256": "f80a3eb1af598f30c0ccda13b803d9dfb789bad3c132ee1b9f9221a72547bcd7"
+    },
+    {
+      "file": "heart-plan-backlink-430-light.png",
+      "sha256": "4656ee22327c74117ce9cb58af1d98363ac793c6307425b9a2d15eaa3b038f28"
+    },
+    {
+      "file": "plan-story-430-light.png",
+      "sha256": "c6560814cacf5a659413f3ba83cf93034ff7bb114db94433acf59b2ee7247252"
+    },
+    {
+      "file": "heart-plan-backlink-390-dark.png",
+      "sha256": "d5a892f9c96b20718112f61089e945a9c32ae11afc213e30bf55e3bdf38c4c4e"
+    },
+    {
+      "file": "plan-story-390-dark.png",
+      "sha256": "010f862666dcd2e47e6829cbf04dfe3b5795c660e72939def385feeda29b348b"
+    }
+  ]
+}

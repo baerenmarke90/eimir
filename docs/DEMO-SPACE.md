@@ -359,15 +359,32 @@ The canonical dataset is created through normal domain services and currently in
 - manual Place-to-Memory links for the café breakfast and lake walk (not invented photo GPS);
 - Chapters, including Place-linked content;
 - shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
-- recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
-  and Mutual Reveal enabled so the current privacy interaction is demonstrable;
+- recent Daily Check-in history for both personas with Vibe and Energy/Battery values and intentional gaps,
+  shown with the immediate visibility that new Spaces get by default (#1790);
 - a recent completed shared Plan so completion/achievement surfaces have current content;
 - independent PrivateNote, GiftIdea, and PrivateCollection content for both Accounts;
 - Search-visible shared/private material;
 - Activity and in-app Notification projections;
 - generated M4-C Reminder examples for ImportantDate, birthday, relationship anniversary, and
   planned Plan rules;
-- one manual Reminder plus recipient-specific mute/rule-preference examples.
+- one manual Reminder plus recipient-specific mute/rule-preference examples;
+- recent-feature examples from `backend/src/eimir/demo/feature_examples.py` (see below).
+
+### Recent-feature examples
+
+A new canonical Space and every reset also receive examples for features that
+the original scenario predates. They use ordinary domain services and are
+relative to the reference date:
+
+| Feature | Canonical content |
+| --- | --- |
+| Occasion marks on Moments (#1907 F2) | Both personas have a birthday (Lea's is a few weeks ahead, Alex's a few weeks back). One Memory falls on the last relationship anniversary, one on Alex's last birthday. |
+| Partner distance and map connection on Wir (#1907 H1) | Both personas share distance and map indefinitely with a fictional position in two neighboring cities. A viewer's own distance still needs that viewer's device position and permission; the seed never fabricates it. The partner snapshot ages like any other and is refreshed by the next reset. |
+| Shopping lists (#1808) | One shopping list with a finished earlier trip (so suggestions exist), open entries from both personas and two entries already in the cart. |
+| Multi-day date-only Plans (#1895) | One Plan from a Friday two to three weeks after the reference date through the Sunday. |
+| Date proposal from a Wish (#1911) | Alex proposes a Saturday-morning date for one of his open Wishes; Lea has not answered. The proposal always lies in the future, also for a past reference date. |
+
+Like the story relations, these examples are not backfilled by `ensure`.
 
 These authored tags and Place relations are seeded only for a new canonical Space or
 an intentional reset. The idempotent `ensure` operation never overwrites visitor-edited
@@ -485,22 +502,18 @@ exceptions.
 
 ## Freemium / entitlement behavior
 
-The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
-continues to use the same entitlement model as for ordinary users.
+The entitlement service records a space-scoped `TEST_FIXTURE` grant named `canonical-demo-pro`.
+Both Lea and Alex receive the current Pro capability catalog through the same tenant-scoped
+endpoint and server-side checks as any other Pro Space. Self-Hosted filters out the Cloud-only
+storage quota. Operational prerequisites such as a configured provider or media worker, platform
+availability and each person's consent still apply. Daily Quote uses distinct personal preferences
+for both personas through the ordinary preference service.
 
-The canonical dataset records purpose-scoped normalized `TEST_FIXTURE` grants through the ordinary
-entitlement service. One grant exposes `games.couple` for Couple Games; a second exposes
-`daily.insights` and `daily.quote` for the implemented Today Pro capability boundary. The Daily
-Quote preferences are deterministic for both personas and use the same entitlement and preference
-contracts as ordinary Accounts.
-
-All fixture grants are evaluated through the same tenant-scoped entitlement endpoint and server-side
-capability checks as ordinary grants. Production forbids creating `TEST_FIXTURE` grants and excludes
-restored fixture grants from effective Production entitlement evaluation.
-
-Curated media, richer seed content, and reset behavior do not themselves change paywall,
-storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use
-the authoritative capability/entitlement model rather than a client-side or Demo-only bypass.
+After updating the Demo backend image, run `demo-init` to grant Pro to the existing canonical
+Space in place. The normal scheduled reset also grants Pro when it creates the next Space.
+The earlier, narrower test grants are removed with the old Space during that reset.
+Production forbids creating `TEST_FIXTURE` grants and excludes restored fixtures from its
+entitlement evaluation.
 
 ## Practical QA loop
 

@@ -13,10 +13,11 @@ from enum import StrEnum
 from types import MappingProxyType
 from uuid import UUID
 
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 9
+POLICY_VERSION = 14
 GENERIC_PRESENTATION_KEY = "notification.generic"
+WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
 
 
@@ -36,9 +37,8 @@ class PushPreviewPolicy:
     presentation_key: str
 
 
-# The current provider contract has one privacy-safe external presentation.
-# Richer previews require an explicit adapter and domain privacy review; a
-# catalog edit alone must never enable them.
+# Generic delivery is the baseline. The shared-Wish proposal exception also
+# requires a compatible encrypted device adapter and an authorized source.
 GENERIC_PREVIEW = PushPreviewPolicy(
     allow_sender_name=False,
     allow_event_category=False,
@@ -46,6 +46,14 @@ GENERIC_PREVIEW = PushPreviewPolicy(
     generic_only=True,
     neutral_lockscreen=True,
     presentation_key=GENERIC_PRESENTATION_KEY,
+)
+WISH_DATE_PREVIEW = PushPreviewPolicy(
+    allow_sender_name=True,
+    allow_event_category=True,
+    allow_title=True,
+    generic_only=False,
+    neutral_lockscreen=False,
+    presentation_key=WISH_DATE_PRESENTATION_KEY,
 )
 
 
@@ -92,9 +100,7 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.VIDEO_PROCESSING_FAILED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        NotificationKind.PLAN_CREATED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
-        ),
+        NotificationKind.PLAN_CREATED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.PLAN_CHANGED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.PLAN_CANCELLED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -105,11 +111,21 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_SELECTION_READY: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        NotificationKind.PHOTO_REACTION: NotificationPolicy(
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # A partner's "rather decide ourselves" never interrupts by push.
+        NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationPolicy(
             DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
         ),
+        NotificationKind.PHOTO_REACTION: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.PARTNER_JOINED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -125,6 +141,17 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.REMINDER_DUE: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # A list the partner deliberately sent (#1907 E2); neutral device preview.
+        NotificationKind.COLLECTION_SENT: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        **{
+            kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
+            for kind in WISH_DATE_NOTICE_KINDS
+        },
     }
 )
 
@@ -137,10 +164,23 @@ def for_kind(kind: str) -> NotificationPolicy | None:
         return None
 
 
-def presentation_for(kind: str, notification_id: UUID) -> PushPresentation | None:
-    """Allow only the reviewed generic preview at the provider boundary."""
+def allows_wish_date_preview(kind: str) -> bool:
     policy = for_kind(kind)
-    if policy is None or not policy.push_immediately or policy.preview != GENERIC_PREVIEW:
+    return (
+        kind in WISH_DATE_NOTICE_KINDS
+        and policy is not None
+        and policy.preview == WISH_DATE_PREVIEW
+    )
+
+
+def presentation_for(kind: str, notification_id: UUID) -> PushPresentation | None:
+    """Build a reference; reviewed encrypted transports can add device copy."""
+    policy = for_kind(kind)
+    if (
+        policy is None
+        or not policy.push_immediately
+        or (policy.preview != GENERIC_PREVIEW and not allows_wish_date_preview(kind))
+    ):
         return None
     return PushPresentation(
         reference={"id": str(notification_id), "kind": NotificationKind(kind).value},
@@ -175,7 +215,7 @@ def push_choice_allowed(kind: str) -> bool:
 
 
 def _external_choice_allowed(kind: str) -> bool:
-    """Both external channels share the current reviewed kind eligibility."""
+    """Return the reviewed baseline for external delivery."""
     policy = for_kind(kind)
     return policy is not None and (policy.push_immediately or digest_kind_allowed(kind))
 
@@ -185,6 +225,12 @@ def email_choice_allowed(kind: str) -> bool:
     return kind not in {
         NotificationKind.GENTLE_PROMPT.value,
         NotificationKind.ONCE_MESSAGE_RECEIVED.value,
+        NotificationKind.PHOTO_REACTION.value,
+        NotificationKind.PLAN_CREATED.value,
+        NotificationKind.PARTNER_JOINED.value,
+        NotificationKind.WISH_REMINDER_DUE.value,
+        NotificationKind.COLLECTION_SENT.value,
+        *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 
 

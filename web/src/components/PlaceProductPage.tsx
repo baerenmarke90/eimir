@@ -1,4 +1,4 @@
-import { assertOnlineWrite } from '../client/connectivity';
+import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -8,13 +8,12 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { postSnackbar } from '../client/snackbar';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
 } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
@@ -24,22 +23,24 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_PLACES_ROUTE } from '../client/routes';
 import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { ListEntryIconButton } from './ListEntryActions';
-import { PlaceMapPicker } from './PlaceMapPicker';
 import { DestinationIcon } from './DestinationIcon';
+import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
+import { PlaceMapPicker } from './PlaceMapPicker';
+import { PlanningRelationManager } from './PlanningRelationManager';
+import { ProblemState } from './ProblemState';
 import { SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
-import { PageHeader } from './PageHeader';
-import { PlanningRelationManager } from './PlanningRelationManager';
-import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './SharedContentPages.css';
@@ -169,7 +170,11 @@ function PlaceEditor({
     >
       {(requestClose) => (
         <>
-          <form id="place-edit-form" className="form-grid" onSubmit={submit}>
+          <form
+            id="place-edit-form"
+            className="form-grid free-composer"
+            onSubmit={submit}
+          >
             <fieldset
               disabled={isPending}
               className="shared-content-fields form-grid"
@@ -568,6 +573,7 @@ export function PlaceProductPage({
           />
         }
         className="shared-authored-heading"
+        itemLabel={t('m5s3.place.detailEyebrow')}
         title={place.name}
         titleAction={
           place.capabilities.canEdit ? (

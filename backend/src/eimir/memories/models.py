@@ -63,6 +63,9 @@ class MemoryPayload(ProtectedPayload):
     photo_reactions: list[MemoryPhotoReaction] = Field(default_factory=list, max_length=40)
     selected_cover_attachment_id: UUID | None = None
     place_order: list[UUID] = Field(default_factory=list, max_length=20)
+    # Editorial daily-question key of a guided experience; protected like the
+    # question wording itself so the operator cannot see which prompt was used.
+    experience_question_id: str | None = Field(default=None, max_length=64)
 
     _unique_tags = field_validator("tags")(unique_tags)
 

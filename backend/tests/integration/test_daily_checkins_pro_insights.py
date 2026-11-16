@@ -268,7 +268,7 @@ def test_pro_insights_respects_mutual_reveal_privacy(client, session: Session, c
     assert data["summary"]["daysWithPartnerCheckIn"] == 0
     assert data["summary"]["daysWithMutualCheckIn"] == 0
 
-    # Once Anna checks in for vibe on the partner day, only that dimension reveals.
+    # #1790: once Anna checks in for vibe on the partner day, both dimensions reveal.
     session.add(
         DailyCheckIn(
             space_id=couple["space"].id,
@@ -295,7 +295,7 @@ def test_pro_insights_respects_mutual_reveal_privacy(client, session: Session, c
     assert revealed_entry["ownVibe"] == "GOOD"
     assert revealed_entry["partnerVibe"]["state"] == "VISIBLE"
     assert revealed_entry["partnerVibe"]["value"] == "STRESSED"
-    assert revealed_entry["partnerEnergy"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+    assert revealed_entry["partnerEnergy"] == {"state": "VISIBLE", "value": 30}
 
     # The adjacent skipped day remains privacy-indistinguishable.
     assert still_skipped_entry["partnerVibe"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}

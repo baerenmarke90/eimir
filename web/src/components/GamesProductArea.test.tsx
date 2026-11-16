@@ -52,6 +52,7 @@ function renderGames(
           <GamesProductArea
             apiBaseUrl="http://api.example.test"
             accessToken="test-token"
+            accountId="account-a"
             spaceId={SPACE_ID}
             loadEntitlement={async () => view}
             loadPerspectiveParticipants={async () => PARTICIPANTS}
@@ -78,6 +79,21 @@ function expectGameStatus(status: string, count: number): void {
 }
 
 describe('GamesProductArea', () => {
+  it('ends the perspective game on system Back instead of leaving Games (#1907)', async () => {
+    renderGames(entitlement([GAMES_COUPLE_CAPABILITY]));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: new RegExp(games.entries.perspective.title),
+      }),
+    );
+    await screen.findByRole('button', { name: games.whoOfUs.back });
+    await waitFor(() =>
+      expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
+    );
+    window.history.back();
+    await waitFor(expectThreeGameEntries);
+  });
+
   it('keeps one safe upper-left return after finishing the perspective game', async () => {
     const selection = vi
       .spyOn(whoOfUsSession, 'selectWhoOfUsQuestions')
@@ -113,16 +129,13 @@ describe('GamesProductArea', () => {
       );
       await screen.findByRole('heading', { name: games.whoOfUs.finishTitle });
       expect(
-        view.container.querySelectorAll(
-          '.subpage-back-slot .task-back-control',
-        ),
+        view.container.querySelectorAll('.task-back-control'),
       ).toHaveLength(1);
       fireEvent.click(screen.getByRole('button', { name: games.whoOfUs.back }));
-      expectThreeGameEntries();
+      // Leaving the game first releases its history entry.
+      await waitFor(expectThreeGameEntries);
       expect(
-        view.container.querySelectorAll(
-          '.subpage-back-slot .task-back-control',
-        ),
+        view.container.querySelectorAll('.task-back-control'),
       ).toHaveLength(1);
     } finally {
       view.unmount();

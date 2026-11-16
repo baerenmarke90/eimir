@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -34,13 +35,15 @@ import {
   notificationUnreadCountQueryKey,
   notificationsListQueryKey,
 } from '../client/notificationQueries';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
 import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
 import { DraftExitPrompt } from './DraftExitPrompt';
+import { AddActionContent } from './AddAction';
+import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
@@ -766,10 +769,7 @@ function OnceTask({
                 <section>
                   <ProMark label="Pro" />
                   <p>{t('onceMessages.pro')}</p>
-                  <Link
-                    className="button-link secondary"
-                    to={PRO_INFORMATION_ROUTE}
-                  >
+                  <Link className="button-link secondary" to={proPaywallPath()}>
                     {t('onceMessages.discoverPro')}
                   </Link>
                 </section>
@@ -780,7 +780,7 @@ function OnceTask({
                 <p>{t('onceMessages.partnerConsent')}</p>
               ) : status.data.ownEnabled ? (
                 <form
-                  className="once-composer"
+                  className="once-composer free-composer"
                   onSubmit={(event) => {
                     event.preventDefault();
                     void send();
@@ -800,77 +800,81 @@ function OnceTask({
                     onChange={(event) => setText(event.currentTarget.value)}
                     autoComplete="off"
                   />
-                  {media ? (
-                    <div className="once-media-draft">
-                      {media.kind === 'IMAGE' ? (
-                        <>
-                          <img
-                            className="once-photo"
+                  <MediaActionGroup>
+                    {media ? (
+                      <div className="once-media-draft">
+                        {media.kind === 'IMAGE' ? (
+                          <>
+                            <img
+                              className="once-photo"
+                              src={media.url}
+                              alt={media.description || t('onceMessages.photo')}
+                            />
+                            <label htmlFor="once-description">
+                              {t('onceMessages.description')}
+                            </label>
+                            <input
+                              id="once-description"
+                              value={media.description}
+                              maxLength={300}
+                              disabled={editingDisabled}
+                              onChange={(event) =>
+                                setMedia({
+                                  ...media,
+                                  description: event.currentTarget.value,
+                                })
+                              }
+                            />
+                          </>
+                        ) : (
+                          <VoiceNotePlayer
                             src={media.url}
-                            alt={media.description || t('onceMessages.photo')}
+                            duration={media.duration}
+                            title={t('onceMessages.voice')}
                           />
-                          <label htmlFor="once-description">
-                            {t('onceMessages.description')}
-                          </label>
-                          <input
-                            id="once-description"
-                            value={media.description}
-                            maxLength={300}
-                            disabled={editingDisabled}
-                            onChange={(event) =>
-                              setMedia({
-                                ...media,
-                                description: event.currentTarget.value,
-                              })
-                            }
-                          />
-                        </>
-                      ) : (
-                        <VoiceNotePlayer
-                          src={media.url}
-                          duration={media.duration}
-                          title={t('onceMessages.voice')}
-                        />
-                      )}
+                        )}
+                        <button
+                          className="tertiary"
+                          type="button"
+                          disabled={editingDisabled}
+                          onClick={() => setMedia(undefined)}
+                        >
+                          {t('onceMessages.removeMedia')}
+                        </button>
+                      </div>
+                    ) : null}
+                    <div className="once-attachments">
                       <button
-                        className="tertiary"
                         type="button"
+                        className="add-action"
                         disabled={editingDisabled}
-                        onClick={() => setMedia(undefined)}
+                        onClick={() => photoPicker.current?.click()}
                       >
-                        {t('onceMessages.removeMedia')}
+                        <AddActionContent label={t('onceMessages.photo')} />
+                      </button>
+                      <button
+                        type="button"
+                        className="add-action"
+                        disabled={editingDisabled}
+                        onClick={() => {
+                          setRecording(true);
+                          void recorder.start();
+                        }}
+                      >
+                        <AddActionContent label={t('onceMessages.record')} />
+                      </button>
+                      <button
+                        type="button"
+                        className="add-action"
+                        disabled={editingDisabled}
+                        onClick={() => audioPicker.current?.click()}
+                      >
+                        <AddActionContent
+                          label={t('onceMessages.importVoice')}
+                        />
                       </button>
                     </div>
-                  ) : null}
-                  <div className="once-attachments">
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => photoPicker.current?.click()}
-                    >
-                      {t('onceMessages.photo')}
-                    </button>
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => {
-                        setRecording(true);
-                        void recorder.start();
-                      }}
-                    >
-                      {t('onceMessages.record')}
-                    </button>
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => audioPicker.current?.click()}
-                    >
-                      {t('onceMessages.importVoice')}
-                    </button>
-                  </div>
+                  </MediaActionGroup>
                   <input
                     type="file"
                     ref={photoPicker}

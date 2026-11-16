@@ -20,11 +20,13 @@ fi
 eimir_actual=$(grep -i '^Content-Security-Policy:' "$eimir_headers" \
     | tr -d '\r' \
     | sed 's/^[^:]*:[[:space:]]*//')
-eimir_connect="'self'"
+eimir_media="'self'"
+eimir_connect="'self' https://tiles.openfreemap.org"
 if [ -n "$eimir_extra_origins" ]; then
+    eimir_media="$eimir_media $eimir_extra_origins"
     eimir_connect="$eimir_connect $eimir_extra_origins"
 fi
-eimir_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob: https://tile.openstreetmap.org; font-src 'self'; connect-src $eimir_connect; media-src $eimir_connect; manifest-src 'none'; worker-src 'self'"
+eimir_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob:; font-src 'self'; connect-src $eimir_connect; media-src $eimir_media; manifest-src 'none'; worker-src 'self'"
 
 if [ "$eimir_actual" != "$eimir_expected" ]; then
     echo "Unexpected Content-Security-Policy:" >&2

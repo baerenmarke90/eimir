@@ -17,6 +17,7 @@ Name | Type
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `id` | string
+`location` | [HeartMomentLocation](HeartMomentLocation.md)
 `selectedCoverAttachmentId` | string
 `spaceId` | string
 `tags` | Array&lt;string&gt;
@@ -43,6 +44,7 @@ const example = {
   "emotion": null,
   "happenedOn": null,
   "id": null,
+  "location": null,
   "selectedCoverAttachmentId": null,
   "spaceId": null,
   "tags": null,

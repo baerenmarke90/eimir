@@ -1,0 +1,630 @@
+.people-overview,
+.people-profile,
+.person-editor-page {
+  max-width: var(--reading-max);
+  margin-inline: auto;
+}
+.people-portrait-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.people-portrait-list > li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding-block: var(--space-2);
+}
+.people-portrait {
+  width: 4.5rem;
+  height: 4.5rem;
+  min-width: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-surface-subtle);
+  font: 500 1.5rem var(--font-display);
+  color: var(--color-text);
+}
+.people-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.people-portrait-large {
+  width: 6.5rem;
+  height: 6.5rem;
+  font-size: 2rem;
+}
+.people-profile-link {
+  min-height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-small);
+}
+.people-profile-link > span {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.people-profile-link strong {
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.people-profile-link > span > span,
+.people-profile-link small {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+.people-profile-link small {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.people-profile-link > svg,
+.people-birthday-link > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+.people-profile-link small svg {
+  width: 1rem;
+  height: 1rem;
+}
+.people-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-block: var(--space-6);
+}
+.people-profile-hero > div:last-child {
+  min-width: 0;
+}
+.people-profile-hero h1 {
+  font: var(--font-subpage-title);
+  letter-spacing: var(--tracking-subpage-title);
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.people-profile-hero p {
+  color: var(--color-text-secondary);
+  margin: var(--space-2) 0 0;
+}
+.people-profile-birthday,
+.people-profile-note {
+  margin-top: var(--space-8);
+}
+.people-profile-birthday h2,
+.people-profile-note h2 {
+  font-size: 1.2rem;
+}
+.people-profile-note p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.people-birthday-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  margin-top: var(--space-3);
+}
+.people-saved {
+  color: var(--color-success);
+  font-size: 0.9rem;
+}
+.people-editor-form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+.people-editor-form .field-group {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+.people-editor-form input:not([type="file"]),
+.people-editor-form select,
+.people-editor-form textarea {
+  min-width: 0;
+  width: 100%;
+  font-weight: 400;
+}
+.people-editor-photo {
+  display: flex;
+  gap: var(--space-4);
+  align-items: start;
+}
+.people-photo-options {
+  flex: 1;
+  min-width: 0;
+}
+.people-photo-options > summary,
+.people-birthday-options > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.people-photo-options > summary {
+  color: var(--color-brand-text);
+}
+.people-photo-options > div {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.people-birthday-parts {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+}
+.people-birthday-parts label {
+  font-size: 0.9rem;
+}
+.people-birthday-options .choice-row input {
+  width: 1.25rem;
+  flex-shrink: 0;
+}
+.people-editor-footer {
+  padding-block: var(--space-3);
+  background: var(--color-background);
+}
+.people-editor-footer button {
+  width: 100%;
+  min-height: 48px;
+}
+@media (max-width: 389px) {
+  .people-birthday-parts {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  }
+  .people-birthday-parts > label:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.people-chevron {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.planen-segmented-occasions {
+  grid-template-columns: 1fr 1fr 1.6fr;
+}
+.planen-segmented-occasions .planen-segment {
+  min-width: 0;
+  white-space: normal;
+}
+.important-dates-section.occasions-panel {
+  padding-top: 0;
+  gap: var(--space-4);
+}
+.occasions-add {
+  justify-self: start;
+}
+.occasions-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.occasions-month > :is(h2, h3),
+.occasions-past > h2 {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+}
+.occasions-month + .occasions-month {
+  margin-top: var(--space-8);
+}
+.occasions-past > h2 {
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+.occasions-month > h3 {
+  font-size: 0.9rem;
+}
+.occasions-list .important-date-card {
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 68px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  box-shadow: none;
+}
+.occasions-list .important-date-card:hover {
+  background: var(--color-surface-subtle);
+  transform: none;
+}
+.occasions-list .important-date-card:active {
+  background: var(--color-surface-subtle);
+  transform: scale(0.995);
+}
+.occasions-list .important-date-marker {
+  width: 3rem;
+  min-height: 3rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(
+    in srgb,
+    var(--color-brand-surface) 70%,
+    var(--color-background)
+  );
+  box-shadow: none;
+}
+.occasions-list .important-date-timeline-body {
+  gap: var(--space-1);
+}
+.occasion-reader-sheet .short-task-sheet-title {
+  margin-bottom: var(--space-2);
+}
+.occasion-reader {
+  display: grid;
+  gap: var(--space-2);
+}
+.occasion-reader .occasion-reader-date,
+.occasion-reader-source {
+  margin: 0;
+  font: var(--font-reading-body);
+  color: var(--color-text-secondary);
+}
+.occasion-reader button {
+  min-height: 48px;
+}
+.occasion-reader button.tertiary {
+  justify-self: start;
+  padding-inline: 0;
+  text-align: start;
+  color: var(--color-brand-text);
+}
+
+.people-birthday-options:not([open]) > :not(summary) {
+  display: none;
+}
+.person-editor-page .media-drop-zone:not(.is-dragging) > .media-drop-hint {
+  display: none;
+}
+
+.people-editor-form .people-editor-photo input[type="file"] {
+  width: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+.occasion-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.occasion-title > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.occasion-type-symbol {
+  display: inline-flex;
+  flex: none;
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
+  color: var(--identity-icon-cool);
+}
+.occasion-type-symbol > svg {
+  width: 100%;
+  height: 100%;
+}
+.occasion-visibility {
+  display: inline-flex;
+  flex: none;
+}
+.occasion-visibility > svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.people-birthday-options > summary::after {
+  content: "+";
+  margin-inline-start: auto;
+  color: var(--color-brand-text);
+  font-size: 1.25rem;
+}
+.people-birthday-options[open] > summary::after {
+  content: "−";
+}
+
+/* ---------- Occasions as a calendar ---------- */
+
+.occasions-calendar {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-5);
+}
+
+/* 1. The next occasion leads, like the next plan does. */
+/* One banner for what is coming up: the next occasion and the next Plan. */
+.occasions-next-card {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.occasions-next,
+.occasions-next-plan {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  border: 0;
+  padding: var(--space-5);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.occasions-next-card > * + * {
+  border-block-start: var(--border-surface-width) solid
+    var(--color-border-subtle);
+  padding-block: var(--space-4);
+}
+
+.occasions-next-when {
+  color: var(--color-brand-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.occasions-next-when::first-letter {
+  text-transform: uppercase;
+}
+
+.occasions-next-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 6.4vw, 1.9rem);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.occasions-next-card > * + * .occasions-next-title {
+  font-size: clamp(1.15rem, 4.8vw, 1.4rem);
+}
+
+.occasions-next-date {
+  color: var(--color-text-muted);
+  font: var(--font-supporting-copy);
+}
+
+/* 2. The coming twelve months as one swipeable band. */
+.occasions-band {
+  display: flex;
+  gap: var(--space-2);
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: var(--space-1) var(--page-gutter);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.occasions-band::-webkit-scrollbar {
+  display: none;
+}
+
+.occasions-band-month {
+  display: grid;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  flex: none;
+  place-items: center;
+  align-content: center;
+  gap: 0.3rem;
+  border: 0;
+  border-radius: var(--radius-medium);
+  padding: var(--space-2);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.occasions-band-month.is-active {
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+}
+
+.occasions-band-dots {
+  display: flex;
+  min-height: 0.35rem;
+  gap: 0.2rem;
+}
+
+.occasions-band-dots i {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.occasions-band-dots i.is-personal,
+.occasions-grid-marks i.is-personal {
+  background: var(--color-private);
+}
+
+/* A Plan is a short bar, an occasion a dot: the shape tells them apart. */
+.occasions-band-dots i.is-plan,
+.occasions-grid-marks i.is-plan {
+  width: 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-text);
+}
+
+/* 3. The chosen month: numbers and marks only, no ruled grid. */
+.occasions-sheet {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.occasions-sheet-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.occasions-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: var(--space-1);
+  justify-items: center;
+}
+
+.occasions-grid-weekday {
+  padding-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.occasions-grid-day {
+  position: relative;
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.occasions-grid-day.has-occasion {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.occasions-grid-marks {
+  position: absolute;
+  bottom: 0.3rem;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.occasions-grid-marks i {
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.occasions-grid-day.is-today {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.occasions-sheet-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* A Plan row opens the Plan; its date marker carries the planning tint. */
+.occasion-plan-card {
+  text-decoration: none;
+}
+
+.occasions-list .occasion-plan-card .important-date-marker {
+  background: var(--color-surface-subtle);
+  color: var(--color-brand-text);
+}
+
+.occasion-plan-lock {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
+}
+
+/* Rows under the sheet are compact: the day tile already says the date. */
+.occasions-calendar .occasions-list {
+  gap: var(--space-1);
+}
+
+.occasions-calendar .occasions-list .important-date-card {
+  min-height: 56px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .occasions-sheet {
+    animation: occasions-sheet-in var(--duration-transition) var(--easing-enter);
+  }
+
+  .occasions-band-month {
+    transition:
+      background var(--duration-feedback) var(--easing-standard),
+      color var(--duration-feedback) var(--easing-standard);
+  }
+}
+
+@keyframes occasions-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+button.occasions-grid-day {
+  /* Keep the circle: the shared button minimum would stretch it. */
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.occasions-grid-day:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The Person actions share the item row with Back (#1907 C4). */
+.people-profile .people-profile-item-row {
+  grid-template-columns:
+    minmax(var(--touch-target-web), auto) minmax(0, 1fr)
+    minmax(var(--touch-target-web), auto);
+}
+.people-profile .people-profile-actions {
+  gap: var(--space-2);
+}

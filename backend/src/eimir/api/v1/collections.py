@@ -14,14 +14,15 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.shared_achievements import (
     COLLECTION_COMPLETED_ACHIEVEMENT,
     SHARED_ACHIEVEMENT_HEADER,
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
-from eimir.collections import service
-from eimir.collections.models import Collection, CollectionItem
+from eimir.collections import sending, service
+from eimir.collections.models import Collection, CollectionItem, CollectionKind
 from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["collections"])
@@ -47,10 +48,23 @@ COLLECTION_ITEM_UPDATE_HEADERS = {
 }
 
 
+def _clean_quantity(value: str | None) -> str | None:
+    """Trim free-text quantity; blank means none; over-long is a validation error."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > service.ITEM_QUANTITY_MAX_LENGTH:
+        raise ValueError(f"must be at most {service.ITEM_QUANTITY_MAX_LENGTH} characters")
+    return cleaned
+
+
 class CollectionCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    kind: CollectionKind = CollectionKind.GENERIC
 
     @field_validator("title")
     @classmethod
@@ -82,6 +96,7 @@ class CollectionItemCreate(ApiModel):
 
     title: str
     completed: bool = False
+    quantity: str | None = None
 
     @field_validator("title")
     @classmethod
@@ -91,12 +106,19 @@ class CollectionItemCreate(ApiModel):
             raise ValueError("must not be blank")
         return cleaned
 
+    @field_validator("quantity")
+    @classmethod
+    def _quantity_clean(cls, value: str | None) -> str | None:
+        return _clean_quantity(value)
+
 
 class CollectionItemUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | SkipJsonSchema[None] = None
     completed: bool | SkipJsonSchema[None] = None
+    # An explicit null (or blank text) clears the quantity.
+    quantity: str | None = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -108,6 +130,8 @@ class CollectionItemUpdate(ApiModel):
             self.title = self.title.strip()
         if "completed" in self.model_fields_set and self.completed is None:
             raise ValueError("completed must not be null")
+        if "quantity" in self.model_fields_set:
+            self.quantity = _clean_quantity(self.quantity)
         return self
 
 
@@ -122,12 +146,20 @@ class CollectionItemDetail(ApiModel):
     collection_id: UUID
     created_by: UUID
     title: str
+    # Additive (#1808): defaults keep clients and fixtures that predate these
+    # fields valid; current servers always send them.
+    quantity: str | None = None
     completed: bool
+    # Both are null while the item is open and for items completed before the
+    # actor was recorded.
+    completed_by: UUID | None = None
+    completed_at: datetime | None = None
     position: int
     version: int
     created_at: datetime
     updated_at: datetime
     creator: AuthorSummary
+    completer: AuthorSummary | None = None
     capabilities: ResourceCapabilities
 
 
@@ -135,6 +167,7 @@ class CollectionDetail(ApiModel):
     id: UUID
     space_id: UUID
     created_by: UUID
+    kind: CollectionKind = CollectionKind.GENERIC
     title: str
     version: int
     created_at: datetime
@@ -148,6 +181,33 @@ class CollectionPage(ApiModel):
     items: list[CollectionDetail]
     next_cursor: str | None
     has_more: bool
+
+
+class CollectionFinish(ApiModel):
+    """The entries of the cart the person sees; only these are finished."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_ids: list[UUID]
+
+
+class CollectionFinishResult(ApiModel):
+    collection: CollectionDetail
+    # How many entries this request took out of the cart; 0 when another
+    # request already did, or when none of the named entries is still checked.
+    finished_count: int
+
+
+class CollectionSuggestion(ApiModel):
+    id: UUID
+    title: str
+    quantity: str | None = None
+    last_bought_at: datetime
+    times_bought: int
+
+
+class CollectionSuggestionList(ApiModel):
+    items: list[CollectionSuggestion]
 
 
 def _creator(session: DbSession, account_id: UUID, *, resource: str) -> AuthorSummary:
@@ -166,17 +226,27 @@ def collection_item_detail(
             creator = authors[item.created_by]
         else:
             creator = _creator(session, item.created_by, resource="Collection Item")
+    completer: AuthorSummary | None = None
+    if item.completed_by is not None:
+        if authors is not None and item.completed_by in authors:
+            completer = authors[item.completed_by]
+        else:
+            completer = _creator(session, item.completed_by, resource="Collection Item completer")
     return CollectionItemDetail(
         id=item.id,
         collection_id=item.collection_id,
         created_by=item.created_by,
         title=item.payload.title,
+        quantity=item.payload.quantity,
         completed=item.completed,
+        completed_by=item.completed_by,
+        completed_at=item.completed_at,
         position=item.position,
         version=item.version,
         created_at=item.created_at,
         updated_at=item.updated_at,
         creator=creator,
+        completer=completer,
         capabilities=ResourceCapabilities(
             can_edit=True,
             can_delete=True,
@@ -204,6 +274,8 @@ def collection_detail(
         id=collection.id,
         space_id=collection.space_id,
         created_by=collection.owner_id,
+        # A not yet flushed Collection has no column default applied.
+        kind=CollectionKind(collection.kind or CollectionKind.GENERIC.value),
         title=collection.payload.title,
         version=collection.version,
         created_at=collection.created_at,
@@ -216,6 +288,27 @@ def collection_detail(
         ),
         items=[collection_item_detail(session, item, authors=authors) for item in items],
     )
+
+
+def collection_details(session: DbSession, collections: list[Collection]) -> list[CollectionDetail]:
+    """Resolve items and authors in batches for any canonical list presentation."""
+    items_by_collection = service.list_items_for_collections(
+        session, [collection.id for collection in collections]
+    )
+    account_ids = {collection.owner_id for collection in collections}
+    for items in items_by_collection.values():
+        account_ids.update(item.created_by for item in items)
+        account_ids.update(item.completed_by for item in items if item.completed_by is not None)
+    authors = resolve_author_summaries(session, account_ids)
+    return [
+        collection_detail(
+            session,
+            collection,
+            items=items_by_collection.get(collection.id, []),
+            authors=authors,
+        )
+        for collection in collections
+    ]
 
 
 @router.post(
@@ -235,6 +328,7 @@ def create_collection(
         session,
         authorization,
         title=body.title,
+        kind=body.kind,
     )
     response.headers["ETag"] = etag_for(collection.version)
     return collection_detail(session, collection)
@@ -251,27 +345,24 @@ def list_collections(
     session: DbSession,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    scope: Annotated[service.CollectionScope, Query()] = service.CollectionScope.ALL,
+    ids: Annotated[
+        list[UUID] | None,
+        Query(
+            max_length=50,
+            description="Return only these Collections, so several known lists need one request.",
+        ),
+    ] = None,
+    kind: Annotated[
+        CollectionKind | None,
+        Query(description="Return only Collections of this kind, for example the shopping lists."),
+    ] = None,
 ) -> CollectionPage:
-    page = service.list_collections(session, authorization, cursor=cursor, limit=limit)
-    collection_ids = [collection.id for collection in page.items]
-    items_by_collection = service.list_items_for_collections(session, collection_ids)
-
-    account_ids: set[UUID] = {collection.owner_id for collection in page.items}
-    for items in items_by_collection.values():
-        account_ids.update(item.created_by for item in items)
-
-    authors = resolve_author_summaries(session, account_ids)
-
+    page = service.list_collections(
+        session, authorization, cursor=cursor, limit=limit, scope=scope, ids=ids, kind=kind
+    )
     return CollectionPage(
-        items=[
-            collection_detail(
-                session,
-                collection,
-                items=items_by_collection.get(collection.id, []),
-                authors=authors,
-            )
-            for collection in page.items
-        ],
+        items=collection_details(session, page.items),
         next_cursor=page.next_cursor,
         has_more=page.has_more,
     )
@@ -347,7 +438,19 @@ def delete_collection(
     response_model=CollectionItemDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createCollectionItem",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Item in its "
+                "current state; no second Item is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": CollectionItemDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_collection_item(
     authorization: Authorization,
@@ -355,16 +458,21 @@ def create_collection_item(
     response: Response,
     body: CollectionItemCreate,
     collection_id: Annotated[str, Path(alias="collectionId")],
+    idempotency_key: IdempotencyKey,
 ) -> CollectionItemDetail:
-    item = service.create_item(
+    result = service.create_item_once(
         session,
         authorization,
         collection_id,
+        idempotency_key=idempotency_key,
         title=body.title,
         completed=body.completed,
+        quantity=body.quantity,
     )
-    response.headers["ETag"] = etag_for(item.version)
-    return collection_item_detail(session, item)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.item.version)
+    return collection_item_detail(session, result.item)
 
 
 @router.patch(
@@ -400,6 +508,7 @@ def update_collection_item(
         changed_fields=frozenset(body.model_fields_set),
         title=body.title,
         completed=body.completed,
+        quantity=body.quantity,
     )
     response.headers["ETag"] = etag_for(result.item.version)
     response.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] = (
@@ -457,3 +566,111 @@ def reorder_collection_items(
     )
     response.headers["ETag"] = etag_for(collection.version)
     return collection_detail(session, collection)
+
+
+@router.post(
+    "/spaces/{spaceId}/collections/{collectionId}/finish",
+    response_model=CollectionFinishResult,
+    operation_id="finishCollectionShopping",
+    responses={
+        200: {
+            "headers": {
+                **ETAG_HEADERS,
+                SHARED_ACHIEVEMENT_HEADER: SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+            }
+        },
+        **problem_responses(401, 404, 422),
+    },
+)
+def finish_collection_shopping(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: CollectionFinish,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> CollectionFinishResult:
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
+    result = service.finish_shopping(
+        session,
+        authorization,
+        collection_id,
+        item_ids=body.item_ids,
+    )
+    response.headers["ETag"] = etag_for(result.collection.version)
+    detail = collection_detail(session, result.collection)
+    # The couple's shared moment: this finish took the last entries out of the
+    # cart and nothing is left to buy. A finish that leaves entries open, or
+    # one that found nothing to finish, is not an achievement.
+    if shared_achievement_enabled and result.finished_count > 0 and not detail.items:
+        response.headers[SHARED_ACHIEVEMENT_HEADER] = COLLECTION_COMPLETED_ACHIEVEMENT
+    return CollectionFinishResult(collection=detail, finished_count=result.finished_count)
+
+
+@router.post(
+    "/spaces/{spaceId}/collections/{collectionId}/send",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    operation_id="sendCollectionToPartner",
+    summary="Send a shared list to the partner",
+    description=(
+        "A deliberate gesture: notifies the partner with a neutral message and adds the "
+        "list at the end of their personal pinned lists. The list itself is unchanged. "
+        "A repeat within 30 minutes adds nothing and stays silent."
+    ),
+    responses=problem_responses(401, 404, 409, 422),
+)
+def send_collection_to_partner(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> Response:
+    sending.send_to_partner(session, authorization, collection_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/spaces/{spaceId}/collections/{collectionId}/suggestions",
+    response_model=CollectionSuggestionList,
+    operation_id="listCollectionSuggestions",
+    responses=problem_responses(401, 404, 422),
+)
+def list_collection_suggestions(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> CollectionSuggestionList:
+    suggestions = service.list_suggestions(session, authorization, collection_id)
+    return CollectionSuggestionList(
+        items=[
+            CollectionSuggestion(
+                id=suggestion.id,
+                title=suggestion.payload.title,
+                quantity=suggestion.payload.quantity,
+                last_bought_at=suggestion.last_bought_at,
+                times_bought=suggestion.times_bought,
+            )
+            for suggestion in suggestions
+        ]
+    )
+
+
+@router.delete(
+    "/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    operation_id="deleteCollectionSuggestion",
+    responses=problem_responses(401, 404, 422),
+)
+def delete_collection_suggestion(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+    suggestion_id: Annotated[str, Path(alias="suggestionId")],
+) -> Response:
+    service.delete_suggestion(session, authorization, collection_id, suggestion_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

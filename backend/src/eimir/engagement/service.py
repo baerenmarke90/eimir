@@ -26,8 +26,16 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import email_delivery, notification_preferences, push, thinking
+from eimir.engagement import (
+    email_delivery,
+    notification_preferences,
+    push,
+    thinking,
+    wish_date_notice,
+)
 from eimir.engagement.models import (
+    COALESCED_NOTIFICATION_KINDS,
+    WISH_DATE_NOTICE_KINDS,
     Activity,
     ActivityKind,
     EngagementTarget,
@@ -51,7 +59,8 @@ from eimir.reminders.models import Reminder, ReminderSource
 from eimir.transfer.models import TransferExport, TransferImport
 from eimir.wish_selections import service as wish_selections
 from eimir.wish_selections.models import WishSelectionRound
-from eimir.wishes.models import Wish
+from eimir.wishes import reminders as wish_reminders
+from eimir.wishes.models import Wish, WishReminder, WishStatus
 
 log = logging.getLogger(__name__)
 
@@ -196,11 +205,32 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     except ValueError:
         return
 
+    # Calendar sync (#1895) reads the current Plan later in its own job, so it
+    # only schedules work here and never depends on notification eligibility.
+    from eimir.calendar_sync import service as calendar_sync
+
+    calendar_sync.on_outbox_event(session, event, event_type)
+
     # Lock all actor/recipient Accounts in deterministic order before any
     # projection. This serializes stale Outbox work with deletion acceptance
     # and makes accepted deletion a hard boundary for new activity,
     # Notification and PushDelivery state.
     if not _event_effects_allowed(session, event):
+        return
+
+    if event_type.value in WISH_DATE_NOTICE_KINDS:
+        if wish_date_notice.event_is_current(session, event):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.PLAN
+                if event_type is EventType.WISH_DATE_ACCEPTED
+                else EngagementTarget.WISH,
+                event.subject_id,
+                NotificationKind(event_type.value),
+                expires_at=event.payload.due_at,
+            )
+            push.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.ONCE_MESSAGE_SENT:
@@ -236,6 +266,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
+    if event_type is EventType.WISH_REMINDER_DUE:
+        if event.payload.due_at is not None and event.payload.occurrence_id is not None:
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.WISH,
+                event.subject_id,
+                NotificationKind.WISH_REMINDER_DUE,
+                expires_at=clock.ensure_utc(event.payload.due_at) + wish_reminders.MAX_LATENESS,
+            )
+            push.ensure_deliveries_for_source_event(session, event.id)
+        return
     if event_type is EventType.REMINDER_CREATED:
         _project_target_notification(
             session,
@@ -261,6 +303,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         target_type, target_id = comment_target
         _project_target_notification(
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
+        )
+
+    if event_type is EventType.COLLECTION_SENT:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.COLLECTION,
+            event.subject_id,
+            NotificationKind.COLLECTION_SENT,
         )
 
     if event_type is EventType.MEMORY_CREATED and event.payload.experience_kind is not None:
@@ -297,21 +348,22 @@ def project_event(session: Session, event: OutboxEvent) -> None:
                 NotificationKind.PLAN_CANCELLED if cancelled else NotificationKind.PLAN_CHANGED,
                 expires_at=deadline,
             )
-    if event_type in {EventType.WISH_SELECTION_SHARED, EventType.WISH_SELECTION_READY}:
+    if event_type in {
+        EventType.WISH_SELECTION_SHARED,
+        EventType.WISH_SELECTION_READY,
+        EventType.WISH_SELECTION_RANDOM_REQUESTED,
+        EventType.WISH_SELECTION_RANDOM_ACCEPTED,
+        EventType.WISH_SELECTION_RANDOM_DECLINED,
+    }:
         _project_target_notification(
             session,
             event,
             EngagementTarget.WISH_SELECTION,
             event.subject_id,
-            NotificationKind.WISH_SELECTION_SHARED
-            if event_type is EventType.WISH_SELECTION_SHARED
-            else NotificationKind.WISH_SELECTION_READY,
+            NotificationKind(event_type.value),
         )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
-        memory = session.get(Memory, event.subject_id)
-        if memory is not None and any(
-            reaction.account_id == event.actor_id for reaction in memory.payload.photo_reactions
-        ):
+        if _has_photo_reaction(session, event.subject_id, event.actor_id):
             _project_target_notification(
                 session,
                 event,
@@ -465,6 +517,7 @@ def _project_target_notification(
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
+        NotificationKind.WISH_REMINDER_DUE,
     }
     if recipient_id is None or (recipient_id == event.actor_id and not self_outcome):
         return
@@ -493,6 +546,11 @@ def _project_target_notification(
     ):
         return
 
+    notice_id = (
+        {"id": event.payload.occurrence_id}
+        if notification_kind is NotificationKind.WISH_REMINDER_DUE
+        else {}
+    )
     insert = postgresql.insert(Notification).values(
         space_id=event.space_id,
         recipient_account_id=recipient_id,
@@ -506,17 +564,12 @@ def _project_target_notification(
         in_app_visible=notification_preferences.in_app_enabled(
             session, account_id=recipient_id, kind=notification_kind.value
         ),
+        **notice_id,
     )
-    if notification_kind in {
-        NotificationKind.PHOTO_REACTION,
-        NotificationKind.WISH_SELECTION_SHARED,
-        NotificationKind.WISH_SELECTION_READY,
-    }:
+    if notification_kind.value in COALESCED_NOTIFICATION_KINDS:
         statement = insert.on_conflict_do_update(
             index_elements=["recipient_account_id", "space_id", "kind", "target_type", "target_id"],
-            index_where=Notification.kind.in_(
-                ["PHOTO_REACTION", "WISH_SELECTION_SHARED", "WISH_SELECTION_READY"]
-            ),
+            index_where=Notification.kind.in_(list(COALESCED_NOTIFICATION_KINDS)),
             set_={
                 "created_at": insert.excluded.created_at,
                 "source_event_id": insert.excluded.source_event_id,
@@ -694,8 +747,27 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
     return and_(
         or_(Notification.kind != NotificationKind.GENTLE_PROMPT.value, gentle_available),
         or_(
+            Notification.kind != NotificationKind.WISH_REMINDER_DUE.value,
+            select(WishReminder.id)
+            .join(Wish, Wish.id == WishReminder.wish_id)
+            .where(
+                WishReminder.id == Notification.id,
+                WishReminder.wish_id == Notification.target_id,
+                WishReminder.space_id == context.space_id,
+                WishReminder.account_id == context.account_id,
+                WishReminder.fired_at.is_not(None),
+                Wish.status == WishStatus.OPEN.value,
+            )
+            .exists(),
+        ),
+        or_(
+            Notification.target_type.is_distinct_from(EngagementTarget.PLAN.value),
             Notification.kind.not_in(
-                [NotificationKind.PLAN_CREATED.value, NotificationKind.PLAN_CHANGED.value]
+                [
+                    NotificationKind.PLAN_CREATED.value,
+                    NotificationKind.PLAN_CHANGED.value,
+                    NotificationKind.REMINDER_DUE.value,
+                ]
             ),
             select(Plan.id)
             .where(
@@ -715,9 +787,38 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
             notification_kind_column=Notification.kind,
         ),
         _current_video_failure_predicate(context),
+        wish_date_notice.current_predicate(),
         or_(
             Notification.kind != NotificationKind.WISH_SELECTION_READY.value,
             literal(current.result_state == "READY"),
+        ),
+        _current_random_predicate(current, context),
+    )
+
+
+def _current_random_predicate(
+    current: wish_selections.SelectionProjection, context: AuthorizationContext
+) -> Any:
+    """A random-pick notice only counts while its round state still says so."""
+    round = current.round
+    ready = round is not None and current.result_state == "READY"
+    requested_by = round.random_requested_by if round is not None else None
+    declined = bool(round and round.random_declined)
+    return and_(
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_REQUESTED.value,
+            and_(
+                literal(ready and requested_by is not None and not declined),
+                Notification.actor_id == requested_by,
+            ),
+        ),
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED.value,
+            literal(ready and current.decision is not None and current.decision.method == "RANDOM"),
+        ),
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_DECLINED.value,
+            literal(ready and declined and requested_by == context.account_id),
         ),
     )
 
@@ -786,16 +887,26 @@ def notification_target_available(
     session: Session, notification: Notification, context: AuthorizationContext
 ) -> bool:
     """Recheck the Center target authorization before external delivery."""
-    return (
-        session.execute(
-            select(Notification.id).where(
-                Notification.id == notification.id,
-                Notification.space_id == context.space_id,
-                Notification.recipient_account_id == context.account_id,
-                _current_notification_predicate(session, context),
-            )
-        ).scalar_one_or_none()
-        is not None
+    authorized = session.scalar(
+        select(Notification.id).where(
+            Notification.id == notification.id,
+            Notification.space_id == context.space_id,
+            Notification.recipient_account_id == context.account_id,
+            _current_notification_predicate(session, context),
+        )
+    )
+    return authorized is not None and (
+        notification.kind != NotificationKind.PHOTO_REACTION.value
+        or _has_photo_reaction(session, notification.target_id, notification.actor_id)
+    )
+
+
+def _has_photo_reaction(session: Session, memory_id: UUID | None, actor_id: UUID | None) -> bool:
+    if memory_id is None or actor_id is None:
+        return False
+    memory = session.get(Memory, memory_id, populate_existing=True)
+    return memory is not None and any(
+        reaction.account_id == actor_id for reaction in memory.payload.photo_reactions
     )
 
 

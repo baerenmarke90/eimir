@@ -1,6 +1,6 @@
-import { authorDisplayName } from './authorPresentation';
-import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { TFunction } from 'i18next';
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import { authorDisplayName } from './authorPresentation';
 
 export function getNotificationItemTitle(
   item: NotificationItem,
@@ -9,6 +9,8 @@ export function getNotificationItemTitle(
 ): string {
   if (item.kind === 'ONCE_MESSAGE_RECEIVED')
     return t('onceMessages.notification');
+  if (item.kind === 'WISH_REMINDER_DUE')
+    return t('m5s3.wish.reminder.notification');
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
@@ -18,6 +20,15 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  if (
+    item.kind === 'WISH_DATE_PROPOSED' ||
+    item.kind === 'WISH_DATE_COUNTERED' ||
+    item.kind === 'WISH_DATE_ACCEPTED'
+  ) {
+    return t(`m5s5.notificationAction.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
   if (item.kind === 'REMINDER_CREATED') {
     return t(
       targetTitle
@@ -36,8 +47,12 @@ export function getNotificationItemTitle(
       'PLAN_CANCELLED',
       'WISH_SELECTION_SHARED',
       'WISH_SELECTION_READY',
+      'WISH_SELECTION_RANDOM_REQUESTED',
+      'WISH_SELECTION_RANDOM_ACCEPTED',
+      'WISH_SELECTION_RANDOM_DECLINED',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
+      'COLLECTION_SENT',
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',

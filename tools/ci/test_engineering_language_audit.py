@@ -18,6 +18,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "web/e2e/fixtures/locales/de.ts",
             "web/src/api/generated/models/index.ts",
             "web/public/offline-language.js",
+            "web/public/webview-unsupported.js",
             "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
@@ -95,6 +96,18 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
                 '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
             ),
             (
+                ".xml",
+                '<string name="media_transfer_title">Video wird hochgeladen</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>',
+            ),
+            (
                 ".json",
                 '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
             ),
@@ -105,6 +118,14 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             (
                 ".xml",
                 '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_proposed">%1$s schlägt einen Termin vor</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_countered">%1$s schlägt einen anderen Termin vor</string>',
             ),
             (
                 ".java",

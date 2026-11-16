@@ -23,6 +23,7 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -37,12 +38,17 @@ import {
   PLAN_DETAIL_ROUTE_PATTERN,
   PRIMARY_APP_ROUTES,
   placeDetailPath,
+  planPathFromCalendarLink,
   planDetailPath,
+  recapDetailPath,
   rewriteLegacyPath,
   SEARCH_ROUTE,
   SETTINGS_CATEGORY_ROUTES,
+  STORY_OURS_ROUTE,
+  STORY_RECAPS_ROUTE,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
+  subpageParentPath,
   WISH_CREATE_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
@@ -126,6 +132,7 @@ describe('settings category routes', () => {
       memories: '/more/settings/memories',
       appearance: '/more/settings/appearance',
       media: '/more/settings/media',
+      calendar: '/more/settings/calendar',
       data: '/more/settings/data',
       account: '/more/settings/account',
     });
@@ -210,9 +217,26 @@ describe('content deep links', () => {
     );
   });
 
+  it('expands a calendar short link into the existing Plan detail path', () => {
+    const shortPath = '/p/_-7dzLuqSZiId2ZVRDMiEQ';
+    const target = '/plan/plans/ffeeddcc-bbaa-4998-8877-665544332211';
+    expect(planPathFromCalendarLink(shortPath)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/`)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/edit`)).toBeNull();
+    expect(planPathFromCalendarLink('/p/new')).toBeNull();
+    expect(planPathFromCalendarLink(`/other${shortPath}`)).toBeNull();
+    expect(planPathFromCalendarLink(target)).toBeNull();
+  });
+
+  it('treats Activity as a More destination for its shell Back fallback', () => {
+    expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
+    expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
+    expect(subpageParentPath('/today/only-you/x')).toBe('/today');
+  });
+
   it('resolves active navigation area with corrected domain semantics', () => {
     expect(activeNavigationArea('/today')).toBe('today');
-    expect(activeNavigationArea('/today/activity')).toBe('today');
+    expect(activeNavigationArea('/today/activity')).toBe('more');
     expect(activeNavigationArea('/story')).toBe('story');
     expect(activeNavigationArea('/story/chapters')).toBe('story');
     expect(activeNavigationArea('/plan/chapters/c1')).toBe('story');
@@ -240,6 +264,26 @@ describe('legacy paths', () => {
     expect(rewriteLegacyPath('/people')).toBe('/more/people');
     expect(rewriteLegacyPath('/notifications')).toBe('/more/notifications');
     expect(rewriteLegacyPath('/profile')).toBe('/more/profile');
+  });
+
+  it('sends the former More passport address to the couple story page', () => {
+    expect(STORY_OURS_ROUTE).toBe('/story/our-story');
+    expect(rewriteLegacyPath(MORE_PASSPORT_ROUTE)).toBe(STORY_OURS_ROUTE);
+    expect(rewriteLegacyPath('/more/passport')).toBe('/story/our-story');
+    expect(rewriteLegacyPath('/more/passport-notes')).toBeNull();
+    // The destination is current: it is not rewritten again and keeps the
+    // Momente tab active like the recap library next to it.
+    expect(rewriteLegacyPath(STORY_OURS_ROUTE)).toBeNull();
+    expect(rewriteLegacyPath(STORY_RECAPS_ROUTE)).toBeNull();
+    expect(activeNavigationArea(STORY_OURS_ROUTE)).toBe('story');
+    expect(activeNavigationArea(STORY_RECAPS_ROUTE)).toBe('story');
+  });
+
+  it('keeps shared recap reader links from More opening the reader', () => {
+    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
+      recapDetailPath('edition-1'),
+    );
+    expect(recapDetailPath('edition-1')).toBe('/story/recaps/edition-1');
   });
 
   it('keeps shared content deep links working', () => {

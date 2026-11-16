@@ -1,7 +1,9 @@
 import { focusManager } from '@tanstack/react-query';
 import { type ReactNode, useLayoutEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
+import type { MediaType } from '../api/generated/models/MediaType';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './SensitiveMedia.css';
 import './MediaOverlay.css';
 
@@ -71,41 +73,45 @@ export function SensitiveMediaControl({
   onToggle,
   className = '',
   overlay = false,
-  video = false,
+  iconOnly = false,
+  mediaType = 'IMAGE',
 }: {
   revealed: boolean;
   onToggle: () => void;
   className?: string;
   overlay?: boolean;
-  video?: boolean;
+  iconOnly?: boolean;
+  mediaType?: MediaType;
 }) {
   const { t } = useTranslation();
+  if (mediaType === 'DOCUMENT') return null;
+  const labelPrefix = {
+    IMAGE: 'sensitiveMedia',
+    VIDEO: 'video',
+    AUDIO: 'voiceNotes',
+  }[mediaType];
   return (
     <button
       type="button"
-      className={`sensitive-media-control ${overlay ? 'media-overlay' : 'secondary'}${revealed ? ' is-revealed' : ''} ${className}`}
+      className={`sensitive-media-control ${overlay ? 'media-overlay' : 'secondary'}${iconOnly ? ' sensitive-media-control-icon' : ''}${revealed ? ' is-revealed' : ''} ${className}`}
       aria-pressed={revealed}
-      aria-label={t(
-        video
-          ? revealed
-            ? 'video.hide'
-            : 'video.show'
-          : revealed
-            ? 'sensitiveMedia.hide'
-            : 'sensitiveMedia.show',
-      )}
+      aria-label={t(`${labelPrefix}.${revealed ? 'hide' : 'show'}`)}
       onClick={onToggle}
     >
-      <span
-        className="sensitive-media-control-copy"
-        data-reserve-label={t(
-          revealed ? 'sensitiveMedia.reveal' : 'sensitiveMedia.conceal',
-        )}
-      >
-        <span>
-          {t(revealed ? 'sensitiveMedia.conceal' : 'sensitiveMedia.reveal')}
+      {iconOnly ? (
+        <EimirIcon name="eye-off" />
+      ) : (
+        <span
+          className="sensitive-media-control-copy"
+          data-reserve-label={t(
+            revealed ? 'sensitiveMedia.reveal' : 'sensitiveMedia.conceal',
+          )}
+        >
+          <span>
+            {t(revealed ? 'sensitiveMedia.conceal' : 'sensitiveMedia.reveal')}
+          </span>
         </span>
-      </span>
+      )}
     </button>
   );
 }

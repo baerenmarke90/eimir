@@ -37,7 +37,7 @@ public final class PushPreview {
         digest = value.getBoolean("digest");
     }
 
-    private static String label(String value, int maximum) {
+    static String label(String value, int maximum) {
         if (value.codePointCount(0, value.length()) > maximum) throw new IllegalArgumentException();
         for (int index = 0; index < value.length();) {
             int point = value.codePointAt(index);
@@ -94,6 +94,7 @@ public final class PushPreview {
             case "COMMENT_CREATED": return title.isEmpty() ? R.string.push_comment : R.string.push_comment_title;
             case "REMINDER_CREATED": return title.isEmpty() ? R.string.push_reminder_created : R.string.push_reminder_created_title;
             case "REMINDER_DUE": return title.isEmpty() ? R.string.push_reminder_due : R.string.push_reminder_due_title;
+            case "WISH_REMINDER_DUE": return R.string.push_wish_reminder_due;
             case "PARTNER_KISS": return R.string.push_kiss;
             case "THINKING_OF_YOU": return R.string.push_thinking;
             case "PARTNER_CHECK_IN": return R.string.push_check_in;
@@ -103,8 +104,13 @@ public final class PushPreview {
             case "PLAN_CANCELLED": return R.string.push_plan_cancelled;
             case "WISH_SELECTION_SHARED": return R.string.push_wish_selection_shared;
             case "WISH_SELECTION_READY": return R.string.push_wish_selection_ready;
+            case "WISH_SELECTION_RANDOM_REQUESTED": return R.string.push_wish_selection_random_requested;
+            case "WISH_SELECTION_RANDOM_ACCEPTED": return R.string.push_wish_selection_random_accepted;
+            case "WISH_SELECTION_RANDOM_DECLINED": return R.string.push_wish_selection_random_declined;
             case "PHOTO_REACTION": return title.isEmpty() ? R.string.push_photo_reaction : R.string.push_photo_reaction_title;
             case "PARTNER_JOINED": return R.string.push_partner_joined;
+            // A sent list never shows its title on the lock screen (#1907 E2).
+            case "COLLECTION_SENT": return R.string.push_collection_sent;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
@@ -113,24 +119,51 @@ public final class PushPreview {
         }
     }
 
+    boolean isNeutralReference() {
+        return "ONCE_MESSAGE_RECEIVED".equals(kind) && !digest && name.isEmpty()
+            && title.isEmpty() && text.isEmpty() && targetType.isEmpty();
+    }
+
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String body(Context context) {
         int resource = bodyResource();
+        String sender = name.isEmpty() ? context.getString(R.string.push_partner) : name;
+        int ideas = "WISH_SELECTION_SHARED".equals(kind) && !digest ? ideaCount() : 0;
+        if (ideas > 0) {
+            // The round invitation names only how many ideas are up for choice (#1907 J1).
+            return context.getResources().getQuantityString(R.plurals.push_wish_selection_shared_count, ideas, sender, ideas);
+        }
         String summary = context.getString(resource == 0 ? R.string.push_notification_body : resource,
-            name.isEmpty() ? context.getString(R.string.push_partner) : name, title);
+            sender, title);
         return !digest && !text.isEmpty()
             && ("COMMENT_CREATED".equals(kind) || "COUPLE_EXPERIENCE_SHARED".equals(kind))
             ? summary + "\n" + text : summary;
+    }
+
+    private int ideaCount() {
+        if (!text.matches("[2-5]")) return 0;
+        return Integer.parseInt(text);
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String action(Context context) {
         if (bodyResource() == 0 || targetType.isEmpty()) return null;
         if ("COMMENT_CREATED".equals(kind)) return context.getString(R.string.push_view_comments);
+        if ("WISH_SELECTION".equals(targetType)) {
+            switch (kind) {
+                case "WISH_SELECTION_SHARED": return context.getString(R.string.push_mark_favorites);
+                case "WISH_SELECTION_RANDOM_REQUESTED": return context.getString(R.string.push_answer);
+                case "WISH_SELECTION_READY":
+                case "WISH_SELECTION_RANDOM_ACCEPTED": return context.getString(R.string.push_view_result);
+                default: break;
+            }
+        }
         return context.getString("REMINDER".equals(targetType) ? R.string.push_view_reminder :
             "PLAN".equals(targetType) ? R.string.push_view_plan :
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :
             "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
+            "COLLECTION".equals(targetType) ? R.string.push_view_list :
+            "WISH".equals(targetType) ? R.string.push_view_wish :
             "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
             R.string.push_view);
     }

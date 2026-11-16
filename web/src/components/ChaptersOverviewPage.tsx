@@ -1,19 +1,20 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
 import { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
+import { formatChapterPeriod } from '../client/chapterPresentation';
 import {
   type DeleteFocusTarget,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
 import { normalizeClientError } from '../client/problemDetails';
-import { chapterDetailPath, CHAPTER_CREATE_ROUTE } from '../client/routes';
+import { CHAPTER_CREATE_ROUTE, chapterDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { formatChapterPeriod } from '../client/chapterPresentation';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -99,9 +100,10 @@ export function ChaptersOverviewPage({
         title={t('m5s3.chapter.heading')}
         description={t('m5s3.chapter.intro')}
         action={
-          <Link
+          <AddActionLink
+            floating
+            label={t('m5s3.chapter.create')}
             ref={createActionRef}
-            className="button-link"
             to={CHAPTER_CREATE_ROUTE}
             onClick={(event) => {
               if (
@@ -117,9 +119,7 @@ export function ChaptersOverviewPage({
               event.preventDefault();
               void navigate(CHAPTER_CREATE_ROUTE, { state: { taskOriginKey } });
             }}
-          >
-            {t('m5s3.chapter.create')}
-          </Link>
+          />
         }
       />
 

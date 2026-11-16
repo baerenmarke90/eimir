@@ -1,0 +1,22 @@
+/* The list as a tall sheet over Wir (#1808): it takes the screen's height. */
+.short-task-sheet.wir-list-sheet {
+  height: calc(100dvh - var(--space-8) - env(safe-area-inset-top, 0px));
+}
+.wir-list-sheet .short-task-sheet-body {
+  padding-inline: var(--page-gutter);
+}
+.wir-list-sheet .shared-list-in-sheet {
+  max-width: none;
+  gap: var(--space-4);
+}
+/* There is no bottom navigation under the sheet: the cart bar sits at its
+   bottom edge, above the safe area. */
+.wir-list-sheet .shared-list-cartbar-wrap {
+  inset-block-end: max(var(--space-3), env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 840px) {
+  .short-task-sheet.wir-list-sheet {
+    height: min(46rem, calc(100dvh - var(--space-8)));
+    max-width: 40rem;
+  }
+}

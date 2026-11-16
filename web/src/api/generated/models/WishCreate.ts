@@ -26,6 +26,12 @@ import { mapValues } from '../runtime';
 export interface WishCreate {
     /**
      * 
+     * @type {string}
+     * @memberof WishCreate
+     */
+    description?: string;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof WishCreate
      */
@@ -56,6 +62,7 @@ export function WishCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'description': json['description'] == null ? undefined : json['description'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
@@ -72,6 +79,7 @@ export function WishCreateToJSONTyped(value?: WishCreate | null, ignoreDiscrimin
 
     return {
         
+        'description': value['description'],
         'tags': value['tags'],
         'title': value['title'],
     };

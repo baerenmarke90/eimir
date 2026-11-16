@@ -1,26 +1,33 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import copy from '../../src/i18n/locales/wirDesign';
-import quoteCopy from '../../src/i18n/locales/dailyQuote';
-import profileCopy from '../../src/i18n/locales/profileIdentity';
-import energyCopy from '../../src/i18n/locales/dailyEnergy';
-import reflections from '../../src/i18n/locales/relationshipReflections';
-import notificationCopy from '../../src/i18n/locales/notificationSettings';
-import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import fs from 'node:fs';
+import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import m5s5Copy from '../../src/i18n/locales/m5s5';
+import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
+import reflections from '../../src/i18n/locales/relationshipReflections';
+import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
+import copy from '../../src/i18n/locales/wirDesign';
+import { expectFloatingAddAction } from '../support/addAction';
+import AxeBuilder from '../support/axe';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
+  captureScreenshot,
+  installMocks,
+  PARTNER,
   PARTNER_ID,
   SPACE_ID,
-  PARTNER,
-  installMocks,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 async function fixture(
   page: Page,
-  options: { pro?: boolean; initial?: string; failure?: number } = {},
+  options: {
+    pro?: boolean;
+    initial?: string;
+    failure?: number;
+    agenda?: boolean;
+  } = {},
 ) {
   const unexpected = await installMocks(page, { strict: true });
   let current = options.initial ?? 'warm';
@@ -33,6 +40,25 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // Settings › Wir reads the owner's partner-distance view (#1792) to
+    // decide on the display toggle; a Space without it shares nothing.
+    if (path === `${base}/partner-location/settings`)
+      return route.fulfill({
+        json: {
+          available: false,
+          level: 'OFF',
+          state: 'OFF',
+          indefinite: false,
+          expiresAt: null,
+          generation: 0,
+          lastPublishedAt: null,
+        },
+      });
+    // The opted-in story lifeline (#1770) with no shared history yet.
+    if (path === `${base}/story-lifeline`)
+      return route.fulfill({
+        json: { startsOn: null, today: '2026-11-12', weeks: [] },
+      });
     if (path.includes('/attachments/') && path.endsWith('/content')) {
       return route.fulfill({
         contentType: 'image/jpeg',
@@ -184,6 +210,17 @@ async function fixture(
               titleOrText: 'A special weekend',
               scheduledOn: '2099-11-10',
             },
+            // A second plan stays in the agenda; the first is the anticipation.
+            ...(options.agenda
+              ? [
+                  {
+                    type: 'PLAN',
+                    id: 'harbour-dinner',
+                    titleOrText: 'Dinner at the harbour',
+                    scheduledOn: '2099-12-04',
+                  },
+                ]
+              : []),
           ],
           anticipation: {
             planId: 'special-plan',
@@ -238,6 +275,35 @@ async function reflow(page: Page) {
   ).toBe(true);
 }
 
+// The shared-album composition: names and story entry lead, two portrait
+// check-in targets follow, and upcoming plans carry a local date stamp.
+async function expectSharedAlbumComposition(page: Page) {
+  const hero = page.locator('.shared-album-hero');
+  const story = hero.getByRole('link', {
+    name: m5s5Copy.dashboard.storySummaryTitle,
+  });
+  await expect(story).toBeVisible();
+  await expect(hero.locator('.shared-album-person strong')).toHaveCount(2);
+  const portraits = hero.locator('.partner-avatar-slot');
+  await expect(portraits).toHaveCount(2);
+  const storyBox = await story.boundingBox();
+  for (const portrait of await portraits.all()) {
+    const box = await portrait.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.y ?? 0).toBeGreaterThan(storyBox?.y ?? Number.MAX_VALUE);
+  }
+  const stamp = page.locator('.today-agenda-list .shared-album-date-stamp');
+  await expect(stamp).toHaveCount(1);
+  // The stamp is decorative; the row keeps one full machine-readable date.
+  await expect(page.locator('.today-agenda-list time')).toHaveAttribute(
+    'datetime',
+    '2099-12-04',
+  );
+  // The overview itself is covered by the story specs.
+  await expect(story).toHaveAttribute('href', '/story/our-story');
+}
+
 async function alignedVisibilityControls(page: Page) {
   const centers = await page
     .locator('.dashboard-module-option input[type="checkbox"]')
@@ -247,7 +313,9 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  // Not listed: the fixed couple hero, and partner distance (#1792), which
+  // this fixture's Space cannot use.
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -269,7 +337,8 @@ async function alignedVisibilityControls(page: Page) {
         };
       }),
     );
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length);
+  // The shared couple hero is fixed and has no visibility switch.
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -302,7 +371,7 @@ for (const [width, theme] of [
         await page.locator('.today-page').getAttribute('data-wir-design'),
       ).toBeNull();
       expect(
-        await page.locator('.today-page').getAttribute('data-color-world'),
+        await page.locator('html').getAttribute('data-app-design'),
       ).toBeNull();
       await expect(page.locator('.today-content')).toHaveCount(0);
       await captureScreenshot(
@@ -400,7 +469,6 @@ for (const [width, theme, reduced] of [
   [360, 'light', false],
   [390, 'dark', false],
   [430, 'light', true],
-  [1280, 'dark', false],
 ] as const) {
   test(`shape-following press and keyboard focus at ${width} ${theme}${reduced ? ' reduced' : ''}`, async ({
     browser,
@@ -410,7 +478,7 @@ for (const [width, theme, reduced] of [
       serviceWorkers: 'block',
       baseURL,
       viewport: { width, height: 900 },
-      isMobile: width < 840,
+      isMobile: true,
       hasTouch: true,
       colorScheme: theme,
       reducedMotion: reduced ? 'reduce' : 'no-preference',
@@ -421,22 +489,25 @@ for (const [width, theme, reduced] of [
       await signIn(page);
       await page.goto('/today');
       await expect(page.locator('.today-content')).toBeVisible();
-      const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
-      const control = page.locator(
-        '.product-shell .quick-create-trigger:visible',
+      const overlay = page.getByRole('dialog');
+      const control = page.locator('[data-floating-create]');
+      await expect(control).toHaveCSS(
+        '-webkit-tap-highlight-color',
+        'rgba(0, 0, 0, 0)',
       );
-      const state = await control.evaluate((node) => {
-        const css = getComputedStyle(node);
-        return {
-          highlight: css.webkitTapHighlightColor,
-          radius: css.borderRadius,
-          transform: css.transform,
-        };
-      });
-      expect(state.highlight).toBe('rgba(0, 0, 0, 0)');
-      if (width < 840) expect(state.radius).toBe('50%');
+      await expectFloatingAddAction(
+        control,
+        page.locator('.mobile-bottom-shell'),
+      );
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
+      const reveal = page.locator(
+        '.today-moment-media .sensitive-media-preview-control',
+      );
+      await expect(reveal).toBeVisible();
+      const revealBounds = await reveal.boundingBox();
+      if (!revealBounds) throw new Error('Photo reveal is not laid out');
+      expect(revealBounds.x + revealBounds.width).toBeLessThan(bounds.x);
       const session = await context.newCDPSession(page);
       const contact = {
         x: bounds.x + bounds.width / 2,
@@ -460,7 +531,7 @@ for (const [width, theme, reduced] of [
       try {
         await expect
           .poll(() => control.evaluate((node) => getComputedStyle(node).scale))
-          .toBe(reduced ? 'none' : width < 840 ? '0.96' : '0.98');
+          .toBe(reduced ? 'none' : '0.96');
         await captureScreenshot(
           page,
           info,
@@ -499,14 +570,14 @@ for (const [width, theme, large] of [
   [1280, 'dark', false],
   [390, 'dark', true],
 ] as const) {
-  test(`three personal designs save, return and reload at ${width} ${theme}${large ? ' large text' : ''}`, async ({
+  test(`personal designs save, return and reload at ${width} ${theme}${large ? ' large text' : ''}`, async ({
     page,
   }, info) => {
-    // Three full save/return/reload cycles and three axe passes share this journey.
-    test.setTimeout(90_000);
+    // Four full save/return/reload cycles and four axe passes share this journey.
+    test.setTimeout(120_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    const f = await fixture(page);
+    const f = await fixture(page, { agenda: true });
     await signIn(page);
     if (large)
       await page.addInitScript(() => {
@@ -523,7 +594,12 @@ for (const [width, theme, large] of [
       'data-wir-design',
       'warm',
     );
-    for (const design of ['warm', 'modern', 'classic'] as const) {
+    for (const design of [
+      'warm',
+      'modern',
+      'classic',
+      'shared_album',
+    ] as const) {
       if (design !== 'warm') {
         await open(page);
         const radio = page.getByRole('radio', {
@@ -555,10 +631,24 @@ for (const [width, theme, large] of [
         design === 'warm' ? 1 : 0,
       );
       if (design === 'warm') {
-        await expect(page.locator('.today-page')).toHaveAttribute(
-          'data-color-world',
+        // Geborgen's palette comes from design/designs/warm.json (#1907 C1).
+        await expect(page.locator('html')).toHaveAttribute(
+          'data-app-design',
           'warm',
         );
+        await expect(page.locator('.today-page')).toHaveAttribute(
+          'data-wir-layout',
+          'open',
+        );
+        expect(
+          await page
+            .locator('.today-page')
+            .evaluate((node) =>
+              getComputedStyle(node)
+                .getPropertyValue('--color-background')
+                .trim(),
+            ),
+        ).toBe(theme === 'dark' ? '#2c2334' : '#fff9f6');
         await expect(page.locator('.couple-presence-eyebrow')).toHaveText(
           copy.welcome,
         );
@@ -566,22 +656,26 @@ for (const [width, theme, large] of [
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(page.locator('.daily-vibe-person').first()).toHaveCSS(
-          'background-color',
-          'rgba(0, 0, 0, 0)',
-        );
       }
-      await expect(page.locator('.daily-vibe-checkin')).toBeVisible();
+      await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
       await expect(page.locator('.daily-quote-card')).toBeVisible();
       await expect(page.locator('.anticipation-card')).toBeVisible();
+      await expect(page.locator('.shared-album-hero')).toHaveCount(
+        design === 'shared_album' ? 1 : 0,
+      );
+      if (design === 'shared_album') await expectSharedAlbumComposition(page);
       await reflow(page);
-      const battery = page
+      const ownAvatar = page
         .locator('.today-hero')
-        .getByRole('button', { name: energyCopy.badgeAriaEmpty });
-      await battery.click();
-      await expect(page.getByTestId('daily-energy-popover')).toBeVisible();
+        .getByRole('button', { name: /^Dein Tag:/ });
+      await ownAvatar.click();
+      const dayPanel = page.getByRole('region', {
+        name: wirCheckInCopy.panelTitle,
+      });
+      await expect(dayPanel).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByTestId('daily-energy-popover')).toHaveCount(0);
+      await expect(dayPanel).toBeHidden();
+      await expect(ownAvatar).toBeFocused();
       await captureScreenshot(
         page,
         info,
@@ -598,10 +692,60 @@ for (const [width, theme, large] of [
         design,
       );
     }
-    expect(f.writes).toEqual(['modern', 'classic']);
+    expect(f.writes).toEqual(['modern', 'classic', 'shared_album']);
     expect(f.unexpected).toEqual([]);
   });
 }
+test('Wir centers the Verbunden stage and uses the Planen width on Expanded', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await fixture(page, { initial: 'connected' });
+  await signIn(page);
+
+  const content = page.locator('.today-content');
+  await page.goto('/today');
+  await expect(content).toBeVisible();
+  const compactWidth = await page
+    .locator('.product-main')
+    .evaluate((node) => node.getBoundingClientRect().width);
+  await expect(content).toHaveCSS('width', `${compactWidth}px`);
+  await captureScreenshot(page, info, 'today-reading-width-390-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/plan');
+  const planning = page.locator('.planen-overview');
+  await expect(planning).toBeVisible();
+  const planningWidth = await planning.evaluate(
+    (node) => node.getBoundingClientRect().width,
+  );
+
+  for (const width of [768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/today');
+    const stage = page.locator('.wir-stage');
+    await expect(stage).toBeVisible();
+    if (width >= 840) {
+      await expect(content).toHaveCSS('width', `${planningWidth}px`);
+    }
+    // Layout settles asynchronously; a mid-render measurement must retry.
+    await expect
+      .poll(
+        async () => {
+          const box = await stage.boundingBox();
+          return box
+            ? Math.abs(box.x + box.width / 2 - width / 2)
+            : Number.POSITIVE_INFINITY;
+        },
+        { message: `the stage is centered at ${width} px` },
+      )
+      .toBeLessThanOrEqual(1);
+    if (width === 1440) {
+      await captureScreenshot(page, info, 'today-reading-width-1440-light.png');
+    }
+  }
+});
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({
   page,
 }) => {
@@ -648,29 +792,26 @@ test('failure keeps the draft and confirmed retry changes the visible design', a
   expect(f.unexpected).toEqual([]);
 });
 
-test('quote and statistics order survives pointer release, keyboard movement and reload', async ({
-  page,
-}, info) => {
-  await page.setViewportSize({ width: 390, height: 900 });
-  const state = await fixture(page);
-  let order = [...DASHBOARD_MODULE_KEYS];
-  const orders: string[][] = [];
+// Serves the personal module order and the quote preference for the Wir
+// settings journeys, recording every saved order.
+async function routeModuleOrder(page: Page) {
+  const saved = { order: [...DASHBOARD_MODULE_KEYS], writes: [] as string[][] };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/dashboard/preferences/order')) {
-      order = route.request().postDataJSON().moduleKeys;
-      orders.push([...order]);
+      saved.order = route.request().postDataJSON().moduleKeys;
+      saved.writes.push([...saved.order]);
       return route.fulfill({
         json: {
-          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+          items: saved.order.map((moduleKey) => ({ moduleKey, visible: true })),
         },
       });
     }
     if (path.endsWith('/dashboard/preferences'))
       return route.fulfill({
         json: {
-          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+          items: saved.order.map((moduleKey) => ({ moduleKey, visible: true })),
         },
       });
     if (path.endsWith('/daily-quote/preferences'))
@@ -685,6 +826,16 @@ test('quote and statistics order survives pointer release, keyboard movement and
       });
     return route.fallback();
   });
+  return saved;
+}
+
+test('quote and statistics order survives pointer release, keyboard movement and reload', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const state = await fixture(page);
+  const saved = await routeModuleOrder(page);
+  const orders = saved.writes;
   await signIn(page);
   await page.goto('/more/settings/today');
   await expect(page.locator('.dashboard-module-configure')).toHaveCount(0);
@@ -710,13 +861,14 @@ test('quote and statistics order survives pointer release, keyboard movement and
     { steps: 12 },
   );
   await expect(quote).toHaveCSS('box-shadow', 'none');
-  await expect(quote).toHaveCSS('outline-style', 'none');
+  // The lifted row is marked by a quiet outline while it is dragged.
+  await expect(quote).toHaveCSS('outline-style', 'solid');
   const held = await quote.boundingBox();
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
   await expect.poll(() => orders.length).toBe(1);
-  expect(order.indexOf('daily_quote')).toBeGreaterThan(
-    order.indexOf('keepsake'),
+  expect(saved.order.indexOf('daily_quote')).toBeGreaterThan(
+    saved.order.indexOf('keepsake'),
   );
   const statisticsGrip = page
     .locator('[data-sortable-item-id="shared_story_summary"]')
@@ -739,10 +891,46 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-  ).toEqual(order);
+    // The fixed couple hero keeps its stored slot but is not sortable; partner
+    // distance (#1792) keeps its slot but is not listed for this Space.
+  ).toEqual(
+    saved.order.filter(
+      (key) => key !== 'relationship_presence' && key !== 'partner_distance',
+    ),
+  );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
+  await page.locator('.product-shell a[href="/today"]:visible').click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  await expect(page.locator('.daily-quote-card')).toBeVisible();
+  expect(
+    await page
+      .locator('.today-section-moment')
+      .evaluate((node) =>
+        Boolean(
+          node.compareDocumentPosition(
+            document.querySelector('.daily-quote-card')!,
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ),
+  ).toBe(true);
+  await page.reload();
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  expect(state.unexpected).toEqual([]);
+});
+
+// Separate from the ordering journey (#1597, #1607): visibility controls stay
+// aligned and the settings page reflows across Compact and Expanded themes.
+test('module visibility controls stay aligned and reflow at 360 light, 430 dark and 1280 dark', async ({
+  page,
+}, info) => {
+  const state = await fixture(page);
+  await routeModuleOrder(page);
+  await signIn(page);
+  await page.goto('/more/settings/today');
+  await expect(page.locator('.dashboard-module-option').first()).toBeVisible();
   for (const [width, theme] of [
     [360, 'light'],
     [430, 'dark'],
@@ -761,22 +949,6 @@ test('quote and statistics order survives pointer release, keyboard movement and
       },
     );
   }
-  await page.locator('.product-shell a[href="/today"]:visible').click();
-  await expect(page).toHaveURL(/\/today$/);
-  await expect(page.locator('.shared-story-summary')).toBeVisible();
-  expect(
-    await page
-      .locator('.today-section-moment')
-      .evaluate((node) =>
-        Boolean(
-          node.compareDocumentPosition(
-            document.querySelector('.daily-quote-card')!,
-          ) & Node.DOCUMENT_POSITION_FOLLOWING,
-        ),
-      ),
-  ).toBe(true);
-  await page.reload();
-  await expect(page.locator('.shared-story-summary')).toBeVisible();
   expect(state.unexpected).toEqual([]);
 });
 
@@ -813,7 +985,17 @@ test('quote preference recovery keeps aligned controls and accessible feedback',
   const errorBounds = await failure.boundingBox();
   const rowBounds = await failedQuote.boundingBox();
   if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
-  expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
+  // #1564: recovery spans the row's full available (content) width.
+  const rowPadding = await failedQuote.evaluate((row) => {
+    const style = getComputedStyle(row);
+    return (
+      Number.parseFloat(style.paddingLeft) +
+      Number.parseFloat(style.paddingRight)
+    );
+  });
+  expect(
+    Math.abs(errorBounds.width - (rowBounds.width - rowPadding)),
+  ).toBeLessThan(1);
   await captureScreenshot(
     failedQuote,
     info,
@@ -874,7 +1056,15 @@ for (const [width, theme] of [
     };
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultProductContext(route)) return;
-      const path = new URL(route.request().url()).pathname;
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        path === '/api/v1/push-endpoints/configuration'
+      )
+        return route.fulfill({
+          json: { fcm: null, unifiedPush: null, webPush: null, apns: null },
+        });
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });
       if (path.startsWith('/api/v1/notification-preferences/')) {
@@ -898,6 +1088,11 @@ for (const [width, theme] of [
         });
       if (path === '/api/v1/account/photo-location-preference')
         return route.fulfill({ json: { enabled: false, version: 1 } });
+      // The private area opens on its notes.
+      if (request.method() === 'GET' && path.endsWith('/private/notes'))
+        return route.fulfill({
+          json: { hasMore: false, items: [], nextCursor: null },
+        });
       return route.fallback();
     });
     await signIn(page);

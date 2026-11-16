@@ -13,7 +13,6 @@ import android.app.ActivityManager;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -48,18 +47,56 @@ public class RuntimeRecoveryTest {
     }
 
     private void ready(LauncherActivity activity) throws Exception {
-        PackageInfo provider = WebView.getCurrentWebViewPackage();
-        boolean legacyNativeFixture = Build.VERSION.SDK_INT == 28 && provider != null
-            && provider.versionName != null && provider.versionName.startsWith("69.");
-        if (!legacyNativeFixture) awaitBundledInterface(activity);
-        // The stock API 28/Chromium 69 image cannot parse the existing Web bundle.
-        // Preserve that lane's native adapter/frame assertions; it is not Web UI acceptance.
+        // Capacitor compares the provider with the product's documented WebView
+        // floor (android.minWebViewVersion, #1613). Below it, as on the stock
+        // API 28/Chromium 69 image, the bundle cannot run and Capacitor shows
+        // the static update notice instead (#1931).
+        if (activity.getBridge().isMinimumWebViewInstalled()) awaitBundledInterface(activity);
+        else awaitUpdateNotice(activity);
         CountDownLatch frame = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> activity.getBridge().getWebView().postVisualStateCallback(
             1, new WebView.VisualStateCallback() {
                 @Override public void onComplete(long requestId) { frame.countDown(); }
             }));
         assertTrue("A live renderer must confirm a foreground frame", frame.await(15, TimeUnit.SECONDS));
+    }
+
+    private void awaitUpdateNotice(LauncherActivity activity) throws Exception {
+        CountDownLatch notice = new CountDownLatch(1);
+        AtomicBoolean observing = new AtomicBoolean(true);
+        // ES5 probe: this runs on the legacy engine the notice is written for.
+        instrumentation.runOnMainSync(() -> {
+            WebView view = activity.getBridge().getWebView();
+            Runnable probe = new Runnable() {
+                @Override public void run() {
+                    if (!observing.get()) return;
+                    view.evaluateJavascript(
+                        "(function(){var root=document.documentElement;"
+                            + "if(root.getAttribute('data-webview-notice')!=='outdated')return false;"
+                            + "var title=document.querySelector('h1');"
+                            + "var store=document.querySelector('[data-notice-store]');"
+                            + "var retry=document.querySelector('[data-notice-retry]');"
+                            + "if(!title||!title.textContent.replace(/\\s+/g,'')||!store||!retry)return false;"
+                            + "var box=store.getBoundingClientRect();"
+                            + "return box.width>=44&&box.height>=44"
+                            + "&&store.href.indexOf('id=com.google.android.webview')>0"
+                            + "&&retry.getBoundingClientRect().height===0;})()",
+                        value -> {
+                            if (!observing.get()) return;
+                            if ("true".equals(value)) notice.countDown();
+                            else view.postOnAnimation(this);
+                        });
+                }
+            };
+            probe.run();
+        });
+        try {
+            assertTrue("Below the WebView floor the update notice must be painted, not a blank screen",
+                notice.await(15, TimeUnit.SECONDS));
+        } finally {
+            observing.set(false);
+        }
+        capture("webview-update-notice.png");
     }
 
     private void awaitBundledInterface(LauncherActivity activity) throws Exception {

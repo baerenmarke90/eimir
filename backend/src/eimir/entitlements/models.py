@@ -27,6 +27,8 @@ class EntitlementSourceType(StrEnum):
     """Normalized origin of an entitlement grant."""
 
     GOOGLE_PLAY = "GOOGLE_PLAY"
+    # Prepared for the iOS launch (Apple In-App Purchase); no adapter yet.
+    APP_STORE = "APP_STORE"
     CLOUD_STRIPE = "CLOUD_STRIPE"
     SELF_HOSTED_KEY = "SELF_HOSTED_KEY"
     ADMIN_GRANT = "ADMIN_GRANT"
@@ -71,6 +73,8 @@ class Capability(StrEnum):
     PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
     RELATIONSHIP_PASSPORT = "relationship.passport"
     MEMORIES_MAP = "memories.map"
+    PRESENCE_LOCATION = "presence.location"
+    PLANNING_DATE_INSPIRATION = "planning.date_inspiration"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):
@@ -121,7 +125,8 @@ class EntitlementGrant(IdMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint(
             "source_type IN ("
-            "'GOOGLE_PLAY', 'CLOUD_STRIPE', 'SELF_HOSTED_KEY', 'ADMIN_GRANT', 'TEST_FIXTURE'"
+            "'GOOGLE_PLAY', 'APP_STORE', 'CLOUD_STRIPE', 'SELF_HOSTED_KEY', 'ADMIN_GRANT', "
+            "'TEST_FIXTURE'"
             ")",
             name="entitlement_source_type_valid",
         ),

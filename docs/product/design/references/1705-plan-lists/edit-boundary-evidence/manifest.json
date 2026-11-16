@@ -1,0 +1,42 @@
+[
+  {
+    "file": "plan-without-lists-360-light.png",
+    "sha256": "719bcad37fd27ed3bea2435cf9f593c8f7b40de0c98681b3483367a3ab2f7647",
+    "bytes": 71145
+  },
+  {
+    "file": "plan-lists-390-dark.png",
+    "sha256": "ba6a75e0942b7ccf7cbe868d2377dccc16b200f871965ed11836626fb484fc2f",
+    "bytes": 86952
+  },
+  {
+    "file": "plan-lists-edit-390-dark.png",
+    "sha256": "1030006fbba8ef7d0f7c8c86da85679d93c5b8d2a3983f31bd8f742c43992fe6",
+    "bytes": 115197
+  },
+  {
+    "file": "plan-without-lists-1280-dark.png",
+    "sha256": "1d406567b9a4425d14122d9c5b33b00843f2bff4ebbf129f3cfce143bd584820",
+    "bytes": 77016
+  },
+  {
+    "file": "plan-lists-1280-dark.png",
+    "sha256": "dcff3fd185b25ac682b9e8679ed1cac5e41aa74e006481d3b551d2080f1b0ce1",
+    "bytes": 93313
+  },
+  {
+    "file": "plan-lists-edit-1280-dark.png",
+    "sha256": "917c7e5d0d59de93e9c55308daeb09f56859c0067a1454a30983b4d555179e2f",
+    "bytes": 125497
+  },
+  {
+    "file": "plan-lists-320-light.png",
+    "sha256": "ebc319ae877aea583387a6ce39f55f087f195048e829704e627f74fd1d950c6d",
+    "bytes": 167391
+  },
+  {
+    "file": "plan-lists-edit-320-light.png",
+    "sha256": "510afc694612faac7004080a97c77fa9c4897085d30bc736e76c3203b6612bf0",
+    "bytes": 228702
+  }
+]

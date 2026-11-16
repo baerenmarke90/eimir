@@ -373,8 +373,8 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         and configuration.shared_achievements_enabled
         and configuration.daily_questions_enabled
         and configuration.daily_context_timezone == _DEMO_DAILY_CONTEXT_TIMEZONE
-        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
-        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
+        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
+        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
     ):
         return
 
@@ -393,8 +393,9 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         shared_achievements_enabled=True,
         daily_questions_enabled=True,
         daily_context_timezone=_DEMO_DAILY_CONTEXT_TIMEZONE,
-        vibe_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
-        energy_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        # #1790: the demo shows the default couples get, immediate visibility.
+        vibe_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+        energy_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
     )
 
 
@@ -571,23 +572,23 @@ def _seed_people(
         birthday_year_known=True,
         visibility=ContentVisibility.SHARED,
     )
-    lea_private = people_service.create_person(
+    lea_friend = people_service.create_person(
         session,
         lea_context,
-        display_name=f"{PRIVATE_CANARY_LEA} Person",
+        display_name="Jule",
         relationship=PersonRelationship.OTHER,
         birthday=None,
         birthday_year_known=False,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
-    alex_private = people_service.create_person(
+    alex_friend = people_service.create_person(
         session,
         alex_context,
-        display_name=f"{PRIVATE_CANARY_ALEX} Person",
+        display_name="Noah",
         relationship=PersonRelationship.OTHER,
         birthday=None,
         birthday_year_known=False,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
     people_service.create_date(
         session,
@@ -607,7 +608,7 @@ def _seed_people(
         day=reference_date + timedelta(days=9),
         repeats=DateRepeat.NONE,
         visibility=ContentVisibility.PRIVATE,
-        related_person_id=lea_private.id,
+        related_person_id=lea_friend.id,
     )
     people_service.create_date(
         session,
@@ -617,7 +618,7 @@ def _seed_people(
         day=reference_date + timedelta(days=12),
         repeats=DateRepeat.NONE,
         visibility=ContentVisibility.PRIVATE,
-        related_person_id=alex_private.id,
+        related_person_id=alex_friend.id,
     )
 
 
@@ -967,8 +968,8 @@ def _seed_planning(
             module_key=dashboard_preferences.DashboardModuleKey.PINNED_COLLECTION.value,
             visible=True,
             item_limit=None,
-            selected_collection_id=weekend.id,
-            selected_collection_id_changed=True,
+            selected_collection_ids=[weekend.id],
+            selected_collection_ids_changed=True,
         )
 
     recipes = collection_service.create_collection(

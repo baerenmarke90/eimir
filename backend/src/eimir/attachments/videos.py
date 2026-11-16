@@ -1,4 +1,4 @@
-"""Bounded MP4/MOV normalization in the separately shipped restricted media role."""
+"""Lossless validation/sanitization of device-prepared video in the restricted role."""
 
 from __future__ import annotations
 
@@ -153,17 +153,21 @@ def _input(path: Path) -> list[str]:
 
 
 def _probe(path: Path, deadline: float | None = None) -> dict[str, Any]:
+    selection = [
+        "-show_entries",
+        "format=duration:format_tags:"
+        "stream=index,codec_name,codec_type,width,height,duration,pix_fmt,color_transfer,"
+        "color_primaries,color_space,color_range:"
+        "stream_tags:stream_disposition=attached_pic:"
+        "stream_side_data=side_data_type,rotation",
+    ]
     raw = _run(
         [
             get_settings().ffprobe_path,
             "-v",
             "error",
             *_input(path),
-            "-show_entries",
-            "format=duration:format_tags:"
-            "stream=index,codec_name,codec_type,width,height,duration,pix_fmt,color_transfer,"
-            "color_primaries,color_space,color_range:"
-            "stream_tags:stream_disposition=attached_pic:stream_side_data=side_data_type,rotation",
+            *selection,
             "-of",
             "json",
         ],
@@ -222,6 +226,8 @@ def _metadata(info: dict[str, Any], *, clean: bool = False) -> tuple[int, int, i
         width, height = int(primary["width"]), int(primary["height"])
         if min(width, height) <= 0 or max(width, height) > 3840 or min(width, height) > 2160:
             raise VideoRejectedError("VIDEO_DIMENSIONS_EXCEEDED")
+        if clean and not _within_output_resolution(primary):
+            raise VideoRejectedError("VIDEO_DIMENSIONS_EXCEEDED")
         durations = [float(info["format"]["duration"])]
         durations.extend(float(s["duration"]) for s in [primary, *audio] if "duration" in s)
         if any(not math.isfinite(v) or v <= 0 or v > VIDEO_MAX_DURATION_SECONDS for v in durations):
@@ -245,77 +251,25 @@ def _metadata(info: dict[str, Any], *, clean: bool = False) -> tuple[int, int, i
 
 
 def _normalization(info: dict[str, Any]) -> list[str]:
-    """Map verified media only; keep compatible streams without lossy encoding."""
+    """Never encode: clients own preparation; unprepared inputs fail closed."""
     primary, audio = _streams(info)
+    if not _compatible_video(primary) or any(s.get("codec_name") != "aac" for s in audio):
+        raise VideoRejectedError("VIDEO_CODEC_UNSUPPORTED")
+    if not _within_output_resolution(primary):
+        raise VideoRejectedError("VIDEO_DIMENSIONS_EXCEEDED")
     options = ["-map", f"0:{int(primary['index'])}"]
     if audio:
         options.extend(["-map", f"0:{int(audio[0]['index'])}"])
-    if _compatible_video(primary):
-        options.extend(["-c:v", "copy"])
-    else:
-        # Scale before linear floating-point HDR work; preserve portrait/aspect
-        # and bound encoder/filter memory independently of 4K source dimensions.
-        filters = [
-            "fps=fps='if(gt(source_fps,0),min(source_fps,30),30)'",
-            "scale=w='min(iw,if(gte(iw,ih),1920,1080))':"
-            "h='min(ih,if(gte(iw,ih),1080,1920))':"
-            "force_original_aspect_ratio=decrease:force_divisible_by=2",
-        ]
-        transfer = _HDR_TRANSFERS.get(primary.get("color_transfer", ""))
-        if transfer is not None:
-            # HLG/PQ recordings commonly omit their matrix/primaries tags.
-            # BT.2020 is their standard fallback; never merely relabel HDR as SDR.
-            primaries = {"bt709": 1, "bt2020": 9, "smpte431": 11, "smpte432": 12}
-            matrices = {"bt709": 1, "bt470bg": 5, "smpte170m": 6, "bt2020nc": 9}
-            color_range = "full" if primary.get("color_range") == "pc" else "limited"
-            filters.extend(
-                [
-                    f"zscale=transferin={transfer}:"
-                    f"primariesin={primaries.get(primary.get('color_primaries', ''), 9)}:"
-                    f"matrixin={matrices.get(primary.get('color_space', ''), 9)}:"
-                    f"rangein={color_range}:transfer=linear:npl=100",
-                    "format=gbrpf32le",
-                    "zscale=primaries=bt709",
-                    "tonemap=tonemap=mobius:desat=2",
-                    "zscale=transfer=bt709:matrix=bt709:range=limited",
-                ]
-            )
-            options.extend(
-                [
-                    "-color_primaries",
-                    "bt709",
-                    "-color_trc",
-                    "bt709",
-                    "-colorspace",
-                    "bt709",
-                    "-color_range",
-                    "tv",
-                ]
-            )
-        filters.extend(["format=yuv420p", "sidedata=mode=delete"])
-        options.extend(
-            [
-                "-vf",
-                ",".join(filters),
-                "-c:v",
-                "libopenh264",
-                "-b:v",
-                "4000000",
-                "-maxrate",
-                "6000000",
-                "-bufsize",
-                "8000000",
-                "-profile:v",
-                "high",
-                "-g",
-                "60",
-            ]
-        )
+    options.extend(["-c:v", "copy"])
     if audio:
-        options.extend(["-c:a", "copy" if audio[0].get("codec_name") == "aac" else "aac"])
-        if audio[0].get("codec_name") != "aac":
-            options.extend(["-b:a", "128000"])
+        options.extend(["-c:a", "copy"])
     return options
+
+
+def _within_output_resolution(primary: dict[str, Any]) -> bool:
+    """Orientation-independent 1080p limit; the server never resizes video."""
+    width, height = int(primary.get("width", 0)), int(primary.get("height", 0))
+    return 0 < min(width, height) <= 1080 and max(width, height) <= 1920
 
 
 def process(source: Path, directory: Path) -> ProcessedVideo:

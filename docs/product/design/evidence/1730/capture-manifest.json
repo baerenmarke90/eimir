@@ -1,0 +1,1543 @@
+{
+  "matrixStates": [
+    "diary-empty-frame-1",
+    "diary-populated-create-frame-1",
+    "heart-empty-frame-5",
+    "heart-populated-create-frame-5",
+    "plan-empty-frame-9",
+    "plan-populated-create-frame-9",
+    "diary-edit-frame-2",
+    "heart-edit-frame-6",
+    "plan-edit-frame-10",
+    "diary-detail-frame-13",
+    "diary-comments-frame-14",
+    "heart-detail-frame-15",
+    "plan-detail-frame-16"
+  ],
+  "matrixViews": [
+    "360-light",
+    "360-dark",
+    "390-light",
+    "390-dark",
+    "430-light",
+    "430-dark",
+    "1280-light",
+    "1280-dark",
+    "320-light-200-percent-reduced",
+    "390-dark-reduced"
+  ],
+  "referenceCommit": "4bbb3110b31a0944992712a125900391754261c4",
+  "baseMainCommit": "ae4f0014166a81b9f55a0b779102cebac39e04f4",
+  "runtimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+  "testedRevision": "eb1c0abfe8290e4c624dfa2ee5876c3f6d83638a",
+  "testHarnessFileSHA256": {
+    "web/e2e/fixtures/locales/de.ts": "d0291c379ddd1a52858892bc9565fcea657dce97e81a0f622ae8e7f326895c8d",
+    "web/e2e/playwright.config.ts": "342e5d4beae19df58e958f09f5226efd68af5dfc1dc28909cb6ef727756e99d9",
+    "web/e2e/support/mediaDraft.ts": "4fbcb96b0811a13621ff754154eaff101e13abe9b82718364f9d760f409c3ee1",
+    "web/e2e/support/mediaIntake.ts": "ca2a87475c79ada2ea2520eea0ee48f8e98b01a2495496fc45a1e52770408e43",
+    "web/e2e/support/memoryDiary.ts": "2fc42e84fe3acd3e4684873c7e094ac42d2e112ba9f4f551f16d713a02316cff",
+    "web/e2e/support/pageComposer.ts": "f2068856ce3a7b92280806b2fd9e85240695a438d75d1103b53354390099fef3",
+    "web/e2e/support/settledMotion.ts": "4997e0bc8f290198d80e91f0a694ec9db5f8107b1f186f7aee1b97b82024de3b",
+    "web/e2e/support/storyTimelineFixture.ts": "188c0fd22a522a504631795c100136d8e70b9226f22dc362ad9e629e16b96430",
+    "web/e2e/test-groups.json": "0b032bf767c5a9e3548f915e492e849f7bf94cc991fc42bfc2555fb744dbbfc8",
+    "web/e2e/test-impact.json": "a8152806c0930b44a7bd00561de64b3256637658855ff06be1e2e20ddf9f8b59",
+    "web/e2e/tests/page-composer.spec.ts": "0ec45d4c797cc2e6c7ca441f9aa5016b6770a6e7261f43234c19fb6d39bd714a"
+  },
+  "source": "Production Chromium captures after PO review1735; source reference assets were not copied",
+  "count": 174,
+  "missing": [],
+  "files": [
+    "1730-diary-empty-frame-1-360-light.png",
+    "1730-diary-populated-create-frame-1-360-light.png",
+    "1730-heart-empty-frame-5-360-light.png",
+    "1730-heart-populated-create-frame-5-360-light.png",
+    "1730-plan-empty-frame-9-360-light.png",
+    "1730-plan-populated-create-frame-9-360-light.png",
+    "1730-diary-edit-frame-2-360-light.png",
+    "1730-heart-edit-frame-6-360-light.png",
+    "1730-plan-edit-frame-10-360-light.png",
+    "1730-diary-detail-frame-13-360-light.png",
+    "1730-diary-comments-frame-14-360-light.png",
+    "1730-heart-detail-frame-15-360-light.png",
+    "1730-plan-detail-frame-16-360-light.png",
+    "1730-diary-empty-frame-1-360-dark.png",
+    "1730-diary-populated-create-frame-1-360-dark.png",
+    "1730-heart-empty-frame-5-360-dark.png",
+    "1730-heart-populated-create-frame-5-360-dark.png",
+    "1730-plan-empty-frame-9-360-dark.png",
+    "1730-plan-populated-create-frame-9-360-dark.png",
+    "1730-diary-edit-frame-2-360-dark.png",
+    "1730-heart-edit-frame-6-360-dark.png",
+    "1730-plan-edit-frame-10-360-dark.png",
+    "1730-diary-detail-frame-13-360-dark.png",
+    "1730-diary-comments-frame-14-360-dark.png",
+    "1730-heart-detail-frame-15-360-dark.png",
+    "1730-plan-detail-frame-16-360-dark.png",
+    "1730-diary-empty-frame-1-390-light.png",
+    "1730-diary-populated-create-frame-1-390-light.png",
+    "1730-heart-empty-frame-5-390-light.png",
+    "1730-heart-populated-create-frame-5-390-light.png",
+    "1730-plan-empty-frame-9-390-light.png",
+    "1730-plan-populated-create-frame-9-390-light.png",
+    "1730-diary-edit-frame-2-390-light.png",
+    "1730-heart-edit-frame-6-390-light.png",
+    "1730-plan-edit-frame-10-390-light.png",
+    "1730-diary-detail-frame-13-390-light.png",
+    "1730-diary-comments-frame-14-390-light.png",
+    "1730-heart-detail-frame-15-390-light.png",
+    "1730-plan-detail-frame-16-390-light.png",
+    "1730-diary-empty-frame-1-390-dark.png",
+    "1730-diary-populated-create-frame-1-390-dark.png",
+    "1730-heart-empty-frame-5-390-dark.png",
+    "1730-heart-populated-create-frame-5-390-dark.png",
+    "1730-plan-empty-frame-9-390-dark.png",
+    "1730-plan-populated-create-frame-9-390-dark.png",
+    "1730-diary-edit-frame-2-390-dark.png",
+    "1730-heart-edit-frame-6-390-dark.png",
+    "1730-plan-edit-frame-10-390-dark.png",
+    "1730-diary-detail-frame-13-390-dark.png",
+    "1730-diary-comments-frame-14-390-dark.png",
+    "1730-heart-detail-frame-15-390-dark.png",
+    "1730-plan-detail-frame-16-390-dark.png",
+    "1730-diary-empty-frame-1-430-light.png",
+    "1730-diary-populated-create-frame-1-430-light.png",
+    "1730-heart-empty-frame-5-430-light.png",
+    "1730-heart-populated-create-frame-5-430-light.png",
+    "1730-plan-empty-frame-9-430-light.png",
+    "1730-plan-populated-create-frame-9-430-light.png",
+    "1730-diary-edit-frame-2-430-light.png",
+    "1730-heart-edit-frame-6-430-light.png",
+    "1730-plan-edit-frame-10-430-light.png",
+    "1730-diary-detail-frame-13-430-light.png",
+    "1730-diary-comments-frame-14-430-light.png",
+    "1730-heart-detail-frame-15-430-light.png",
+    "1730-plan-detail-frame-16-430-light.png",
+    "1730-diary-empty-frame-1-430-dark.png",
+    "1730-diary-populated-create-frame-1-430-dark.png",
+    "1730-heart-empty-frame-5-430-dark.png",
+    "1730-heart-populated-create-frame-5-430-dark.png",
+    "1730-plan-empty-frame-9-430-dark.png",
+    "1730-plan-populated-create-frame-9-430-dark.png",
+    "1730-diary-edit-frame-2-430-dark.png",
+    "1730-heart-edit-frame-6-430-dark.png",
+    "1730-plan-edit-frame-10-430-dark.png",
+    "1730-diary-detail-frame-13-430-dark.png",
+    "1730-diary-comments-frame-14-430-dark.png",
+    "1730-heart-detail-frame-15-430-dark.png",
+    "1730-plan-detail-frame-16-430-dark.png",
+    "1730-diary-empty-frame-1-1280-light.png",
+    "1730-diary-populated-create-frame-1-1280-light.png",
+    "1730-heart-empty-frame-5-1280-light.png",
+    "1730-heart-populated-create-frame-5-1280-light.png",
+    "1730-plan-empty-frame-9-1280-light.png",
+    "1730-plan-populated-create-frame-9-1280-light.png",
+    "1730-diary-edit-frame-2-1280-light.png",
+    "1730-heart-edit-frame-6-1280-light.png",
+    "1730-plan-edit-frame-10-1280-light.png",
+    "1730-diary-detail-frame-13-1280-light.png",
+    "1730-diary-comments-frame-14-1280-light.png",
+    "1730-heart-detail-frame-15-1280-light.png",
+    "1730-plan-detail-frame-16-1280-light.png",
+    "1730-diary-empty-frame-1-1280-dark.png",
+    "1730-diary-populated-create-frame-1-1280-dark.png",
+    "1730-heart-empty-frame-5-1280-dark.png",
+    "1730-heart-populated-create-frame-5-1280-dark.png",
+    "1730-plan-empty-frame-9-1280-dark.png",
+    "1730-plan-populated-create-frame-9-1280-dark.png",
+    "1730-diary-edit-frame-2-1280-dark.png",
+    "1730-heart-edit-frame-6-1280-dark.png",
+    "1730-plan-edit-frame-10-1280-dark.png",
+    "1730-diary-detail-frame-13-1280-dark.png",
+    "1730-diary-comments-frame-14-1280-dark.png",
+    "1730-heart-detail-frame-15-1280-dark.png",
+    "1730-plan-detail-frame-16-1280-dark.png",
+    "1730-diary-empty-frame-1-320-light-200-percent-reduced.png",
+    "1730-diary-populated-create-frame-1-320-light-200-percent-reduced.png",
+    "1730-heart-empty-frame-5-320-light-200-percent-reduced.png",
+    "1730-heart-populated-create-frame-5-320-light-200-percent-reduced.png",
+    "1730-plan-empty-frame-9-320-light-200-percent-reduced.png",
+    "1730-plan-populated-create-frame-9-320-light-200-percent-reduced.png",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced.png",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced.png",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced.png",
+    "1730-diary-detail-frame-13-320-light-200-percent-reduced.png",
+    "1730-diary-comments-frame-14-320-light-200-percent-reduced.png",
+    "1730-heart-detail-frame-15-320-light-200-percent-reduced.png",
+    "1730-plan-detail-frame-16-320-light-200-percent-reduced.png",
+    "1730-diary-empty-frame-1-390-dark-reduced.png",
+    "1730-diary-populated-create-frame-1-390-dark-reduced.png",
+    "1730-heart-empty-frame-5-390-dark-reduced.png",
+    "1730-heart-populated-create-frame-5-390-dark-reduced.png",
+    "1730-plan-empty-frame-9-390-dark-reduced.png",
+    "1730-plan-populated-create-frame-9-390-dark-reduced.png",
+    "1730-diary-edit-frame-2-390-dark-reduced.png",
+    "1730-heart-edit-frame-6-390-dark-reduced.png",
+    "1730-plan-edit-frame-10-390-dark-reduced.png",
+    "1730-diary-detail-frame-13-390-dark-reduced.png",
+    "1730-diary-comments-frame-14-390-dark-reduced.png",
+    "1730-heart-detail-frame-15-390-dark-reduced.png",
+    "1730-plan-detail-frame-16-390-dark-reduced.png",
+    "1730-diary-empty-frame-1-320-light-200-percent-reduced-full.png",
+    "1730-diary-populated-create-frame-1-320-light-200-percent-reduced-full.png",
+    "1730-heart-empty-frame-5-320-light-200-percent-reduced-full.png",
+    "1730-heart-populated-create-frame-5-320-light-200-percent-reduced-full.png",
+    "1730-plan-empty-frame-9-320-light-200-percent-reduced-full.png",
+    "1730-plan-populated-create-frame-9-320-light-200-percent-reduced-full.png",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced-full.png",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced-full.png",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced-full.png",
+    "1730-diary-detail-frame-13-320-light-200-percent-reduced-full.png",
+    "1730-diary-comments-frame-14-320-light-200-percent-reduced-full.png",
+    "1730-heart-detail-frame-15-320-light-200-percent-reduced-full.png",
+    "1730-plan-detail-frame-16-320-light-200-percent-reduced-full.png",
+    "1730-diary-tag-sheet-frame-4.png",
+    "1730-photo-source-sheet-frame-8.png",
+    "1730-plan-schedule-sheet-frame-11.png",
+    "1730-new-place-sheet-frame-12.png",
+    "1730-plan-list-composer-frame-17.png",
+    "1730-diary-fullscreen.png",
+    "1730-heart-fullscreen.png",
+    "1730-plan-fullscreen.png",
+    "1730-diary-saved-detail-frame-13.png",
+    "1730-diary-restored-draft.png",
+    "1730-po-diary-media-several-390-light.png",
+    "1730-po-diary-media-sensitive-390-light.png",
+    "1730-po-diary-media-failed-390-light.png",
+    "1730-po-heart-media-several-390-light.png",
+    "1730-po-heart-media-sensitive-390-light.png",
+    "1730-po-heart-media-failed-390-light.png",
+    "1730-po-plan-media-several-390-light.png",
+    "1730-po-plan-media-sensitive-390-light.png",
+    "1730-po-plan-media-failed-390-light.png",
+    "1730-po-diary-media-several-390-dark.png",
+    "1730-po-diary-media-sensitive-390-dark.png",
+    "1730-po-diary-media-failed-390-dark.png",
+    "1730-po-heart-media-several-390-dark.png",
+    "1730-po-heart-media-sensitive-390-dark.png",
+    "1730-po-heart-media-failed-390-dark.png",
+    "1730-po-plan-media-several-390-dark.png",
+    "1730-po-plan-media-sensitive-390-dark.png",
+    "1730-po-plan-media-failed-390-dark.png",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced-stage.png",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced-stage.png",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced-stage.png"
+  ],
+  "poReviewComment": "https://github.com/baerenmarke90/eimir/pull/1735#issuecomment-6776422807",
+  "poMediaStates": {
+    "count": 18,
+    "domains": [
+      "diary",
+      "heart",
+      "plan"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "states": [
+      "several",
+      "sensitive",
+      "failed"
+    ],
+    "width": 390,
+    "failure": "Actual attachment-create HTTP503 followed by deliberate stage retry; canonical save count, cover and sensitivity verified"
+  },
+  "verificationResult": "42 passed (3.6m), 26 matrix cases and 16 full correction cases, one worker, fresh Vite build",
+  "verificationLog": "/tmp/eimir-1735-po-final42-eb1c0a.log",
+  "verificationConfig": "web/e2e/playwright.config.ts",
+  "verificationCommand": "EIMIR_BROWSER_SPECS='[\"media-planning-corrections.spec.ts\",\"page-composer.spec.ts\"]' SCREENSHOT_EXPORT_DIR=/tmp/eimir-1735-po-evidence PLAYWRIGHT_JSON_OUTPUT_FILE=/tmp/eimir-1735-po-final42-eb1c0a.json npm test -- --workers=1 --reporter=line,json --output /tmp/eimir-1735-po-final42-eb1c0a-results",
+  "accessibilityAudits": "All six feelings Light/Dark; all three readers at390Light/Dark; 320px/200% stage AA+four-corner containment/nonoverlap; Light/Dark healthy and failed media; loaded local sensitive previews remain blurred/clipped/aria-hidden",
+  "verifiedAtUTC": "2026-11-10T22:20:44.879281+00:00",
+  "fileSHA256": {
+    "1730-diary-empty-frame-1-360-light.png": "d99a50542a8b1bd5a8d5146a797346d9d10a2a1c5150b57a8718bce925bea4da",
+    "1730-diary-populated-create-frame-1-360-light.png": "2f1d061630077ffbe44c5d6cad34f40351f71879bbfe928c30568debb5c1368c",
+    "1730-heart-empty-frame-5-360-light.png": "c5877ba5430e2bb2f723a801b0c17450ef137601a176d808b7c87b6fe8b1c7e4",
+    "1730-heart-populated-create-frame-5-360-light.png": "73e9e3156466cc66b6009815fdf1ecf32e17b17816e7876f977f6f5771f9633b",
+    "1730-plan-empty-frame-9-360-light.png": "5d9ea6912e7c479de574697e087600a1929266ece48bf9e90e1e6715505e7260",
+    "1730-plan-populated-create-frame-9-360-light.png": "c55f8cec159e5a96ffbc3281b62dd0fea838291ca14f22b53b5b39cbb5951a24",
+    "1730-diary-edit-frame-2-360-light.png": "2bc39b196e073a83150f665fba108b49d2c3a09759b1d53c47e9da6cce846d99",
+    "1730-heart-edit-frame-6-360-light.png": "9e37a28eafa241de025c8d4558f10cc1ed9c7cc2ef68d4c3bfbd4cd3ebcc739f",
+    "1730-plan-edit-frame-10-360-light.png": "1001145b1b59c7340495872f9719b43a31ff1df0b4e22f806d024a61185e6d3a",
+    "1730-diary-detail-frame-13-360-light.png": "823da45833a9bb858cca0d431da71a3e915e5996ef7dabe43456547508f0936b",
+    "1730-diary-comments-frame-14-360-light.png": "346ba8f782e5d1d86320c40df5b71b01ee2fa0f67b475079dd13df3e75d00035",
+    "1730-heart-detail-frame-15-360-light.png": "afd2d3729df0152d0b65a03b502ef288f01c329d53e02394f6fc525778406f72",
+    "1730-plan-detail-frame-16-360-light.png": "060d81d008d4d13a1991905c1a382dedd67b328b80e77f8e6dcdd1b7cfebd1b9",
+    "1730-diary-empty-frame-1-360-dark.png": "06050da1ae1545e0f0c61d9f4755f18ad7fef7fe85099acfa8b48cfc4295c50f",
+    "1730-diary-populated-create-frame-1-360-dark.png": "1c1708ee6e4511fa9548a0260d915860f8824a4256be9519a47cd751dc4969da",
+    "1730-heart-empty-frame-5-360-dark.png": "57b2261400b6b84c36bafdbe0ebd250b9cae127eeefc81a1440c3296281f0cfd",
+    "1730-heart-populated-create-frame-5-360-dark.png": "c9d5c8f3b329d191d46910d387d62c493441f62f5582c50ef4efd5b175d786b1",
+    "1730-plan-empty-frame-9-360-dark.png": "3db2833a4a3027e34b1e052b51c934a48bde84cc0926abcf65821f8071f8b2a6",
+    "1730-plan-populated-create-frame-9-360-dark.png": "d2fdd3bef0583afa71b325d135a327ff1af48bf54aba428f008efd35c933cc9e",
+    "1730-diary-edit-frame-2-360-dark.png": "7641c9b628c27c2d33bf835017fb3b12b0b8e60c11b6006a150d29ded6ccfc78",
+    "1730-heart-edit-frame-6-360-dark.png": "43cda1fc7ef72ab9d9d51a06b5e29cbb6944f949a2ef70e3ab99a6647b9762ee",
+    "1730-plan-edit-frame-10-360-dark.png": "600277829808aee6eadbad977169e237eadfcf83f61c944b0b30be8147371e2a",
+    "1730-diary-detail-frame-13-360-dark.png": "ac3bc8edbf2c9095bf51d20ffeb49e815a925843e23c8c15cfdb36d3ff87e85c",
+    "1730-diary-comments-frame-14-360-dark.png": "a0436d07c9f9af0750eca8aac0f428259a62eede2e5d0562b09ee8fa9def1568",
+    "1730-heart-detail-frame-15-360-dark.png": "f917de68b71a0ee4127382fe09d3194a80ad0221dd08da731c7bc6a562f7d12d",
+    "1730-plan-detail-frame-16-360-dark.png": "905eec9da8ebafb6e1c563a9d84c02782faa8241d8e340a5c36e215a3ecd8bc5",
+    "1730-diary-empty-frame-1-390-light.png": "707f12690e2f549ecd6fde73f3da5e38167dfa789c4bd299c515a340935ac0f0",
+    "1730-diary-populated-create-frame-1-390-light.png": "b713231aa1d49d70efd4d8446f97bf3b7cc25cc8b8b5fabbfe0d265684f8c1a6",
+    "1730-heart-empty-frame-5-390-light.png": "9276743389693e8ed810f4a5710ac1c19b217d2f9b2128cde5bde0f6243490f8",
+    "1730-heart-populated-create-frame-5-390-light.png": "463d6d9d4ad2d73002092c31032ee33e5f2de9ec933d1ffde180d949662d8d35",
+    "1730-plan-empty-frame-9-390-light.png": "d1932fd08d8d493fa1239a0e60fee761e21fc88cd15db6d60d29ee2a3784dd82",
+    "1730-plan-populated-create-frame-9-390-light.png": "c5d48845df323efbf3fda830ecffd5a5d078e6779fab458b9b0615debbcdcd30",
+    "1730-diary-edit-frame-2-390-light.png": "4fa8b1b98adc4c4b52a8603db82164f578c80412e8560c2cdbe5e94f1b52010f",
+    "1730-heart-edit-frame-6-390-light.png": "a46b086fcf82dd452a0a6926747209ef5be44e8a4008e4ffbae248e15fb51802",
+    "1730-plan-edit-frame-10-390-light.png": "915eca1a92ebd47f19602948d40dffc16edc0aa595d3016472c1ea6e9859ab81",
+    "1730-diary-detail-frame-13-390-light.png": "69a149773cf932ccf49ca34eb33e008d5c5d3fcc65bf4d82bb128a7ff2cfb0f6",
+    "1730-diary-comments-frame-14-390-light.png": "8f54295e34eed5d3a9308647cc93fe69ae49c4115d2bc1ab589f4d210254e4b0",
+    "1730-heart-detail-frame-15-390-light.png": "f437f44dc1c69f6fe95574d872de43d0922dcb71f67e5c364b523853c3b670b3",
+    "1730-plan-detail-frame-16-390-light.png": "b7a5f1f4126e922e7159994963ae7049bba3ad6905489009f8db0557e97ce871",
+    "1730-diary-empty-frame-1-390-dark.png": "754490b4b4c1ae8cb7bbb37cdd2b813063f3e73da4cb797f2cd4aeb2220298d5",
+    "1730-diary-populated-create-frame-1-390-dark.png": "cc214e875c2c4b7dd170b95e9fd8db93dcb3eac0394a78bae73c4fb4ebf25b5a",
+    "1730-heart-empty-frame-5-390-dark.png": "bbaccf2b557e0b319c5b204d3f1a4456503c40728ef1b4c4efe92be60a76d562",
+    "1730-heart-populated-create-frame-5-390-dark.png": "4c51c77191a26151489ba7d641dec8eb11eda870716efbf22b662df015efdfbb",
+    "1730-plan-empty-frame-9-390-dark.png": "80d4ca114d689f92003c686a3d8346bf89d8409494e56296e3cf6b82f30628db",
+    "1730-plan-populated-create-frame-9-390-dark.png": "9548f60be54041a042532332312ee8b123625be5a3c9ef86c9d39044076bf61a",
+    "1730-diary-edit-frame-2-390-dark.png": "69c554c5be6fe64c1b604cfc9736a9664de945a25033444d9c1ce8e7b46b8e6b",
+    "1730-heart-edit-frame-6-390-dark.png": "be159d93e83470ce4a776d2c5525e059dbb5a582af28106619588834a0e8c894",
+    "1730-plan-edit-frame-10-390-dark.png": "3813802d9d53dc6135996a2b299c35e3a0237d6b38649368583c8a822256ea1c",
+    "1730-diary-detail-frame-13-390-dark.png": "baeb122ec5af40b5acd00cddc2d85cf67e8a2e257363095e6a14876aebbc6bbf",
+    "1730-diary-comments-frame-14-390-dark.png": "59ac05abcd1c23382319787c5cfdbbb0cf3f2c1a55d99dccb8a8c88ba14835e5",
+    "1730-heart-detail-frame-15-390-dark.png": "a357f9f41858c17499c09068b176da2bcfd2b5dbc7d948b621bdc85b46941c39",
+    "1730-plan-detail-frame-16-390-dark.png": "547f47ad38ecb81c69fa84392f07487ba744886a0ddba91f3fe210fedccd81d0",
+    "1730-diary-empty-frame-1-430-light.png": "81a1a0e49a455e07a1a0742860db01c1a27dd794cfd1d9a7cff121ae28063fca",
+    "1730-diary-populated-create-frame-1-430-light.png": "0e3de6168c33ba2a96373fb0e076507b3e74d19b2576fa342b8d7a65445aaae9",
+    "1730-heart-empty-frame-5-430-light.png": "eb69d29a2190614867f428d2adddc47f2b8b52bcbbfee98f5ac46d004a3085d0",
+    "1730-heart-populated-create-frame-5-430-light.png": "0b7b7300a79a6e87a5b1e551f72bcedf106df67c09873bc71e961a51ae246a88",
+    "1730-plan-empty-frame-9-430-light.png": "c80ea6085de3c188b441f79e53d6d89ad182cec09a6f7c5b0e2c7e7a9581e1eb",
+    "1730-plan-populated-create-frame-9-430-light.png": "ad9d92c35538006efb0a6454d780e5a7617fcf0566f309033cac09fa2d0b6404",
+    "1730-diary-edit-frame-2-430-light.png": "915ce7bd0462803cf15cd61774208a9228823d829092b4a64a8821e93d911346",
+    "1730-heart-edit-frame-6-430-light.png": "c0d5539f5a2a4f64f77e57d1f6f6f47e2834e4659e8a7c35206285dd54598fd1",
+    "1730-plan-edit-frame-10-430-light.png": "e2411f9fc957e99aed7a49469a5ce48337a6fb40b0bc3c789908d13371350625",
+    "1730-diary-detail-frame-13-430-light.png": "df55749564d3df5624cc2aecdccb52f7eb738ea0b3f0f07f504dfc00d671942e",
+    "1730-diary-comments-frame-14-430-light.png": "08e8416bef5b0faa59f253e3fb134d9da1d7cdd6f7cf7c6d8d912bf7e2c85e65",
+    "1730-heart-detail-frame-15-430-light.png": "cc4a42069334840ca99c76027ebb066f1e51e46fa674e60a7a081ca6fae6b823",
+    "1730-plan-detail-frame-16-430-light.png": "6d93f55afb097244b32a743513415b0d174b3dfa563652ac0e9b1d4900ded6cc",
+    "1730-diary-empty-frame-1-430-dark.png": "7ca516b47e51ec96fcf9fa859f010b3edcfb9aad026f070b6b90341ef95e84e5",
+    "1730-diary-populated-create-frame-1-430-dark.png": "f17ca9dfe71aae4a00e4a9d54012f088eb9836112a8aeabc0c2b9b121ce2b60f",
+    "1730-heart-empty-frame-5-430-dark.png": "928551f33538b4f798bfa1bbf57ee97c455969eef3b3940bcd89583ed1917d6a",
+    "1730-heart-populated-create-frame-5-430-dark.png": "4ccc20541b3c4efc1cb237b8830116d7d60acf631ec7610263b30774f9d77b3b",
+    "1730-plan-empty-frame-9-430-dark.png": "f1ad2cc6951452eeb25e43b3cb7eccebf89164a5641548b5e021856fe2cec1e5",
+    "1730-plan-populated-create-frame-9-430-dark.png": "2475d58c4ec483ad66badf777358b2e331b4cee2bffd790bb2fc4b847541d2ef",
+    "1730-diary-edit-frame-2-430-dark.png": "c6414929c5e609e6e26232cddc6edcf5ec1826810c42853937c3a391ecc33ae9",
+    "1730-heart-edit-frame-6-430-dark.png": "81db75e48c50197a3c0fd24979cdc0b1e3672dd82a36d8dc46b7454c35383855",
+    "1730-plan-edit-frame-10-430-dark.png": "3fc67d06d8284f1a2b8e6cceb9dfd0a463673c18fe8fe9e00e62be44b7a6aa1c",
+    "1730-diary-detail-frame-13-430-dark.png": "b4a9596c142daaceec3ae2ef90044d76dcb753ed61e9dc4492cd7b184b9c3017",
+    "1730-diary-comments-frame-14-430-dark.png": "68f4009424193888319273fefe6c008697c25bb812bc1f8c205f3e933e87b04c",
+    "1730-heart-detail-frame-15-430-dark.png": "06d65202b6f5f62798a20d7873eaf2a0f4c33850e0a7ba922fa6cc4e790e412c",
+    "1730-plan-detail-frame-16-430-dark.png": "31ac854037f328eacad64efe9c36fea5dc69981391b916c261411e23498879ae",
+    "1730-diary-empty-frame-1-1280-light.png": "da826bf63b9562b7e72a3df5132cc3b99cb3803b1b925801280991fcc46bf5d0",
+    "1730-diary-populated-create-frame-1-1280-light.png": "e3b0ff6ffda796f8a7ac93cd814053c913b23d53099d24e1efe4e6850c75916f",
+    "1730-heart-empty-frame-5-1280-light.png": "5ce299582a6a023e5babb16e06d4ebce60f5ce5518cda7f5a0f2e671cc02d962",
+    "1730-heart-populated-create-frame-5-1280-light.png": "4f1bcf35d8c2bb10b1e6088bd93e78dac76096692fff6c1ae0491b2928549a09",
+    "1730-plan-empty-frame-9-1280-light.png": "dcffbb868069bf1081f3481b5426f3d0cd3aea64fbb0738055c8c244b1f23a10",
+    "1730-plan-populated-create-frame-9-1280-light.png": "b88ef5dde17368a61407ac4df1bf47a613ba252a0a7483c3a238210ee1d12a75",
+    "1730-diary-edit-frame-2-1280-light.png": "7a5ac2ed3175c337582318e8c34282f42c6aacbbdd463ce1ab375d022da94663",
+    "1730-heart-edit-frame-6-1280-light.png": "e2c72d9b6c839257f669c0ebd0fceab146f228c64245d8501c370ecbad89103a",
+    "1730-plan-edit-frame-10-1280-light.png": "615100d65009008dd8fa56f19de111d5bc336954b134f42794746eed914af226",
+    "1730-diary-detail-frame-13-1280-light.png": "40197c22db2832bb16e4ca46b84fe78282bc64570b2daed0975943a828e99809",
+    "1730-diary-comments-frame-14-1280-light.png": "5d7924f825d0b6f10a8d86e4213f47cea656fdaf5fd153dc68034480c2de3853",
+    "1730-heart-detail-frame-15-1280-light.png": "cce1090c020a9700729eaf8dba0579c20a23a0a6183e10af7bce735e98cf58e3",
+    "1730-plan-detail-frame-16-1280-light.png": "493311c00af86d6e7d8510280cd1a67f46673ab9df1fcbabab94516fb9bbfcbc",
+    "1730-diary-empty-frame-1-1280-dark.png": "5a0a54bac34cb6c7c9d5ee36afb083f4d18245ebb0199e934c47742c881f30d1",
+    "1730-diary-populated-create-frame-1-1280-dark.png": "0f871c7dbc48684e234717940c68322d3889bf45c15f1fdeba8bb6a904cf640e",
+    "1730-heart-empty-frame-5-1280-dark.png": "10b179717489b80f60bd5663d0a4f9e5cda56da431a606d239644760d2dd668b",
+    "1730-heart-populated-create-frame-5-1280-dark.png": "79b67aa67d7a2b4f7c8aeb500d75ecbc435d6d99082f449c88ca5231d2b61682",
+    "1730-plan-empty-frame-9-1280-dark.png": "49f61780f5274890788c41d79d10dfe6cf4634b4aee4fe3465274615b6a1650a",
+    "1730-plan-populated-create-frame-9-1280-dark.png": "c8dfeec0b9fa1f8d5a9d5bdc1c52f1840b4b6c500b5fe3be28ec49d89579b7e4",
+    "1730-diary-edit-frame-2-1280-dark.png": "c32d8231cd301204db647e4d78e1cfc06b117b845c88d84f6e42e0931690310a",
+    "1730-heart-edit-frame-6-1280-dark.png": "b8e5303f1c97e463aa70ff0e4f2440ec229f9e700314cba48827eed13479b191",
+    "1730-plan-edit-frame-10-1280-dark.png": "9be52c88369afc2824b63c706f431764a8afc767ed8c59bb2ed29d3ad5523c73",
+    "1730-diary-detail-frame-13-1280-dark.png": "5d65e25373e6e1720682760edd0ed7f3c48654777dab318024c0e5dce8948375",
+    "1730-diary-comments-frame-14-1280-dark.png": "c2555e07c2932cb7db45b00f38c55798c2dc498fe7fd133d19c5dcdcd5bbd6f8",
+    "1730-heart-detail-frame-15-1280-dark.png": "4e4cbb4cf2f867c5311abbfc7a747917664488162f92f8600d346bc5e2cda36d",
+    "1730-plan-detail-frame-16-1280-dark.png": "57af45fa5e9bc910b8852d65709a64d98fd7382580b970d96b4cd9c3656952ff",
+    "1730-diary-empty-frame-1-320-light-200-percent-reduced.png": "c6b1f62179ca5aec757524109d56fbc9a0c79f371feb894e7c78554108fbf5be",
+    "1730-diary-populated-create-frame-1-320-light-200-percent-reduced.png": "428d6867789c9e77ffab0c2fe728ef4e873df5493ad2f95213c8c060af2e800c",
+    "1730-heart-empty-frame-5-320-light-200-percent-reduced.png": "3491874017a71c3d76d86885cb484433b954f31fdd63f9462886afc13ad971a7",
+    "1730-heart-populated-create-frame-5-320-light-200-percent-reduced.png": "f0d78e70977c03e20ac27c976c7ecbc98315be82961d62b774432baf564ddcdf",
+    "1730-plan-empty-frame-9-320-light-200-percent-reduced.png": "9537913d9392c7c1f7536d1e9644dec5bb02c7b9ce03f45eeb5e6bcfb7840f8b",
+    "1730-plan-populated-create-frame-9-320-light-200-percent-reduced.png": "efc009821a55576958d3ec07d6877c0e0823c8e664a0c553864aa9b38e103ab5",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced.png": "b2cd2c9808042ff9e42188039b3117132568e0ac45e6e20be674a6108e07fdd5",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced.png": "e5476d5d9e19fa928f931f454df5f115e0a902d48407ab076eeab11237666a8a",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced.png": "d5f74cc8e322a7f41b67d95dd12bfc9f23d1039718691bfbce09b528877669d4",
+    "1730-diary-detail-frame-13-320-light-200-percent-reduced.png": "07c07ad67b936d80eb3c58e74361c60a2f17951a3a33d45cf238d7356d5106ad",
+    "1730-diary-comments-frame-14-320-light-200-percent-reduced.png": "f54bc444356878774c926b61e4e8c0934de5c6bf7608bb39c8da5d88193f5aef",
+    "1730-heart-detail-frame-15-320-light-200-percent-reduced.png": "2123d61bad49ae8e60feca318194688e02f2bc280de5cad5921ec33f8f232194",
+    "1730-plan-detail-frame-16-320-light-200-percent-reduced.png": "58ff5dbc7f5787c1666471727070f1bacb53c4c488d6e8625f4e24c9e9d29c5e",
+    "1730-diary-empty-frame-1-390-dark-reduced.png": "754490b4b4c1ae8cb7bbb37cdd2b813063f3e73da4cb797f2cd4aeb2220298d5",
+    "1730-diary-populated-create-frame-1-390-dark-reduced.png": "b1833afd45054fe3096be40226a36d8a641759a5abc06efbe50e3f5e6e90f899",
+    "1730-heart-empty-frame-5-390-dark-reduced.png": "bbaccf2b557e0b319c5b204d3f1a4456503c40728ef1b4c4efe92be60a76d562",
+    "1730-heart-populated-create-frame-5-390-dark-reduced.png": "4c51c77191a26151489ba7d641dec8eb11eda870716efbf22b662df015efdfbb",
+    "1730-plan-empty-frame-9-390-dark-reduced.png": "80d4ca114d689f92003c686a3d8346bf89d8409494e56296e3cf6b82f30628db",
+    "1730-plan-populated-create-frame-9-390-dark-reduced.png": "8c91e8942f45b63808d8647331c15a72d38b4ce9af098270ca9def5c7c28f006",
+    "1730-diary-edit-frame-2-390-dark-reduced.png": "18fe7389a939857d1202bb5d673282fd5e68cc235ed8a442aa38b375d1be2a3c",
+    "1730-heart-edit-frame-6-390-dark-reduced.png": "be159d93e83470ce4a776d2c5525e059dbb5a582af28106619588834a0e8c894",
+    "1730-plan-edit-frame-10-390-dark-reduced.png": "fb9f4168c0dcac1c349d59cefb45dc8c09b9733b3433415e61977892d8280fe2",
+    "1730-diary-detail-frame-13-390-dark-reduced.png": "baeb122ec5af40b5acd00cddc2d85cf67e8a2e257363095e6a14876aebbc6bbf",
+    "1730-diary-comments-frame-14-390-dark-reduced.png": "59ac05abcd1c23382319787c5cfdbbb0cf3f2c1a55d99dccb8a8c88ba14835e5",
+    "1730-heart-detail-frame-15-390-dark-reduced.png": "bac67b31d95b8af6e2f4741d18ef1237af6db4a448ac47deb298836a29616b83",
+    "1730-plan-detail-frame-16-390-dark-reduced.png": "547f47ad38ecb81c69fa84392f07487ba744886a0ddba91f3fe210fedccd81d0",
+    "1730-diary-empty-frame-1-320-light-200-percent-reduced-full.png": "07067b15ae9e4623629026fe6328ceceaced94825b6b97b08a938656f92b9c58",
+    "1730-diary-populated-create-frame-1-320-light-200-percent-reduced-full.png": "a9b3541275ff1c051bfd6a587882a4240ace8178684bdf1b98fa9ebe45cd9191",
+    "1730-heart-empty-frame-5-320-light-200-percent-reduced-full.png": "a90bb16ca2bb7dbfcd7422213034f7a5d61b5e1542a297a1779299179b833db8",
+    "1730-heart-populated-create-frame-5-320-light-200-percent-reduced-full.png": "54b0fd8f2c8ed10123531268d3d0105f7bcdb13fff7847755c5928b68ed2c7d6",
+    "1730-plan-empty-frame-9-320-light-200-percent-reduced-full.png": "eeb727e3655dfa34c8304bdbe6f7c12495c7ac6721dc77eee6505aa8e684dbd5",
+    "1730-plan-populated-create-frame-9-320-light-200-percent-reduced-full.png": "43b9f45df6e5ca1568957e297163a85e5615266e6c91d5f517ed575f37978801",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced-full.png": "5ff80dc79f2a903900320c6964eee7ae72c08d42804d5df27a16db25d25c8703",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced-full.png": "7c6ad939094a187c46c81bcee60e93ed4dcd9576e67f4ffa8ab41e8b70d0bf57",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced-full.png": "ba536d98a50c1438dfef6d0d8f683f198ffeff17510930092f0230fe2cf686f0",
+    "1730-diary-detail-frame-13-320-light-200-percent-reduced-full.png": "c5cf2eac515012836cdc032fe385e29caa7d4c5bff4437b2f94ef10e837096d3",
+    "1730-diary-comments-frame-14-320-light-200-percent-reduced-full.png": "d74cebe3ebcc30dd2814d7f726df320c7f0309ac3069999e6b9a64b205db760c",
+    "1730-heart-detail-frame-15-320-light-200-percent-reduced-full.png": "4f49823322b30550afaa429690aace8ffab771f3d4ab3415d3ce4a46d0141538",
+    "1730-plan-detail-frame-16-320-light-200-percent-reduced-full.png": "d38e18e23b509a7a5c6ea4bd499183d533d4a0567869d4f2a52ffcdead97f4eb",
+    "1730-diary-tag-sheet-frame-4.png": "49223f56587b2e973106969c0f160dd30b40a2cebd831249f5e66320f3004418",
+    "1730-photo-source-sheet-frame-8.png": "7e7dcf7e8427ccf5a285fdfa9bed2b06456bc3c5875b0d4942988aed7c2e9ab6",
+    "1730-plan-schedule-sheet-frame-11.png": "bb6e66aa9a7e3272d679c7e5c3498a23326d2b961538e51bc5a7c9d55aadef2d",
+    "1730-new-place-sheet-frame-12.png": "ae200201d352012e35f91d83d06efc4f8dd85852bff7d76a82c6347745099e53",
+    "1730-plan-list-composer-frame-17.png": "c09d88ed3924bcc5dc59bc5ecf99e3f22c3b7a175a1ee261f8c2b2d3719c2720",
+    "1730-diary-fullscreen.png": "4f611c91a346c6fd4256325deba1e7a887b41f50610a973457eab23d347fde26",
+    "1730-heart-fullscreen.png": "0fdb3e7892af60cea4e9a1cac2b4ff8df9195e07c7a50089150c02620e7934fd",
+    "1730-plan-fullscreen.png": "d0790c83356a119902d40091b5099d9bf618f219fa4fade679566a7ad936e916",
+    "1730-diary-saved-detail-frame-13.png": "cfbb8cd48a99c563137fd905c266e18a8029ac10aeababa3516ddf5754aad8de",
+    "1730-diary-restored-draft.png": "e975c544871c6b3c6eb39f9a566a686be1dfd55df8d636e3e3574890b315dfa6",
+    "1730-po-diary-media-several-390-light.png": "e975c544871c6b3c6eb39f9a566a686be1dfd55df8d636e3e3574890b315dfa6",
+    "1730-po-diary-media-sensitive-390-light.png": "f50344d09164f44bc22ff97aa3a21bc14793be83269347c3bd8a1f3338206ce0",
+    "1730-po-diary-media-failed-390-light.png": "c508b9e8a1fa8e2958bc727bb53bd2b5a8b55bc4c4f4801933135c751f817d54",
+    "1730-po-heart-media-several-390-light.png": "190b797906f0dc93cd21ce8e5fcbfaf6e700904c33604876b2979d1514740bf3",
+    "1730-po-heart-media-sensitive-390-light.png": "5f3b3c0d95ed3ac563fde03cbb6bd242a12e1e96c19ab30d9f6783e50fa796e6",
+    "1730-po-heart-media-failed-390-light.png": "1526838963a0c74d93506a5d7a23c178d090f9100a36400f9b8d0bb160aa3c08",
+    "1730-po-plan-media-several-390-light.png": "202da379bf1078172649fdfc9a7a513dda0e114f8e0e9a2ea3859ea8ab949cb4",
+    "1730-po-plan-media-sensitive-390-light.png": "551d990b4469f135b9c76f49a9f960e2120975128f1e34cfb1e5be8acade85ea",
+    "1730-po-plan-media-failed-390-light.png": "dc02ddce5a634e36b011710e67ab92eeed884af2a88da4cd6d654466e6edd832",
+    "1730-po-diary-media-several-390-dark.png": "ee5f44089a2c85a9a088f278fcb7e4028ec34a2d996df7ccd9bd0607bbe6dabc",
+    "1730-po-diary-media-sensitive-390-dark.png": "63e8c335459e3dc54fe0d43ea38712519a1632b0eccbf7dfa97a7a1f94f1bb36",
+    "1730-po-diary-media-failed-390-dark.png": "88a3c7e0d76ac8d93bff8493d1d219b8af5e2def92eed724a881f4ab4772caf0",
+    "1730-po-heart-media-several-390-dark.png": "266987a6b9cd7363accc7e2aa8a2322767174d14ef726389ae1f1799463b742b",
+    "1730-po-heart-media-sensitive-390-dark.png": "28af8a3b15aa6eaa1695c0d88b912af79bbdcabb8a723f7344d75a3f5e105eeb",
+    "1730-po-heart-media-failed-390-dark.png": "f55cab124e0a2f91fa2626e3eb53b74d6e382f360ec00d128252dd9e44ef50ef",
+    "1730-po-plan-media-several-390-dark.png": "43b0d2639f0a8284ec2cb9c49f841bdc8206f474c0d0213240637f095d07d48a",
+    "1730-po-plan-media-sensitive-390-dark.png": "11206ef7be460475239c5958cda4277b77abece7a37807064a4e030a98cba414",
+    "1730-po-plan-media-failed-390-dark.png": "5d515ce2e4618f0bad403ecc7b862d37190fffae498e68a05d180bef20cc1592",
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced-stage.png": "8c4d2548d8e7047dff9be43e4dee7091c63271301125c782443141b30f079eea",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced-stage.png": "a5b8600a01955064051350d39f6ba57e957dc4c78362e8bfa64bf647cd6ce22d",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced-stage.png": "5b4063baa356fc95c49a8996efa9addec0467375c322eb31b9b651b43e76f235"
+  },
+  "verificationJSON": "/tmp/eimir-1735-po-final42-eb1c0a.json",
+  "webSourceTree": "8b2a24797a760d976e9d96e3582d5969cb13a3b1",
+  "e2eTree": "1be75cc425a8b5fe64a4f9f8c979ff7c45197b3f",
+  "verificationJSONSHA256": "28dde86dbba8a268cb586a607c0859ea0f3a02fbeca0f705f6a51e62cbe3b972",
+  "mapReturnProof": "Exact invoking map link focus for all three readers; same-route Plan clean editor return retains native Edit focus and its newer scroll instead of replaying the previous map position.",
+  "nativeVerificationStats": {
+    "startTime": "2026-11-10T22:16:23.020Z",
+    "duration": 216905.631,
+    "expected": 42,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cropReflowProof": "All three composer stage slides have zero padding, object-fit cover and image/slide edges matching viewport within1px at320/200%; four-corner containment/nonoverlap and AA audits retained. OldCSS negative proof recorded16px inline inset per side.",
+  "productionRuntimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+  "latestPOOverride": "Composer Arrange, automatic-cover and inline sensitive reveal rows are removed without replacement; original upload order and independent cover/selection remain; existing fullscreen reveal/hide and legacy/default owners remain.",
+  "composerOrderingCoverage": "Latest explicit user correction removes the composer arrangement entry without replacement. Current composer cases verify exact original upload/retained order and independent preview/cover identity. Legacy/default arrangement owners remain covered by their unchanged source/unit cases.",
+  "fullscreenPrivacyProof": "All six domain/theme media cases open concealed fullscreen, deliberately reveal a decoded image, hide it again, close to the same selected draft and preserve sensitivity/cover/retry/canonical-save assertions.",
+  "baseImageCount": 171,
+  "supplementalStageFiles": [
+    "1730-diary-edit-frame-2-320-light-200-percent-reduced-stage.png",
+    "1730-heart-edit-frame-6-320-light-200-percent-reduced-stage.png",
+    "1730-plan-edit-frame-10-320-light-200-percent-reduced-stage.png"
+  ],
+  "supplementalStageProof": "Three 320px/200% edit stages captured in the real scrolled viewport with existing layout, image-edge and actual corner hit checks. Full-page screenshots are preserved; viewport images avoid Chromium offscreen raster artifacts. No image or DOM style editing.",
+  "all174RegeneratedByVerificationRun": true,
+  "browserCoverage": {
+    "kind": "Distinct case coverage across native reports on an identical production web tree, not a single-run pass count",
+    "productionRuntimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+    "webSourceTree": "8b2a24797a760d976e9d96e3582d5969cb13a3b1",
+    "distinctCases": 303,
+    "specCount": 18,
+    "allCoveredCasesHavePassingResult": true,
+    "countsBySpec": {
+      "browser-session-reload.spec.ts": 3,
+      "f2-task-boundaries.spec.ts": 35,
+      "floating-bottom-nav-scroll.spec.ts": 19,
+      "hidden-file-inputs.spec.ts": 2,
+      "i18n-accessible-names.spec.ts": 1,
+      "media-planning-corrections.spec.ts": 16,
+      "media-url-continuity.spec.ts": 4,
+      "memory-carousel-stability.spec.ts": 36,
+      "memory-create-defaults.spec.ts": 53,
+      "memory-delete-ownership.spec.ts": 7,
+      "memory-experiences.spec.ts": 7,
+      "mobile-diary-planning-media.spec.ts": 19,
+      "page-composer.spec.ts": 26,
+      "plan-cover-layout.spec.ts": 11,
+      "polish-sensitive-media.spec.ts": 2,
+      "product-accessibility.spec.ts": 32,
+      "quick-create-destination-handoff.spec.ts": 20,
+      "session-retention.spec.ts": 10
+    },
+    "runs": [
+      {
+        "reportKind": "Native Playwright JSON execution summary",
+        "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+        "runtimeCommit": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+        "productionRuntimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+        "baseMainCommit": "ae4f0014166a81b9f55a0b779102cebac39e04f4",
+        "caseCount": 144,
+        "specCount": 7,
+        "stats": {
+          "startTime": "2026-11-10T21:57:47.602Z",
+          "duration": 351264.581,
+          "expected": 142,
+          "skipped": 0,
+          "unexpected": 2,
+          "flaky": 0
+        },
+        "reportedDuration": "5.9m",
+        "exitCode": 1,
+        "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json",
+        "nativeJSONSHA256": "1ce31377f39a316c968a0029c85d04f763f604aa345e1c3891b7a53db3ab6463",
+        "log": "/tmp/eimir-1735-po-final144-39a34.log",
+        "logSHA256": "9a9f938821aa2707f54358a6086121341aafa4b9eff6ebb3aa506f6d4bea1aa0",
+        "selection": "/tmp/eimir-1735-po-quiet-retained-specs.json",
+        "selectionSHA256": "41bd77ede7f9b0a9d6fff4a61ab5e1c8d5bd2f71abd32fcb6c765601732f0e15",
+        "specs": [
+          "media-planning-corrections.spec.ts",
+          "memory-carousel-stability.spec.ts",
+          "memory-create-defaults.spec.ts",
+          "memory-experiences.spec.ts",
+          "mobile-diary-planning-media.spec.ts",
+          "plan-cover-layout.spec.ts",
+          "polish-sensitive-media.spec.ts"
+        ],
+        "allSourceAndHarnessHashesUnchangedThroughCompletion": true,
+        "failureDiagnosis": "Two newly added unsupported inferences about fullscreen browsing selecting a draft thumbnail; prepared explicit native first-thumbnail click correction. Fullscreen gesture/zoom, canonical order and cover assertions retained.",
+        "createdAtUTC": "2026-11-10T22:04:50.257423+00:00"
+      },
+      {
+        "reportKind": "Native Playwright JSON execution summary",
+        "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+        "runtimeCommit": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+        "productionRuntimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+        "baseMainCommit": "ae4f0014166a81b9f55a0b779102cebac39e04f4",
+        "caseCount": 133,
+        "specCount": 10,
+        "stats": {
+          "startTime": "2026-11-10T22:04:53.894Z",
+          "duration": 238714.20899999997,
+          "expected": 133,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "reportedDuration": "4.0m",
+        "exitCode": 0,
+        "nativeJSON": "/tmp/eimir-1735-po-final133-39a34.json",
+        "nativeJSONSHA256": "735b7724d68ed17ac0e4aaf3e36f7e55dbb91074618496fd3fe571a86acb9720",
+        "log": "/tmp/eimir-1735-po-final133-39a34.log",
+        "logSHA256": "995603c517329aced8f48c74272812c3a66277112c92ec576a34f2b27e536676",
+        "selection": "/tmp/eimir-1735-po-final-core-specs.json",
+        "selectionSHA256": "7b621c6e2f3846fbca85ff4b94637d9cd97dab4b941bad8cfe6181628d4f3db0",
+        "specs": [
+          "browser-session-reload.spec.ts",
+          "f2-task-boundaries.spec.ts",
+          "floating-bottom-nav-scroll.spec.ts",
+          "hidden-file-inputs.spec.ts",
+          "i18n-accessible-names.spec.ts",
+          "media-url-continuity.spec.ts",
+          "memory-delete-ownership.spec.ts",
+          "product-accessibility.spec.ts",
+          "quick-create-destination-handoff.spec.ts",
+          "session-retention.spec.ts"
+        ],
+        "allSourceAndHarnessHashesUnchangedThroughCompletion": true,
+        "createdAtUTC": "2026-11-10T22:09:45.189106+00:00"
+      },
+      {
+        "reportKind": "Native Playwright JSON execution summary",
+        "testedRevision": "eb1c0abfe8290e4c624dfa2ee5876c3f6d83638a",
+        "runtimeCommit": "894c445d65df56c737cae1fd676ca8f2531947d9",
+        "baseMainCommit": "ae4f0014166a81b9f55a0b779102cebac39e04f4",
+        "webSourceTree": "8b2a24797a760d976e9d96e3582d5969cb13a3b1",
+        "specCount": 2,
+        "caseCount": 42,
+        "stats": {
+          "startTime": "2026-11-10T22:16:23.020Z",
+          "duration": 216905.631,
+          "expected": 42,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "reportedDuration": "3.6m",
+        "exitCode": 0,
+        "nativeJSON": "/tmp/eimir-1735-po-final42-eb1c0a.json",
+        "nativeJSONSHA256": "28dde86dbba8a268cb586a607c0859ea0f3a02fbeca0f705f6a51e62cbe3b972",
+        "log": "/tmp/eimir-1735-po-final42-eb1c0a.log",
+        "logSHA256": "ddb2462ea7addd820a9f087c4ce7887d888cad3068fc741b4ad54fb846693884",
+        "command": "EIMIR_BROWSER_SPECS='[\"media-planning-corrections.spec.ts\",\"page-composer.spec.ts\"]' SCREENSHOT_EXPORT_DIR=/tmp/eimir-1735-po-evidence PLAYWRIGHT_JSON_OUTPUT_FILE=/tmp/eimir-1735-po-final42-eb1c0a.json npm test -- --workers=1 --reporter=line,json --output /tmp/eimir-1735-po-final42-eb1c0a-results",
+        "specs": [
+          "media-planning-corrections.spec.ts",
+          "page-composer.spec.ts"
+        ],
+        "allSourceAndHarnessHashesUnchangedThroughCompletion": true,
+        "createdAtUTC": "2026-11-10T22:20:44.879281+00:00"
+      }
+    ],
+    "correctedTestSetupCases": [
+      {
+        "previousFailedCase": {
+          "file": "media-planning-corrections.spec.ts",
+          "title": "draft gallery keeps zoom, selection, privacy and cover through save at 390",
+          "id": "5c52cfaf9f38b88f5ee3-244ad697fe5cd0947135",
+          "expectedStatus": "passed",
+          "reportStatus": "unexpected",
+          "resultStatuses": [
+            "failed"
+          ],
+          "passed": false
+        },
+        "passingReplay": {
+          "file": "media-planning-corrections.spec.ts",
+          "title": "draft gallery keeps zoom, selection, privacy and cover through save at 390",
+          "id": "5c52cfaf9f38b88f5ee3-244ad697fe5cd0947135",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "eb1c0abfe8290e4c624dfa2ee5876c3f6d83638a",
+          "nativeJSON": "/tmp/eimir-1735-po-final42-eb1c0a.json"
+        }
+      },
+      {
+        "previousFailedCase": {
+          "file": "media-planning-corrections.spec.ts",
+          "title": "draft gallery keeps zoom, selection, privacy and cover through save at 1280",
+          "id": "5c52cfaf9f38b88f5ee3-09f1788296a1a1844519",
+          "expectedStatus": "passed",
+          "reportStatus": "unexpected",
+          "resultStatuses": [
+            "failed"
+          ],
+          "passed": false
+        },
+        "passingReplay": {
+          "file": "media-planning-corrections.spec.ts",
+          "title": "draft gallery keeps zoom, selection, privacy and cover through save at 1280",
+          "id": "5c52cfaf9f38b88f5ee3-09f1788296a1a1844519",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "eb1c0abfe8290e4c624dfa2ee5876c3f6d83638a",
+          "nativeJSON": "/tmp/eimir-1735-po-final42-eb1c0a.json"
+        }
+      }
+    ],
+    "createdAtUTC": "2026-11-10T22:20:44.879281+00:00",
+    "coverageLedger": "/tmp/eimir-1735-po-final303-coverage.json",
+    "coverageLedgerSHA256": "77f2520f094476e4fb6fe4a56a5db11da55a4bb8ca4b4467612c7abe40f054be"
+  },
+  "historicalVerification": {
+    "discovery663": {
+      "reportKind": "Log-derived execution ledger, not a native Playwright JSON report",
+      "testedRevision": "e2b777dba9cf7cf4b638bb27827644f69a702051",
+      "runtimeCommit": "5a8d61f4eec39cf66fe9994fea62a6eb4664a04a",
+      "collected": 663,
+      "passed": 632,
+      "failed": 31,
+      "skipped": 0,
+      "reportedDuration": "29.3m",
+      "log": "/tmp/eimir-1735-po-retained663.log",
+      "logSHA256": "879fcbf663ba96de08877f515bd79be462dec5e8f349f484c30fc0610fc87c90",
+      "nativeLastRunFile": "/tmp/eimir-1735-po-retained663-results/.last-run.json",
+      "failureCountsBySpec": {
+        "comments-create-ownership.spec.ts": 2,
+        "memory-experiences.spec.ts": 7,
+        "photo-places.spec.ts": 10,
+        "plan-comments-links.spec.ts": 4,
+        "plan-inline-place-create.spec.ts": 1,
+        "shared-wish-selection.spec.ts": 1,
+        "subpage-navigation-context.spec.ts": 6
+      }
+    },
+    "expandedReplay251": {
+      "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+      "runtimeCommit": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+      "cases": 251,
+      "stats": {
+        "startTime": "2026-11-10T21:14:51.686Z",
+        "duration": 522939.363,
+        "expected": 250,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "reportedDuration": "8.7m",
+      "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json",
+      "nativeJSONSHA256": "250ddd8c9b54d36b6897fd09ba7cd0ff95a270bb240e1723d50a455ca3680211",
+      "prior31FailuresExecuted": 31,
+      "priorFailuresPassed": 30
+    },
+    "greenBeforeLatestPOFollowUp": {
+      "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+      "passed": 64,
+      "matrixNativeJSON": "/tmp/eimir-1735-po-final26-cfe460.json",
+      "matrixNativeJSONSHA256": "39bbc2684040dddc8193084f2e7ae5afdd5f88c110dae6ef935cb27924ccacf6",
+      "matrixStats": {
+        "startTime": "2026-11-10T21:28:45.861Z",
+        "duration": 182904.01400000002,
+        "expected": 26,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retainedNativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json",
+      "retainedNativeJSONSHA256": "04fd834940a6d9c5d1689b560cb71bbfabbc0a045ae0d1b981d5c0841d81be6a",
+      "retainedStats": {
+        "startTime": "2026-11-10T21:32:38.651Z",
+        "duration": 93508.016,
+        "expected": 38,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "historical31ScenariosResolved": true
+    },
+    "historical31FailureCoverage": [
+      {
+        "historicalFailure": {
+          "file": "comments-create-ownership.spec.ts",
+          "line": 197,
+          "column": 3,
+          "title": "memories create retains resource admission through return at 360 light"
+        },
+        "executedCase": {
+          "file": "comments-create-ownership.spec.ts",
+          "title": "memories create retains resource admission through return at 360 light",
+          "id": "0367170506a3acb8a9e8-52eb87dc6c5b74669d47",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "comments-create-ownership.spec.ts",
+          "line": 197,
+          "column": 3,
+          "title": "heart-moments create retains resource admission through return at 390 dark"
+        },
+        "executedCase": {
+          "file": "comments-create-ownership.spec.ts",
+          "title": "heart-moments create retains resource admission through return at 390 dark",
+          "id": "0367170506a3acb8a9e8-36db36fa1ee4fe4c7e45",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 320 light"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 320 light",
+          "id": "001c294860194b248f84-e551feb9b6332e5d05ca",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 360 dark"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 360 dark",
+          "id": "001c294860194b248f84-a82bf06cb94304217e4f",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 390 light"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 390 light",
+          "id": "001c294860194b248f84-1a17943d1147a6a1b576",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 430 dark"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 430 dark",
+          "id": "001c294860194b248f84-da13519fcdc2d86c1935",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 1280 light"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 1280 light",
+          "id": "001c294860194b248f84-c396014d1e66dff402f3",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 320 dark"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 320 dark",
+          "id": "001c294860194b248f84-bfaa98936211a6de5b51",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "memory-experiences.spec.ts",
+          "line": 344,
+          "column": 3,
+          "title": "period, independent cover and arrange-save-return at 390 dark"
+        },
+        "executedCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and arrange-save-return at 390 dark",
+          "id": "001c294860194b248f84-4db2c9b30bf33aa92790",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "cfe46048df6209e1ee5306cb6db96a0bf6a1c6cb",
+        "nativeJSON": "/tmp/eimir-1735-po-final38-cfe460.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 83,
+          "column": 1,
+          "title": "the saved Place opens the pinned map directly, restores the moment and retains its address in the editor"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "the saved Place opens the pinned map directly, restores the moment and retains its address in the editor",
+          "id": "50b1268a67ca352efe4e-c9b679efd7b99cda0a94",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 141,
+          "column": 1,
+          "title": "a pending photo location becomes a readable address without another upload"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "a pending photo location becomes a readable address without another upload",
+          "id": "50b1268a67ca352efe4e-807eff61f4c58323ae5a",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 360px (light)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 360px (light)",
+          "id": "50b1268a67ca352efe4e-f76966172578a9058383",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 390px (light)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 390px (light)",
+          "id": "50b1268a67ca352efe4e-3a829698b4c62bb7b6fa",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 430px (light)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 430px (light)",
+          "id": "50b1268a67ca352efe4e-5facfca2f1e5301f7911",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 1280px (light)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 1280px (light)",
+          "id": "50b1268a67ca352efe4e-947085cf13219ac2b74c",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 360px (dark)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 360px (dark)",
+          "id": "50b1268a67ca352efe4e-2adf489a7f5a19736d53",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 390px (dark)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 390px (dark)",
+          "id": "50b1268a67ca352efe4e-efb58129b414bc1c9fe3",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 430px (dark)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 430px (dark)",
+          "id": "50b1268a67ca352efe4e-9e7e0c6cced9baeb4739",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "photo-places.spec.ts",
+          "line": 510,
+          "column": 5,
+          "title": "photo places: settings, saved result and removal at 1280px (dark)"
+        },
+        "executedCase": {
+          "file": "photo-places.spec.ts",
+          "title": "photo places: settings, saved result and removal at 1280px (dark)",
+          "id": "50b1268a67ca352efe4e-39998b9d2f9a0e625182",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "plan-comments-links.spec.ts",
+          "line": 445,
+          "column": 3,
+          "title": "Plan long description and recognizable place and Wish actions at 390 light"
+        },
+        "executedCase": {
+          "file": "plan-comments-links.spec.ts",
+          "title": "Plan long description and recognizable place and Wish actions at 390 light",
+          "id": "356e5897aa321f24eb2e-84255e0094b4f04b8720",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "plan-comments-links.spec.ts",
+          "line": 445,
+          "column": 3,
+          "title": "Plan long description and recognizable place and Wish actions at 430 dark"
+        },
+        "executedCase": {
+          "file": "plan-comments-links.spec.ts",
+          "title": "Plan long description and recognizable place and Wish actions at 430 dark",
+          "id": "356e5897aa321f24eb2e-3f9dac9048d8631e94be",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "plan-comments-links.spec.ts",
+          "line": 445,
+          "column": 3,
+          "title": "Plan long description and recognizable place and Wish actions at 1280 dark"
+        },
+        "executedCase": {
+          "file": "plan-comments-links.spec.ts",
+          "title": "Plan long description and recognizable place and Wish actions at 1280 dark",
+          "id": "356e5897aa321f24eb2e-ec95de90a8364e987753",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "plan-comments-links.spec.ts",
+          "line": 445,
+          "column": 3,
+          "title": "Plan long description and recognizable place and Wish actions at 320 light"
+        },
+        "executedCase": {
+          "file": "plan-comments-links.spec.ts",
+          "title": "Plan long description and recognizable place and Wish actions at 320 light",
+          "id": "356e5897aa321f24eb2e-3bc56c9cde780ca61832",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "plan-inline-place-create.spec.ts",
+          "line": 373,
+          "column": 1,
+          "title": "creating a map Place preserves the Plan draft and sends its canonical identifier"
+        },
+        "executedCase": {
+          "file": "plan-inline-place-create.spec.ts",
+          "title": "creating a map Place preserves the Plan draft and sends its canonical identifier",
+          "id": "c6beff23309eb3d265c9-8f66e034e66fe5f4bba3",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "shared-wish-selection.spec.ts",
+          "line": 293,
+          "column": 1,
+          "title": "mobile round -> private selection -> shared favorite -> canonical dated Plan -> return"
+        },
+        "executedCase": {
+          "file": "shared-wish-selection.spec.ts",
+          "title": "mobile round -> private selection -> shared favorite -> canonical dated Plan -> return",
+          "id": "6126a3c627170aab6ad6-3bdcef3943bca5219f11",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 360 light"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 360 light",
+          "id": "4d92f2200befc4c7392e-0f142587a53b833da566",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 390 dark"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 390 dark",
+          "id": "4d92f2200befc4c7392e-752e0493484d0387f7df",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 430 light"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 430 light",
+          "id": "4d92f2200befc4c7392e-a7a35fead160de58eedc",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 1280 light"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 1280 light",
+          "id": "4d92f2200befc4c7392e-3dfc08305ce811c2e804",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 1280 dark"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 1280 dark",
+          "id": "4d92f2200befc4c7392e-5c4d41b9ca3626630d05",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      },
+      {
+        "historicalFailure": {
+          "file": "subpage-navigation-context.spec.ts",
+          "line": 114,
+          "column": 3,
+          "title": "secondary navigation and date/Place context at 320 light large reduced"
+        },
+        "executedCase": {
+          "file": "subpage-navigation-context.spec.ts",
+          "title": "secondary navigation and date/Place context at 320 light large reduced",
+          "id": "4d92f2200befc4c7392e-951886e519a15b3cf67a",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true
+        },
+        "testedRevision": "3e787ae227c4bd2a3c0f90373ae8714b2619f081",
+        "nativeJSON": "/tmp/eimir-1735-po-final251-3e787a.json"
+      }
+    ],
+    "latestPOAliasReason": "Latest explicit PO override removes composer Arrange and automatic-cover rows without replacement. The seven journeys retain original media order, independent cover, native scrolling, canonical payload, date and return assertions; they no longer claim composer rearrangement coverage.",
+    "latestPOCaseAliases": [
+      {
+        "old": "period, independent cover and arrange-save-return at 320 light",
+        "new": "period, independent cover and original-order save-return at 320 light",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 320 light",
+          "id": "001c294860194b248f84-24bb7418041bbf70b3cc",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 360 dark",
+        "new": "period, independent cover and original-order save-return at 360 dark",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 360 dark",
+          "id": "001c294860194b248f84-f817754ef9287f4a1665",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 390 light",
+        "new": "period, independent cover and original-order save-return at 390 light",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 390 light",
+          "id": "001c294860194b248f84-62593975aa00c7bffcc9",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 430 dark",
+        "new": "period, independent cover and original-order save-return at 430 dark",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 430 dark",
+          "id": "001c294860194b248f84-8e78611e02194ed5f83c",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 1280 light",
+        "new": "period, independent cover and original-order save-return at 1280 light",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 1280 light",
+          "id": "001c294860194b248f84-21949084a16ec5415394",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 320 dark",
+        "new": "period, independent cover and original-order save-return at 320 dark",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 320 dark",
+          "id": "001c294860194b248f84-d9a5cf5118408061b164",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      },
+      {
+        "old": "period, independent cover and arrange-save-return at 390 dark",
+        "new": "period, independent cover and original-order save-return at 390 dark",
+        "currentPassingCase": {
+          "file": "memory-experiences.spec.ts",
+          "title": "period, independent cover and original-order save-return at 390 dark",
+          "id": "001c294860194b248f84-ceff3b4e172e0ecf5bf8",
+          "expectedStatus": "passed",
+          "reportStatus": "expected",
+          "resultStatuses": [
+            "passed"
+          ],
+          "passed": true,
+          "testedRevision": "39a34da1a44d4781265aa3816a80f1863bcf2e0f",
+          "nativeJSON": "/tmp/eimir-1735-po-final144-39a34.json"
+        }
+      }
+    ]
+  },
+  "currentMainIntegration": {
+    "integratedMain": "b2303909063cc8a2074a99a407fb63e6707b3cbf",
+    "testedRevision": "cf3ee953cacb6d801d0010bb82dd67c6473a3d33",
+    "webSourceTree": "27d404ea50b7c6adf8decf78f2748630eae8bda1",
+    "e2eTree": "c7a90bd28a69e0a762e4b18f6a65bc3e8f702795",
+    "upstreamPullRequest": 1739,
+    "scope": "Additive Today semantic roles and locale fixture groups. No Composer component, style or consumed role value changed; the 174 captures retain their actual earlier provenance.",
+    "fullCollection": {
+      "cases": 1241,
+      "specs": 105
+    },
+    "integrationCollection": {
+      "cases": 234,
+      "specs": 16,
+      "coreCases": 133,
+      "countsBySpec": {
+        "browser-session-reload.spec.ts": 3,
+        "f2-task-boundaries.spec.ts": 35,
+        "floating-bottom-nav-scroll.spec.ts": 19,
+        "hidden-file-inputs.spec.ts": 2,
+        "i18n-accessible-names.spec.ts": 1,
+        "media-url-continuity.spec.ts": 4,
+        "memory-delete-ownership.spec.ts": 7,
+        "product-accessibility.spec.ts": 32,
+        "product-reflow.spec.ts": 7,
+        "quick-create-destination-handoff.spec.ts": 20,
+        "relationship-reflections.spec.ts": 14,
+        "session-retention.spec.ts": 10,
+        "shared-story-summary-visual.spec.ts": 5,
+        "today-daily-quote.spec.ts": 18,
+        "today-living-home.spec.ts": 36,
+        "wir-design-selection.spec.ts": 21
+      }
+    },
+    "browserWorkers": 1,
+    "nativeStats": {
+      "startTime": "2026-11-10T22:34:29.153Z",
+      "duration": 500767.45999999996,
+      "expected": 234,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "nativeReportSHA256": "03b84f8a1b9974085352f1e920fedbcb2a6077e4e48e952d0ed22809e4de7a60",
+    "executionLedgerSHA256": "38990e32dfd679c5c726b0dab370f034fcf7915ef2a6d23b73d17ff4b0a3babe",
+    "applicationChecks": {
+      "focusedUnitFiles": 4,
+      "focusedUnitsPassed": 126,
+      "unitDurationSeconds": 5.75,
+      "productionBuild": "passed",
+      "e2eTypecheckEntries": 63,
+      "planningRegressionsPassed": 38,
+      "browserInventorySpecs": 105
+    }
+  }
+}

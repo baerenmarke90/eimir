@@ -62,9 +62,9 @@ their route IDs are not.
 
 - **Android app:** renders the Web shell below (Capacitor wrapper). The retired Compose client's at-every-size Bottom Navigation is recorded in the historical
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
-- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with icon and text label.
+- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header; Expanded retains horizontal primary navigation and creation. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation; the 2026-11-14 Product Owner correction removed the cross-area create shortcut from the browser header. On Expanded, the Planen column and the Planen/Momente view switches are centered like the diary reading column. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 
@@ -100,7 +100,7 @@ eimir.
 └── Mehr
     ├── Unser Jahr (annual shared history; canonical route `/story/years`)
     ├── Spielen (relationship-native games; canonical route `/games`)
-    ├── Menschen (related people and important dates)
+    ├── Menschen (shared people and their profiles)
     ├── Orte (shared places and destinations)
     ├── Gemeinsame Listen (collections)
     ├── Für mich (owner-only area)
@@ -163,18 +163,21 @@ Links. IDs are opaque, stable identifiers.
 | Planen hub | `/plan` |
 | Wishes | `/plan/wishes` |
 | Open wish | `/plan/wishes/:wishId` |
+| Discover date ideas (Pro, from Wishes) | `/plan/ideas` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
 | Open an authorized reminder | `/plan/reminders/:reminderId` |
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |
+| eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
 | Collections (Mehr) | `/plan/collections` |
 | Open collection | `/plan/collections/:collectionId` |
 | Space and partner | `/more/space` |
-| Related people and important dates | `/more/people` |
+| Shared people and profiles | `/more/people` |
+| Important dates and derived birthdays | `/plan#dates` |
 | Owner-only area (Für mich) | `/more/private` |
 | Privacy | `/more/privacy` |
 | Notifications | `/more/notifications` |
@@ -193,7 +196,7 @@ The [2026-10-29 Product Owner decision](product/design/mobile-header-more.md), t
 - Notifications opens `/more/notifications`. Its row shows the authoritative unread count. A static dot on More, with an accessible unread label, remains until read state changes; entering More alone does not mark anything read.
 - Profile, Activity, Settings, capability-gated Server Administration and the existing safe sign-out action are named More destinations/actions. The existing brand is placed quietly in its footer.
 - Expanded retains the horizontal primary navigation and creation action. Utility/account destinations have the same More home on both sizes.
-- Search and Notifications do not acquire extra primary-navigation slots. Search highlights More; Activity keeps its existing Today domain ownership and all canonical paths remain compatible.
+- Search and Notifications do not acquire extra primary-navigation slots. Search and Activity highlight More, and the shell Back of Activity falls back to More when no originating context is known (#1907 A2). Activity keeps its Today domain ownership and canonical `/today/activity` path; all canonical paths remain compatible.
 
 ### Signed-in landing and Deep-Link return
 

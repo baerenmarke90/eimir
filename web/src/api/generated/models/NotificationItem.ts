@@ -65,6 +65,12 @@ export interface NotificationItem {
      * @type {Date}
      * @memberof NotificationItem
      */
+    appointmentStart?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof NotificationItem
+     */
     createdAt: Date;
     /**
      * 
@@ -84,6 +90,12 @@ export interface NotificationItem {
      * @memberof NotificationItem
      */
     readAt: Date | null;
+    /**
+     * Ideas in the shared round a wish-selection invitation refers to (#1907 J1).
+     * @type {number}
+     * @memberof NotificationItem
+     */
+    selectionSize?: number | null;
     /**
      * 
      * @type {string}
@@ -139,10 +151,12 @@ export function NotificationItemFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'actor': json['actor'] === undefined ? undefined : json['actor'] === null ? null : AuthorSummaryFromJSON(json['actor']),
         'actorId': json['actorId'],
+        'appointmentStart': json['appointmentStart'] === undefined ? undefined : json['appointmentStart'] === null ? null : (new Date(json['appointmentStart'])),
         'createdAt': (new Date(json['createdAt'])),
         'id': json['id'],
         'kind': NotificationKindFromJSON(json['kind']),
         'readAt': (json['readAt'] == null ? null : new Date(json['readAt'])),
+        'selectionSize': json['selectionSize'] === undefined ? undefined : json['selectionSize'] === null ? null : json['selectionSize'],
         'sourceEventId': json['sourceEventId'],
         'target': json['target'] === undefined ? undefined : json['target'] === null ? null : ActivityTargetPresentationFromJSON(json['target']),
         'targetId': json['targetId'],
@@ -163,10 +177,12 @@ export function NotificationItemToJSONTyped(value?: NotificationItem | null, ign
         
         'actor': AuthorSummaryToJSON(value['actor']),
         'actorId': value['actorId'],
+        'appointmentStart': value['appointmentStart'] == null ? value['appointmentStart'] : value['appointmentStart'].toISOString(),
         'createdAt': value['createdAt'].toISOString(),
         'id': value['id'],
         'kind': NotificationKindToJSON(value['kind']),
         'readAt': value['readAt'] == null ? value['readAt'] : value['readAt'].toISOString(),
+        'selectionSize': value['selectionSize'],
         'sourceEventId': value['sourceEventId'],
         'target': ActivityTargetPresentationToJSON(value['target']),
         'targetId': value['targetId'],

@@ -37,7 +37,8 @@ ShortTaskSheet, forms, token roles, normal link/Back and reduced-motion behavior
 
 Reviewed Leaflet 1.9.4 (BSD-2-Clause), Google Maps (API key/billing), MapLibre
 (larger vector/style delivery boundary), existing Photon adapter and the OSM
-tile policy on 2026-10-29. Select Leaflet and OSM raster tiles; forward search
+tile policy on 2026-10-29. Select Leaflet and OSM raster tiles (superseded on
+2026-11-12 by MapLibre and OpenFreeMap vector tiles, see `docs/DEPENDENCIES.md`); forward search
 extends the existing Photon vocabulary behind an authenticated, bounded backend
 adapter. No Google account, normal-user key or provider setup. Commercial and
 Self-Hosted use are supported by the selected permissive libraries; OSM data

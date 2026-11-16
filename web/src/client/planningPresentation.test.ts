@@ -17,6 +17,21 @@ describe('planning presentation', () => {
     expect(label).not.toContain(':');
   });
 
+  it('shows a multi-day date-only Plan as one period without times', () => {
+    const plan = {
+      status: 'PLANNED' as const,
+      plannedOn: new Date('2026-11-20T00:00:00Z'),
+      plannedUntil: new Date('2026-11-22T00:00:00Z'),
+      plannedStart: null,
+      plannedEnd: null,
+    };
+    const label = planScheduleLabel(plan, 'de-DE');
+    expect(label).toContain('20.');
+    expect(label).toContain('22.');
+    expect(label).not.toContain(':');
+    expect(planPillLabel(i18n.t, plan)).toContain('22.');
+  });
+
   it('shows a same-day timed Plan as one human-readable range', () => {
     const plannedStart = new Date(2026, 8, 5, 10, 0);
     const plannedEnd = new Date(2026, 8, 5, 11, 30);

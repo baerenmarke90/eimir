@@ -1,6 +1,5 @@
-import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../client/mediaApis';
+import { type FormEvent, useMemo, useRef, useState } from 'react';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { ProfileIdentityUpdate } from '../api/generated/models/ProfileIdentityUpdate';
 import { Configuration } from '../client/apiConfiguration';
@@ -8,17 +7,21 @@ import {
   authorSummaryQueryKeys,
   invalidateAuthorSummaryConsumers,
 } from '../client/authorSummaryConsumers';
+import { ProfilesApi } from '../client/mediaApis';
 import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
+import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
-import { NativeDateField } from './NativeDateField';
+import { AvatarPhoto } from './AvatarPhoto';
 import { ListEntryIconButton } from './ListEntryActions';
-import { PersonIdentity } from './PersonIdentity';
+import { NativeDateField } from './NativeDateField';
+import { PhotoCropTask } from './PhotoCropTask';
+import './PeopleProfiles.css';
 import { MediaDropZone } from './MediaDropZone';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -50,16 +53,19 @@ export function ProfileIdentityPanel({
 }) {
   const { t, i18n } = useTranslation();
   const editIdentityButtonRef = useRef<HTMLButtonElement>(null);
-  const closeIdentityButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const changeAvatarButtonRef = useRef<HTMLButtonElement>(null);
+  const avatarSelectionRef = useRef(0);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
   const birthdayInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [editingIdentity, setEditingIdentity] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [birthdayDraft, setBirthdayDraft] = useState('');
   const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
+  const [cropSource, setCropSource] = useState<PhotoCropSource | null>(null);
+  const [preparingAvatar, setPreparingAvatar] = useState(false);
 
   const configuration = useMemo(
     () =>
@@ -133,24 +139,22 @@ export function ProfileIdentityPanel({
     await invalidateAuthorSummaryConsumers(queryClient, spaceId, account.id);
   }
 
-  const displayNameMutation = useMutation({
-    mutationFn: async (displayName: string) => updateIdentity({ displayName }),
+  // Name and birthday are one edit: only what changed is sent.
+  const saveMutation = useMutation({
+    mutationFn: async (changes: {
+      displayName?: string;
+      birthday?: Date | null;
+    }) => updateIdentity(changes),
     onSuccess: async (profile) => {
       await acceptUpdatedProfile(profile);
-      setEditingName(false);
       setEditingIdentity(false);
+      requestAnimationFrame(() => editIdentityButtonRef.current?.focus());
     },
-    onError: () => displayNameInputRef.current?.focus(),
-  });
-
-  const birthdayMutation = useMutation({
-    mutationFn: async (birthday: Date | null) => updateIdentity({ birthday }),
-    onSuccess: async (profile) => {
-      await acceptUpdatedProfile(profile);
-      setEditingBirthday(false);
-      setEditingIdentity(false);
-    },
-    onError: () => birthdayInputRef.current?.focus(),
+    onError: (_error, changes) =>
+      (changes.displayName !== undefined
+        ? displayNameInputRef.current
+        : birthdayInputRef.current
+      )?.focus(),
   });
 
   const avatarMutation = useMutation({
@@ -206,36 +210,78 @@ export function ProfileIdentityPanel({
 
   function resetActionState() {
     setSaved(false);
-    displayNameMutation.reset();
-    birthdayMutation.reset();
+    saveMutation.reset();
     avatarMutation.reset();
     removeAvatarMutation.reset();
   }
 
-  function submitDisplayName(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (displayNameMutation.isPending) return;
+  // The user chooses the visible section first; a photo this device cannot
+  // decode is uploaded unchanged, as before the crop step existed (#1854).
+  async function selectAvatar(file: File) {
+    if (pending) return;
     resetActionState();
-    const form = new FormData(event.currentTarget);
-    displayNameMutation.mutate(String(form.get('displayName') ?? ''));
+    const selection = ++avatarSelectionRef.current;
+    setPreparingAvatar(true);
+    const source = await loadPhotoCropSource(file);
+    if (selection !== avatarSelectionRef.current) {
+      source?.release();
+      return;
+    }
+    setPreparingAvatar(false);
+    if (source) setCropSource(source);
+    else avatarMutation.mutate(file);
   }
 
-  function submitBirthday(event: FormEvent<HTMLFormElement>) {
+  function openEditor() {
+    if (!profileQuery.data) return;
+    setSaved(false);
+    saveMutation.reset();
+    setNameDraft(profileQuery.data.displayName);
+    setBirthdayDraft(dateInputValue(profileQuery.data.birthday));
+    setEditingIdentity(true);
+    requestAnimationFrame(() => displayNameInputRef.current?.focus());
+  }
+
+  function closeEditor() {
+    saveMutation.reset();
+    setEditingIdentity(false);
+    requestAnimationFrame(
+      () =>
+        document.activeElement === document.body &&
+        editIdentityButtonRef.current?.focus(),
+    );
+  }
+
+  function submitIdentity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (birthdayMutation.isPending) return;
-    const form = new FormData(event.currentTarget);
-    const value = String(form.get('birthday') ?? '');
+    if (saveMutation.isPending || !profileQuery.data) return;
+    const changes: { displayName?: string; birthday?: Date | null } = {};
+    if (nameDraft !== profileQuery.data.displayName)
+      changes.displayName = nameDraft;
+    if (birthdayDraft !== dateInputValue(profileQuery.data.birthday))
+      changes.birthday = birthdayDraft
+        ? new Date(`${birthdayDraft}T00:00:00.000Z`)
+        : null;
+    if (!Object.keys(changes).length) return;
     resetActionState();
-    birthdayMutation.mutate(value ? new Date(`${value}T00:00:00.000Z`) : null);
+    saveMutation.mutate(changes);
   }
 
   const profile = profileQuery.data;
   const visibleName = profile?.displayName ?? account.displayName;
+  const dirty =
+    Boolean(profile) &&
+    (nameDraft !== profile?.displayName ||
+      birthdayDraft !== dateInputValue(profile?.birthday));
+  const nameFailed =
+    saveMutation.error !== null &&
+    saveMutation.variables?.displayName !== undefined;
   const pending =
-    displayNameMutation.isPending ||
-    birthdayMutation.isPending ||
+    saveMutation.isPending ||
     avatarMutation.isPending ||
-    removeAvatarMutation.isPending;
+    removeAvatarMutation.isPending ||
+    preparingAvatar ||
+    cropSource !== null;
   const phaseKey = uploadStatusKey(uploadPhase);
 
   return (
@@ -261,129 +307,30 @@ export function ProfileIdentityPanel({
       {profile ? (
         <div className="profile-identity-hero">
           <div className="profile-identity-avatar-col">
-            <PersonIdentity
-              displayName={visibleName}
-              imageUrl={avatarUrl}
-              size="large"
-              showName={false}
-              imageAlt={t('profileIdentity.imageAlt', { name: visibleName })}
-              fallbackAlt={t('profileIdentity.fallbackAlt', {
-                name: visibleName,
-              })}
+            <AvatarPhoto
+              name={visibleName}
+              url={avatarUrl}
+              identity={`${spaceId}:profile:${account.id}:${profile.profileAttachmentId}`}
+              large
             />
-          </div>
-
-          <div className="profile-identity-details">
-            <div className="profile-identity-name-row">
-              <h2 className="profile-identity-display-name">{visibleName}</h2>
-              {!editingIdentity ? (
-                <ListEntryIconButton
-                  ref={editIdentityButtonRef}
-                  icon="edit"
-                  label={t('profileIdentity.editProfile')}
-                  disabled={pending}
-                  aria-expanded={false}
-                  onClick={() => {
-                    setSaved(false);
-                    setEditingIdentity(true);
-                    requestAnimationFrame(
-                      () =>
-                        document.activeElement === document.body &&
-                        closeIdentityButtonRef.current?.focus(),
-                    );
-                  }}
-                />
-              ) : null}
-              <VisibilityBadge
-                visibility="SHARED"
-                size="small"
-                customLabel={t('profileIdentity.partnerVisibilityNote')}
-                className="profile-identity-visibility-badge"
-              />
-            </div>
-
-            {profile.birthday ? (
-              <p className="profile-identity-birthday">
-                {t('profileIdentity.birthdayValue', {
-                  date: birthdayFormatter.format(profile.birthday),
-                })}
-              </p>
-            ) : null}
-
-            {editingIdentity ? (
-              <div className="profile-identity-edit-entry">
-                <button
-                  ref={closeIdentityButtonRef}
-                  type="button"
-                  className="secondary compact-action"
-                  onClick={() => {
-                    setEditingName(false);
-                    setEditingBirthday(false);
-                    displayNameMutation.reset();
-                    birthdayMutation.reset();
-                    setEditingIdentity(false);
-                    requestAnimationFrame(
-                      () =>
-                        document.activeElement === document.body &&
-                        editIdentityButtonRef.current?.focus(),
-                    );
-                  }}
-                  disabled={pending}
-                  aria-expanded={editingIdentity}
-                >
-                  {t('profileIdentity.closeProfileEdit')}
-                </button>
-              </div>
-            ) : null}
-
             {editingIdentity ? (
               <MediaDropZone
                 multiple={false}
                 disabled={pending}
                 onFiles={(files) => {
                   if (pending || !files[0]) return;
-                  resetActionState();
-                  avatarMutation.mutate(files[0]);
+                  void selectAvatar(files[0]);
                 }}
               >
                 <div className="profile-identity-actions-row eimir-motion-disclosure">
                   <button
-                    type="button"
-                    className="secondary compact-action"
-                    onClick={() => {
-                      displayNameMutation.reset();
-                      setSaved(false);
-                      setEditingName((previous) => !previous);
-                    }}
-                    disabled={pending}
-                  >
-                    {editingName
-                      ? t('common.cancel')
-                      : t('profileIdentity.editName')}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary compact-action"
-                    onClick={() => {
-                      birthdayMutation.reset();
-                      setSaved(false);
-                      setEditingBirthday((previous) => !previous);
-                    }}
-                    disabled={pending}
-                  >
-                    {editingBirthday
-                      ? t('common.cancel')
-                      : t('profileIdentity.editBirthday')}
-                  </button>
-
-                  <button
+                    ref={changeAvatarButtonRef}
                     type="button"
                     className="secondary compact-action"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={pending}
                   >
-                    {avatarMutation.isPending
+                    {avatarMutation.isPending || preparingAvatar
                       ? t('profileIdentity.replacingAvatar')
                       : t('profileIdentity.changeAvatar')}
                   </button>
@@ -417,13 +364,115 @@ export function ProfileIdentityPanel({
                       const file = event.currentTarget.files?.[0];
                       event.currentTarget.value = '';
                       if (!file) return;
-                      resetActionState();
-                      avatarMutation.mutate(file);
+                      void selectAvatar(file);
                     }}
                   />
                 </div>
               </MediaDropZone>
             ) : null}
+          </div>
+
+          <div className="profile-identity-details">
+            {editingIdentity ? (
+              <form
+                className="profile-identity-edit-form form-grid eimir-motion-disclosure"
+                onSubmit={submitIdentity}
+              >
+                <div className="field-group">
+                  <label htmlFor="profile-display-name">
+                    {t('profileIdentity.displayNameLabel')}
+                  </label>
+                  <input
+                    ref={displayNameInputRef}
+                    id="profile-display-name"
+                    name="displayName"
+                    type="text"
+                    value={nameDraft}
+                    maxLength={120}
+                    autoComplete="name"
+                    disabled={pending}
+                    aria-invalid={nameFailed ? true : undefined}
+                    aria-describedby={
+                      nameFailed ? 'profile-display-name-error' : undefined
+                    }
+                    onChange={(event) => {
+                      setNameDraft(event.target.value);
+                      if (saveMutation.error) saveMutation.reset();
+                      setSaved(false);
+                    }}
+                  />
+                  {nameFailed && saveMutation.error ? (
+                    <div id="profile-display-name-error">
+                      <ProblemState error={saveMutation.error} />
+                    </div>
+                  ) : null}
+                </div>
+                <NativeDateField
+                  ref={birthdayInputRef}
+                  id="profile-birthday"
+                  name="birthday"
+                  label={t('profileIdentity.birthdayLabel')}
+                  helpText={t('profileIdentity.birthdayHelp')}
+                  value={birthdayDraft}
+                  disabled={pending}
+                  error={
+                    saveMutation.error && !nameFailed
+                      ? t('profileIdentity.birthdaySaveError')
+                      : undefined
+                  }
+                  onChange={(event) => {
+                    setBirthdayDraft(event.target.value);
+                    if (saveMutation.error) saveMutation.reset();
+                    setSaved(false);
+                  }}
+                />
+                <div className="form-actions profile-identity-edit-actions">
+                  <button type="submit" disabled={pending || !dirty}>
+                    {saveMutation.isPending
+                      ? t('profileIdentity.savingProfile')
+                      : t('profileIdentity.saveProfile')}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={closeEditor}
+                    disabled={pending}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="profile-identity-name-row">
+                  <h2 className="profile-identity-display-name">
+                    {visibleName}
+                  </h2>
+                  <ListEntryIconButton
+                    ref={editIdentityButtonRef}
+                    icon="edit"
+                    label={t('profileIdentity.editProfile')}
+                    disabled={pending}
+                    aria-expanded={false}
+                    onClick={openEditor}
+                  />
+                  <VisibilityBadge
+                    visibility="SHARED"
+                    size="small"
+                    customLabel={t('profileIdentity.partnerVisibilityNote')}
+                    className="profile-identity-visibility-badge"
+                  />
+                </div>
+
+                {profile.birthday ? (
+                  <p className="profile-identity-birthday">
+                    {t('profileIdentity.birthdayValue', {
+                      date: birthdayFormatter.format(profile.birthday),
+                    })}
+                  </p>
+                ) : null}
+              </>
+            )}
 
             {phaseKey ? (
               <span className="profile-identity-status" role="status">
@@ -439,87 +488,6 @@ export function ProfileIdentityPanel({
         </div>
       ) : null}
 
-      {editingIdentity && editingName && profile ? (
-        <form
-          key={`name-${profile.displayName}`}
-          className="profile-name-inline-form form-grid eimir-motion-disclosure"
-          onSubmit={submitDisplayName}
-        >
-          <div className="field-group">
-            <label htmlFor="profile-display-name">
-              {t('profileIdentity.displayNameLabel')}
-            </label>
-            <div className="profile-name-input-group">
-              <input
-                ref={displayNameInputRef}
-                id="profile-display-name"
-                name="displayName"
-                type="text"
-                defaultValue={profile.displayName}
-                maxLength={120}
-                autoComplete="name"
-                disabled={pending}
-                aria-invalid={displayNameMutation.error ? true : undefined}
-                aria-describedby={
-                  displayNameMutation.error
-                    ? 'profile-display-name-error'
-                    : undefined
-                }
-                onChange={() => {
-                  if (displayNameMutation.error) displayNameMutation.reset();
-                  setSaved(false);
-                }}
-              />
-              <button type="submit" disabled={pending}>
-                {displayNameMutation.isPending
-                  ? t('profileIdentity.savingName')
-                  : t('profileIdentity.saveName')}
-              </button>
-            </div>
-            <small>{t('profileIdentity.displayNameHelp')}</small>
-            {displayNameMutation.error ? (
-              <div id="profile-display-name-error">
-                <ProblemState error={displayNameMutation.error} />
-              </div>
-            ) : null}
-          </div>
-        </form>
-      ) : null}
-
-      {editingIdentity && editingBirthday && profile ? (
-        <form
-          key={`birthday-${dateInputValue(profile.birthday) || 'none'}`}
-          className="profile-birthday-inline-form form-grid eimir-motion-disclosure"
-          onSubmit={submitBirthday}
-        >
-          <NativeDateField
-            ref={birthdayInputRef}
-            id="profile-birthday"
-            name="birthday"
-            label={t('profileIdentity.birthdayLabel')}
-            helpText={t('profileIdentity.birthdayHelp')}
-            defaultValue={dateInputValue(profile.birthday)}
-            disabled={pending}
-            error={
-              birthdayMutation.error
-                ? t('profileIdentity.birthdaySaveError')
-                : undefined
-            }
-            onChange={() => {
-              if (birthdayMutation.error) birthdayMutation.reset();
-              setSaved(false);
-            }}
-          />
-          <div className="form-actions">
-            <button type="submit" disabled={pending}>
-              {birthdayMutation.isPending
-                ? t('profileIdentity.savingBirthday')
-                : t('profileIdentity.saveBirthday')}
-            </button>
-          </div>
-        </form>
-      ) : null}
-
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <span>{t('profileIdentity.saved')}</span>
@@ -531,6 +499,15 @@ export function ProfileIdentityPanel({
       {removeAvatarMutation.error ? (
         <ProblemState error={removeAvatarMutation.error} />
       ) : null}
+      <PhotoCropTask
+        source={cropSource}
+        restoreFocusRef={changeAvatarButtonRef}
+        onCancel={() => setCropSource(null)}
+        onConfirm={(file) => {
+          setCropSource(null);
+          avatarMutation.mutate(file);
+        }}
+      />
     </section>
   );
 }

@@ -43,6 +43,14 @@
   font-size: 0.875rem;
 }
 
+.more-destination-subtitle {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .more-destination-trailing {
   display: inline-flex;
   align-items: center;
@@ -236,6 +244,12 @@
   }
 }
 
+.more-destination:is(:active, [data-control-pressed]) {
+  color: var(--color-brand-text);
+  background: var(--color-surface-subtle);
+  transition: none;
+}
+
 @media (max-width: 389px) {
   .more-groups {
     gap: var(--space-6);
@@ -264,6 +278,7 @@
 }
 .more-legal {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   padding-block: var(--space-2);
   font: var(--font-supporting-copy);
@@ -297,7 +312,11 @@
   max-width: 48rem;
   margin-inline: auto;
 }
-.product-main[data-area="more"] .page-heading h1 {
+/* Secondary titles use the shared subpage title role (#1907 C4); other More
+   headings keep the UI face. */
+.product-main[data-area="more"]
+  .page-heading:not(.page-heading-root, .page-heading-secondary)
+  h1 {
   font-family: var(--font-ui);
   overflow-wrap: anywhere;
 }

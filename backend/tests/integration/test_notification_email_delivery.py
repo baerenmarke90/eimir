@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, time, timedelta
@@ -582,8 +583,8 @@ def test_queued_partner_mail_uses_the_current_recipient_language(
     _handle(engine, delivery_id)
     assert len(provider.messages) == 1
     assert provider.messages[0].subject == subject
-    assert "Anna" not in provider.messages[0].body
-    assert "Ben" not in provider.messages[0].body
+    # Whole words: "Ben" is a prefix of the German word "Benachrichtigungen".
+    assert not re.search(r"\b(Anna|Ben)\b", provider.messages[0].body)
 
 
 def test_disabling_email_after_queueing_suppresses_it_permanently(mail_setup) -> None:  # type: ignore[no-untyped-def]

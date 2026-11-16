@@ -1,11 +1,21 @@
 import type { ObjectUrlSource } from '../client/objectUrlResource';
-import { dashboardItemTitle } from '../client/dashboardPresentation';
 import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
+import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
+import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardItemPath } from '../client/m4Product';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  dashboardRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
+import { EimirIcon } from './EimirIcon';
 import { formatStoryDate } from './storyPresentation';
 
 /**
@@ -17,8 +27,12 @@ export function StoryRetrospective({
   loadMemoryImage,
   onOpen,
   compact = false,
+  rediscovery,
+  viewerLocalDate,
 }: {
   item: DashboardItem;
+  rediscovery?: RediscoveryContext | null;
+  viewerLocalDate?: Date | null;
   compact?: boolean;
   loadMemoryImage: (
     memoryId: string,
@@ -28,12 +42,17 @@ export function StoryRetrospective({
   onOpen: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  // #1790 C2: same wording as the Wir card for the same moment and day.
+  const wording = useRediscoveryWording(
+    dashboardRediscoverySource(item, rediscovery),
+    { today: viewerToday(viewerLocalDate) },
+  );
   const path = dashboardItemPath(item.type, item.id);
   if (!path) return null;
 
   const attachmentId = item.type === 'MEMORY' ? item.previewAttachmentId : null;
   const date = item.occurredOn ?? item.createdAt ?? null;
-  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  const title = wording?.headline ?? dashboardItemTitle(item, t).title;
 
   return (
     <section
@@ -72,26 +91,22 @@ export function StoryRetrospective({
           </span>
         ) : null}
         <span className="momente-retrospective-copy">
-          <span className="momente-retrospective-kicker">
-            {t('m5s5.today.living.retrospectiveLabel')}
-          </span>
           <span
             className="momente-retrospective-title"
             data-long={title.length > 180 || undefined}
           >
             {title}
           </span>
-          {date && !titleIsDate ? (
-            <time
-              className="momente-retrospective-date"
-              dateTime={date.toISOString().slice(0, 10)}
-            >
-              {formatStoryDate(date, resolvedLocale())}
-            </time>
-          ) : null}
-          <span className="momente-retrospective-action">
-            {t('story.retrospectiveOpen')}
-          </span>
+          <RediscoverySecondaryLine
+            className="momente-retrospective-date"
+            variantLine={wording?.variantLine ?? null}
+            date={date ? formatStoryDate(date, resolvedLocale()) : null}
+            dateTime={date?.toISOString().slice(0, 10)}
+          />
+          <EimirIcon
+            name="chevron-right"
+            className="momente-retrospective-chevron"
+          />
         </span>
       </Link>
     </section>

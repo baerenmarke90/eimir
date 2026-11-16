@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
 import type { ExperienceKind } from './ExperienceKind';
 import {
     ExperienceKindFromJSON,
@@ -29,6 +36,12 @@ import {
 export interface MemoryCreate {
     /**
      * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof MemoryCreate
+     */
+    attachments?: Array<AttachmentEntry> | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryCreate
      */
@@ -39,6 +52,12 @@ export interface MemoryCreate {
      * @memberof MemoryCreate
      */
     experienceKind?: ExperienceKind | null;
+    /**
+     * Editorial key of the daily question this experience answers. Only valid together with `experienceKind` and without `experienceReplyTo`; a reply inherits the question of the experience it answers.
+     * @type {string}
+     * @memberof MemoryCreate
+     */
+    experienceQuestionId?: string | null;
     /**
      * 
      * @type {string}
@@ -69,6 +88,12 @@ export interface MemoryCreate {
      * @memberof MemoryCreate
      */
     placeIds?: Array<string> | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryCreate
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {Array<string>}
@@ -103,13 +128,16 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
+        'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
         'body': json['body'] == null ? undefined : json['body'],
         'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
+        'experienceQuestionId': json['experienceQuestionId'] === undefined ? undefined : json['experienceQuestionId'] === null ? null : json['experienceQuestionId'],
         'experienceReplyTo': json['experienceReplyTo'] === undefined ? undefined : json['experienceReplyTo'] === null ? null : json['experienceReplyTo'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'placeIds': json['placeIds'] === undefined ? undefined : json['placeIds'] === null ? null : json['placeIds'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
@@ -126,13 +154,16 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
 
     return {
         
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
         'body': value['body'],
         'experienceKind': ExperienceKindToJSON(value['experienceKind']),
+        'experienceQuestionId': value['experienceQuestionId'],
         'experienceReplyTo': value['experienceReplyTo'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'placeId': value['placeId'],
         'placeIds': value['placeIds'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

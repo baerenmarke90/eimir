@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useContext, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -75,19 +76,20 @@ function EnabledVideoUploadAction({
               event.currentTarget.value = '';
             }}
           />
-          <label className="file-picker" htmlFor={`${id}-video`}>
-            <span aria-hidden="true">▶</span> {t('video.add')}
+          <label className="file-picker add-action" htmlFor={`${id}-video`}>
+            <AddActionContent label={t('video.add')} icon="video" />
           </label>
           <small>{t('video.formats')}</small>
         </>
       ) : (
         <button
           type="button"
-          className="tertiary"
+          className="add-action"
           disabled={disabled}
           onClick={() => setProOpen(true)}
         >
-          {t('video.add')} <ProMark label="Pro" />
+          <AddActionContent label={t('video.add')} icon="video" />{' '}
+          <ProMark label="Pro" />
         </button>
       )}
       <ShortTaskSheet
@@ -100,9 +102,7 @@ function EnabledVideoUploadAction({
         <button
           type="button"
           onClick={() =>
-            sheet.current?.closeForNavigation(() =>
-              navigate(PRO_INFORMATION_ROUTE),
-            )
+            sheet.current?.closeForNavigation(() => navigate(proPaywallPath()))
           }
         >
           {t('video.proAction')}

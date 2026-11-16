@@ -4,21 +4,14 @@ const profileIdentity = {
     'Hier legst du fest, wie du für deinen Partner in eimir. sichtbar bist.',
   previewLabel: 'Vorschau für deinen Partner',
   displayNameLabel: 'Anzeigename',
-  displayNameHelp:
-    'Der Anzeigename ändert nur deine sichtbare Darstellung. Anmeldung und Konto bleiben unverändert.',
   editProfile: 'Profil bearbeiten',
-  closeProfileEdit: 'Bearbeitung schließen',
-  editName: 'Name ändern',
   birthdayLabel: 'Geburtstag',
   birthdayValue: 'Geburtstag: {{date}}',
   birthdayHelp:
-    'Optional. Dein Geburtstag ist für deinen aktiven Partner sichtbar und wird automatisch unter euren besonderen Tagen berücksichtigt. Leer lassen entfernt ihn.',
-  editBirthday: 'Geburtstag ändern',
-  saveBirthday: 'Geburtstag speichern',
-  savingBirthday: 'Wird gespeichert …',
+    'Dein Geburtstag ist für deinen aktiven Partner sichtbar und wird automatisch unter euren besonderen Tagen berücksichtigt. Leer lassen entfernt ihn.',
   birthdaySaveError: 'Der Geburtstag konnte nicht gespeichert werden.',
-  saveName: 'Anzeigenamen speichern',
-  savingName: 'Wird gespeichert …',
+  saveProfile: 'Speichern',
+  savingProfile: 'Wird gespeichert …',
   saved: 'Profil wurde gespeichert.',
   avatarLabel: 'Profilbild',
   avatarHelp:
@@ -97,10 +90,17 @@ const profileIdentity = {
   settingsNotificationsAction: 'Zum Benachrichtigungs-Posteingang',
   settingsToday: 'Wir',
   settingsTodayIntro:
-    'Lege fest, welche Bereiche und wie viele kommende Einträge du auf „Wir“ sehen möchtest.',
-  settingsDashboard: 'Inhalte auf „Wir“',
-  dashboardModulesTitle: 'Sichtbare Bereiche',
-  dashboardModulesIntro: 'Bereiche auswählen und sortieren.',
+    'Gestalte deine persönliche Wir-Seite. Dein Partner hat seine eigene Ansicht.',
+  settingsDashboard: 'Wir-Seite anpassen',
+  dashboardPersonalIntro:
+    'Das hier ist deine Ansicht. Dein Partner entscheidet selbst, was er auf „Wir“ sieht.',
+  dashboardSharedFixed:
+    'Euer gemeinsamer Einstieg bleibt für euch beide gleich.',
+  dashboardAlwaysVisible: 'Immer oben',
+  dashboardModulesTitle: 'Deine Bereiche',
+  dashboardModulesIntro: 'Ein- oder ausblenden und am Griff sortieren.',
+  dashboardHiddenTitle: 'Ausgeblendet ({{count}})',
+  dashboardMoreOptions: 'Weitere Einstellungen',
   dashboardOrderHandle: '{{name}} verschieben',
   dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:
@@ -114,31 +114,38 @@ const profileIdentity = {
   dashboardUpcomingLoading: 'Dashboard-Einstellung wird geladen …',
   dashboardUpcomingSaving: 'Wird gespeichert …',
   dashboardUpcomingSaved: '✓ Gespeichert',
+  importantDatesIntro:
+    'Erinnere dich an eure besonderen Tage. Diese Hinweise bekommst nur du.',
+  importantDatesSchedule: 'Erinnerungszeiten anpassen',
+  importantDatesChooseDays: 'Wann möchtest du erinnert werden?',
+  importantDatesAtLeastOne: 'Mindestens einen Zeitpunkt auswählen.',
+  importantDatesOtherDay_one: '{{count}} Tag vorher',
+  importantDatesOtherDay_other: '{{count}} Tage vorher',
   anniversaryReminderTitle: 'Jahrestag-Erinnerung',
   anniversaryReminderIntro:
     'Hier kannst du einstellen, ob und wann du an euren nächsten Jahrestag erinnert werden möchtest.',
-  anniversaryReminderToggle: 'An unseren Jahrestag erinnern',
+  anniversaryReminderToggle: 'Unser Jahrestag',
   anniversaryReminderToggleHelp:
-    'Sendet dir rechtzeitig persönliche Benachrichtigungen vor eurem Jahrestag.',
+    'Eine persönliche Erinnerung an euren gemeinsamen Tag.',
   anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte',
   anniversaryReminderDay0: 'Am Jahrestag',
   anniversaryReminderDay30: '30 Tage vorher',
   anniversaryReminderDay7: '7 Tage vorher',
   anniversaryReminderDay1: '1 Tag vorher',
-  anniversaryReminderTimeLabel: 'Uhrzeit der Benachrichtigung',
+  anniversaryReminderTimeLabel: 'Uhrzeit',
   anniversaryReminderSave: 'Änderungen speichern',
   anniversaryReminderSaving: 'Wird gespeichert …',
-  anniversaryReminderSaved: '✓ Gespeichert',
+  anniversaryReminderSaved: 'Gespeichert',
   anniversaryReminderLoading: 'Einstellungen werden geladen …',
-  partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
+  partnerBirthdayReminderToggle: 'Geburtstag deines Partners',
   partnerBirthdayReminderToggleHelp:
-    'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
+    'Damit du rechtzeitig an diesen besonderen Tag denkst.',
   partnerBirthdayReminderDaysHeading: 'Erinnerungszeitpunkte',
   partnerBirthdayReminderDay0: 'Am Geburtstag',
   partnerBirthdayReminderDay14: '14 Tage vorher',
   partnerBirthdayReminderDay7: '7 Tage vorher',
   partnerBirthdayReminderDay1: '1 Tag vorher',
-  partnerBirthdayReminderTimeLabel: 'Uhrzeit der Geburtstagserinnerung',
+  partnerBirthdayReminderTimeLabel: 'Uhrzeit',
   partnerBirthdayReminderLoading: 'Geburtstagserinnerung wird geladen …',
   settingsPrivacy: 'Privater Bereich',
   settingsData: 'Daten und Portabilität',
@@ -154,7 +161,7 @@ const profileIdentity = {
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',
   appearanceIntro:
-    'Wähle deinen Farbmodus, deine Sprache und das Icon, das zu dir passt.',
+    'Wähle deinen Farbmodus, deine Sprache, das Design deiner Momente und das Icon, das zu dir passt.',
 } as const;
 
 export default profileIdentity;

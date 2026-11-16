@@ -12,7 +12,7 @@ import type { DashboardModulePreferenceList } from '../api/generated/models/Dash
 import {
   dashboardPreferencesQueryKey,
   PINNED_COLLECTION_MODULE_KEY,
-  selectedDashboardCollectionId,
+  selectedDashboardCollectionIds,
 } from '../client/dashboardPreferences';
 import {
   ClientProblemError,
@@ -23,7 +23,7 @@ import {
 type Selection = {
   accountId: string;
   spaceId: string;
-  selectedCollectionId: string | null;
+  selectedCollectionIds: string[];
   api: DashboardApi;
   isCurrentQuery: () => boolean;
 };
@@ -81,8 +81,8 @@ export function useCollectionPin({
           moduleKey: PINNED_COLLECTION_MODULE_KEY,
           spaceId: selection.spaceId,
           dashboardModulePreferenceUpdate: {
-            selectedCollectionId: selection.selectedCollectionId,
-            visible: selection.selectedCollectionId ? true : undefined,
+            selectedCollectionIds: selection.selectedCollectionIds,
+            visible: selection.selectedCollectionIds.length ? true : undefined,
           },
         }),
       );
@@ -113,9 +113,11 @@ export function useCollectionPin({
                     item.moduleKey === PINNED_COLLECTION_MODULE_KEY
                       ? {
                           ...item,
+                          selectedCollectionIds:
+                            selection.selectedCollectionIds,
                           selectedCollectionId:
-                            selection.selectedCollectionId ?? undefined,
-                          visible: selection.selectedCollectionId
+                            selection.selectedCollectionIds[0] ?? undefined,
+                          visible: selection.selectedCollectionIds.length
                             ? true
                             : item.visible,
                         }
@@ -148,9 +150,11 @@ export function useCollectionPin({
                   item === context.optimistic && context.previous
                     ? {
                         ...item,
+                        selectedCollectionIds:
+                          context.previous.selectedCollectionIds,
                         selectedCollectionId:
                           context.previous.selectedCollectionId,
-                        visible: selection.selectedCollectionId
+                        visible: selection.selectedCollectionIds.length
                           ? context.previous.visible
                           : item.visible,
                       }
@@ -179,8 +183,9 @@ export function useCollectionPin({
                     item === context.optimistic
                       ? {
                           ...item,
+                          selectedCollectionIds: updated.selectedCollectionIds,
                           selectedCollectionId: updated.selectedCollectionId,
-                          visible: selection.selectedCollectionId
+                          visible: selection.selectedCollectionIds.length
                             ? updated.visible
                             : item.visible,
                         }
@@ -223,15 +228,18 @@ export function useCollectionPin({
     'permission',
     'notFound',
   ].includes(clientProblemKind(query.error));
-  const selectedCollectionId = !canReadPreferences
-    ? null
+  const selectedCollectionIds: string[] = !canReadPreferences
+    ? []
     : isSaving
-      ? pendingSelection?.selectedCollectionId
-      : selectedDashboardCollectionId(query.data, PINNED_COLLECTION_MODULE_KEY);
+      ? (pendingSelection?.selectedCollectionIds ?? [])
+      : selectedDashboardCollectionIds(
+          query.data,
+          PINNED_COLLECTION_MODULE_KEY,
+        );
   const isBlocked =
     !query.data || query.isFetching || Boolean(query.error) || activeWrites > 0;
 
-  function changeSelection(selectedCollectionId: string | null) {
+  function changeSelection(nextSelectedCollectionIds: string[]) {
     if (
       !dashboardApi ||
       !accountId ||
@@ -247,7 +255,7 @@ export function useCollectionPin({
     const selection: Selection = {
       accountId,
       spaceId,
-      selectedCollectionId,
+      selectedCollectionIds: nextSelectedCollectionIds,
       api: dashboardApi,
       isCurrentQuery,
     };
@@ -261,8 +269,20 @@ export function useCollectionPin({
     if (!result.isError) mutation.reset();
   }
 
+  /** Add the list to Wir, or take it off again, keeping the others. */
+  function toggle(collectionId: string) {
+    changeSelection(
+      selectedCollectionIds.includes(collectionId)
+        ? selectedCollectionIds.filter((id) => id !== collectionId)
+        : [...selectedCollectionIds, collectionId],
+    );
+  }
+
   return {
-    selectedCollectionId,
+    selectedCollectionIds,
+    isPinned: (collectionId: string) =>
+      selectedCollectionIds.includes(collectionId),
+    toggle,
     isSaving,
     isBlocked,
     error:

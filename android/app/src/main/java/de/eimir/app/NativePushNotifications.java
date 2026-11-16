@@ -68,18 +68,30 @@ public final class NativePushNotifications {
     }
 
     public static void present(Context context, PushActivation activation, String notificationId) {
-        present(context, activation, notificationId, null);
+        present(context, activation, notificationId, null, null);
+    }
+
+    static void presentReference(Context context, PushActivation activation, String notificationId) {
+        synchronized (PushActivation.class) {
+            if (!PushActivation.current(context, activation)
+                || !PushReceipts.claim(context, activation, notificationId)) return;
+            present(context, activation, notificationId);
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public static void presentPreview(Context context, PushActivation activation, PushPreview preview) {
-        present(context, activation, preview.notificationId, preview);
+        present(context, activation, preview.notificationId, preview, WishDatePush.fromFcm(context, preview));
     }
 
-    private static void present(Context context, PushActivation activation, String notificationId, PushPreview preview) {
+    static void presentWishDate(Context context, PushActivation activation, String notificationId, WishDatePush wishDate) {
+        present(context, activation, notificationId, null, wishDate);
+    }
+
+    private static void present(Context context, PushActivation activation, String notificationId, PushPreview preview, WishDatePush wishDate) {
         synchronized (PushActivation.class) {
             if (!PushActivation.current(context, activation)) return;
-            if (preview != null && !PushReceipts.claim(context, activation, notificationId)) return;
+            if ((preview != null || wishDate != null) && !PushReceipts.claim(context, activation, notificationId)) return;
             NativePushBridge.wake(context, activation);
             if (MainActivity.isForeground()) return;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -95,7 +107,14 @@ public final class NativePushNotifications {
                 .setContentText(context.getString(R.string.push_notification_body)).setContentIntent(tap)
                 .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
-            if (preview != null) {
+            if (wishDate != null) {
+                String detail = wishDate.detail(context);
+                notification.setContentTitle(wishDate.headline).setContentText(detail)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(detail))
+                    .setOnlyAlertOnce(true)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .addAction(0, wishDate.action(context), tap);
+            } else if (preview != null) {
                 String body = preview.body(context);
                 notification.setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                     .setOnlyAlertOnce(true)
@@ -108,7 +127,7 @@ public final class NativePushNotifications {
                 if (action != null) notification.addAction(0, action, tap);
             }
             try {
-                if (preview == null) NotificationManagerCompat.from(context).notify(NOTIFICATION, notification.build());
+                if (preview == null && wishDate == null) NotificationManagerCompat.from(context).notify(NOTIFICATION, notification.build());
                 else NotificationManagerCompat.from(context).notify(notificationId, NOTIFICATION, notification.build());
             } catch (SecurityException revoked) {
                 // Permission may be revoked between the check and presentation.

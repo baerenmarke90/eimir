@@ -71,7 +71,16 @@ describe('M5 Web S6 canonical Deep Links', () => {
     },
   );
 
-  it('rejects hashes outside the explicit Settings allowlist', () => {
+  it.each([
+    '/more/people/new',
+    '/more/people/person-1',
+    '/more/people/person-1/edit',
+    '/plan#dates',
+  ])('retains the canonical People and occasions return %s', (path) => {
+    expect(validateAppRelativeReturnTarget(path)).toBe(path);
+  });
+
+  it('rejects hashes outside the explicit surface allowlists', () => {
     expect(
       validateAppRelativeReturnTarget('/more/settings#settings-unknown'),
     ).toBeNull();

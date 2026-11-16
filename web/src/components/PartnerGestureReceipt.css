@@ -1,0 +1,656 @@
+/*
+ * One small, transient foreground notification surface.
+ *
+ * Product Owner choice (2026-11-15): the expressive, one-shot choreography
+ * ("variant B"). The surface enters, the gesture plays once on the partner's
+ * avatar over about two seconds, then settles into a calm badge. Nothing
+ * loops. Every element's resting style IS that settled state, so reduced
+ * motion (durations zeroed by the token adapter, and the block at the end)
+ * shows the same information without movement.
+ */
+
+@keyframes partner-gesture-receipt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-3))) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes partner-gesture-receipt-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2))) scale(0.98);
+  }
+}
+
+/* A warm wash blooms out of the partner's avatar and stays softly. */
+@keyframes partner-gesture-wash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  45% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.55;
+    transform: none;
+  }
+}
+
+/* The settled badge arrives on the avatar. */
+@keyframes partner-gesture-glyph-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Thinking of you: a big heart, lub-dub, then it settles into the badge. */
+@keyframes partner-gesture-heart {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  24% {
+    transform: scale(1);
+  }
+  36% {
+    transform: scale(1.28);
+  }
+  44% {
+    transform: scale(1);
+  }
+  54% {
+    transform: scale(1.18);
+  }
+  64% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(18px, 18px) scale(0.4);
+  }
+}
+
+/* Kiss: two hearts float in on arcs, meet, kiss and settle. */
+@keyframes partner-gesture-kiss-left {
+  0% {
+    opacity: 0;
+    transform: translate(-22px, 26px) rotate(-50deg) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-7px, -3px) rotate(-16deg);
+  }
+  62% {
+    transform: translate(-5px, -3px) rotate(-12deg) scale(1.22);
+  }
+  70%,
+  85% {
+    opacity: 1;
+    transform: translate(-7px, -3px) rotate(-14deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, 16px) rotate(-14deg) scale(0.4);
+  }
+}
+
+@keyframes partner-gesture-kiss-right {
+  0% {
+    opacity: 0;
+    transform: translate(128px, -13px) rotate(50deg) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(7px, -3px) rotate(16deg);
+  }
+  62% {
+    transform: translate(5px, -3px) rotate(12deg) scale(1.22);
+  }
+  70%,
+  85% {
+    opacity: 1;
+    transform: translate(7px, -3px) rotate(14deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(26px, 16px) rotate(14deg) scale(0.4);
+  }
+}
+
+/* Kiss: the meeting point blooms softly once. */
+@keyframes partner-gesture-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* Waves: one ripple per heartbeat or calm breath. */
+@keyframes partner-gesture-ripple {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+/* Check-in: the avatar takes one slow, calm breath. */
+@keyframes partner-gesture-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+.partner-gesture-receipt {
+  --partner-gesture-tint: var(--color-brand-surface);
+  --partner-gesture-on-tint: var(--color-brand-text);
+
+  position: fixed;
+  z-index: 205;
+  top: calc(var(--shell-header-safe-top, 0px) + var(--space-3));
+  right: 0;
+  left: 0;
+  width: min(26rem, calc(100vw - 2 * var(--page-gutter)));
+  box-sizing: border-box;
+  /* Centered with margins so the enter/exit transform stays free. */
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3);
+  /* Clip, not hidden: the decorative motion must never make it scrollable. */
+  overflow: clip;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--elevation-overlay);
+  /* Layout reacts to the text size in the available width, not the viewport. */
+  container-type: inline-size;
+}
+
+.partner-gesture-receipt-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.partner-gesture-receipt[data-variant="calm-ring"] {
+  --partner-gesture-tint: var(--color-shared-surface);
+  --partner-gesture-on-tint: var(--color-shared);
+}
+
+.partner-gesture-receipt[data-variant]::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 40px 40px,
+    var(--partner-gesture-tint) 0,
+    transparent 16rem
+  );
+  content: "";
+  opacity: 0.55;
+  pointer-events: none;
+  transform-origin: 40px 40px;
+  animation: partner-gesture-wash var(--duration-gesture-sequence)
+    var(--easing-standard) var(--duration-sequence-beat) both;
+}
+
+.partner-gesture-receipt > * {
+  position: relative;
+}
+
+.partner-gesture-receipt[data-presence="open"] {
+  animation: partner-gesture-receipt-enter var(--duration-context)
+    var(--easing-enter) both;
+}
+
+.partner-gesture-receipt[data-presence="exiting"] {
+  pointer-events: none;
+  animation: partner-gesture-receipt-exit var(--duration-transition)
+    var(--easing-exit) both;
+}
+
+/* Expanded keeps the top navigation visible and uninterrupted. */
+@media (min-width: 840px) {
+  .partner-gesture-receipt {
+    top: calc(var(--shell-header-safe-top, 0px) + 72px + var(--space-3));
+  }
+}
+
+.partner-gesture-receipt-person {
+  position: relative;
+  display: grid;
+  /* Decorative: fixed size so large text gets the room, not the picture. */
+  width: 56px;
+  height: 56px;
+  place-items: center;
+}
+
+.partner-gesture-receipt-person .person-identity {
+  position: relative;
+  z-index: 1;
+}
+
+.partner-gesture-receipt-person .person-identity-avatar,
+.partner-gesture-receipt-placeholder {
+  width: 52px;
+  height: 52px;
+}
+
+.partner-gesture-receipt-person .person-identity-avatar {
+  border-color: var(--color-surface-raised);
+  /* Decorative initials follow the fixed picture size. */
+  font-size: 18px;
+}
+
+.partner-gesture-receipt-placeholder {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--partner-gesture-tint);
+  color: var(--partner-gesture-on-tint);
+}
+
+.partner-gesture-receipt-placeholder svg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+/* Decorative waves around the avatar; invisible at rest. */
+.partner-gesture-receipt-wave {
+  position: absolute;
+  inset: 2px;
+  border: 2px solid var(--partner-gesture-on-tint);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+/* The settled badge: the gesture visibly comes from the partner. */
+.partner-gesture-receipt-glyph {
+  position: absolute;
+  z-index: 2;
+  right: -6px;
+  bottom: -4px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 2px solid var(--color-surface-raised);
+  border-radius: 50%;
+  background: var(--partner-gesture-tint);
+  color: var(--partner-gesture-on-tint);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.partner-gesture-receipt-glyph svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.partner-gesture-receipt-glyph.notification-motion-badge {
+  width: calc(var(--space-6) + var(--space-2));
+  height: calc(var(--space-6) + var(--space-2));
+}
+
+.partner-gesture-receipt-glyph[data-glyph="icon"] svg {
+  fill: none;
+}
+
+.partner-gesture-receipt-glyph.notification-motion-badge svg {
+  width: var(--space-5);
+  height: var(--space-5);
+  fill: none;
+}
+
+.partner-gesture-receipt[data-variant="kiss"] .partner-gesture-receipt-glyph {
+  width: 38px;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.partner-gesture-receipt-kiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.partner-gesture-receipt-kiss svg {
+  width: 17px;
+  height: 17px;
+  filter: drop-shadow(0 0 1px var(--color-surface-raised));
+}
+
+.partner-gesture-receipt-kiss svg:first-child {
+  transform: rotate(-14deg);
+}
+
+.partner-gesture-receipt-kiss svg:last-child {
+  margin-left: -5px;
+  transform: rotate(14deg);
+}
+
+/* The expressive moment above the avatar; gone at rest. */
+.partner-gesture-receipt-hero {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.partner-gesture-receipt-hero svg {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  fill: var(--partner-gesture-on-tint);
+  opacity: 0;
+}
+
+.partner-gesture-receipt[data-variant="kiss"]
+  .partner-gesture-receipt-hero
+  svg {
+  width: 30px;
+  height: 30px;
+}
+
+.partner-gesture-receipt[data-variant] .partner-gesture-receipt-glyph {
+  animation: partner-gesture-glyph-arrive var(--duration-context)
+    var(--easing-enter)
+    calc(var(--duration-sequence-beat) + var(--duration-gesture-sequence)) both;
+}
+
+/* Thinking of you. */
+.partner-gesture-receipt[data-variant="heart-pulse"]
+  .partner-gesture-receipt-hero
+  svg {
+  animation: partner-gesture-heart
+    calc(var(--duration-gesture-sequence) + var(--duration-context))
+    var(--easing-standard) var(--duration-sequence-beat) both;
+}
+
+.partner-gesture-receipt[data-variant="heart-pulse"]
+  .partner-gesture-receipt-wave[data-wave="1"] {
+  animation: partner-gesture-ripple var(--duration-gesture-moment)
+    var(--easing-standard) var(--duration-gesture-moment) both;
+}
+
+/* Kiss. */
+.partner-gesture-receipt[data-variant="kiss"]
+  .partner-gesture-receipt-hero
+  svg {
+  animation-duration: calc(
+    var(--duration-gesture-sequence) +
+    2 *
+    var(--duration-sequence-beat)
+  );
+  animation-timing-function: var(--easing-standard);
+  animation-delay: var(--duration-sequence-beat);
+  animation-fill-mode: both;
+}
+
+.partner-gesture-receipt[data-variant="kiss"]
+  .partner-gesture-receipt-hero
+  svg:first-child {
+  animation-name: partner-gesture-kiss-left;
+}
+
+.partner-gesture-receipt[data-variant="kiss"]
+  .partner-gesture-receipt-hero
+  svg:last-child {
+  animation-name: partner-gesture-kiss-right;
+}
+
+.partner-gesture-receipt[data-variant="kiss"]
+  .partner-gesture-receipt-wave[data-wave="1"] {
+  border: 0;
+  background: var(--partner-gesture-on-tint);
+  animation: partner-gesture-bloom var(--duration-gesture-moment)
+    var(--easing-standard)
+    calc(2 * var(--duration-sequence-beat) + var(--duration-gesture-moment))
+    both;
+}
+
+.partner-gesture-receipt[data-variant="kiss"] .partner-gesture-receipt-glyph {
+  animation-delay: calc(
+    2 *
+    var(--duration-sequence-beat) +
+    var(--duration-gesture-sequence)
+  );
+}
+
+/* The calm receipt (check-in and partner notices): one soft breath, no hearts. */
+.partner-gesture-receipt[data-variant="calm-ring"]
+  .partner-gesture-receipt-person
+  .person-identity,
+.partner-gesture-receipt[data-variant="calm-ring"]
+  .partner-gesture-receipt-placeholder {
+  animation: partner-gesture-breathe var(--duration-gesture-sequence)
+    var(--easing-standard) var(--duration-sequence-beat) both;
+}
+
+/* No waves: the badge lands soon after the soft breath begins (Product Owner
+ * decision, 2026-11-15). */
+.partner-gesture-receipt[data-variant="calm-ring"]
+.partner-gesture-receipt-glyph {
+  animation-delay: calc(
+    var(--duration-sequence-beat) +
+    var(--duration-context)
+  );
+}
+
+.partner-gesture-receipt-copy {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+}
+
+.partner-gesture-receipt-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.partner-gesture-receipt-detail {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.partner-gesture-receipt-actions {
+  /* Its own full-width row under the sentence, so long labels and large
+   * text never squeeze into the narrow column next to the avatar. */
+  grid-column: 2 / -1;
+  grid-row: 2;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: calc(-1 * var(--space-1));
+}
+
+.partner-gesture-receipt-reply {
+  max-width: 100%;
+  flex-wrap: wrap;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  /* Round ends on one line, soft corners when a long label wraps. */
+  border-radius: min(var(--radius-pill), 22px);
+  padding: var(--space-2) var(--space-4);
+  background: var(--partner-gesture-tint);
+  color: var(--partner-gesture-on-tint);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    filter var(--duration-feedback) var(--easing-standard);
+}
+
+.partner-gesture-receipt-reply > span {
+  min-width: 0;
+  /* Whole words keep their width so the Pro mark wraps first. */
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.partner-gesture-receipt-reply svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: currentColor;
+}
+
+.partner-gesture-receipt-reply .pro-mark {
+  margin-inline-start: var(--space-1);
+}
+
+.partner-gesture-receipt-reply:active:not([aria-disabled="true"]) {
+  transform: scale(var(--control-pressed-scale));
+  filter: brightness(var(--control-pressed-brightness));
+}
+
+.partner-gesture-receipt-reply[aria-disabled="true"] {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.partner-gesture-receipt-reply:focus-visible,
+.partner-gesture-receipt-close:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.partner-gesture-receipt-status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+}
+
+.partner-gesture-receipt-status.is-error {
+  color: var(--color-error);
+}
+
+.partner-gesture-receipt-close {
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.partner-gesture-receipt-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Large text or a very narrow screen: the sentence and the reply get the full
+ * width below the partner instead of a squeezed column beside it. */
+@container (max-width: 17em) {
+  .partner-gesture-receipt-copy,
+  .partner-gesture-receipt-actions {
+    grid-column: 1 / -1;
+  }
+
+  .partner-gesture-receipt-copy {
+    grid-row: 2;
+  }
+
+  .partner-gesture-receipt-actions {
+    grid-row: 3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-gesture-receipt,
+  .partner-gesture-receipt::before,
+  .partner-gesture-receipt *,
+  .partner-gesture-receipt-reply {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .partner-gesture-receipt-wave,
+  .partner-gesture-receipt-hero {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .partner-gesture-receipt {
+    border: 1px solid CanvasText;
+  }
+}

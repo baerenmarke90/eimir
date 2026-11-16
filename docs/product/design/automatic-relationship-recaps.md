@@ -1,5 +1,7 @@
 # Automatic relationship recaps with lean local inference
 
+> [#1744](references/1744/README.md) supersedes this contract's selection volume, reader presentation, the rule that a source return stays paused, the manual save step and the rule that a saved edition accepts no new reflections. Runtime, privacy, entitlement and model rules below remain in force.
+
 Owner: explicit PO approval in the 2026-10-30 workspace conversation, following #497. The approved automatic mobile prototype is the composition target. This decision supersedes the previous read-only/no-snapshot Passport boundary only for the additive recaps described here. Existing source history, relationship context, chapter organization and essential export remain Free.
 
 ## Baseline and visual preflight
@@ -70,3 +72,11 @@ HTTP/schema, bounded payload, missing/invalid service fallback and CPU/unload
 options are tested. No language-quality, host latency or native Android-device
 acceptance claim is made from those tests. The same Web implementation ships in
 the Capacitor wrapper; device-specific gates remain separate.
+
+## The couple's own words (#1744, backend contract)
+
+Product Owner decisions of 2026-11-12: recap texts come from the couple's own words and localised templates, not from model prose. A scene may carry one quote: the newest shared comment on the source written by a member other than the entry's author, cut at a word boundary at 140 characters and never reworded. A memory may carry a reaction line when both members gave its cover photo the same positive reaction (`LOVE`, `LAUGH` or `CELEBRATE`); at most three lines are kept per edition in reading order. Both are read live with the source and reauthorized on every read, so editing or deleting a comment or reaction is reflected at once and no edition stores them; they therefore need no invalidation. A mutual reaction adds a mild, deterministic bonus to selection, applied within the bounded candidate pool (four per kind and month). The reader scenes and the localised copy are not built yet; they need a generated Compact reference first.
+
+## Rhythm of good days (#1744, backend contract)
+
+Product Owner decisions of 2026-11-12: the mood arc is a rhythm of good days, stored as a frozen aggregate, with thresholds of five mutual days for a month and twenty mutual days in at least four months for a year. Only days on which both active members have a Vibe count, so the aggregate is identical for both readers and discloses nothing that is not already visible to both under either visibility mode. Difficult states, Energy, rankings and relationship claims are not surfaced, and check-in data never reaches the wording model. The aggregate lives in the protected edition payload (no new column), is refreshed on recomposition and on retention of a curated edition while `daily.insights` is held, and is served only while exactly two members are active and the Vibe module is enabled. The reader scene is not built; it needs a generated Compact reference first.

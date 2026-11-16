@@ -1,7 +1,8 @@
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useReturnTo } from '../client/historyEntries';
 import {
+  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
@@ -13,55 +14,63 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { BackSlotHost, TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 export function PrivateAreaFrame({
   children,
-  showNavigation = true,
+  editorFirst = false,
+  itemFirst = false,
 }: {
   children: ReactNode;
-  showNavigation?: boolean;
+  editorFirst?: boolean;
+  /** One note, list or gift idea: its own header row leads; no card or tabs. */
+  itemFirst?: boolean;
 }) {
   const { t } = useTranslation();
+  const navigation = itemFirst ? null : (
+    <nav
+      className="private-area-nav"
+      aria-label={t('privateArea.navigation.aria')}
+    >
+      <NavLink to={PRIVATE_NOTES_PATH}>
+        {t('privateArea.navigation.notes')}
+      </NavLink>
+      <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
+        {t('privateArea.navigation.gifts')}
+      </NavLink>
+      <NavLink to={PRIVATE_COLLECTIONS_PATH}>
+        {t('privateArea.navigation.collections')}
+      </NavLink>
+      <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
+        {t('privateArea.partnerNotes.shortTitle')}
+      </NavLink>
+    </nav>
+  );
   return (
     <div className="page private-area-page">
-      <section
-        className="private-area-context"
-        aria-label={t('privateArea.privacyLabel')}
-      >
-        <div className="private-area-header-info">
-          <h1 className="private-area-title-row">
-            <EimirIcon name="nurfuer" className="private-area-lock-icon" />
-            {t('privateArea.eyebrow')}
-          </h1>
-          <p className="private-area-intro-text">
-            {t(
-              showNavigation
-                ? 'privateArea.intro'
-                : 'privateArea.entry.privacy',
-            )}
-          </p>
+      {editorFirst || itemFirst ? null : (
+        // Back sits beside the area card, the page's title (#1907 C4).
+        <div className="private-area-head">
+          <BackSlotHost className="private-area-back" />
+          <section
+            className="private-area-context"
+            aria-label={t('privateArea.privacyLabel')}
+          >
+            <div className="private-area-header-info">
+              <h1 className="private-area-title-row">
+                <EimirIcon name="nurfuer" className="private-area-lock-icon" />
+                {t('privateArea.eyebrow')}
+              </h1>
+              <p className="private-area-intro-text">
+                {t('privateArea.intro')}
+              </p>
+            </div>
+          </section>
         </div>
-      </section>
-      {showNavigation ? (
-        <nav
-          className="private-area-nav"
-          aria-label={t('privateArea.navigation.aria')}
-        >
-          <NavLink to={PRIVATE_NOTES_PATH}>
-            {t('privateArea.navigation.notes')}
-          </NavLink>
-          <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
-            {t('privateArea.navigation.gifts')}
-          </NavLink>
-          <NavLink to={PRIVATE_COLLECTIONS_PATH}>
-            {t('privateArea.navigation.collections')}
-          </NavLink>
-          <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
-            {t('privateArea.partnerNotes.shortTitle')}
-          </NavLink>
-        </nav>
-      ) : null}
+      )}
+      {!editorFirst && navigation}
       {children}
+      {editorFirst && navigation}
     </div>
   );
 }
@@ -79,7 +88,13 @@ export function usePrivateAreaTaskContext(fallbackPath: string) {
     [fallbackPath, requestReturn, taskOriginKey],
   );
 
-  return { navigationState, origin, returnToOrigin, taskOriginKey };
+  return {
+    navigationState,
+    origin,
+    fromOverview: origin?.to === PRIVATE_AREA_ROOT_PATH,
+    returnToOrigin,
+    taskOriginKey,
+  };
 }
 
 export function usePrivateTaskEditorLifecycle({
@@ -93,14 +108,11 @@ export function usePrivateTaskEditorLifecycle({
   isCloseBlocked?: boolean;
   closeToFallback?: boolean;
 }) {
-  const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const taskContext = usePrivateAreaTaskContext(fallbackPath);
   const closeToDetail = useCallback(() => {
-    void navigate(fallbackPath, {
-      replace: true,
-      state: taskContext.navigationState,
-    });
-  }, [fallbackPath, navigate, taskContext.navigationState]);
+    returnTo(fallbackPath, { state: taskContext.navigationState });
+  }, [fallbackPath, returnTo, taskContext.navigationState]);
   const lifecycle = useTaskEditorLifecycle({
     isDirty,
     isCloseBlocked,
@@ -117,15 +129,17 @@ export function PrivateAreaDetailBack({
   fallbackLabel: string;
 }) {
   const { t } = useTranslation();
-  const { origin, returnToOrigin } = usePrivateAreaTaskContext(fallbackPath);
+  const { origin, fromOverview, returnToOrigin } =
+    usePrivateAreaTaskContext(fallbackPath);
   if (!origin) {
     return <TaskBackLink to={fallbackPath}>{fallbackLabel}</TaskBackLink>;
   }
+  const backLabel = fromOverview
+    ? 'privateArea.backToHub'
+    : 'privateArea.backToOrigin';
   return (
     <TaskBackButton type="button" onClick={returnToOrigin}>
-      {origin.to === '/search'
-        ? t('privateArea.backToSearch')
-        : t('privateArea.backToOrigin')}
+      {origin.to === '/search' ? t('privateArea.backToSearch') : t(backLabel)}
     </TaskBackButton>
   );
 }
@@ -222,5 +236,23 @@ export function DeleteConfirmation({
       )}
       {error ? <ProblemState error={error} /> : null}
     </section>
+  );
+}
+
+/** The type label of one private item, marked with the area lock. */
+export function PrivateItemLabel({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <EimirIcon name="nurfuer" className="private-item-lock-icon" />
+      {children}
+    </>
+  );
+}
+
+/** The quiet privacy line below a private item's name. */
+export function PrivateItemPrivacy() {
+  const { t } = useTranslation();
+  return (
+    <p className="private-item-privacy">{t('privateArea.entry.privacy')}</p>
   );
 }

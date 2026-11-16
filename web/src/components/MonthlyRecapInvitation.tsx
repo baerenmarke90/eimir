@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import type { RecapView } from '../api/generated/models/RecapView';
-import { normalizeClientError } from '../client/problemDetails';
 import { useAttentionReceipt } from '../client/attentionReceipt';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   monthlyRecapInvitation,
   recapPeriodLabel,
   recapPeriodStatus,
 } from '../client/recaps';
-import { MORE_PASSPORT_ROUTE, recapDetailPath } from '../client/routes';
+import { recapDetailPath, STORY_RECAPS_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -55,6 +55,26 @@ export function useMonthlyRecapInvitation({
     : undefined;
 }
 
+/**
+ * One attention receipt per edition, shared by Wir and the Momente Discover
+ * lead (#1907 F4): opening the recap from either place retires both, and both
+ * expire on the fourth day of the month after the edition's period.
+ */
+export function useRecapInvitationReceipt(
+  media: RecapMediaProps,
+  value: RecapView | undefined,
+) {
+  return useAttentionReceipt(
+    [
+      media.mediaApis.attachments.contentBaseUrl,
+      media.account.id,
+      media.spaceId,
+    ],
+    `recap:${value?.id ?? ''}`,
+    value ? new Date(value.year, value.month ?? 0, 4).getTime() : 0,
+  );
+}
+
 /** Wir never schedules inference or shows fabricated covers. */
 export function MonthlyRecapInvitation({
   edition: value,
@@ -65,15 +85,7 @@ export function MonthlyRecapInvitation({
   excludeSourceIds?: readonly string[];
 }) {
   const { t } = useTranslation();
-  const receipt = useAttentionReceipt(
-    [
-      media.mediaApis.attachments.contentBaseUrl,
-      media.account.id,
-      media.spaceId,
-    ],
-    `recap:${value?.id ?? ''}`,
-    value ? new Date(value.year, value.month ?? 0, 4).getTime() : 0,
-  );
+  const receipt = useRecapInvitationReceipt(media, value);
   if (!value || !receipt.visible) return null;
   const source = value?.sources.find((item) => item.available);
   const cover =
@@ -113,10 +125,10 @@ export function MonthlyRecapInvitation({
       ) : null}
       {!value ? (
         <TodayDestinationLink
-          to={MORE_PASSPORT_ROUTE}
+          to={STORY_RECAPS_ROUTE}
           className="monthly-recap-library-link"
         >
-          {t('recaps.profileLink')} <span aria-hidden="true">→</span>
+          {t('recaps.profileLink')}
         </TodayDestinationLink>
       ) : null}
     </div>

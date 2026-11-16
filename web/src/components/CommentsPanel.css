@@ -278,7 +278,8 @@
 }
 
 .comment-form-compact textarea {
-  min-height: 7rem;
+  min-height: calc(2lh + var(--space-4));
+  resize: vertical;
 }
 
 .comment-compose-actions {
@@ -326,9 +327,15 @@
   right: var(--space-3);
 }
 .memory-photo-gallery .media-comment-action {
-  right: calc(var(--space-3) + var(--touch-target-web) + var(--space-2));
+  right: calc(
+    var(--space-3) +
+    var(--touch-target-comfortable) +
+    var(--space-2)
+  );
 }
 .media-comment-action .comment-compose-trigger {
+  width: var(--touch-target-comfortable);
+  height: var(--touch-target-comfortable);
   border: 0;
 }
 .media-comment-action .comment-compose-trigger:hover {

@@ -1,17 +1,24 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import gentleCopy from '../../src/i18n/locales/gentlePrompts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
-import gentleCopy from '../../src/i18n/locales/gentlePrompts';
-import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import privateArea from '../../src/i18n/locales/privateArea';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -226,6 +233,23 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    // Partner distance (#1792): an unpaired Free Space shares nothing.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-location/settings`
+    ) {
+      await fulfillJson({
+        available: false,
+        level: 'OFF',
+        state: 'OFF',
+        indefinite: false,
+        expiresAt: null,
+        generation: 0,
+        lastPublishedAt: null,
+      });
+      return;
+    }
+
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
@@ -309,6 +333,19 @@ async function installAuthorizedApiMocks(page: Page): Promise<
         ruleKey: pathname.split('/').at(-2),
         enabled: true,
         parameters: { daysBefore: [30, 7, 1], localTime: '09:00:00' },
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === '/api/v1/push-endpoints/configuration'
+    ) {
+      await fulfillJson({
+        fcm: null,
+        unifiedPush: null,
+        webPush: null,
+        apns: null,
       });
       return;
     }
@@ -757,6 +794,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (await fulfillNoWishSelectionRound(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -887,16 +925,32 @@ for (const view of [
       }
       await route.fallback();
     });
+    // The area opens on the notes; this journey only passes through them.
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await page.goto('/more/private');
     await signIn(page);
     await page
-      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .getByRole('link', {
+        name: privateArea.partnerNotes.shortTitle,
+        exact: true,
+      })
       .click();
     await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
       name: profiles.addNoteShort,
       exact: true,
     });
+    if (view.width === 390) {
+      await expect(page.locator('[data-floating-create]')).toHaveCount(1);
+      await expectFloatingAddAction(
+        trigger,
+        page.locator('.mobile-bottom-shell'),
+      );
+    } else {
+      await expectLabeledAddAction(trigger);
+    }
     await trigger.click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
@@ -909,6 +963,17 @@ for (const view of [
       descriptionId,
     );
     await expect(dialog.getByLabel(profiles.categoryLabel)).toBeFocused();
+    for (const label of [
+      profiles.categoryLabel,
+      profiles.sentimentLabel,
+      profiles.topicLabel,
+      profiles.valueLabel,
+    ]) {
+      await expectVisibleFieldBoundary(
+        dialog.getByLabel(label, { exact: true }),
+      );
+    }
+    if (view.width === 390) await expect(trigger).toBeHidden();
     await expectNoWcagViolations(page);
     await page.screenshot({
       path: info.outputPath(
@@ -923,6 +988,7 @@ for (const view of [
       .getByRole('button', { name: profiles.create, exact: true })
       .click();
     await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
     const saved = page.getByRole('button', { name: /A birthday idea/ });
     await expect(saved).toContainText('A quiet cabin by the lake');
     expect(writes[0]).toMatchObject({
@@ -936,6 +1002,7 @@ for (const view of [
     });
     await saved.click();
     await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expectVisibleFieldBoundary(dialog.getByLabel(profiles.valueLabel));
     await dialog
       .getByLabel(profiles.valueLabel)
       .fill('Book the cabin for autumn');
@@ -1027,15 +1094,18 @@ for (const view of [
     await page
       .getByRole('link', { name: privateArea.backToHub, exact: true })
       .click();
-    await expect(page).toHaveURL(/\/more\/private$/);
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
     await page.goto('/more/profile');
     await expect(
       page.getByText('Book the cabin for autumn', { exact: true }),
     ).toHaveCount(0);
     await expect(page.locator('.private-partner-notes-panel')).toHaveCount(0);
-    await page
-      .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
-      .click();
+    const preferenceTrigger = page.getByRole('button', {
+      name: profiles.addPreferenceShort,
+      exact: true,
+    });
+    await expectLabeledAddAction(preferenceTrigger);
+    await preferenceTrigger.click();
     // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
     await expect(dialog).not.toHaveAttribute('aria-describedby');
     await expect(dialog.getByRole('note')).toHaveCount(0);
@@ -1073,7 +1143,7 @@ test('compact sign-in is keyboard operable, wraps German copy, and is axe-clean'
   await expectNoWcagViolations(page);
 });
 
-test('compact authenticated shell keeps global quick create reachable and accessible', async ({
+test('compact Wir keeps the contextual moment action reachable and accessible', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
@@ -1107,35 +1177,25 @@ test('compact authenticated shell keeps global quick create reachable and access
     }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
+  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
   await expect(quickCreate).toBeVisible();
   await quickCreate.focus();
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
 
-  const sheetDialog = page.getByRole('dialog', {
-    name: navigation.quickCreateTitle,
-  });
+  const sheetDialog = page.getByRole('dialog', { name: de.story.addMoment });
   await expect(sheetDialog).toBeVisible();
-
-  const closeButton = page.getByRole('button', {
-    name: navigation.closeMenu,
+  const diaryTarget = sheetDialog.getByRole('link', {
+    name: composer.diaryEntry,
   });
-  await expect(closeButton).toBeFocused();
-
-  const memoryTarget = page.getByRole('link', {
-    name: navigation.quickCreateMemory,
-  });
-  await expect(memoryTarget).toBeVisible();
+  await expect(diaryTarget).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(memoryTarget).toBeFocused();
   await expect(
-    page.getByRole('link', { name: navigation.quickCreateWish }),
-  ).toBeVisible();
+    sheetDialog.getByRole('link', { name: de.story.kind.heartMoment }),
+  ).toBeFocused();
   await expect(
-    page.getByRole('link', { name: navigation.quickCreatePrivateNote }),
+    sheetDialog.getByRole('link', { name: de.story.kind.milestone }),
   ).toBeVisible();
+  await expect(sheetDialog.getByRole('link')).toHaveCount(3);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1161,9 +1221,7 @@ test('authenticated shell removes decorative motion when reduced motion is prefe
     .evaluate((element) => getComputedStyle(element).animationName);
   expect(mainAnimation).toBe('none');
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
+  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
   const quickCreateTransition = await quickCreate.evaluate(
     (element) => getComputedStyle(element).transitionDuration,
   );
@@ -1610,8 +1668,43 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText('anna@example.org', { exact: false }),
   ).toBeVisible();
-  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
-  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  const reminderCards = page.locator('.important-date-reminder-card');
+  await expect(reminderCards).toHaveCount(2);
+  // The occasion timeline also uses "important date" terminology, but its
+  // three-column layout must never leak into reminder preferences.
+  const expectVerticallyStackedReminders = async () => {
+    const layouts = await reminderCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const header = card.querySelector('.important-date-card-head');
+        const schedule = card.querySelector('.important-date-details');
+        if (!header || !schedule) return null;
+        const headerBox = header.getBoundingClientRect();
+        const scheduleBox = schedule.getBoundingClientRect();
+        return {
+          stacked: scheduleBox.top >= headerBox.bottom - 1,
+          fullWidth: Math.abs(headerBox.width - scheduleBox.width) < 2,
+        };
+      }),
+    );
+    expect(layouts).toEqual([
+      { stacked: true, fullWidth: true },
+      { stacked: true, fullWidth: true },
+    ]);
+  };
+  await expectVerticallyStackedReminders();
+  await expect(
+    page.getByRole('heading', { name: notificationSettings.dates }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', {
+      name: profileIdentity.anniversaryReminderToggle,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', {
+      name: profileIdentity.partnerBirthdayReminderToggle,
+    }),
+  ).toBeVisible();
   await expect(
     page.getByRole('link', {
       name: profileIdentity.settingsNotificationsAction,
@@ -1701,6 +1794,7 @@ test('notification choices survive return and stay legible across themes and wid
   });
   await expectNoHorizontalOverflow(page);
   await expectSettingsControlsInsideViewport(page);
+  await expectVerticallyStackedReminders();
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '';
   });
@@ -1719,11 +1813,13 @@ test('notification choices survive return and stay legible across themes and wid
     .click();
   await page.locator('a[href="/more/settings"]').click();
   await expect(page).toHaveURL(/\/more\/settings$/);
-  await page
-    .getByRole('link', {
-      name: profileIdentity.settingsNotifications,
-    })
-    .click();
+  // The kept More tab also has a notification link, but this return must
+  // reopen the Settings category rather than the notification inbox.
+  const notificationSettingsLink = page.locator(
+    'a[href="/more/settings/notifications"]',
+  );
+  await expect(notificationSettingsLink).toBeVisible();
+  await notificationSettingsLink.click();
   await expect(
     page.locator('.notification-quiet-hours > summary'),
   ).toContainText('Täglich 22:00–07:00 Uhr.');
@@ -1925,7 +2021,6 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
@@ -2102,11 +2197,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(box.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        page.getByRole('button', { name: navigation.newContent }),
-      ).toHaveCount(1);
+        page.getByRole('button', { name: de.story.addMoment }),
+      ).toBeVisible();
       await expect(
         page.getByRole('button', { name: navigation.newContent }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       const inHeader = await navigationRegion.evaluate((element) =>
         Boolean(element.closest('header')),
@@ -2125,28 +2220,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
     const header = page.getByRole('banner');
-    const create = page.getByRole('button', { name: navigation.newContent });
-    await create.focus();
-    await page.keyboard.press('ArrowDown');
-    const menu = page.getByRole('menu', { name: navigation.quickCreateTitle });
-    await expect(menu).toBeVisible();
-    const memory = menu.getByRole('menuitem', {
-      name: navigation.quickCreateMemory,
-    });
-    await expect(memory).toBeFocused();
-    await expect(memory).toHaveAttribute('href', '/story/memories/new');
-    await page.keyboard.press('End');
-    await expect(
-      menu.getByRole('menuitem', { name: navigation.quickCreateGiftIdea }),
-    ).toBeFocused();
-    await expectNoWcagViolations(page);
-    await page.screenshot({
-      path: testInfo.outputPath(`shell-create-expanded-${colorScheme}.png`),
-    });
-    await page.keyboard.press('Escape');
-    await expect(create).toBeFocused();
-    await expect(menu).toHaveCount(0);
-
     await header
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
@@ -2328,8 +2401,8 @@ for (const view of [
       .click();
     await expect(
       page.getByRole('heading', { name: gentleCopy.writingTitle }),
-    ).toBeVisible();
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
+    ).toHaveCount(0);
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
     if (view.large)
       await expect(page.locator('html')).toHaveCSS('font-size', '32px');
     await expectNoHorizontalOverflow(page);
@@ -2341,41 +2414,22 @@ for (const view of [
     expect(requests).toEqual([]);
   });
 
-  test(`gentle prompts: quiet dismissal and blank composer retain saved consent at ${view.width} ${view.scheme}`, async ({
+  test(`gentle prompts: Wir stays quiet with saved consent at ${view.width} ${view.scheme}`, async ({
     page,
   }) => {
     const requests = await prepareGentlePrompts(page, true);
+    const receipts = requests.gentleState.receipts;
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: gentleCopy.writingTitle }),
-    ).toBeVisible();
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
-    if (view.large)
-      await expect(page.locator('html')).toHaveCSS('font-size', '32px');
-    await page
-      .getByRole('button', { name: gentleCopy.dismiss, exact: true })
-      .click();
-    await expect(
-      page.getByText(gentleCopy.dismissed, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(gentleCopy.dismissed, { exact: true }),
-    ).toBeFocused();
+    ).toHaveCount(0);
     await page.reload();
     await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
-    // A separate server occasion is offered after this dismissal's day.
-    requests.gentleState.dismissed = false;
-    requests.gentleState.occasion += 1;
-    await page.reload();
-    const before = requests.gentleState.receipts;
-    await page
-      .getByRole('button', { name: gentleCopy.write, exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/story\/memories\/new$/);
-    await expect(page.locator('input[name="title"]')).toHaveValue('');
-    await expect(page.locator('textarea')).toHaveValue('');
-    expect(requests.gentleState.receipts - before).toBeLessThanOrEqual(1);
-    await page.goto('/today');
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
+    expect(requests.gentleState.receipts).toBe(receipts);
+    await page.goto('/more/settings/notifications');
+    await expect(
+      page.getByRole('switch', { name: gentleCopy.label, exact: true }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(requests).toEqual([]);
   });
 }

@@ -1,9 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  ownObjectUrlSource,
   type ObjectUrlSource,
   type OwnedObjectUrl,
+  ownObjectUrlSource,
 } from './objectUrlResource';
+import {
+  captureSynchronousMediaObjectUrl,
+  subscribeMediaObjectUrlRevocations,
+} from './sharedMediaObjectUrls';
+
+/** A shown resource whose shared object URL was revoked (denied or wiped). */
+export class RevokedObjectUrlError extends Error {
+  constructor() {
+    super('The media object URL was revoked.');
+    this.name = 'RevokedObjectUrlError';
+  }
+}
 
 interface ResourceEntry {
   resourceId: string;
@@ -73,7 +85,11 @@ function disposeEntry(entry: ResourceEntry): void {
  * - late async results are immediately disposed and never overwrite current
  *   state;
  * - the loader function itself is intentionally not a reload trigger. The
- *   caller must encode transport/resource identity in scopeKey + resourceId.
+ *   caller must encode transport/resource identity in scopeKey + resourceId;
+ * - loaders start before paint. When a shared authorized loader can satisfy a
+ *   resource synchronously (an image this runtime already decoded), the view
+ *   renders it in its first frame; the hook owns that handle and releases the
+ *   separate handle the loader promise resolves with.
  *
  * This is deliberately not a shared cache. Shared resources need a separate
  * reference-counted owner and consumers must never revoke them directly.
@@ -101,7 +117,22 @@ export function useObjectUrlResources(
 
   useEffect(() => {
     mountedRef.current = true;
+    // A revoked shared URL must also leave this (possibly kept) view.
+    const unsubscribe = subscribeMediaObjectUrlRevocations((revoked) => {
+      let changed = false;
+      for (const entry of entriesRef.current.values()) {
+        if (entry.status !== 'ready' || !entry.resource) continue;
+        if (!revoked.has(entry.resource.url)) continue;
+        entry.resource.dispose();
+        entry.resource = null;
+        entry.status = 'error';
+        entry.error = new RevokedObjectUrlError();
+        changed = true;
+      }
+      if (changed) setState((current) => ({ ...current }));
+    });
     return () => {
+      unsubscribe();
       mountedRef.current = false;
       for (const entry of entriesRef.current.values()) {
         disposeEntry(entry);
@@ -110,7 +141,7 @@ export function useObjectUrlResources(
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const [activeScopeKey, activeResourceIds] = JSON.parse(
       identitySignature,
     ) as [string, string[]];
@@ -142,15 +173,37 @@ export function useObjectUrlResources(
       addedEntries.push({ key, entry });
     }
 
+    const started = addedEntries.map(({ key, entry }) => {
+      let pending: Promise<ObjectUrlSource>;
+      try {
+        const captured = captureSynchronousMediaObjectUrl(() =>
+          loadResourceRef.current(entry.resourceId, entry.controller.signal),
+        );
+        pending = Promise.resolve(captured.result);
+        if (captured.handle) {
+          entry.resource = captured.handle;
+          entry.status = 'ready';
+        }
+      } catch (error) {
+        pending = Promise.reject(error);
+      }
+      return { key, entry, pending };
+    });
+
     setState(
       snapshotState(entriesRef.current, activeScopeKey, activeResourceIds),
     );
 
-    for (const { key, entry } of addedEntries) {
-      void Promise.resolve()
-        .then(() =>
-          loadResourceRef.current(entry.resourceId, entry.controller.signal),
-        )
+    for (const { key, entry, pending } of started) {
+      if (entry.status === 'ready') {
+        // The synchronous handle is authoritative; the promise owns another.
+        void pending.then(
+          (source) => ownObjectUrlSource(source).dispose(),
+          () => undefined,
+        );
+        continue;
+      }
+      void pending
         .then((source) => {
           const resource = ownObjectUrlSource(source);
           if (

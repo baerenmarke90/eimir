@@ -159,19 +159,21 @@ export function GoogleAccountSettings(props: {
       {email ? (
         <>
           <p>{email}</p>
-          {consentPending && isCapacitorNative() ? (
-            <button type="button" disabled={busy} onClick={confirmAccess}>
-              {t('photoSources.googleConsentConfirm')}
+          <div className="google-account-actions">
+            {consentPending && isCapacitorNative() ? (
+              <button type="button" disabled={busy} onClick={confirmAccess}>
+                {t('photoSources.googleConsentConfirm')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={unlink}
+            >
+              {t('photoSources.googleAccountUnlink')}
             </button>
-          ) : null}
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={unlink}
-          >
-            {t('photoSources.googleAccountUnlink')}
-          </button>
+          </div>
         </>
       ) : (
         <button

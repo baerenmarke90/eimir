@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.calendar_sync import service
+from eimir.calendar_sync import ical, service
 from eimir.calendar_sync.models import CalendarConnection, PlanCalendarLink
 from eimir.config import get_settings
 from eimir.core.clock import now
@@ -190,6 +190,82 @@ def test_both_partners_plans_sync_once_into_the_shared_calendar(  # type: ignore
     assert ben["connections"] == []
     assert "app-password" not in str(state(client, couple))
     assert ben["target"]["syncedCount"] == 2
+
+
+@pytest.mark.parametrize("edited_in_calendar", [False, True])
+def test_full_sync_backfills_a_link_with_the_stored_provider_version(  # type: ignore[no-untyped-def]
+    client, session, couple, server, edited_in_calendar: bool
+) -> None:
+    grant(session, couple)
+    activate(client, session, couple)
+    created = plan(client, couple)
+    drain(session)
+    link = link_of(session, created["id"])
+    assert link is not None
+    [event_path] = server.events(SHARED)
+    legacy = ical.render(
+        CalendarEvent(
+            uid=link.payload.uid,
+            title=created["title"],
+            description=None,
+            location=None,
+            sequence=created["version"],
+            start_date=date(2031, 6, 14),
+            end_date=date(2031, 6, 15),
+        )
+    )
+    server.edit_externally(event_path, legacy)
+    old_etag, _ = server.events(SHARED)[event_path]
+    link.payload = link.payload.model_copy(update={"provider_version": old_etag})
+    link.backlink_plan_version = None
+    session.flush()
+    if edited_in_calendar:
+        server.edit_externally(event_path, legacy.replace(b"SUMMARY:", b"SUMMARY:Changed "))
+    before = server.events(SHARED)[event_path]
+
+    response = client.post(base(couple) + "/calendar-sync/sync", headers=couple["b"])
+    assert response.status_code == 202, response.text
+    drain(session)
+    assert list(server.events(SHARED)) == [event_path]
+    refreshed = server.events(SHARED)[event_path]
+    if edited_in_calendar:
+        assert refreshed == before
+        assert (link.state, link.reason) == ("CONFLICT", "EVENT_CHANGED")
+        return
+
+    assert refreshed[0] != old_etag
+    body = refreshed[1].replace(b"\r\n ", b"").decode()
+    assert f"In eimir. öffnen · {get_settings().public_base_url.rstrip('/')}/p/" in body
+    assert link.backlink_plan_version == link.synced_plan_version == created["version"]
+
+    response = client.post(base(couple) + "/calendar-sync/sync", headers=couple["b"])
+    assert response.status_code == 202, response.text
+    drain(session)
+    assert server.events(SHARED)[event_path] == refreshed
+
+
+def test_marking_a_plan_discreet_removes_its_calendar_backlink(  # type: ignore[no-untyped-def]
+    client, session, couple, server
+) -> None:
+    grant(session, couple)
+    activate(client, session, couple)
+    created = plan(client, couple)
+    drain(session)
+    [event_path] = server.events(SHARED)
+    assert b"\r\nURL:" in server.events(SHARED)[event_path][1]
+
+    response = client.patch(
+        base(couple) + f"/plans/{created['id']}",
+        json={"discreet": True, "description": "Private notes"},
+        headers={**couple["b"], "If-Match": f'"{created["version"]}"'},
+    )
+    assert response.status_code == 200, response.text
+    drain(session)
+    [(_, body)] = server.events(SHARED).values()
+    assert b"\r\nURL:" not in body
+    assert b"\r\nDESCRIPTION" not in body
+    link = link_of(session, created["id"])
+    assert link is not None and link.backlink_plan_version is None
 
 
 def test_edits_update_the_same_event_and_external_changes_are_never_overwritten(  # type: ignore[no-untyped-def]

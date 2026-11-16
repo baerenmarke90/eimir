@@ -601,8 +601,8 @@
     },
     "settings-calendar-sync.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 7,
-      "reason": "Feature-owned acceptance for Settings > Kalender verbinden (#1895): CalDAV connect, Google consent with explicit account confirmation, calendar choice with read-only calendars disabled, exact If-Match on the shared target, partner view without credentials, conflict resolution, pause/resume, calm Free explanation, rejected credentials, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
+      "baselineTests": 8,
+      "reason": "Feature-owned acceptance for Settings > Kalender verbinden (#1895): CalDAV connect, Google consent with explicit account confirmation, calendar choice with read-only calendars disabled, exact If-Match on the shared target, partner view without credentials, conflict resolution, pause/resume, calm Free explanation, rejected credentials, the external short link returning to its exact Plan after sign-in, accessibility and Compact/Expanded Light/Dark composition. The complete feature spec stays out of the always-run core."
     },
     "settings-google-account.spec.ts": {
       "disposition": "FULL_REGRESSION",

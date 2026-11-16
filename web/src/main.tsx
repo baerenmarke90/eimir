@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { planPathFromCalendarLink } from './client/routes';
 import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
@@ -47,6 +48,12 @@ import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
+
+// Resolve calendar links before the router and sign-in read the entry URL.
+const calendarPlanPath = planPathFromCalendarLink(window.location.pathname);
+if (calendarPlanPath) {
+  window.history.replaceState(window.history.state, '', calendarPlanPath);
+}
 
 markNativeRuntime();
 initializeTheme();

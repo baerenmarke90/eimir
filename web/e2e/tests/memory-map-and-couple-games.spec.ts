@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
@@ -202,7 +202,7 @@ for (const [width, theme] of [
     }
     const place = page
       .getByRole('list', { name: mapCopy.places })
-      .getByRole('button', { name: 'Lake Â· 2 Erinnerungen' });
+      .getByRole('button', { name: 'Lake · 2 Erinnerungen' });
     await expect(place).toBeVisible();
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
     await expect(page.locator('.memory-map-marker-photo img')).toBeVisible();

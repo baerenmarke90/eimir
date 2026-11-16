@@ -1,7 +1,7 @@
 """Add shared notes and the Plan-note relation (#1969).
 
-Revision ID: 0144
-Revises: 0143
+Revision ID: 0145
+Revises: 0144
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0144"
-down_revision = "0143"
+revision = "0145"
+down_revision = "0144"
 branch_labels = None
 depends_on = None
 
@@ -37,7 +37,7 @@ _KINDS = (
     "'PHOTO_REACTION', 'PARTNER_JOINED', 'COUPLE_EXPERIENCE_SHARED', "
     "'COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', 'PARTNER_CHECK_IN', 'REMINDER_DUE', "
     "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
-    "'COLLECTION_SENT'"
+    "'COLLECTION_SENT', 'HEART_HUNT_HIDDEN', 'HEART_HUNT_FOUND'"
 )
 _NEW_KINDS = "'SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED'"
 _TARGETS = (

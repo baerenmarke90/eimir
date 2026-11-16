@@ -33,6 +33,8 @@ INHERITED_KINDS = {
     NotificationKind.WISH_SELECTION_RANDOM_REQUESTED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_HIDDEN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_FOUND: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,

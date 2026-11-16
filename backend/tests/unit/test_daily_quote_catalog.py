@@ -23,7 +23,7 @@ def test_catalog_categories_and_sources_are_defined() -> None:
 
 def test_all_curated_quotes_have_complete_rights_and_attribution_metadata() -> None:
     quotes = catalog.get_quotes(active_only=False)
-    assert len(quotes) >= 15
+    assert quotes
     assert len({quote.id for quote in quotes}) == len(quotes)
     assert len({(quote.locale, quote.text) for quote in quotes}) == len(quotes)
 
@@ -59,18 +59,28 @@ def test_quote_provenance_and_auditability() -> None:
         assert quote.original_work.strip(), f"Missing original_work for quote {quote.id}"
         assert quote.source_edition.strip(), f"Missing source_edition for quote {quote.id}"
         assert quote.rights_basis.strip(), f"Missing rights_basis for quote {quote.id}"
-        assert "Public Domain" in quote.rights_basis
-        if quote.attribution_required:
-            assert "p.m.a. > 70 years" in quote.rights_basis
+        if "Public Domain" in quote.rights_basis:
+            if quote.attribution_required:
+                assert "p.m.a. > 70 years" in quote.rights_basis
+            else:
+                assert "traditional" in quote.rights_basis
         else:
-            assert "traditional" in quote.rights_basis
+            assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
+            assert quote.attribution_required
+            if quote.author_display == "eimir.":
+                assert "First-party eimir. editorial content" in quote.rights_basis
+            else:
+                assert quote.source_display
+                assert quote.publication_year is not None
+                assert "https://" in quote.source_edition
 
-        if quote.rights_classification == RightsClassification.EDITORIAL_CURATED:
-            assert quote.translator
+        if (
+            quote.translator
+            and quote.rights_classification == RightsClassification.EDITORIAL_CURATED
+        ):
             assert "CC0 1.0 Universal" in quote.rights_basis
-        elif quote.translator is not None:
-            # Published historical translations have their own public-domain provenance.
-            assert "died" in quote.translator or "18" in quote.translator
+        elif quote.translator:
+            assert "died" in quote.translator
 
 
 def test_unverified_and_copyrighted_authors_are_excluded() -> None:
@@ -87,31 +97,24 @@ def test_unverified_and_copyrighted_authors_are_excluded() -> None:
 
 
 def test_get_quotes_filters_by_locale() -> None:
-    de_quotes = catalog.get_quotes(locale="de")
-    assert len(de_quotes) >= 1_000
-    assert all(q.locale == "de" for q in de_quotes)
-    assert sum("love" in q.category_ids for q in de_quotes) >= 500
-    assert any(not q.attribution_required for q in de_quotes)
+    category_ids = {category.id for category in catalog.get_categories()}
+    for locale in language_catalogs():
+        quotes = catalog.get_quotes(locale=locale)
+        assert len(quotes) == 1_000
+        assert all(quote.locale == locale for quote in quotes)
+        assert {category for quote in quotes for category in quote.category_ids} == category_ids
+        assert any(not quote.attribution_required for quote in quotes)
 
-    en_quotes = catalog.get_quotes(locale="en")
-    assert len(en_quotes) >= 1_000
-    assert all(q.locale == "en" for q in en_quotes)
-
-    # Prefix match "de-DE"
-    de_de_quotes = catalog.get_quotes(locale="de-DE")
-    assert len(de_de_quotes) == len(de_quotes)
+    assert catalog.get_quotes(locale="de-DE") == catalog.get_quotes(locale="de")
 
 
-def test_new_sayings_have_equivalent_entries_in_every_app_language() -> None:
+def test_sayings_have_equivalent_entries_in_every_app_language() -> None:
     originals = {
         quote.id.removeprefix("saying-de-"): quote
         for quote in catalog.get_quotes(locale="de")
         if quote.id.startswith("saying-de-")
     }
-    assert len(originals) >= 1_000
-    assert all(
-        q.rights_classification == RightsClassification.PUBLIC_DOMAIN for q in originals.values()
-    )
+    assert len(originals) == 1_000
 
     for locale in set(language_catalogs()) - {"de"}:
         prefix = f"saying-{locale}-"
@@ -130,15 +133,32 @@ def test_new_sayings_have_equivalent_entries_in_every_app_language() -> None:
             assert quote.source_id == original.source_id
             assert quote.original_work == original.original_work
             assert quote.source_edition == original.source_edition
-            assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
-            if quote.attribution_required:
+            assert RightsClassification.EDITORIAL_CURATED in {
+                original.rights_classification,
+                quote.rights_classification,
+            }
+            if quote.attribution_required and quote.author_display != "eimir.":
                 assert quote.source_display
 
 
+def test_catalog_includes_contemporary_sayings_and_quotes_from_both_centuries() -> None:
+    for locale in language_catalogs():
+        quotes = catalog.get_quotes(locale=locale)
+        assert any(quote.author_display == "eimir." for quote in quotes)
+        for author, year in (("Virginia Woolf", 1929), ("Jacinda Ardern", 2022)):
+            assert any(
+                quote.author_display == author
+                and quote.publication_year == year
+                and quote.attribution_required
+                and quote.source_display
+                for quote in quotes
+            )
+
+
 def test_get_quote_by_id() -> None:
-    quote = catalog.get_quote_by_id("quote-de-love-001")
+    quote = catalog.get_quote_by_id("saying-de-rilke-liebes-lied")
     assert quote is not None
-    assert quote.author_display == "Wilhelm Busch"
+    assert quote.author_display == "Rainer Maria Rilke"
 
     missing = catalog.get_quote_by_id("nonexistent-quote-id")
     assert missing is None

@@ -3,13 +3,13 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
-import { planPathFromCalendarLink } from './client/routes';
 import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
-import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
+import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
@@ -48,6 +48,7 @@ import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/person-colors.css';
 import './design/identity-components.css';
+import './design/app-designs.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 
 // Resolve calendar links before the router and sign-in read the entry URL.

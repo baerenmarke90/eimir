@@ -1078,3 +1078,276 @@ describe('WirDailyCheckIn availability', () => {
     await waitFor(() => expect(queryClient.isMutating()).toBe(0));
   });
 });
+
+/** jsdom runs no layout, animation or top layer: stand in for all three. */
+function installFlightSupport() {
+  const root = document.documentElement.style;
+  root.setProperty('--duration-context', '280ms');
+  root.setProperty('--duration-send-flight', '560ms');
+  root.setProperty('--duration-feedback', '120ms');
+  root.setProperty('--easing-enter', 'cubic-bezier(0, 0, 0.2, 1)');
+  root.setProperty('--easing-standard', 'cubic-bezier(0.2, 0, 0, 1)');
+  const animate = vi.fn(() => ({
+    finished: Promise.resolve(),
+    cancel: vi.fn(),
+  }));
+  const rect = () => ({
+    x: 10,
+    y: 10,
+    left: 10,
+    top: 10,
+    right: 50,
+    bottom: 50,
+    width: 40,
+    height: 40,
+    toJSON: () => ({}),
+  });
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+    rect as never,
+  );
+  Object.assign(HTMLElement.prototype, {
+    animate,
+    showPopover: vi.fn(),
+    hidePopover: vi.fn(),
+  });
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
+  });
+  return () => {
+    for (const name of [
+      '--duration-context',
+      '--duration-send-flight',
+      '--duration-feedback',
+      '--easing-enter',
+      '--easing-standard',
+    ])
+      root.removeProperty(name);
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    delete proto.animate;
+    delete proto.showPopover;
+    delete proto.hidePopover;
+  };
+}
+
+function ghosts() {
+  return document.querySelectorAll('.wir-checkin-flight-ghost');
+}
+
+function ownSlot(kind: string) {
+  return screen
+    .getByTestId('wir-checkin-own-badge')
+    .querySelector(`[data-flight-slot="${kind}"]`);
+}
+
+describe('WirDailyCheckIn send flight (Fertig)', () => {
+  let restore: () => void;
+  beforeEach(() => {
+    restore = installFlightSupport();
+  });
+  afterEach(() => restore());
+
+  it('flies the confirmed values to the badge and closes the sheet afterwards', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValueOnce(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownEnergy: 70 }),
+          '"today:3"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+
+    // Waiting for the server: the values hover, the sheet stays, nothing lands.
+    await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(ownSlot('vibe')?.getAttribute('data-flight-hidden')).toBe('true');
+    expect(
+      document.querySelector('[popover]')?.getAttribute('aria-hidden'),
+    ).toBe('true');
+
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    // Arrived: the slot is visible again and settles in; no flight element is left.
+    await waitFor(() =>
+      expect(ownSlot('vibe')?.getAttribute('data-flight-hidden')).toBeNull(),
+    );
+    expect(ownSlot('vibe')?.getAttribute('data-flight-landing')).toBe('true');
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('flies the feeling, the battery and the note together and lands each in its slot', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValue(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownEnergy: 70, ownNote: 'Hallo' }),
+          '"today:9"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() =>
+      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+    );
+    fireEvent.change(slider(), { target: { value: '70' } });
+    fireEvent.pointerUp(slider());
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+    );
+    fireEvent.change(noteField(), { target: { value: 'Hallo' } });
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() => expect(ghosts().length).toBe(3));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(ownSlot('vibe')).not.toBeNull();
+    expect(ownSlot('energy')).not.toBeNull();
+    expect(ownSlot('note')).not.toBeNull();
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+  });
+
+  it('returns a value that could not be saved and keeps the sheet open', async () => {
+    const update = vi
+      .fn()
+      .mockRejectedValue(new ClientProblemError('server', 500, 'BROKEN'));
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('SAD'));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await screen.findByText(wirCheckIn.saveError);
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('true');
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+    expect(document.querySelector('[data-flight-landing="true"]')).toBeNull();
+    expect(vibeButton('SAD').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('closes at once when nothing changed', async () => {
+    const { api } = apiFor(projection({ ownVibe: 'GOOD' }));
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    expect(ghosts()).toHaveLength(0);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('keeps a calm close with reduced motion: no flight at all', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }),
+    });
+    const update = vi
+      .fn()
+      .mockResolvedValue(
+        rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(ghosts()).toHaveLength(0);
+    expect(document.querySelector('[popover]')).toBeNull();
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+  });
+
+  it('drops the flight when the sheet is dismissed while it waits', async () => {
+    const held = deferredResponse();
+    const update = vi.fn().mockReturnValue(held.promise);
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
+    fireEvent.keyDown(screen.getByRole('dialog', { hidden: true }), {
+      key: 'Escape',
+    });
+    fireEvent(
+      screen.getByRole('dialog', { hidden: true }),
+      new Event('cancel', { cancelable: true }),
+    );
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+  });
+});
+
+describe('WirDailyCheckIn pending intent', () => {
+  it('keeps the chosen feeling visible while a note is queued behind its save', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValue(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownNote: 'Hallo' }),
+          '"today:3"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.change(noteField(), { target: { value: 'Hallo' } });
+    fireEvent.blur(noteField());
+    // The note waits behind the feeling's save, and the feeling stays chosen.
+    expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-label'),
+    ).toContain(dailyVibe.values.GOOD);
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
+  });
+});

@@ -33,6 +33,8 @@ interface MockOptions {
   partnerEnergy?: number | null;
   partnerNote?: string | null;
   failFirstPatch?: boolean;
+  /** Hold every PATCH response, to observe the waiting state. */
+  patchDelayMs?: number;
 }
 
 async function installMocks(page: Page, options: MockOptions = {}) {
@@ -224,6 +226,10 @@ async function installMocks(page: Page, options: MockOptions = {}) {
       if (method === 'PATCH') {
         const patch = request.postDataJSON() as Record<string, unknown>;
         patches.push(patch);
+        if (options.patchDelayMs)
+          await new Promise((resolve) =>
+            setTimeout(resolve, options.patchDelayMs),
+          );
         if (options.failFirstPatch && patches.length === 1) {
           return json(
             { code: 'SERVICE_UNAVAILABLE', status: 503, title: 'Unavailable' },
@@ -662,3 +668,125 @@ for (const { width, theme, large, reduced } of [
     await saveEvidence(page, `1790a-${label}-4-after-deletion`);
   });
 }
+
+/**
+ * Send flight (Fertig): the chosen feeling, battery and note lift out of the
+ * sheet, wait for the server, then fly to the own badge while the sheet
+ * closes. The flight layer lives in the top layer, above the modal sheet.
+ */
+const flightGhosts = (page: Page) =>
+  page.locator('.wir-checkin-flight-layer .wir-checkin-flight-ghost');
+
+async function fillOwnDay(panel: ReturnType<Page['getByRole']>) {
+  await panel.getByRole('button', { name: 'Entspannt', exact: true }).click();
+  await panel
+    .getByRole('slider', { name: wirCheckIn.energySliderLabel })
+    .press('ArrowRight');
+  await panel
+    .getByRole('textbox', { name: wirCheckIn.noteLabel })
+    .fill('Denk an dich');
+}
+
+for (const { width, theme } of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 430, theme: 'light' },
+] as const) {
+  test(`Fertig flies feeling, battery and note to the own badge (${width} ${theme})`, async ({
+    page,
+  }) => {
+    const state = await installMocks(page, { patchDelayMs: 900 });
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({ colorScheme: theme });
+    await signIn(page);
+    await ownAvatar(page).click();
+    const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+    await fillOwnDay(panel);
+    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+
+    // Waiting for the server: all three hover in the top layer above the
+    // sheet, the sheet stays, and nothing has landed on the badge yet.
+    await expect(flightGhosts(page)).toHaveCount(3);
+    const layer = page.locator('.wir-checkin-flight-layer');
+    await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(await layer.evaluate((node) => node.matches(':popover-open'))).toBe(
+      true,
+    );
+    const pointer = await flightGhosts(page)
+      .first()
+      .evaluate((node) => getComputedStyle(node).pointerEvents);
+    expect(pointer).toBe('none');
+    await expect(panel).toBeVisible();
+    const badge = page.getByTestId('wir-checkin-own-badge');
+    await expect(badge.locator('[data-flight-slot="vibe"]')).toHaveAttribute(
+      'data-flight-hidden',
+      'true',
+    );
+    await saveEvidence(page, `send-flight-${width}-${theme}-hover`);
+
+    // Confirmed: the sheet closes and everything lands on the badge.
+    await expect(panel).toBeHidden();
+    await expect(flightGhosts(page)).toHaveCount(0);
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+    await expect(
+      badge.locator('[data-flight-slot="vibe"]'),
+    ).not.toHaveAttribute('data-flight-hidden', 'true');
+    await expect(badge.locator('[data-flight-slot="energy"]')).toBeVisible();
+    await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
+    await expectInsideViewport(page, 'wir-checkin-own-badge');
+    await saveEvidence(page, `send-flight-${width}-${theme}-landed`);
+    expect(state.unexpectedRequests).toEqual([]);
+    expect(state.patches.length).toBeGreaterThanOrEqual(3);
+  });
+}
+
+test('a failed save returns the value and keeps Dein Tag open', async ({
+  page,
+}) => {
+  await installMocks(page, { failFirstPatch: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await panel.getByRole('button', { name: 'Fröhlich', exact: true }).click();
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel.getByText(wirCheckIn.saveError)).toBeVisible();
+  await expect(panel).toBeVisible();
+  await expect(flightGhosts(page)).toHaveCount(0);
+  await expect(page.locator('[data-flight-hidden="true"]')).toHaveCount(0);
+  // The failed feeling is not on the badge.
+  await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
+    wirCheckIn.ownPrompt,
+  );
+});
+
+test('reduced motion closes calmly: no flight layer is ever created', async ({
+  page,
+}) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await fillOwnDay(panel);
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+  const badge = page.getByTestId('wir-checkin-own-badge');
+  await expect(badge.locator('[data-flight-slot="vibe"]')).toBeVisible();
+  await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
+});
+
+test('Fertig without a change closes at once and flies nothing', async ({
+  page,
+}) => {
+  await installMocks(page, { ownVibe: 'GOOD' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+});

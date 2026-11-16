@@ -204,6 +204,7 @@ declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
 declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+declare('duration-send-flight', value('motion.duration.sendFlight'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 declare('duration-connection-draw', value('motion.duration.connectionDraw'));
@@ -314,6 +315,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-map-stack: ${value('motion.duration.instant')};
     --duration-controls-return: ${value('motion.duration.instant')};
     --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-send-flight: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
     --duration-connection-draw: ${value('motion.duration.instant')};

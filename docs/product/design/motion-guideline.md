@@ -44,6 +44,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
 | one beat of a staged opening sequence (#1861) | `motion.duration.sequenceBeat` | 200 ms | `--duration-sequence-beat` |
+| one item flying from the closing own check-in sheet to the own avatar badge (Dein Tag, "Fertig") | `motion.duration.sendFlight` | 560 ms | `--duration-send-flight` |
 | one expressive beat of a received partner gesture (#455) | `motion.duration.gestureMoment` | 900 ms | `--duration-gesture-moment` |
 | the whole one-shot partner gesture choreography (#455) | `motion.duration.gestureSequence` | 1800 ms | `--duration-gesture-sequence` |
 | the map connection drawing in between the partner avatars (#1907 H1) | `motion.duration.connectionDraw` | 700 ms | `--duration-connection-draw` |
@@ -67,6 +68,8 @@ The Product Owner approved the partner map connection (#1907 H1, 2026-11-15)
 as a decorative, self-ending motion: the arc draws in once, the glow makes
 three round trips and then rests, and a longer trip expresses a greater
 distance. It never delays interaction and is absent with reduced motion.
+
+The Product Owner approved the send flight of the own check-in (Dein Tag, 2026-11-17): after "Fertig", the chosen feeling, the battery and the note fly together to the own avatar badge while the sheet closes. 560 ms is a deliberate departure from the 320 ms guardrail because the items cross the screen from the sheet to the badge; the flight is presentation only (it never delays saving, closing or the next action, and a failed save returns the item instead), and it is absent with reduced motion.
 
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 

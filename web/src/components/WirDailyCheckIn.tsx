@@ -26,6 +26,12 @@ import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
+import {
+  type FlightItem,
+  type FlightKind,
+  type SendFlight,
+  startSendFlight,
+} from './sendFlight';
 import { useViewportClamp } from './useViewportClamp';
 import './WirDailyCheckIn.css';
 
@@ -53,6 +59,37 @@ export const DAILY_VIBE_FEELINGS: readonly DailyVibeValue[] = [
 
 export const DAILY_NOTE_MAX_LENGTH = 200;
 const DEFAULT_ENERGY_DRAFT = 50;
+/** A write that never settles must not keep the sheet waiting forever. */
+const FLIGHT_WAIT_LIMIT = 8000;
+const NO_KINDS: ReadonlySet<FlightKind> = new Set();
+
+interface OwnDay {
+  vibe: DailyVibeValue | null;
+  energy: number | null;
+  note: string | null;
+}
+
+interface ActiveFlight {
+  handle: SendFlight;
+  expected: OwnDay;
+  kinds: FlightKind[];
+}
+
+function withoutKind(
+  kinds: ReadonlySet<FlightKind>,
+  kind: FlightKind,
+): ReadonlySet<FlightKind> {
+  const next = new Set(kinds);
+  next.delete(kind);
+  return next;
+}
+
+function withKind(
+  kinds: ReadonlySet<FlightKind>,
+  kind: FlightKind,
+): ReadonlySet<FlightKind> {
+  return new Set(kinds).add(kind);
+}
 type Dimension = 'vibe' | 'energy';
 type EnergyLevel = NonNullable<DailyCheckInUpdate['energyLevel']>;
 
@@ -218,8 +255,19 @@ export function useWirDailyCheckIn({
   >({});
   const [announcementText, setAnnouncementText] = useState('');
   const [revealKey, setRevealKey] = useState(0);
+  // Send flight: the values that still travel to the badge, the slots that
+  // just arrived, and whether Fertig waits for the server.
+  const [flightHidden, setFlightHidden] =
+    useState<ReadonlySet<FlightKind>>(NO_KINDS);
+  const [flightLanding, setFlightLanding] =
+    useState<ReadonlySet<FlightKind>>(NO_KINDS);
+  const [flightWaiting, setFlightWaiting] = useState(false);
+  const flightRef = useRef<ActiveFlight | null>(null);
+  const baselineRef = useRef<OwnDay>({ vibe: null, energy: null, note: null });
   const panelId = useId();
   const ownTriggerRef = useRef<HTMLButtonElement>(null);
+  const ownBadgeRef = useRef<HTMLSpanElement | null>(null);
+  const panelBodyRef = useRef<HTMLDivElement>(null);
 
   // Privacy: present the private partner projection (and own values) only
   // from an authoritative read. A denied or failed read, or being offline,
@@ -247,16 +295,19 @@ export function useWirDailyCheckIn({
   const serverVibe = projection?.own.vibe ?? null;
   const serverNote = projection?.own.vibeNote?.trim() || null;
   const serverEnergy = projection?.own.energyLevel ?? null;
-  const pendingVibeSource = queued.vibe ?? vibePending ?? null;
-  const ownVibe =
-    pendingVibeSource && 'vibe' in pendingVibeSource
-      ? (pendingVibeSource.vibe ?? null)
-      : serverVibe;
+  // A queued note must not hide a feeling that is still being saved: each
+  // field reads the newest intent that actually mentions it.
+  const vibeIntents = [queued.vibe, vibePending];
+  const vibeIntent = vibeIntents.find((update) => update && 'vibe' in update);
+  const noteIntent = vibeIntents.find(
+    (update) => update && 'vibeNote' in update,
+  );
+  const ownVibe = vibeIntent ? (vibeIntent.vibe ?? null) : serverVibe;
   const ownNote =
-    pendingVibeSource && 'vibe' in pendingVibeSource && !pendingVibeSource.vibe
+    vibeIntent && !vibeIntent.vibe
       ? null
-      : pendingVibeSource && 'vibeNote' in pendingVibeSource
-        ? pendingVibeSource.vibeNote?.trim() || null
+      : noteIntent
+        ? noteIntent.vibeNote?.trim() || null
         : serverNote;
   const pendingEnergySource = queued.energy ?? energyPending ?? null;
   const ownEnergy =
@@ -352,6 +403,10 @@ export function useWirDailyCheckIn({
   useEffect(() => {
     if (scopeRef.current === vibeWrite.scopeId) return;
     scopeRef.current = vibeWrite.scopeId;
+    flightRef.current?.handle.cancel();
+    flightRef.current = null;
+    setFlightWaiting(false);
+    setFlightHidden(NO_KINDS);
     setPanelOpen(false);
     setNoteDraft(null);
     setEnergyDraft(null);
@@ -421,6 +476,102 @@ export function useWirDailyCheckIn({
     note: serverNote,
     energy: serverEnergy,
   };
+  // Fertig: wait until the writes settled, then fly what the server holds and
+  // let what failed return. A flight never outlives its screen.
+  const anyWriteFailed = [vibeWrite, energyWrite].some(
+    (writer) => writer.error !== null,
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-evaluated whenever the writes, the confirmed read or connectivity change.
+  useEffect(() => {
+    const flight = flightRef.current;
+    if (!flight || !flightWaiting) return;
+    const { expected } = flight;
+    const confirmed = {
+      vibe: serverVibe,
+      note: serverNote,
+      energy: serverEnergy,
+    };
+    const matches: Record<FlightKind, boolean> = {
+      vibe: alreadyApplied({ vibe: expected.vibe }, confirmed),
+      energy: alreadyApplied(
+        expected.energy === null
+          ? {}
+          : { energyLevel: expected.energy as EnergyLevel },
+        confirmed,
+      ),
+      note: alreadyApplied({ vibeNote: expected.note }, confirmed),
+    };
+    const settled = flight.kinds.every((kind) => matches[kind]);
+    const stuck = anyWriteFailed || !online;
+    if (!settled && !stuck) return;
+    setFlightWaiting(false);
+    const outcome: Record<FlightKind, boolean> = {
+      vibe: matches.vibe,
+      energy: matches.energy,
+      note: matches.note,
+    };
+    // Values that did not make it show their own state again at once.
+    setFlightHidden(
+      (current) =>
+        new Set(
+          [...current].filter(
+            (kind) => outcome[kind] || !flight.kinds.includes(kind),
+          ),
+        ),
+    );
+    if (settled) {
+      setUndoNote(null);
+      setPanelOpen(false);
+    }
+    void flight.handle
+      .settle(outcome, {
+        onLand: (kind) => {
+          setFlightHidden((current) => withoutKind(current, kind));
+          setFlightLanding((current) => withKind(current, kind));
+        },
+      })
+      .finally(() => {
+        if (flightRef.current === flight) flightRef.current = null;
+        setFlightHidden(NO_KINDS);
+      });
+  }, [
+    anyPending,
+    anyWriteFailed,
+    flightWaiting,
+    online,
+    queued.energy,
+    queued.vibe,
+    serverEnergy,
+    serverNote,
+    serverVibe,
+  ]);
+  useEffect(() => {
+    if (!flightWaiting) return;
+    const timer = window.setTimeout(() => {
+      const flight = flightRef.current;
+      if (!flight) return;
+      // Give up waiting: treat what is not confirmed as failed.
+      setFlightWaiting(false);
+      setFlightHidden(NO_KINDS);
+      void flight.handle
+        .settle(
+          { vibe: false, energy: false, note: false },
+          { onLand: () => undefined },
+        )
+        .finally(() => {
+          if (flightRef.current === flight) flightRef.current = null;
+        });
+    }, FLIGHT_WAIT_LIMIT);
+    return () => window.clearTimeout(timer);
+  }, [flightWaiting]);
+  useEffect(
+    () => () => {
+      flightRef.current?.handle.cancel();
+      flightRef.current = null;
+    },
+    [],
+  );
+
   // Server feedback per dimension (conflict, module disabled, errors).
   useEffect(() => {
     if (!vibeWrite.claimFeedback()) return;
@@ -552,7 +703,70 @@ export function useWirDailyCheckIn({
 
   // The sheet owns Escape, outside press, drag-down and focus restoration;
   // every dismissal saves the open note and energy like Done does.
+  function cancelFlight(): void {
+    flightRef.current?.handle.cancel();
+    flightRef.current = null;
+    setFlightWaiting(false);
+    setFlightHidden(NO_KINDS);
+  }
+
+  /**
+   * Fertig: when something changed, the chosen values fly to the badge after
+   * the server confirmed them. Without a flight (nothing changed, reduced
+   * motion, no top-layer support) the sheet simply closes.
+   */
+  function finishPanel(): void {
+    if (flightRef.current) return;
+    const expected: OwnDay = {
+      vibe: ownVibe,
+      energy: energyDraft ?? ownEnergy,
+      note: noteDraft !== null ? noteDraft.trim() || null : ownNote,
+    };
+    const baseline = baselineRef.current;
+    const changed =
+      expected.vibe !== baseline.vibe ||
+      expected.energy !== baseline.energy ||
+      expected.note !== baseline.note;
+    const body = panelBodyRef.current;
+    const slot = (kind: FlightKind) =>
+      ownBadgeRef.current?.querySelector(`[data-flight-slot="${kind}"]`) ??
+      null;
+    const items: FlightItem[] = [];
+    if (body && changed) {
+      const face = body.querySelector(
+        '.wir-checkin-vibe.is-selected .wir-checkin-vibe-circle',
+      );
+      if (expected.vibe && face)
+        items.push({ kind: 'vibe', source: face, target: () => slot('vibe') });
+      const battery = body.querySelector(
+        '.wir-checkin-energy-label .daily-energy-battery-icon',
+      );
+      if (expected.energy !== null && battery)
+        items.push({
+          kind: 'energy',
+          source: battery,
+          target: () => slot('energy'),
+        });
+      const note = body.querySelector('.wir-checkin-note-field textarea');
+      if (expected.note && note)
+        items.push({ kind: 'note', source: note, target: () => slot('note') });
+    }
+    const handle = items.length ? startSendFlight(items) : null;
+    if (!handle) {
+      closePanel();
+      return;
+    }
+    const kinds = items.map((item) => item.kind);
+    commitNote();
+    commitEnergy();
+    flightRef.current = { handle, expected, kinds };
+    setFlightHidden(new Set(kinds));
+    setFlightLanding(NO_KINDS);
+    setFlightWaiting(true);
+  }
+
   function closePanel(): void {
+    cancelFlight();
     commitNote();
     commitEnergy();
     setUndoNote(null);
@@ -560,7 +774,10 @@ export function useWirDailyCheckIn({
   }
 
   const ownAction: PartnerAvatarAction = {
-    onActivate: () => setPanelOpen(true),
+    onActivate: () => {
+      baselineRef.current = { vibe: ownVibe, energy: ownEnergy, note: ownNote };
+      setPanelOpen(true);
+    },
     label: ownAriaLabel,
     ref: ownTriggerRef,
     expanded: panelOpen,
@@ -569,9 +786,16 @@ export function useWirDailyCheckIn({
   };
 
   const ownHasValue = Boolean(ownVibe) || ownEnergy !== null;
+  const slotState = {
+    hidden: flightHidden,
+    landing: flightLanding,
+    onLanded: (kind: FlightKind) =>
+      setFlightLanding((current) => withoutKind(current, kind)),
+  };
   const ownBadge = loaded ? (
     <ClampedBadge
       className="wir-checkin-badge wir-checkin-badge-own"
+      badgeRef={ownBadgeRef}
       data-pending={ownPending ? 'true' : undefined}
       data-testid="wir-checkin-own-badge"
       aria-hidden="true"
@@ -583,9 +807,15 @@ export function useWirDailyCheckIn({
         {ownHasValue ? (
           <>
             {ownVibe ? (
-              <DailyVibeIcon value={ownVibe} className="wir-checkin-glyph" />
+              <FlightSlot kind="vibe" {...slotState}>
+                <DailyVibeIcon value={ownVibe} className="wir-checkin-glyph" />
+              </FlightSlot>
             ) : null}
-            {ownEnergy !== null ? <BatteryIcon value={ownEnergy} /> : null}
+            {ownEnergy !== null ? (
+              <FlightSlot kind="energy" {...slotState}>
+                <BatteryIcon value={ownEnergy} />
+              </FlightSlot>
+            ) : null}
           </>
         ) : (
           <span className="wir-checkin-prompt">
@@ -593,6 +823,15 @@ export function useWirDailyCheckIn({
           </span>
         )}
       </span>
+      {ownNote ? (
+        <FlightSlot
+          kind="note"
+          className="wir-checkin-badge-note"
+          {...slotState}
+        >
+          <EimirIcon name="nachrichten" />
+        </FlightSlot>
+      ) : null}
     </ClampedBadge>
   ) : null;
 
@@ -640,7 +879,7 @@ export function useWirDailyCheckIn({
     ) : null;
 
   const offline = !online;
-  const disabled = offline || !loaded;
+  const disabled = offline || !loaded || flightWaiting;
   const noteValue = noteDraft ?? ownNote ?? '';
   const energyValue = energyDraft ?? ownEnergy ?? DEFAULT_ENERGY_DRAFT;
   const sliderStyle = {
@@ -662,7 +901,11 @@ export function useWirDailyCheckIn({
       restoreFocusRef={ownTriggerRef}
       className="wir-checkin-own-sheet"
     >
-      <div className="wir-checkin-panel-inner" data-testid="wir-checkin-panel">
+      <div
+        className="wir-checkin-panel-inner"
+        data-testid="wir-checkin-panel"
+        ref={panelBodyRef}
+      >
         {!loaded && online ? (
           <p className="wir-checkin-status" role="status">
             {dailyQuery.isError
@@ -883,7 +1126,8 @@ export function useWirDailyCheckIn({
           <button
             type="button"
             className="primary wir-checkin-done"
-            onClick={() => closePanel()}
+            disabled={flightWaiting}
+            onClick={() => finishPanel()}
           >
             {t('wirCheckIn.done')}
           </button>
@@ -922,14 +1166,48 @@ export function useWirDailyCheckIn({
   };
 }
 
+/**
+ * One value on the own badge. While its value is still travelling from the
+ * sheet it keeps its place but stays invisible; when it arrives it settles in.
+ */
+function FlightSlot({
+  kind,
+  hidden,
+  landing,
+  onLanded,
+  className = 'wir-checkin-slot',
+  children,
+}: {
+  kind: FlightKind;
+  hidden: ReadonlySet<FlightKind>;
+  landing: ReadonlySet<FlightKind>;
+  onLanded: (kind: FlightKind) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={className}
+      data-flight-slot={kind}
+      data-flight-hidden={hidden.has(kind) ? 'true' : undefined}
+      data-flight-landing={landing.has(kind) ? 'true' : undefined}
+      onAnimationEnd={() => onLanded(kind)}
+    >
+      {children}
+    </span>
+  );
+}
+
 /** Keeps an avatar badge inside the viewport at any text size (#1790 A). */
 function ClampedBadge({
   className,
   children,
+  badgeRef,
   ...data
 }: {
   className: string;
   children: ReactNode;
+  badgeRef?: { current: HTMLSpanElement | null };
   'data-pending'?: string;
   'data-state'?: string;
   'data-testid'?: string;
@@ -938,7 +1216,14 @@ function ClampedBadge({
   const ref = useRef<HTMLSpanElement>(null);
   useViewportClamp(ref);
   return (
-    <span ref={ref} className={className} {...data}>
+    <span
+      ref={(node) => {
+        ref.current = node;
+        if (badgeRef) badgeRef.current = node;
+      }}
+      className={className}
+      {...data}
+    >
       {children}
     </span>
   );

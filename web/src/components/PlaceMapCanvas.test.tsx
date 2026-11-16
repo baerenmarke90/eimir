@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import PlaceMapCanvas from './PlaceMapCanvas';
+import PlaceMapCanvas, { type MapArea } from './PlaceMapCanvas';
 
 const state = vi.hoisted(() => ({
   width: 0,
   height: 0,
+  native: false,
   resize: () => {},
   events: {} as Record<string, (event?: unknown) => void>,
   options: {} as Record<string, unknown>,
@@ -18,6 +19,7 @@ const state = vi.hoisted(() => ({
   stop: vi.fn(),
   marker: vi.fn(),
 }));
+vi.mock('../pwa', () => ({ isCapacitorNative: () => state.native }));
 vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
   default: '/worker.js',
 }));
@@ -71,6 +73,7 @@ vi.mock('maplibre-gl', () => {
 });
 beforeEach(() => {
   state.width = state.height = 0;
+  state.native = false;
   state.events = {};
   vi.clearAllMocks();
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
@@ -94,6 +97,56 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+it('uses the native HTTP cache only for public map tiles', () => {
+  state.native = true;
+  render(<PlaceMapCanvas />);
+  const transform = state.options.transformRequest as (
+    url: string,
+    type: string,
+  ) => unknown;
+  const tile = 'https://tiles.openfreemap.org/planet/version/0/0/0.pbf';
+  expect(transform(tile, 'Tile')).toEqual({ url: tile, cache: 'force-cache' });
+  expect(
+    transform('https://tiles.openfreemap.org/planet', 'Source'),
+  ).toBeUndefined();
+  expect(
+    transform('https://tiles.openfreemap.org/styles/liberty', 'Style'),
+  ).toBeUndefined();
+  expect(
+    transform('https://tiles.openfreemap.org.example/tile', 'Tile'),
+  ).toBeUndefined();
+});
+
+it('frames arriving areas until the viewer moves and drops withdrawn areas', () => {
+  state.width = 390;
+  state.height = 740;
+  const own: MapArea = {
+    id: 'own',
+    tone: 'own',
+    latitude: 50,
+    longitude: 7,
+    radiusMeters: 1000,
+  };
+  const partner: MapArea = {
+    ...own,
+    id: 'partner',
+    tone: 'partner',
+    latitude: 53,
+  };
+  const view = render(<PlaceMapCanvas areas={[own]} />);
+  expect(state.fit).toHaveBeenCalledTimes(1);
+  view.rerender(<PlaceMapCanvas areas={[own, partner]} />);
+  expect(state.fit).toHaveBeenCalledTimes(2);
+  view.rerender(<PlaceMapCanvas areas={[own]} />);
+  expect(state.fit).toHaveBeenCalledTimes(3);
+  expect(state.fit.mock.lastCall?.[0].points).toHaveLength(2);
+  act(() =>
+    state.events.movestart({ originalEvent: new Event('pointerdown') }),
+  );
+  view.rerender(<PlaceMapCanvas areas={[own, partner]} />);
+  expect(state.fit).toHaveBeenCalledTimes(3);
 });
 
 it('waits for measurable dialog layout, then fits every location without a timer', () => {

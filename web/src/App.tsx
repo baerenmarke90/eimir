@@ -169,6 +169,7 @@ import {
 import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryMapPage } from './components/MemoryMapPage';
+import type { MapViewport } from './components/PlaceMapCanvas';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
@@ -314,6 +315,12 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
+  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+    scope: '',
+  });
+  const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
+  if (memoryMapViewport.current.scope !== mapScope)
+    memoryMapViewport.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -750,6 +757,7 @@ function AuthenticatedApp({
                 <MemoryMapPage
                   {...planningProductProps}
                   loadMemoryImage={loadMemoryImage}
+                  sessionViewport={memoryMapViewport.current}
                 />
               }
             />

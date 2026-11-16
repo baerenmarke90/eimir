@@ -1,6 +1,7 @@
 
 # HeartHuntTapResult
 
+
 ## Properties
 
 Name | Type

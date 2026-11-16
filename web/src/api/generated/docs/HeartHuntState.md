@@ -1,6 +1,7 @@
 
 # HeartHuntState
 
+
 ## Properties
 
 Name | Type

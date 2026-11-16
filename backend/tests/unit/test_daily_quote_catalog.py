@@ -59,18 +59,28 @@ def test_quote_provenance_and_auditability() -> None:
         assert quote.original_work.strip(), f"Missing original_work for quote {quote.id}"
         assert quote.source_edition.strip(), f"Missing source_edition for quote {quote.id}"
         assert quote.rights_basis.strip(), f"Missing rights_basis for quote {quote.id}"
-        assert "Public Domain" in quote.rights_basis
-        if quote.attribution_required:
-            assert "p.m.a. > 70 years" in quote.rights_basis
+        if "Public Domain" in quote.rights_basis:
+            if quote.attribution_required:
+                assert "p.m.a. > 70 years" in quote.rights_basis
+            else:
+                assert "traditional" in quote.rights_basis
         else:
-            assert "traditional" in quote.rights_basis
+            assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
+            assert quote.attribution_required
+            if quote.author_display == "eimir.":
+                assert "First-party eimir. editorial content" in quote.rights_basis
+            else:
+                assert quote.source_display
+                assert quote.publication_year is not None
+                assert "https://" in quote.source_edition
 
-        if quote.rights_classification == RightsClassification.EDITORIAL_CURATED:
-            assert quote.translator
+        if (
+            quote.translator
+            and quote.rights_classification == RightsClassification.EDITORIAL_CURATED
+        ):
             assert "CC0 1.0 Universal" in quote.rights_basis
-        elif quote.translator is not None:
-            # Published historical translations have their own public-domain provenance.
-            assert "died" in quote.translator or "18" in quote.translator
+        elif quote.translator:
+            assert "died" in quote.translator
 
 
 def test_unverified_and_copyrighted_authors_are_excluded() -> None:
@@ -90,6 +100,7 @@ def test_get_quotes_filters_by_locale() -> None:
     category_ids = {category.id for category in catalog.get_categories()}
     for locale in language_catalogs():
         quotes = catalog.get_quotes(locale=locale)
+        assert len(quotes) == 1_000
         assert all(quote.locale == locale for quote in quotes)
         assert {category for quote in quotes for category in quote.category_ids} == category_ids
         assert any(not quote.attribution_required for quote in quotes)
@@ -103,10 +114,7 @@ def test_sayings_have_equivalent_entries_in_every_app_language() -> None:
         for quote in catalog.get_quotes(locale="de")
         if quote.id.startswith("saying-de-")
     }
-    assert originals
-    assert all(
-        q.rights_classification == RightsClassification.PUBLIC_DOMAIN for q in originals.values()
-    )
+    assert len(originals) == 1_000
 
     for locale in set(language_catalogs()) - {"de"}:
         prefix = f"saying-{locale}-"
@@ -125,13 +133,30 @@ def test_sayings_have_equivalent_entries_in_every_app_language() -> None:
             assert quote.source_id == original.source_id
             assert quote.original_work == original.original_work
             assert quote.source_edition == original.source_edition
-            assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
-            if quote.attribution_required:
+            assert RightsClassification.EDITORIAL_CURATED in {
+                original.rights_classification,
+                quote.rights_classification,
+            }
+            if quote.attribution_required and quote.author_display != "eimir.":
                 assert quote.source_display
 
 
+def test_catalog_includes_contemporary_sayings_and_quotes_from_both_centuries() -> None:
+    for locale in language_catalogs():
+        quotes = catalog.get_quotes(locale=locale)
+        assert any(quote.author_display == "eimir." for quote in quotes)
+        for author, year in (("Virginia Woolf", 1929), ("Jacinda Ardern", 2022)):
+            assert any(
+                quote.author_display == author
+                and quote.publication_year == year
+                and quote.attribution_required
+                and quote.source_display
+                for quote in quotes
+            )
+
+
 def test_get_quote_by_id() -> None:
-    quote = catalog.get_quote_by_id("quote-de-love-007")
+    quote = catalog.get_quote_by_id("saying-de-rilke-liebes-lied")
     assert quote is not None
     assert quote.author_display == "Rainer Maria Rilke"
 

@@ -29,7 +29,6 @@ import {
   GiftIdeasListPage,
 } from './GiftIdeasPage';
 import { PrivateAreaFrame } from './PrivateAreaLayout';
-import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import {
   PrivateCollectionCreatePage,
   PrivateCollectionDetailPage,
@@ -42,6 +41,7 @@ import {
   PrivateNoteEditPage,
   PrivateNotesListPage,
 } from './PrivateNotesPage';
+import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import './PrivateAreaProductPage.css';
 import './PrivateAreaReference.css';
 
@@ -143,10 +143,23 @@ export function PrivateAreaProductPage({
       matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
   );
 
+  // One note, list or gift idea, including its editor, leads with its own
+  // header row; the area card and tabs belong to the lists (#1907 C4).
+  const isItem =
+    !isGiftEditor &&
+    [
+      `${PRIVATE_NOTES_PATH}/:noteId`,
+      `${PRIVATE_NOTES_PATH}/:noteId/edit`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId/edit`,
+      `${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId`,
+    ].some((pattern) => matchPath(pattern, pathname));
+
   return (
     <PrivateAreaFrame
       showNavigation={!isOverview}
       editorFirst={isGiftEditor}
+      itemFirst={isItem}
       overviewAction={
         isOverview ? (
           <ContextualCreateMenu

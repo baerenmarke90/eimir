@@ -1686,6 +1686,7 @@
   "people": {
     "eyebrow": "People who matter",
     "title": "People",
+    "itemLabel": "Person",
     "intro": "You decide which details to share.",
     "formRailAria": "Create or edit person",
     "createTitle": "Add person",
@@ -1915,6 +1916,7 @@
     },
     "notes": {
       "title": "Notes for me",
+      "itemLabel": "Note",
       "intro": "Thoughts and notes meant only for you.",
       "add": "Add note for me",
       "createTitle": "New note",
@@ -1935,6 +1937,7 @@
     },
     "gifts": {
       "title": "Gift ideas",
+      "itemLabel": "Gift idea",
       "intro": "Ideas and preparations your partner cannot see.",
       "add": "Add gift idea",
       "createTitle": "New gift idea",
@@ -1962,6 +1965,7 @@
     },
     "collections": {
       "title": "My lists",
+      "itemLabel": "My list",
       "intro": "Personal lists with ordering and completion status.",
       "add": "Add list",
       "createTitle": "New list",

@@ -1,19 +1,11 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import {
-  expectFloatingAddAction,
-  expectLabeledAddAction,
-} from '../support/addAction';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
-import { expectVisibleFieldBoundary } from '../support/renderedContrast';
+import { writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
-  test,
   type Locator,
   type Page,
   type Route,
+  test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -21,8 +13,16 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { writeFile } from 'node:fs/promises';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -37,6 +37,16 @@ const privateCreateCases = [
   { kind: 'gift-ideas', copy: privateArea.gifts },
   { kind: 'collections', copy: privateArea.collections },
 ] as const;
+
+/**
+ * Leaves an open private item through the primary navigation. Item pages lead
+ * with their own header row and show no section tabs (#1907 C4).
+ */
+async function openPrivateSection(page: Page, kind: string): Promise<void> {
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.locator('a[href="/more/private"]').first().click();
+  await page.locator(`a[href="/more/private/${kind}"]`).first().click();
+}
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -2289,13 +2299,7 @@ for (const view of privateEditorViews) {
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
-      await page
-        .getByRole('navigation', {
-          name: privateArea.navigation.aria,
-          exact: true,
-        })
-        .getByRole('link', { name: destination.copy.title, exact: true })
-        .click();
+      await openPrivateSection(page, destination.kind);
       await expect(
         page.getByRole('heading', {
           name: destination.copy.title,
@@ -2627,13 +2631,7 @@ for (const view of [
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
-    await page
-      .locator('.private-area-nav')
-      .getByRole('link', {
-        name: privateArea.navigation.notes,
-        exact: true,
-      })
-      .click();
+    await openPrivateSection(page, 'notes');
     // Reopen after the documented one-minute freshness window to obtain a new read.
     await page.clock.setSystemTime(
       await page.evaluate(() => Date.now() + 60_001),
@@ -2900,13 +2898,7 @@ for (const view of [
             : privateCreateCases[0];
         if (leave) {
           await installHeldPrivateDelete(page, destination.kind);
-          await page
-            .getByRole('navigation', {
-              name: privateArea.navigation.aria,
-              exact: true,
-            })
-            .getByRole('link', { name: destination.copy.title, exact: true })
-            .click();
+          await openPrivateSection(page, destination.kind);
           await expect(
             page.getByRole('heading', {
               name: destination.copy.title,

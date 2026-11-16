@@ -242,6 +242,62 @@ test('headerless Compact content consumes the safe area once and retains Story r
   await expect(page).toHaveURL(/\/story/);
 });
 
+test('the account ID is copied from a quiet line below sign-out and never displayed', async ({
+  page,
+  context,
+}, info) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  const action = page.locator('.more-account-id-action');
+  const logout = page.locator('.more-logout');
+  const brand = page.locator('.more-footer .brand-mark');
+
+  await action.scrollIntoViewIfNeeded();
+  await expect(action).toHaveText(de.more.accountId.copy);
+  // A support aid, not a destination: the long ID itself is never on the page.
+  await expect(page.locator('.more-page')).not.toContainText(ACCOUNT_ID);
+  const [logoutBox, actionBox, brandBox] = await Promise.all([
+    logout.boundingBox(),
+    action.boundingBox(),
+    brand.boundingBox(),
+  ]);
+  if (!logoutBox || !actionBox || !brandBox)
+    throw new Error('More footer is not laid out');
+  expect(actionBox.y).toBeGreaterThanOrEqual(logoutBox.y + logoutBox.height);
+  expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(brandBox.y);
+  expect(actionBox.height).toBeGreaterThanOrEqual(44);
+
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.evaluate((value) => {
+      localStorage.setItem('eimir.theme', value);
+      window.dispatchEvent(new StorageEvent('storage', { key: 'eimir.theme' }));
+    }, theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await action.scrollIntoViewIfNeeded();
+    await captureScreenshot(page, info, `more-account-id-390-${theme}.png`);
+  }
+
+  await action.click();
+  await expect(action).toHaveText(de.more.accountId.copied);
+  await expect(page.locator('.more-account-id [role="status"]')).toHaveText(
+    de.more.accountId.copied,
+  );
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    ACCOUNT_ID,
+  );
+  await expect(page.locator('.more-page')).not.toContainText(ACCOUNT_ID);
+  await captureScreenshot(page, info, 'more-account-id-390-dark-copied.png');
+
+  // The confirmation is brief; the line returns to rest on its own.
+  await expect(action).toHaveText(de.more.accountId.copy);
+  expect(
+    (await new AxeBuilder({ page }).include('.more-footer').analyze())
+      .violations,
+  ).toEqual([]);
+});
+
 for (const admin of [false, true]) {
   test(`More preserves sign-out and capability-gated administration (admin=${admin})`, async ({
     page,

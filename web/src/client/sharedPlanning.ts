@@ -10,6 +10,7 @@ import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from './mediaApis';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
+import { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
 import { WishSelectionsApi } from '../api/generated/apis/WishSelectionsApi';
@@ -32,6 +33,7 @@ export interface SharedPlanningApis {
   chapters: ChaptersApi;
   chapterRelations: ChapterRelationsApi;
   collections: CollectionsApi;
+  sharedNotes: SharedNotesApi;
   story: StoryApi;
   search?: SearchApi;
   memories: MemoriesApi;
@@ -74,6 +76,7 @@ export function createSharedPlanningApis(
     chapters: new ChaptersApi(configuration),
     chapterRelations: new ChapterRelationsApi(configuration),
     collections: new CollectionsApi(configuration),
+    sharedNotes: new SharedNotesApi(configuration),
     story: new StoryApi(configuration),
     search: new SearchApi(configuration),
     memories: new MemoriesApi(configuration),

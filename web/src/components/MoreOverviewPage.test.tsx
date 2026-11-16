@@ -55,6 +55,7 @@ describe('MoreOverviewPage', () => {
       '/more/people',
       '/more/places',
       '/more/collections',
+      '/more/notes',
       '/more/insights',
       '/games',
       '/more/notifications',
@@ -134,7 +135,7 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(14);
+    expect(rowMatches).toHaveLength(15);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 

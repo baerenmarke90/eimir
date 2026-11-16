@@ -13,6 +13,7 @@ import {
   appRoutePath,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
@@ -99,6 +100,12 @@ const EVERYDAY_DESTINATIONS: readonly MoreDestination[] = [
     icon: 'collections',
     titleKey: 'more.destinations.lists',
     subtitleKey: 'more.subtitles.lists',
+  },
+  {
+    path: MORE_NOTES_ROUTE,
+    icon: 'notes',
+    titleKey: 'sharedNotes.destination',
+    subtitleKey: 'sharedNotes.destinationSubtitle',
   },
   {
     path: MORE_PLACES_ROUTE,

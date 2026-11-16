@@ -18,6 +18,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { discreetTitleSuggestions } from '../client/discreetPlans';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
+import sharedNotes from '../i18n/locales/sharedNotes';
 import { PlanProductPage } from './PlanProductPage';
 
 const t = i18n.t.bind(i18n);
@@ -68,10 +69,12 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
       return { ...plan, ...planUpdate, version: 4 } as PlanDetail;
     },
   );
+  const listPlanNotes = vi.fn(async () => []);
   const apis = {
     plans: {
       getPlan: vi.fn(async () => plan),
       listPlanCollections: vi.fn(async () => []),
+      listPlanNotes,
       listPlanStory: vi.fn(async () => ({
         items: [],
         nextCursor: null,
@@ -105,7 +108,7 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { plan, requestBodies, updatePlan };
+  return { plan, requestBodies, updatePlan, listPlanNotes };
 }
 
 function setVisibility(state: DocumentVisibilityState) {
@@ -134,6 +137,16 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
     expect(
       screen.getByRole('button', { name: t('m5s3.plan.complete') }),
     ).toBeTruthy();
+  });
+
+  it('does not even ask for linked shared notes while concealed (#1969)', () => {
+    const { listPlanNotes } = renderPlan();
+    expect(listPlanNotes).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('heading', {
+        name: sharedNotes.sharedNotes.plan.heading,
+      }),
+    ).toBeNull();
   });
 
   it('reveals per view, conceals again in the background and offers Wieder verdecken', async () => {

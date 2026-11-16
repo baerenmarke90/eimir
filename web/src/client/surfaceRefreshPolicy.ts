@@ -44,6 +44,8 @@ export function surfaceRefreshDecision(
     pathname === '/story/chapters' ||
     pathname === '/more/places' ||
     pathname === '/more/collections' ||
+    pathname === '/more/notes' ||
+    matchesDetail(pathname, '/more/notes/') ||
     pathname === '/more/notifications' ||
     matchesDetail(pathname, '/story/memories/') ||
     matchesDetail(pathname, '/story/heart-moments/') ||

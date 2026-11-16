@@ -45,6 +45,7 @@ const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   keepsake: 'momente',
   upcoming: 'kalender',
   pinned_collection: 'listen',
+  pinned_note: 'notes',
   retrospective: 'erinnerungen',
   relationship_signal: 'gemeinsam',
   monthly_highlights: 'highlights',

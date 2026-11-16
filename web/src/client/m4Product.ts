@@ -24,6 +24,7 @@ import {
   placeDetailPath,
   planDetailPath,
   reminderDetailPath,
+  sharedNoteDetailPath,
   wishDetailPath,
 } from './routes';
 
@@ -77,6 +78,8 @@ export function searchResultPath(
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
       return appRoutePath('more');
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(id);
     case 'PRIVATE_NOTE':
       return privateNotePath(id);
     case 'GIFT_IDEA':
@@ -147,6 +150,8 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(targetId);
     case 'WISH_SELECTION':
       return '/plan/choose';
     case 'TRANSFER_EXPORT':

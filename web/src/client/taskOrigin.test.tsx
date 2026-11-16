@@ -179,6 +179,16 @@ describe('task origin privacy and lifetime', () => {
   });
 
   it('allowlists local primary routes and serializes only non-sensitive Timeline scope', () => {
+    // Shared notes keep the pinned scope and the read page, never the search.
+    expect(taskOriginPath('/more/notes', '?scope=PINNED&q=secret')).toBe(
+      '/more/notes?scope=PINNED',
+    );
+    expect(taskOriginPath('/more/notes', '?scope=other')).toBe('/more/notes');
+    expect(taskOriginPath('/more/notes/note-1', '?x=1')).toBe(
+      '/more/notes/note-1',
+    );
+    expect(taskOriginPath('/more/notes/new', '')).toBeNull();
+    expect(taskOriginPath('/more/notes/note-1/edit', '')).toBeNull();
     expect(taskOriginPath('//other.example', '')).toBeNull();
     expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(
       '/story/memories/memory-1',

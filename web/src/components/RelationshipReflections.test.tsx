@@ -107,6 +107,7 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
     plans: {
       getPlan: vi.fn(async () => saved),
       listPlanCollections: vi.fn(async () => []),
+      listPlanNotes: vi.fn(async () => []),
       updatePlan: update,
     },
     places: {

@@ -444,6 +444,14 @@
         "web/src/components/ProfilePageBase.tsx"
       ]
     },
+    "heart-hunt.spec.ts": {
+      "roots": [
+        "web/src/components/HeartHuntGamePage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/client/heartHunt.ts"
+      ]
+    },
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",

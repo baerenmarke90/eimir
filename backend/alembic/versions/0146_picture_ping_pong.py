@@ -6,16 +6,16 @@ One notification kind (`PICTURE_PING_PONG_TURN`) and one target type
 (`PICTURE_GAME`) join the catalog; the notice coalesces per recipient and
 picture like the other single-target notices.
 
-Revision ID: 0145
-Revises: 0144
+Revision ID: 0146
+Revises: 0145
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0145"
-down_revision = "0144"
+revision = "0146"
+down_revision = "0145"
 branch_labels = None
 depends_on = None
 

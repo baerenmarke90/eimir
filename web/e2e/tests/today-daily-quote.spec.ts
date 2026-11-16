@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';

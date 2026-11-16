@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';

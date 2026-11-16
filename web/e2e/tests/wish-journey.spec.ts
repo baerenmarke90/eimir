@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { NOTIFICATION_WAKE_EVENT } from '../../src/client/foregroundNotifications';
 import de from '../../src/i18n/locales/de';
@@ -11,8 +11,8 @@ import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 /*
  * #1790 F2: a wish's journey (wished, planned, experienced, remembered) is

@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Locator,

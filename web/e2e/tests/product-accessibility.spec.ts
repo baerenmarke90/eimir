@@ -8,7 +8,7 @@ import {
   expectFloatingAddAction,
   expectLabeledAddAction,
 } from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -2014,9 +2014,6 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
-  // Contrast is measured on the settled page, not mid route-entry fade.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);

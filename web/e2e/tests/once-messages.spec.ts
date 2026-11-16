@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   ACCOUNT_ID,
   PARTNER_ID,

@@ -135,7 +135,11 @@ import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
-import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
+import {
+  DEFAULT_WIR_DESIGN,
+  useWirDesign,
+  wirDesignLayout,
+} from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 import { alignWirIntroAnimations } from './wirIntroClock';
@@ -929,8 +933,9 @@ export function TodayPage({
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const sharedAlbum = wirDesignId === WirDesignId.shared_album;
+  const wirLayout = wirDesignLayout(wirDesignId);
   // "Verbunden": two portraits joined by a heart line (the default design).
-  const connectedDesign = wirDesignId === WirDesignId.connected;
+  const connectedDesign = wirLayout === 'connected';
   const queryClient = useQueryClient();
   // After the app regains focus, refreshed reads land together instead of one
   // module at a time (see useResumeSettling).
@@ -1662,9 +1667,7 @@ export function TodayPage({
           </TodayDestinationLink>
         ) : undefined
       }
-      eyebrow={
-        wirDesignId === WirDesignId.warm ? t('wirDesign.welcome') : undefined
-      }
+      eyebrow={wirLayout === 'open' ? t('wirDesign.welcome') : undefined}
       headingLevel="h2"
       spaceTitle={
         partner
@@ -2098,11 +2101,8 @@ export function TodayPage({
       data-wir-design={
         wirDesign?.presentationReady === false ? undefined : wirDesignId
       }
-      data-color-world={
-        wirDesign?.presentationReady !== false &&
-        wirDesignId === WirDesignId.warm
-          ? 'warm'
-          : undefined
+      data-wir-layout={
+        wirDesign?.presentationReady === false ? undefined : wirLayout
       }
     >
       {(dashboardQuery.isLoading ||

@@ -49,10 +49,45 @@ import {
     GardenWateringInputToJSON,
 } from '../models/GardenWateringInput';
 import {
+    type HeartHuntKept,
+    HeartHuntKeptFromJSON,
+    HeartHuntKeptToJSON,
+} from '../models/HeartHuntKept';
+import {
+    type HeartHuntRoundCreate,
+    HeartHuntRoundCreateFromJSON,
+    HeartHuntRoundCreateToJSON,
+} from '../models/HeartHuntRoundCreate';
+import {
+    type HeartHuntRoundView,
+    HeartHuntRoundViewFromJSON,
+    HeartHuntRoundViewToJSON,
+} from '../models/HeartHuntRoundView';
+import {
+    type HeartHuntState,
+    HeartHuntStateFromJSON,
+    HeartHuntStateToJSON,
+} from '../models/HeartHuntState';
+import {
+    type HeartHuntTap,
+    HeartHuntTapFromJSON,
+    HeartHuntTapToJSON,
+} from '../models/HeartHuntTap';
+import {
+    type HeartHuntTapResult,
+    HeartHuntTapResultFromJSON,
+    HeartHuntTapResultToJSON,
+} from '../models/HeartHuntTapResult';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+
+export interface CreateHeartHuntRoundRequest {
+    spaceId: string;
+    heartHuntRoundCreate: HeartHuntRoundCreate;
+}
 
 export interface GetCoupleExperienceQuestionsRequest {
     kind: ExperienceKind;
@@ -71,6 +106,16 @@ export interface GetGardenRequest {
     spaceId: string;
 }
 
+export interface GetHeartHuntRequest {
+    spaceId: string;
+}
+
+export interface KeepHeartHuntRoundRequest {
+    roundId: string;
+    spaceId: string;
+    heartHuntKept: HeartHuntKept;
+}
+
 export interface PlantGardenSeedRequest {
     seedId: string;
     spaceId: string;
@@ -79,6 +124,12 @@ export interface PlantGardenSeedRequest {
 export interface SendGardenSeedRequest {
     spaceId: string;
     gardenSeedInput: GardenSeedInput;
+}
+
+export interface TapHeartHuntRoundRequest {
+    roundId: string;
+    spaceId: string;
+    heartHuntTap: HeartHuntTap;
 }
 
 export interface WaterGardenPlantRequest {
@@ -90,6 +141,63 @@ export interface WaterGardenPlantRequest {
  * 
  */
 export class GamesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for createHeartHuntRound without sending the request
+     */
+    async createHeartHuntRoundRequestOpts(requestParameters: CreateHeartHuntRoundRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling createHeartHuntRound().'
+            );
+        }
+
+        if (requestParameters['heartHuntRoundCreate'] == null) {
+            throw new runtime.RequiredError(
+                'heartHuntRoundCreate',
+                'Required parameter "heartHuntRoundCreate" was null or undefined when calling createHeartHuntRound().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/heart-hunt/rounds`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: HeartHuntRoundCreateToJSON(requestParameters['heartHuntRoundCreate']),
+        };
+    }
+
+    /**
+     * Hide a heart in an uploaded photo and send it to the partner.
+     * Create Round
+     */
+    async createHeartHuntRoundRaw(requestParameters: CreateHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeartHuntRoundView>> {
+        const requestOptions = await this.createHeartHuntRoundRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => HeartHuntRoundViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Hide a heart in an uploaded photo and send it to the partner.
+     * Create Round
+     */
+    async createHeartHuntRound(requestParameters: CreateHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
+        const response = await this.createHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getCoupleExperienceQuestions without sending the request
@@ -288,6 +396,118 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getHeartHunt without sending the request
+     */
+    async getHeartHuntRequestOpts(requestParameters: GetHeartHuntRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getHeartHunt().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/heart-hunt`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Open rounds of the two partners; the seeker never receives the heart early.
+     * Get Heart Hunt
+     */
+    async getHeartHuntRaw(requestParameters: GetHeartHuntRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeartHuntState>> {
+        const requestOptions = await this.getHeartHuntRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => HeartHuntStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Open rounds of the two partners; the seeker never receives the heart early.
+     * Get Heart Hunt
+     */
+    async getHeartHunt(requestParameters: GetHeartHuntRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntState> {
+        const response = await this.getHeartHuntRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for keepHeartHuntRound without sending the request
+     */
+    async keepHeartHuntRoundRequestOpts(requestParameters: KeepHeartHuntRoundRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['roundId'] == null) {
+            throw new runtime.RequiredError(
+                'roundId',
+                'Required parameter "roundId" was null or undefined when calling keepHeartHuntRound().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling keepHeartHuntRound().'
+            );
+        }
+
+        if (requestParameters['heartHuntKept'] == null) {
+            throw new runtime.RequiredError(
+                'heartHuntKept',
+                'Required parameter "heartHuntKept" was null or undefined when calling keepHeartHuntRound().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept`;
+        urlPath = urlPath.replace('{roundId}', encodeURIComponent(String(requestParameters['roundId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: HeartHuntKeptToJSON(requestParameters['heartHuntKept']),
+        };
+    }
+
+    /**
+     * Record that the found photo was saved as a shared Moment by explicit tap.
+     * Keep Round
+     */
+    async keepHeartHuntRoundRaw(requestParameters: KeepHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeartHuntRoundView>> {
+        const requestOptions = await this.keepHeartHuntRoundRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => HeartHuntRoundViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Record that the found photo was saved as a shared Moment by explicit tap.
+     * Keep Round
+     */
+    async keepHeartHuntRound(requestParameters: KeepHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
+        const response = await this.keepHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for plantGardenSeed without sending the request
      */
     async plantGardenSeedRequestOpts(requestParameters: PlantGardenSeedRequest): Promise<runtime.RequestOpts> {
@@ -396,6 +616,71 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async sendGardenSeed(requestParameters: SendGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
         const response = await this.sendGardenSeedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for tapHeartHuntRound without sending the request
+     */
+    async tapHeartHuntRoundRequestOpts(requestParameters: TapHeartHuntRoundRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['roundId'] == null) {
+            throw new runtime.RequiredError(
+                'roundId',
+                'Required parameter "roundId" was null or undefined when calling tapHeartHuntRound().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling tapHeartHuntRound().'
+            );
+        }
+
+        if (requestParameters['heartHuntTap'] == null) {
+            throw new runtime.RequiredError(
+                'heartHuntTap',
+                'Required parameter "heartHuntTap" was null or undefined when calling tapHeartHuntRound().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps`;
+        urlPath = urlPath.replace('{roundId}', encodeURIComponent(String(requestParameters['roundId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: HeartHuntTapToJSON(requestParameters['heartHuntTap']),
+        };
+    }
+
+    /**
+     * Clear fog at a tap; the answer is a coarse warmth and whether the heart was found.
+     * Tap Round
+     */
+    async tapHeartHuntRoundRaw(requestParameters: TapHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeartHuntTapResult>> {
+        const requestOptions = await this.tapHeartHuntRoundRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => HeartHuntTapResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Clear fog at a tap; the answer is a coarse warmth and whether the heart was found.
+     * Tap Round
+     */
+    async tapHeartHuntRound(requestParameters: TapHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntTapResult> {
+        const response = await this.tapHeartHuntRoundRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

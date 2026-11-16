@@ -6,16 +6,16 @@ codes, dates, stages and slots only (no location, no free text). One
 notification kind (`GARDEN_SEED_ARRIVED`) and one target type (`GARDEN_SEED`)
 join the closed catalog; the notice coalesces per recipient and seed.
 
-Revision ID: 0144
-Revises: 0143
+Revision ID: 0145
+Revises: 0144
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0144"
-down_revision = "0143"
+revision = "0145"
+down_revision = "0144"
 branch_labels = None
 depends_on = None
 
@@ -27,7 +27,7 @@ _KINDS = (
     "'COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', 'PARTNER_CHECK_IN', 'REMINDER_DUE', "
     "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
     "'WISH_SELECTION_RANDOM_REQUESTED', 'WISH_SELECTION_RANDOM_ACCEPTED', "
-    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT'"
+    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT', 'HEART_HUNT_HIDDEN', 'HEART_HUNT_FOUND'"
 )
 _TARGETS = (
     "'ONCE_MESSAGE', 'REMINDER', 'TRANSFER_EXPORT', 'TRANSFER_IMPORT', 'WISH_SELECTION', "

@@ -371,6 +371,11 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Was machen wir als Nächstes? Alex möchte den Zufall entscheiden lassen.",
     "Was machen wir als Nächstes? Alex hat zugestimmt, der Zufall hat entschieden.",
     "Antworten",
+    # Exact #1907 H3 native Herzversteck push copy and its encrypted fixtures.
+    "%1$s hat ein Herz versteckt.",
+    "%1$s hat dein Herz gefunden.",
+    "Alex hat ein Herz versteckt.",
+    "Alex hat dein Herz gefunden.",
     # Exact #1907 E2 native push copy for a sent list and its encrypted fixtures.
     "%1$s hat dir eine Liste geschickt.",
     "Alex hat dir eine Liste geschickt.",

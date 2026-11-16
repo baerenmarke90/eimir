@@ -42,6 +42,7 @@ from eimir.demo import models as _demo  # noqa: F401
 from eimir.engagement import models as _engagement  # noqa: F401
 from eimir.entitlements import models as _entitlements  # noqa: F401
 from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
+from eimir.heart_hunt import models as _heart_hunt  # noqa: F401
 from eimir.heart_moments import models as _heart_moments  # noqa: F401
 from eimir.identity import models as _identity  # noqa: F401
 from eimir.jobs import models as _jobs  # noqa: F401

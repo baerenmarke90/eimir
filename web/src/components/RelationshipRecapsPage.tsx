@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type MouseEvent,
   type PointerEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -23,7 +24,6 @@ import {
 } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';
-import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
 import type { RecapView } from '../api/generated/models/RecapView';
 import { Configuration } from '../client/apiConfiguration';
 import { isCapacitorNativePlatform } from '../client/config';
@@ -64,7 +64,6 @@ import type { ProfilePageProps } from './ProfilePage';
 import { ProMark } from './ProMark';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
-import { RelationshipPassport } from './RelationshipPassport';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
@@ -83,29 +82,41 @@ async function authorized<T>(operation: Promise<T>): Promise<T> {
   }
 }
 
-function PeriodNote({ value }: { value: RecapView }) {
+function PeriodNote({
+  value,
+  canCompose,
+}: {
+  value: RecapView;
+  canCompose: boolean;
+}) {
   const { t } = useTranslation();
+  const locale = resolvedLocale();
   return (
-    <p className="recap-period-note">
-      {recapPeriodStatus(value, resolvedLocale(), t)}
-    </p>
+    <span className="recap-period-note">
+      {!canCompose && value.isPartial && !value.savedAt
+        ? t('recaps.partialThrough', {
+            date: recapDate(value.throughOn, locale),
+          })
+        : recapPeriodStatus(value, locale, t)}
+    </span>
   );
 }
 
-function Cover({
+function RecapEditionLink({
   value,
-  featured,
-  ...media
-}: RecapMediaProps & { value: RecapView; featured: boolean }) {
-  const { t } = useTranslation();
+  className,
+  children,
+}: {
+  value: Pick<RecapView, 'id' | 'kind'>;
+  className: string;
+  children: ReactNode;
+}) {
   const { captureOrigin } = useTaskOrigin();
   const navigate = useNavigate();
-  const source = value.sources.find((item) => item.available);
-  const hasPhoto = Boolean(source?.previewAttachmentId);
-  const label = recapPeriodLabel(value, resolvedLocale());
   const detailPath = `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`;
-  function openReader(event: MouseEvent<HTMLAnchorElement>, to: string) {
+  function openReader(event: MouseEvent<HTMLAnchorElement>) {
     if (
+      event.defaultPrevented ||
       event.ctrlKey ||
       event.metaKey ||
       event.shiftKey ||
@@ -114,13 +125,33 @@ function Cover({
     )
       return;
     event.preventDefault();
-    void navigate(to, { state: { taskOriginKey: captureOrigin() } });
+    void navigate(detailPath, { state: { taskOriginKey: captureOrigin() } });
   }
 
   return (
-    <article
-      className={`recap-cover${featured ? ' recap-cover-featured' : ''}${value.kind === 'YEAR' ? ' recap-cover-year' : ''}`}
+    <Link
+      className={className}
+      to={detailPath}
+      onClick={openReader}
+      state={{ taskOriginKey: null }}
     >
+      {children}
+    </Link>
+  );
+}
+
+function Cover({
+  value,
+  canCompose,
+  ...media
+}: RecapMediaProps & { value: RecapView; canCompose: boolean }) {
+  const { t } = useTranslation();
+  const source = value.sources.find((item) => item.available);
+  const hasPhoto = Boolean(source?.previewAttachmentId);
+  const locale = resolvedLocale();
+  const label = recapPeriodLabel(value, locale);
+  return (
+    <article className="recap-cover recap-cover-featured">
       <div className={`recap-cover-art${hasPhoto ? ' has-photo' : ''}`}>
         {source && hasPhoto ? (
           <RecapMedia {...media} source={source} />
@@ -133,7 +164,7 @@ function Cover({
         <span className="recap-edition-mark" aria-hidden="true">
           {value.kind === 'YEAR'
             ? value.year
-            : new Intl.NumberFormat(resolvedLocale(), {
+            : new Intl.NumberFormat(locale, {
                 minimumIntegerDigits: 2,
               }).format(value.month ?? 1)}
         </span>
@@ -141,61 +172,52 @@ function Cover({
       <div className="recap-cover-copy">
         <div className="recap-cover-kicker">
           <span>{label}</span>
-          {value.savedAt && value.isPartial ? (
-            <span>{t('recaps.saved')}</span>
-          ) : null}
         </div>
         <h2 lang={value.headline ? value.locale : undefined}>
-          {value.status === 'EMPTY'
-            ? t('recaps.emptyTitle')
-            : recapHeadline(value, t)}
+          {recapHeadline(value, t)}
         </h2>
-        {featured ? (
-          <p lang={value.introduction ? value.locale : undefined}>
-            {value.introduction ?? t('recaps.fallbackIntro')}
-          </p>
-        ) : null}
-        <PeriodNote value={value} />
-        <Link
-          className={featured ? 'button-link recap-open' : 'recap-text-link'}
-          to={detailPath}
-          onClick={(event) => openReader(event, detailPath)}
-          state={{ taskOriginKey: null }}
-        >
-          {value.status === 'PENDING'
-            ? t('recaps.pendingTitle')
-            : t('recaps.open')}
-          <span aria-hidden="true"> →</span>
-        </Link>
+        <p lang={value.introduction ? value.locale : undefined}>
+          {value.introduction ?? t('recaps.fallbackIntro')}
+        </p>
+        <PeriodNote value={value} canCompose={canCompose} />
+        <RecapEditionLink className="button-link recap-open" value={value}>
+          {t('recaps.open')}
+        </RecapEditionLink>
       </div>
     </article>
   );
 }
 
-/** A period the server is still compiling; it becomes a cover without a request. */
-function PreparingCover({ value }: { value: RecapPeriod }) {
+function ArchiveRow({
+  value,
+  canCompose,
+  ...media
+}: RecapMediaProps & { value: RecapView; canCompose: boolean }) {
   const { t } = useTranslation();
+  // Sensitive previews have their own reveal control in the reader.
+  const photo = value.sources.find(
+    (source) =>
+      source.available &&
+      source.previewAttachmentId &&
+      source.previewIsSensitive === false,
+  );
   return (
-    <article className="recap-cover recap-cover-preparing">
-      <div className="recap-cover-art">
-        <div className="recap-cover-words">
-          <EimirIcon name="kapitel" />
-        </div>
-        <span className="recap-edition-mark" aria-hidden="true">
-          {value.kind === 'YEAR'
-            ? value.year
-            : new Intl.NumberFormat(resolvedLocale(), {
-                minimumIntegerDigits: 2,
-              }).format(value.month ?? 1)}
-        </span>
-      </div>
-      <div className="recap-cover-copy">
-        <div className="recap-cover-kicker">
+    <li>
+      <RecapEditionLink className="recap-archive-row" value={value}>
+        <span className="recap-archive-copy">
           <span>{recapPeriodLabel(value, resolvedLocale())}</span>
-        </div>
-        <p className="recap-period-note">{t('recaps.preparing')}</p>
-      </div>
-    </article>
+          <strong lang={value.headline ? value.locale : undefined}>
+            {recapHeadline(value, t)}
+          </strong>
+          <PeriodNote value={value} canCompose={canCompose} />
+        </span>
+        {photo ? (
+          <div className="recap-archive-art" aria-hidden="true">
+            <RecapMedia {...media} source={photo} />
+          </div>
+        ) : null}
+      </RecapEditionLink>
+    </li>
   );
 }
 
@@ -301,6 +323,10 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
       ]),
     ).values(),
   ].filter((item) => item.kind === kind);
+  const ready = editions.filter((item) => item.status === 'READY');
+  const featured = ready.find((item) => item.isPartial && !item.savedAt);
+  const archive = ready.filter((item) => item.id !== featured?.id);
+  const unready = editions.filter((item) => item.status !== 'READY');
   const periods =
     query.data?.pages[0]?.periods.filter(
       (period) =>
@@ -365,30 +391,67 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
         id="recap-library-panel"
         aria-labelledby={`recap-tab-${kind}`}
       >
-        {!query.isPending && !query.error && !allowed ? (
-          <section className="recap-gate">
-            <h2>{t('recaps.gateTitle')}</h2>
-            <p>{t('recaps.gateBody')}</p>
-            <Link to={proPaywallPath('recaps')}>{t('recaps.gateLink')}</Link>
-          </section>
-        ) : null}
-        {editions.length > 0 ? (
+        {featured ? (
           <>
             <p className="recap-section-label">{t('recaps.current')}</p>
-            <Cover {...props} value={editions[0]} featured />
+            <Cover {...props} value={featured} canCompose={allowed} />
           </>
         ) : null}
-        {editions.length > 1 || (allowed && periods.length > 0) ? (
-          <section className="recap-archive" aria-label={t('recaps.archive')}>
-            <h2>{t('recaps.archive')}</h2>
-            {editions.slice(1).map((value) => (
-              <Cover key={value.id} {...props} value={value} featured={false} />
-            ))}
-            {allowed
-              ? periods.map((period) => (
-                  <PreparingCover key={recapPeriodKey(period)} value={period} />
-                ))
-              : null}
+        {archive.length > 0 ? (
+          <section
+            className="recap-archive"
+            aria-labelledby="recap-archive-title"
+          >
+            <h2 id="recap-archive-title">{t('recaps.archive')}</h2>
+            <ul className="recap-library-list">
+              {archive.map((value) => (
+                <ArchiveRow
+                  key={value.id}
+                  {...props}
+                  value={value}
+                  canCompose={allowed}
+                />
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        {unready.length > 0 || (allowed && periods.length > 0) ? (
+          <section
+            className="recap-unready"
+            aria-labelledby="recap-unready-title"
+          >
+            <h2 id="recap-unready-title">{t('recaps.otherPeriods')}</h2>
+            <ul className="recap-library-list">
+              {unready.map((value) => (
+                <li key={value.id}>
+                  <RecapEditionLink className="recap-status-row" value={value}>
+                    <strong>{recapPeriodLabel(value, resolvedLocale())}</strong>
+                    <span>
+                      {t(
+                        value.status === 'EMPTY'
+                          ? 'recaps.emptyTitle'
+                          : value.status === 'PAUSED'
+                            ? 'recaps.generationPaused'
+                            : 'recaps.preparing',
+                      )}
+                    </span>
+                  </RecapEditionLink>
+                </li>
+              ))}
+              {allowed
+                ? periods.map((period) => (
+                    <li
+                      className="recap-status-row"
+                      key={recapPeriodKey(period)}
+                    >
+                      <strong>
+                        {recapPeriodLabel(period, resolvedLocale())}
+                      </strong>
+                      <span>{t('recaps.preparing')}</span>
+                    </li>
+                  ))
+                : null}
+            </ul>
           </section>
         ) : null}
         {allowed && !query.isPending && !editions.length && !periods.length ? (
@@ -411,6 +474,13 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           >
             {t('recaps.more')}
           </AutoLoadMore>
+        ) : null}
+        {!query.isPending && !query.error && !allowed ? (
+          <section className="recap-gate">
+            <h2>{t('recaps.gateTitle')}</h2>
+            <p>{t('recaps.gateBody')}</p>
+            <Link to={proPaywallPath('recaps')}>{t('recaps.gateLink')}</Link>
+          </section>
         ) : null}
       </div>
       <details className="recap-explanation">
@@ -839,7 +909,10 @@ function RecapReader({
                           ? t('recaps.emptyTitle')
                           : recapHeadline(value, t)}
                       </h1>
-                      <PeriodNote value={value} />
+                      <PeriodNote
+                        value={value}
+                        canCompose={capability.data !== false}
+                      />
                       <p
                         className="recap-reader-intro"
                         lang={value.introduction ? value.locale : undefined}
@@ -1068,7 +1141,7 @@ function RecapReader({
                             }
                           }}
                         >
-                          {t('recaps.source')} ↗
+                          {t('recaps.source')}
                         </Link>
                       ) : null}
                     </div>
@@ -1137,7 +1210,7 @@ function RecapReader({
                   aria-label={t('recaps.previous')}
                   onClick={() => setPage(page - 1)}
                 >
-                  ←
+                  {t('recaps.previous')}
                 </button>
                 <div className="recap-playback-center">
                   {overlayPlay ? null : playbackToggle(false)}
@@ -1152,7 +1225,7 @@ function RecapReader({
                   aria-label={t('recaps.next')}
                   onClick={() => setPage(page + 1)}
                 >
-                  →
+                  {t('recaps.next')}
                 </button>
               </nav>
               {page === 0 ? (

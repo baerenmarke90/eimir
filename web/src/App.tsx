@@ -70,6 +70,7 @@ import {
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
@@ -160,6 +161,7 @@ import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { GardenGamePage } from './components/GardenGamePage';
+import { HeartHuntGamePage } from './components/HeartHuntGamePage';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
@@ -873,12 +875,36 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route
+              path={GAMES_HEART_HUNT_ROUTE}
+              element={
+                <HeartHuntGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
             <Route path={appRoutePath('more')} element={null} />
+            <Route
+              path={MORE_INSIGHTS_RECAP_ROUTE}
+              element={
+                <Navigate
+                  replace
+                  to={{
+                    pathname: MORE_INSIGHTS_ROUTE,
+                    search: location.search,
+                    hash: '#wochenrueckblick',
+                  }}
+                  state={location.state}
+                />
+              }
+            />
             {(
               [
                 [MORE_INSIGHTS_ROUTE, 'week'],
                 [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
               ] as const
             ).map(([path, insightView]) => (
               <Route

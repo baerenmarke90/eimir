@@ -25,6 +25,15 @@
   stroke-linejoin: round;
 }
 
+.back-link.task-back-control:has(.task-back-label) {
+  inline-size: auto;
+  max-inline-size: 40vw;
+  block-size: auto;
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 .subpage-back-slot {
   display: flex;
   align-items: center;

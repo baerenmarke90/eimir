@@ -371,7 +371,7 @@ for (const [width, theme] of [
         await page.locator('.today-page').getAttribute('data-wir-design'),
       ).toBeNull();
       expect(
-        await page.locator('.today-page').getAttribute('data-color-world'),
+        await page.locator('html').getAttribute('data-app-design'),
       ).toBeNull();
       await expect(page.locator('.today-content')).toHaveCount(0);
       await captureScreenshot(
@@ -631,10 +631,24 @@ for (const [width, theme, large] of [
         design === 'warm' ? 1 : 0,
       );
       if (design === 'warm') {
-        await expect(page.locator('.today-page')).toHaveAttribute(
-          'data-color-world',
+        // Geborgen's palette comes from design/designs/warm.json (#1907 C1).
+        await expect(page.locator('html')).toHaveAttribute(
+          'data-app-design',
           'warm',
         );
+        await expect(page.locator('.today-page')).toHaveAttribute(
+          'data-wir-layout',
+          'open',
+        );
+        expect(
+          await page
+            .locator('.today-page')
+            .evaluate((node) =>
+              getComputedStyle(node)
+                .getPropertyValue('--color-background')
+                .trim(),
+            ),
+        ).toBe(theme === 'dark' ? '#2c2334' : '#fff9f6');
         await expect(page.locator('.couple-presence-eyebrow')).toHaveText(
           copy.welcome,
         );

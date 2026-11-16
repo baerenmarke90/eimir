@@ -2601,12 +2601,13 @@
     "removed": "Link removed"
   },
   "dailyInsights": {
+    "title": "Insights",
     "pro": "Pro",
     "proBrand": "eimir. Pro",
     "nav": {
       "label": "Switch view",
       "week": "Week",
-      "patterns": "Patterns",
+      "patterns": "Month",
       "recap": "Recap"
     },
     "loading": "Loading your history …",
@@ -2655,12 +2656,12 @@
     },
     "lanes": {
       "VERY_GOOD": "Very good",
-      "GOOD": "Good",
-      "OKAY": "Okay",
+      "GOOD": "Relaxed",
+      "OKAY": "So-so",
       "NEEDS_CONNECTION": "Closeness",
       "NEEDS_SPACE": "Quiet",
-      "STRESSED": "Demanding",
-      "SAD": "Not so good"
+      "STRESSED": "Stressed",
+      "SAD": "Sad"
     },
     "bands": {
       "veryHigh": "Very high",
@@ -2671,7 +2672,7 @@
     },
     "week": {
       "title": "Your week",
-      "subtitle": "Feeling & energy at a glance",
+      "subtitle": "Feeling & energy",
       "accent": "Small details. Meaningful moments.",
       "handwriting": "Shared insights. Closer together.",
       "range": "{{start}} – {{end}}",
@@ -2679,6 +2680,8 @@
       "next": "Next week",
       "current": "This week",
       "picker": "Choose week",
+      "summary": "Weekly recap",
+      "noHighlights": "There is no shared highlight from the visible check-ins for this week.",
       "vibeTitle": "Your feeling",
       "vibeSubtitle": "How you felt.",
       "energyTitle": "Your energy",
@@ -2738,7 +2741,7 @@
       "highlightsSubtitle": "Special moments from your week.",
       "highlightsAll": "View all days",
       "highlightsEmpty": "There is no standout shared day this week – a quiet history is perfectly fine too.",
-      "highlightBothGood": "Both felt good",
+      "highlightBothGood": "Both shared a good feeling",
       "highlightBothGoodBody": "You both shared a good feeling.",
       "highlightBothEnergy": "Both with plenty of energy",
       "highlightBothEnergyBody": "You both had plenty of energy.",
@@ -2900,10 +2903,12 @@
     "years": "Years",
     "tabs": "Recaps by period",
     "current": "Your current recap",
-    "archive": "To rediscover",
+    "archive": "Existing recaps",
+    "otherPeriods": "Other periods",
     "periodMonth": "{{month}} {{year}}",
     "periodYear": "Your year {{year}}",
     "partial": "Until {{date}} · growing with you",
+    "partialThrough": "As of {{date}}",
     "complete": "Completed period",
     "saved": "Kept",
     "automatic": "Compiled for you",
@@ -2917,6 +2922,7 @@
     "aiDraft": "AI draft · from your shared content",
     "more": "More recaps",
     "preparing": "Being put together for you.",
+    "generationPaused": "Compilation paused",
     "back": "All recaps",
     "backMore": "Back to More",
     "pendingTitle": "Your story is taking shape.",
@@ -3146,10 +3152,86 @@
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
       },
+      "heartHunt": {
+        "role": "Be close",
+        "title": "Heart hunt",
+        "description": "Hide a heart in a photo. Who finds it?"
+      },
       "garden": {
         "role": "Being close",
         "title": "Our garden",
         "description": "Send each other a seed every day, wherever you are."
+      }
+    },
+    "heartHunt": {
+      "intro": "Hide a heart in a photo from your day. The one who searches feels their way through the fog.",
+      "loadingTitle": "Opening the hiding place",
+      "loadingBody": "We only load photos meant for the two of you.",
+      "coupleRequiredTitle": "This game belongs to the two of you",
+      "coupleRequiredBody": "Heart hunt is meant for a shared space with exactly two partners.",
+      "keyboardHint": "Aim with the arrow keys, tap with Enter or Space.",
+      "memoryTitle": "Heart hunt",
+      "band": {
+        "between": "Between you: {{label}}",
+        "plain": "You and {{name}}"
+      },
+      "hide": {
+        "title": "Hide a heart for {{name}}",
+        "body": "Take a photo of where you are right now, then tap the spot for the heart.",
+        "pickPhoto": "Take or choose a photo",
+        "changePhoto": "Choose another photo",
+        "pickHint": "Camera or gallery",
+        "photoLabel": "Your photo. Tap to place the heart.",
+        "uploading": "Preparing the photo …",
+        "placeHint": "Tap the photo to hide the heart.",
+        "placed": "Good hiding place. You can still move it.",
+        "send": "Hide it and send it to {{name}}",
+        "uploadFailed": "The photo could not be prepared. Please try again.",
+        "sendFailed": "The heart could not be sent. Please try again.",
+        "roundOpen": "Your last heart is still hidden. Wait until it has been found."
+      },
+      "waiting": {
+        "title": "{{name}} is searching now",
+        "body": "You will hear when the heart has been found.",
+        "photoLabel": "Your photo with the hidden heart"
+      },
+      "seek": {
+        "title": "{{name}} hid a heart",
+        "tapHint": "Tap anywhere in the picture",
+        "meterLabel": "Warmth",
+        "photoLabel": "Photo under fog. Tap to search.",
+        "quiet": "No time limit, no points. Every tap wipes away a little fog.",
+        "tapFailed": "That tap did not arrive. Tap again."
+      },
+      "warmth": {
+        "cold": "Still cold",
+        "lukewarm": "Lukewarm",
+        "warm": "Warm",
+        "hot": "Very hot!"
+      },
+      "found": {
+        "title": "Found!",
+        "bodySeeker": "{{name}} had hidden the heart {{place}}. {{name}} will learn that you found it.",
+        "bodyHider": "{{name}} found your heart. It was {{place}}.",
+        "photoLabel": "The photo with the found heart",
+        "swap": "Hide one yourself",
+        "keep": "Keep photo as a moment",
+        "keeping": "Saving …",
+        "kept": "Saved in Moments",
+        "keepFailed": "The photo could not be saved as a moment. Please try again.",
+        "deleteNote": "The photo is deleted on {{date}} unless you keep it as a moment.",
+        "keptNote": "The photo with the heart is now in your moments."
+      },
+      "places": {
+        "topLeft": "at the top left",
+        "top": "at the top",
+        "topRight": "at the top right",
+        "left": "on the left",
+        "center": "in the middle",
+        "right": "on the right",
+        "bottomLeft": "at the bottom left",
+        "bottom": "at the bottom",
+        "bottomRight": "at the bottom right"
       }
     },
     "momentsGame": {
@@ -3363,6 +3445,8 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
+      "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
       "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
@@ -4471,7 +4555,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "How your memories look, in the diary and on Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."

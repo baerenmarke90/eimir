@@ -1003,6 +1003,13 @@
         "web/src/components/GamesProductArea.tsx"
       ]
     },
+    "picture-ping-pong.spec.ts": {
+      "roots": [
+        "web/src/components/PicturePingPongPage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/client/picturePingPong.ts"
+      ]
+    },
     "chapter-experience.spec.ts": {
       "roots": [
         "web/src/components/ChaptersOverviewPage.tsx",

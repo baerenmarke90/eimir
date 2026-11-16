@@ -477,6 +477,23 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"memoryId": str(uuid4())},
         fixture_aliases={"roundId": "memoryId"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns",
+        body={"turnsDone": 0, "strokes": [{"colour": "PERSON", "points": [10, 10, 500, 500]}]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish",
+        body={"turnsDone": 1},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
+        body={"memoryId": "00000000-0000-0000-0000-000000000001"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),

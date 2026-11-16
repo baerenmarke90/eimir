@@ -39,6 +39,11 @@ const de = {
     visibility: {
       onlyYou: 'Nur du siehst das',
     },
+    accountId: {
+      copy: 'Konto-ID kopieren',
+      copied: 'Konto-ID kopiert',
+      failed: 'Kopieren hat nicht geklappt. Deine Konto-ID:',
+    },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',

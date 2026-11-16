@@ -67,9 +67,12 @@ def test_memory_map_is_bounded_tenant_scoped_and_non_destructive_on_downgrade(
             space_id=target.id,
             owner_id=account.id,
             privacy_class=PrivacyClass.SPACE_SHARED.value,
-            latitude=Decimal("49") if coordinate else None,
-            longitude=Decimal("7") if coordinate else None,
-            payload=PlacePayload(name=f"Place {index}"),
+            has_coordinates=coordinate,
+            payload=PlacePayload(
+                name=f"Place {index}",
+                latitude=Decimal("49") if coordinate else None,
+                longitude=Decimal("7") if coordinate else None,
+            ),
         )
         session.add_all([memory, place])
         session.flush()

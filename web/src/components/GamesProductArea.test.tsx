@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
@@ -73,6 +73,7 @@ function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
   expect(screen.getByText(games.entries.garden.title)).toBeTruthy();
   expect(screen.getByText(games.entries.heartHunt.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.pingPong.title)).toBeTruthy();
 }
 
 function expectGameStatus(status: string, count: number): void {
@@ -152,7 +153,7 @@ describe('GamesProductArea', () => {
 
     await screen.findByText(games.entries.moments.title);
     expectThreeGameEntries();
-    expectGameStatus(games.status.premium, 5);
+    expectGameStatus(games.status.premium, 6);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -176,7 +177,7 @@ describe('GamesProductArea', () => {
     expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expectGameStatus(games.status.comingSoon, 0);
-    expectGameStatus(games.status.playNow, 5);
+    expectGameStatus(games.status.playNow, 6);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);

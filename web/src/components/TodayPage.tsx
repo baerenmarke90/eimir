@@ -133,7 +133,6 @@ import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
 import {
   DEFAULT_WIR_DESIGN,
@@ -932,8 +931,9 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
-  const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   const wirLayout = wirDesignLayout(wirDesignId);
+  // "Seite an Seite": the two people as rows and agenda date stamps.
+  const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirLayout === 'connected';
   const queryClient = useQueryClient();

@@ -389,11 +389,11 @@
   }
 }
 
-.wir-design-preview-shared_album {
-  background: #f2efe4;
+.wir-design-preview-rows {
+  background: var(--color-background);
   grid-template-rows: 25px 1fr 6px 19px;
 }
-.wir-design-preview-shared_album .wir-design-preview-hero {
+.wir-design-preview-rows .wir-design-preview-hero {
   justify-items: stretch;
   gap: 1px;
 }
@@ -403,29 +403,32 @@
   align-items: center;
   gap: 4px;
   padding-inline: 3px;
-  border-block-end: 1px solid #d9d4c5;
+  border-block-end: 1px solid var(--color-border-subtle);
 }
 .wir-design-preview-person i {
   height: 9px;
   border-radius: 50%;
-  background: #afa693;
+  background: var(--color-border);
 }
 .wir-design-preview-person + .wir-design-preview-person i {
-  background: #8b9c82;
+  background: var(--design-decoration-icon, var(--color-brand-text));
 }
 .wir-design-preview-person b {
   width: 70%;
   height: 2px;
   border-radius: var(--radius-pill);
-  background: #596f57;
+  background: var(--color-text-secondary);
 }
-.wir-design-preview-shared_album .wir-design-preview-vibes {
+.wir-design-preview-rows .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-shared_album .wir-design-preview-quote {
+.wir-design-preview-rows .wir-design-preview-quote {
   min-height: 0;
-  background: #e1ddcf;
+  background: var(--color-surface-subtle);
 }
-.wir-design-preview-shared_album .wir-design-preview-moment {
-  background: linear-gradient(#92a287 72%, #3d543c 72%);
+.wir-design-preview-rows .wir-design-preview-moment {
+  background: linear-gradient(
+    var(--color-border) 72%,
+    var(--design-decoration, var(--color-text)) 72%
+  );
 }

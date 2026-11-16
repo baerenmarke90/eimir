@@ -20,5 +20,6 @@ export const APP_DESIGNS: Readonly<
   classic: { tier: 'pro', layout: 'classic' },
   connected: { tier: 'free', layout: 'connected' },
   modern: { tier: 'pro', layout: 'compact' },
+  shared_album: { tier: 'pro', layout: 'rows' },
   warm: { tier: 'free', layout: 'open' },
 };

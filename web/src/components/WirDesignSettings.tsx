@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
+import type { WirDesignId } from '../api/generated/models/WirDesignId';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -27,7 +27,7 @@ function DesignPreview({ design }: { design: WirDesignId }) {
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">
-        {design === WirDesignId.shared_album ? (
+        {wirDesignLayout(design) === 'rows' ? (
           <>
             <span className="wir-design-preview-person">
               <i />

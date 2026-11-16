@@ -143,8 +143,13 @@ def test_distance_only_never_exposes_coordinates_and_map_needs_its_own_level(  #
     assert published.json()["lastPublishedAt"] is not None
 
     snapshot = session.execute(select(PresenceSnapshot)).scalar_one()
-    assert (snapshot.latitude, snapshot.longitude) == (Decimal("53.55"), Decimal("9.99"))
-    assert snapshot.accuracy_meters == 1000
+    position = snapshot.payload
+    assert (position.latitude, position.longitude) == (Decimal("53.55"), Decimal("9.99"))
+    assert position.accuracy_meters == 1000
+    # The position lives only in the protected payload, never in a plain column.
+    assert {"latitude", "longitude", "accuracy_meters"}.isdisjoint(
+        PresenceSnapshot.__table__.columns.keys()
+    )
 
     distance = _distance(client, couple)
     assert distance.status_code == 200

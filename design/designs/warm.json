@@ -1,11 +1,11 @@
 {
-  "$description": "Geborgen: the Free warm design. The warm colour world with display-font section headings and slightly darker supporting text, so it reads on tinted surfaces across the app; on Wir an open, editorial rhythm with a full-bleed keepsake photo.",
+  "$description": "Geborgen: the Free warm design. The warm colour world with display-font section headings and slightly darker text and supporting text, so it reads on tinted surfaces across the app; on Wir an open, editorial rhythm with a full-bleed keepsake photo.",
   "id": "warm",
   "tier": "free",
   "layout": "open",
   "color": {
     "world": "warm",
-    "light": { "mutedText": "#6E5969" }
+    "light": { "text": "#2F1F33", "mutedText": "#6E5969" }
   },
   "shape": "standard",
   "type": { "display": "literata", "headings": "display" },

@@ -274,11 +274,15 @@ because it cannot concern the shipped binary. When it names no file, it is ignor
 every function it names is absent from the built sources of the pinned upstream archive
 (downloaded and digest-checked by the script); architecture-specific and token-pasted
 names never count as absent. OpenH264 and zimg keep the exact-match
-contract on new/removed/changed unresolved advisories. It runs on PRs and weekly;
-feed/network failure is a failed check. `tools/media/built-sources.txt` is the set of
+contract on new/removed/changed unresolved advisories. The **Codec Advisories**
+workflow checks the live feed daily and on manual dispatch. Unreviewed findings
+and feed failures fail that workflow independently of PR and `main` acceptance.
+Release Evidence also checks the live feed from the exact source revision before
+building any publishable media worker. `tools/media/built-sources.txt` is the set of
 source files that reach the shipped binary. `build-inventory.py` derives it from the make
 dependency files of the real build, and the Media Video workflow verifies it against the
-freshly built pinned FFmpeg, so a changed build flag cannot bypass the advisory review.
+freshly built pinned FFmpeg. Media Video also checks that the committed advisory reviews
+match the pinned codec sources without requiring a live feed.
 After an intended build change, regenerate it with
 `python3 tools/media/build-inventory.py <ffmpeg-source> --write tools/media/built-sources.txt`
 and review the difference against the advisory record. The inventory comes from the x86_64

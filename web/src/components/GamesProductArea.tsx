@@ -5,6 +5,7 @@ import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlem
 import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   proPaywallPath,
 } from '../client/routes';
@@ -12,8 +13,8 @@ import {
   entitlementLoader,
   useSpaceEntitlement,
 } from '../client/spaceEntitlement';
-import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
@@ -23,13 +24,14 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
+const GAME_ENTRIES = ['moments', 'wishes', 'perspective', 'pingPong'] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
+  if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
   return null;
 }
 
@@ -143,6 +145,7 @@ export function GamesProductArea({
                           'foto',
                           'wuensche',
                           'gemeinsam',
+                          'spiele',
                         ] satisfies EimirIconName[]
                       )[index]
                     }

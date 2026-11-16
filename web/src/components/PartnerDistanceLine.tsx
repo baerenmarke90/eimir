@@ -97,6 +97,26 @@ export function useDistanceText() {
   };
 }
 
+/**
+ * The short H4 wording of a band (for a one-shot caption such as the picture
+ * flight): words for nearby and range bands, otherwise the formatted value.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    return (
+      formatDistanceBand(
+        band,
+        locale,
+        distanceUnitFor(locale, deviceLanguages()),
+      ) ?? t('partnerLocation.distanceNearShort')
+    );
+  };
+}
+
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg

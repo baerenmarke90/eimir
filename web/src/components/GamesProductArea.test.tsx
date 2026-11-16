@@ -69,6 +69,7 @@ function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.moments.title)).toBeTruthy();
   expect(screen.getByText(games.entries.wishes.title)).toBeTruthy();
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.pingPong.title)).toBeTruthy();
 }
 
 function expectGameStatus(status: string, count: number): void {
@@ -148,7 +149,7 @@ describe('GamesProductArea', () => {
 
     await screen.findByText(games.entries.moments.title);
     expectThreeGameEntries();
-    expectGameStatus(games.status.premium, 3);
+    expectGameStatus(games.status.premium, 4);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -172,7 +173,7 @@ describe('GamesProductArea', () => {
     expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expectGameStatus(games.status.comingSoon, 0);
-    expectGameStatus(games.status.playNow, 3);
+    expectGameStatus(games.status.playNow, 4);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);

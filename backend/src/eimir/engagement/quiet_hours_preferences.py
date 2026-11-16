@@ -30,6 +30,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.WISH_SELECTION_READY,
         NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
         NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.PICTURE_PING_PONG_TURN,
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.PARTNER_KISS,

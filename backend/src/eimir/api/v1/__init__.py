@@ -44,6 +44,7 @@ from eimir.api.v1 import (
     partner_location,
     people,
     photo_sources,
+    picture_ping_pong,
     place_relations,
     places,
     plan_collections,
@@ -120,6 +121,7 @@ normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(billing.router)
 normal_router.include_router(games.router)
+normal_router.include_router(picture_ping_pong.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)

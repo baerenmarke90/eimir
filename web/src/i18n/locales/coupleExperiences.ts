@@ -19,6 +19,7 @@ export default {
       'Was machen wir als Nächstes? Der Zufall hat entschieden.',
     WISH_SELECTION_RANDOM_DECLINED:
       '{{name}} möchte lieber selbst entscheiden.',
+    PICTURE_PING_PONG_TURN: '{{name}} hat am Bild weitergemalt. Du bist dran.',
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
     TRANSFER_READY:

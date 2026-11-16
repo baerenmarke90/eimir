@@ -10,6 +10,7 @@ import {
   collectionDetailPath,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
@@ -38,8 +39,8 @@ import {
   PLAN_DETAIL_ROUTE_PATTERN,
   PRIMARY_APP_ROUTES,
   placeDetailPath,
-  planPathFromCalendarLink,
   planDetailPath,
+  planPathFromCalendarLink,
   recapDetailPath,
   rewriteLegacyPath,
   SEARCH_ROUTE,
@@ -80,6 +81,7 @@ describe('primary navigation', () => {
     expect(appRoutePath('games')).toBe('/games');
     expect(GAMES_MOMENTS_ROUTE).toBe('/games/our-moments');
     expect(GAMES_WISH_DETECTIVE_ROUTE).toBe('/games/wish-detective');
+    expect(GAMES_PICTURE_PING_PONG_ROUTE).toBe('/games/picture-ping-pong');
     expect(appRoutePath('more')).toBe('/more');
   });
 

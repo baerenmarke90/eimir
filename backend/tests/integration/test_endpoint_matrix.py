@@ -453,6 +453,14 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/waterings",
+        body={"plantId": "00000000-0000-0000-0000-000000000001"},
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
@@ -1723,6 +1731,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "experienceKind": "HAPPINESS",
             # A catalog image ID, not a database row; tenant checks come first.
             "imageId": "category-nature",
+            # No seed exists in the matrix; tenant and entitlement checks come first.
+            "seedId": str(uuid4()),
             "attachmentId": attachment["attachment"]["id"],
         },
     }

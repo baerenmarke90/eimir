@@ -444,6 +444,15 @@
         "web/src/components/ProfilePageBase.tsx"
       ]
     },
+    "garden-game.spec.ts": {
+      "roots": [
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenArt.tsx",
+        "web/src/client/garden.ts",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",

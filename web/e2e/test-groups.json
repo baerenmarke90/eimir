@@ -377,6 +377,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
     },
+    "garden-game.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture, with reflow, Light/Dark, reduced motion and axe in the production browser."
+    },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,

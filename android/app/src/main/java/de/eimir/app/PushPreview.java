@@ -111,6 +111,8 @@ public final class PushPreview {
             case "PARTNER_JOINED": return R.string.push_partner_joined;
             // A sent list never shows its title on the lock screen (#1907 E2).
             case "COLLECTION_SENT": return R.string.push_collection_sent;
+            // A garden seed never shows its attached words (#1907 H3).
+            case "GARDEN_SEED_ARRIVED": return R.string.push_garden_seed;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
@@ -163,6 +165,7 @@ public final class PushPreview {
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :
             "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
             "COLLECTION".equals(targetType) ? R.string.push_view_list :
+            "GARDEN_SEED".equals(targetType) ? R.string.push_view_garden :
             "WISH".equals(targetType) ? R.string.push_view_wish :
             "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
             R.string.push_view);

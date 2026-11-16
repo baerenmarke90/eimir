@@ -127,6 +127,8 @@ def for_notification(
             and notification.kind != NotificationKind.WISH_REMINDER_DUE.value
             # A sent list may be a surprise (a gift list): never its title (#1907 E2).
             and notification.kind != NotificationKind.COLLECTION_SENT.value
+            # A garden seed never shows its attached words (#1907 H3).
+            and notification.kind != NotificationKind.GARDEN_SEED_ARRIVED.value
             and not (
                 notification.kind == NotificationKind.REMINDER_DUE.value
                 and target_type is EngagementTarget.PLAN

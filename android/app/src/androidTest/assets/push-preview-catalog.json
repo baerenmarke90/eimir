@@ -1545,6 +1545,100 @@
         "de": "Liste ansehen",
         "en": "View list"
       }
+    },
+    {
+      "id": "GARDEN_SEED_ARRIVED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7040",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..4F6EO173SnYNq9a0.EXIvsczYpYWD7WR_DCSV7I25Eme9CxPZmZlUN-gvKEIZAfpBeakKditF5Zj9tg6pGiUJGhOJDTLs8Xr0gWoRGmkYkq8bF8OrzcIMPjE_v2-SwvCgp3wu685rebP_C3L7KK4YWQik7hGtcGpbqP5PRZ6kapq5LAa_47XdcEjXFodggnJcAymmtEJWHN0yKbWPs1C-OC8l_xvvZrmT4pLijjBNdRxbsfi_QOTDrfui4UrpFpARvjiT3-vbx7-iqaAt.x5T1svPLXJSpWO-coAs__g",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "GARDEN_SEED_ARRIVED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7041",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..qyS4q_FzshSN9skG.A8v07KPTE2yvBzt3e2Je4BjmGX94lcmICm5WNEsctQsck7KxeSzHOqpTyn_7FIPt87bvAushSx_3LR-_jkf7U-SI9cqLHAuUEi82DexlndXqMJlF6wIRS48AcULefpy1DxwxPSbTVeMaiuWulubUF_JpSqIEq-3oBQyyDWB8nCQieHSqezP8I9cM_wPPzlTQyhGHbU2zwXMIYhpf6ocAqFJwUSbe6-hJZWNf9boJ3LrTmB-NQPZ5uCitpJP4B7FN8i9JLGkwsOAy8OavncvjVuM.7cF6VjeJulI-1ob2PluQ7A",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "GARDEN_SEED_ARRIVED-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7042",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..wqAoxgbXxyBs4EP1.07EwtLkbrWOnKd-fMN5WzH8nU_UKoWg530hMBtCh1c7RDyYGFNZhwmQO0ZwWowVoPGBz0JND8B2li7PaO2FUiNRqJPAjHuAz4rU6ZAqGNlH9SfMPXnmm_12A-RCSfr_aXE3aoDq-BOcvmom5d5x379maS8l0hK00BHscB7qVsery1DATUVUZauKNAIqs251PF9GxE5eK4_itc59UiVD0gctc0jpnTA8G0vwaYXJC3hwFzcxcQc_oJQhfRlkAKfdF7d3y8FS-7Lr_bA.LsbiisLGex1zXOVRdQwvxg",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "GARDEN_SEED_ARRIVED-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7043",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VFLsmRkPGb1rZX67.Z3a5bmNuTzGKr2kIm1E3xZrM6iu_9jlurazGkTeJS3FSi80Z_VkDOoJfyBCSIx49UdAljQwWw75WbCvlXlPtTZ0cvPv_Fyg1qvVyrxCsv4K_eRNwPe44cl8DWo1H2qY0FCduG3gyCuf4VgHV9qBI_eV4DZBikecUKaKeAgVFZTdxY2DzIqscdhWOcuoMEScu_wO70UOJ_juhqcWSXcAdC7TkdiX7iff7GDE9lBJxxGQnNBBdJ1u4M0wM3CkBBj53-gsCHvjSMLPP-trJJiMHZARxpT1jP293UD2N.xuGhLMknyCp__FysoAoj7g",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
     }
   ]
 }

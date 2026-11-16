@@ -53,6 +53,7 @@ export function getNotificationItemTitle(
       'PHOTO_REACTION',
       'PARTNER_JOINED',
       'COLLECTION_SENT',
+      'GARDEN_SEED_ARRIVED',
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',

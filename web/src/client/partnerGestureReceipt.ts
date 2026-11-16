@@ -108,6 +108,7 @@ export const PARTNER_NOTICE_ICONS = {
   WISH_SELECTION_RANDOM_REQUESTED: { badge: 'sparkle', center: 'wuensche' },
   WISH_SELECTION_RANDOM_ACCEPTED: { badge: 'sparkle', center: 'wuensche' },
   WISH_SELECTION_RANDOM_DECLINED: { badge: 'gemeinsam', center: 'wuensche' },
+  GARDEN_SEED_ARRIVED: { badge: 'sparkle', center: 'spiele' },
   PLAN_CREATED: { badge: 'kalender', center: 'kalender' },
   PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },
   PLAN_CANCELLED: { badge: 'close', center: 'kalender' },

@@ -365,9 +365,11 @@ def add_member(session: Session, space_id: UUID, account: Account) -> Membership
     session.add(membership)
     session.flush()
     _ensure_partner_profile(session, space_id, account.id)
+    from eimir.garden import service as garden
     from eimir.wish_selections.service import purge_space
 
     purge_space(session, space_id)
+    garden.purge_space(session, space_id)
     return membership
 
 
@@ -384,6 +386,7 @@ def end_membership(
     """
     from eimir.create_receipts import service as shared_create_receipts
     from eimir.engagement import gentle
+    from eimir.garden import service as garden_service
     from eimir.memories import create_receipts
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
@@ -413,6 +416,7 @@ def end_membership(
 
     once_messages.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
+    garden_service.purge_space(session, membership.space_id)
     wish_date_proposals.purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()

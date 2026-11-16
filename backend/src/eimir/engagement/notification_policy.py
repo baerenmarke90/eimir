@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 14
+POLICY_VERSION = 15
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -148,6 +148,10 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.COLLECTION_SENT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        # A garden seed from the partner (#1907 H3); never the attached words.
+        NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
@@ -230,6 +234,7 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.PARTNER_JOINED.value,
         NotificationKind.WISH_REMINDER_DUE.value,
         NotificationKind.COLLECTION_SENT.value,
+        NotificationKind.GARDEN_SEED_ARRIVED.value,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

@@ -34,6 +34,21 @@ import {
     GameWishCandidateSetToJSON,
 } from '../models/GameWishCandidateSet';
 import {
+    type GardenSeedInput,
+    GardenSeedInputFromJSON,
+    GardenSeedInputToJSON,
+} from '../models/GardenSeedInput';
+import {
+    type GardenView,
+    GardenViewFromJSON,
+    GardenViewToJSON,
+} from '../models/GardenView';
+import {
+    type GardenWateringInput,
+    GardenWateringInputFromJSON,
+    GardenWateringInputToJSON,
+} from '../models/GardenWateringInput';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -50,6 +65,25 @@ export interface GetGameMomentCandidatesRequest {
 
 export interface GetGameWishCandidatesRequest {
     spaceId: string;
+}
+
+export interface GetGardenRequest {
+    spaceId: string;
+}
+
+export interface PlantGardenSeedRequest {
+    seedId: string;
+    spaceId: string;
+}
+
+export interface SendGardenSeedRequest {
+    spaceId: string;
+    gardenSeedInput: GardenSeedInput;
+}
+
+export interface WaterGardenPlantRequest {
+    spaceId: string;
+    gardenWateringInput: GardenWateringInput;
 }
 
 /**
@@ -203,6 +237,222 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async getGameWishCandidates(requestParameters: GetGameWishCandidatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameWishCandidateSet> {
         const response = await this.getGameWishCandidatesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getGarden without sending the request
+     */
+    async getGardenRequestOpts(requestParameters: GetGardenRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getGarden().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The shared garden and today's step for the reader.
+     * Get Garden
+     */
+    async getGardenRaw(requestParameters: GetGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.getGardenRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * The shared garden and today's step for the reader.
+     * Get Garden
+     */
+    async getGarden(requestParameters: GetGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.getGardenRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for plantGardenSeed without sending the request
+     */
+    async plantGardenSeedRequestOpts(requestParameters: PlantGardenSeedRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['seedId'] == null) {
+            throw new runtime.RequiredError(
+                'seedId',
+                'Required parameter "seedId" was null or undefined when calling plantGardenSeed().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling plantGardenSeed().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant`;
+        urlPath = urlPath.replace('{seedId}', encodeURIComponent(String(requestParameters['seedId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Plant a seed that arrived for the reader.
+     * Plant Garden Seed
+     */
+    async plantGardenSeedRaw(requestParameters: PlantGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.plantGardenSeedRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Plant a seed that arrived for the reader.
+     * Plant Garden Seed
+     */
+    async plantGardenSeed(requestParameters: PlantGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.plantGardenSeedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for sendGardenSeed without sending the request
+     */
+    async sendGardenSeedRequestOpts(requestParameters: SendGardenSeedRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling sendGardenSeed().'
+            );
+        }
+
+        if (requestParameters['gardenSeedInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenSeedInput',
+                'Required parameter "gardenSeedInput" was null or undefined when calling sendGardenSeed().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/seeds`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenSeedInputToJSON(requestParameters['gardenSeedInput']),
+        };
+    }
+
+    /**
+     * Send today's seed to the partner; one per partner and day.
+     * Send Garden Seed
+     */
+    async sendGardenSeedRaw(requestParameters: SendGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.sendGardenSeedRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Send today's seed to the partner; one per partner and day.
+     * Send Garden Seed
+     */
+    async sendGardenSeed(requestParameters: SendGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.sendGardenSeedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for waterGardenPlant without sending the request
+     */
+    async waterGardenPlantRequestOpts(requestParameters: WaterGardenPlantRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling waterGardenPlant().'
+            );
+        }
+
+        if (requestParameters['gardenWateringInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenWateringInput',
+                'Required parameter "gardenWateringInput" was null or undefined when calling waterGardenPlant().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/waterings`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenWateringInputToJSON(requestParameters['gardenWateringInput']),
+        };
+    }
+
+    /**
+     * Water one plant; a daily gesture that never changes growth.
+     * Water Garden Plant
+     */
+    async waterGardenPlantRaw(requestParameters: WaterGardenPlantRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.waterGardenPlantRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Water one plant; a daily gesture that never changes growth.
+     * Water Garden Plant
+     */
+    async waterGardenPlant(requestParameters: WaterGardenPlantRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.waterGardenPlantRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

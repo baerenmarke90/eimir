@@ -42,6 +42,7 @@ const GROUPS = [
       NotificationKind.THINKING_OF_YOU,
       NotificationKind.COUPLE_EXPERIENCE_SHARED,
       NotificationKind.COLLECTION_SENT,
+      NotificationKind.GARDEN_SEED_ARRIVED,
       NotificationKind.PARTNER_KISS,
       NotificationKind.PARTNER_CHECK_IN,
     ],
@@ -55,6 +56,7 @@ const KIND_KEYS = {
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
   [NotificationKind.COLLECTION_SENT]: 'collectionSent',
+  [NotificationKind.GARDEN_SEED_ARRIVED]: 'gardenSeed',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;

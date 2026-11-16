@@ -42,6 +42,7 @@ from eimir.engagement.models import (
     Notification,
     NotificationKind,
 )
+from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
@@ -303,6 +304,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         target_type, target_id = comment_target
         _project_target_notification(
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
+        )
+
+    if event_type is EventType.GARDEN_SEED_ARRIVED:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.GARDEN_SEED,
+            event.subject_id,
+            NotificationKind.GARDEN_SEED_ARRIVED,
         )
 
     if event_type is EventType.COLLECTION_SENT:
@@ -621,6 +631,9 @@ def _target_is_projectable(
             )
             is not None
         )
+    if target_type is EngagementTarget.GARDEN_SEED:
+        # A seed notice is current only while the seed waits for the reader.
+        return session.scalar(garden.seed_is_waiting(session, context, target_id)) is not None
     if target_type is EngagementTarget.WISH_SELECTION:
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
@@ -643,6 +656,12 @@ def _projectable_predicate(
     notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.GARDEN_SEED.value,
+            garden.seed_is_waiting(session, context, target_id_column).exists(),
+        )
+    )
     for target_type, model in _TARGET_MODELS.items():
         if target_type is EngagementTarget.ONCE_MESSAGE:
             exists = (

@@ -23,6 +23,12 @@ const games = {
       title: 'Wer von euch?',
       description: 'Vergleicht spielerisch eure Sicht auf euch beide.',
     },
+    garden: {
+      role: 'Nah sein',
+      title: 'Unser Garten',
+      description:
+        'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
+    },
   },
   momentsGame: {
     back: 'Zurück zu Spielen',
@@ -152,6 +158,85 @@ const games = {
       wrongLyrics: 'Wer singt häufiger falsche Liedtexte mit?',
       snack: 'Wer würde eher noch einen Snack holen?',
       packing: 'Wer braucht beim Packen mehr Platz?',
+    },
+  },
+  garden: {
+    title: 'Unser Garten',
+    you: 'Du',
+    partnerFallback: 'Dein Schatz',
+    loading: 'Der Garten wird geöffnet …',
+    changedMeanwhile:
+      'Im Garten hat sich gerade etwas getan. Wir haben ihn neu geladen.',
+    sentStatus: '{{messenger}} hat deinen Samen zu {{name}} gebracht.',
+    plantedStatus: 'Eingepflanzt.',
+    wateredStatus: 'Gegossen. {{name}} sieht die Tropfen.',
+    waterTitle: 'Welche Pflanze gießt du?',
+    waterBody:
+      'Tipp im Garten auf eine Pflanze. {{name}} sieht danach die Tropfen.',
+    cancel: 'Abbrechen',
+    arrivedTitle: '{{name}} hat dir einen Samen geschickt',
+    quoted: '„{{words}}“',
+    foldedCard: 'Ein Kärtchen mit lieben Worten',
+    unfold: 'Aufklappen',
+    plant: 'Einpflanzen',
+    todayTitle: 'Heute für {{name}}',
+    todayBody: 'Such einen Samen aus. {{messenger}} bringt ihn zu {{name}}.',
+    chooseSeed: 'Samen auswählen',
+    wordsQuestion: 'Liebe Worte dazu?',
+    yourWords: 'Deine Worte: „{{words}}“',
+    change: 'Ändern',
+    send: 'Samen losschicken',
+    waitingTitle: 'Dein Samen ist bei {{name}}',
+    waitingBody:
+      'Sobald {{name}} reinschaut, wird er eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
+    sharedTitle: 'Ihr wart heute beide im Garten',
+    sharedBody: 'Alles ist ein Stück gewachsen. Morgen gibt es neue Samen.',
+    sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
+    sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
+    panHint: 'Wischen, um den ganzen Garten zu sehen',
+    close: 'Schließen',
+    storySent: 'Geschickt von {{name}}, {{date}}',
+    youDative: 'dir',
+    water: 'Eine Pflanze gießen',
+    partnerWatered: '{{name}} hat heute eure {{species}} gegossen.',
+    partnerWateredYours:
+      '{{name}} hat heute die {{species}} gegossen, die du geschickt hast.',
+    footnote:
+      'Tipp auf eine Pflanze, um ihre Geschichte zu sehen. Kein Tag geht verloren: wenn ihr mal nicht reinschaut, wartet der Garten einfach.',
+    plantLabel: '{{species}} von {{name}}',
+    waterPlantLabel: '{{species}} gießen',
+    stages: {
+      '0': 'Gerade: ein Samen in der Erde',
+      '1': 'Gerade: ein kleiner Keim',
+      '2': 'Gerade: eine Knospe',
+      '3': 'Gerade: in voller Blüte',
+    },
+    messengers: {
+      ladybug: 'Ein Marienkäfer',
+      bee: 'Eine Biene',
+      bird: 'Ein Vogel',
+      balloon: 'Ein kleiner Ballon',
+    },
+    species: {
+      POPPY: {
+        name: 'Mohn',
+        arrived: 'Ein Mohn. {{messenger}} hat ihn gebracht.',
+      },
+      BELLFLOWER: {
+        name: 'Glockenblume',
+        arrived: 'Eine Glockenblume. {{messenger}} hat sie gebracht.',
+      },
+      STARFLOWER: {
+        name: 'Sternblume',
+        arrived: 'Eine Sternblume. {{messenger}} hat sie gebracht.',
+      },
+    },
+    words: {
+      THINKING_OF_YOU: 'Denk an dich',
+      MISS_YOU: 'Vermiss dich',
+      LOOKING_FORWARD: 'Freu mich auf dich',
+      GOOD_NIGHT: 'Gute Nacht',
+      FOR_YOU: 'Für dich',
     },
   },
 };

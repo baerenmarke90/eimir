@@ -69,6 +69,7 @@ import {
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
+  GAMES_GARDEN_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
@@ -158,6 +159,7 @@ import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { GardenGamePage } from './components/GardenGamePage';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
@@ -170,7 +172,6 @@ import {
 import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryMapPage } from './components/MemoryMapPage';
-import type { MapViewport } from './components/PlaceMapCanvas';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
@@ -180,6 +181,7 @@ import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
+import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
@@ -842,6 +844,17 @@ function AuthenticatedApp({
               path={GAMES_MOMENTS_ROUTE}
               element={
                 <OurMomentsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_GARDEN_ROUTE}
+              element={
+                <GardenGamePage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
                   spaceId={spaceId}

@@ -250,6 +250,7 @@ export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
 export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
+export const GAMES_GARDEN_ROUTE = '/games/garden';
 
 /* Story content ---------------------------------------------------------- */
 

@@ -2278,7 +2278,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2295,6 +2295,7 @@
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
     "collectionSent": "Sent lists",
+    "gardenSeed": "Seeds from your garden",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -3137,6 +3138,11 @@
         "role": "Discover",
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
+      },
+      "garden": {
+        "role": "Being close",
+        "title": "Our garden",
+        "description": "Send each other a seed every day, wherever you are."
       }
     },
     "momentsGame": {
@@ -3256,6 +3262,80 @@
       },
       "finishDifferent_one": "You saw yourselves differently on {{count}} question.",
       "finishDifferent_other": "You saw yourselves differently on {{count}} questions."
+    },
+    "garden": {
+      "title": "Our garden",
+      "you": "You",
+      "partnerFallback": "Your partner",
+      "loading": "Opening the garden …",
+      "changedMeanwhile": "Something just changed in the garden. We reloaded it.",
+      "sentStatus": "{{messenger}} brought your seed to {{name}}.",
+      "plantedStatus": "Planted.",
+      "wateredStatus": "Watered. {{name}} will see the drops.",
+      "waterTitle": "Which plant are you watering?",
+      "waterBody": "Tap a plant in the garden. {{name}} will see the drops.",
+      "cancel": "Cancel",
+      "arrivedTitle": "{{name}} sent you a seed",
+      "quoted": "“{{words}}”",
+      "foldedCard": "A little card with kind words",
+      "unfold": "Open",
+      "plant": "Plant it",
+      "todayTitle": "Today for {{name}}",
+      "todayBody": "Pick a seed. {{messenger}} will bring it to {{name}}.",
+      "chooseSeed": "Choose a seed",
+      "wordsQuestion": "Add some kind words?",
+      "yourWords": "Your words: “{{words}}”",
+      "change": "Change",
+      "send": "Send the seed",
+      "waitingTitle": "Your seed is with {{name}}",
+      "waitingBody": "As soon as {{name}} looks in, it gets planted. If you are both here today, the whole garden grows a little.",
+      "sharedTitle": "You were both in the garden today",
+      "sharedBody": "Everything grew a little. There are new seeds tomorrow.",
+      "sceneLabel_one": "Your garden with {{count}} plant",
+      "sceneLabel_other": "Your garden with {{count}} plants",
+      "panHint": "Swipe to see the whole garden",
+      "close": "Close",
+      "storySent": "Sent by {{name}}, {{date}}",
+      "youDative": "you",
+      "water": "Water a plant",
+      "partnerWatered": "{{name}} watered your {{species}} today.",
+      "partnerWateredYours": "{{name}} watered the {{species}} you sent today.",
+      "footnote": "Tap a plant to see its story. No day is lost: if you do not look in for a while, the garden simply waits.",
+      "plantLabel": "{{species}} from {{name}}",
+      "waterPlantLabel": "Water the {{species}}",
+      "stages": {
+        "0": "Right now: a seed in the ground",
+        "1": "Right now: a little sprout",
+        "2": "Right now: a bud",
+        "3": "Right now: in full bloom"
+      },
+      "messengers": {
+        "ladybug": "A ladybird",
+        "bee": "A bee",
+        "bird": "A bird",
+        "balloon": "A little balloon"
+      },
+      "species": {
+        "POPPY": {
+          "name": "Poppy",
+          "arrived": "A poppy. {{messenger}} brought it."
+        },
+        "BELLFLOWER": {
+          "name": "Bellflower",
+          "arrived": "A bellflower. {{messenger}} brought it."
+        },
+        "STARFLOWER": {
+          "name": "Star flower",
+          "arrived": "A star flower. {{messenger}} brought it."
+        }
+      },
+      "words": {
+        "THINKING_OF_YOU": "Thinking of you",
+        "MISS_YOU": "Miss you",
+        "LOOKING_FORWARD": "Can’t wait to see you",
+        "GOOD_NIGHT": "Good night",
+        "FOR_YOU": "For you"
+      }
     }
   },
   "coupleExperiences": {
@@ -3277,6 +3357,7 @@
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
+      "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",

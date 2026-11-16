@@ -9,12 +9,12 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
-import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
@@ -32,6 +32,7 @@ import {
   useAttentionReceipts,
 } from '../client/attentionReceipt';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { useConnectedMoment } from '../client/connectedMoment';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
@@ -43,6 +44,7 @@ import {
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { retrospectiveTone } from '../client/entryTone';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
@@ -68,11 +70,14 @@ import {
   calculateRelationshipDuration,
   formatRelationshipDuration as formatSharedTime,
 } from '../client/relationshipPreview';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
+  MEMORY_CREATE_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_NOTES_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
   STORY_OURS_ROUTE,
 } from '../client/routes';
 import { WIR_NOTE_LIMIT } from '../client/sharedNotes';
@@ -138,7 +143,6 @@ import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
 import {
   DEFAULT_WIR_DESIGN,
@@ -147,7 +151,10 @@ import {
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
+import { ConnectedMoment } from './ConnectedMoment';
+import { FirstStepAction } from './FirstStepAction';
 import { alignWirIntroAnimations } from './wirIntroClock';
+import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 
@@ -939,8 +946,9 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
-  const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   const wirLayout = wirDesignLayout(wirDesignId);
+  // "Seite an Seite": the two people as rows and agenda date stamps.
+  const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirLayout === 'connected';
   const queryClient = useQueryClient();
@@ -1446,6 +1454,17 @@ export function TodayPage({
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
+  // #1907 I1: the first moment settles in where the move-in stood.
+  const firstMomentSettle = useFirstContentSettle(
+    dashboardQuery.data && !dashboardQuery.isCached ? isSparse : undefined,
+  );
+  const connectedMoment = useConnectedMoment(
+    account?.id,
+    spaceId,
+    partner?.id ?? null,
+    Boolean(dashboardQuery.data && !dashboardQuery.isCached),
+  );
+  const rootIntro = useRootTabIntro('today');
 
   // #1792: the distance is a normal Wir module. Directly below the couple
   // hero it stays inside the hero; moved elsewhere it renders in its place.
@@ -1856,6 +1875,9 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {connectedMoment.visible ? (
+          <ConnectedMoment playing={connectedMoment.playing} />
+        ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
@@ -1868,7 +1890,11 @@ export function TodayPage({
                   stack of planning utilities. */}
         {showMomentSection && keepsakeVisible && focalItem ? (
           <TodayModuleSection
-            className="today-section-moment"
+            className={
+              firstMomentSettle
+                ? 'today-section-moment first-content-settle'
+                : 'today-section-moment'
+            }
             title={t('m5s5.today.keepsake.title')}
           >
             <TodayMomentFeature
@@ -2201,7 +2227,10 @@ export function TodayPage({
       ) : null}
 
       {contentReady && dashboardQuery.data ? (
-        <div className="today-content">
+        <div
+          className="today-content"
+          data-root-intro={rootIntro ? 'true' : undefined}
+        >
           <PageHeader
             variant="root"
             className="content-overview-heading"
@@ -2222,8 +2251,30 @@ export function TodayPage({
                   : t('m5s5.dashboard.newSpaceEmpty')}
               </h2>
               <p className="new-space-body">
-                {t('m5s5.dashboard.newSpaceIntro')}
+                {t(
+                  partner
+                    ? 'm5s5.dashboard.newSpaceIntro'
+                    : 'quietHints.moveIn.solo',
+                )}
               </p>
+              <span className="new-space-wall" aria-hidden="true">
+                <span />
+              </span>
+              <FirstStepAction
+                to={MEMORY_CREATE_ROUTE}
+                label={t('m5s5.dashboard.newSpaceAction')}
+                icon="foto"
+                selectedKey="wir-move-in"
+              />
+              {partner ? null : (
+                <TodayDestinationLink
+                  to={`${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`}
+                  className="new-space-invite"
+                >
+                  <EimirIcon name="profil" />
+                  <span>{t('quietHints.moveIn.invite')}</span>
+                </TodayDestinationLink>
+              )}
             </div>
           ) : null}
         </div>

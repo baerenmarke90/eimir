@@ -22,7 +22,7 @@ import {
 } from './PersonColoursId';
 
 /**
- * 
+ * The caller's own colour pair; ``colours`` is null while automatic.
  * @export
  * @interface PersonColoursPreferenceView
  */
@@ -62,7 +62,7 @@ export function PersonColoursPreferenceViewFromJSONTyped(json: any, ignoreDiscri
     }
     return {
         
-        'colours': json['colours'] == null ? null : PersonColoursIdFromJSON(json['colours']),
+        'colours': PersonColoursIdFromJSON(json['colours']),
         'version': json['version'],
     };
 }

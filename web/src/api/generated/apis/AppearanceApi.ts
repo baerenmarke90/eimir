@@ -24,11 +24,6 @@ import {
     AppIconPreferenceViewToJSON,
 } from '../models/AppIconPreferenceView';
 import {
-    type ProblemDetails,
-    ProblemDetailsFromJSON,
-    ProblemDetailsToJSON,
-} from '../models/ProblemDetails';
-import {
     type PersonColoursPreferencePatch,
     PersonColoursPreferencePatchFromJSON,
     PersonColoursPreferencePatchToJSON,
@@ -38,6 +33,11 @@ import {
     PersonColoursPreferenceViewFromJSON,
     PersonColoursPreferenceViewToJSON,
 } from '../models/PersonColoursPreferenceView';
+import {
+    type ProblemDetails,
+    ProblemDetailsFromJSON,
+    ProblemDetailsToJSON,
+} from '../models/ProblemDetails';
 import {
     type WirDesignPreferencePatch,
     WirDesignPreferencePatchFromJSON,
@@ -160,7 +160,7 @@ export class AppearanceApi extends runtime.BaseAPI {
 
     /**
      * Read only the caller\'s own colour pair. No partner value is ever returned.
-     * Get Wir Design Preference
+     * Get Person Colours Preference
      */
     async getPersonColoursPreferenceRaw(requestParameters: GetPersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonColoursPreferenceView>> {
         const requestOptions = await this.getPersonColoursPreferenceRequestOpts(requestParameters);
@@ -171,13 +171,12 @@ export class AppearanceApi extends runtime.BaseAPI {
 
     /**
      * Read only the caller\'s own colour pair. No partner value is ever returned.
-     * Get Wir Design Preference
+     * Get Person Colours Preference
      */
     async getPersonColoursPreference(requestParameters: GetPersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonColoursPreferenceView> {
         const response = await this.getPersonColoursPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
-
 
     /**
      * Creates request options for getWirDesignPreference without sending the request
@@ -343,11 +342,8 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a known colour pair, or null for automatic. Free for every Account.
-     * 
-     * The pair is a personal view of the people in this Space. It is not shared,
-     * carries no gender statement and needs no capability.
-     * Update Wir Design Preference
+     * Save a known colour pair, or null for automatic. Free for every Account.  The pair is a personal view of the people in this Space. It is not shared, carries no gender statement and needs no capability.
+     * Update Person Colours Preference
      */
     async updatePersonColoursPreferenceRaw(requestParameters: UpdatePersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonColoursPreferenceView>> {
         const requestOptions = await this.updatePersonColoursPreferenceRequestOpts(requestParameters);
@@ -357,17 +353,13 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a known colour pair, or null for automatic. Free for every Account.
-     * 
-     * The pair is a personal view of the people in this Space. It is not shared,
-     * carries no gender statement and needs no capability.
-     * Update Wir Design Preference
+     * Save a known colour pair, or null for automatic. Free for every Account.  The pair is a personal view of the people in this Space. It is not shared, carries no gender statement and needs no capability.
+     * Update Person Colours Preference
      */
     async updatePersonColoursPreference(requestParameters: UpdatePersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonColoursPreferenceView> {
         const response = await this.updatePersonColoursPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
-
 
     /**
      * Creates request options for updateWirDesignPreference without sending the request

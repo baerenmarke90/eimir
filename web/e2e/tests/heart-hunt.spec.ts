@@ -84,7 +84,12 @@ async function installMocks(page: Page, initial: Round[]) {
       maintenanceMode: false,
       registrationAvailable: true,
       registrationUnavailableReason: null,
-      auth: { localPassword: true, passkey: true, magicLink: true, oidc: false },
+      auth: {
+        localPassword: true,
+        passkey: true,
+        magicLink: true,
+        oidc: false,
+      },
     },
     '/api/v1/auth/me': { id: ACCOUNT_ID, displayName: 'Lea' },
     '/api/v1/auth/capabilities': { serverAdmin: false },
@@ -169,7 +174,10 @@ async function installMocks(page: Page, initial: Round[]) {
       await route.fulfill({ status: 201, json: created });
       return;
     }
-    if (method === 'POST' && pathname === `${GAME_PATH}/rounds/${ROUND_ID}/taps`) {
+    if (
+      method === 'POST' &&
+      pathname === `${GAME_PATH}/rounds/${ROUND_ID}/taps`
+    ) {
       const body = request.postDataJSON();
       writes.push({ path: pathname, body });
       state.taps += 1;
@@ -298,15 +306,25 @@ for (const scenario of [
     await expect(page.locator('.heart-hunt-heart')).toHaveCount(0);
     await expect(page.locator('.heart-hunt-fog')).toBeVisible();
     await expect(page.getByText(copy.seek.tapHint)).toBeVisible();
-    await capture(page, info, `heart-hunt-seek-${scenario.width}-${scenario.theme}.png`);
+    await capture(
+      page,
+      info,
+      `heart-hunt-seek-${scenario.width}-${scenario.theme}.png`,
+    );
 
     const frame = page.getByRole('button', { name: copy.seek.photoLabel });
     await frame.click({ position: { x: 10, y: 10 } });
     await expect(page.getByText(copy.warmth.cold)).toBeVisible();
     await expect(page.locator('.heart-hunt-heart')).toHaveCount(0);
     await frame.click({ position: { x: 60, y: 80 } });
-    await expect(page.getByText(copy.warmth.warm, { exact: true })).toBeVisible();
-    await capture(page, info, `heart-hunt-warm-${scenario.width}-${scenario.theme}.png`);
+    await expect(
+      page.getByText(copy.warmth.warm, { exact: true }),
+    ).toBeVisible();
+    await capture(
+      page,
+      info,
+      `heart-hunt-warm-${scenario.width}-${scenario.theme}.png`,
+    );
 
     await frame.click({ position: { x: 40, y: 40 } });
     await expect(
@@ -324,7 +342,11 @@ for (const scenario of [
     await expect(
       page.getByRole('button', { name: copy.found.keep }),
     ).toBeVisible();
-    await capture(page, info, `heart-hunt-found-${scenario.width}-${scenario.theme}.png`);
+    await capture(
+      page,
+      info,
+      `heart-hunt-found-${scenario.width}-${scenario.theme}.png`,
+    );
     await expectReflow(page);
 
     expect(network.writes.map((write) => write.path)).toEqual([
@@ -385,7 +407,9 @@ test('hider picks a photo, moves the heart, sends it and then waits', async ({
       name: localized(copy.waiting.title, { name: 'Alex' }),
     }),
   ).toBeVisible();
-  const created = network.writes.find((write) => write.path === `${GAME_PATH}/rounds`);
+  const created = network.writes.find(
+    (write) => write.path === `${GAME_PATH}/rounds`,
+  );
   const body = created?.body as {
     attachmentId: string;
     heart: { x: number; y: number };

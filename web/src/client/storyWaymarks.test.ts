@@ -21,24 +21,17 @@ const milestone = (id: string, title: string, happenedOn: string) => ({
 const iso = (value: Date) => value.toISOString().slice(0, 10);
 
 describe('round day series', () => {
-  it('runs every 100 days to 1,000, then every 500 plus the repdigits, to 10,000', () => {
-    expect(ROUND_DAYS.slice(0, 11)).toEqual([
-      100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1111,
+  it('is 100, 200, 500 and 1,000, then every 1,000 days up to 10,000', () => {
+    expect(ROUND_DAYS).toEqual([
+      100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+      10_000,
     ]);
-    expect(ROUND_DAYS.slice(10, 20)).toEqual([
-      1111, 1500, 2000, 2222, 2500, 3000, 3333, 3500, 4000, 4444,
-    ]);
-    expect(ROUND_DAYS.at(-1)).toBe(10_000);
-    expect(ROUND_DAYS).toEqual([...ROUND_DAYS].sort((a, b) => a - b));
-    expect(new Set(ROUND_DAYS).size).toBe(ROUND_DAYS.length);
   });
 
-  it('contains every repdigit once and nothing between 9,999 and 10,000', () => {
-    for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9])
-      expect(ROUND_DAYS).toContain(digit * 1111);
-    expect(ROUND_DAYS.slice(-2)).toEqual([9999, 10_000]);
-    expect(ROUND_DAYS).not.toContain(1200);
-    expect(ROUND_DAYS).not.toContain(10_500);
+  it('has no hundredth-day filler, no repdigits and nothing past 10,000', () => {
+    for (const skipped of [300, 400, 600, 900, 1111, 1500, 2222, 9999, 10_500])
+      expect(ROUND_DAYS).not.toContain(skipped);
+    expect(ROUND_DAYS.at(-1)).toBe(10_000);
   });
 
   it('finds the next round day, counting today, and ends after 10,000', () => {
@@ -46,9 +39,10 @@ describe('round day series', () => {
     expect(nextRoundDay(99)).toBe(100);
     expect(nextRoundDay(100)).toBe(100);
     expect(nextRoundDay(1000)).toBe(1000);
-    expect(nextRoundDay(1001)).toBe(1111);
-    expect(nextRoundDay(1112)).toBe(1500);
-    expect(nextRoundDay(9999)).toBe(9999);
+    expect(nextRoundDay(201)).toBe(500);
+    expect(nextRoundDay(1001)).toBe(2000);
+    expect(nextRoundDay(1230)).toBe(2000);
+    expect(nextRoundDay(9001)).toBe(10_000);
     expect(nextRoundDay(10_000)).toBe(10_000);
     expect(nextRoundDay(10_001)).toBeNull();
     expect(nextRoundDay(-1)).toBeNull();
@@ -58,9 +52,7 @@ describe('round day series', () => {
   it('lists the reached round days oldest first, today included', () => {
     expect(reachedRoundDays(99)).toEqual([]);
     expect(reachedRoundDays(100)).toEqual([100]);
-    expect(reachedRoundDays(1230)).toEqual([
-      100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1111,
-    ]);
+    expect(reachedRoundDays(1230)).toEqual([100, 200, 500, 1000]);
     expect(reachedRoundDays(-5)).toEqual([]);
   });
 });
@@ -211,18 +203,11 @@ describe('reached waymarks', () => {
     });
     expect(waymarks.map((entry) => `${iso(entry.date)} ${entry.kind}`)).toEqual(
       [
-        '2026-07-02 roundDay',
         '2026-03-13 roundDay',
         '2026-02-01 milestoneAnniversary',
-        '2025-12-03 roundDay',
-        '2025-08-25 roundDay',
-        '2025-05-17 roundDay',
-        '2025-02-06 roundDay',
         '2025-02-01 milestoneAnniversary',
         '2024-10-29 roundDay',
-        '2024-07-21 roundDay',
         '2024-06-17 relationshipAnniversary',
-        '2024-04-12 roundDay',
         '2024-01-03 roundDay',
         '2023-09-25 roundDay',
       ],

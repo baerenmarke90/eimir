@@ -158,9 +158,9 @@ for (const [width, theme, largeText] of [
     await expect(
       section.getByRole('heading', { name: copy.waymarks.title }),
     ).toBeVisible();
-    // 11 round days, the first anniversary and six Milestone anniversaries
+    // 4 round days, the first anniversary and six Milestone anniversaries
     // are reached; the thread opens with the newest four.
-    const total = 18;
+    const total = 11;
     await expect(
       section.locator('.passport-waymarks-list').first().locator('li'),
     ).toHaveCount(4);
@@ -170,7 +170,7 @@ for (const [width, theme, largeText] of [
       }),
     ).toHaveAttribute('aria-expanded', 'false');
     // Newest first: the second anniversary of moving in, then the third of the
-    // first trip, then the 1,111th day. The next chapter keeps one round day.
+    // first trip, then the 1,000th day. The next chapter keeps one round day.
     await expect(
       section.locator('li').nth(0).locator('.passport-waymark-label'),
     ).toHaveText(
@@ -180,7 +180,7 @@ for (const [width, theme, largeText] of [
     );
     await expect(
       section.locator('li').nth(2).locator('.passport-waymark-label'),
-    ).toHaveText('1.111 Tage gemeinsam');
+    ).toHaveText('1.000 Tage gemeinsam');
     await expect(
       page
         .locator('.passport-landmarks dl > div')
@@ -221,7 +221,7 @@ test('the rest opens in place, Milestone rows open their Milestone', async ({
   const more = section.locator('.passport-waymarks-more');
   const toggle = section.locator('.passport-waymarks-toggle');
   await expect(toggle).toHaveText(
-    copy.waymarks.showAll.replace('{{count}}', '18'),
+    copy.waymarks.showAll.replace('{{count}}', '11'),
   );
   // Collapsed rows are neither visible nor reachable by keyboard.
   await expect(more).toBeHidden();
@@ -230,7 +230,7 @@ test('the rest opens in place, Milestone rows open their Milestone', async ({
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(toggle).toHaveText(copy.waymarks.showFewer);
   await expect(more).toBeVisible();
-  await expect(section.locator('li')).toHaveCount(18);
+  await expect(section.locator('li')).toHaveCount(11);
   // The page does not jump sideways or grow a second scroller.
   expect(await noHorizontalOverflow(page)).toBe(false);
   await captureScreenshot(page, info, 'story-waymarks-expanded-390-light.png', {

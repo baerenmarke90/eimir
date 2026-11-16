@@ -11,18 +11,14 @@
 const DAY_MS = 86_400_000;
 
 /**
- * Every 100 days up to 1,000, then every 500 days plus the repdigits
- * 1,111 … 9,999, then 10,000. The series ends there on purpose: nothing is
- * invented past what the product has a reason to call a landmark.
+ * The round days worth a landmark: 100, 200, 500 and 1,000, then every 1,000
+ * days up to 10,000. Not every hundredth day and no repdigits. The series ends
+ * there on purpose: nothing is invented past what the product has a reason to
+ * call a landmark.
  */
-export const ROUND_DAYS: readonly number[] = (() => {
-  const days = new Set<number>();
-  for (let day = 100; day <= 1000; day += 100) days.add(day);
-  for (let day = 1500; day < 10_000; day += 500) days.add(day);
-  for (let digit = 1; digit <= 9; digit += 1) days.add(digit * 1111);
-  days.add(10_000);
-  return [...days].sort((a, b) => a - b);
-})();
+export const ROUND_DAYS: readonly number[] = [
+  100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10_000,
+];
 
 function utcMidnight(value: Date): number {
   return Date.UTC(

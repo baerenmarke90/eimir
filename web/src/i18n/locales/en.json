@@ -2600,12 +2600,13 @@
     "removed": "Link removed"
   },
   "dailyInsights": {
+    "title": "Insights",
     "pro": "Pro",
     "proBrand": "eimir. Pro",
     "nav": {
       "label": "Switch view",
       "week": "Week",
-      "patterns": "Patterns",
+      "patterns": "Month",
       "recap": "Recap"
     },
     "loading": "Loading your history …",
@@ -2654,12 +2655,12 @@
     },
     "lanes": {
       "VERY_GOOD": "Very good",
-      "GOOD": "Good",
-      "OKAY": "Okay",
+      "GOOD": "Relaxed",
+      "OKAY": "So-so",
       "NEEDS_CONNECTION": "Closeness",
       "NEEDS_SPACE": "Quiet",
-      "STRESSED": "Demanding",
-      "SAD": "Not so good"
+      "STRESSED": "Stressed",
+      "SAD": "Sad"
     },
     "bands": {
       "veryHigh": "Very high",
@@ -2670,7 +2671,7 @@
     },
     "week": {
       "title": "Your week",
-      "subtitle": "Feeling & energy at a glance",
+      "subtitle": "Feeling & energy",
       "accent": "Small details. Meaningful moments.",
       "handwriting": "Shared insights. Closer together.",
       "range": "{{start}} – {{end}}",
@@ -2678,6 +2679,8 @@
       "next": "Next week",
       "current": "This week",
       "picker": "Choose week",
+      "summary": "Weekly recap",
+      "noHighlights": "There is no shared highlight from the visible check-ins for this week.",
       "vibeTitle": "Your feeling",
       "vibeSubtitle": "How you felt.",
       "energyTitle": "Your energy",
@@ -2737,7 +2740,7 @@
       "highlightsSubtitle": "Special moments from your week.",
       "highlightsAll": "View all days",
       "highlightsEmpty": "There is no standout shared day this week – a quiet history is perfectly fine too.",
-      "highlightBothGood": "Both felt good",
+      "highlightBothGood": "Both shared a good feeling",
       "highlightBothGoodBody": "You both shared a good feeling.",
       "highlightBothEnergy": "Both with plenty of energy",
       "highlightBothEnergyBody": "You both had plenty of energy.",
@@ -2899,10 +2902,12 @@
     "years": "Years",
     "tabs": "Recaps by period",
     "current": "Your current recap",
-    "archive": "To rediscover",
+    "archive": "Existing recaps",
+    "otherPeriods": "Other periods",
     "periodMonth": "{{month}} {{year}}",
     "periodYear": "Your year {{year}}",
     "partial": "Until {{date}} · growing with you",
+    "partialThrough": "As of {{date}}",
     "complete": "Completed period",
     "saved": "Kept",
     "automatic": "Compiled for you",
@@ -2916,6 +2921,7 @@
     "aiDraft": "AI draft · from your shared content",
     "more": "More recaps",
     "preparing": "Being put together for you.",
+    "generationPaused": "Compilation paused",
     "back": "All recaps",
     "backMore": "Back to More",
     "pendingTitle": "Your story is taking shape.",
@@ -3083,6 +3089,13 @@
       "locked": "With eimir. Pro, see your shared story in personal recaps. One subscription applies to both of you.",
       "dataRights": "Your memories, plans, places and data export remain accessible without Pro.",
       "learnMore": "About eimir. Pro"
+    },
+    "waymarks": {
+      "title": "Your waymarks",
+      "milestoneYears_one": "{{count}} year since “{{title}}”",
+      "milestoneYears_other": "{{count}} years since “{{title}}”",
+      "showAll": "Show all {{count}} waymarks",
+      "showFewer": "Show fewer"
     }
   },
   "experiences": {
@@ -4461,7 +4474,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "How your memories look, in the diary and on Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."

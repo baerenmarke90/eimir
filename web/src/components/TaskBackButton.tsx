@@ -19,6 +19,7 @@ export const TaskBackSlotContext = createContext<{
   register: () => () => void;
   /** A page heading offers its leading cell; the first one in the document wins. */
   registerHost?: (host: HTMLElement) => () => void;
+  showBackLabel?: boolean;
 } | null>(null);
 
 /** True inside a secondary destination, where the shell supplies Back. */
@@ -43,7 +44,11 @@ export function BackSlotHost({ className = '' }: { className?: string }) {
   );
 }
 
-function BackGlyph({ children }: { children: ReactNode }) {
+function BackLabel({ children }: { children: ReactNode }) {
+  const showBackLabel = useContext(TaskBackSlotContext)?.showBackLabel;
+  if (showBackLabel) {
+    return <span className="task-back-label">{children}</span>;
+  }
   return (
     <>
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
@@ -86,7 +91,7 @@ export function TaskBackButton({
       data-default-back={shellDefault ? '' : undefined}
       {...props}
     >
-      <BackGlyph>{label}</BackGlyph>
+      <BackLabel>{label}</BackLabel>
     </button>
   );
   return shellDefault ? (
@@ -140,7 +145,7 @@ export function TaskBackLink({
           );
         }}
       >
-        <BackGlyph>{label}</BackGlyph>
+        <BackLabel>{label}</BackLabel>
       </Link>
     </PlaceBackControl>
   );

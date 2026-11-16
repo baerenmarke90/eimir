@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -240,13 +241,16 @@ export function StoryList({
   spaceId,
   currentAccountId,
   onOpenItem,
+  renderItemActions,
   progressiveReveal = false,
+  imageLoadingMode = progressiveReveal ? 'near-viewport' : 'immediate',
 }: {
   items: StoryItem[];
   loadMemoryImage: (
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
   ) => Promise<ObjectUrlSource>;
   loadHeartMomentImage: (
     heartMomentId: string,
@@ -264,7 +268,9 @@ export function StoryList({
     item: StoryItem,
     to: string,
   ) => void;
+  renderItemActions?: (item: StoryItem) => ReactNode;
   progressiveReveal?: boolean;
+  imageLoadingMode?: 'immediate' | 'near-viewport';
 }) {
   const { t } = useTranslation();
   const [diaryLayout] = useDiaryLayout();
@@ -442,9 +448,7 @@ export function StoryList({
                       isSensitive={imageAttachment.isSensitive}
                       resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
-                      loadingMode={
-                        progressiveReveal ? 'near-viewport' : 'immediate'
-                      }
+                      loadingMode={imageLoadingMode}
                     />
                   ) : null}
 
@@ -540,6 +544,11 @@ export function StoryList({
                   </div>
                 </article>
               </Link>
+              {renderItemActions ? (
+                <div className="story-card-actions">
+                  {renderItemActions(item)}
+                </div>
+              ) : null}
             </li>
           );
         })}

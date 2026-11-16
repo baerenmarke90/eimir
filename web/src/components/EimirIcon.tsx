@@ -63,6 +63,9 @@ export const EIMIR_ICON_NAMES = [
   'sparkle',
   'crop',
   'rotate',
+  'pen',
+  'text',
+  'undo',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
@@ -107,6 +110,19 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
     <>
       <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9" />
       <path d="M4.5 4.5V9H9" />
+    </>
+  ),
+  pen: (
+    <>
+      <path d="M15.5 4.5 19.5 8.5 9 19H5v-4L15.5 4.5Z" />
+      <path d="m13 7 4 4" />
+    </>
+  ),
+  text: <path d="M5 6.5V5h14v1.5M12 5v14m-3 0h6" />,
+  undo: (
+    <>
+      <path d="M9 14 4.5 9.5 9 5" />
+      <path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3" />
     </>
   ),
   close: <path d="m6 6 12 12M18 6 6 18" />,

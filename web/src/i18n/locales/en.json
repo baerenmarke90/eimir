@@ -2327,24 +2327,50 @@
     "edit": "Edit",
     "editLabel": "Edit photo: {{name}}",
     "title": "Edit photo",
-    "help": "Move and zoom the photo inside the frame. The photo keeps its date and place.",
-    "stageLabel": "Move the photo inside the frame",
-    "keyboardHelp": "The arrow keys move the photo. Plus and minus zoom in or out, zero resets the section.",
-    "aspect": "Format",
-    "aspects": {
-      "original": "Original",
-      "square": "Square",
-      "classic": "4:3",
-      "classic_portrait": "3:4",
-      "wide": "16:9",
-      "wide_portrait": "9:16"
+    "tools": "Tool",
+    "toolNames": {
+      "crop": "Crop",
+      "draw": "Draw",
+      "text": "Text"
+    },
+    "stage": {
+      "crop": "Crop the photo",
+      "draw": "Draw on the photo",
+      "text": "Text on the photo"
+    },
+    "help": {
+      "crop": "Drag the corners and edges to choose the section.",
+      "draw": "Draw on the photo with your finger.",
+      "text": "Tap the photo to write text. Drag text to move it."
+    },
+    "cropArea": "Section",
+    "handles": {
+      "nw": "Drag the top left corner",
+      "n": "Drag the top edge",
+      "ne": "Drag the top right corner",
+      "e": "Drag the right edge",
+      "se": "Drag the bottom right corner",
+      "s": "Drag the bottom edge",
+      "sw": "Drag the bottom left corner",
+      "w": "Drag the left edge"
     },
     "turn": "Rotate",
-    "zoom": "Size",
+    "reset": "Reset",
+    "color": "Colour",
+    "colors": {
+      "white": "White",
+      "black": "Black",
+      "rose": "Rose",
+      "blue": "Blue",
+      "yellow": "Yellow"
+    },
+    "addText": "Add text",
+    "textLabel": "Text on the photo",
+    "preview": "Preview of the edited photo",
+    "undo": "Undo",
     "confirm": "Apply",
     "confirming": "Preparing…",
-    "unavailable": "This photo cannot be edited on this device.",
-    "edited": "Edited"
+    "unavailable": "This photo cannot be edited on this device."
   },
   "photoSources": {
     "settingsTitle": "Media sources",

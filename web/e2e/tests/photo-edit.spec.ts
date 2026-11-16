@@ -232,7 +232,7 @@ for (const view of [
   { width: 390, theme: 'light' },
   { width: 390, theme: 'dark' },
 ] as const) {
-  test(`a selected photo is turned and cropped before saving and keeps its date and place (${view.width} ${view.theme})`, async ({
+  test(`a selected photo is turned, cropped, drawn on and labelled before saving and keeps its date and place (${view.width} ${view.theme})`, async ({
     page,
   }, info) => {
     await page.emulateMedia({ colorScheme: view.theme });
@@ -273,36 +273,98 @@ for (const view of [
       `photo-edit-02-sheet-${view.width}-${view.theme}.png`,
     );
 
+    // Turn the sideways photo upright, then crop freely at two corners.
     await sheet.getByRole('button', { name: photoEdit.turn }).click();
-    await sheet
-      .getByRole('radio', { name: photoEdit.aspects.classic })
-      .check({ force: true });
-    const zoom = sheet.getByRole('slider', { name: photoEdit.zoom });
-    await zoom.fill('1.25');
-    const stage = sheet.getByRole('application', {
-      name: photoEdit.stageLabel,
-    });
-    await stage.focus();
-    await page.keyboard.press('ArrowLeft');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
+    const dragHandle = async (label: string, dx: number, dy: number) => {
+      const box = await sheet.getByLabel(label, { exact: true }).boundingBox();
+      if (!box) throw new Error(`Missing crop handle ${label}.`);
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      for (let step = 1; step <= 12; step += 1)
+        await page.mouse.move(x + (dx * step) / 12, y + (dy * step) / 12);
+      await page.mouse.up();
+    };
+    await dragHandle(photoEdit.handles.se, -70, -30);
+    await dragHandle(photoEdit.handles.nw, 30, 24);
+    await page.waitForTimeout(300);
     await captureScreenshot(
       page,
       info,
-      `photo-edit-03-turned-cropped-${view.width}-${view.theme}.png`,
+      `photo-edit-03-cropped-${view.width}-${view.theme}.png`,
     );
+
+    // Draw a small heart above the couple.
+    await sheet
+      .getByRole('radio', { name: photoEdit.toolNames.draw })
+      .check({ force: true });
+    await sheet
+      .getByRole('radio', { name: photoEdit.colors.rose })
+      .check({ force: true });
+    const preview = sheet.getByRole('img', { name: photoEdit.preview });
+    const canvas = await preview.boundingBox();
+    if (!canvas) throw new Error('Missing edit preview.');
+    const heartX = canvas.x + canvas.width * 0.42;
+    const heartY = canvas.y + canvas.height * 0.3;
+    await page.mouse.move(heartX, heartY + 22);
+    await page.mouse.down();
+    for (let step = 0; step <= 48; step += 1) {
+      const angle = (step / 48) * Math.PI * 2;
+      const x = 16 * Math.sin(angle) ** 3;
+      const y =
+        13 * Math.cos(angle) -
+        5 * Math.cos(2 * angle) -
+        2 * Math.cos(3 * angle) -
+        Math.cos(4 * angle);
+      await page.mouse.move(heartX + x * 1.6, heartY - y * 1.6);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await captureScreenshot(
+      page,
+      info,
+      `photo-edit-04-drawn-${view.width}-${view.theme}.png`,
+    );
+
+    // Write a line of text on the photo.
+    await sheet
+      .getByRole('radio', { name: photoEdit.toolNames.text })
+      .check({ force: true });
+    await sheet
+      .getByRole('radio', { name: photoEdit.colors.white })
+      .check({ force: true });
+    const textView = await preview.boundingBox();
+    if (!textView) throw new Error('Missing edit preview.');
+    await page.mouse.click(
+      textView.x + textView.width * 0.5,
+      textView.y + textView.height * 0.82,
+    );
+    const text = sheet.getByRole('textbox', { name: photoEdit.textLabel });
+    await expect(text).toBeFocused();
+    await text.pressSequentially('Unser Abend am See', { delay: 30 });
+    await captureScreenshot(
+      page,
+      info,
+      `photo-edit-05-text-${view.width}-${view.theme}.png`,
+    );
+    await text.press('Enter');
+    await expect(text).toHaveCount(0);
 
     await sheet.getByRole('button', { name: photoEdit.confirm }).click();
     await expect(sheet).toBeHidden();
     await expect.poll(() => state.bodies.size).toBe(2);
     await waitForSettledMotion(page);
+    await page.mouse.move(0, 0);
     await page.waitForTimeout(400);
     await captureScreenshot(
       page,
       info,
-      `photo-edit-04-applied-${view.width}-${view.theme}.png`,
+      `photo-edit-06-applied-${view.width}-${view.theme}.png`,
     );
 
-    // Metadata travels with the edited photo; it stays upright.
+    // Metadata travels with the edited photo; it stays upright and cropped.
     expect(state.creates.map((entry) => entry.preserveMetadata)).toEqual([
       true,
       true,
@@ -312,8 +374,7 @@ for (const view of [
     expect(edited.includes(Buffer.from(CAPTURED_AT, 'ascii'))).toBe(true);
     expect(edited.includes(Buffer.from('Exif\0\0', 'ascii'))).toBe(true);
     const size = await decodedSize(page, edited);
-    // Turned to landscape and framed 4:3.
     expect(size.width).toBeGreaterThan(size.height);
-    expect(Math.abs(size.width / size.height - 4 / 3)).toBeLessThan(0.01);
+    expect(size.width).toBeLessThan(1600);
   });
 }

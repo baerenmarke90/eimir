@@ -349,6 +349,7 @@
       "roots": [
         "web/src/components/PageHeader.tsx",
         "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/LogoutDeviceDataSheet.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/PlanProductPage.tsx"
       ]

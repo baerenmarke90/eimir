@@ -367,6 +367,13 @@ a single background executor in app-private no-backup storage. Snapshot size is
 bounded to 16 KiB, and storage errors contain no credential or path payload.
 The existing no-backup manifest policy remains enabled.
 
+The same plugin keeps one per-login media key (`mediaKey`, `clearMediaKey`):
+32 random bytes, wrapped by the same Keystore key under distinct associated
+data in a separate no-backup file. The WebView imports it as a non-extractable
+Web Crypto key and seals every stored image row with AES-GCM; image bytes never
+cross into native storage. `clear` (logout) deletes the media key together with
+the session envelope, which makes every sealed row unreadable.
+
 Before React mounts, the current instance's snapshot is restored into the
 existing Web session facade, with a five-second native-read budget. An existing
 WebView session is migrated without replacing it with an older native snapshot.

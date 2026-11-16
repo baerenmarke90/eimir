@@ -28,10 +28,10 @@ import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { MediaActionGroup } from './MediaActionGroup';
 import { MediaDropZone } from './MediaDropZone';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
-import { MediaActionGroup } from './MediaActionGroup';
-import { AddActionButton } from './AddAction';
 import { ProblemState } from './ProblemState';
 
 const RELATIONSHIPS: PersonRelationship[] = [
@@ -191,6 +191,7 @@ export function RelatedPersonEditorSheet({
     attachmentsApi,
     spaceId,
     person?.avatarAttachmentId,
+    person?.visibility === ContentVisibility.SHARED,
   );
   const displayedAvatarUrl =
     avatarPreviewUrl || (currentAvatarId ? existingAvatarUrl : null);

@@ -874,11 +874,24 @@ function AuthenticatedApp({
               }
             />
             <Route path={appRoutePath('more')} element={null} />
+            <Route
+              path={MORE_INSIGHTS_RECAP_ROUTE}
+              element={
+                <Navigate
+                  replace
+                  to={{
+                    pathname: MORE_INSIGHTS_ROUTE,
+                    search: location.search,
+                    hash: '#wochenrueckblick',
+                  }}
+                  state={location.state}
+                />
+              }
+            />
             {(
               [
                 [MORE_INSIGHTS_ROUTE, 'week'],
                 [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
               ] as const
             ).map(([path, insightView]) => (
               <Route

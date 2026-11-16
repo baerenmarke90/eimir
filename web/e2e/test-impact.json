@@ -993,6 +993,8 @@
         "web/src/components/ChapterCreatePage.tsx",
         "web/src/components/ChapterProductPage.tsx",
         "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MomentsLayoutSettings.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/MemoryProductPage.tsx"

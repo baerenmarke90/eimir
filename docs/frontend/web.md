@@ -81,9 +81,13 @@ its payload as AES-GCM ciphertext bound to the row key (`sealJson` in
 time) stay readable so rows can be found, expired and purged. The app writes
 no cache row without the key, discards a plaintext row or a row sealed under an
 earlier login, and the store upgrade to version 4 drops earlier plaintext rows
-once on every platform. Browsers and iOS keep plaintext rows, because they
-have no device-bound key store. Memory diary drafts are not sealed yet: they
-hold dates and photo handles that the JSON sealing cannot carry.
+once on every platform. Memory diary drafts are sealed the same way
+(`memoryDiaryDraft.ts`): text and structure as one sealed value, in which
+dates and photo names are tagged, and the bytes of each attached photo as
+their own sealed blob. A draft written before sealing is kept and sealed in
+place on its next load; a draft sealed under an earlier login is discarded.
+Browsers and iOS keep plaintext rows, because they have no device-bound key
+store.
 
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all

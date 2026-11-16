@@ -374,8 +374,8 @@ Web Crypto key and seals every stored image row with AES-GCM; image bytes never
 cross into native storage. `clear` (logout) deletes the media key together with
 the session envelope, which makes every sealed row unreadable. The read cache
 seals the payload of every row under the same key (`sealJson`), so cached text
-and the list outbox are stored as ciphertext as well; Memory diary drafts are
-not sealed yet.
+and the list outbox are stored as ciphertext as well, and Memory diary drafts
+seal their text and the bytes of their photos the same way.
 
 Before React mounts, the current instance's snapshot is restored into the
 existing Web session facade, with a five-second native-read budget. An existing

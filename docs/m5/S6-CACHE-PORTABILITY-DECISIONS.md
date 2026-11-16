@@ -180,7 +180,8 @@ removed, and the app names what signing out deletes before it happens.
 row, including the list outbox, as AES-GCM ciphertext under the same per-login
 key. Namespace fields stay readable for lookup, expiry and purge. The seven-day
 rule, the `SPACE_SHARED`-only scope and every clearing rule are unchanged.
-Browsers and iOS keep plaintext rows; Memory diary drafts are not sealed yet.
+The owner-local Memory diary draft store seals its text and photo bytes under
+the same key. Browsers and iOS keep plaintext rows.
 
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently

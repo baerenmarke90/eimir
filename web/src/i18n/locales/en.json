@@ -4585,6 +4585,14 @@
     "body": "Your private content is not stored in this offline page. Once your connection is back, you can use eimir. as usual.",
     "retry": "Try again"
   },
+  "webViewNotice": {
+    "outdatedTitle": "An Android System WebView update is needed.",
+    "outdatedBody": "This system component displays eimir. on your device. Update it in the Play Store, and on older devices Google Chrome as well. Your saved content is kept.",
+    "outdatedAction": "Open Play Store",
+    "loadTitle": "The app could not load.",
+    "loadBody": "Please try again. Your saved content is kept.",
+    "retry": "Try again"
+  },
   "voiceNotes": {
     "title": "Voice note",
     "show": "Reveal voice note",

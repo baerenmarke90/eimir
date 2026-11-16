@@ -88,6 +88,7 @@ EXCLUDED_PLATFORM_PATHS = {
     Path("web/package-lock.json"),
     # Generated solely from the audited, bundled localization resource contract.
     Path("web/public/offline-language.js"),
+    Path("web/public/webview-unsupported.js"),
     Path("tools/ci/engineering_language_audit.py"),
     Path("tools/ci/test_engineering_language_audit.py"),
 }
@@ -410,6 +411,12 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Geburtstag von Mira",
     "Gemeinsamer Moment",
     "Gerade keine Verbindung.",
+    # Exact #1931 static German fallback of the WebView notice, generated copy.
+    "Ein Update von „Android System WebView“ fehlt.",
+    "Diese Systemkomponente zeigt eimir. auf deinem Gerät an.",
+    "Aktualisiere sie im Play Store, auf älteren Geräten auch „Google Chrome“.",
+    "Gespeicherte Inhalte bleiben erhalten.",
+    "Im Play Store öffnen",
     "Deine privaten Inhalte werden nicht offline zwischengespeichert.",
     "Sobald die Verbindung wieder da ist, kannst du eimir. normal weiterverwenden.",
     "Gerade bei euch",

@@ -1236,6 +1236,9 @@
         "web/src/components/PlanningOccasions.tsx",
         "web/src/i18n/locales/occasionMarks.ts"
       ]
+    },
+    "webview-update-notice.spec.ts": {
+      "roots": ["web/src/i18n/locales/webViewNotice.ts"]
     }
   }
 }

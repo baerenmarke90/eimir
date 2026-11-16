@@ -16,6 +16,7 @@ import org.junit.Test;
 import android.webkit.WebView;
 import android.os.SystemClock;
 import androidx.test.core.app.ActivityScenario;
+import com.getcapacitor.Bridge;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -85,6 +86,19 @@ public class VoiceNotesContractTest {
         throw new AssertionError("Native voice call did not complete");
     }
 
+    /**
+     * Below the WebView floor Capacitor shows the static update notice, which
+     * carries no native bridge (#1931). The bridge contract does not depend on
+     * the Web bundle, so load the app document, where Capacitor injects the
+     * bridge as on every other provider.
+     */
+    private static WebView appDocumentWebView(LauncherActivity activity) {
+        Bridge bridge = activity.getBridge();
+        WebView view = bridge.getWebView();
+        if (!bridge.isMinimumWebViewInstalled()) view.loadUrl(bridge.getAppUrl());
+        return view;
+    }
+
     @Test public void coldShareCrossesTheRealBridgeAndCannotReplayAfterRecreation() throws Exception {
         File file = new File(context.getCacheDir(), "shared-voice.wav");
         Files.write(file.toPath(), new byte[] {82, 73, 70, 70, 1, 2, 3, 4});
@@ -94,7 +108,7 @@ public class VoiceNotesContractTest {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(incoming)) {
             AtomicReference<WebView> web = new AtomicReference<>();
-            scenario.onActivity(activity -> web.set(activity.getBridge().getWebView()));
+            scenario.onActivity(activity -> web.set(appDocumentWebView(activity)));
             long deadline = SystemClock.elapsedRealtime() + 10000;
             while (!"function".equals(evaluate(web.get(), "window.Capacitor && typeof window.Capacitor.nativePromise"))
                     && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50);
@@ -114,7 +128,7 @@ public class VoiceNotesContractTest {
             nativeCall(web.get(), "discard", ticket);
             assertFalse(nativeCall(web.get(), "peek", new JSONObject()).getBoolean("available"));
             scenario.recreate();
-            scenario.onActivity(activity -> web.set(activity.getBridge().getWebView()));
+            scenario.onActivity(activity -> web.set(appDocumentWebView(activity)));
             deadline = SystemClock.elapsedRealtime() + 10000;
             while (!"function".equals(evaluate(web.get(), "window.Capacitor && typeof window.Capacitor.nativePromise"))
                     && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50);

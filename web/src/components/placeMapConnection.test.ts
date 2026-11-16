@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import { ConnectionOverlay, connectionArc } from './placeMapConnection';
+import {
+  ConnectionOverlay,
+  connectionArc,
+  connectionArcLength,
+  glowTurns,
+} from './placeMapConnection';
 
 const size = { width: 360, height: 440 };
 
@@ -21,6 +26,20 @@ describe('connectionArc', () => {
       'far',
     );
     expect(Number(horizontal.split(' ')[5])).toBeLessThan(200);
+  });
+});
+
+describe('glowTurns', () => {
+  it('keeps the glow clear of the avatars, also on short arcs', () => {
+    expect(glowTurns(300)).toEqual({ start: 10, end: 90 });
+    expect(glowTurns(40)).toEqual({ start: 40, end: 60 });
+    expect(glowTurns(0)).toEqual({ start: 0, end: 100 });
+    const straight = connectionArcLength(
+      { x: 0, y: 0 },
+      { x: 0, y: 300 },
+      'regional',
+    );
+    expect(straight).toBeGreaterThan(300);
   });
 });
 
@@ -51,9 +70,31 @@ describe('ConnectionOverlay', () => {
       size,
     );
     const { classList } = overlay.element;
+    // Nothing plays before the map is drawn.
+    expect(classList.contains('is-started')).toBe(false);
+    overlay.play();
+    expect(classList.contains('is-playing')).toBe(false);
+    overlay.start();
     expect([...classList]).toEqual(
-      expect.arrayContaining(['is-regional', 'is-entering', 'is-playing']),
+      expect.arrayContaining([
+        'is-regional',
+        'is-started',
+        'is-entering',
+        'is-playing',
+      ]),
     );
+    // The glow and its tail turn just outside both avatars.
+    expect(
+      overlay.element.querySelectorAll('.place-map-connection-glow'),
+    ).toHaveLength(3);
+    const length = connectionArcLength(
+      { x: 50, y: 400 },
+      { x: 300, y: 80 },
+      'regional',
+    );
+    expect(
+      overlay.element.style.getPropertyValue('--place-map-connection-start'),
+    ).toBe(`${glowTurns(length).start.toFixed(2)}%`);
     const path = overlay.element.querySelector('.place-map-connection-stroke');
     expect(path?.getAttribute('d')).toBe(
       connectionArc({ x: 50, y: 400 }, { x: 300, y: 80 }, 'regional'),

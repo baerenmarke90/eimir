@@ -64,3 +64,20 @@ basemap):
 - `30-impl-near-animation.gif`, `30-impl-regional-animation.gif`,
   `30-impl-far-animation.gif`: the shipped CSS animation, sought frame by frame
   at 20 fps (draw-in and the first round trip).
+
+## Follow-up: clearer motion (Product Owner, 2026-11-16)
+
+The Product Owner did not perceive the motion on a device. Findings: the arc
+drew in while the basemap was still loading, the 11 px glow was easy to miss
+and hid under the avatars at both ends. Decision: make it clearer while keeping it
+self-ending after three round trips (no permanent loop).
+
+- The connection appears and starts only once the basemap has drawn
+  (MapLibre `idle`, with a 2.5 s fallback for a slow or failing basemap).
+- A 16 px glow with a soft halo and a two-point tail
+  (`--duration-feedback` steps behind it).
+- The glow turns 30 px before each avatar (per arc), so it stays visible.
+- An earlier snapshot stays muted and still (privacy contract).
+
+Evidence, recorded from the real app build at real speed:
+`40-impl-clearer-far-animation.gif`, `40-impl-clearer-r25-animation.gif`.

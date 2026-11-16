@@ -85,3 +85,15 @@ Captured from the implementation branch in the e2e harness (mocked API):
 - `23-impl-verbunden-5-10-390-text-130-below-marks.jpg`: 130 % text, own line.
 - `24-impl-pill-nearby-360-light.jpg`, `25-impl-pill-far-390-light.jpg`: the
   pill of the other designs, unchanged for nearby and far values.
+
+## Follow-up: kilometres on the map, pin glyph (Product Owner, 2026-11-16)
+
+- The map sheet keeps the kilometres of a range band below its words
+  (`partner-map-between-km`); nearby never shows a number and far values
+  already contain theirs.
+- The Verbunden hero always shows the distance pin; the clock glyph for an
+  earlier value is gone, the earlier state stays in the accessible name.
+
+Evidence (real app build with fixture data): `30-impl-verbunden-earlier-pin-390-light.jpg`,
+`31-`/`32-` (5–10 km, Light/Dark), `33-impl-map-sheet-km-earlier-390-light.jpg`,
+`34-`/`35-` (map sheet 5–10 km, Light/Dark).

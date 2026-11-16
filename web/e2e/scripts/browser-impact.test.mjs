@@ -17,7 +17,11 @@ import {
   selectBrowserImpact,
   validatePlannedSpecs,
 } from './browser-impact.mjs';
-import { planBrowserTests } from './pr-browser-plan.mjs';
+import {
+  additionalShards,
+  MAX_ADDITIONAL_SHARDS,
+  planBrowserTests,
+} from './pr-browser-plan.mjs';
 import { readTestInventory } from './test-inventory.mjs';
 import { verifyBrowserQa } from './verify-browser-qa.mjs';
 
@@ -280,7 +284,16 @@ test('CLI emits an auditable selection and failure cannot publish partial GitHub
     ),
   );
   assert.equal(result.full, false);
-  assert.match(readFileSync(output, 'utf8'), /critical-specs=\[/);
+  const emitted = readFileSync(output, 'utf8');
+  assert.match(emitted, /critical-specs=\[/);
+  const shardLine = emitted.match(/^additional-shards=(.+)$/m);
+  const totalLine = emitted.match(/^additional-shard-total=(\d+)$/m);
+  assert.ok(shardLine && totalLine);
+  assert.deepEqual(
+    JSON.parse(shardLine[1]),
+    additionalShards(result.additional),
+  );
+  assert.equal(Number(totalLine[1]), JSON.parse(shardLine[1]).length);
   writeFileSync(output, '');
   writeFileSync(
     join(directory, 'files.json'),
@@ -298,6 +311,19 @@ test('CLI emits an auditable selection and failure cannot publish partial GitHub
       assert.equal(readFileSync(output, 'utf8'), '');
       return true;
     },
+  );
+});
+
+test('additional specs never plan more shards than files or the bound', () => {
+  assert.deepEqual(additionalShards([]), [1]);
+  assert.deepEqual(additionalShards(['a.spec.ts']), [1]);
+  assert.deepEqual(additionalShards(['a.spec.ts', 'b.spec.ts']), [1, 2]);
+  const many = Array.from({ length: 40 }, (_, index) => `s${index}.spec.ts`);
+  const shards = additionalShards(many);
+  assert.equal(shards.length, MAX_ADDITIONAL_SHARDS);
+  assert.deepEqual(
+    shards,
+    Array.from({ length: MAX_ADDITIONAL_SHARDS }, (_, index) => index + 1),
   );
 });
 

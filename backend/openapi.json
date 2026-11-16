@@ -6734,6 +6734,18 @@
             ],
             "title": "Readat"
           },
+          "selectionSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+            "title": "Selectionsize"
+          },
           "sourceEventId": {
             "format": "uuid",
             "title": "Sourceeventid",
@@ -6799,6 +6811,9 @@
           "PLAN_CANCELLED",
           "WISH_SELECTION_SHARED",
           "WISH_SELECTION_READY",
+          "WISH_SELECTION_RANDOM_REQUESTED",
+          "WISH_SELECTION_RANDOM_ACCEPTED",
+          "WISH_SELECTION_RANDOM_DECLINED",
           "PHOTO_REACTION",
           "PARTNER_JOINED",
           "COUPLE_EXPERIENCE_SHARED",
@@ -16350,6 +16365,98 @@
         "title": "WishSelectionDateIdeaCandidateView",
         "type": "object"
       },
+      "WishSelectionDecisionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "`REQUEST_RANDOM` asks the partner whether chance may decide (a request from each partner is consent); `ACCEPT_RANDOM` lets the server draw once; `DECLINE_RANDOM` keeps deciding together; `WITHDRAW_RANDOM` removes the own request; `CHOOSE` decides one of several common favourites; `CLEAR` undoes the decision.",
+            "enum": [
+              "REQUEST_RANDOM",
+              "ACCEPT_RANDOM",
+              "DECLINE_RANDOM",
+              "WITHDRAW_RANDOM",
+              "CHOOSE",
+              "CLEAR"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "dateIdeaId": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For `CHOOSE`: a common date idea.",
+            "title": "Dateideaid"
+          },
+          "wishId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For `CHOOSE`: a common Wish.",
+            "title": "Wishid"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "WishSelectionDecisionUpdate",
+        "type": "object"
+      },
+      "WishSelectionDecisionView": {
+        "properties": {
+          "dateIdeaId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dateideaid"
+          },
+          "method": {
+            "enum": [
+              "RANDOM",
+              "MANUAL"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "wishId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wishid"
+          }
+        },
+        "required": [
+          "wishId",
+          "dateIdeaId",
+          "method"
+        ],
+        "title": "WishSelectionDecisionView",
+        "type": "object"
+      },
       "WishSelectionOwnView": {
         "properties": {
           "favoriteDateIdeaIds": {
@@ -16383,6 +16490,26 @@
           "version"
         ],
         "title": "WishSelectionOwnView",
+        "type": "object"
+      },
+      "WishSelectionRandomRequestView": {
+        "properties": {
+          "declined": {
+            "description": "The partner would rather decide together.",
+            "title": "Declined",
+            "type": "boolean"
+          },
+          "mine": {
+            "description": "True when the caller asked; false when the partner did.",
+            "title": "Mine",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mine",
+          "declined"
+        ],
+        "title": "WishSelectionRandomRequestView",
         "type": "object"
       },
       "WishSelectionRoundUpdate": {
@@ -16498,6 +16625,17 @@
             "title": "Dateideacandidates",
             "type": "array"
           },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishSelectionDecisionView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The decided candidate, the same on both devices."
+          },
           "id": {
             "anyOf": [
               {
@@ -16512,6 +16650,33 @@
           },
           "own": {
             "$ref": "#/components/schemas/WishSelectionOwnView"
+          },
+          "randomPool": {
+            "anyOf": [
+              {
+                "enum": [
+                  "COMMON",
+                  "FAVORITES",
+                  "ALL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether chance may decide and from what kind of pool; the pool itself is never returned. Null when chance is not offered.",
+            "title": "Randompool"
+          },
+          "randomRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishSelectionRandomRequestView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "resultState": {
             "enum": [
@@ -45060,6 +45225,128 @@
           }
         },
         "summary": "Replace Wish Selection Round",
+        "tags": [
+          "wish-selections"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wish-selection/decision": {
+      "put": {
+        "operationId": "decideWishSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Preferred locale for date-idea content.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Preferred locale for date-idea content.",
+              "title": "Locale"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishSelectionDecisionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: the round contains curated date ideas and the Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Decide Wish Selection",
         "tags": [
           "wish-selections"
         ]

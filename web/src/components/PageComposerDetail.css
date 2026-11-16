@@ -220,7 +220,7 @@
   .wish-detail
 ) .composer-header {
   --detail-control-size: var(--touch-target-web);
-  --detail-control-surface: var(--color-surface-subtle);
+  --detail-control-surface: var(--color-surface-raised);
   --detail-control-foreground: var(--color-text);
 
   grid-template-columns: var(--detail-control-size) minmax(0, 1fr) var(

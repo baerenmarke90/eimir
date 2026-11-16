@@ -41,7 +41,7 @@ import {
 } from '../client/spaceEntitlement';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
-import { TaskBackLink } from './TaskBackButton';
+import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
 import {
   formatDayMonth,
@@ -478,10 +478,12 @@ export function DailyInsightsPage({
   return (
     <div className="page daily-insights" data-view={view}>
       <header className="insight-header">
+        {/* Back, title and Pro mark share one row (#1907 C4). */}
         <div className="insight-header-top">
+          <BackSlotHost />
+          <h1>{title}</h1>
           <ProMark />
         </div>
-        <h1>{title}</h1>
         <p className="insight-subtitle">{subtitle}</p>
         {!gated ? picker : null}
       </header>

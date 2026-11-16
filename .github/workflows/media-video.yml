@@ -77,6 +77,8 @@ jobs:
           mkdir /tmp/ffmpeg-source
           tar -xzf /tmp/ffmpeg.tar.gz --strip-components=1 -C /tmp/ffmpeg-source
           bash tools/media/build-ffmpeg.sh /tmp/ffmpeg-source /tmp/eimir-codecs
+      - name: Verify the recorded build inventory against the real build
+        run: python3 tools/media/build-inventory.py /tmp/ffmpeg-source --check tools/media/built-sources.txt
       - name: Locked dependencies and migrations
         working-directory: backend
         run: |

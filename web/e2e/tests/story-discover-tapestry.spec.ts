@@ -1,7 +1,7 @@
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';

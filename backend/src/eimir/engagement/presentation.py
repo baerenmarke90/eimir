@@ -71,3 +71,24 @@ def concealed_targets(
         (EngagementTarget.PLAN, plan_id)
         for plan_id in discreet.discreet_plan_ids(session, plan_ids)
     }
+
+
+def selection_sizes(
+    session: Session,
+    context: AuthorizationContext,
+    targets: set[tuple[EngagementTarget, UUID]],
+) -> dict[UUID, int]:
+    """Candidate count of the caller's current round, for its invitation copy only."""
+    ids = {
+        target_id
+        for target_type, target_id in targets
+        if target_type is EngagementTarget.WISH_SELECTION
+    }
+    if not ids:
+        return {}
+    from eimir.wish_selections import service as wish_selections
+
+    current = wish_selections.get_selection(session, context)
+    if current.round is None or current.round.id not in ids:
+        return {}
+    return {current.round.id: current.round.candidate_count}

@@ -1,23 +1,25 @@
-import de from '../../src/i18n/locales/de';
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '../support/axe';
+import { expect, type Page, test } from '@playwright/test';
+import { recapDetailPath } from '../../src/client/routes';
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import navigation from '../../src/i18n/locales/navigation';
-import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
+import { fulfillDefaultProductContext } from '../support/productContext';
+
 const fixtureCopy = fixtures.recaps;
+
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -658,7 +660,7 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.recap-reader-top .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);

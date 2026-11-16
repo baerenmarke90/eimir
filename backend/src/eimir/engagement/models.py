@@ -55,6 +55,9 @@ class NotificationKind(StrEnum):
     PLAN_CANCELLED = "PLAN_CANCELLED"
     WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
     WISH_SELECTION_READY = "WISH_SELECTION_READY"
+    WISH_SELECTION_RANDOM_REQUESTED = "WISH_SELECTION_RANDOM_REQUESTED"
+    WISH_SELECTION_RANDOM_ACCEPTED = "WISH_SELECTION_RANDOM_ACCEPTED"
+    WISH_SELECTION_RANDOM_DECLINED = "WISH_SELECTION_RANDOM_DECLINED"
     PHOTO_REACTION = "PHOTO_REACTION"
     PARTNER_JOINED = "PARTNER_JOINED"
     COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
@@ -75,6 +78,25 @@ WISH_DATE_NOTICE_KINDS = frozenset(
         NotificationKind.WISH_DATE_COUNTERED,
         NotificationKind.WISH_DATE_ACCEPTED,
     }
+)
+
+
+# Consent-based random pick of a revealed wish-selection round (#1907 J1).
+WISH_SELECTION_RANDOM_KINDS = frozenset(
+    {
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.WISH_SELECTION_RANDOM_DECLINED,
+    }
+)
+# One current notice per recipient, kind and target; a newer event replaces it.
+COALESCED_NOTIFICATION_KINDS = (
+    "PHOTO_REACTION",
+    "WISH_SELECTION_SHARED",
+    "WISH_SELECTION_READY",
+    "WISH_SELECTION_RANDOM_REQUESTED",
+    "WISH_SELECTION_RANDOM_ACCEPTED",
+    "WISH_SELECTION_RANDOM_DECLINED",
 )
 
 
@@ -311,7 +333,7 @@ class Notification(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text(
-                "kind IN ('PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY')"
+                "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
             ),
         ),
         Index(

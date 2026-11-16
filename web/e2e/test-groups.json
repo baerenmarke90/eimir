@@ -401,6 +401,11 @@
       "baselineTests": 11,
       "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
     },
+    "webview-update-notice.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5,
+      "reason": "Feature-owned acceptance for the static WebView notice that Capacitor shows below the supported floor or after a failed main-frame load: update request with one Play Store action, retry state, German/English, Light/Dark, 360 px at 200 percent text and accessibility."
+    },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 22,
@@ -438,8 +443,8 @@
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
-      "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535."
+      "baselineTests": 16,
+      "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535; the one Wishes entry row, the composing hub with two sources, heart favourites and a manual choice among several common favourites (#1907 J1)."
     },
     "wish-selection-date-ideas.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -508,7 +513,7 @@
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "reason": "Feature-owned secondary navigation, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
+      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
     "activity-navigation-return.spec.ts": {
       "disposition": "FULL_REGRESSION",

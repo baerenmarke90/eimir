@@ -8,7 +8,11 @@ import {
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { ProfilesApi } from '../client/mediaApis';
-import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
+import {
+  PRIVATE_COLLECTIONS_PATH,
+  PRIVATE_GIFT_IDEAS_PATH,
+  PRIVATE_NOTES_PATH,
+} from '../client/privateArea';
 import {
   GiftIdeaCreatePage,
   GiftIdeaDetailPage,
@@ -52,8 +56,20 @@ export function PrivateAreaProductPage({
       matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
   );
 
+  // One note, list or gift idea, including its editor, leads with its own
+  // header row; the area card and tabs belong to the lists (#1907 C4).
+  const isItem =
+    !isGiftEditor &&
+    [
+      `${PRIVATE_NOTES_PATH}/:noteId`,
+      `${PRIVATE_NOTES_PATH}/:noteId/edit`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId/edit`,
+      `${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId`,
+    ].some((pattern) => matchPath(pattern, pathname));
+
   return (
-    <PrivateAreaFrame editorFirst={isGiftEditor}>
+    <PrivateAreaFrame editorFirst={isGiftEditor} itemFirst={isItem}>
       <Routes>
         {/* The chips below the header are the only way between sections, so
             the area opens on the first one instead of a second picker. */}

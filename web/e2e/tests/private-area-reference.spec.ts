@@ -1,4 +1,3 @@
-import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
   type Locator,
@@ -17,6 +16,7 @@ import {
   expectLabeledAddAction,
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -36,6 +36,16 @@ const privateCreateCases = [
   { kind: 'gift-ideas', copy: privateArea.gifts },
   { kind: 'collections', copy: privateArea.collections },
 ] as const;
+
+/**
+ * Leaves an open private item through the primary navigation. Item pages lead
+ * with their own header row and show no section tabs (#1907 C4).
+ */
+async function openPrivateSection(page: Page, kind: string): Promise<void> {
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.locator('a[href="/more/private"]').first().click();
+  await page.locator(`a[href="/more/private/${kind}"]`).first().click();
+}
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -454,26 +464,6 @@ async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {
   ).toBeVisible();
 
   return unexpectedRequests;
-}
-
-async function openPrivateSection(
-  page: Page,
-  kind: 'notes' | 'gift-ideas' | 'collections',
-): Promise<void> {
-  if (kind === 'notes') {
-    await page.goto('/more/private/notes');
-    return;
-  }
-  await page
-    .getByRole('navigation', { name: privateArea.navigation.aria })
-    .getByRole('link', {
-      name:
-        kind === 'gift-ideas'
-          ? privateArea.navigation.gifts
-          : privateArea.navigation.collections,
-      exact: true,
-    })
-    .click();
 }
 
 async function signOutToPublicEntry(page: Page): Promise<void> {
@@ -2194,13 +2184,7 @@ for (const view of privateEditorViews) {
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
-      await page
-        .getByRole('navigation', {
-          name: privateArea.navigation.aria,
-          exact: true,
-        })
-        .getByRole('link', { name: destination.copy.title, exact: true })
-        .click();
+      await openPrivateSection(page, destination.kind);
       await expect(
         page.getByRole('heading', {
           name: destination.copy.title,
@@ -2526,13 +2510,7 @@ for (const view of [
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
-    await page
-      .locator('.private-area-nav')
-      .getByRole('link', {
-        name: privateArea.navigation.notes,
-        exact: true,
-      })
-      .click();
+    await openPrivateSection(page, 'notes');
     // Reopen after the documented one-minute freshness window to obtain a new read.
     await page.clock.setSystemTime(
       await page.evaluate(() => Date.now() + 60_001),
@@ -2795,13 +2773,7 @@ for (const view of [
             : privateCreateCases[0];
         if (leave) {
           await installHeldPrivateDelete(page, destination.kind);
-          await page
-            .getByRole('navigation', {
-              name: privateArea.navigation.aria,
-              exact: true,
-            })
-            .getByRole('link', { name: destination.copy.title, exact: true })
-            .click();
+          await openPrivateSection(page, destination.kind);
           await expect(
             page.getByRole('heading', {
               name: destination.copy.title,

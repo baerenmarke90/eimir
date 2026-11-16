@@ -31,6 +31,7 @@ import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import occasionMarks from './locales/occasionMarks';
 import offlinePage from './locales/offlinePage';
+import webViewNotice from './locales/webViewNotice';
 import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
 import partnerLocation from './locales/partnerLocation';
@@ -133,6 +134,7 @@ export const germanResources = {
   photoReactions,
   languageSettings,
   offlinePage,
+  webViewNotice,
 };
 
 /** Add complete bundled packs here; feature components never branch on languages. */

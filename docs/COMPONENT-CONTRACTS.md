@@ -210,21 +210,62 @@ App-icon selection uses this contract for its explicit Save and recovery state.
 - Web only and only from at least three understandable hierarchy levels.
 - Supplement primary navigation and never replace the page title.
 
-### 5.4 Secondary-page Back
+### 5.4 Secondary-page header
 
-Every authenticated secondary destination, including future routes, receives one
-upper-left, rounded, icon-only chevron from `SubpageNavigation` in the AppShell.
-Primary roots are derived from the shared route registry and do not receive Back.
-Registry-owned peer views, including the Memory map, keep the same root boundary
-and tab geometry; they are not separate secondary pages.
+Every authenticated secondary destination, including future routes, opens with
+one header row at the top of its content column, led by one upper-left, round,
+icon-only Back chevron. Primary roots are derived from the shared route registry
+and do not receive Back. Registry-owned peer views, including the Memory map, keep
+the same root boundary and tab geometry; they are not separate secondary pages.
+
+Choose the row by what the page shows (Product Owner decisions of 2026-11-15, #1907 C4):
+
+1. **One named item** (a Memory, HeartMoment, Milestone, Plan, Wish, Chapter,
+   shared List, Place, Reminder, Person, private note, private List, gift idea,
+   experience answer or recap): Back, the centered localized type label and the
+   item's edit action share the row; the item's own name follows as the page
+   heading. Without an edit capability the trailing cell stays empty so the label
+   stays centered.
+2. **Every other secondary page** (overviews, settings, games, task and composer
+   pages): Back and the page title share the row, start-aligned, followed by at most
+   one header action at the inline end, such as Save.
+
+For both variants:
+
+- Back never sits alone in a row above a visible page title. A page without a
+  visible title (map views, loading and error states) keeps Back alone and does not
+  invent one; its accessible page name remains. A media-led page whose hero precedes
+  its title (the Pro paywall) keeps Back alone above the hero; a page that heads its
+  own composition (recaps, insights, a Person) hosts Back with `BackSlotHost` in
+  that row.
+- Secondary pages show no eyebrow or area label above the title; the active
+  navigation item carries the area.
+- Titles and names wrap and are never truncated; Back aligns with the first line.
+  When a title cannot fit beside Back (320 px, 200 % text, one long word), it moves
+  below Back within the same header.
+- Descriptions, metadata, tabs and filters follow below the row at full width.
+- The row belongs to the content column on Compact and Expanded; Back is never
+  detached at the window edge. A header that is sticky keeps Back, title and action
+  sticky together.
+- Private-area list pages place Back beside the area card. Private-area detail and
+  editor pages put the row at the very top, with the area lock icon in the type
+  label and the existing privacy sentence below the name; the area card and section
+  tabs are omitted there and Back returns to the list.
+
+Back and the trailing icon action are the same control: a round button of at least
+44 CSS px on the raised surface without a border. Every secondary title and
+named-item heading uses the `--font-subpage-title` role, including More and the
+private area; the type label uses the supporting-copy role in uppercase.
+
 Use `TaskBackButton` for a guarded task exit or `TaskBackLink` for an existing
-navigation link. The shell places these page-owned controls in the same slot and
-removes its default; page implementations must not add textual Back chrome.
-The accessible name remains localized, the target is at least 44 CSS px, and
-keyboard/focus, modified links, pending/dirty guards and task-origin return remain
-owned by the existing task. A direct entry falls back to its canonical parent.
-The separate administration shell uses the same control at its upper left.
-See [the composition and evidence](product/design/subpage-navigation-context/README.md).
+navigation link. `PageHeader` provides the leading cell; the shell places its
+default and page-owned controls there and uses its own row only when a page has no
+heading. Page implementations must not add textual Back chrome.
+The accessible name remains localized, and keyboard/focus, modified links,
+pending/dirty guards and task-origin return remain owned by the existing task. A
+direct entry falls back to its canonical parent. The separate administration shell
+keeps its top bar with Back and the brand. See [the composition and evidence](product/design/subpage-navigation-context/README.md)
+and [the header decisions](product/design/references/1907-secondary-page-header/README.md).
 
 ### 5.5 Moment date and Place context
 

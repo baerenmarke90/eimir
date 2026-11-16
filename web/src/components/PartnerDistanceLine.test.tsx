@@ -65,6 +65,29 @@ describe('PartnerDistanceLine', () => {
     expect(screen.queryByText(/km/)).toBeNull();
   });
 
+  it('keeps the distance pin for an earlier value in the Verbunden hero', () => {
+    render(
+      <MemoryRouter>
+        <PartnerDistanceLine
+          line={{
+            kind: 'distance',
+            band: { kind: 'APPROXIMATE', approximateKm: 340 },
+            asOf: new Date(2026, 10, 12, 18, 1),
+            mapAvailable: true,
+          }}
+          partnerName="Alex"
+          now={new Date(2026, 10, 13, 0, 27)}
+          compact
+        />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole('link');
+    expect(link.querySelector('.partner-distance-glyph.is-pin')).not.toBeNull();
+    expect(link.querySelector('.partner-distance-glyph.is-clock')).toBeNull();
+    // The earlier state stays in the accessible name.
+    expect(link.getAttribute('aria-label')).toMatch(/gestern/);
+  });
+
   it('describes every range band in words, short in the Verbunden hero', () => {
     const bands = [
       [2, 5, copy.distanceAroundCorner, copy.distanceAroundCornerShort],
@@ -100,6 +123,9 @@ describe('PartnerDistanceLine', () => {
         name: `${sentence}. ${copy.distanceOpenMap}`,
       });
       expect(compact.textContent).toBe(short);
+      expect(
+        compact.querySelector('.partner-distance-glyph.is-pin'),
+      ).not.toBeNull();
       cleanup();
     }
   });

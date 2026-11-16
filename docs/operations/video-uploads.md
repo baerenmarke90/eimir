@@ -266,9 +266,24 @@ approval.
 
 `tools/media/advisory-review.json` records the November 2 initial review and
 the November 5 normalization-surface review. `check-advisories.py` compares the current
-Debian security feed, failing on a new/removed/changed unresolved advisory.
-It covers FFmpeg, OpenH264 and zimg on PRs and weekly; feed/network failure is
-a failed check. Investigate changes against the actual enabled surface and patch, update sources where
+Debian security feed. For FFmpeg it keeps an unresolved advisory only when it names a
+source file of the real build, an architecture-specific file, or no resolvable source
+file, and it fails on such an advisory until `advisory-review.json` records it with a
+matching evidence hash. An advisory that names only unbuilt files is counted and ignored,
+because it cannot concern the shipped binary. When it names no file, it is ignored only if
+every function it names is absent from the built sources of the pinned upstream archive
+(downloaded and digest-checked by the script); architecture-specific and token-pasted
+names never count as absent. OpenH264 and zimg keep the exact-match
+contract on new/removed/changed unresolved advisories. It runs on PRs and weekly;
+feed/network failure is a failed check. `tools/media/built-sources.txt` is the set of
+source files that reach the shipped binary. `build-inventory.py` derives it from the make
+dependency files of the real build, and the Media Video workflow verifies it against the
+freshly built pinned FFmpeg, so a changed build flag cannot bypass the advisory review.
+After an intended build change, regenerate it with
+`python3 tools/media/build-inventory.py <ffmpeg-source> --write tools/media/built-sources.txt`
+and review the difference against the advisory record. The inventory comes from the x86_64
+CI build, so architecture-specific advisories are always treated as relevant.
+Investigate changes against the actual enabled surface and patch, update sources where
 possible, and record the review in the owning issue/PR. Do not regenerate a
 baseline automatically or treat process limits as a fix for memory disclosure
 or arbitrary code execution. CVE-2025-52290 remains undetermined upstream. The

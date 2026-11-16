@@ -42,7 +42,6 @@ import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
-import { DateIdeasEntry } from './DateIdeasEntry';
 import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
@@ -1177,10 +1176,13 @@ export function SharedPlanningOverviewPage({
           onChange={(status) => changeStatus('wishes', status)}
         />
         {wishStatus === 'OPEN' ? (
-          <WishSelectionEntry segment="wishes" compact />
-        ) : null}
-        {wishStatus === 'OPEN' && !wishSearch.trim() ? (
-          <DateIdeasEntry />
+          <WishSelectionEntry
+            api={apis.wishSelections}
+            apiBaseUrl={apiBaseUrl}
+            accountId={accountId}
+            spaceId={spaceId}
+            active={activeSegment === 'wishes'}
+          />
         ) : null}
         {(wishes.isLoading && !wishes.data) || assemblingWishes ? (
           <UiState kind="loading" title={t('states.loading.title')} />

@@ -451,7 +451,7 @@ export function EditPencilIcon({ className }: { className?: string }) {
   );
 }
 
-function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
+export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'edit') {
     return <EditPencilIcon className="list-entry-icon" />;
   }

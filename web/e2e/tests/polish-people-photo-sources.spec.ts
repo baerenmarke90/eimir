@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import people from '../../src/i18n/locales/people';
 import sources from '../../src/i18n/locales/photoSources';

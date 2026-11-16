@@ -10,6 +10,7 @@ import { i18n } from '../i18n';
 import { CollectionsOverviewPage } from './CollectionsOverviewPage';
 import { PlacesOverviewPage } from './PlacesOverviewPage';
 import { SharedPlanningOverviewPage } from './SharedPlanningOverviewPage';
+import { wishSelectionEntryQueryKey } from './WishSelectionEntry';
 
 function emptyInfinitePage() {
   return {
@@ -125,6 +126,42 @@ describe('SharedPlanningOverviewPage', () => {
       i18n.t('m5s3.overview.createdBy', { name: 'Lea' }),
     );
   });
+  it('offers one entry for what to do next and continues an open round (#1907 J1)', () => {
+    const render = (round: { id: string | null } | null) => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      if (round)
+        queryClient.setQueryData(
+          wishSelectionEntryQueryKey('', 'account-a', 'space-1'),
+          round,
+        );
+      return renderToStaticMarkup(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/plan#wishes']}>
+            <SharedPlanningOverviewPage
+              apis={{ wishSelections: {} } as unknown as SharedPlanningApis}
+              spaceId="space-1"
+              accountId="account-a"
+            />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    };
+    const idle = render({ id: null });
+    expect(idle).toContain(i18n.t('wishSelection.entryTitle'));
+    expect(idle).toContain(
+      i18n.t('wishSelection.entryHint').replaceAll('&', '&amp;'),
+    );
+    expect(idle).toContain(`>${i18n.t('wishSelection.entryStart')}</a>`);
+    expect(idle).toContain('href="/plan/choose"');
+    // The separate catalog card left the list; the catalog lives in the round.
+    expect(idle).not.toContain('href="/plan/ideas"');
+    const running = render({ id: 'round-1' });
+    expect(running).toContain(i18n.t('wishSelection.entryRunning'));
+    expect(running).toContain(`>${i18n.t('wishSelection.entryContinue')}</a>`);
+  });
+
   it('renders only the shared M3 planning product areas', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -455,7 +492,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     expect(html.indexOf(dated)).toBeLessThan(html.indexOf(undated));
     expect(html).toContain(`aria-label="${dated} – Kochkurs"`);
     // Wish selection stays an open-wish flow.
-    expect(html).not.toContain(i18n.t('wishSelection.compactEntryAction'));
+    expect(html).not.toContain(i18n.t('wishSelection.entryTitle'));
     expect(html).toContain(
       `aria-pressed="true">${i18n.t('wishJourney.scopePlanned')}<`,
     );

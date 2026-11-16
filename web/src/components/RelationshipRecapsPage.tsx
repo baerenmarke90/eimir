@@ -65,7 +65,7 @@ import { ProMark } from './ProMark';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
 import { RelationshipPassport } from './RelationshipPassport';
-import { TaskBackButton } from './TaskBackButton';
+import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
 
@@ -704,6 +704,8 @@ function RecapReader({
       style={{ '--recap-dwell': `${duration}ms` } as CSSProperties}
     >
       <div className="recap-reader-top">
+        {/* Back and the period share the reader's top row (#1907 C4). */}
+        <BackSlotHost />
         <TaskBackButton onClick={back}>
           {t(
             returnsToWir

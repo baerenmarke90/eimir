@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -8,6 +8,7 @@ import {
 } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import copy from '../../src/i18n/locales/wishSelection';
 import {
   catalogIdea,
@@ -183,6 +184,14 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/** The round hub's two sources and the pick bar (#1907 J1). */
+function source(page: Page, title: string) {
+  return page.getByRole('button', { name: new RegExp(title) });
+}
+async function finishPick(page: Page) {
+  await page.getByRole('button', { name: copy.pickDone, exact: true }).click();
+}
+
 async function assertNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -204,16 +213,23 @@ test('Free: Wish-only selection stays free and date ideas show the calm Pro hint
   const selection = await installSelection(page, dates);
   await signIn(page);
   await page.goto('/plan/choose');
+  await source(page, copy.sourceWishesTitle).click();
   await page.getByRole('checkbox', { name: WISH.title }).check();
-  await page.getByRole('button', { name: copy.sourceIdeas }).click();
+  await finishPick(page);
+  await source(page, copy.sourceIdeasTitle).click();
   await expect(page.getByText(copy.ideasLockedBody)).toBeVisible();
   await expect(
     page.getByRole('link', { name: dateIdeas.locked.action }),
   ).toHaveAttribute('href', /\/more\/pro\?context=dateIdeas$/);
   // No protected catalog read happens for a Free Space.
   expect(dates.catalogRequests).toBe(0);
-  await page.getByRole('button', { name: copy.sourceWishes }).click();
+  await page
+    .locator('.wish-selection-heading')
+    .getByRole('button', { name: taskBoundary.back })
+    .click();
+  await source(page, copy.sourceWishesTitle).click();
   await page.getByRole('checkbox', { name: SECOND_WISH.title }).check();
+  await finishPick(page);
   await page.getByRole('button', { name: copy.start }).click();
   await expect(
     page.getByRole('heading', { name: copy.chooseTitle }),
@@ -238,8 +254,17 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   ]);
   await signIn(page);
   await page.goto('/plan/choose');
+  await source(page, copy.sourceWishesTitle).click();
   await page.getByRole('checkbox', { name: WISH.title }).check();
-  await page.getByRole('button', { name: copy.sourceIdeas }).click();
+  await finishPick(page);
+  await source(page, copy.sourceIdeasTitle).click();
+  // Pick mode: full cards, one action per card, filters behind one button.
+  await expect(
+    page.getByRole('button', { name: dateIdeas.filters.open }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: dateIdeas.card.save }),
+  ).toHaveCount(0);
   const first = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: FIRST.title }) });
@@ -253,7 +278,16 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   await second.getByRole('button', { name: copy.ideaAdd }).click();
   await assertNoHorizontalOverflow(page);
   await assertNoWcagViolations(page);
+  await expect(
+    page.locator('.wish-selection-pick-bar').getByRole('status'),
+  ).toHaveText(copy.selected.replace('{{count}}', '3'));
   await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(
+    page,
+    info,
+    'wish-selection-ideas-pick-390-light.png',
+  );
+  await finishPick(page);
   await captureScreenshot(
     page,
     info,
@@ -267,8 +301,8 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   expect(selection.rounds).toEqual([
     { wishIds: [WISH.id], dateIdeaIds: [FIRST.id, SECOND.id] },
   ]);
-  await page.getByRole('checkbox', { name: new RegExp(FIRST.title) }).check();
-  await page.getByRole('checkbox', { name: new RegExp(WISH.title) }).check();
+  await page.getByRole('button', { name: FIRST.title, exact: true }).click();
+  await page.getByRole('button', { name: WISH.title, exact: true }).click();
   await captureScreenshot(
     page,
     info,
@@ -358,7 +392,9 @@ test('a downgrade pauses a round with date ideas without catalog content', async
   await expect(
     page.getByRole('heading', { name: copy.setupTitle }),
   ).toBeVisible();
+  await source(page, copy.sourceWishesTitle).click();
   await page.getByRole('checkbox', { name: SECOND_WISH.title }).check();
+  await finishPick(page);
   await page.getByRole('button', { name: copy.replace }).click();
   await expect(
     page.getByRole('heading', { name: copy.chooseTitle }),
@@ -430,7 +466,7 @@ for (const { width, theme, large } of [
     );
     await page.getByText(copy.moreActions).click();
     await page.getByRole('button', { name: copy.changeIdeas }).click();
-    await page.getByRole('button', { name: copy.sourceIdeas }).click();
+    await source(page, copy.sourceIdeasTitle).click();
     await expect(
       page.getByRole('heading', { name: SECOND.title }),
     ).toBeVisible();

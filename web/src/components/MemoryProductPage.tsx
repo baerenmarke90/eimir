@@ -1359,6 +1359,15 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
+      itemLabel={
+        memory.experienceKind
+          ? t(
+              memory.experienceKind === 'HAPPINESS'
+                ? 'coupleExperiences.sharedHappiness'
+                : 'coupleExperiences.sharedTimeTravel',
+            )
+          : undefined
+      }
       before={
         !memory.experienceKind ? (
           <TaskBackButton inline onClick={() => requestReturn(originKey)} />

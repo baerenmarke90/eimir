@@ -75,14 +75,6 @@ body:has(
     .product-shell[data-top-surface="today"]
       .today-page[data-wir-design="shared_album"]
   )
-  .product-shell[data-top-surface="today"]::before {
-  opacity: 0;
-}
-
-body:has(
-    .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="shared_album"]
-  )
   .product-shell
   .mobile-bottom-shell {
   border-top: 1px solid var(--side-rule);
@@ -152,9 +144,6 @@ body:has(
   margin-bottom: var(--space-section);
   padding-block: 0.1rem 0.75rem;
   border-bottom: 1px solid var(--side-rule);
-}
-.today-page .shared-album-hero.couple-presence-card::before {
-  content: none;
 }
 .today-page .shared-album-hero .couple-presence-main {
   display: grid;

@@ -7,6 +7,7 @@ import { EntitlementStatus } from '../api/generated/models/EntitlementStatus';
 import { EntitlementTier } from '../api/generated/models/EntitlementTier';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import {
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
@@ -69,6 +70,7 @@ function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.moments.title)).toBeTruthy();
   expect(screen.getByText(games.entries.wishes.title)).toBeTruthy();
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.heartHunt.title)).toBeTruthy();
   expect(screen.getByText(games.entries.pingPong.title)).toBeTruthy();
 }
 
@@ -149,7 +151,7 @@ describe('GamesProductArea', () => {
 
     await screen.findByText(games.entries.moments.title);
     expectThreeGameEntries();
-    expectGameStatus(games.status.premium, 4);
+    expectGameStatus(games.status.premium, 5);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -173,7 +175,7 @@ describe('GamesProductArea', () => {
     expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expectGameStatus(games.status.comingSoon, 0);
-    expectGameStatus(games.status.playNow, 4);
+    expectGameStatus(games.status.playNow, 5);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);
@@ -183,6 +185,12 @@ describe('GamesProductArea', () => {
     });
     expect(wishesLink.textContent).toContain(games.status.playNow);
     expect(wishesLink.getAttribute('href')).toBe(GAMES_WISH_DETECTIVE_ROUTE);
+
+    const heartHuntLink = screen.getByRole('link', {
+      name: new RegExp(games.entries.heartHunt.title),
+    });
+    expect(heartHuntLink.textContent).toContain(games.status.playNow);
+    expect(heartHuntLink.getAttribute('href')).toBe(GAMES_HEART_HUNT_ROUTE);
 
     const perspectiveButton = screen.getByRole('button', {
       name: new RegExp(games.entries.perspective.title),

@@ -6,16 +6,16 @@ One notification kind (`PICTURE_PING_PONG_TURN`) and one target type
 (`PICTURE_GAME`) join the catalog; the notice coalesces per recipient and
 picture like the other single-target notices.
 
-Revision ID: 0144
-Revises: 0143
+Revision ID: 0145
+Revises: 0144
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0144"
-down_revision = "0143"
+revision = "0145"
+down_revision = "0144"
 branch_labels = None
 depends_on = None
 
@@ -28,7 +28,7 @@ _KINDS = (
     "'PHOTO_REACTION', 'PARTNER_JOINED', 'COUPLE_EXPERIENCE_SHARED', "
     "'COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', 'PARTNER_CHECK_IN', 'REMINDER_DUE', "
     "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
-    "'COLLECTION_SENT'"
+    "'COLLECTION_SENT', 'HEART_HUNT_HIDDEN', 'HEART_HUNT_FOUND'"
 )
 _TARGETS = (
     "'ONCE_MESSAGE', 'REMINDER', 'TRANSFER_EXPORT', 'TRANSFER_IMPORT', 'WISH_SELECTION', "

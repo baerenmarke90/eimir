@@ -52,6 +52,12 @@ describe('app design token sets', () => {
     );
   });
 
+  it('lets a design on the default colour world inherit the root palette', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    expect(css).toContain(':root[data-app-design="modern"] .today-page {');
+    expect(css).not.toContain('[data-theme="dark"][data-app-design="modern"]');
+  });
+
   it('never lets a design change the create action colour', () => {
     const { css } = buildAppDesigns(tokens, designs);
     expect(css).not.toContain('--color-action-primary');

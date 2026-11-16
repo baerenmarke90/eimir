@@ -258,14 +258,14 @@
   background: transparent;
   box-shadow: inset 0 -1px var(--color-border-subtle);
 }
-.wir-design-preview-modern .wir-design-preview-hero {
+.wir-design-preview-compact .wir-design-preview-hero {
   display: flex;
   align-items: center;
 }
-.wir-design-preview-modern .wir-design-preview-vibes {
+.wir-design-preview-compact .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-modern .wir-design-preview-quote {
+.wir-design-preview-compact .wir-design-preview-quote {
   background: var(--color-shared-surface);
 }
 .wir-design-preview-classic .wir-design-preview-portraits i {
@@ -322,13 +322,14 @@
   background: transparent;
 }
 
-/* Modern: horizontal identity, concise supporting content and a panoramic photo. */
-.today-page[data-wir-design="modern"] .today-hero.couple-presence-card {
+/* Compact layout (Klar & modern): horizontal identity, concise supporting
+   content and a panoramic photo. */
+.today-page[data-wir-layout="compact"] .today-hero.couple-presence-card {
   padding-block: var(--space-3);
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-main {
   flex-direction: row;
@@ -337,20 +338,20 @@
   gap: var(--space-4);
   text-align: start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-details {
   flex: 1 1 10rem;
   width: auto;
   align-items: flex-start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-meta {
   justify-content: flex-start;
   text-align: start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero
   .partner-avatar-pair-hero
   .partner-avatar {
@@ -359,28 +360,27 @@
   font-size: var(--space-5);
   box-shadow: none;
 }
-.today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
+.today-page[data-wir-layout="compact"] .today-hero .couple-presence-title {
   font: var(--font-content-heading);
   font-family: var(--font-ui);
   text-align: start;
 }
-.today-page[data-wir-design="modern"] .today-hero-action-container {
+.today-page[data-wir-layout="compact"] .today-hero-action-container {
   justify-content: flex-start;
 }
-.today-page[data-wir-design="modern"] .today-section-title {
-  font-family: var(--font-ui);
-}
-.today-page[data-wir-design="modern"] .today-moment-media .story-media-preview,
-.today-page[data-wir-design="modern"] .today-moment-media .story-media-skeleton,
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"] .today-moment-media .story-media-preview,
+.today-page[data-wir-layout="compact"]
+  .today-moment-media
+  .story-media-skeleton,
+.today-page[data-wir-layout="compact"]
   .today-moment-media
   .story-media-placeholder {
   aspect-ratio: 16 / 9;
 }
-.today-page[data-wir-design="modern"] .today-stream-recent {
+.today-page[data-wir-layout="compact"] .today-stream-recent {
   gap: var(--space-2);
 }
-.wir-design-preview-modern .wir-design-preview-hero {
+.wir-design-preview-compact .wir-design-preview-hero {
   display: flex;
 }
 @media (min-width: 840px) {

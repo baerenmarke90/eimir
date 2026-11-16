@@ -1547,6 +1547,98 @@
       }
     },
     {
+      "id": "HEART_HUNT_HIDDEN-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f10",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6Qy9p6WlsvyqUkX6.QP0pdIZZYslvFNql3fWm-s375ZylTT2xYWyPaxKHoaN98sqlKt0rpAUNMlNBLf4yissEHfnm2A3ui3ajXAQR4E6F0H1VrERrTaGgc8BKHqShEfs7MKF5lt6dyoffKsjHX4AupTkEGjBw1FFpk0RZ_Dg8xFtl0x-ZJfzLEEHVEFaAvCr5QPd_mRgoDpMzACjCF154p4HeP_w__6T8HHERjih1R4R0U6OqB46Ln8p8DV4Z-wg.77vpWa6K3dyXn_tWS007mQ",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_HIDDEN-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f11",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VQRi6lwbzOz-vAjZ.KXX5DYxsCMmL5ZMq4EArClpI2nuBBiinqcDkSWvelE3kG5CzLVIrZGPNnkX3Y5OCuFKq-ZwlWjjsEsUyE60f45Jl_jEpRQITROcIGxVeo0jGmRXn18mZSPZ_Q-Rhnz25cprcwoRCscPkpR69aioZyz6Xo8S56gR4IjgN4R_BqMd7CKaa6jmAkcuIjS4M7TOe4UNXy4CZZXu0eq4iamDExjTpiKCIiLOSi93l-d0hSt0_tEy7uEEwlYFZt9VZ6tavsAnjsw.-H9NVB-tC8zEd4ShnN0Thw",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_FOUND-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f20",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fv1H8C2VtpLuAMuH.aXD9VP3st8eOileubvvESqHhJ9Z3er4wXYdeox5MotWbEIrSnLPh79cNvB4YHfkTVsaAGckPE8b1bwRQOfn1r6hRLaoGA2Wlio06Cfq2LE5_CzfR-UGD5FxbFnbTcLJy8LnYcdMQAoqaC34PA7N7MkqbBaEr7raoQGMAsTgyBISWwoZ3RyYxSeUOk4SNwlPKtMecmf5JATEJzIWr_uFTb8KDZj3Vydk-8uT1hnk1w5CFDg.85d4IvZ-DkPf2BSMZCar6g",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_FOUND-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f21",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Gn6Xa6eSrlbsscQT.xCsAdTAIWGoJD1-36brvdDEhzKfonO87W5PEwmKBwnKSiXwgZ4zE2s5mExD4b1fXCR8U6PwanG_rfkXQteycWhEFmf84rZ18Dj2CEUBvDjv4pmo-Ljx7_TDJDDa-_U4zi-_Ksq_lCrnVlPa-FGfe8OPvK0NR-tt9wF4v0gftoF2kO4bCEnKwpgQrDhfSaiTDWHuRPfCirF90yNro5sNUgprlBlBOx-1DgpGHAvNptG9sYZa22BgRBl2wjAIHa5usDTaE.OMOqS-gOPRlvl-oR2PVY-Q",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
       "id": "PICTURE_PING_PONG_TURN-empty",
       "payload": {
         "v": 1,

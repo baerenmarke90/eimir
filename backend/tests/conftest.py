@@ -42,7 +42,9 @@ INTEGRATION_DATABASE_URL = os.environ.get("EIMIR_TEST_DATABASE_URL", "")
 
 
 @pytest.fixture
-def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurator]:
+def encryption(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Iterator[EncryptionConfigurator]:
     """Configure application-controlled encryption for one test.
 
     Restores the settings caches afterwards so no test inherits another test's
@@ -50,8 +52,37 @@ def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurat
     """
     from tests.support.encryption import reset_encryption_caches
 
+    def carry_accounts(previous, current) -> None:  # type: ignore[no-untyped-def]
+        # Accounts exist before most tests choose a mode; see EncryptionConfigurator.
+        if "session" not in request.fixturenames or not current.mode.encrypts_writes:
+            return
+        import json
+
+        from sqlalchemy import text
+
+        from eimir.identity.models import AccountPayload
+
+        session = request.getfixturevalue("session")
+        context = AccountPayload.crypto_context()
+        rows = session.execute(
+            text("SELECT id, payload FROM accounts WHERE payload IS NOT NULL")
+        ).all()
+        for account_id, stored in rows:
+            carried = current.protect(previous.reveal(stored, context=context), context=context)
+            session.execute(
+                text(
+                    "UPDATE accounts SET payload = CAST(:payload AS jsonb), "
+                    "crypto_version = :version WHERE id = :id"
+                ),
+                {
+                    "id": account_id,
+                    "payload": json.dumps(carried),
+                    "version": current.write_crypto_version,
+                },
+            )
+
     reset_encryption_caches()
-    yield EncryptionConfigurator(monkeypatch)
+    yield EncryptionConfigurator(monkeypatch, carry_accounts)
     monkeypatch.undo()
     reset_encryption_caches()
 

@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -32,6 +34,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
+from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.payload import ProtectedPayload
 
 
 class AuthProvider(StrEnum):
@@ -70,10 +74,33 @@ class InstanceBootstrapState(Base):
     __table_args__ = (CheckConstraint("singleton_key = 1", name="singleton_key_is_one"),)
 
 
+class AccountPayload(ProtectedPayload):
+    """What an Account says about the person: the name they chose to be shown by.
+
+    It was a plain column until the Product Owner decision of 2026-11-16 (#797):
+    a database dump listed everyone by name. Operators find an account by its
+    ID or e-mail address instead, which is why the name no longer has to be
+    searchable in SQL.
+    """
+
+    display_name: str = Field(default="", max_length=120)
+
+
 class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     __tablename__ = "accounts"
 
-    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Legacy plaintext home of the name. New writes keep it NULL and store the
+    # name in ``payload``; a row written before that still carries it here until
+    # the column backfill (``eimir.security.column_moves``) has visited it. Read
+    # and assign ``display_name`` below, never this.
+    legacy_display_name: Mapped[str | None] = mapped_column("display_name", String(120))
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    # NULL only on a row not yet backfilled; see ``ProtectedPayloadJSON.optional``.
+    payload: Mapped[AccountPayload | None] = mapped_column(
+        ProtectedPayloadJSON(AccountPayload, optional=True)
+    )
     birthday: Mapped[date | None] = mapped_column(Date)
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
     language_preference: Mapped[str] = mapped_column(
@@ -110,6 +137,24 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     emails: Mapped[list[AccountEmail]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+
+    def __init__(self, *, display_name: str | None = None, **values: Any) -> None:
+        """Accept the name by its own keyword and store it in the payload."""
+        if "payload" not in values and display_name is not None:
+            values["payload"] = AccountPayload(display_name=display_name)
+        super().__init__(**values)
+
+    @property
+    def display_name(self) -> str:
+        """The name, from the protected payload or, for a legacy row, its column."""
+        if self.payload is not None:
+            return self.payload.display_name
+        return self.legacy_display_name or ""
+
+    @display_name.setter
+    def display_name(self, value: str) -> None:
+        self.payload = AccountPayload(display_name=value)
+        self.legacy_display_name = None
 
     @property
     def is_active(self) -> bool:

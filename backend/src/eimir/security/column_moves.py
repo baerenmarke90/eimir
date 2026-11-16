@@ -74,10 +74,12 @@ class ColumnMove:
 def moves() -> tuple[ColumnMove, ...]:
     """Every registered move. Imported lazily: the models import this package."""
     from eimir.daily_checkins.models import DailyCheckInPayload
+    from eimir.identity.models import AccountPayload
     from eimir.places.models import PlacePayload
     from eimir.profiles.models import ProfilePreferencePayload
 
     return (
+        ColumnMove("accounts", AccountPayload, ("display_name",)),
         ColumnMove("daily_check_ins", DailyCheckInPayload, ("vibe", "energy_level")),
         ColumnMove(
             "places",

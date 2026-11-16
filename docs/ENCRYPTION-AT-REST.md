@@ -157,11 +157,15 @@ Authorization, sorting, keyset pagination, and relations depend on these. Media 
 metadata (`mime_type`, `size`, `width`, `height`, `has_thumbnail`) also stays plaintext
 because it drives validation and rendering.
 
-**Outside the ProtectedPayload boundary today (not covered by this change):** account
-and space display names, email addresses, and `profile_preferences.topic` (a
-user-authored 120-character column that sits beside its protected `value`). They are
-listed as follow-ups in section 12; they were never part of the `ProtectedPayload`
-contract this issue extends.
+**Moved into the payload after the first version of this document:** the preference
+topic (`profile_preferences.topic`) and Place coordinates (`places.latitude`,
+`places.longitude`). New writes store them in the row's payload and leave the columns
+NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows written
+earlier are moved as described in section 8, "Legacy plain columns".
+
+**Outside the ProtectedPayload boundary today:** account display names, email
+addresses, daily check-in vibe and energy, birthdays and relationship kinds of related
+persons, and the relationship start date. They are listed as follow-ups in section 12.
 
 ## 6. Data flows
 
@@ -243,6 +247,33 @@ re-running is a no-op.
 Rows written by an old application version during a rolling deploy are plaintext
 again; re-run step 2 before step 4. `required` fails closed on them, which is the
 signal.
+
+### Legacy plain columns
+
+A value that predates the payload boundary sits in an ordinary column, where this
+encryption does not reach it. `eimir.security.column_moves` registers such columns
+(currently `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
+their values into the row's payload:
+
+- **Automatic.** The worker queues the job `security_column_moves` whenever a registered
+  column still holds a value and repeats it until none does. It needs no operator
+  action and runs in every mode; with `disabled` the value moves into the plaintext
+  payload, which keeps one code path.
+- **On demand.** `python -m eimir.security migrate-columns` does the same in one run and
+  prints counts per table. `status` prints `legacy_plain_columns` with the rows still
+  waiting, and `audit-raw` fails while any remain.
+- **Why not a migration.** Alembic runs without the encryption keys and cannot seal a
+  payload. Migration 0146 therefore only makes room (nullable column, `has_coordinates`).
+- **Guarantees.** One guarded `UPDATE` per row writes the merged payload and clears the
+  columns together; a concurrent application write wins and the row is picked up again
+  later. The row's `version` and `updated_at` are not changed, so no client runs into a
+  conflict and nothing looks edited. Readers take the payload value first and fall back
+  to the column, so every state in between reads correctly.
+- **Transfer Bundles.** An archive written before the move carries the value in the old
+  column; importing it creates exactly such an earlier row, which the job then moves.
+- **Not yet done.** The old columns still exist and are dropped in a later revision.
+  Until then a downgrade below 0146 is refused once values have moved, because they
+  cannot be brought back without the keys.
 
 Transfer artifacts written before the cutover are short-lived (they expire) and are
 not migrated; orphaned objects with no attachment row cannot be discovered because
@@ -347,8 +378,11 @@ Known limits and follow-ups (deliberately not implemented here):
   rotation).
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
-- Columns outside the `ProtectedPayload` contract (`profile_preferences.topic`,
-  names, emails) remain plaintext.
+- Columns outside the `ProtectedPayload` contract remain plaintext: display names,
+  e-mail addresses, daily check-in vibe and energy, birthdays, relationship kinds and the
+  relationship start date. `places.has_coordinates` (whether a place has a position,
+  not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
+  lookups, uniqueness and administrative search need them in SQL.
 - Object listing is not part of `MediaStore`, so orphaned pre-cutover objects
   without an attachment row cannot be found and migrated.
 - S3 puts and gets still buffer a whole object in memory (existing adapter
@@ -431,6 +465,7 @@ introduced are recorded in the pull request that added it.
 | `migrate-payloads` / `migrate-media` | Encrypt legacy plaintext; idempotent, resumable |
 | `rewrap-payloads` / `rewrap-media` | Re-wrap DEKs under the active KEK |
 | `verify-payloads` / `verify-media` | End-to-end authentication; non-zero on failure |
+| `migrate-columns` | Move values from legacy plain columns into their payloads (section 8); idempotent, resumable; non-zero when a row could not be converted |
 | `audit-raw [--media-sample N]` | Key-less, read-only check that stored rows and sampled objects are ciphertext; counts only; non-zero on any plaintext |
 
 All are invoked as `python -m eimir.security <command>`.
@@ -464,8 +499,10 @@ Product Owner decisions still required before the remaining items can be built:
   KMS/HSM behind `KeyWrapper` (provider, cost, lock-in).
 - **Row binding:** whether the ciphertext must be bound to its row identity
   (a new scheme number and migration) before Cloud go-live.
-- **Plaintext identity columns:** `profile_preferences.topic`, account and space display
-  names, and e-mail addresses remain outside the `ProtectedPayload` contract.
+- **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
+  and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
+  the partner-location position before them. Display names, check-in values, birthdays
+  and relationship kinds are open follow-ups; e-mail addresses stay plaintext.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

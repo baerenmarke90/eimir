@@ -359,11 +359,11 @@ export function StrawberryPlant({
             <g>
               <path
                 d={blob(-7, -11, 2.4, 2.4, 5, 0.18)}
-                fill="var(--garden-blossom)"
+                fill="var(--garden-berry-blossom)"
               />
               <path
                 d={blob(7, -12, 2.4, 2.4, 5, 0.18, 0.6)}
-                fill="var(--garden-blossom)"
+                fill="var(--garden-berry-blossom)"
               />
             </g>,
           )

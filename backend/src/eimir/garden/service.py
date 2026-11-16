@@ -136,15 +136,16 @@ def _plant(session: Session, seed: GardenPlant) -> None:
     """Put a seed into the next free place: the pond for a water lily."""
     in_pond = seed.species == GardenSpecies.WATER_LILY.value
     if in_pond:
-        used = set(
-            session.scalars(
+        used = {
+            slot
+            for slot in session.scalars(
                 select(GardenPlant.slot).where(
                     GardenPlant.space_id == seed.space_id,
                     GardenPlant.in_pond.is_(True),
-                    GardenPlant.slot.is_not(None),
                 )
             )
-        )
+            if slot is not None
+        }
         free = next((slot for slot in range(growth.POND_CAPACITY) if slot not in used), None)
         # The offer keeps the pond from overflowing; a full pond still never loses a seed.
         next_slot = free if free is not None else max(used, default=-1) + 1

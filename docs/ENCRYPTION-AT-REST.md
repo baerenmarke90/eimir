@@ -169,7 +169,7 @@ Account display names (`accounts.display_name`) moved the same way with migratio
 account search finds an account by e-mail address or by its complete account ID, which a
 person can copy from the More page of the app.
 
-Birthdays (`accounts.birthday`, `related_persons.birthday`) moved with migration 0149,
+Birthdays (`accounts.birthday`, `related_persons.birthday`) moved with migration 0150,
 by Product Owner decision of 2026-11-16. `has_birthday` on both tables keeps the one fact
 queries and constraints need in SQL. The move hides the date of birth, and with it the
 year and the age. It does not hide that a birthday exists, nor the day and month of a
@@ -273,7 +273,7 @@ registered too; that table had no payload column, so migration 0147 adds a **nul
 one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
 move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
 a row through `legacy_plain_columns`, not as a malformed envelope. `accounts.display_name`
-(migration 0148) and the two birthday columns (migration 0149) are registered the same
+(migration 0149) and the two birthday columns (migration 0150) are registered the same
 way:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered

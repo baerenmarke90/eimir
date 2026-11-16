@@ -16,15 +16,15 @@ once no installation can still hold values in them.
   year and the Dashboard opt-in each need a birthday, which is now either the
   flag (the date is in the payload) or the old column (not moved yet).
 
-Revision ID: 0149
-Revises: 0148
+Revision ID: 0150
+Revises: 0149
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0149"
-down_revision = "0148"
+revision = "0150"
+down_revision = "0149"
 branch_labels = None
 depends_on = None
 

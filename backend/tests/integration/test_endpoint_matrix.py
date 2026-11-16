@@ -350,6 +350,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         fixture_aliases={"selectionId": "memoryId"},
     ),
     Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize",
+        body={"state": "synthetic-state", "code": "synthetic-code"},
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}",
         fixture_aliases={"selectionId": "memoryId"},

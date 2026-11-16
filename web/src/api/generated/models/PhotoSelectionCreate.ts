@@ -50,7 +50,7 @@ export interface PhotoSelectionCreate {
      */
     returnTo?: PhotoSelectionCreateReturnToEnum;
     /**
-     *
+     * 
      * @type {PhotoSelectionCreateSourceEnum}
      * @memberof PhotoSelectionCreate
      */

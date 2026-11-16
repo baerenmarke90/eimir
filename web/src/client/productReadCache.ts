@@ -1,9 +1,16 @@
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
+import {
+  deviceMediaKey,
+  openJson,
+  type SealedJson,
+  sealJson,
+  sealsDeviceMedia,
+} from './deviceMediaSeal';
 import {
   type ClientProblemError,
   type ClientProblemKind,
   normalizeClientError,
 } from './problemDetails';
-import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 
 export type ProductCacheKind =
   | 'memory'
@@ -80,7 +87,8 @@ export const PRODUCT_READ_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 // IndexedDB names are persistent browser identity. Keep the established
 // database so an upgrade does not strand cached rows in an unreachable store.
 const DATABASE_NAME = 'sidebyside-web-read-cache';
-const DATABASE_VERSION = 3;
+// Version 4 drops the plaintext rows a sealing device must not keep.
+const DATABASE_VERSION = 4;
 const STORE_NAME = 'product-details';
 const CONTEXT_STORAGE_KEY = 'eimir-web-read-cache-context-v3';
 const LEGACY_CONTEXT_STORAGE_KEYS = [
@@ -546,6 +554,46 @@ const indexedDbStorage: ProductReadCacheStorage = {
 
 let cacheStorage: ProductReadCacheStorage = indexedDbStorage;
 
+// A stored row that must be discarded: truthy, and never an expected record.
+const UNREADABLE_ROW: Readonly<Record<string, never>> = Object.freeze({});
+
+/**
+ * The Android app keeps cached content sealed under the per-login device key
+ * (`deviceMediaSeal.ts`): routing fields stay readable so rows can be found
+ * and purged, the payload does not. A sealing device never writes plaintext;
+ * without a key it writes nothing.
+ */
+async function persistRecord(record: ProductCacheRecord): Promise<void> {
+  if (!sealsDeviceMedia()) {
+    await cacheStorage.write(record);
+    return;
+  }
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) throw new Error('The device key is unavailable.');
+  const { payload, ...routing } = record;
+  await cacheStorage.write({
+    ...routing,
+    sealed: await sealJson(cryptoKey, record.key, payload),
+  });
+}
+
+/** Read one stored row, opened on a sealing device. */
+async function loadStoredRecord(key: string): Promise<unknown> {
+  const row = await cacheStorage.read(key);
+  if (!sealsDeviceMedia() || !row || typeof row !== 'object') return row;
+  const { sealed, ...routing } = row as { sealed?: SealedJson };
+  // A plaintext row predates sealing and is not kept.
+  if (!sealed || 'payload' in routing) return UNREADABLE_ROW;
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) return null;
+  try {
+    return { ...routing, payload: await openJson(cryptoKey, key, sealed) };
+  } catch {
+    // Sealed under an earlier login's key, or damaged.
+    return UNREADABLE_ROW;
+  }
+}
+
 /** Destroy every persisted row, escalating past a store that cannot clear.
  *
  * The original failure is what surfaces if the escalation fails too: the
@@ -802,7 +850,7 @@ async function readRecord(
 ): Promise<ProductCacheRecord | null> {
   let record: unknown;
   try {
-    record = await cacheStorage.read(expected.key);
+    record = await loadStoredRecord(expected.key);
   } catch {
     return null;
   }
@@ -834,7 +882,7 @@ async function writeRecord(
     )
       return;
     try {
-      await cacheStorage.write(record);
+      await persistRecord(record);
     } catch {
       // Ordinary cache writes remain best effort.
     }
@@ -1193,7 +1241,7 @@ export async function writeCollectionOutbox(
   try {
     await enqueueCacheMutation(async () => {
       if (!isLeaseCurrent(lease)) throw new Error('The cache context changed.');
-      await cacheStorage.write({
+      await persistRecord({
         schemaVersion: 3,
         key,
         accountId,
@@ -1204,7 +1252,7 @@ export async function writeCollectionOutbox(
         resourceId: collectionId,
         payload,
         refreshedAt: new Date().toISOString(),
-      } satisfies ProductCacheRecord);
+      });
     });
     return true;
   } catch {

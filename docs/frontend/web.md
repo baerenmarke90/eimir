@@ -74,6 +74,17 @@ row it cannot open. Logout deletes the key natively; before that, a
 confirmation sheet on the More page names what signing out deletes from the
 phone. Browsers and iOS keep the behavior above.
 
+The same key seals the text the Android app caches (requested by the Product
+Owner on 2026-11-16): every read-cache row, including the list outbox, stores
+its payload as AES-GCM ciphertext bound to the row key (`sealJson` in
+`deviceMediaSeal.ts`). Routing fields (account, Space, kind, resource, refresh
+time) stay readable so rows can be found, expired and purged. The app writes
+no cache row without the key, discards a plaintext row or a row sealed under an
+earlier login, and the store upgrade to version 4 drops earlier plaintext rows
+once on every platform. Browsers and iOS keep plaintext rows, because they
+have no device-bound key store. Memory diary drafts are not sealed yet: they
+hold dates and photo handles that the JSON sealing cannot carry.
+
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all
 cached images. Upgrading the disposable v1 store discards its old cache once;

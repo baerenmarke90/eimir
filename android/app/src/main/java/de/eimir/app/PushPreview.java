@@ -104,6 +104,9 @@ public final class PushPreview {
             case "PLAN_CANCELLED": return R.string.push_plan_cancelled;
             case "WISH_SELECTION_SHARED": return R.string.push_wish_selection_shared;
             case "WISH_SELECTION_READY": return R.string.push_wish_selection_ready;
+            case "WISH_SELECTION_RANDOM_REQUESTED": return R.string.push_wish_selection_random_requested;
+            case "WISH_SELECTION_RANDOM_ACCEPTED": return R.string.push_wish_selection_random_accepted;
+            case "WISH_SELECTION_RANDOM_DECLINED": return R.string.push_wish_selection_random_declined;
             case "PHOTO_REACTION": return title.isEmpty() ? R.string.push_photo_reaction : R.string.push_photo_reaction_title;
             case "PARTNER_JOINED": return R.string.push_partner_joined;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
@@ -122,17 +125,37 @@ public final class PushPreview {
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String body(Context context) {
         int resource = bodyResource();
+        String sender = name.isEmpty() ? context.getString(R.string.push_partner) : name;
+        int ideas = "WISH_SELECTION_SHARED".equals(kind) && !digest ? ideaCount() : 0;
+        if (ideas > 0) {
+            // The round invitation names only how many ideas are up for choice (#1907 J1).
+            return context.getResources().getQuantityString(R.plurals.push_wish_selection_shared_count, ideas, sender, ideas);
+        }
         String summary = context.getString(resource == 0 ? R.string.push_notification_body : resource,
-            name.isEmpty() ? context.getString(R.string.push_partner) : name, title);
+            sender, title);
         return !digest && !text.isEmpty()
             && ("COMMENT_CREATED".equals(kind) || "COUPLE_EXPERIENCE_SHARED".equals(kind))
             ? summary + "\n" + text : summary;
+    }
+
+    private int ideaCount() {
+        if (!text.matches("[2-5]")) return 0;
+        return Integer.parseInt(text);
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String action(Context context) {
         if (bodyResource() == 0 || targetType.isEmpty()) return null;
         if ("COMMENT_CREATED".equals(kind)) return context.getString(R.string.push_view_comments);
+        if ("WISH_SELECTION".equals(targetType)) {
+            switch (kind) {
+                case "WISH_SELECTION_SHARED": return context.getString(R.string.push_mark_favorites);
+                case "WISH_SELECTION_RANDOM_REQUESTED": return context.getString(R.string.push_answer);
+                case "WISH_SELECTION_READY":
+                case "WISH_SELECTION_RANDOM_ACCEPTED": return context.getString(R.string.push_view_result);
+                default: break;
+            }
+        }
         return context.getString("REMINDER".equals(targetType) ? R.string.push_view_reminder :
             "PLAN".equals(targetType) ? R.string.push_view_plan :
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :

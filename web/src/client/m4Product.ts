@@ -18,6 +18,7 @@ import {
   chapterDetailPath,
   collectionDetailPath,
   GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   memoryDetailPath,
@@ -173,6 +174,9 @@ export function notificationPath(item: {
     item.targetId
   )
     return `${wishDetailPath(item.targetId)}#terminvorschlag`;
+
+  if (item.kind === 'HEART_HUNT_HIDDEN' || item.kind === 'HEART_HUNT_FOUND')
+    return GAMES_HEART_HUNT_ROUTE;
 
   return (
     engagementTargetPath(item.targetType, item.targetId) ??

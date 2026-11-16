@@ -628,6 +628,7 @@
               "HEART_MOMENT",
               "RELATED_PERSON",
               "PLAN",
+              "HEART_HUNT_ROUND",
               "NONE"
             ],
             "title": "Parenttype",
@@ -4826,6 +4827,238 @@
         "title": "HeartEmotion",
         "type": "string"
       },
+      "HeartHuntKept": {
+        "additionalProperties": false,
+        "properties": {
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ],
+        "title": "HeartHuntKept",
+        "type": "object"
+      },
+      "HeartHuntRoundCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "heart": {
+            "$ref": "#/components/schemas/HeartPoint"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "attachmentId",
+          "heart"
+        ],
+        "title": "HeartHuntRoundCreate",
+        "type": "object"
+      },
+      "HeartHuntRoundView": {
+        "description": "One round as the caller may see it.\n\n`heart` is present for the hider and, for the seeker, only after the round\nis FOUND. The seeker's search never receives it earlier.",
+        "properties": {
+          "attachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Photo of the round; read it with parentType HEART_HUNT_ROUND.",
+            "title": "Attachmentid"
+          },
+          "bestLevel": {
+            "description": "Warmest word reached: 0 cold .. 3 hot.",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Bestlevel",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "deleteAfter": {
+            "description": "When the photo is deleted for good.",
+            "format": "date-time",
+            "title": "Deleteafter",
+            "type": "string"
+          },
+          "foundAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foundat"
+          },
+          "heart": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeartPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kept": {
+            "description": "Whether the photo was saved as a shared Moment.",
+            "title": "Kept",
+            "type": "boolean"
+          },
+          "partnerId": {
+            "format": "uuid",
+            "title": "Partnerid",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "HIDER",
+              "SEEKER"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "HIDDEN",
+              "FOUND"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tapCount": {
+            "title": "Tapcount",
+            "type": "integer"
+          },
+          "taps": {
+            "description": "Bounded marks of the search so far.",
+            "items": {
+              "$ref": "#/components/schemas/HeartPoint"
+            },
+            "title": "Taps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "state",
+          "partnerId",
+          "attachmentId",
+          "taps",
+          "tapCount",
+          "bestLevel",
+          "createdAt",
+          "foundAt",
+          "deleteAfter",
+          "kept"
+        ],
+        "title": "HeartHuntRoundView",
+        "type": "object"
+      },
+      "HeartHuntState": {
+        "properties": {
+          "rounds": {
+            "description": "Newest first, at most six.",
+            "items": {
+              "$ref": "#/components/schemas/HeartHuntRoundView"
+            },
+            "title": "Rounds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rounds"
+        ],
+        "title": "HeartHuntState",
+        "type": "object"
+      },
+      "HeartHuntTap": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "HeartHuntTap",
+        "type": "object"
+      },
+      "HeartHuntTapResult": {
+        "properties": {
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "level": {
+            "description": "0 Noch kalt, 1 Lauwarm, 2 Warm, 3 Ganz heiß.",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Level",
+            "type": "integer"
+          },
+          "meter": {
+            "description": "Coarse warmth in steps of five.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Meter",
+            "type": "integer"
+          },
+          "round": {
+            "$ref": "#/components/schemas/HeartHuntRoundView"
+          }
+        },
+        "required": [
+          "level",
+          "meter",
+          "found",
+          "round"
+        ],
+        "title": "HeartHuntTapResult",
+        "type": "object"
+      },
       "HeartMomentCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5320,6 +5553,30 @@
           "visibility"
         ],
         "title": "HeartMomentVisibilityChange",
+        "type": "object"
+      },
+      "HeartPoint": {
+        "properties": {
+          "x": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "HeartPoint",
         "type": "object"
       },
       "ImportStatus": {
@@ -7076,6 +7333,8 @@
           "WISH_SELECTION_RANDOM_REQUESTED",
           "WISH_SELECTION_RANDOM_ACCEPTED",
           "WISH_SELECTION_RANDOM_DECLINED",
+          "HEART_HUNT_HIDDEN",
+          "HEART_HUNT_FOUND",
           "PHOTO_REACTION",
           "PARTNER_JOINED",
           "COUPLE_EXPERIENCE_SHARED",
@@ -29892,6 +30151,356 @@
           }
         },
         "summary": "Water Garden Plant",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt": {
+      "get": {
+        "description": "Open rounds of the two partners; the seeker never receives the heart early.",
+        "operationId": "getHeartHunt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Heart Hunt",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds": {
+      "post": {
+        "description": "Hide a heart in an uploaded photo and send it to the partner.",
+        "operationId": "createHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntRoundCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntRoundView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Round",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept": {
+      "post": {
+        "description": "Record that the found photo was saved as a shared Moment by explicit tap.",
+        "operationId": "keepHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roundId",
+            "required": true,
+            "schema": {
+              "title": "Roundid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntKept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntRoundView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Keep Round",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps": {
+      "post": {
+        "description": "Clear fog at a tap; the answer is a coarse warmth and whether the heart was found.",
+        "operationId": "tapHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roundId",
+            "required": true,
+            "schema": {
+              "title": "Roundid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntTap"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntTapResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Tap Round",
         "tags": [
           "games"
         ]

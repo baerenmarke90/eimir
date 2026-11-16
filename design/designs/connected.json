@@ -1,0 +1,12 @@
+{
+  "$description": "Verbunden: the Free default design. The original palette; on Wir the two portraits are joined by a line.",
+  "id": "connected",
+  "tier": "free",
+  "layout": "connected",
+  "color": { "world": "original" },
+  "shape": "standard",
+  "type": { "display": "literata", "headings": "ui" },
+  "icon": { "stroke": 1.65, "accent": "duotone" },
+  "motion": "standard",
+  "surface": { "backdrop": "glow", "elevation": "standard", "edges": "none" }
+}

@@ -117,7 +117,7 @@ causes. Waves were judged restless and removed.
   Wish date proposal/counter/acceptance, Plan created and changed: calendar;
   Plan cancelled: close; shared Wish selection started: "together"; result
   ready: sparkle; random pick requested or decided: sparkle; random pick
-  declined: "together" (#1907 J1, each with the round's own question as title); comment: message; photo reaction: photo; shared moment:
+  declined: "together" (#1907 J1, each with the round's own question as title); Herzversteck hidden or found: sparkle badge on the photo icon (#1907 H3); comment: message; photo reaction: photo; shared moment:
   moment; reminder created: bell; partner joined: "together"; one-time
   message: message; check-in keeps "?". The plain wish heart is never a badge
   because it belongs to "thinking of you".

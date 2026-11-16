@@ -6,8 +6,8 @@ const OPTIONS: readonly DiaryLayout[] = ['album', 'compact'];
 
 /**
  * One switch for how Momente look: the scrapbook Album or the classic calm
- * list. It governs Erinnerungen, Tagebuch and the rediscovery card on Wir, so
- * the previous look can always be restored in one place. Per device.
+ * list. It governs Memories, Diary, Chapters and the rediscovery card on Us,
+ * so the previous look can always be restored in one place. Per device.
  */
 export function MomentsLayoutSettings() {
   const { t } = useTranslation();

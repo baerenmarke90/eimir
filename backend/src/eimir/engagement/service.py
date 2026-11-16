@@ -246,6 +246,13 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         push.ensure_deliveries_for_source_event(session, event.id)
         return
 
+    if event_type in {EventType.HEART_HUNT_HIDDEN, EventType.HEART_HUNT_FOUND}:
+        # No target row: the notice only names the partner and opens the game, so
+        # it never carries or exposes the photo or the round state.
+        _project_target_notification(session, event, None, None, NotificationKind(event_type.value))
+        push.ensure_deliveries_for_source_event(session, event.id)
+        return
+
     if event_type is EventType.GENTLE_PROMPT_READY:
         from eimir.engagement import gentle
 

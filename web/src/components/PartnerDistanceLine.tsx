@@ -97,26 +97,6 @@ export function useDistanceText() {
   };
 }
 
-/**
- * The short H4 wording of a band (for a one-shot caption such as the picture
- * flight): words for nearby and range bands, otherwise the formatted value.
- */
-export function useDistanceShortText() {
-  const { t } = useTranslation();
-  return (band: Parameters<typeof formatDistanceBand>[0]) => {
-    const words = distanceBandWords(band);
-    if (words) return t(WORDS[words].short);
-    const locale = resolvedLocale();
-    return (
-      formatDistanceBand(
-        band,
-        locale,
-        distanceUnitFor(locale, deviceLanguages()),
-      ) ?? t('partnerLocation.distanceNearShort')
-    );
-  };
-}
-
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg
@@ -358,4 +338,23 @@ export function WirPartnerDistance({
       compact={compact}
     />
   );
+}
+
+/**
+ * The band as the short H4 word or value, for compact captions such as the
+ * Herzversteck flight (#1907 H3); never more precise than the server band.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    const distance = formatDistanceBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    return distance ?? t('partnerLocation.distanceNearShort');
+  };
 }

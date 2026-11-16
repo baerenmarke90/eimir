@@ -20,7 +20,7 @@
    tab paint the same glow, at the same reading position. The other palettes
    already paint a backdrop on the page. */
 .today-page:not(
-  [data-wir-design="warm"],
+  [data-wir-layout="open"],
   [data-wir-design="shared_album"]
 )::before {
   content: "";
@@ -36,7 +36,7 @@
   transform: translateX(-50%);
   background: radial-gradient(
     120% 24rem at 30% 0%,
-    var(--color-brand-glow),
+    var(--design-backdrop-glow),
     transparent 70%
   );
   pointer-events: none;
@@ -321,7 +321,7 @@
 .today-section-title {
   margin: 0;
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-heading-family);
   font-size: 1.25rem;
   font-weight: 750;
   letter-spacing: -0.01em;

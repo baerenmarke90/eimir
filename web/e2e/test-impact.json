@@ -444,6 +444,14 @@
         "web/src/components/ProfilePageBase.tsx"
       ]
     },
+    "heart-hunt.spec.ts": {
+      "roots": [
+        "web/src/components/HeartHuntGamePage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/client/heartHunt.ts"
+      ]
+    },
     "garden-game.spec.ts": {
       "roots": [
         "web/src/components/GardenGamePage.tsx",
@@ -998,6 +1006,8 @@
         "web/src/components/ChapterCreatePage.tsx",
         "web/src/components/ChapterProductPage.tsx",
         "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MomentsLayoutSettings.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/MemoryProductPage.tsx"

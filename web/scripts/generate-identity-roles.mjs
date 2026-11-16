@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { formatWithBiome, paletteDeclarations } from './identity-palette.mjs';
 
 const tokenUrl = new URL('../../design/tokens.json', import.meta.url);
 const outputUrl = new URL('../src/design/identity-roles.css', import.meta.url);
@@ -9,69 +9,14 @@ const personOutputUrl = new URL(
   import.meta.url,
 );
 const { identity } = JSON.parse(readFileSync(tokenUrl, 'utf8'));
-const roles = {
-  page: ['color-background', 'color-header-surface'],
-  surface: ['color-surface', 'color-surface-panel', 'color-surface-overlay'],
-  elevated: ['color-surface-raised'],
-  text: ['color-text', 'color-brand-ocean'],
-  mutedText: ['color-text-secondary', 'color-text-muted'],
-  border: ['color-border', 'color-border-subtle', 'color-header-border'],
-  action: ['color-brand-text', 'color-link-text'],
-  actionFill: ['color-brand'],
-  onAction: ['color-on-accent'],
-  accentRose: [
-    'identity-icon-accent',
-    'identity-icon-warm-fill',
-    'color-private',
-  ],
-  accentSky: [
-    'identity-icon-cool',
-    'identity-icon-cool-fill',
-    'color-shared-accent',
-  ],
-  softRose: [
-    'identity-surface-warm',
-    'color-brand-surface',
-    'color-page-tint-brand',
-  ],
-  softBlue: [
-    'identity-surface-cool',
-    'color-surface-subtle',
-    'color-surface-panel-tint',
-    'color-shared-surface',
-    'color-page-tint-shared',
-  ],
-  focus: ['color-focus'],
-  pressed: [],
-  hover: ['identity-hover'],
-};
 function declarations(world, mode) {
-  const palette = identity.colorWorlds[world][mode];
-  const status = identity.semanticStatus[mode];
-  const lines = [];
-  for (const [role, aliases] of Object.entries(roles)) {
-    for (const alias of aliases) lines.push(`  --${alias}: ${palette[role]};`);
-  }
-  lines.push(
-    `  --color-brand-strong: ${mode === 'light' ? palette.action : palette.pressed};`,
-  );
-  lines.push(`  --color-shared: ${palette.action};`);
-  lines.push(`  --color-brand-glow: ${palette.softRose};`);
-  lines.push(`  --color-shadow-brand: ${palette.softRose};`);
-  for (const [role, aliases] of Object.entries({
-    success: ['color-success'],
-    warning: ['color-warning', 'color-discovery'],
-    error: ['color-error'],
-    info: ['color-technical'],
-    premium: ['identity-premium'],
-  })) {
-    for (const alias of aliases)
-      lines.push(`  --${alias}: ${status[role].text};`);
-    lines.push(
-      `  --${role === 'info' ? 'color-technical' : role === 'warning' ? 'color-discovery' : role === 'premium' ? 'identity-premium' : `color-${role}`}-surface: ${status[role].surface};`,
-    );
-  }
-  return lines.join('\n');
+  return paletteDeclarations(
+    identity.colorWorlds[world][mode],
+    identity.semanticStatus[mode],
+    mode,
+  )
+    .map((line) => `  ${line}`)
+    .join('\n');
 }
 const worldNames = Object.keys(identity.colorWorlds);
 const css = [
@@ -94,7 +39,7 @@ for (const world of worldNames.filter(
   );
 }
 css.push(
-  `.eimir-icon { fill: none; stroke: currentColor; stroke-width: ${identity.icon.strokePx}; stroke-linecap: round; stroke-linejoin: round; }`,
+  `.eimir-icon { fill: none; stroke: currentColor; stroke-width: var(--icon-stroke-width, ${identity.icon.strokePx}); stroke-linecap: round; stroke-linejoin: round; }`,
 );
 css.push('.eimir-icon .accent { stroke: var(--identity-icon-accent); }');
 css.push('.eimir-icon .cool { stroke: var(--identity-icon-cool); }');
@@ -103,21 +48,7 @@ css.push(
 );
 css.push('.eimir-icon-filled, .eimir-icon-duotone { stroke: currentColor; }');
 const rawOutput = `${css.join('\n\n')}\n`;
-const biome = fileURLToPath(
-  new URL('../node_modules/.bin/biome', import.meta.url),
-);
-const output = execFileSync(
-  biome,
-  [
-    'format',
-    '--vcs-enabled=false',
-    '--stdin-file-path=src/design/identity-roles.css',
-  ],
-  {
-    input: rawOutput,
-    encoding: 'utf8',
-  },
-);
+const output = formatWithBiome(rawOutput, 'src/design/identity-roles.css');
 function personColorCss() {
   const { tones, defaultPair } = identity.personColors;
   const names = Object.keys(tones);
@@ -148,14 +79,10 @@ function personColorCss() {
     roles,
   ].join('\n\n');
 }
-const personOutput = execFileSync(
-  biome,
-  [
-    'format',
-    '--vcs-enabled=false',
-    '--stdin-file-path=src/design/person-colors.css',
-  ],
-  { input: `${personColorCss()}\n`, encoding: 'utf8' },
+const personOutput = formatWithBiome(
+  `${personColorCss()}
+`,
+  'src/design/person-colors.css',
 );
 const check = process.argv[2] === '--check';
 if (process.argv.length > (check ? 3 : 2))

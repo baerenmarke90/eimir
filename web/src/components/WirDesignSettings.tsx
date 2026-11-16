@@ -11,6 +11,7 @@ import {
   isFreeWirDesign,
   useWirDesign,
   WIR_DESIGNS,
+  wirDesignLayout,
 } from '../client/wirDesign';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
@@ -21,8 +22,8 @@ import './WirDesign.css';
 function DesignPreview({ design }: { design: WirDesignId }) {
   return (
     <span
-      className={`wir-design-preview wir-design-preview-${design}`}
-      data-color-world={design === WirDesignId.warm ? 'warm' : undefined}
+      className={`wir-design-preview wir-design-preview-${wirDesignLayout(design) ?? design}`}
+      data-design-preview={design}
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">

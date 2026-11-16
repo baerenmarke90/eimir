@@ -468,7 +468,7 @@
 .eimir-icon {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.65;
+  stroke-width: var(--icon-stroke-width, 1.65);
   stroke-linecap: round;
   stroke-linejoin: round;
 }

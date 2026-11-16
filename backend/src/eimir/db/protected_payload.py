@@ -50,31 +50,48 @@ class ProtectedPayloadJSON[PayloadT: ProtectedPayload](TypeDecorator[PayloadT]):
     restores strict Pydantic validation when reading.
     """
 
-    impl = postgresql.JSONB
+    # ``none_as_null`` only matters for an ``optional`` column: every other
+    # column rejects ``None`` before it reaches the database.
+    impl = postgresql.JSONB(none_as_null=True)
     cache_ok = True
     should_evaluate_none = True
 
-    def __init__(self, payload_type: type[PayloadT]) -> None:
+    def __init__(self, payload_type: type[PayloadT], *, optional: bool = False) -> None:
+        """Bind the column to ``payload_type``.
+
+        ``optional`` allows SQL NULL and exists for one situation: a payload column
+        added to a table that already has rows. A migration cannot fill it, because
+        it runs without the encryption keys, so such rows stay NULL until the column
+        backfill (``eimir.security.column_moves``) has written their payload.
+        """
         super().__init__()
         self.payload_type = payload_type
+        self.optional = optional
 
     @property
     def python_type(self) -> type[PayloadT]:
         return self.payload_type
 
-    def process_bind_param(self, value: PayloadT | None, dialect: Dialect) -> dict[str, Any]:
+    def process_bind_param(self, value: PayloadT | None, dialect: Dialect) -> dict[str, Any] | None:
         del dialect
+        if value is None and self.optional:
+            return None
         if type(value) is not self.payload_type:
             raise TypeError(
                 f"{self.payload_type.__name__} required; raw or foreign payload rejected"
             )
+        assert value is not None
         return get_payload_protector().protect(
             value.seal(), context=self.payload_type.crypto_context()
         )
 
-    def process_result_value(self, value: dict[str, Any] | None, dialect: Dialect) -> PayloadT:
+    def process_result_value(
+        self, value: dict[str, Any] | None, dialect: Dialect
+    ) -> PayloadT | None:
         del dialect
         if value is None:
+            if self.optional:
+                return None
             raise ValueError("Protected payload is missing from a non-null persistence column")
         plain = get_payload_protector().reveal(value, context=self.payload_type.crypto_context())
         try:

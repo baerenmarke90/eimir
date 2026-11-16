@@ -158,14 +158,15 @@ metadata (`mime_type`, `size`, `width`, `height`, `has_thumbnail`) also stays pl
 because it drives validation and rendering.
 
 **Moved into the payload after the first version of this document:** the preference
-topic (`profile_preferences.topic`) and Place coordinates (`places.latitude`,
-`places.longitude`). New writes store them in the row's payload and leave the columns
+topic (`profile_preferences.topic`), Place coordinates (`places.latitude`,
+`places.longitude`) and the daily check-in values (`daily_check_ins.vibe`,
+`energy_level`). New writes store them in the row's payload and leave the columns
 NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows written
 earlier are moved as described in section 8, "Legacy plain columns".
 
 **Outside the ProtectedPayload boundary today:** account display names, email
-addresses, daily check-in vibe and energy, birthdays and relationship kinds of related
-persons, and the relationship start date. They are listed as follow-ups in section 12.
+addresses, birthdays and relationship kinds of related persons, and the relationship
+start date. They are listed as follow-ups in section 12.
 
 ## 6. Data flows
 
@@ -252,8 +253,12 @@ signal.
 
 A value that predates the payload boundary sits in an ordinary column, where this
 encryption does not reach it. `eimir.security.column_moves` registers such columns
-(currently `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
-their values into the row's payload:
+(first `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
+their values into the row's payload. `daily_check_ins.vibe`/`energy_level` are
+registered too; that table had no payload column, so migration 0147 adds a **nullable**
+one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
+move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
+a row through `legacy_plain_columns`, not as a malformed envelope:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered
   column still holds a value and repeats it until none does. It needs no operator
@@ -379,8 +384,8 @@ Known limits and follow-ups (deliberately not implemented here):
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
 - Columns outside the `ProtectedPayload` contract remain plaintext: display names,
-  e-mail addresses, daily check-in vibe and energy, birthdays, relationship kinds and the
-  relationship start date. `places.has_coordinates` (whether a place has a position,
+  e-mail addresses, birthdays, relationship kinds and the relationship start date. The
+  check-in day itself (who checked in on which date) stays plain metadata. `places.has_coordinates` (whether a place has a position,
   not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
   lookups, uniqueness and administrative search need them in SQL.
 - Object listing is not part of `MediaStore`, so orphaned pre-cutover objects
@@ -501,8 +506,9 @@ Product Owner decisions still required before the remaining items can be built:
   (a new scheme number and migration) before Cloud go-live.
 - **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
   and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
-  the partner-location position before them. Display names, check-in values, birthdays
-  and relationship kinds are open follow-ups; e-mail addresses stay plaintext.
+  the partner-location position before them and the daily check-in values after them.
+  Display names, birthdays and relationship kinds are open follow-ups; e-mail addresses
+  stay plaintext.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

@@ -245,7 +245,8 @@ def verify_payloads(
     report = VerifyReport()
     statuses = {status.table: status for status in payload_status(session)}
     for entry in payload_tables():
-        for batch in _keyed_batches(session, entry, "TRUE", batch_size):
+        # An optional payload column is NULL until its row was backfilled.
+        for batch in _keyed_batches(session, entry, "payload IS NOT NULL", batch_size):
             for _, stored in batch:
                 report.checked[entry.name] += 1
                 if MARKER not in stored:

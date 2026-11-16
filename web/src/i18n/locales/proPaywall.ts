@@ -180,8 +180,8 @@ const proPaywall = {
         body: 'Teilt freiwillig, wie weit ihr voneinander entfernt seid, oder zeigt euren Standort auf der Karte. Ihr könnt die Freigabe jederzeit beenden.',
       },
       wirDesigns: {
-        title: 'Weitere Wir-Designs',
-        body: 'Gestaltet eure eigene Wir-Ansicht mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
+        title: 'Weitere App-Designs',
+        body: 'Gestaltet euer eigenes eimir. mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
       },
       appIcons: {
         title: 'Alternative App-Symbole',

@@ -17,6 +17,8 @@ export const APP_DESIGNS: Readonly<
     { readonly tier: AppDesignTier; readonly layout: AppDesignLayout }
   >
 > = {
+  classic: { tier: 'pro', layout: 'classic' },
   connected: { tier: 'free', layout: 'connected' },
+  modern: { tier: 'pro', layout: 'compact' },
   warm: { tier: 'free', layout: 'open' },
 };

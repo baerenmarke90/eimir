@@ -28,8 +28,8 @@ composer, sheet, navigation and existing photo actions as they are.
   stay. The edit is rendered on the device and replaces the selected photo; a
   JPEG keeps its EXIF block (orientation set upright, pixel size updated, old
   thumbnail link dropped). No second copy of the original is stored on the
-  server; the original stays on the device (recommended default, for the
-  Product Owner to confirm in the pull request).
+  server; the original stays on the device (confirmed by the Product Owner
+  on 2026-11-16 in #1957).
 - **Only the needed tools**, like a phone's photo app: Zuschneiden, Malen and
   Text. No aspect-ratio buttons (withdrawn after the first prototype).
 - **Cropping as in photo apps.** The frame stays, the photo moves under it with
@@ -46,8 +46,8 @@ composer, sheet, navigation and existing photo actions as they are.
   the device or a connected source) keep the round crop step and gain
   `Drehen`. Once-messages stay out (end-to-end encrypted inline media).
 - **Tier:** Free/Core within "Image attachment upload & storage"; on-device
-  processing, no provider, Self-Hosted equals Cloud (recommended, for the
-  Product Owner to confirm in the pull request).
+  processing, no provider, Self-Hosted equals Cloud (confirmed by the
+  Product Owner on 2026-11-16 in #1957).
 
 ## Mobile Interaction Contract
 

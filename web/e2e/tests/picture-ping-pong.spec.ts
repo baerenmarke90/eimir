@@ -399,7 +399,7 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
 
   test('the shelf lists the game and expanded keeps one bounded column', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await installApiMocks(page);
     await page.goto('/login');
@@ -413,5 +413,13 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
       page.getByRole('button', { name: games.pingPong.newPicture }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
+    await page.getByRole('button', { name: games.pingPong.newPicture }).click();
+    await expect(
+      page.getByRole('heading', { name: games.pingPong.turnYou }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath('picture-ping-pong-draw-1280-light.png'),
+      fullPage: true,
+    });
   });
 });

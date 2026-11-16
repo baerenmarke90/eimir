@@ -312,3 +312,17 @@
     display: none;
   }
 }
+
+/* Bounded reading column on Expanded; the picture stays one square. */
+.page.pingpong-page {
+  width: min(100%, 36rem);
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.pingpong-secondary {
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+

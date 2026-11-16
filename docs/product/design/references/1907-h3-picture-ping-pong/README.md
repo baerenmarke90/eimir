@@ -16,7 +16,8 @@ The visual reference for this slice is the Product Owner's approved clickable
 prototype (the generated composition) plus the runtime captures below, taken at
 390 px from the implemented page: the drawing turn in Light
 ([runtime-draw-390-light.png](runtime-draw-390-light.png)) and the finished
-picture in Dark ([runtime-done-390-dark.png](runtime-done-390-dark.png)).
+picture in Dark ([runtime-done-390-dark.png](runtime-done-390-dark.png)); the Expanded
+composition at 1280 px is [runtime-draw-1280-light.png](runtime-draw-1280-light.png).
 
 ## Mobile Interaction Contract
 

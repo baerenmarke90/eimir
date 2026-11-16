@@ -396,6 +396,12 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
+    "momente-album.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx"
+      ]
+    },
     "optional-product-tour.spec.ts": {
       "roots": [
         "web/src/client/productTour.tsx",
@@ -770,7 +776,11 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/client/taskOrigin.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/ProPaywall.css",
+        "web/src/components/ProFeatureCatalogue.tsx",
         "web/src/client/proBilling.ts",
         "web/src/client/proPresentation.tsx"
       ]
@@ -834,6 +844,12 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "story-waymarks.spec.ts": {
+      "roots": [
+        "web/src/components/RelationshipStoryPage.tsx",
+        "web/src/components/RelationshipPassport.tsx"
       ]
     },
     "story-years-product-reference.spec.ts": {
@@ -950,6 +966,7 @@
         "web/src/components/WirDesignSettings.tsx",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",

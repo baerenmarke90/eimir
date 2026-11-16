@@ -1,9 +1,9 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import proPaywall from '../../src/i18n/locales/proPaywall';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import {
   catalogIdea,
   categoryLabel,
@@ -303,8 +303,61 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
     ).toBeVisible();
     await expect(page.getByText(proPaywall.active.title)).toBeVisible();
     await expect(page.getByRole('radio')).toHaveCount(0);
+    const everyday = page.locator('summary', {
+      hasText: proPaywall.catalogue.groups.everyday,
+    });
+    await everyday.click();
+    await expect(
+      page.getByText(proPaywall.catalogue.features.onceMessages.body),
+    ).toBeVisible();
+    await expect(everyday.locator('..').locator('dl')).toHaveCSS(
+      'animation-name',
+      'none',
+    );
     await assertNoWcagViolations(page);
     await captureScreenshot(page, info, 'paywall-active-390-dark.png');
+  });
+
+  test('Free: explore the Pro features from Account and return', async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 360, height: 844 });
+    await page.emulateMedia({
+      colorScheme: 'light',
+      reducedMotion: 'no-preference',
+    });
+    const state = await installDateIdeaMocks(page, { pro: false });
+    await signIn(page);
+    await page.goto('/more/settings/account');
+    await page.getByRole('link', { name: /eimir\. Pro/ }).click();
+    await expect(page).toHaveURL(/\/more\/pro$/);
+    await expect(page.getByText(proPaywall.webUnavailableBody)).toBeVisible();
+
+    const section = page.getByRole('region', {
+      name: proPaywall.catalogue.title,
+    });
+    const memories = section.locator('summary', {
+      hasText: proPaywall.catalogue.groups.memories,
+    });
+    const map = section.getByText(proPaywall.catalogue.features.memoryMap.body);
+    await expect(map).toBeHidden();
+    await memories.focus();
+    await memories.press('Enter');
+    await expect(map).toBeVisible();
+    await expect(memories.locator('..').locator('dl')).toHaveCSS(
+      'animation-name',
+      'eimir-disclosure-reveal',
+    );
+    await assertNoHorizontalOverflow(page);
+    await assertNoWcagViolations(page);
+    await captureScreenshot(page, info, 'paywall-catalogue-360-light.png', {
+      fullPage: true,
+    });
+    await memories.press('Space');
+    await expect(map).toBeHidden();
+    expect(state.catalogRequests).toBe(0);
+    await back(page).click();
+    await expect(page).toHaveURL(/\/more\/settings\/account$/);
   });
 
   for (const { width, theme } of [
@@ -350,13 +403,24 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       );
 
       state.pro = false;
-      await page.goto('/more/pro?context=recaps');
+      const context = width === 320 || width === 1280 ? 'general' : 'recaps';
+      await page.goto(`/more/pro?context=${context}`);
       await expect(
         page.getByRole('heading', {
           level: 1,
-          name: proPaywall.contexts.recaps.title,
+          name: proPaywall.contexts[context].title,
         }),
       ).toBeVisible();
+      if (context === 'general') {
+        await page
+          .locator('summary', {
+            hasText: proPaywall.catalogue.groups.integrations,
+          })
+          .click();
+        await expect(
+          page.getByText(proPaywall.catalogue.features.calendarSync.body),
+        ).toBeVisible();
+      }
       if (width === 320)
         await page.addStyleTag({
           content: 'html { font-size: 200% !important; }',

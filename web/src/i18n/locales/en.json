@@ -896,7 +896,15 @@
     "collection": {
       "overviewHeading": "Lists",
       "menu": {
-        "open": "List menu"
+        "open": "List menu",
+        "send": "Send to {{name}}",
+        "sendTitle": "Send the list to {{name}}?",
+        "sendBody": "The list appears on the other person's Wir, with a short notification. You keep editing the same list.",
+        "sendConfirm": "Send to {{name}}",
+        "sendSending": "Sending …",
+        "sendKeep": "Not now",
+        "sendDone": "Sent to {{name}}.",
+        "partnerFallback": "your partner"
       },
       "defaultShopping": {
         "title": "Shopping",
@@ -1481,7 +1489,7 @@
     "settingsSensitiveEyebrow": "With care",
     "settingsSensitiveTitle": "Sensitive actions",
     "settingsSensitiveIntro": "Leaving the shared space and deleting your account are separate actions. Review the consequences of each before continuing.",
-    "appearanceIntro": "Choose your colour mode, language and the icon that suits you."
+    "appearanceIntro": "Choose your colour mode, language, moments design and the icon that suits you."
   },
   "appIcon": {
     "title": "App icon",
@@ -1615,8 +1623,8 @@
     "accountName": "Display name",
     "premium": {
       "title": "eimir. Pro",
-      "rowInactive": "All Pro features and prices for both of you",
-      "rowActive": "Pro is active for both of you"
+      "rowInactive": "Explore features and pricing",
+      "rowActive": "Pro is active · Explore features"
     },
     "relationshipTitle": "Your relationship",
     "relationshipIntro": "Where your story began, for anniversaries and your time together.",
@@ -2271,7 +2279,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses and check-ins.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2287,6 +2295,7 @@
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
+    "collectionSent": "Sent lists",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -3075,6 +3084,13 @@
       "locked": "With eimir. Pro, see your shared story in personal recaps. One subscription applies to both of you.",
       "dataRights": "Your memories, plans, places and data export remain accessible without Pro.",
       "learnMore": "About eimir. Pro"
+    },
+    "waymarks": {
+      "title": "Your waymarks",
+      "milestoneYears_one": "{{count}} year since “{{title}}”",
+      "milestoneYears_other": "{{count}} years since “{{title}}”",
+      "showAll": "Show all {{count}} waymarks",
+      "showFewer": "Show fewer"
     }
   },
   "experiences": {
@@ -3268,6 +3284,7 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "COLLECTION_SENT": "{{name}} sent you a list.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",
@@ -4372,6 +4389,18 @@
       "dayMany": "days"
     }
   },
+  "momentsLayout": {
+    "title": "Moments design",
+    "intro": "How your memories look, in the diary and on Us. This device only.",
+    "album": {
+      "name": "Album",
+      "hint": "Like a photo album: large photos as Polaroids, with little notes."
+    },
+    "compact": {
+      "name": "List",
+      "hint": "Small previews on a calm timeline."
+    }
+  },
   "storyFilters": {
     "title": "Filters",
     "aria": "Filter and sort story",
@@ -5272,24 +5301,90 @@
       },
       "general": {
         "title": "More possibilities for your shared story.",
-        "description": "eimir. Pro adds ideas, recaps and special experiences to your shared home.",
-        "benefits": {
-          "first": {
-            "title": "Date ideas",
-            "body": "200 curated ideas for your time together."
-          },
-          "second": {
-            "title": "Recaps and memory map",
-            "body": "Discover your story over time and in its places."
-          },
-          "third": {
-            "title": "Games and personal extras",
-            "body": "Shared experiences, the daily quote and your own style."
-          }
-        }
+        "description": "eimir. Pro adds ideas, recaps and special experiences to your shared home."
       }
     },
     "benefitsLabel": "What Pro offers you",
+    "catalogue": {
+      "title": "What’s included in Pro",
+      "groups": {
+        "memories": "Memories & recaps",
+        "timeTogether": "Time together",
+        "everyday": "Everyday connection",
+        "style": "Your personal style",
+        "integrations": "Photos & calendars"
+      },
+      "features": {
+        "memoryMap": {
+          "title": "Memory map",
+          "body": "See where your memories happened and open them right from the map."
+        },
+        "recaps": {
+          "title": "Monthly and yearly recaps",
+          "body": "Turn your memories into recaps and add your own words. Saved recaps stay with you."
+        },
+        "passport": {
+          "title": "Relationship passport & shared story",
+          "body": "Explore the numbers and milestones behind your time together and choose whether to show them on Us."
+        },
+        "video": {
+          "title": "Short videos",
+          "body": "Add short videos to your moments when video uploads are available for your space."
+        },
+        "dateIdeas": {
+          "title": "Date inspiration",
+          "body": "Filter 200 date ideas by time, budget and setting. Save an idea as a wish or plan, or add it to a shared selection."
+        },
+        "games": {
+          "title": "Couple games",
+          "body": "Start a game for two, including games about your shared memories and wishes."
+        },
+        "experiences": {
+          "title": "Happy moments & time travel",
+          "body": "Share what’s making you happy today or send each other on a little trip through your memories."
+        },
+        "insights": {
+          "title": "Mood & energy insights",
+          "body": "Look back across weeks or months of check-ins and see how your moods and energy have changed. Daily check-ins stay free."
+        },
+        "quote": {
+          "title": "Quote of the day",
+          "body": "Read a daily quote on Us from the topics you choose for yourself."
+        },
+        "gestures": {
+          "title": "More little gestures",
+          "body": "Send a kiss or tap to ask ‘How are you?’ ‘Thinking of you’ stays free."
+        },
+        "onceMessages": {
+          "title": "One-time messages",
+          "body": "Send messages that can be opened once, after both of you have agreed."
+        },
+        "location": {
+          "title": "Location & distance",
+          "body": "Choose to share how far apart you are or show your location on the map. You can stop sharing anytime."
+        },
+        "wirDesigns": {
+          "title": "More designs for Us",
+          "body": "Make your Us page your own with Our Album, Clear & modern or Classic."
+        },
+        "appIcons": {
+          "title": "Alternative app icons",
+          "body": "Choose a different eimir. icon where your app or browser supports this option."
+        },
+        "personColours": {
+          "title": "Personal colours",
+          "body": "Pick the colours you see yourself and your partner in throughout your app."
+        },
+        "photoSources": {
+          "title": "Photos from Immich & Google Photos",
+          "body": "Bring in selected photos from Immich or Google Photos when the connection is available."
+        },
+        "calendarSync": {
+          "title": "Automatic calendar sync",
+          "body": "Send plans to your shared CalDAV or Google calendar automatically when the connection is available."
+        }
+      }
+    },
     "plansLegend": "Your plan",
     "plans": {
       "yearly": {
@@ -5328,10 +5423,11 @@
     "storeUnavailableTitle": "Google Play cannot be reached right now",
     "storeUnavailableBody": "The prices could not be loaded. Please try again in a moment. Your content is not affected.",
     "unavailableTitle": "Purchase not available here yet",
-    "unavailableBody": "Pro cannot be bought in eimir. yet. As soon as it can, you will find the purchase right here.",
+    "unavailableBody": "Purchases are currently unavailable for this app or space.",
+    "webUnavailableBody": "When Pro is available for your space, you can subscribe in the Android app through Google Play.",
     "active": {
       "title": "eimir. Pro is active for you.",
-      "body": "All Pro features are available to both of you.",
+      "body": "Your Pro access covers your shared space and both of you.",
       "continue": "Continue"
     },
     "statusUnknown": "Your Pro status could not be checked right now. Your content is not affected.",

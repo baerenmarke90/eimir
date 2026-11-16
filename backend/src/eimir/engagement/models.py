@@ -70,6 +70,7 @@ class NotificationKind(StrEnum):
     WISH_DATE_PROPOSED = "WISH_DATE_PROPOSED"
     WISH_DATE_COUNTERED = "WISH_DATE_COUNTERED"
     WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
+    COLLECTION_SENT = "COLLECTION_SENT"
     # #1969: a partner wrote or changed a shared note. Content-free references only.
     SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
     SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
@@ -100,6 +101,7 @@ COALESCED_NOTIFICATION_KINDS = (
     "WISH_SELECTION_RANDOM_REQUESTED",
     "WISH_SELECTION_RANDOM_ACCEPTED",
     "WISH_SELECTION_RANDOM_DECLINED",
+    "COLLECTION_SENT",
     # Several edits of one note leave one current notice, not a stack of them.
     "SHARED_NOTE_CHANGED",
 )

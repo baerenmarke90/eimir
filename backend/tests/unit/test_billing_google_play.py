@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -27,6 +28,7 @@ from eimir.entitlements.models import EntitlementStatus
 NOW = datetime(2026, 11, 15, 12, tzinfo=UTC)
 PRODUCT = "eimir_pro"
 TOKEN = "play-token.with-allowed_chars"
+CREDENTIALS_FILE = str(Path("/run/secrets/play.json").absolute())
 
 
 def purchase(state: str = "SUBSCRIPTION_STATE_ACTIVE", **overrides: Any) -> dict[str, Any]:
@@ -203,7 +205,7 @@ def test_notification_auth_requires_configuration_and_identity(
     settings = Settings(
         deployment=Deployment.CLOUD,
         billing_google_play_package="de.eimir.app",
-        billing_google_play_credentials_file="/run/secrets/play.json",
+        billing_google_play_credentials_file=CREDENTIALS_FILE,
         billing_google_play_rtdn_audience="https://eimir.example/api/v1/billing/google-play/notifications",
         billing_google_play_rtdn_service_account="pubsub-push@eimir.iam.gserviceaccount.com",
     )
@@ -274,7 +276,7 @@ def test_play_billing_settings_are_cloud_only_and_complete() -> None:
         Settings(
             deployment=Deployment.SELF_HOSTED,
             billing_google_play_package="de.eimir.app",
-            billing_google_play_credentials_file="/run/secrets/play.json",
+            billing_google_play_credentials_file=CREDENTIALS_FILE,
         )
     with pytest.raises(ValidationError, match="requires"):
         Settings(deployment=Deployment.CLOUD, billing_google_play_package="de.eimir.app")
@@ -288,13 +290,13 @@ def test_play_billing_settings_are_cloud_only_and_complete() -> None:
         Settings(
             deployment=Deployment.CLOUD,
             billing_google_play_package="de.eimir.app",
-            billing_google_play_credentials_file="/run/secrets/play.json",
+            billing_google_play_credentials_file=CREDENTIALS_FILE,
             billing_google_play_rtdn_audience="https://eimir.example/x",
         )
     settings = Settings(
         deployment=Deployment.CLOUD,
         billing_google_play_package="de.eimir.app",
-        billing_google_play_credentials_file="/run/secrets/play.json",
+        billing_google_play_credentials_file=CREDENTIALS_FILE,
     )
     assert settings.google_play_billing_configured
     assert not Settings(deployment=Deployment.CLOUD).google_play_billing_configured

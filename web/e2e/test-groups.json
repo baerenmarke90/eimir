@@ -148,6 +148,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13
     },
+    "momente-album.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 20,
+      "reason": "Feature-owned Moments Album design (#1960): Album default, Compact and Expanded, Light and Dark, 320px and 200% text reflow, reduced motion, axe, and the setting that restores the compact list."
+    },
     "optional-product-tour.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
@@ -311,6 +316,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
     },
+    "story-waymarks.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "#1907 F1 feature-owned acceptance for the story overview waymarks: reached round days and Milestone anniversaries as one quiet thread, four shown and the rest opened in place, Milestone rows opening their Milestone, the omitted state, the Free Pro entry, 390 Light/Dark, 360 at 200 percent text and Expanded, with accessibility and reflow checks."
+    },
     "theme-forced-colors.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 1,
@@ -355,7 +365,8 @@
     },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 9,
+      "reason": "Personal pin, list tile and sheet, optimistic checks and reorder plus sending a list to the partner after asking, in Compact Light, Dark and the wider phone width (#1907 E2)."
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -438,8 +449,8 @@
     },
     "date-inspiration.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, active Pro, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+      "baselineTests": 12,
+      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, Account feature overview for Free and active Pro with keyboard and reduced-motion coverage, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -591,7 +602,7 @@
     },
     "partner-location-settings.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10,
+      "baselineTests": 20,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
     "partner-distance-wir.spec.ts": {

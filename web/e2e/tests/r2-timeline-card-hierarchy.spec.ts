@@ -11,6 +11,12 @@ import {
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 /**
  * #969: Timeline cards lead with content, not taxonomy. Kind badges, the

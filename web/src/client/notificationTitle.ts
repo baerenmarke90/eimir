@@ -52,6 +52,7 @@ export function getNotificationItemTitle(
       'WISH_SELECTION_RANDOM_DECLINED',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
+      'COLLECTION_SENT',
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',

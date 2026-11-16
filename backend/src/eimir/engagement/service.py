@@ -307,6 +307,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
         )
 
+    if event_type is EventType.COLLECTION_SENT:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.COLLECTION,
+            event.subject_id,
+            NotificationKind.COLLECTION_SENT,
+        )
+
     if event_type in {EventType.SHARED_NOTE_CREATED, EventType.SHARED_NOTE_UPDATED}:
         # #1969: the partner learns that a shared note exists or changed. The
         # event carries the recipient and references only; no text is copied.

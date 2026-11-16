@@ -3,12 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { STORY_OURS_ROUTE } from '../client/routes';
+import { PRODUCT_TOUR_ROUTE, STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
 import dailyInsights from '../i18n/locales/dailyInsights';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
+import productTour from '../i18n/locales/productTour';
 import relationshipReflections from '../i18n/locales/relationshipReflections';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
@@ -45,7 +46,7 @@ describe('MoreOverviewPage', () => {
     expect(html).toContain(de.more.groups.utility);
     expect(html).toContain(de.more.groups.moments);
 
-    for (const href of [
+    const destinationPaths = [
       STORY_OURS_ROUTE,
       '/story/years',
       '/story/photos',
@@ -60,9 +61,15 @@ describe('MoreOverviewPage', () => {
       '/more/notifications',
       '/today/activity',
       '/more/settings',
-    ]) {
+      PRODUCT_TOUR_ROUTE,
+    ];
+    for (const href of destinationPaths) {
       expect(html).toContain(`href="${href}"`);
     }
+    expect(html).toContain(productTour.replay);
+    expect(html.indexOf(`href="${PRODUCT_TOUR_ROUTE}"`)).toBeGreaterThan(
+      html.indexOf(de.more.groups.utility),
+    );
 
     const weeklyInsightsIndex = html.indexOf('href="/more/insights"');
     const peopleIndex = html.indexOf('href="/more/people"');
@@ -134,7 +141,7 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(14);
+    expect(rowMatches).toHaveLength(destinationPaths.length);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 

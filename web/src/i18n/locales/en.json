@@ -563,7 +563,7 @@
       "experiencedPlans": "Experienced",
       "experiencedPlansEmpty": "No plans experienced together yet.",
       "experiencedOn": "Experienced on {{date}}",
-      "openPlansEmpty": "No open plans right now.",
+      "openPlansEmpty": "What are you looking forward to next?",
       "pastOpenPlans": "Date has passed",
       "wishScope": "Show wishes",
       "fulfilledWishes": "Fulfilled",
@@ -4760,32 +4760,29 @@
     "offline": "You are offline",
     "offlineBody": "Connect to the internet to load media."
   },
-  "productTour": {
-    "eyebrow": "Quick introduction",
-    "replay": "Get to know eimir.",
-    "later": "Later",
-    "start": "View",
-    "next": "Next",
-    "openCreate": "Open plus",
-    "invite": {
-      "title": "A quick look at eimir.",
-      "body": "If you like, we will show you the main places in four little steps."
+  "quietHints": {
+    "tipLabel": "Tip",
+    "newLabel": "New in eimir.",
+    "newTag": "New",
+    "gotIt": "Got it",
+    "hide": "Hide",
+    "firstPlan": "Create your first plan",
+    "firstWish": "Capture your first wish",
+    "moveIn": {
+      "solo": "Nothing is on the wall yet. Let's hang the first picture.",
+      "invite": "Invite your person"
     },
-    "today": {
-      "title": "Your shared home",
-      "body": "On Us, see what connects you right now and what is coming up next."
+    "connected": {
+      "title": "You are connected now.",
+      "since": "Here together since today"
     },
-    "story": {
-      "title": "Find moments again",
-      "body": "Discover brings familiar things back. Find your story in order in the timeline."
+    "tips": {
+      "planFromWish": "Is a wish getting concrete? Open it and turn it into a plan.",
+      "planFromWishAction": "Open wish"
     },
-    "plan": {
-      "title": "Wishes become plans",
-      "body": "Planning brings together ideas and concrete plans for your time together."
-    },
-    "create": {
-      "title": "Capture something",
-      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
+    "news": {
+      "waymarks": "Your waymarks: “Your story” now shows the special days behind you.",
+      "waymarksAction": "View"
     }
   },
   "photoReactions": {

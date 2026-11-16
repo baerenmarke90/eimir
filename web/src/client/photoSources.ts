@@ -1,3 +1,4 @@
+import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import type { PhotoSelectionItemView } from '../api/generated/models/PhotoSelectionItemView';
@@ -99,6 +100,96 @@ export function watchPhotoBrowserReturn(signal: AbortSignal): () => boolean {
     { once: true },
   );
   return () => finished && document.visibilityState === 'visible';
+}
+
+/** What Google's sign-in handed back to the app through its own link. */
+export type GoogleAppReturn =
+  | { state: string; code: string }
+  | 'denied'
+  | 'abandoned';
+
+const APP_RETURN_PARAMETERS = new Set(['state', 'code', 'outcome']);
+// After the system browser closed on its own, how long the app link may still arrive.
+const ABANDON_GRACE_MILLISECONDS = 4_000;
+
+/**
+ * The server's Google photo callback hands the installed app only the sign-in's `state`
+ * and Google's one-use `code` (or a denial) on `de.eimir.app://photos/google`. The code is
+ * useless without the PKCE verifier on the server, and only this signed-in app session can
+ * pair it with its selection. Anything else, including extra parameters, is ignored.
+ */
+export function readGoogleAppReturn(
+  rawUrl: string,
+): Exclude<GoogleAppReturn, 'abandoned'> | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (
+    url.protocol !== 'de.eimir.app:' ||
+    url.host !== 'photos' ||
+    url.pathname !== '/google' ||
+    [...url.searchParams.keys()].some((key) => !APP_RETURN_PARAMETERS.has(key))
+  )
+    return null;
+  const state = url.searchParams.get('state');
+  if (!state) return null;
+  if (url.searchParams.get('outcome') === 'denied') return 'denied';
+  const code = url.searchParams.get('code');
+  return code ? { state, code } : null;
+}
+
+/**
+ * Android app: resolves when Google's sign-in returns through the app link, or as
+ * `abandoned` when the person closed the system browser (or the task ended) without
+ * returning. Register it before the browser opens so the link cannot be missed.
+ */
+export function watchGoogleAppReturn(
+  signal: AbortSignal,
+): Promise<GoogleAppReturn> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let browserClosedAt: number | null = null;
+    const listeners: Array<Promise<{ remove: () => unknown } | null>> = [];
+    const timer = setInterval(() => {
+      if (
+        browserClosedAt !== null &&
+        Date.now() - browserClosedAt > ABANDON_GRACE_MILLISECONDS &&
+        document.visibilityState === 'visible'
+      )
+        finish('abandoned');
+    }, 500);
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') browserClosedAt = null;
+    };
+    function finish(result: GoogleAppReturn) {
+      if (settled) return;
+      settled = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', hidden);
+      signal.removeEventListener('abort', abandon);
+      for (const listener of listeners)
+        void listener.then((handle) => handle?.remove()).catch(() => {});
+      resolve(result);
+    }
+    function abandon() {
+      finish('abandoned');
+    }
+    listeners.push(
+      App.addListener('appUrlOpen', ({ url }) => {
+        const result = readGoogleAppReturn(url);
+        if (result) finish(result);
+      }).catch(() => null),
+      Browser.addListener('browserFinished', () => {
+        browserClosedAt ??= Date.now();
+      }).catch(() => null),
+    );
+    document.addEventListener('visibilitychange', hidden);
+    if (signal.aborted) abandon();
+    else signal.addEventListener('abort', abandon, { once: true });
+  });
 }
 
 export async function closePhotoBrowser(popup: Window | null) {

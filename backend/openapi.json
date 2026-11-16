@@ -8256,6 +8256,29 @@
         "title": "PhotoReactionSummary",
         "type": "object"
       },
+      "PhotoSelectionAuthorize": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "code"
+        ],
+        "title": "PhotoSelectionAuthorize",
+        "type": "object"
+      },
       "PhotoSelectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -8287,6 +8310,16 @@
               }
             ],
             "title": "Mediarecoverypolicy"
+          },
+          "returnTo": {
+            "default": "web",
+            "description": "web: Google returns to the browser that started the selection (cookie proof). app: Google returns to the installed eimir. app's own link and the app finishes the sign-in through the authorize call.",
+            "enum": [
+              "web",
+              "app"
+            ],
+            "title": "Returnto",
+            "type": "string"
           },
           "source": {
             "enum": [
@@ -35803,6 +35836,128 @@
           }
         },
         "summary": "Cancel",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize": {
+      "post": {
+        "description": "Finish an app-flow Google sign-in with the state and code from the app's return link.",
+        "operationId": "authorizePhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionAuthorize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Authorize",
         "tags": [
           "photo-sources"
         ]

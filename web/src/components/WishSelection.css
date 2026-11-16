@@ -491,8 +491,8 @@
   stroke-linejoin: round;
 }
 .wish-selection-favorite[aria-pressed="true"] .wish-selection-favorite-heart {
-  fill: var(--color-partner-a);
-  stroke: var(--color-partner-a);
+  fill: var(--color-private);
+  stroke: var(--color-private);
 }
 .wish-selection-row-media,
 .wish-selection-row-initial {
@@ -589,7 +589,7 @@
   background: var(--color-shared-surface);
 }
 .wish-selection-ask.is-incoming {
-  background: var(--color-partner-a-surface);
+  background: var(--person-partner-surface);
 }
 .wish-selection-ask-icon {
   color: var(--color-brand-text);

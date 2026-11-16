@@ -206,7 +206,7 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten und Benachrichtigungen,',
+                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten, Benachrichtigungen und die Farben, in denen du dich und deine Partnerperson siehst (diese Auswahl sieht nur du),',
               },
             ],
             [

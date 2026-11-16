@@ -1,16 +1,16 @@
-import { CART_TARGET_ATTRIBUTE } from './cartFlight';
 import { type ReactNode, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import { type PersonRole, roleOrder } from '../client/personColours';
 import { useTranslation } from '../i18n';
-import type { PartnerTone } from '../client/sharedListSummary';
 import { ChecklistToggle } from './ChecklistToggle';
+import { CART_TARGET_ATTRIBUTE } from './cartFlight';
 import { PartnerMarker } from './PartnerMarker';
 import { SharedContentSheet } from './SharedContentSheet';
 import './SharedListCartBar.css';
 
 export interface CartEntry {
   item: CollectionItemDetail;
-  marker?: { name: string; tone: PartnerTone; caption: string };
+  marker?: { name: string; role: PersonRole; caption: string };
 }
 
 /**
@@ -42,11 +42,9 @@ export function SharedListCartBar({
         .filter((marker): marker is NonNullable<typeof marker> =>
           Boolean(marker),
         )
-        .map((marker) => [`${marker.tone}:${marker.name}`, marker]),
+        .map((marker) => [`${marker.role}:${marker.name}`, marker]),
     ).values(),
-  ].sort(
-    (left, right) => Number(left.tone === 'b') - Number(right.tone === 'b'),
-  );
+  ].sort((left, right) => roleOrder(left.role) - roleOrder(right.role));
   return (
     <>
       <div
@@ -82,9 +80,9 @@ export function SharedListCartBar({
           <span className="shared-list-cartbar-people" aria-hidden="true">
             {people.map((marker) => (
               <PartnerMarker
-                key={`${marker.tone}:${marker.name}`}
+                key={`${marker.role}:${marker.name}`}
                 name={marker.name}
-                tone={marker.tone}
+                role={marker.role}
               />
             ))}
           </span>
@@ -131,7 +129,7 @@ export function SharedListCartBar({
                   </span>
                   {marker ? (
                     <>
-                      <PartnerMarker name={marker.name} tone={marker.tone} />
+                      <PartnerMarker name={marker.name} role={marker.role} />
                       <span className="sr-only">{marker.caption}</span>
                     </>
                   ) : null}

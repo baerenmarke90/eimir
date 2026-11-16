@@ -52,6 +52,7 @@ import {
 import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
+import { PersonColoursProvider } from './client/personColoursContext';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -1159,27 +1160,36 @@ function AuthenticatedApp({
         accountId={account.id}
         spaceId={spaceId}
       >
-        <OnceMessagesProvider
-          apiBaseUrl={apiBaseUrl}
-          accessToken={tokens.accessToken}
+        <PersonColoursProvider
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={appearanceApi}
+          entitlementsApi={entitlementApi}
+          instance={apiBaseUrl}
           accountId={account.id}
           spaceId={spaceId}
         >
-          {relationshipContent}
-        </OnceMessagesProvider>
-        <VoiceShareIngress
-          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
-          scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-        />
+          <OnceMessagesProvider
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+          >
+            {relationshipContent}
+          </OnceMessagesProvider>
+          <VoiceShareIngress
+            key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+            scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          />
 
-        <DevicePushOnboarding
-          key={`${apiBaseUrl}:${account.id}`}
-          devicePush={devicePush}
-          accountId={account.id}
-          apiBaseUrl={apiBaseUrl}
-          onEnablePrompts={enableOnboardingPrompts}
-          onSettled={settlePushPrompt}
-        />
+          <DevicePushOnboarding
+            key={`${apiBaseUrl}:${account.id}`}
+            devicePush={devicePush}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            onEnablePrompts={enableOnboardingPrompts}
+            onSettled={settlePushPrompt}
+          />
+        </PersonColoursProvider>
       </WirDesignProvider>
     </AppIconProvider>
   );

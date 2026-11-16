@@ -606,6 +606,8 @@ def build_export_archive(
                 "appIconId": preference.icon_id if preference else "original",
                 "wirDesign": (preference.wir_design if preference else DEFAULT_WIR_DESIGN.value),
             }
+            if preference is not None and preference.person_colours:
+                account_document["personalAppearance"]["personColours"] = preference.person_colours
             connections = session.scalars(
                 select(PhotoConnection).where(
                     PhotoConnection.account_id == authorization.account_id

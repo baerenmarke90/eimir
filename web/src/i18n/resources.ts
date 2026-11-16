@@ -35,6 +35,7 @@ import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
 import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
+import personColours from './locales/personColours';
 import photoCrop from './locales/photoCrop';
 import photoEdit from './locales/photoEdit';
 import photoPlaces from './locales/photoPlaces';
@@ -115,6 +116,7 @@ export const germanResources = {
   people,
   privateArea,
   proPaywall,
+  personColours,
   profileIdentity,
   profiles,
   productTour,

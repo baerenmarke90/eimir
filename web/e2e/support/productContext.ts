@@ -58,6 +58,20 @@ export async function fulfillDefaultProductContext(
     });
     return true;
   }
+  // Without a saved choice the person sees the automatic blue and rose pair.
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/appearance\/person-colours$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { colours: null, version: 0 },
+      headers: {
+        ETag: '"fixture-person-colours:absent"',
+        'Cache-Control': 'private, no-store',
+      },
+    });
+    return true;
+  }
   // Explicit shell/bootstrap additions only. Dedicated acceptance journeys
   // intercept these before this default; arbitrary writes remain unexpected.
   if (

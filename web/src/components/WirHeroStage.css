@@ -13,8 +13,8 @@
   --wir-mark-out: 0.4rem;
   /* Height of a daily mark under a name (`.wir-checkin-badge`). */
   --wir-stage-mark-height: 1.75rem;
-  --wir-own-accent: var(--color-brand-text);
-  --wir-partner-accent: var(--color-private);
+  --wir-own-accent: var(--person-own-accent);
+  --wir-partner-accent: var(--person-partner-accent);
   position: relative;
   margin-bottom: var(--space-section);
 }

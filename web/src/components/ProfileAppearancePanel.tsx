@@ -1,6 +1,7 @@
 import { useTranslation } from '../i18n';
 import { AppIconSettingsPanel } from './AppIconSettingsPanel';
 import { LanguageSettings } from './LanguageSettings';
+import { PersonColoursSettings } from './PersonColoursSettings';
 import { ThemeControl } from './ThemeControl';
 import { WirDesignSettings } from './WirDesignSettings';
 
@@ -29,6 +30,7 @@ export function ProfileAppearancePanel({
           {...language}
         />
       ) : null}
+      <PersonColoursSettings />
       <WirDesignSettings />
       <AppIconSettingsPanel />
     </div>

@@ -72,6 +72,17 @@ the visible partner profile.
 
 Both describe the same person. Only one may be visible to that person.
 
+## Person colour pair (2026-11-16)
+
+Each person may choose one fixed pair of colours for their own view: their own
+colour first, then their partner's. It is a personal appearance setting stored
+next to the app icon and Wir design, readable only by that account through
+`GET /spaces/{spaceId}/appearance/person-colours`. It is **never shared with the
+partner**, carries **no statement about gender** and is not asked as a gender
+question. Without a choice the clients use blue for yourself and rose for the
+partner. It is part of the personal export, removed with the account and Space
+membership, and never used for analytics, recommendations, copy or push content.
+
 ## Third parties
 
 Children, family members, and friends are not accounts. `RelatedPerson`

@@ -40,7 +40,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 1. Für dein Konto verarbeiten wir:
    - deine E-Mail-Adresse und ob du sie bestätigt hast,
    - deinen Anzeigenamen und, wenn du sie angibst, dein Profilbild und deinen Geburtstag,
-   - deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten und Benachrichtigungen,
+   - deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten, Benachrichtigungen und die Farben, in denen du dich und deine Partnerperson siehst (diese Auswahl sieht nur du),
    - welcher Fassung der Nutzungsbedingungen du wann zugestimmt hast und in welchem Schritt der Registrierung.
 2. Du meldest dich mit einem Link an, den wir dir per E-Mail schicken, oder mit einem Passkey. Ein Anmeldelink gilt 15 Minuten, ein Link zur Bestätigung deiner Adresse 24 Stunden. Forderst du einen Link für ein neues Konto an und erstellst das Konto nicht, löschen wir deine Adresse in der Regel innerhalb von sechs Stunden nach Ablauf des Links.
 3. Nutzt du einen Passkey, bleiben biometrische Daten wie dein Fingerabdruck oder dein Gesicht auf deinem Gerät. Wir speichern nur den öffentlichen Schlüssel des Passkeys, seine Kennung, eine Modellkennung des Geräts oder Passwortmanagers, der ihn verwaltet, den Namen, den du ihm gibst, und wann du ihn zuletzt verwendet hast.

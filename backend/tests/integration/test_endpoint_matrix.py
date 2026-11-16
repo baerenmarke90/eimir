@@ -243,6 +243,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/person-colours",
+        body={"colours": None},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/wir-design",

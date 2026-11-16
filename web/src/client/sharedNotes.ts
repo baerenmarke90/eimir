@@ -14,8 +14,9 @@ export const BULLET_MARKER = '• ';
 export const SHARED_NOTE_PAGE_SIZE = 100;
 /** The Wir module shows at most this many pinned notes (Product Owner decision). */
 export const WIR_NOTE_LIMIT = 5;
-export const SHARED_NOTE_TITLE_MAX = 400;
-export const SHARED_NOTE_BODY_MAX = 40_000;
+/** The server's limits after trimming (`TITLE_MAX_LENGTH`, `BODY_MAX_LENGTH`). */
+export const SHARED_NOTE_TITLE_MAX = 200;
+export const SHARED_NOTE_BODY_MAX = 20_000;
 
 export async function sharedNoteApiCall<T>(
   request: () => Promise<T>,
@@ -192,6 +193,24 @@ export function splitPinned<T extends Pick<SharedNoteDetail, 'pinned'>>(
     pinned: notes.filter((note) => note.pinned),
     rest: notes.filter((note) => !note.pinned),
   };
+}
+
+/**
+ * Add the pinned notes whose page is not loaded yet to the loaded pages, keeping
+ * the server's recency order (last edit first, newer id first on a tie). A note
+ * already on a loaded page wins, because that copy is the fresher one.
+ */
+export function withPinnedNotes<
+  T extends Pick<SharedNoteDetail, 'id' | 'pinned' | 'editedAt'>,
+>(paged: readonly T[], pinned: readonly T[]): T[] {
+  const loaded = new Set(paged.map((note) => note.id));
+  const missing = pinned.filter((note) => note.pinned && !loaded.has(note.id));
+  if (missing.length === 0) return [...paged];
+  return [...paged, ...missing].sort(
+    (left, right) =>
+      right.editedAt.getTime() - left.editedAt.getTime() ||
+      (left.id < right.id ? 1 : left.id > right.id ? -1 : 0),
+  );
 }
 
 /** The trimmed title to send; the server stores an empty title as no title. */

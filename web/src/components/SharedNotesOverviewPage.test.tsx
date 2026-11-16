@@ -14,8 +14,8 @@ import type { SharedNoteDetail } from '../api/generated/models/SharedNoteDetail'
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
-import { sharedNote } from './sharedNoteFixtures';
 import { SharedNotesOverviewPage } from './SharedNotesOverviewPage';
+import { sharedNote } from './sharedNoteFixtures';
 
 const text = copy.sharedNotes;
 
@@ -94,6 +94,62 @@ describe('SharedNotesOverviewPage', () => {
     expect(
       screen.getAllByText(/Jonas/, { selector: 'span' }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it('shows a pinned note under pinned even when it is not on the loaded page', async () => {
+    const list = vi.fn(async (request: { pinned?: boolean }) => ({
+      items: request.pinned
+        ? [
+            sharedNote({
+              id: 'old-pinned',
+              title: 'Old door code',
+              pinned: true,
+              editedAt: new Date('2026-01-01T10:00:00Z'),
+            }),
+          ]
+        : [sharedNote({ id: 'recent', title: 'Restaurant tips' })],
+      nextCursor: null,
+      hasMore: false,
+    }));
+    renderPage({ list });
+
+    const pinnedHeading = await screen.findByRole('heading', {
+      name: text.sectionPinned,
+    });
+    const pinnedLink = await screen.findByRole('link', {
+      name: /Old door code/,
+    });
+    const recentHeading = screen.getByRole('heading', {
+      name: text.sectionRecent,
+    });
+    expect(
+      pinnedHeading.compareDocumentPosition(pinnedLink) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      pinnedLink.compareDocumentPosition(recentHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ spaceId: 'space-1', pinned: true }),
+      expect.anything(),
+    );
+  });
+
+  it('keeps listing the notes when the extra pinned read fails', async () => {
+    const list = vi.fn(async (request: { pinned?: boolean }) => {
+      if (request.pinned) throw new Error('network');
+      return {
+        items: [sharedNote({ id: 'a', title: 'Restaurant tips' })],
+        nextCursor: null,
+        hasMore: false,
+      };
+    });
+    renderPage({ list });
+    expect(
+      await screen.findByRole('link', { name: /Restaurant tips/ }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('requests the notes in pages of one hundred', async () => {

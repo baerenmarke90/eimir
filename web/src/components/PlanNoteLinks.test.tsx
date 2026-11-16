@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,10 +14,13 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { SharedNoteDetail } from '../api/generated/models/SharedNoteDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { postSnackbar } from '../client/snackbar';
 import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
 import { PlanNoteLinks } from './PlanNoteLinks';
 import { sharedNote } from './sharedNoteFixtures';
+
+vi.mock('../client/snackbar', () => ({ postSnackbar: vi.fn() }));
 
 const text = copy.sharedNotes;
 const plan = { id: 'plan-1', capabilities: { canEdit: true } } as PlanDetail;
@@ -30,21 +39,25 @@ function setup({
   linked = [],
   all = [],
   onNavigate,
+  failWrites = false,
 }: {
   editing?: boolean;
   linked?: SharedNoteDetail[];
   all?: SharedNoteDetail[];
   onNavigate?: (destination: () => void) => void;
+  failWrites?: boolean;
 }) {
   let current = linked;
   const listPlanNotes = vi.fn(async () => [...current]);
   const linkPlanNote = vi.fn(
     async ({ sharedNoteId }: { sharedNoteId: string }) => {
+      if (failWrites) throw new Error('network');
       current = [...current, ...all.filter((note) => note.id === sharedNoteId)];
     },
   );
   const unlinkPlanNote = vi.fn(
     async ({ sharedNoteId }: { sharedNoteId: string }) => {
+      if (failWrites) throw new Error('network');
       current = current.filter((note) => note.id !== sharedNoteId);
     },
   );
@@ -99,6 +112,7 @@ function setup({
 }
 
 beforeEach(() => {
+  vi.mocked(postSnackbar).mockClear();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
   };
@@ -212,6 +226,64 @@ describe('PlanNoteLinks', () => {
       }),
     );
     expect(api.linkPlanNote).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms an unlink and a link only after the change was sent', async () => {
+    const user = userEvent.setup();
+    const linked = sharedNote({ id: 'a', title: 'Restaurant tips' });
+    const other = sharedNote({ id: 'b', title: 'Door code' });
+    const api = setup({ linked: [linked], all: [linked, other] });
+    await user.click(
+      await screen.findByRole('button', {
+        name: i18n.t('sharedNotes.plan.unlink', { title: 'Restaurant tips' }),
+      }),
+    );
+    await waitFor(() =>
+      expect(postSnackbar).toHaveBeenCalledWith('sharedNotes.plan.unlinked', {
+        title: 'Restaurant tips',
+      }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: text.plan.tool }),
+    );
+    await user.click(
+      await screen.findByRole('checkbox', { name: /Door code/ }),
+    );
+    await user.click(screen.getByRole('button', { name: text.plan.link }));
+    await waitFor(() =>
+      expect(postSnackbar).toHaveBeenCalledWith('sharedNotes.plan.linked', {
+        count: 1,
+      }),
+    );
+    expect(api.linkPlanNote).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not confirm a change that failed', async () => {
+    const user = userEvent.setup();
+    const note = sharedNote({ id: 'a', title: 'Restaurant tips' });
+    const api = setup({ linked: [note], all: [note], failWrites: true });
+    await user.click(
+      await screen.findByRole('button', {
+        name: i18n.t('sharedNotes.plan.unlink', { title: 'Restaurant tips' }),
+      }),
+    );
+    await waitFor(() => expect(api.unlinkPlanNote).toHaveBeenCalledTimes(1));
+    await screen.findByRole('alert');
+    expect(postSnackbar).not.toHaveBeenCalled();
+  });
+
+  it('confirms once when the same unlink is triggered twice before it settles', async () => {
+    const note = sharedNote({ id: 'a', title: 'Restaurant tips' });
+    const api = setup({ linked: [note], all: [note] });
+    const button = await screen.findByRole('button', {
+      name: i18n.t('sharedNotes.plan.unlink', { title: 'Restaurant tips' }),
+    });
+    // The second activation is skipped while the first is in flight, so it
+    // must not announce a change that was never sent.
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(postSnackbar).toHaveBeenCalledTimes(1));
+    expect(api.unlinkPlanNote).toHaveBeenCalledTimes(1);
   });
 
   it('starts a new note for the plan through the plan discard guard', async () => {

@@ -4,13 +4,13 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ResponseError } from '../api/generated/runtime';
 import type { SharedNoteDetail } from '../api/generated/models/SharedNoteDetail';
+import { ResponseError } from '../api/generated/runtime';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
-import { sharedNote } from './sharedNoteFixtures';
 import { SharedNoteEditorPage } from './SharedNoteEditorPage';
+import { sharedNote } from './sharedNoteFixtures';
 
 const text = copy.sharedNotes;
 
@@ -134,6 +134,14 @@ describe('SharedNoteEditorPage', () => {
         },
       }),
     );
+  });
+
+  it('stops typing at the length the server accepts', async () => {
+    const note = sharedNote({ id: 'note-1' });
+    renderEditor({ mode: 'edit', note, api: {} });
+    await waitFor(() => expect(body().value).toBe(note.body));
+    expect(title().maxLength).toBe(200);
+    expect(body().maxLength).toBe(20_000);
   });
 
   it('saves on the new version without asking when only pinning changed meanwhile', async () => {

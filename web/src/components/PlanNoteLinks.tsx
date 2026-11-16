@@ -24,9 +24,9 @@ import { ListEntryIconButton } from './ListEntryActions';
 import { NoteChoicePicker } from './NoteChoicePicker';
 import { ComposerChip } from './PageComposer';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { NoteBody, NoteEditorLine } from './SharedNoteParts';
 import { ContentChevron } from './SharedContentSheet';
+import { NoteBody, NoteEditorLine } from './SharedNoteParts';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PlanCollectionLinks.css';
 import './SharedContentPages.css';
 import './SharedNotes.css';
@@ -117,7 +117,8 @@ export function PlanNoteLinks({
     },
   });
 
-  async function mutate(ids: string[], unlink: boolean) {
+  /** Resolves true only when the change was actually sent, never for a skipped call. */
+  async function mutate(ids: string[], unlink: boolean): Promise<boolean> {
     if (
       !ids.length ||
       disabled ||
@@ -126,7 +127,7 @@ export function PlanNoteLinks({
       client.isMutating({ mutationKey, exact: true }) > 0 ||
       linked.error
     )
-      return;
+      return false;
     const ownsTask = capture();
     const ownsPlan = captureAuthorizedQuery(
       client,
@@ -139,6 +140,7 @@ export function PlanNoteLinks({
       unlink,
       owns: () => ownsTask() && ownsPlan() && ownsNotes(),
     });
+    return true;
   }
 
   function createNew() {
@@ -224,7 +226,8 @@ export function PlanNoteLinks({
                   disabled={pending || Boolean(linked.error)}
                   onClick={() =>
                     void mutate([note.id], true)
-                      .then(() => {
+                      .then((sent) => {
+                        if (!sent) return;
                         postSnackbar('sharedNotes.plan.unlinked', { title });
                         section.current?.focus();
                       })
@@ -251,11 +254,14 @@ export function PlanNoteLinks({
             return renderTrigger ? renderTrigger(open) : null;
           }}
           onChoose={async (chosen) => {
-            await mutate(
+            const sent = await mutate(
               chosen.map((note) => note.id),
               false,
             );
-            postSnackbar('sharedNotes.plan.linked', { count: chosen.length });
+            if (sent)
+              postSnackbar('sharedNotes.plan.linked', {
+                count: chosen.length,
+              });
           }}
         />
       ) : null}

@@ -60,7 +60,12 @@ export function WirNotes({
   return (
     <ul className={wide ? 'wir-lists-single' : 'wir-lists-row'}>
       {notes.map((note) => {
-        const title = noteDisplayTitle(note, t('sharedNotes.untitled'));
+        // "Title only" keeps the text off Wir. A note without a title is
+        // normally named by its first line, which would show that text.
+        const title =
+          note.wirTitleOnly && !note.title.trim()
+            ? t('sharedNotes.untitled')
+            : noteDisplayTitle(note, t('sharedNotes.untitled'));
         const excerpt = noteExcerpt(note);
         const person = note.editor ?? note.creator;
         const own = roleOf(person.id) === 'own';

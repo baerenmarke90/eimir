@@ -70,6 +70,36 @@ describe('WirNotes', () => {
     expect(screen.getByText('Door code')).toBeTruthy();
   });
 
+  it('does not name an untitled note by its first line when only the title is wanted on Wir', () => {
+    renderTiles([
+      sharedNote({
+        id: 'a',
+        title: '',
+        body: 'Door code 4172\n• bins on Monday',
+        pinned: true,
+        wirTitleOnly: true,
+      }),
+    ]);
+    expect(screen.queryByText(/4172/)).toBeNull();
+    expect(screen.queryByRole('link', { name: /4172/ })).toBeNull();
+    expect(screen.getByRole('heading', { name: text.untitled })).toBeTruthy();
+    expect(screen.getByText(text.wir.hiddenExcerpt)).toBeTruthy();
+  });
+
+  it('still names an untitled note by its first line when the text may show', () => {
+    renderTiles([
+      sharedNote({
+        id: 'a',
+        title: '',
+        body: 'Door code 4172\n• bins on Monday',
+        pinned: true,
+      }),
+    ]);
+    expect(
+      screen.getByRole('heading', { name: 'Door code 4172' }),
+    ).toBeTruthy();
+  });
+
   it('shows the excerpt by default and opens the note from the tile', async () => {
     const user = userEvent.setup();
     renderTiles([sharedNote({ id: 'a', title: 'Flat', pinned: true })]);

@@ -8,6 +8,7 @@ import {
   noteMatchesQuery,
   parseNoteBlocks,
   splitPinned,
+  withPinnedNotes,
 } from './sharedNotes';
 
 describe('shared note text', () => {
@@ -72,6 +73,59 @@ describe('shared note text', () => {
     const { pinned, rest } = splitPinned(notes);
     expect(pinned.map((note) => note.id)).toEqual(['b', 'd']);
     expect(rest.map((note) => note.id)).toEqual(['a', 'c']);
+  });
+});
+
+describe('pinned notes beyond the loaded pages', () => {
+  const at = (iso: string) => new Date(iso);
+
+  it('adds a pinned note the loaded pages do not hold in recency order', () => {
+    const paged = [
+      { id: 'n3', pinned: false, editedAt: at('2026-11-12T10:00:00Z') },
+      { id: 'n1', pinned: false, editedAt: at('2026-11-01T10:00:00Z') },
+    ];
+    const old = {
+      id: 'n0',
+      pinned: true,
+      editedAt: at('2026-06-01T10:00:00Z'),
+    };
+    const mid = {
+      id: 'n2',
+      pinned: true,
+      editedAt: at('2026-11-05T10:00:00Z'),
+    };
+    expect(withPinnedNotes(paged, [old, mid]).map((note) => note.id)).toEqual([
+      'n3',
+      'n2',
+      'n1',
+      'n0',
+    ]);
+  });
+
+  it('keeps the loaded copy of a note that is on both lists and ignores unpinned ones', () => {
+    const loaded = {
+      id: 'a',
+      pinned: true,
+      editedAt: at('2026-11-12T10:00:00Z'),
+      title: 'loaded',
+    };
+    const stale = { ...loaded, title: 'stale' };
+    const unpinned = {
+      id: 'b',
+      pinned: false,
+      editedAt: at('2026-11-13T10:00:00Z'),
+    };
+    const merged = withPinnedNotes([loaded], [stale, unpinned as typeof stale]);
+    expect(merged).toEqual([loaded]);
+  });
+
+  it('breaks an equal edit time by the newer id first', () => {
+    const time = at('2026-11-12T10:00:00Z');
+    const merged = withPinnedNotes(
+      [{ id: 'a', pinned: false, editedAt: time }],
+      [{ id: 'b', pinned: true, editedAt: time }],
+    );
+    expect(merged.map((note) => note.id)).toEqual(['b', 'a']);
   });
 });
 

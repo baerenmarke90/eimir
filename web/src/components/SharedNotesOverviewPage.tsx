@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
   useEffect,
@@ -14,7 +15,6 @@ import {
 } from 'react-router-dom';
 import type { SharedNoteDetail } from '../api/generated/models/SharedNoteDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { NOTE_CREATE_ROUTE, sharedNoteDetailPath } from '../client/routes';
 import {
   noteDisplayTitle,
@@ -23,7 +23,9 @@ import {
   SHARED_NOTE_PAGE_SIZE,
   sharedNoteApiCall,
   splitPinned,
+  withPinnedNotes,
 } from '../client/sharedNotes';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
@@ -147,10 +149,27 @@ export function SharedNotesOverviewPage({
     retry: false,
   });
 
-  const loaded = useMemo(
-    () => notes.data?.pages.flatMap((page) => page.items) ?? [],
-    [notes.data],
-  );
+  // Pages come in recency order, so an old pinned note can sit on a page that
+  // is not loaded yet. The pinned set is read on its own to lead the overview.
+  const pinnedNotes = useQuery({
+    queryKey: [
+      ...authorSummaryQueryKeys.sharedNoteOverview(spaceId),
+      'pinned',
+    ] as const,
+    queryFn: ({ signal }) =>
+      sharedNoteApiCall(() =>
+        apis.sharedNotes.listSharedNotes(
+          { spaceId, pinned: true, limit: SHARED_NOTE_PAGE_SIZE },
+          { signal },
+        ),
+      ),
+    retry: false,
+  });
+
+  const loaded = useMemo(() => {
+    const paged = notes.data?.pages.flatMap((page) => page.items) ?? [];
+    return withPinnedNotes(paged, pinnedNotes.data?.items ?? []);
+  }, [notes.data, pinnedNotes.data]);
   const trimmedQuery = query.trim();
   const visible = useMemo(() => {
     const pool = scope === 'PINNED' ? loaded.filter((n) => n.pinned) : loaded;

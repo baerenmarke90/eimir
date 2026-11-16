@@ -682,16 +682,39 @@ for (const [width, theme, large] of [
     expect(f.unexpected).toEqual([]);
   });
 }
-test('Verbunden stage sits in the middle of the Expanded Wir page', async ({
+test('Wir centers the Verbunden stage and uses the Planen width on Expanded', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await fixture(page, { initial: 'connected' });
   await signIn(page);
+
+  const content = page.locator('.today-content');
+  await page.goto('/today');
+  await expect(content).toBeVisible();
+  const compactWidth = await page
+    .locator('.product-main')
+    .evaluate((node) => node.getBoundingClientRect().width);
+  await expect(content).toHaveCSS('width', `${compactWidth}px`);
+  await captureScreenshot(page, info, 'today-reading-width-390-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/plan');
+  const planning = page.locator('.planen-overview');
+  await expect(planning).toBeVisible();
+  const planningWidth = await planning.evaluate(
+    (node) => node.getBoundingClientRect().width,
+  );
+
   for (const width of [768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/today');
     const stage = page.locator('.wir-stage');
     await expect(stage).toBeVisible();
+    if (width >= 840) {
+      await expect(content).toHaveCSS('width', `${planningWidth}px`);
+    }
     // Layout settles asynchronously; a mid-render measurement must retry.
     await expect
       .poll(
@@ -704,6 +727,9 @@ test('Verbunden stage sits in the middle of the Expanded Wir page', async ({
         { message: `the stage is centered at ${width} px` },
       )
       .toBeLessThanOrEqual(1);
+    if (width === 1440) {
+      await captureScreenshot(page, info, 'today-reading-width-1440-light.png');
+    }
   }
 });
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({

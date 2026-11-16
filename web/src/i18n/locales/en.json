@@ -896,7 +896,15 @@
     "collection": {
       "overviewHeading": "Lists",
       "menu": {
-        "open": "List menu"
+        "open": "List menu",
+        "send": "Send to {{name}}",
+        "sendTitle": "Send the list to {{name}}?",
+        "sendBody": "The list appears on the other person's Wir, with a short notification. You keep editing the same list.",
+        "sendConfirm": "Send to {{name}}",
+        "sendSending": "Sending …",
+        "sendKeep": "Not now",
+        "sendDone": "Sent to {{name}}.",
+        "partnerFallback": "your partner"
       },
       "defaultShopping": {
         "title": "Shopping",
@@ -2270,7 +2278,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses and check-ins.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2286,6 +2294,7 @@
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
+    "collectionSent": "Sent lists",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -3274,6 +3283,7 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "COLLECTION_SENT": "{{name}} sent you a list.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",

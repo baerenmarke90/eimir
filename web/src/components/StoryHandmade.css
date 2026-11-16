@@ -28,7 +28,7 @@
     var(--person-partner-accent) 58%,
     transparent
   );
-  --story-tape-partneroth: color-mix(
+  --story-tape-both: color-mix(
     in srgb,
     var(--color-discovery) 30%,
     var(--color-discovery-surface)
@@ -106,7 +106,7 @@
   .story-timeline-item {
   z-index: 1;
   width: 88%;
-  --story-tape: var(--story-tape-partneroth);
+  --story-tape: var(--story-tape-both);
 }
 /* Side alternates per entry and flips with every month, so a month holding a
    single entry still zig-zags against its neighbours. */
@@ -509,7 +509,7 @@
   top: calc(var(--space-2) * -1);
   width: 2.1rem;
   height: 0.85rem;
-  background: var(--story-tape-partneroth);
+  background: var(--story-tape-both);
   clip-path: polygon(
     0 0,
     6% 25%,

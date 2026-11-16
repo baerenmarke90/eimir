@@ -41,21 +41,25 @@ describe('app design token sets', () => {
     );
   });
 
-  it('applies a non-default design to Light, explicit Dark and system Dark', () => {
+  it('applies a design app-wide in Light, explicit Dark and system Dark', () => {
     const { css } = buildAppDesigns(tokens, designs);
-    expect(css).toContain(':root[data-app-design="warm"] .today-page {');
-    expect(css).toContain(
-      ':root[data-theme="dark"][data-app-design="warm"] .today-page {',
-    );
-    expect(css).toContain(
-      ':root:not([data-theme])[data-app-design="warm"] .today-page {',
-    );
+    expect(css).not.toContain('.today-page');
+    expect(css).not.toContain('body:has(');
+    for (const prefix of [
+      ':root',
+      ':root[data-theme="dark"]',
+      ':root:not([data-theme])',
+    ])
+      expect(css).toContain(
+        `${prefix}[data-app-design="warm"],\n${prefix}[data-app-design="warm"] [data-color-world] {`,
+      );
   });
 
-  it('lets a design on the default colour world inherit the root palette', () => {
+  it('lets a design on the default colour world inherit the root palette and contextual worlds', () => {
     const { css } = buildAppDesigns(tokens, designs);
-    expect(css).toContain(':root[data-app-design="modern"] .today-page {');
+    expect(css).toContain(':root[data-app-design="modern"] {');
     expect(css).not.toContain('[data-theme="dark"][data-app-design="modern"]');
+    expect(css).not.toContain('[data-app-design="modern"] [data-color-world]');
   });
 
   it('never lets a design change the create action colour', () => {
@@ -102,8 +106,62 @@ describe('app design token sets', () => {
       sample: design({ motion: 'calm' }),
     });
     expect(css).toMatch(
-      /@media \(prefers-reduced-motion: no-preference\) \{\n {2}:root\[data-app-design="sample"\] \.today-page \{\n {4}--duration-feedback: 150ms;/,
+      /@media \(prefers-reduced-motion: no-preference\) \{\n {2}:root\[data-app-design="sample"\],\n:root\[data-app-design="sample"\] \[data-color-world\] \{\n {4}--duration-feedback: 150ms;/,
     );
+  });
+
+  it('lets optional fine roles replace the derived value once', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    const album = css.slice(
+      css.indexOf(':root[data-app-design="shared_album"],'),
+    );
+    const firstBlock = album.slice(0, album.indexOf('}'));
+    expect(firstBlock.match(/--color-border-subtle:/g)).toHaveLength(1);
+    expect(firstBlock).toContain('--color-border-subtle: #CBD1C1;');
+    expect(firstBlock).toContain('--design-decoration: #123A33;');
+  });
+
+  it('rejects unknown colour roles and weak fine-role contrast', () => {
+    const { light, dark } = designs.shared_album.color;
+    expect(() =>
+      validateDesign(
+        design({ color: { light: { ...light, sparkle: '#FFFFFF' }, dark } }),
+        tokens,
+      ),
+    ).toThrowError(/sparkle is not a colour role/);
+    expect(() =>
+      validateDesign(
+        design({
+          color: { light: { ...light, onDecoration: '#20403A' }, dark },
+        }),
+        tokens,
+      ),
+    ).toThrowError(/light onDecoration on decoration/);
+  });
+
+  it('lets a design adjust single roles of a colour world', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    const geborgen = css.slice(css.indexOf(':root[data-app-design="warm"],'));
+    expect(geborgen.slice(0, geborgen.indexOf('}'))).toContain(
+      '--color-text-secondary: #6E5969;',
+    );
+    expect(() =>
+      validateDesign(
+        design({ color: { world: 'warm', light: { glitter: '#FFFFFF' } } }),
+        tokens,
+      ),
+    ).toThrowError(/glitter is not a colour role/);
+  });
+
+  it('lets a design follow the app icon stroke with "standard"', () => {
+    expect(() =>
+      validateDesign(
+        design({ icon: { stroke: 'standard', accent: 'duotone' } }),
+        tokens,
+      ),
+    ).not.toThrow();
+    const { css } = buildAppDesigns(tokens, designs);
+    expect(css).not.toContain('--icon-stroke-width');
   });
 
   it('requires one file per id', () => {

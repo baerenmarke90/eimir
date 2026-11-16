@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { recapDetailPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
@@ -9,6 +8,7 @@ import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 
 const fixtureCopy = fixtures.recaps;
@@ -196,6 +196,29 @@ async function setup(
   const unexpected = await installMocks(page);
   const month = initial();
   const year = initial('year', true);
+  const september = {
+    ...initial('september'),
+    month: 9,
+    startsOn: '2026-09-01',
+    throughOn: '2026-09-30',
+    isPartial: false,
+    savedAt: '2026-10-08T03:00:00Z',
+    headline: fixtureCopy.previousHeadline,
+  };
+  const august = {
+    ...initial('august'),
+    month: 8,
+    startsOn: '2026-08-01',
+    throughOn: '2026-08-31',
+    isPartial: false,
+    headline: fixtureCopy.previousHeadline,
+    sources: [
+      {
+        ...source('mem-canal', fixtureCopy.photoTitle),
+        previewIsSensitive: true,
+      },
+    ],
+  };
   if (options.dense && options.ownWords) {
     const words = fixtureCopy.ownWords;
     const decorate = (sources: ReturnType<typeof denseSources>) =>
@@ -271,30 +294,7 @@ async function setup(
       return route.fulfill({
         json: {
           canCompose: options.pro !== false,
-          editions: [
-            month,
-            {
-              ...initial('september'),
-              month: 9,
-              startsOn: '2026-09-01',
-              throughOn: '2026-09-30',
-              isPartial: false,
-              headline: fixtureCopy.previousHeadline,
-            },
-            ...(earlierReady
-              ? [
-                  {
-                    ...initial('august'),
-                    month: 8,
-                    startsOn: '2026-08-01',
-                    throughOn: '2026-08-31',
-                    isPartial: false,
-                    headline: fixtureCopy.previousHeadline,
-                  },
-                ]
-              : []),
-            year,
-          ],
+          editions: [month, september, ...(earlierReady ? [august] : []), year],
           periods: options.earlier
             ? [
                 ...(earlierReady
@@ -419,7 +419,10 @@ async function setup(
             selectedKeys: month.sources.map((item) => item.key),
           },
         });
-      return route.fulfill({ json: path.endsWith('/year') ? year : month });
+      const edition = [month, september, august, year].find(
+        ({ id }) => path === `${BASE}/${id}`,
+      );
+      if (edition) return route.fulfill({ json: edition });
     }
     if (path.startsWith(BASE) && ['PUT', 'POST', 'DELETE'].includes(method)) {
       writes++;
@@ -837,7 +840,12 @@ for (const [width, theme] of [
       fixtureCopy.monthHeadline,
     );
     await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
-    await page.getByRole('button', { name: copy.next, exact: true }).click();
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await expect(next).toHaveText(copy.next);
+    await expect(
+      page.getByRole('button', { name: copy.previous, exact: true }),
+    ).toHaveText(copy.previous);
+    await next.click();
     await expect(page.locator('.recap-spread h1')).toHaveText(
       fixtureCopy.photoTitle,
     );
@@ -865,7 +873,9 @@ for (const [width, theme] of [
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())
         .violations,
     ).toEqual([]);
-    await page.getByRole('link', { name: /Original öffnen/ }).click();
+    const original = page.getByRole('link', { name: copy.source });
+    await expect(original).toHaveText(copy.source);
+    await original.click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
     await page
       .getByRole('button', {
@@ -940,14 +950,26 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
 
 test('Free reads retained editions without preparing or exposing composition', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await setup(page, { pro: false });
-  await expect(page.getByText(copy.gateBody)).toBeVisible();
-  await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
-    .click();
-  await expect(page.locator('.recap-spread h1')).toBeVisible();
+  const archive = page.getByRole('region', { name: copy.archive });
+  await expect(
+    page.locator('.recap-cover-featured .recap-period-note'),
+  ).toHaveText(copy.partialThrough.replace('{{date}}', '30. Okt. 2026'));
+  await expect(page.locator('.recap-archive ~ .recap-gate')).toContainText(
+    copy.gateBody,
+  );
+  await archive
+    .getByRole('heading')
+    .evaluate((heading) => heading.scrollIntoView({ block: 'center' }));
+  await captureScreenshot(page, info, 'recaps-retained-library-390-light.png');
+  await archive.getByRole('link', { name: /^September 2026/ }).click();
+  await expect(page).toHaveURL(/\/story\/recaps\/september$/);
+  await expect(page.locator('.recap-spread h1')).toHaveText(
+    fixtureCopy.previousHeadline,
+  );
   await expect(page.getByRole('button', { name: copy.edit })).toHaveCount(0);
   expect(state.prepares()).toBe(0);
 });
@@ -969,7 +991,9 @@ for (const theme of ['light', 'dark'] as const) {
         year: 'numeric',
         timeZone: 'UTC',
       }).format(new Date(Date.UTC(2026, value - 1, 1)));
-    const preparing = page.locator('.recap-cover-preparing');
+    const preparing = page
+      .getByRole('region', { name: copy.otherPeriods })
+      .getByRole('listitem');
     await expect(preparing).toHaveCount(2);
     await expect(preparing.first()).toContainText(month(8));
     await expect(preparing.first()).toContainText(copy.preparing);
@@ -1003,12 +1027,11 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('tab', { name: copy.months }).click();
     await expect(preparing).toHaveCount(1);
     await expect(preparing).toContainText(month(7));
-    await expect(
-      page
-        .locator('.recap-archive .recap-cover:not(.recap-cover-preparing)')
-        .filter({ hasText: month(8) })
-        .getByRole('link', { name: new RegExp(copy.open) }),
-    ).toBeVisible();
+    const augustEntry = page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: new RegExp(`^${month(8)}`) });
+    await expect(augustEntry).toBeVisible();
+    await expect(augustEntry.locator('.recap-archive-art')).toHaveCount(0);
     expect(state.prepares()).toBe(1);
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
@@ -1018,8 +1041,8 @@ for (const theme of ['light', 'dark'] as const) {
 test('empty periods do not invent shared events', async ({ page }) => {
   await setup(page, { empty: true });
   await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: new RegExp(copy.emptyTitle) })
     .click();
   await expect(page.getByText(copy.emptyBody)).toBeVisible();
   await expect(page.locator('.recap-scene-media')).toHaveCount(0);
@@ -1074,7 +1097,15 @@ test('pending generation remains readable as a background task', async ({
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page, { pending: true });
-  await page.locator('.recap-cover-featured a').click();
+  await expect(
+    page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: /^September 2026/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: /^Oktober 2026/ })
+    .click();
   await expect(
     page.getByText(copy.pendingTitle, { exact: true }),
   ).toBeVisible();

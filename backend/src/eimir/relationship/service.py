@@ -415,6 +415,9 @@ def end_membership(
     from eimir.once_messages import service as once_messages
 
     once_messages.purge_space(session, membership.space_id)
+    from eimir.heart_hunt import service as heart_hunt
+
+    heart_hunt.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
     garden_service.purge_space(session, membership.space_id)
     wish_date_proposals.purge_space(session, membership.space_id)

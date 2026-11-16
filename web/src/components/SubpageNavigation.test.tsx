@@ -54,6 +54,29 @@ it('automatically supplies Back for an unregistered future secondary page and a 
   expect(screen.getByRole('heading', { name: 'Parent' })).toBeTruthy();
 });
 
+it.each([
+  '/more/insights',
+  '/more/insights/patterns',
+  '/story/recaps',
+  '/story/recaps/edition',
+  '/story/chapters',
+  '/plan/chapters/chapter',
+])('shows the localized Back label on the reading view %s', (path) => {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <SubpageNavigation>
+        <PageHeader title="Reading view" />
+      </SubpageNavigation>
+    </MemoryRouter>,
+  );
+
+  const back = screen.getByRole('button', { name: taskCopy.back });
+  expect(back.querySelector('.task-back-label')?.textContent).toBe(
+    taskCopy.back,
+  );
+  expect(back.querySelector('svg')).toBeNull();
+});
+
 it('places one page-owned guarded action above content and preserves its pending state', () => {
   const close = vi.fn();
   const { container, rerender } = render(

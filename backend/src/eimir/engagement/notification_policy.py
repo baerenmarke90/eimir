@@ -117,6 +117,12 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        NotificationKind.HEART_HUNT_HIDDEN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.HEART_HUNT_FOUND: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         # A partner's "rather decide ourselves" never interrupts by push.
         NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationPolicy(
             DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW

@@ -19,6 +19,8 @@
     <string name="push_comment_title">%1$s commented on “%2$s”.</string>
     <string name="push_kiss">%1$s sent you a kiss.</string>
     <string name="push_thinking">%1$s is thinking of you.</string>
+    <string name="push_heart_hidden">%1$s hid a heart.</string>
+    <string name="push_heart_found">%1$s found your heart.</string>
     <string name="push_check_in">%1$s wants to know how you are doing.</string>
     <string name="push_reminder_created">%1$s created a reminder.</string>
     <string name="push_reminder_created_title">%1$s created the reminder “%2$s”.</string>

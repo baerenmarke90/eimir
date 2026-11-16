@@ -96,6 +96,8 @@ public final class PushPreview {
             case "REMINDER_DUE": return title.isEmpty() ? R.string.push_reminder_due : R.string.push_reminder_due_title;
             case "WISH_REMINDER_DUE": return R.string.push_wish_reminder_due;
             case "PARTNER_KISS": return R.string.push_kiss;
+            case "HEART_HUNT_HIDDEN": return R.string.push_heart_hidden;
+            case "HEART_HUNT_FOUND": return R.string.push_heart_found;
             case "THINKING_OF_YOU": return R.string.push_thinking;
             case "PARTNER_CHECK_IN": return R.string.push_check_in;
             case "COUPLE_EXPERIENCE_SHARED": return title.isEmpty() ? R.string.push_shared_moment : R.string.push_shared_moment_title;

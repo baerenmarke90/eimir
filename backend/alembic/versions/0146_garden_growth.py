@@ -9,16 +9,16 @@ bouquet reuses the `GARDEN_SEED_ARRIVED` notice with its own target type
 `GARDEN_BOUQUET`. Nothing stores a location, a distance or free text other than
 the short garden name.
 
-Revision ID: 0145
-Revises: 0144
+Revision ID: 0146
+Revises: 0145
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0145"
-down_revision = "0144"
+revision = "0146"
+down_revision = "0145"
 branch_labels = None
 depends_on = None
 

@@ -1,0 +1,119 @@
+# Design Token Sets
+
+**Status:** Mandatory design-system contract
+**Decision:** Product Owner approval, 2026-11-16 (#1907 C1)
+**Parent policy:** [Semantic Design Token Policy](DESIGN-TOKEN-POLICY.md)
+
+## Purpose
+
+A personal design (Verbunden, Geborgen, Klar & modern, Klassisch, Seite an
+Seite and later ones) is a set of semantic tokens plus at most one layout
+mode. It is not per-design component CSS. New designs must be cheap to add,
+must not break silently when components change, and must be able to apply to
+the whole app instead of only to Wir.
+
+## One file per design
+
+Every design lives in `design/designs/<id>.json`. The file name equals the
+stored design id. `web/scripts/generate-app-designs.mjs` validates every file
+and generates:
+
+- `web/src/design/app-designs.css`: the design's custom properties for Light,
+  explicit Dark (`data-theme="dark"`) and system Dark, plus a palette for its
+  settings preview tile (`data-design-preview`);
+- `web/src/design/appDesigns.generated.ts`: the typed registry (tier and
+  layout per id).
+
+`npm run tokens:generate` writes both; `npm run tokens:check` (part of
+`npm test` and `npm run build`) fails when they are stale.
+
+| Field | Allowed values | Becomes |
+|---|---|---|
+| `id` | stored design id (`WirDesignId`) | `data-app-design` on the root element |
+| `tier` | `free`, `pro` | must match the server's Free list (`FREE_WIR_DESIGNS`) |
+| `layout` | one of `designPresets.layouts` | `data-wir-layout` on screens that implement it |
+| `color` | `{ "world": "<colour world>" }` or inline `light`/`dark` maps of the 16 colour-world roles | the same semantic colour properties as `identity.colorWorlds` |
+| `shape` | `standard`, `crisp`, `soft` | `--radius-small/medium/large/card` |
+| `type.display` | a key of `designPresets.displayFamilies` | `--font-display` |
+| `type.headings` | `display`, `ui` | `--font-heading-family` |
+| `icon.stroke` | `designPresets.iconStroke` range | `--icon-stroke-width` |
+| `icon.accent` | `duotone`, `mono` | icon accent strokes keep their accent or follow the text colour |
+| `motion` | `standard`, `calm`, `lively` | scaled `--duration-feedback/transition/context` (never under reduced motion) |
+| `surface.backdrop` | `glow`, `flat` | `--design-backdrop-glow` |
+| `surface.elevation` | `standard`, `soft`, `none` | `--shadow-card`, `--shadow-soft` |
+| `surface.edges` | `none`, `hairline` | `--border-surface-width` |
+
+`standard` always means the current root tokens and emits nothing. The bounded
+presets live in `design/tokens.json` under `designPresets`.
+
+The generator rejects unknown fields, values outside the presets, and palettes
+that miss WCAG contrast in Light or Dark (text, muted text and action text
+4.5:1 on page and surface; action label on action fill 4.5:1; focus 3:1).
+
+## Locked for every design
+
+A design file cannot set:
+
+- the canonical create/add action colour (`--color-action-primary`,
+  [Button contract](COMPONENT-CONTRACTS.md#31-button), #1688/#1724); it
+  changes only through an explicit Product Owner decision (#1907 C2);
+- status colours (success, warning, error, info, premium surfaces stay the
+  semantic status set);
+- person colours (#1958 is its own personal choice);
+- privacy/concealment and media overlays;
+- the spacing scale, type sizes, focus-ring width and touch targets.
+
+## Layout modes
+
+Layout modes are a closed, code-owned list (`connected`, `classic`, `open`,
+`compact`, `rows`). A layout may change arrangement, density, hero composition
+and image ratios. It must not change content, actions, routes, privacy
+presentation or the create-button contract. Colours, type families, radii,
+elevation and motion come from tokens, never from layout CSS.
+
+A layout that replaces navigation (for example the Zuhause, Unser Takt and
+Faden proposals) needs a separate Product Owner decision per layout before it
+joins the list.
+
+The Momente Album/compact switch is an independent per-device presentation
+choice, not a design. It consumes the same semantic tokens and therefore
+follows any design.
+
+## Application and scope
+
+`WirDesignProvider` sets `data-app-design` on the root element once the
+selection is resolved, in the same frame as the Wir composition. Generated
+blocks currently apply to Wir only (`APP_DESIGN_SCOPE` in
+`web/scripts/app-designs.mjs`). The approved delivery switches the scope to
+the whole app in its own step with separate Product Owner acceptance, so
+portaled sheets and other tabs follow the design.
+
+## Tiers and stored preferences
+
+Pro gating is unchanged: saving a Pro design needs `theme.bespoke_packs`, a
+saved design stays effective after expiry, and returning to a Free design is
+always Free (see [Freemium Feature Matrix](FREEMIUM-FEATURE-MATRIX.md)). Ids
+are unchanged, so stored preferences need no migration. A backend test pins
+every file's `tier` to `FREE_WIR_DESIGNS`.
+
+## Adding a design
+
+1. Add `design/designs/<id>.json` with the fields above and run
+   `npm run tokens:generate`.
+2. Add the id to the backend `WirDesignId`, `FREE_WIR_DESIGNS` when Free, and
+   a downgrade-only Alembic migration (as `0132_wir_design_shared_album.py`);
+   regenerate the OpenAPI client.
+3. Add the localized name and description.
+4. Reuse an existing layout mode. A new layout mode is a code change with its
+   own review; a navigation-replacing layout needs a Product Owner decision.
+
+No component CSS is keyed by a design id.
+
+## Delivery
+
+1. Contract, generator and plumbing; Verbunden and Geborgen (Wir only, no
+   visible change).
+2. Klar & modern and Klassisch (no visible change).
+3. Seite an Seite (no visible change).
+4. App-wide scope (intended visible change, separate Product Owner
+   acceptance).

@@ -5,6 +5,7 @@ import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlem
 import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   proPaywallPath,
@@ -24,13 +25,20 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective', 'garden'] as const;
+const GAME_ENTRIES = [
+  'moments',
+  'wishes',
+  'perspective',
+  'heartHunt',
+  'garden',
+] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
+  if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
   if (entry === 'garden') return GAMES_GARDEN_ROUTE;
   return null;
 }
@@ -145,6 +153,7 @@ export function GamesProductArea({
                           'foto',
                           'wuensche',
                           'gemeinsam',
+                          'momente',
                           'spiele',
                         ] satisfies EimirIconName[]
                       )[index]

@@ -1,0 +1,12 @@
+{
+  "$description": "Klassisch: a Pro design. The original palette with the baseline Wir composition (centred portrait pair) from before Verbunden.",
+  "id": "classic",
+  "tier": "pro",
+  "layout": "classic",
+  "color": { "world": "original" },
+  "shape": "standard",
+  "type": { "display": "literata", "headings": "ui" },
+  "icon": { "stroke": 1.65, "accent": "duotone" },
+  "motion": "standard",
+  "surface": { "backdrop": "glow", "elevation": "standard", "edges": "none" }
+}

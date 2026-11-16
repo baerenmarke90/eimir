@@ -453,6 +453,30 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
+    # Premium gate answers before an unknown round ID, so no resource_absence here.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/heart-hunt"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds",
+        body={
+            "requestId": str(uuid4()),
+            "attachmentId": str(uuid4()),
+            "heart": {"x": 1, "y": 1},
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps",
+        body={"x": 1, "y": 1},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept",
+        body={"memoryId": str(uuid4())},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),

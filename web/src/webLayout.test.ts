@@ -240,6 +240,7 @@ describe('web layout tokens', () => {
       layoutCss,
       readSource('./theme.css'),
       productRolesCss,
+      readSource('./design/app-designs.css'),
       readSource('./story-media.css'),
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),

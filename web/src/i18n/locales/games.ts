@@ -29,6 +29,91 @@ const games = {
       description:
         'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
     },
+    heartHunt: {
+      role: 'Nah sein',
+      title: 'Herzversteck',
+      description: 'Versteckt ein Herz in einem Foto. Wer findet es?',
+    },
+  },
+  heartHunt: {
+    intro:
+      'Versteckt ein Herz in einem Foto aus eurem Tag. Wer sucht, tastet sich durch den Nebel.',
+    loadingTitle: 'Das Versteck wird geöffnet',
+    loadingBody: 'Wir laden nur Fotos, die für euch beide bestimmt sind.',
+    coupleRequiredTitle: 'Dieses Spiel gehört euch beiden',
+    coupleRequiredBody:
+      'Herzversteck ist für einen gemeinsamen Bereich mit genau zwei Partnern gedacht.',
+    keyboardHint:
+      'Mit den Pfeiltasten zielen, mit Eingabe oder Leertaste tippen.',
+    memoryTitle: 'Herzversteck',
+    band: {
+      between: 'Zwischen euch: {{label}}',
+      plain: 'Du und {{name}}',
+    },
+    hide: {
+      title: 'Versteck ein Herz für {{name}}',
+      body: 'Nimm ein Foto von dort, wo du gerade bist, und tipp auf die Stelle fürs Herz.',
+      pickPhoto: 'Foto aufnehmen oder wählen',
+      changePhoto: 'Anderes Foto wählen',
+      pickHint: 'Kamera oder Galerie',
+      photoLabel: 'Dein Foto. Tippe, um das Herz zu platzieren.',
+      uploading: 'Foto wird vorbereitet …',
+      placeHint: 'Tipp ins Foto, um das Herz zu verstecken.',
+      placed: 'Gutes Versteck. Du kannst es noch verschieben.',
+      send: 'Verstecken und an {{name}} schicken',
+      uploadFailed:
+        'Das Foto konnte nicht vorbereitet werden. Versuch es noch einmal.',
+      sendFailed:
+        'Das Herz konnte nicht losgeschickt werden. Versuch es noch einmal.',
+      roundOpen:
+        'Dein letztes Herz ist noch versteckt. Warte, bis es gefunden wurde.',
+    },
+    waiting: {
+      title: '{{name}} sucht jetzt',
+      body: 'Du bekommst Bescheid, sobald das Herz gefunden ist.',
+      photoLabel: 'Dein Foto mit dem versteckten Herz',
+    },
+    seek: {
+      title: '{{name}} hat ein Herz versteckt',
+      tapHint: 'Tipp irgendwo ins Bild',
+      meterLabel: 'Wärme',
+      photoLabel: 'Foto unter Nebel. Tippe, um zu suchen.',
+      quiet: 'Kein Zeitlimit, keine Punkte. Jeder Tipp wischt etwas Nebel weg.',
+      tapFailed: 'Dieser Tipp ist nicht angekommen. Tipp noch einmal.',
+    },
+    warmth: {
+      cold: 'Noch kalt',
+      lukewarm: 'Lauwarm',
+      warm: 'Warm',
+      hot: 'Ganz heiß!',
+    },
+    found: {
+      title: 'Gefunden!',
+      bodySeeker:
+        '{{name}} hatte das Herz {{place}} versteckt. {{name}} erfährt, dass du es gefunden hast.',
+      bodyHider: '{{name}} hat dein Herz gefunden. Es steckte {{place}}.',
+      photoLabel: 'Das Foto mit dem gefundenen Herz',
+      swap: 'Selbst eins verstecken',
+      keep: 'Foto als Moment behalten',
+      keeping: 'Wird gespeichert …',
+      kept: 'Liegt in Momente',
+      keepFailed:
+        'Das Foto konnte nicht als Moment gespeichert werden. Versuch es noch einmal.',
+      deleteNote:
+        'Das Foto wird am {{date}} gelöscht, wenn ihr es nicht als Moment behaltet.',
+      keptNote: 'Das Foto mit dem Herz liegt jetzt in euren Momenten.',
+    },
+    places: {
+      topLeft: 'oben links',
+      top: 'oben',
+      topRight: 'oben rechts',
+      left: 'links',
+      center: 'in der Mitte',
+      right: 'rechts',
+      bottomLeft: 'unten links',
+      bottom: 'unten',
+      bottomRight: 'unten rechts',
+    },
   },
   momentsGame: {
     back: 'Zurück zu Spielen',

@@ -578,6 +578,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [
@@ -5594,6 +5606,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [

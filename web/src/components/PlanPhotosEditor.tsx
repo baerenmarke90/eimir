@@ -2,6 +2,7 @@ import { type ReactNode, useRef, useState } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
+import { savedPhotoFile } from '../client/savedPhotoFile';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import type { PlanPhotoDraftController } from '../client/usePlanPhotoDrafts';
@@ -141,7 +142,7 @@ export function PlanPhotosEditor({
               }
             : undefined
         }
-        gallery={(_, editDraft) =>
+        gallery={(_, editDraft, editFile) =>
           controller.items.length ? (
             <PhotoDraftGallery
               addAction={
@@ -293,12 +294,29 @@ export function PlanPhotosEditor({
                 if (draft) controller.uploads.retry(draft);
               }}
               onEdit={
-                editDraft
+                editDraft && editFile
                   ? (key) => {
-                      const draft = controller.items.find(
-                        (item) => item.key === key,
-                      )?.draft;
-                      if (draft) editDraft(draft.id);
+                      const item = controller.items.find(
+                        (entry) => entry.key === key,
+                      );
+                      const saved = item?.existing;
+                      if (item?.draft) editDraft(item.draft.id);
+                      else if (item && saved && planId)
+                        editFile(
+                          loadAuthorizedStoryImageResource(
+                            controller.apis,
+                            spaceId,
+                            parentType,
+                            planId,
+                            saved.id,
+                          ).then((source) =>
+                            savedPhotoFile(source, `${saved.id}.jpg`),
+                          ),
+                          (edited) => {
+                            controller.replaceSaved(item, edited);
+                            onChange();
+                          },
+                        );
                     }
                   : undefined
               }

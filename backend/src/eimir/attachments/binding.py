@@ -345,6 +345,34 @@ def ensure_within_limits(attachments: list[Attachment]) -> None:
         )
 
 
+def check_replacements(
+    replacements: dict[UUID, UUID] | None,
+    *,
+    previous: set[UUID],
+    selected: list[UUID],
+) -> dict[UUID, UUID]:
+    """Validate edited-photo replacements as new id -> replaced bound id (#1907 G1).
+
+    An edited photo is a new attachment that takes the place of one the parent
+    already holds. The replaced photo must leave the gallery in the same write,
+    and the new one must not have been bound before; each photo is replaced at
+    most once. Removal authorization stays with the ordinary gallery rules.
+    """
+    if not replacements:
+        return {}
+    chosen = set(selected)
+    replaced = list(replacements.values())
+    if len(set(replaced)) != len(replaced) or any(
+        new_id not in chosen or new_id in previous or old_id not in previous or old_id in chosen
+        for new_id, old_id in replacements.items()
+    ):
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
+    return dict(replacements)
+
+
 def reserved_size(attachment: Attachment) -> int:
     """Reserve declared bytes until the worker establishes the actual size."""
     if attachment.failed_media_purged_at is not None:

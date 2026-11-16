@@ -636,6 +636,7 @@ def replace_attachments(
     selected_cover_attachment_id: UUID | None = None,
     cover_selection_supplied: bool = False,
     record_update: bool = True,
+    replacements: dict[UUID, UUID] | None = None,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -679,6 +680,7 @@ def replace_attachments(
         for bound in binding.attachments_of_memory(session, memory.id)
     }
     previous = set(previous_attachments)
+    replaced_by = binding.check_replacements(replacements, previous=previous, selected=identifiers)
     if memory.owner_id != context.account_id:
         protected = {
             identifier
@@ -743,18 +745,31 @@ def replace_attachments(
             # immediately and provider cleanup remains asynchronous (M2-D11).
             attachment_service.mark_for_deletion(session, detached)
 
+    # Reactions follow an edited photo onto its replacement (#1907 G1).
+    successor = {old_id: new_id for new_id, old_id in replaced_by.items()}
     memory.payload = memory.payload.model_copy(
         update={
             "selected_cover_attachment_id": next_cover,
             "photo_reactions": [
-                item for item in memory.payload.photo_reactions if item.attachment_id in identifiers
+                item.model_copy(update={"attachment_id": successor[item.attachment_id]})
+                if item.attachment_id in successor
+                else item
+                for item in memory.payload.photo_reactions
+                if item.attachment_id in identifiers or item.attachment_id in successor
             ],
         }
     )
 
     from eimir.attachments import photo_locations
 
-    photo_locations.bind(session, context, memory, attachments)
+    # An edited photo keeps its metadata but must not add a second Place.
+    photo_locations.discard(session, list(replaced_by))
+    photo_locations.bind(
+        session,
+        context,
+        memory,
+        [attachment for attachment in attachments if attachment.id not in replaced_by],
+    )
 
     memory.updated_at = now()
     _flush(session)

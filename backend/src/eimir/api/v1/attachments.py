@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from tempfile import TemporaryFile
 from typing import Annotated, Literal, Self
@@ -148,6 +149,27 @@ class AttachmentEntry(ApiModel):
     attachment_id: UUID
     position: int = Field(ge=0)
     is_sensitive: bool | None = Field(default=None, strict=True)
+    replaces_attachment_id: UUID | None = None
+
+
+def replacements_of(entries: Sequence[AttachmentEntry] | None) -> dict[UUID, UUID]:
+    """Edited photos as new id -> replaced id; only gallery updates accept them."""
+    return {
+        entry.attachment_id: entry.replaces_attachment_id
+        for entry in entries or []
+        if entry.replaces_attachment_id is not None
+    }
+
+
+def reject_replacements(entries: Sequence[AttachmentEntry] | None) -> None:
+    """A new parent has no photo to replace."""
+    if replacements_of(entries):
+        from eimir.core.errors import ValidationError
+
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
 
 
 class OrderedAttachmentSummary(AttachmentSummary):

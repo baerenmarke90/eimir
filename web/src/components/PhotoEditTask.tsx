@@ -194,12 +194,15 @@ export function PhotoEditTask({
   onConfirm,
   onCancel,
   restoreFocusRef,
+  replacesSaved = false,
 }: {
   /** The decoded photo; `null` closes the step. Released by this component. */
   source: PhotoCropSource | null;
   onConfirm: (file: File | null) => void;
   onCancel: () => void;
   restoreFocusRef?: RefObject<HTMLElement | null>;
+  /** The photo is already saved; the edit replaces it when the entry is saved. */
+  replacesSaved?: boolean;
 }) {
   const { t } = useTranslation();
   const helpId = useId();
@@ -1045,6 +1048,11 @@ export function PhotoEditTask({
     >
       {shown ? (
         <>
+          {replacesSaved ? (
+            <p className="field-help photo-edit-replaces">
+              {t('photoEdit.replacesSaved')}
+            </p>
+          ) : null}
           <fieldset
             ref={area}
             className="photo-edit-area"

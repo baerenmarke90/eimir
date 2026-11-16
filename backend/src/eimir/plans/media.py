@@ -48,7 +48,12 @@ def photos_of_plans(
 
 
 def replace_photos(
-    session: Session, context: AuthorizationContext, plan: Plan, selection: PhotoSelection
+    session: Session,
+    context: AuthorizationContext,
+    plan: Plan,
+    selection: PhotoSelection,
+    *,
+    replacements: dict[UUID, UUID] | None = None,
 ) -> None:
     """Replace one versioned gallery atomically; the caller owns the Plan lock.
 
@@ -66,6 +71,7 @@ def replace_photos(
     previous = {row.attachment_id for row in extra}
     if plan.cover_attachment_id:
         previous.add(plan.cover_attachment_id)
+    binding.check_replacements(replacements, previous=previous, selected=ids)
     if not previous and not ids:
         # Do not dirty an initially unset cover FK with an explicit None after
         # insertion. An empty newly created Plan must keep its initial version.

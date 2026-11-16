@@ -268,7 +268,7 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
-     * The shared garden and today's step for the reader.
+     * The shared garden and today\'s step for the reader.
      * Get Garden
      */
     async getGardenRaw(requestParameters: GetGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
@@ -279,7 +279,7 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
-     * The shared garden and today's step for the reader.
+     * The shared garden and today\'s step for the reader.
      * Get Garden
      */
     async getGarden(requestParameters: GetGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
@@ -380,7 +380,7 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Send today's seed to the partner; one per partner and day.
+     * Send today\'s seed to the partner; one per partner and day.
      * Send Garden Seed
      */
     async sendGardenSeedRaw(requestParameters: SendGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
@@ -391,7 +391,7 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Send today's seed to the partner; one per partner and day.
+     * Send today\'s seed to the partner; one per partner and day.
      * Send Garden Seed
      */
     async sendGardenSeed(requestParameters: SendGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {

@@ -252,6 +252,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     apis.memories.getMemory = vi.fn().mockResolvedValue({
       id: 'linked-memory',
       title: 'A shared memory',
+      author: CHAPTER.creator,
       happenedOn: new Date('2026-06-01T00:00:00Z'),
       createdAt: new Date('2026-06-01T00:00:00Z'),
       attachments: [],

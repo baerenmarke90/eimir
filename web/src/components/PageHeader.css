@@ -77,6 +77,12 @@
   margin-block-end: var(--space-3);
 }
 
+.page-heading-item-row:has(.task-back-label) {
+  grid-template-columns:
+    minmax(var(--touch-target-web), max-content) minmax(0, 1fr)
+    var(--touch-target-web);
+}
+
 .page-heading-item-row > .page-back-host:empty {
   display: block;
 }

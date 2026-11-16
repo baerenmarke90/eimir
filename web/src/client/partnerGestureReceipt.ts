@@ -64,6 +64,23 @@ const WISH_DATE_RECEIPT_KINDS = [
 
 export type WishDateReceiptKind = (typeof WISH_DATE_RECEIPT_KINDS)[number];
 
+/** Round notices that carry the feature's own question (#1907 J1). */
+export const WISH_SELECTION_RECEIPT_COPY = {
+  WISH_SELECTION_SHARED: 'shared',
+  WISH_SELECTION_READY: 'ready',
+  WISH_SELECTION_RANDOM_REQUESTED: 'requested',
+  WISH_SELECTION_RANDOM_ACCEPTED: 'accepted',
+  WISH_SELECTION_RANDOM_DECLINED: 'declined',
+} as const;
+
+export type WishSelectionReceiptKind = keyof typeof WISH_SELECTION_RECEIPT_COPY;
+
+export function isWishSelectionReceiptKind(
+  kind: string,
+): kind is WishSelectionReceiptKind {
+  return Object.hasOwn(WISH_SELECTION_RECEIPT_COPY, kind);
+}
+
 export function isWishDateReceiptKind(
   kind: string,
 ): kind is WishDateReceiptKind {
@@ -88,6 +105,9 @@ export const PARTNER_NOTICE_ICONS = {
   WISH_DATE_ACCEPTED: { badge: 'kalender', center: 'kalender' },
   WISH_SELECTION_SHARED: { badge: 'gemeinsam', center: 'wuensche' },
   WISH_SELECTION_READY: { badge: 'sparkle', center: 'wuensche' },
+  WISH_SELECTION_RANDOM_REQUESTED: { badge: 'sparkle', center: 'wuensche' },
+  WISH_SELECTION_RANDOM_ACCEPTED: { badge: 'sparkle', center: 'wuensche' },
+  WISH_SELECTION_RANDOM_DECLINED: { badge: 'gemeinsam', center: 'wuensche' },
   PLAN_CREATED: { badge: 'kalender', center: 'kalender' },
   PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },
   PLAN_CANCELLED: { badge: 'close', center: 'kalender' },

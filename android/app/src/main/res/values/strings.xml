@@ -36,8 +36,15 @@
     <string name="push_plan_changed">%1$s changed a plan.</string>
     <string name="push_plan_changed_title">%1$s changed the plan “%2$s”.</string>
     <string name="push_plan_cancelled">%1$s cancelled a plan.</string>
-    <string name="push_wish_selection_shared">%1$s would like to choose wishes with you.</string>
-    <string name="push_wish_selection_ready">Your shared wish selection is ready.</string>
+    <string name="push_wish_selection_shared">%1$s asks: What shall we do next? Mark your favourites.</string>
+    <plurals name="push_wish_selection_shared_count">
+        <item quantity="one">%1$s asks: What shall we do next? Mark your favourites among %2$d idea.</item>
+        <item quantity="other">%1$s asks: What shall we do next? Mark your favourites among %2$d ideas.</item>
+    </plurals>
+    <string name="push_wish_selection_ready">What shall we do next? %1$s has chosen too, your result is here.</string>
+    <string name="push_wish_selection_random_requested">What shall we do next? %1$s would like chance to decide.</string>
+    <string name="push_wish_selection_random_accepted">What shall we do next? %1$s agreed, chance has decided.</string>
+    <string name="push_wish_selection_random_declined">%1$s would rather decide together.</string>
     <string name="push_comment_digest">There are new comments for you.</string>
     <string name="push_comment_digest_title">New comments for you, most recently on “%2$s”.</string>
     <string name="push_photo_reaction">%1$s reacted to a photo.</string>
@@ -52,6 +59,9 @@
     <string name="push_view_moment">View moment</string>
     <string name="push_view_comments">View comments</string>
     <string name="push_view_wish_selection">View wish selection</string>
+    <string name="push_mark_favorites">Mark favourites</string>
+    <string name="push_view_result">View result</string>
+    <string name="push_answer">Reply</string>
     <string name="push_view_wish">View wish</string>
     <string name="push_view_transfer">View data transfer</string>
     <string name="push_view">View</string>

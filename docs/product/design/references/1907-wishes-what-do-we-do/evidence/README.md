@@ -20,3 +20,12 @@ branch `feat/1907-j1-wishes-entry` (mocked API, German locale, partner shown as
 | `wish-selection-chosen-390-light.png` | The tapped favourite as hero with the undo action |
 | `wish-selection-no-match-390-light.png` | No common favourite |
 | `date-inspiration-composer-hint-390-dark.png` | Solo browsing hint in the Wish composer |
+
+Random pick with consent (follow-up PR, `shared-wish-selection.spec.ts`):
+
+| File | State |
+| --- | --- |
+| `wish-selection-random-offer-390-light.png` | No common favourite: propose chance, pool kind and consent line |
+| `wish-selection-random-asked-390-light.png` | Own pending question with withdraw |
+| `wish-selection-random-consent-390-light.png` | The partner's request: agree, change favourites first, decline |
+| `wish-selection-random-decided-390-light.png` | The stored pick after consent, the same on both devices |

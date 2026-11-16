@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
@@ -67,6 +67,10 @@ class NotificationItem(ApiModel):
     target_id: UUID | None
     target: ActivityTargetPresentation | None = None
     appointment_start: datetime | None = None
+    selection_size: int | None = Field(
+        default=None,
+        description="Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+    )
     created_at: datetime
     read_at: datetime | None
 
@@ -377,13 +381,18 @@ def _resolve_target_titles(
     targets: set[tuple[EngagementTarget, UUID]],
 ) -> TargetTitles:
     titles = presentation.target_titles(session, authorization, targets)
-    return TargetTitles(titles, presentation.concealed_targets(session, targets))
+    return TargetTitles(
+        titles,
+        presentation.concealed_targets(session, targets),
+        presentation.selection_sizes(session, authorization, targets),
+    )
 
 
 @dataclass(frozen=True)
 class TargetTitles:
     titles: dict[tuple[EngagementTarget, UUID], str]
     concealed: set[tuple[EngagementTarget, UUID]]
+    selection_sizes: dict[UUID, int] = field(default_factory=dict)
 
     def presentation(
         self, target_type: EngagementTarget, target_id: UUID
@@ -434,6 +443,11 @@ def _notification_item(
             target_presentation = (target_titles or TargetTitles({}, set())).presentation(
                 EngagementTarget(item.target_type), item.target_id
             )
+    selection_size = None
+    if item.kind == NotificationKind.WISH_SELECTION_SHARED.value and item.target_id is not None:
+        selection_size = (target_titles.selection_sizes if target_titles else {}).get(
+            item.target_id
+        )
     return NotificationItem(
         id=item.id,
         source_event_id=item.source_event_id,
@@ -446,6 +460,7 @@ def _notification_item(
         appointment_start=wish_date_notice.appointment_start(
             item, concealed=bool(target_presentation and target_presentation.concealed)
         ),
+        selection_size=selection_size,
         created_at=item.created_at,
         read_at=item.read_at,
     )

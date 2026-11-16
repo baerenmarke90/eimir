@@ -45,6 +45,15 @@ def _content(session: Session, notification: Notification, context: Authorizatio
             return ""
         start = wish_date_notice.appointment_start(notification)
         return clock.ensure_utc(start).isoformat() if start is not None else ""
+    if (
+        notification.kind == NotificationKind.WISH_SELECTION_SHARED.value
+        and notification.target_id is not None
+    ):
+        # Only the number of ideas in the round; never titles or choices.
+        size = presentation.selection_sizes(
+            session, context, {(EngagementTarget.WISH_SELECTION, notification.target_id)}
+        ).get(notification.target_id)
+        return str(size) if size else ""
     if notification.kind == NotificationKind.COMMENT_CREATED.value:
         # The parent was reauthorized by for_notification. Read only the exact
         # current comment referenced by this event, never the latest sibling.

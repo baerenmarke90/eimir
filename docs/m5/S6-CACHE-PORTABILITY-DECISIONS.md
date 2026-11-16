@@ -165,7 +165,15 @@ Account change and Space change. Whether stored bytes are shown is decided by
 the parent read data the view renders, which keeps the seven-day rule above;
 a denied parent list or read evicts the affected bytes, and Media overview
 deletes the bytes of items its refreshed list no longer contains. Details:
-`docs/frontend/web.md`.
+`docs/frontend/web.md`. In browsers the exception covers `SPACE_SHARED` image
+bytes only: rule 3 above still applies, so images of `OWNER_ONLY` parents stay
+session-memory-only on Web and a copy stored before a parent became private
+is removed. The Android app applies rule 4 instead (Product Owner decision,
+2026-11-16): it stores every image, shared and private, only as AES-GCM
+ciphertext under a per-login key that Android Keystore wraps (the
+`NativeSessionStorage` media key). Logout deletes that key natively together
+with the session, so stored images are unreadable even before their rows are
+removed, and the app names what signing out deletes before it happens.
 
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently

@@ -200,6 +200,7 @@ export function RelatedPersonEditorSheet({
     attachmentsApi,
     spaceId,
     person?.avatarAttachmentId,
+    person?.visibility === ContentVisibility.SHARED,
   );
   const displayedAvatarUrl =
     avatarPreviewUrl || (currentAvatarId ? existingAvatarUrl : null);

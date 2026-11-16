@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
@@ -247,6 +248,9 @@ export function StoryList({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
+    /** `false` for the viewer's own private Heart Moment. */
+    persist?: boolean,
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
@@ -313,9 +317,26 @@ export function StoryList({
               : item.kind === 'HEART_MOMENT'
                 ? item.heartMoment.id
                 : '';
+          // Own private Heart Moments are part of the Timeline; their bytes
+          // stay in session memory only (M2-D18 #3). The loader identity is
+          // not a reload trigger, so a per-item closure is safe.
           const imageLoader =
             item.kind === 'HEART_MOMENT'
-              ? loadHeartMomentImage
+              ? item.heartMoment.visibility === ContentVisibility.SHARED
+                ? loadHeartMomentImage
+                : (
+                    heartMomentId: string,
+                    attachmentId: string,
+                    signal?: AbortSignal,
+                    variant?: 'original' | 'thumbnail',
+                  ) =>
+                    loadHeartMomentImage(
+                      heartMomentId,
+                      attachmentId,
+                      signal,
+                      variant,
+                      false,
+                    )
               : loadMemoryImage;
           const productPath = storyProductPath(item);
           const kindSlug = item.kind.toLowerCase().replace('_', '-');

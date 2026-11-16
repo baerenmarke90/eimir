@@ -22,6 +22,8 @@ import {
 
 vi.mock('./config', () => ({
   loadReferenceClientConfig: () => ({ apiBaseUrl: 'https://api.example.test' }),
+  // The media store asks whether it seals rows (Android app only).
+  isAndroidApp: () => false,
 }));
 
 const rows = new Map<string, unknown>();

@@ -21,12 +21,14 @@ function SavedPhoto({
   spaceId,
   planId,
   parentType,
+  persist,
 }: {
   photo: OrderedAttachmentSummary;
   controller: PlanPhotoDraftController;
   spaceId: string;
   planId: string;
   parentType: 'PLAN' | 'HEART_MOMENT';
+  persist?: boolean;
 }) {
   const { t } = useTranslation();
   const [attempt, setAttempt] = useState(0);
@@ -43,6 +45,7 @@ function SavedPhoto({
         {
           signal,
           variant: photo.hasThumbnail ? 'thumbnail' : 'original',
+          persist,
         },
       ),
   );
@@ -69,6 +72,7 @@ export function PlanPhotosEditor({
   photoSourceContext,
   parentType = 'PLAN',
   canManageExisting = true,
+  persistMedia,
   additionalActions,
   presentation,
   mediaTrigger,
@@ -82,6 +86,8 @@ export function PlanPhotosEditor({
   spaceId: string;
   parentType?: 'PLAN' | 'HEART_MOMENT';
   canManageExisting?: boolean;
+  /** `false` for a private parent: existing media stays in session memory. */
+  persistMedia?: boolean;
   planId?: string;
   disabled: boolean;
   canUpload: boolean;
@@ -183,7 +189,7 @@ export function PlanPhotosEditor({
                           parentType,
                           planId,
                           item.existing!.id,
-                          { signal },
+                          { signal, persist: persistMedia },
                         )
                     : undefined,
                 loadPoster:
@@ -195,7 +201,11 @@ export function PlanPhotosEditor({
                           parentType,
                           planId,
                           item.existing!.id,
-                          { signal, variant: 'thumbnail' },
+                          {
+                            signal,
+                            variant: 'thumbnail',
+                            persist: persistMedia,
+                          },
                         )
                     : undefined,
                 loadPlayback:
@@ -231,6 +241,7 @@ export function PlanPhotosEditor({
                       spaceId={spaceId}
                       planId={planId}
                       parentType={parentType}
+                      persist={persistMedia}
                     />
                   ) : item.draft ? (
                     <DraftMediaPreview

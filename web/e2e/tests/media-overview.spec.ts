@@ -73,6 +73,14 @@ const privateVoice = {
   parentId: 'private-heart',
   attachment: { ...voice.attachment, id: 'voice-private', isSensitive: true },
 };
+// An OWNER_ONLY photo: its bytes must stay in session memory (M2-D18 #3).
+const privatePhoto = {
+  ...photos[0],
+  parentType: 'HEART_MOMENT',
+  parentId: privateVoice.parentId,
+  effectiveDate: privateVoice.effectiveDate,
+  attachment: { ...photos[0].attachment, id: 'photo-46' },
+};
 const plan = {
   ...photos[3],
   parentType: 'PLAN',
@@ -86,7 +94,7 @@ async function mocks(
   mode: 'normal' | 'empty' | 'error' | 'mixed' = 'normal',
 ) {
   const reads: Array<{ id: string; variant: string }> = [];
-  const privateMedia = mode === 'mixed' ? [privateVoice] : [];
+  const privateMedia = mode === 'mixed' ? [privateVoice, privatePhoto] : [];
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
@@ -184,9 +192,14 @@ async function mocks(
       const id = p.split('/').at(-2) ?? '';
       const body = request.postDataJSON();
       reads.push({ id, variant: body.variant ?? 'original' });
-      const item = [...photos, video, voice, privateVoice, plan].find(
-        (candidate) => candidate.attachment.id === id,
-      );
+      const item = [
+        ...photos,
+        video,
+        voice,
+        privateVoice,
+        privatePhoto,
+        plan,
+      ].find((candidate) => candidate.attachment.id === id);
       if (!item) throw new Error(`Unexpected media read for ${id}`);
       expect(body.parentType).toBe(item.parentType);
       expect(body.parentId).toBe(item.parentId);
@@ -249,7 +262,10 @@ async function mocks(
         visibility: 'PRIVATE',
         author,
         authorId: ACCOUNT,
-        attachments: [{ ...privateVoice.attachment, position: 0 }],
+        attachments: [
+          { ...privateVoice.attachment, position: 0 },
+          { ...privatePhoto.attachment, position: 1 },
+        ],
         capabilities: { canEdit: true, canDelete: true, canComment: false },
         version: 1,
         createdAt: '2026-09-12T12:00:00Z',
@@ -310,6 +326,32 @@ async function mocks(
     });
   });
   return reads;
+}
+
+function durableMediaKeys(page: Page): Promise<string[]> {
+  return page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const request = indexedDB.open('eimir-authorized-media-v1');
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('media')) {
+            db.close();
+            resolve([]);
+            return;
+          }
+          const read = db
+            .transaction('media')
+            .objectStore('media')
+            .getAllKeys();
+          read.onsuccess = () => {
+            db.close();
+            resolve(read.result.map(String));
+          };
+        };
+        request.onerror = () => resolve([]);
+      }),
+  );
 }
 
 async function signIn(page: Page) {
@@ -964,8 +1006,9 @@ test('media overview keeps the private filter on return and requires authorizati
   await expect(page.locator('[data-media-id="voice-private"]')).toHaveCount(0);
   await own.click();
   await expect(own).toHaveAttribute('aria-pressed', 'true');
-  await expect(tiles).toHaveCount(1);
+  await expect(tiles).toHaveCount(2);
   await expect(page).toHaveURL(/\/story\/photos\?visibility=private$/);
+  await page.locator('[data-media-id="photo-46"] img').waitFor();
   const privateTile = page.getByRole('button', { name: /^Sprachnachricht 1/ });
   await privateTile.click();
   const viewer = page.getByRole('dialog');
@@ -996,6 +1039,10 @@ test('media overview keeps the private filter on return and requires authorizati
   await expect(privateTile).toBeFocused();
   await expect(viewer).toHaveCount(0);
 
+  const privateReads = () =>
+    reads.filter((read) => read.id === 'photo-46').length;
+  const privateReadsBeforeReload = privateReads();
+  expect(privateReadsBeforeReload).toBeGreaterThan(0);
   let release!: () => void;
   const blocked = new Promise<void>((resolve) => {
     release = resolve;
@@ -1018,7 +1065,26 @@ test('media overview keeps the private filter on return and requires authorizati
     release();
   }
   await expect(privateTile).toBeVisible();
+  // The private photo is not on the device: after the restart it needs a
+  // new read grant instead of being shown from the durable store.
+  await page.locator('[data-media-id="photo-46"] img').waitFor();
+  expect(privateReads()).toBeGreaterThan(privateReadsBeforeReload);
   await shared.click();
   await expect(tiles).toHaveCount(sharedMedia.length);
   await expect(page.locator('[data-media-id="voice-private"]')).toHaveCount(0);
+  // Durable writes are serial: once this later shared original is stored,
+  // every earlier write has run, and none of them was a private image.
+  await page.locator('[data-media-id="photo-0"]').click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  await expect
+    .poll(async () =>
+      (await durableMediaKeys(page)).some(
+        (key) => key.includes('"photo-0"') && key.includes('"original"'),
+      ),
+    )
+    .toBe(true);
+  const stored = await durableMediaKeys(page);
+  expect(stored.some((key) => key.includes('"memory-0"'))).toBe(true);
+  expect(stored.filter((key) => key.includes('private'))).toEqual([]);
+  expect(stored.filter((key) => key.includes('"photo-46"'))).toEqual([]);
 });

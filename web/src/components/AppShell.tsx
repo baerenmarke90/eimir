@@ -19,7 +19,6 @@ import {
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
-import { ProductTourProvider } from '../client/productTour';
 import { ProPresentationProvider } from '../client/proPresentation';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
@@ -180,12 +179,7 @@ export function AppShell(props: AppShellProps) {
           accountId={props.account.id}
           spaceId={props.spaceId}
         >
-          <ProductTourProvider
-            accountId={props.account.id}
-            spaceId={props.spaceId}
-          >
-            <AuthenticatedAppShell {...props} />
-          </ProductTourProvider>
+          <AuthenticatedAppShell {...props} />
         </TaskOriginProvider>
       </ProPresentationProvider>
     </ApiRuntimeProvider>

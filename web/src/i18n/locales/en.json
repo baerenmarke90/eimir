@@ -4491,34 +4491,6 @@
     "offline": "You are offline",
     "offlineBody": "Connect to the internet to load media."
   },
-  "productTour": {
-    "eyebrow": "Quick introduction",
-    "replay": "Get to know eimir.",
-    "later": "Later",
-    "start": "View",
-    "next": "Next",
-    "openCreate": "Open plus",
-    "invite": {
-      "title": "A quick look at eimir.",
-      "body": "If you like, we will show you the main places in four little steps."
-    },
-    "today": {
-      "title": "Your shared home",
-      "body": "On Us, see what connects you right now and what is coming up next."
-    },
-    "story": {
-      "title": "Find moments again",
-      "body": "Discover brings familiar things back. Find your story in order in the timeline."
-    },
-    "plan": {
-      "title": "Wishes become plans",
-      "body": "Planning brings together ideas and concrete plans for your time together."
-    },
-    "create": {
-      "title": "Capture something",
-      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
-    }
-  },
   "quietHints": {
     "tipLabel": "Tip",
     "newLabel": "New in eimir.",

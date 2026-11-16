@@ -415,13 +415,6 @@
         "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
-    "optional-product-tour.spec.ts": {
-      "roots": [
-        "web/src/client/productTour.tsx",
-        "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MomentCreateMenu.tsx"
-      ]
-    },
     "partner-nickname.spec.ts": {
       "roots": [
         "web/src/components/ProfilePage.tsx",

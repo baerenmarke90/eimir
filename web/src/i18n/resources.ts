@@ -43,7 +43,6 @@ import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
 import planFiles from './locales/planFiles';
 import privateArea from './locales/privateArea';
-import productTour from './locales/productTour';
 import quietHints from './locales/quietHints';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
@@ -120,7 +119,6 @@ export const germanResources = {
   personColours,
   profileIdentity,
   profiles,
-  productTour,
   quietHints,
   serverAdmin,
   spaceOffboarding,

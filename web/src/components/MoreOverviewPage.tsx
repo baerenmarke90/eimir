@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
-import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
@@ -248,7 +247,6 @@ export function MoreOverviewPage({
 }) {
   const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
-  const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
   // Shares App's cached public instance status; Self-Hosted publishes no terms.
   const instanceStatus = useQuery({
@@ -347,20 +345,6 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
-          <li>
-            <button
-              type="button"
-              className="more-destination more-destination-button"
-              onClick={replay}
-            >
-              <span className="more-destination-icon" aria-hidden="true">
-                <DestinationIcon icon="story" />
-              </span>
-              <span className="more-destination-copy">
-                <strong>{t('productTour.replay')}</strong>
-              </span>
-            </button>
-          </li>
         </MoreDestinationGroup>
         {serverAdmin ? (
           <MoreDestinationGroup title={t('navigation.operatorArea')}>

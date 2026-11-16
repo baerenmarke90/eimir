@@ -158,10 +158,6 @@
       "baselineTests": 3,
       "reason": "Feature-owned #1907 I1 acceptance: Wir move-in with its one action and invitation link, the one-time connected moment and its same-day line after reload, one action in empty Momente, plans and wishes, and the personal wish-to-plan tip that retires after Got it across reload, with focus, axe, reflow and Compact/Expanded Light/Dark captures."
     },
-    "optional-product-tour.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 2
-    },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6,

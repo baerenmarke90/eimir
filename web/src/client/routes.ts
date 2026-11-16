@@ -147,6 +147,7 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Named profile destination in the More account group. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
+export const PRODUCT_TOUR_ROUTE = '/more/getting-started';
 export const PRO_INFORMATION_ROUTE = `${MORE_SETTINGS_ROUTE}/account#eimir-pro`;
 /** Shared eimir. Pro paywall; the context only selects copy, never access. */
 export const PRO_PAYWALL_ROUTE = '/more/pro';

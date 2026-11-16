@@ -115,6 +115,7 @@ import { WirPartnerDistance } from './PartnerDistanceLine';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { ProductTourCue, ProductTourOffer } from './ProductTourPage';
 import {
   RediscoverySecondaryLine,
   useRediscoveryWording,
@@ -1822,6 +1823,17 @@ export function TodayPage({
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
+        <ProductTourCue
+          topic="today"
+          message={t(
+            !partner
+              ? 'productTour.today.solo'
+              : dailyCheckIn && relationshipPresenceVisible
+                ? 'productTour.today.checkIn'
+                : 'productTour.today.hint',
+          )}
+        />
+        <ProductTourOffer />
       </>
     ),
     keepsake: (

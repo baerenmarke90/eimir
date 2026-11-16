@@ -1,29 +1,28 @@
 const productTour = {
-  eyebrow: 'Kurze Einführung',
   replay: 'eimir. kennenlernen',
+  description: 'Wähle, womit du anfangen möchtest.',
+  topics: 'Themen der Einführung',
   later: 'Später',
+  dismiss: 'Einführung nicht mehr anzeigen',
   start: 'Ansehen',
-  next: 'Weiter',
-  openCreate: 'Plus öffnen',
-  invite: {
-    title: 'Ein kurzer Blick auf eimir.',
-    body: 'Wenn du magst, zeigen wir dir die wichtigsten Orte in vier kleinen Schritten.',
-  },
+  back: 'Zur Einführung',
   today: {
-    title: 'Euer gemeinsamer Ort',
-    body: 'Auf Wir siehst du, was euch gerade verbindet und was als Nächstes ansteht.',
+    summary: 'Wie es dir geht und was für euch ansteht.',
+    hint: 'Hier findest du, was für euch als Nächstes ansteht.',
+    checkIn: 'Tippe auf dein Profilbild und halte fest, wie es dir heute geht.',
+    solo: 'In den Beziehungseinstellungen kannst du deinen Partner einladen.',
   },
   story: {
-    title: 'Momente wiederfinden',
-    body: 'Entdecken holt Vertrautes zurück. In der Timeline findest du eure Geschichte der Reihe nach.',
+    summary: 'Besonderes festhalten und wiederentdecken.',
+    hint: 'Unter „Erinnerungen“ taucht Vertrautes wieder auf. Im Tagebuch steht eure Geschichte der Reihe nach. Mit dem Plus hältst du etwas Neues fest.',
   },
   plan: {
-    title: 'Wünsche werden Pläne',
-    body: 'In Planen sammeln sich Ideen und konkrete Vorhaben für eure gemeinsame Zeit.',
+    summary: 'Wünsche sammeln und gemeinsame Zeit planen.',
+    hint: 'Haltet eine Idee als Wunsch fest. Wenn sie konkret wird, könnt ihr daraus einen Plan machen.',
   },
-  create: {
-    title: 'Etwas festhalten',
-    body: 'Mit dem Plus in Momente kannst du einen Tagebucheintrag, einen Herzmoment oder einen Meilenstein festhalten.',
+  private: {
+    summary: 'Notizen, Geschenkideen und Listen, die nur du siehst.',
+    hint: 'Mit dem Plus hältst du einen Gedanken für dich fest.',
   },
 };
 

@@ -4485,31 +4485,30 @@
     "offlineBody": "Connect to the internet to load media."
   },
   "productTour": {
-    "eyebrow": "Quick introduction",
     "replay": "Get to know eimir.",
+    "description": "Choose where you’d like to start.",
+    "topics": "Introduction topics",
     "later": "Later",
+    "dismiss": "Don’t show this introduction again",
     "start": "View",
-    "next": "Next",
-    "openCreate": "Open plus",
-    "invite": {
-      "title": "A quick look at eimir.",
-      "body": "If you like, we will show you the main places in four little steps."
-    },
+    "back": "Back to the introduction",
     "today": {
-      "title": "Your shared home",
-      "body": "On Us, see what connects you right now and what is coming up next."
+      "summary": "How you’re feeling and what’s coming up for you both.",
+      "hint": "See what’s coming up for you both.",
+      "checkIn": "Tap your profile photo to record how you’re feeling today.",
+      "solo": "You can invite your partner in the relationship settings."
     },
     "story": {
-      "title": "Find moments again",
-      "body": "Discover brings familiar things back. Find your story in order in the timeline."
+      "summary": "Save special moments and rediscover them.",
+      "hint": "Rediscover familiar moments in Memories. Your Diary tells your story in order. Tap the plus to capture something new."
     },
     "plan": {
-      "title": "Wishes become plans",
-      "body": "Planning brings together ideas and concrete plans for your time together."
+      "summary": "Collect wishes and plan time together.",
+      "hint": "Save an idea as a wish. When it takes shape, you can turn it into a plan."
     },
-    "create": {
-      "title": "Capture something",
-      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
+    "private": {
+      "summary": "Notes, gift ideas and lists only you can see.",
+      "hint": "Tap the plus to save a thought for yourself."
     }
   },
   "photoReactions": {

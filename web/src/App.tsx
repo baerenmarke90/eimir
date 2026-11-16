@@ -99,6 +99,7 @@ import {
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
   PRO_PAYWALL_ROUTE,
+  PRODUCT_TOUR_ROUTE,
   RECAP_DETAIL_ROUTE_PATTERN,
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -170,7 +171,6 @@ import {
 import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryMapPage } from './components/MemoryMapPage';
-import type { MapViewport } from './components/PlaceMapCanvas';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
@@ -180,6 +180,7 @@ import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
+import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
@@ -190,6 +191,7 @@ import {
 } from './components/PrimaryTabPanels';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
+import { ProductTourPage } from './components/ProductTourPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ProPaywallPage } from './components/ProPaywallPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
@@ -994,6 +996,7 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route path={PRODUCT_TOUR_ROUTE} element={<ProductTourPage />} />
             <Route
               path="/more/private/*"
               element={

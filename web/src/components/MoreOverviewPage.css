@@ -116,6 +116,10 @@
   list-style: none;
 }
 
+.more-destinations > li {
+  min-width: 0;
+}
+
 .more-destinations > li + li {
   border-top: var(--border-surface-width) solid var(--color-border-subtle);
 }
@@ -132,10 +136,6 @@
   background: var(--color-surface-raised);
 }
 
-.more-destinations > li {
-  min-width: 0;
-}
-
 .more-destination {
   display: grid;
   min-height: 64px;
@@ -149,15 +149,6 @@
   transition:
     color var(--duration-feedback) var(--easing-standard),
     background var(--duration-feedback) var(--easing-standard);
-}
-
-.more-destination-button {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .more-destination:focus-visible {

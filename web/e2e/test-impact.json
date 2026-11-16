@@ -405,7 +405,12 @@
     "optional-product-tour.spec.ts": {
       "roots": [
         "web/src/client/productTour.tsx",
+        "web/src/components/ProductTourPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/MomentCreateMenu.tsx"
       ]
     },

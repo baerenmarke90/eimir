@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
-import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
@@ -18,6 +17,7 @@ import {
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
+  PRODUCT_TOUR_ROUTE,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
@@ -42,6 +42,7 @@ interface MoreDestination {
   path: string;
   icon: AppRouteIcon;
   titleKey: string;
+  selectedKey?: string;
   /** Short localized line that tells what the destination holds. */
   subtitleKey?: string;
   badgeKey?: string;
@@ -132,20 +133,28 @@ const UTILITY_DESTINATIONS: readonly MoreDestination[] = [
     icon: 'activity',
     titleKey: 'navigation.activity',
   },
+  {
+    path: PRODUCT_TOUR_ROUTE,
+    icon: 'story',
+    titleKey: 'productTour.replay',
+    selectedKey: 'product-tour-entry',
+  },
 ];
 
-function MoreDestinationRow({
+export function MoreDestinationRow({
   destination,
   leading,
   label,
   subtitle,
   unreadCount,
+  showChevron = false,
 }: {
   destination: MoreDestination;
   leading?: ReactNode;
   label?: string;
   subtitle?: string;
   unreadCount?: number;
+  showChevron?: boolean;
 }) {
   const { t } = useTranslation();
   const hideProMarks = useHideProFeatureMarks();
@@ -166,6 +175,7 @@ function MoreDestinationRow({
       <TaskOriginLink
         className={`more-destination${leading ? ' more-profile-destination' : ''}`}
         to={destination.path}
+        selectedKey={destination.selectedKey}
         ariaLabel={
           (unreadCount ?? 0) > 0
             ? t('navigation.notificationsWithUnread', { count: unreadCount })
@@ -212,6 +222,7 @@ function MoreDestinationRow({
               {new Intl.NumberFormat(resolvedLocale()).format(unreadCount ?? 0)}
             </span>
           ) : null}
+          {showChevron ? <EimirIcon name="chevron-right" /> : null}
         </span>
       </TaskOriginLink>
     </li>
@@ -248,7 +259,6 @@ export function MoreOverviewPage({
 }) {
   const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
-  const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
   // Shares App's cached public instance status; Self-Hosted publishes no terms.
   const instanceStatus = useQuery({
@@ -347,20 +357,6 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
-          <li>
-            <button
-              type="button"
-              className="more-destination more-destination-button"
-              onClick={replay}
-            >
-              <span className="more-destination-icon" aria-hidden="true">
-                <DestinationIcon icon="story" />
-              </span>
-              <span className="more-destination-copy">
-                <strong>{t('productTour.replay')}</strong>
-              </span>
-            </button>
-          </li>
         </MoreDestinationGroup>
         {serverAdmin ? (
           <MoreDestinationGroup title={t('navigation.operatorArea')}>

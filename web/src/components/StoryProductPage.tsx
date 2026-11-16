@@ -93,6 +93,7 @@ import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { ProductTourCue } from './ProductTourPage';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { RecapDiscoverLead } from './RecapDiscoverLead';
 import {
@@ -910,6 +911,7 @@ export function StoryProductPage({
         action={<MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <ProductTourCue topic="story" />
 
       <div
         id="momente-panel-discover"

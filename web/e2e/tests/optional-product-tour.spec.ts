@@ -1,10 +1,12 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import privateArea from '../../src/i18n/locales/privateArea';
 import productTour from '../../src/i18n/locales/productTour';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
 const PARTNER_ID = '00000000-0000-4000-8000-000000000002';
@@ -16,7 +18,8 @@ async function capture(
   fileName: string,
 ): Promise<void> {
   const output = info.outputPath(fileName);
-  await page.screenshot({ path: output });
+  await page.mouse.move(0, 0);
+  await page.screenshot({ path: output, animations: 'disabled' });
   const exportDir = process.env.VISUAL_EVIDENCE_DIR;
   if (exportDir) {
     fs.mkdirSync(exportDir, { recursive: true });
@@ -134,127 +137,198 @@ async function installMocks(page: Page): Promise<void> {
   });
 }
 
-test('optional tour visits the real shell and can be replayed on Compact and Expanded', async ({
+const TOUR_PATH = '/more/getting-started';
+
+async function signIn(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await page.getByLabel(de.login.email).fill('lea@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+}
+
+test('the four topics open real areas with contextual help and reliable Back', async ({
   page,
 }, info) => {
   await installMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/more');
-  await page.getByLabel(de.login.email).fill('lea@example.org');
-  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
-  await page.getByRole('button', { name: de.login.submit }).click();
-  await expect(page).toHaveURL(/\/more$/);
-  await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
-  ).toBeVisible();
-  await capture(page, info, 'tour-more-compact-light.png');
+  await page.emulateMedia({
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
+  await signIn(page, '/today');
 
-  await page.getByRole('button', { name: productTour.start }).click();
+  const start = page.getByRole('link', {
+    name: productTour.start,
+    exact: true,
+  });
+  await expect(start).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: productTour.dismiss }),
+  ).toBeVisible();
+  await capture(page, info, 'tour-start-390-light.png');
+
+  await start.click();
+  await expect(page).toHaveURL(new RegExp(`${TOUR_PATH}$`));
+  const list = page.getByRole('list', { name: productTour.topics });
+  await expect(list.getByRole('link')).toHaveCount(4);
+  await capture(page, info, 'tour-topics-390-light.png');
+
+  const privateTopic = list.getByRole('link', {
+    name: de.more.private.title,
+    exact: true,
+  });
+  await privateTopic.click();
+  await expect(page).toHaveURL(/\/more\/private\/notes$/);
+  await expect(
+    page.getByRole('link', { name: privateArea.navigation.notes, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(privateArea.intro, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(productTour.private.hint)).toBeVisible();
+  await capture(page, info, 'tour-notes-390-light.png');
+  await page.goBack();
+  await expect(privateTopic).toBeFocused();
+
+  const planningTopic = list.getByRole('link', {
+    name: navigation.plan,
+    exact: true,
+  });
+  const back = page.getByRole('button', {
+    name: productTour.back,
+    exact: true,
+  });
+  await planningTopic.click();
+  await expect(page).toHaveURL(/\/plan#wishes$/);
+  await expect(page.getByRole('tab', { selected: true })).toHaveText('Wünsche');
+  await expect(page.getByText(productTour.plan.hint)).toBeVisible();
+  await back.click();
+  await expect(planningTopic).toBeFocused();
+
+  const todayTopic = list.getByRole('link', {
+    name: navigation.today,
+    exact: true,
+  });
+  await todayTopic.click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole('heading', { name: productTour.today.title }),
+    page.getByRole('complementary', { name: productTour.replay }),
   ).toBeVisible();
-  await capture(page, info, 'tour-wir-compact-light.png');
-  await page.getByRole('button', { name: productTour.next }).click();
-  await expect(page).toHaveURL(/\/story$/);
-  await page.getByRole('button', { name: productTour.next }).click();
-  await expect(page).toHaveURL(/\/plan$/);
-  await page.getByRole('button', { name: productTour.next }).click();
-  await expect(page).toHaveURL(/\/story$/);
-  await page.getByRole('button', { name: productTour.openCreate }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await back.click();
+  await expect(todayTopic).toBeFocused();
+
+  const storyTopic = list.getByRole('link', {
+    name: navigation.story,
+    exact: true,
+  });
+  await storyTopic.click();
+  await expect(page).toHaveURL(/\/story\?tab=discover$/);
+  await expect(
+    page.getByRole('tab', { name: de.story.tabDiscover }),
+  ).toHaveAttribute('aria-selected', 'true');
+  const hint = page.getByRole('complementary', { name: productTour.replay });
+  await expect(hint).toContainText(productTour.story.hint);
+  await expect(hint).toHaveCSS('animation-name', 'product-tour-cue-enter');
+  await expect(hint).toHaveCSS('animation-duration', '0.18s');
+
+  const plus = page.getByRole('button', {
+    name: de.story.addMoment,
+    exact: true,
+  });
+  await plus.click();
+  const menu = page.getByRole('dialog', {
+    name: de.story.addMoment,
+    exact: true,
+  });
+  await expect(menu).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(plus).toBeFocused();
 
-  await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await expect(page).toHaveURL(/\/more$/);
-  await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
-  ).toHaveCount(0);
-  await page.getByRole('button', { name: productTour.replay }).click();
+  await back.click();
+  await expect(storyTopic).toBeFocused();
+  await page.goBack();
   await expect(page).toHaveURL(/\/today$/);
-  await page.getByRole('button', { name: productTour.later }).click();
-
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'dark'));
-  await page.reload();
-  await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await expect(page).toHaveURL(/\/more$/);
-  await page.getByRole('button', { name: productTour.replay }).click();
-  await expect(
-    page.getByRole('heading', { name: productTour.today.title }),
-  ).toBeVisible();
-  await capture(page, info, 'tour-wir-expanded-dark.png');
-
-  await page.setViewportSize({ width: 360, height: 800 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '200%';
-  });
-  await expect(
-    page.getByRole('button', { name: productTour.later }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: productTour.next }),
-  ).toBeVisible();
-  const width = await page.evaluate(() => ({
-    client: document.documentElement.clientWidth,
-    scroll: document.documentElement.scrollWidth,
-  }));
-  expect(width.scroll).toBeLessThanOrEqual(width.client);
-  await capture(page, info, 'tour-wir-360-dark-large-text-reduced-motion.png');
-
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-    window.localStorage.setItem('eimir.theme', 'light');
-  });
-  await page.setViewportSize({ width: 430, height: 932 });
-  await page.reload();
-  await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await expect(page).toHaveURL(/\/more$/);
-  await page.getByRole('button', { name: productTour.replay }).click();
-  await expect(
-    page.getByRole('heading', { name: productTour.today.title }),
-  ).toBeVisible();
-  await capture(page, info, 'tour-wir-430-light.png');
+  await expect(start).toHaveCount(0);
 });
 
-test('ordinary More destinations remain usable while the first invitation is visible', async ({
+test('startup dismissal persists through reload and manual help reflows with reduced motion', async ({
   page,
-}) => {
+}, info) => {
   await installMocks(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/more');
-  await page.getByLabel(de.login.email).fill('lea@example.org');
-  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
-  await page.getByRole('button', { name: de.login.submit }).click();
+  await page.setViewportSize({ width: 360, height: 800 });
+  await signIn(page, '/more');
+  const dismiss = page.getByRole('button', {
+    name: productTour.dismiss,
+    exact: true,
+  });
+  await expect(dismiss).toHaveCount(0);
+
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  await expect(dismiss).toBeVisible();
+  await page
+    .getByRole('button', { name: productTour.later, exact: true })
+    .click();
+  await expect(dismiss).toHaveCount(0);
+
+  await page.reload();
+  await expect(dismiss).toBeVisible();
+  await dismiss.click();
+  await expect(dismiss).toHaveCount(0);
+  await page.reload();
   await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
+    page
+      .getByRole('main')
+      .getByRole('heading', { name: navigation.today, exact: true }),
   ).toBeVisible();
+  await expect(dismiss).toHaveCount(0);
 
-  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page
+    .getByRole('link', { name: productTour.replay, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`${TOUR_PATH}$`));
+  await expect(page.locator('.product-tour-page')).toHaveCSS(
+    'max-width',
+    '720px',
+  );
+  await capture(page, info, 'tour-topics-1280-dark.png');
 
-  await page.setViewportSize({ width: 320, height: 700 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 780 });
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
-  const settings = page.getByRole('link', { name: de.more.settings.title });
-  await settings.scrollIntoViewIfNeeded();
-  await settings.click();
-  await expect(page).toHaveURL(/\/more\/settings$/);
+  const list = page.getByRole('list', { name: productTour.topics });
+  await expect(list.getByRole('link')).toHaveCount(4);
   await expect
     .poll(() =>
       page.evaluate(
-        (key) => window.localStorage.getItem(key),
-        `eimir:product-tour:v1:${ACCOUNT_ID}:${SPACE_ID}`,
+        () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     )
-    .toBe('seen');
-  await page.goto('/more');
+    .toBe(true);
+  const result = await new AxeBuilder({ page })
+    .include('.product-tour-page')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(result.violations).toEqual([]);
+  await capture(page, info, 'tour-topics-320-dark-large-text.png');
+
+  await list.getByRole('link', { name: navigation.story, exact: true }).click();
   await expect(
-    page.getByRole('heading', { name: productTour.invite.title }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole('button', { name: productTour.replay }),
-  ).toBeVisible();
+    page.getByRole('complementary', { name: productTour.replay }),
+  ).toHaveCSS('animation-name', 'none');
+  await page
+    .getByRole('button', { name: de.story.addMoment, exact: true })
+    .click();
+  const menu = page.getByRole('dialog', {
+    name: de.story.addMoment,
+    exact: true,
+  });
+  await expect(menu).toBeVisible();
+  await expect(menu).toHaveCSS('animation-name', 'none');
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
 });

@@ -54,6 +54,7 @@ import {
   type WishScope,
 } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
+import { ProductTourCue } from './ProductTourPage';
 import { UiState } from './UiState';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -959,6 +960,7 @@ export function SharedPlanningOverviewPage({
         datesTabId={datesTabId}
         datesPanelId={datesPanelId}
       />
+      <ProductTourCue topic="plan" />
 
       <PlanenPanel
         id={plansPanelId}

@@ -1,153 +1,64 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { Link, MemoryRouter, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import productTour from '../i18n/locales/productTour';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ProductTourProvider, useProductTour } from './productTour';
 
-function Fixture({
-  accountId = 'alex',
-  spaceId = 'home',
-}: {
-  accountId?: string;
-  spaceId?: string;
-}) {
-  const { replay } = useProductTour();
-  const location = useLocation();
-  return (
+function OfferFixture() {
+  const { offerVisible, hideOffer } = useProductTour();
+  return offerVisible ? (
     <>
-      <main id="main-content" tabIndex={-1}>
-        {location.pathname}
-      </main>
-      <button type="button" onClick={replay}>
-        Replay from More
+      <button type="button" onClick={() => hideOffer(false)}>
+        Later
       </button>
-      <Link to="/today">Use app normally</Link>
-      <button type="button" data-task-item-key="moment-create">
-        Actual plus
+      <button type="button" onClick={() => hideOffer(true)}>
+        Do not show again
       </button>
-      <span>
-        {accountId}:{spaceId}
-      </span>
     </>
-  );
+  ) : null;
 }
 
-function renderTour(route = '/more', accountId = 'alex', spaceId = 'home') {
+function renderTour(accountId = 'alex', spaceId = 'home') {
   return render(
-    <MemoryRouter initialEntries={[route]}>
+    <MemoryRouter>
       <ProductTourProvider accountId={accountId} spaceId={spaceId}>
-        <Fixture accountId={accountId} spaceId={spaceId} />
+        <OfferFixture />
       </ProductTourProvider>
     </MemoryRouter>,
   );
 }
 
-const stored = new Map<string, string>();
-beforeEach(() => {
-  stored.clear();
-  vi.stubGlobal('localStorage', {
-    getItem: (key: string) => stored.get(key) ?? null,
-    setItem: (key: string, value: string) => stored.set(key, value),
-  });
-});
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+beforeEach(() => window.localStorage.clear());
+afterEach(cleanup);
 
-describe('optional product tour', () => {
-  it('offers first-use help on More, dismisses it per viewer and Space, and permits replay', () => {
+describe('product introduction startup offer', () => {
+  it('keeps Later local to this app session', () => {
     const first = renderTour();
-    expect(
-      screen.getByRole('heading', { name: productTour.invite.title }),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: productTour.later }));
-    expect(
-      screen.queryByRole('heading', { name: productTour.invite.title }),
-    ).toBeNull();
-    expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
-      'seen',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Later' }));
+    expect(screen.queryByRole('button', { name: 'Later' })).toBeNull();
+    expect(window.localStorage.length).toBe(0);
+
     first.unmount();
-
     renderTour();
-    expect(
-      screen.queryByRole('heading', { name: productTour.invite.title }),
-    ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Replay from More' }));
-    expect(
-      screen.getByRole('heading', { name: productTour.today.title }),
-    ).toBeTruthy();
-    expect(screen.getByRole('main').textContent).toBe('/today');
-    cleanup();
-
-    renderTour('/more', 'sam', 'home');
-    expect(
-      screen.getByRole('heading', { name: productTour.invite.title }),
-    ).toBeTruthy();
-    cleanup();
-    renderTour('/more', 'alex', 'other-space');
-    expect(
-      screen.getByRole('heading', { name: productTour.invite.title }),
-    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Later' })).toBeTruthy();
   });
 
-  it('visits the real routes and opens the real plus action without blocking ordinary use', () => {
-    const plus = vi.fn();
-    renderTour();
-    screen
-      .getByRole('button', { name: 'Actual plus' })
-      .addEventListener('click', plus);
-    fireEvent.click(screen.getByRole('button', { name: productTour.start }));
-    expect(screen.getByRole('main').textContent).toBe('/today');
-    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
-    expect(screen.getByRole('main').textContent).toBe('/story');
-    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
-    expect(screen.getByRole('main').textContent).toBe('/plan');
-    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
-    expect(screen.getByRole('main').textContent).toBe('/story');
-    expect(
-      screen.getByRole('heading', { name: productTour.create.title }),
-    ).toBeTruthy();
-    fireEvent.click(
-      screen.getByRole('button', { name: productTour.openCreate }),
-    );
-    expect(plus).toHaveBeenCalledOnce();
-    expect(
-      screen.queryByRole('heading', { name: productTour.create.title }),
-    ).toBeNull();
-  });
-
-  it('treats ordinary navigation away from the invitation as dismissal', () => {
-    renderTour();
-    fireEvent.click(screen.getByRole('link', { name: 'Use app normally' }));
-    expect(screen.getByRole('main').textContent).toBe('/today');
+  it('remembers permanent dismissal in the existing viewer and Space scope', () => {
+    const first = renderTour();
+    fireEvent.click(screen.getByRole('button', { name: 'Do not show again' }));
+    expect(screen.queryByRole('button')).toBeNull();
     expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
       'seen',
     );
-  });
 
-  it('dismisses on Escape inside the tour without taking Escape from another control', () => {
-    renderTour();
-    fireEvent.keyDown(
-      screen.getByRole('button', { name: 'Replay from More' }),
-      {
-        key: 'Escape',
-      },
-    );
-    expect(
-      screen.getByRole('heading', { name: productTour.invite.title }),
-    ).toBeTruthy();
-
-    fireEvent.keyDown(screen.getByRole('button', { name: productTour.later }), {
-      key: 'Escape',
-    });
-    expect(
-      screen.queryByRole('heading', { name: productTour.invite.title }),
-    ).toBeNull();
-    expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
-      'seen',
-    );
+    first.unmount();
+    const restarted = renderTour();
+    expect(screen.queryByRole('button')).toBeNull();
+    restarted.unmount();
+    const otherAccount = renderTour('sam');
+    expect(screen.getByRole('button', { name: 'Later' })).toBeTruthy();
+    otherAccount.unmount();
+    renderTour('alex', 'other-space');
+    expect(screen.getByRole('button', { name: 'Later' })).toBeTruthy();
   });
 });

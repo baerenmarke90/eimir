@@ -33,6 +33,7 @@ import {
   PrivateNotesListPage,
 } from './PrivateNotesPage';
 import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
+import { ProductTourCue } from './ProductTourPage';
 import './PrivateAreaProductPage.css';
 import './PrivateAreaReference.css';
 
@@ -70,6 +71,9 @@ export function PrivateAreaProductPage({
 
   return (
     <PrivateAreaFrame editorFirst={isGiftEditor} itemFirst={isItem}>
+      {matchPath(PRIVATE_NOTES_PATH, pathname) ? (
+        <ProductTourCue topic="private" />
+      ) : null}
       <Routes>
         {/* The chips below the header are the only way between sections, so
             the area opens on the first one instead of a second picker. */}

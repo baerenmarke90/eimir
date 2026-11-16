@@ -85,6 +85,7 @@
   --navigation-backdrop-blur: 24px;
   --map-dark-tile-filter: invert(1) hue-rotate(180deg) brightness(0.85)
     saturate(0.7);
+  --map-paper-tile-filter: saturate(0.6) contrast(0.97) brightness(1.04);
   --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;

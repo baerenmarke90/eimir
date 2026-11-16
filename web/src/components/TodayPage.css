@@ -1382,3 +1382,12 @@
     max-width: 18rem;
   }
 }
+
+@media (min-width: 840px) {
+  /* Keep tile widths consistent across modules with different item counts. */
+  .today-agenda-row,
+  .today-agenda-list:has(> .today-agenda-row:nth-child(2)) > .today-agenda-row,
+  .today-activity-trace > .activity-result-wrapper {
+    flex: 0 1 18rem;
+  }
+}

@@ -31,6 +31,7 @@ import {
   storyFiltersToSearch,
 } from '../client/storyProduct';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -47,6 +48,7 @@ import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './MemoryMapPage.css';
+import './MemoryMapAlbum.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
 
@@ -70,6 +72,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const [diaryLayout] = useDiaryLayout();
   const locale = resolvedLocale();
   const {
     captureOrigin,
@@ -482,6 +485,7 @@ export function MemoryMapPage({
             {locations.length || focusPoint ? (
               <div
                 className="memory-map-surface"
+                data-diary-layout={diaryLayout}
                 data-map-moving={mapMoving || undefined}
               >
                 <div className="memory-map-tools">
@@ -551,6 +555,7 @@ export function MemoryMapPage({
                 >
                   <div
                     className="memory-map-fullscreen-surface"
+                    data-diary-layout={diaryLayout}
                     data-map-moving={mapMoving || undefined}
                   >
                     {expanded ? (
@@ -668,6 +673,7 @@ export function MemoryMapPage({
             {!selected ? (
               <ul
                 className="memory-map-places"
+                data-diary-layout={diaryLayout}
                 aria-label={t('memoryMap.places')}
               >
                 {locations.map(({ point, memories }) => (

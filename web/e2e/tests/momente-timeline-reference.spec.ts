@@ -10,6 +10,12 @@ import {
   ME,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const SELF_ATTRIBUTION = de.story.byAuthor.replace(
   '{{author}}',

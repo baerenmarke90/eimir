@@ -143,6 +143,9 @@ for (const role of [
   declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
 }
 
+for (const mark of ['white', 'black', 'rose', 'blue', 'yellow'])
+  declare(`photo-mark-${mark}`, value(`photoMark.${mark}`).toLowerCase());
+
 declare(
   'navigation-surface-opacity',
   `${value('navigationGlass.surfaceOpacity') * 100}%`,

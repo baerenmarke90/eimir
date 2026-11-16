@@ -2327,6 +2327,66 @@
     "confirm": "Use photo",
     "confirming": "Preparing…"
   },
+  "photoEdit": {
+    "edit": "Edit",
+    "editLabel": "Edit photo: {{name}}",
+    "title": "Edit photo",
+    "tools": "Tool",
+    "toolNames": {
+      "crop": "Crop",
+      "draw": "Draw",
+      "text": "Text"
+    },
+    "stage": {
+      "crop": "Crop the photo",
+      "draw": "Draw on the photo",
+      "text": "Text on the photo"
+    },
+    "help": {
+      "crop": "Drag the corners for the section. Move the photo with one finger, zoom with two.",
+      "draw": "Draw on the photo with your finger.",
+      "text": "Tap the photo to write text. Drag text to move it, and the dot at its corner to resize it."
+    },
+    "cropArea": "Move the photo in the section",
+    "cropKeys": "Arrow keys move the photo; plus and minus zoom.",
+    "handles": {
+      "nw": "Drag the top left corner",
+      "n": "Drag the top edge",
+      "ne": "Drag the top right corner",
+      "e": "Drag the right edge",
+      "se": "Drag the bottom right corner",
+      "s": "Drag the bottom edge",
+      "sw": "Drag the bottom left corner",
+      "w": "Drag the left edge"
+    },
+    "turn": "Rotate",
+    "reset": "Reset",
+    "color": "Colour",
+    "colors": {
+      "white": "White",
+      "black": "Black",
+      "rose": "Rose",
+      "blue": "Blue",
+      "yellow": "Yellow"
+    },
+    "font": "Font",
+    "fonts": {
+      "ui": "Clean",
+      "serif": "Elegant",
+      "hand": "Handwriting",
+      "script": "Playful",
+      "poster": "Poster",
+      "typewriter": "Typewriter"
+    },
+    "addText": "Add text",
+    "resizeText": "Resize text",
+    "textLabel": "Text on the photo",
+    "preview": "Preview of the edited photo",
+    "undo": "Undo",
+    "confirm": "Apply",
+    "confirming": "Preparing…",
+    "unavailable": "This photo cannot be edited on this device."
+  },
   "photoSources": {
     "settingsTitle": "Media sources",
     "settingsIntro": "Connect your photo service for new moments.",

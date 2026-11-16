@@ -847,8 +847,18 @@ export function MemoryProductPage({
                 videoContext={{ apis, accountId: currentAccountId, spaceId }}
                 disabled={updateMutation.isPending}
                 attachments={attachments}
-                gallery={(addAction) => (
+                gallery={(addAction, editDraft) => (
                   <PhotoDraftGallery
+                    onEdit={
+                      editDraft
+                        ? (key) => {
+                            const draft = photoItems.find(
+                              (item) => item.key === key,
+                            )?.draft;
+                            if (draft) editDraft(draft.id);
+                          }
+                        : undefined
+                    }
                     addAction={!memory.experienceKind ? addAction : undefined}
                     key={photoOrderScope}
                     resourceScopeKey={photoOrderScope}

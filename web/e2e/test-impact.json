@@ -1068,6 +1068,19 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "photo-edit.spec.ts": {
+      "roots": [
+        "web/src/components/PhotoEditTask.tsx",
+        "web/src/client/photoEdit.ts",
+        "web/src/client/jpegExif.ts",
+        "web/src/components/AttachmentDraftPicker.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/client/useAttachmentDrafts.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx"
+      ]
+    },
     "profile-photo-crop.spec.ts": {
       "roots": [
         "web/src/components/ProfilePage.tsx",

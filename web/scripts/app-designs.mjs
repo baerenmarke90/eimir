@@ -207,14 +207,16 @@ export function validateDesign(design, tokens) {
   );
   oneOf(id, 'type.headings', design.type.headings, HEADINGS);
   exactKeys(id, 'icon', design.icon, ['stroke', 'accent']);
+  // "standard" follows the app's icon stroke (identity.icon.strokePx).
   if (
-    typeof design.icon.stroke !== 'number' ||
-    design.icon.stroke < presets.iconStroke.min ||
-    design.icon.stroke > presets.iconStroke.max
+    design.icon.stroke !== 'standard' &&
+    (typeof design.icon.stroke !== 'number' ||
+      design.icon.stroke < presets.iconStroke.min ||
+      design.icon.stroke > presets.iconStroke.max)
   )
     fail(
       id,
-      `icon.stroke must be between ${presets.iconStroke.min} and ${presets.iconStroke.max}.`,
+      `icon.stroke must be "standard" or between ${presets.iconStroke.min} and ${presets.iconStroke.max}.`,
     );
   oneOf(id, 'icon.accent', design.icon.accent, ICON_ACCENTS);
   exactKeys(id, 'surface', design.surface, ['backdrop', 'elevation', 'edges']);
@@ -253,7 +255,10 @@ function presetDeclarations(design, tokens) {
     lines.push('--shadow-card: var(--shadow-soft);');
   if (design.surface.edges === 'hairline')
     lines.push(`--border-surface-width: ${tokens.border.hairline.$value};`);
-  if (design.icon.stroke !== identity.icon.strokePx)
+  if (
+    design.icon.stroke !== 'standard' &&
+    design.icon.stroke !== identity.icon.strokePx
+  )
     lines.push(`--icon-stroke-width: ${design.icon.stroke};`);
   if (design.icon.accent === 'mono')
     lines.push(
@@ -332,7 +337,7 @@ export function buildAppDesigns(tokens, designs) {
     fallback.surface.elevation !== 'standard' ||
     fallback.surface.edges !== 'none' ||
     fallback.icon.accent !== 'duotone' ||
-    fallback.icon.stroke !== identity.icon.strokePx ||
+    ![identity.icon.strokePx, 'standard'].includes(fallback.icon.stroke) ||
     fallback.type.display !== 'literata'
   )
     fail(

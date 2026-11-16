@@ -143,6 +143,17 @@ describe('app design token sets', () => {
     );
   });
 
+  it('lets a design follow the app icon stroke with "standard"', () => {
+    expect(() =>
+      validateDesign(
+        design({ icon: { stroke: 'standard', accent: 'duotone' } }),
+        tokens,
+      ),
+    ).not.toThrow();
+    const { css } = buildAppDesigns(tokens, designs);
+    expect(css).not.toContain('--icon-stroke-width');
+  });
+
   it('requires one file per id', () => {
     expect(() =>
       buildAppDesigns(tokens, { ...designs, other: design() }),

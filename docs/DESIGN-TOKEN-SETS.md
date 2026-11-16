@@ -36,7 +36,7 @@ and generates:
 | `shape` | `standard`, `crisp`, `soft` | `--radius-small/medium/large/card` |
 | `type.display` | a key of `designPresets.displayFamilies` | `--font-display` |
 | `type.headings` | `display`, `ui` | `--font-heading-family` |
-| `icon.stroke` | `designPresets.iconStroke` range | `--icon-stroke-width` |
+| `icon.stroke` | `standard` (the app stroke) or a value in the `designPresets.iconStroke` range | `--icon-stroke-width` |
 | `icon.accent` | `duotone`, `mono` | icon accent strokes keep their accent or follow the text colour |
 | `motion` | `standard`, `calm`, `lively` | scaled `--duration-feedback/transition/context` (never under reduced motion) |
 | `surface.backdrop` | `glow`, `flat` | `--design-backdrop-glow` |

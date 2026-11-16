@@ -597,7 +597,7 @@
     },
     "shared-notes.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 5,
+      "baselineTests": 6,
       "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column and the pinned Wir tile that opens the note. Plan linking, conflict and offline paths stay in component tests. No always-run expansion."
     },
     "map-place-stacks.spec.ts": {

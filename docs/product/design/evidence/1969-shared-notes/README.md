@@ -45,7 +45,7 @@ Wir tile opening the note.
 
 ## Not covered here (outstanding)
 
-- ~360/~430 px widths, large text/reflow and reduced-motion captures.
+- ~360/~430 px widths and captures of the reduced-motion and large-text states. The spec asserts that overview, reading page and editor do not overflow horizontally at 320 px with 200% text and reduced motion (this found and fixed a header overflow in the editor), but it stores no image.
 - The plan section, the plan choice sheet, the conflict notice, the offline
   error and the notification entries have component tests but no screenshots.
 - No native device or Capacitor wrapper check; the same web UI ships there.

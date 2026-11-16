@@ -241,6 +241,54 @@ test.describe('expanded layout', () => {
   });
 });
 
+test.describe('reflow and reduced motion', () => {
+  test.use({ viewport: { width: 320, height: 700 } });
+
+  test('overview, reading and editing reflow at 320 px with 200% text and reduced motion', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await fixture(page, [holiday, places]);
+    await signIn(page);
+    const horizontalOverflow = () =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
+      );
+    const largeText = () =>
+      page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+
+    await page.goto('/more/notes');
+    await expect(
+      page.getByRole('heading', { name: holiday.title }),
+    ).toBeVisible();
+    await largeText();
+    expect(await horizontalOverflow()).toBe(false);
+
+    await page.getByRole('heading', { name: holiday.title }).click();
+    await expect(
+      page.getByText('Bins on Monday', { exact: true }),
+    ).toBeVisible();
+    await largeText();
+    expect(await horizontalOverflow()).toBe(false);
+
+    await page
+      .getByRole('button', { name: copy.read.edit, exact: true })
+      .click();
+    await expect(
+      page.getByLabel(copy.edit.bodyLabel, { exact: true }),
+    ).toBeVisible();
+    await largeText();
+    expect(await horizontalOverflow()).toBe(false);
+    // With reduced motion the saved state is announced without relying on movement.
+    await page
+      .getByRole('button', { name: copy.edit.save, exact: true })
+      .click();
+    await expect(page.getByText(copy.toast.saved)).toBeVisible();
+  });
+});
+
 test('a pinned note appears on Wir as a tile that opens the note', async ({
   page,
 }, testInfo) => {

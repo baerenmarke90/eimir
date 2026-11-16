@@ -231,6 +231,28 @@
 }
 
 /* ---------- editor ---------- */
+/* At 320 px with 200% text the shared composer header grid (auto columns) is
+   wider than the screen. Let the columns shrink below their content instead,
+   so the save action wraps its label and nothing overflows; at normal sizes the
+   columns resolve exactly as before. */
+.shared-note-editor.quiet-composer .composer-header.page-heading {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+}
+.shared-note-editor.quiet-composer
+  .composer-header
+  .page-heading-action
+  > button {
+  min-inline-size: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.shared-note-editor .shared-note-audience {
+  max-inline-size: 100%;
+}
+.shared-note-editor .shared-note-audience .visibility-badge-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .shared-note-editor .shared-note-audience {
   margin-block-end: var(--space-3);
 }

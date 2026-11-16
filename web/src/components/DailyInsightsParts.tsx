@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { PersonKey } from '../client/dailyInsightsModel';
-import { isoToDate, type IsoDate } from '../client/dailyInsightsModel';
+import { type IsoDate, isoToDate } from '../client/dailyInsightsModel';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PersonIdentity } from './PersonIdentity';
 import { ProMark as SharedProMark } from './ProMark';
@@ -105,29 +105,41 @@ export interface InsightPerson {
 }
 
 /** Partner identity is avatar + first name plus a non-color marker shape. */
-export function PersonLegend({ people }: { people: readonly InsightPerson[] }) {
+export function PersonLegend({
+  people,
+  compact = false,
+}: {
+  people: readonly InsightPerson[];
+  compact?: boolean;
+}) {
   const { t } = useTranslation();
   return (
-    <ul className="insight-legend">
+    <ul
+      className={
+        compact ? 'insight-legend insight-legend-compact' : 'insight-legend'
+      }
+    >
       {people.map((person) => (
         <li key={person.key}>
-          <PersonIdentity
-            displayName={person.name}
-            imageUrl={person.imageUrl}
-            size="small"
-            imageAlt={t(
-              person.key === 'own'
-                ? 'dailyInsights.people.ownAvatar'
-                : 'dailyInsights.people.partnerAvatar',
-              { name: person.name },
-            )}
-            fallbackAlt={t(
-              person.key === 'own'
-                ? 'dailyInsights.people.ownInitials'
-                : 'dailyInsights.people.partnerInitials',
-              { name: person.name },
-            )}
-          />
+          {compact ? null : (
+            <PersonIdentity
+              displayName={person.name}
+              imageUrl={person.imageUrl}
+              size="small"
+              imageAlt={t(
+                person.key === 'own'
+                  ? 'dailyInsights.people.ownAvatar'
+                  : 'dailyInsights.people.partnerAvatar',
+                { name: person.name },
+              )}
+              fallbackAlt={t(
+                person.key === 'own'
+                  ? 'dailyInsights.people.ownInitials'
+                  : 'dailyInsights.people.partnerInitials',
+                { name: person.name },
+              )}
+            />
+          )}
           <span
             className={`insight-marker insight-marker-${person.key}`}
             role="img"
@@ -137,6 +149,7 @@ export function PersonLegend({ people }: { people: readonly InsightPerson[] }) {
                 : 'dailyInsights.people.partnerMarker',
             )}
           />
+          {compact ? <span>{person.name}</span> : null}
         </li>
       ))}
     </ul>
@@ -211,8 +224,12 @@ export function formatDayShort(iso: IsoDate): string {
   return format(iso, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export function formatDayMonth(iso: IsoDate): string {
-  return format(iso, { day: 'numeric', month: 'long' });
+export function formatWeekRange(start: IsoDate, end: IsoDate): string {
+  return new Intl.DateTimeFormat(resolvedLocale(), {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).formatRange(isoToDate(start), isoToDate(end));
 }
 
 export function formatMonthYear(iso: IsoDate): string {

@@ -48,8 +48,8 @@ first shared home, longest long-distance phase. First shared photo belongs to
   newest has a filled dot, older ones a ring. Four are shown; a text button
   ("Alle 17 Wegmarken anzeigen") expands the list in place and collapses it
   again. Milestone anniversaries open their Milestone; the other rows are
-  plain text. Relationship anniversaries are included because they are the
-  existing landmark kind once reached (to confirm).
+  plain text. Relationship anniversaries are included only when they are
+  meaningful (see the decision below).
 - **Data.** Derived in the client, no new stored state or endpoint: the
   relationship start and server-anchored day count from the existing passport
   read, and the existing Milestones list. Milestones are always shared, so both
@@ -69,3 +69,25 @@ first shared home, longest long-distance phase. First shared photo belongs to
   truncating them.
 - **Not included.** Badges, confetti, notifications, a score or streak, a
   separate Discover/Wir tile, storing waymarks.
+
+## Product Owner decisions (2026-11-16)
+
+- Implementation approved by the Product Owner.
+- **Relationship anniversaries** belong in the thread, but only the meaningful
+  ones: the 1st, then every 5th (1, 5, 10, 15 …). Not every year. The next
+  anniversary stays in "next chapter" as before.
+
+## Implementation notes
+
+- Baseline for the implementation: `main` `1ccac0407`. The story overview
+  route, `RelationshipPassport` and its styles are unchanged since the
+  reference baseline `67dbb6b69`.
+- The reference showed a "Noch 56 Tage" card for "1 Jahr seit …" and the
+  thread inside one raised card; both are implemented as drawn. The filled
+  and ring dots use the brand text token so they stay visible in Dark.
+- With no relationship start there is no server-anchored day, so the device's
+  UTC calendar date anchors Milestone anniversaries in the thread; the
+  "next chapter" list stays hidden in that state, as before.
+- Browser evidence: `web/e2e/tests/story-waymarks.spec.ts` writes
+  `story-waymarks-*.png` for 390 Light/Dark, 360 at 200 % text, Expanded,
+  the expanded thread and the omitted state.

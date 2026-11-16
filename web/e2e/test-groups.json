@@ -311,6 +311,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
     },
+    "story-waymarks.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "#1907 F1 feature-owned acceptance for the story overview waymarks: reached round days and Milestone anniversaries as one quiet thread, four shown and the rest opened in place, Milestone rows opening their Milestone, the omitted state, the Free Pro entry, 390 Light/Dark, 360 at 200 percent text and Expanded, with accessibility and reflow checks."
+    },
     "theme-forced-colors.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 1,

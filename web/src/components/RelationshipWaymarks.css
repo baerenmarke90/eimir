@@ -1,0 +1,132 @@
+/*
+ * "Eure Wegmarken": reached round days and anniversaries as one quiet thread
+ * inside a single raised card. The newest waymark has a filled dot, older
+ * ones a ring. Nothing pulses or celebrates.
+ */
+.relationship-story-page .passport-waymarks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.passport-waymarks-card {
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.passport-waymarks-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passport-waymark {
+  position: relative;
+  min-width: 0;
+}
+
+.passport-waymark > a,
+.passport-waymark > div {
+  display: grid;
+  grid-template-columns: var(--space-4) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-3);
+  min-height: 44px;
+  padding-block: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.passport-waymark > a:focus-visible {
+  border-radius: var(--radius-medium);
+}
+
+/* The dot sits on the first line of text; the thread runs down to the next. */
+.passport-waymark-dot {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  margin-block-start: 0.4rem;
+  margin-inline: calc(var(--space-1) / 2);
+  border: 2px solid var(--color-brand-text);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+}
+
+.passport-waymark[data-newest="true"] .passport-waymark-dot {
+  background: var(--color-brand-text);
+}
+
+.passport-waymark:not([data-tail="true"])::after {
+  position: absolute;
+  inset-block: calc(var(--space-3) + 0.4rem + var(--space-3)) 0;
+  inset-inline-start: calc(var(--space-4) / 2 - 1px);
+  inline-size: 2px;
+  background: var(--color-border-subtle);
+  content: "";
+}
+
+.passport-waymark-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.passport-waymark-label {
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.passport-waymark time {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* The rest opens in place: height and opacity, no other movement. */
+.passport-waymarks-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.passport-waymarks-more > .passport-waymarks-list {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.passport-waymarks-more[data-expanded="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .passport-waymarks-more {
+    transition:
+      grid-template-rows var(--duration-context) var(--easing-enter),
+      opacity var(--duration-context) var(--easing-enter);
+  }
+}
+
+.passport-waymarks-toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-block-size: 44px;
+  padding: var(--space-2) 0;
+  background: transparent;
+  color: var(--color-link-text);
+  font: var(--font-ui-label);
+  font-weight: 700;
+  text-align: start;
+  overflow-wrap: anywhere;
+}

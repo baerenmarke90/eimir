@@ -3074,6 +3074,13 @@
       "locked": "With eimir. Pro, see your shared story in personal recaps. One subscription applies to both of you.",
       "dataRights": "Your memories, plans, places and data export remain accessible without Pro.",
       "learnMore": "About eimir. Pro"
+    },
+    "waymarks": {
+      "title": "Your waymarks",
+      "milestoneYears_one": "{{count}} year since “{{title}}”",
+      "milestoneYears_other": "{{count}} years since “{{title}}”",
+      "showAll": "Show all {{count}} waymarks",
+      "showFewer": "Show fewer"
     }
   },
   "experiences": {

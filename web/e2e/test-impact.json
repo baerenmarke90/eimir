@@ -1202,6 +1202,9 @@
     },
     "settings-calendar-sync.spec.ts": {
       "roots": [
+        "web/src/main.tsx",
+        "web/src/client/routes.ts",
+        "web/src/components/PlanProductPage.tsx",
         "web/src/components/CalendarSyncSettings.tsx",
         "web/src/components/CalendarSyncSettings.css",
         "web/src/components/SettingsPage.tsx",

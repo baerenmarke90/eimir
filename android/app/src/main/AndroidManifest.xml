@@ -52,6 +52,17 @@
                     android:path="/google" />
             </intent-filter>
 
+            <!-- Google Photos sign-in return: state plus Google's one-use code, finished by the signed-in app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="de.eimir.app"
+                    android:host="photos"
+                    android:path="/google" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

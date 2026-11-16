@@ -24,6 +24,11 @@ import {
     GoogleAccountSaveToJSON,
 } from '../models/GoogleAccountSave';
 import {
+    type PhotoSelectionAuthorize,
+    PhotoSelectionAuthorizeFromJSON,
+    PhotoSelectionAuthorizeToJSON,
+} from '../models/PhotoSelectionAuthorize';
+import {
     type PhotoSelectionCreate,
     PhotoSelectionCreateFromJSON,
     PhotoSelectionCreateToJSON,
@@ -48,6 +53,12 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+
+export interface AuthorizePhotoSelectionRequest {
+    selectionId: string;
+    spaceId: string;
+    photoSelectionAuthorize: PhotoSelectionAuthorize;
+}
 
 export interface CancelPhotoSelectionRequest {
     selectionId: string;
@@ -108,6 +119,71 @@ export interface StartPhotoSelectionRequest {
  * 
  */
 export class PhotoSourcesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for authorizePhotoSelection without sending the request
+     */
+    async authorizePhotoSelectionRequestOpts(requestParameters: AuthorizePhotoSelectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['selectionId'] == null) {
+            throw new runtime.RequiredError(
+                'selectionId',
+                'Required parameter "selectionId" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        if (requestParameters['photoSelectionAuthorize'] == null) {
+            throw new runtime.RequiredError(
+                'photoSelectionAuthorize',
+                'Required parameter "photoSelectionAuthorize" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize`;
+        urlPath = urlPath.replace('{selectionId}', encodeURIComponent(String(requestParameters['selectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PhotoSelectionAuthorizeToJSON(requestParameters['photoSelectionAuthorize']),
+        };
+    }
+
+    /**
+     * Finish an app-flow Google sign-in with the state and code from the app\'s return link.
+     * Authorize
+     */
+    async authorizePhotoSelectionRaw(requestParameters: AuthorizePhotoSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoSelectionView>> {
+        const requestOptions = await this.authorizePhotoSelectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoSelectionViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Finish an app-flow Google sign-in with the state and code from the app\'s return link.
+     * Authorize
+     */
+    async authorizePhotoSelection(requestParameters: AuthorizePhotoSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoSelectionView> {
+        const response = await this.authorizePhotoSelectionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for cancelPhotoSelection without sending the request

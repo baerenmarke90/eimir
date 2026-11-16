@@ -415,6 +415,25 @@ export function planDetailPath(planId: string): string {
   return `/plan/plans/${encodeURIComponent(planId)}`;
 }
 
+/** Resolve the unpadded, URL-safe Base64 UUID written into synced events. */
+export function planPathFromCalendarLink(pathname: string): string | null {
+  const shortId = /^\/p\/([A-Za-z0-9_-]{22})\/?$/.exec(pathname)?.[1];
+  if (!shortId) return null;
+
+  const bytes = atob(shortId.replaceAll('-', '+').replaceAll('_', '/'));
+  const hex = Array.from(bytes, (byte) =>
+    byte.charCodeAt(0).toString(16).padStart(2, '0'),
+  ).join('');
+  const planId = [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
+  return planDetailPath(planId);
+}
+
 export function reminderDetailPath(reminderId: string): string {
   return `/plan/reminders/${encodeURIComponent(reminderId)}`;
 }

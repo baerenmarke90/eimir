@@ -753,9 +753,12 @@ describe('Pro relationship passport', () => {
         remaining: passportText('remaining', { count: 30 }),
       },
       {
-        label: passportText('roundDay', { count: 800, days: '800' }),
-        date: '2026-08-29',
-        remaining: passportText('remaining', { count: 80 }),
+        label: passportText('roundDay', {
+          count: 1000,
+          days: new Intl.NumberFormat(resolvedLocale()).format(1000),
+        }),
+        date: '2027-03-17',
+        remaining: passportText('remaining', { count: 280 }),
       },
     ]);
     // Past, repeated and fourth-nearest occasions stay out of the list.
@@ -921,20 +924,23 @@ describe('Pro relationship passport', () => {
         count: 2,
         title: 'Engaged',
       });
-      // 11 round days, the first relationship anniversary and two Milestone
+      // 4 round days, the first relationship anniversary and two Milestone
       // anniversaries are reached; the thread is one card and shows the
       // newest four.
       const toggle = within(section).getByRole('button', {
-        name: waymarkText('showAll', { count: 14 }),
+        name: waymarkText('showAll', { count: 7 }),
       });
       expect(toggle.getAttribute('aria-expanded')).toBe('false');
       expect(rows().slice(0, 4)).toEqual([
-        { label: roundDay(1111), date: '2026-07-02' },
         { label: roundDay(1000), date: '2026-03-13' },
         { label: engaged, date: '2026-02-01' },
-        { label: roundDay(900), date: '2025-12-03' },
+        {
+          label: waymarkText('milestoneYears', { count: 1, title: 'Engaged' }),
+          date: '2025-02-01',
+        },
+        { label: roundDay(500), date: '2024-10-29' },
       ]);
-      expect(rows()).toHaveLength(14);
+      expect(rows()).toHaveLength(7);
       expect(section.querySelectorAll('ol')).toHaveLength(2);
       expect(section.querySelector('ol[start="5"]')).not.toBeNull();
       // The Milestone anniversary opens its Milestone; round days are text.
@@ -958,7 +964,7 @@ describe('Pro relationship passport', () => {
           ?.getAttribute('data-expanded'),
       ).toBe('true');
       fireEvent.click(toggle);
-      expect(toggle.textContent).toBe(waymarkText('showAll', { count: 14 }));
+      expect(toggle.textContent).toBe(waymarkText('showAll', { count: 7 }));
     });
 
     it('adds the nearest upcoming Milestone anniversary to the next chapter', async () => {
@@ -997,11 +1003,11 @@ describe('Pro relationship passport', () => {
         },
         {
           label: passportText('roundDay', {
-            count: 1500,
-            days: new Intl.NumberFormat(resolvedLocale()).format(1500),
+            count: 2000,
+            days: new Intl.NumberFormat(resolvedLocale()).format(2000),
           }),
-          date: '2027-07-26',
-          remaining: passportText('remaining', { count: 270 }),
+          date: '2028-12-07',
+          remaining: passportText('remaining', { count: 770 }),
         },
       ]);
     });
@@ -1052,7 +1058,7 @@ describe('Pro relationship passport', () => {
         name: waymarkText('title'),
       });
       const section = heading.closest('section') as HTMLElement;
-      expect(section.querySelectorAll('li')).toHaveLength(12);
+      expect(section.querySelectorAll('li')).toHaveLength(5);
       expect(section.querySelector('a')).toBeNull();
       expect(
         document.querySelectorAll('.passport-landmarks dl > div'),

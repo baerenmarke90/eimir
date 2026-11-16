@@ -198,6 +198,25 @@ function renderTask(
     current.commonWishIds = [];
     return structuredClone(current);
   });
+  const decideWishSelection = vi.fn(async (request) => {
+    const body = request.wishSelectionDecisionUpdate;
+    if (body.action === 'CHOOSE')
+      current.decision = {
+        wishId: body.wishId ?? null,
+        dateIdeaId: body.dateIdeaId ?? null,
+        method: 'MANUAL',
+      };
+    if (body.action === 'CLEAR') current.decision = null;
+    if (body.action === 'REQUEST_RANDOM')
+      current.randomRequest = { mine: true, declined: false };
+    if (body.action === 'ACCEPT_RANDOM') {
+      current.decision = { wishId: 'lake', dateIdeaId: null, method: 'RANDOM' };
+      current.randomRequest = null;
+    }
+    if (body.action === 'DECLINE_RANDOM')
+      current.randomRequest = { mine: false, declined: true };
+    return structuredClone(current);
+  });
   const closeWishSelectionRound = vi.fn(async () => {
     current = projection('NO_ROUND');
   });
@@ -224,6 +243,7 @@ function renderTask(
       replaceWishSelectionRound,
       updateOwnWishSelection,
       closeWishSelectionRound,
+      decideWishSelection,
     },
     wishes: {
       listWishes: vi.fn(
@@ -286,18 +306,70 @@ function renderTask(
     replaceWishSelectionRound,
     updateOwnWishSelection,
     closeWishSelectionRound,
+    decideWishSelection,
     createWish,
     convertWishToPlan,
     switchAccount: (account: string) => rendered.rerender(tree(account)),
   };
 }
 
+/** Opens the Wish source of the round hub (#1907 J1). */
+async function openWishes() {
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: new RegExp(copy.sourceWishesTitle),
+    }),
+  );
+}
+
+/** Opens the date-idea source of the round hub in pick mode. */
+async function openIdeas() {
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: new RegExp(copy.sourceIdeasTitle),
+    }),
+  );
+}
+
+/** Returns from a source to the round hub with the pick bar. */
+function finishPick() {
+  fireEvent.click(screen.getByRole('button', { name: copy.pickDone }));
+}
+
+/** A private favourite toggle in the vote step. */
+async function favorite(name: string | RegExp) {
+  return screen.findByRole('button', { name });
+}
+
 describe('WishSelectionPage', () => {
+  it('explains the round in three steps and offers two sources while it is empty', async () => {
+    renderTask(projection('NO_ROUND'));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: copy.setupTitle }),
+    ).toBeTruthy();
+    const steps = screen.getByRole('list', { name: copy.stepsLabel });
+    expect(steps.querySelectorAll('li')).toHaveLength(3);
+    expect(screen.getByText(copy.stepFavoritesBodyUnnamed)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: new RegExp(copy.sourceWishesTitle) }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: new RegExp(copy.sourceIdeasTitle) }),
+    ).toBeTruthy();
+    // The segmented source switch and the setup intros are gone.
+    expect(screen.queryByRole('group', { name: copy.sourcesLabel })).toBeNull();
+    expect(screen.getByRole('button', { name: copy.start })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
   it('sorts the combined paginated open Wishes alphabetically without losing selection', async () => {
     const { apis, replaceWishSelectionRound } = renderTask(
       projection('NO_ROUND'),
       true,
     );
+    await openWishes();
     await screen.findByRole('checkbox', { name: 'Apple' });
     expect(vi.mocked(apis.wishes.listWishes)).toHaveBeenCalledWith(
       expect.objectContaining({ cursor: 'second' }),
@@ -309,6 +381,14 @@ describe('WishSelectionPage', () => {
     ).toEqual(['Apple', 'Banana', 'Zoo']);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Apple' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Zoo' }));
+    expect(
+      screen.getByText(copy.selected.replace('{{count}}', '2')),
+    ).toBeTruthy();
+    finishPick();
+    // The hub shows how many Wishes the source contributed.
+    expect(
+      screen.getByText(copy.sourceCount.replace('{{count}}', '2')),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: copy.start }));
     await waitFor(() =>
       expect(replaceWishSelectionRound).toHaveBeenCalledWith(
@@ -323,20 +403,27 @@ describe('WishSelectionPage', () => {
 
   it('starts a bounded round from real Wishes without opening the keyboard', async () => {
     const { replaceWishSelectionRound } = renderTask(projection('NO_ROUND'));
+    await openWishes();
     const pasta = await screen.findByRole('checkbox', {
       name: candidates[0].title,
     });
+    expect(document.activeElement).not.toBe(
+      screen.getByPlaceholderText(copy.newIdeaPlaceholder),
+    );
+    fireEvent.click(pasta);
+    finishPick();
+    expect(screen.getByText(copy.needOneMore)).toBeTruthy();
     expect(document.activeElement).not.toBe(
       screen.getByPlaceholderText(copy.occasionPlaceholder),
     );
     const start = screen.getByRole('button', { name: copy.start });
     expect(start).toHaveProperty('disabled', true);
-    fireEvent.click(pasta);
-    expect(start).toHaveProperty('disabled', true);
+    await openWishes();
     fireEvent.click(
       screen.getByRole('checkbox', { name: candidates[1].title }),
     );
-    fireEvent.click(start);
+    finishPick();
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
     await screen.findByRole('heading', { name: copy.chooseTitle });
     expect(replaceWishSelectionRound).toHaveBeenCalledWith({
       spaceId: 'space-1',
@@ -352,9 +439,11 @@ describe('WishSelectionPage', () => {
 
   it('does not publish before the deliberate Share action', async () => {
     const { updateOwnWishSelection } = renderTask();
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    const pasta = await favorite(candidates[0].title);
+    // Nothing is preselected; the step exists to narrow the round down.
+    expect(pasta.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(pasta);
+    expect(pasta.getAttribute('aria-pressed')).toBe('true');
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: copy.share }));
     await screen.findByRole('heading', { name: copy.waitingTitle });
@@ -393,11 +482,116 @@ describe('WishSelectionPage', () => {
     expect(screen.queryByText(candidates[2].title)).toBeNull();
   });
 
+  it('lets the couple pick one of several common favourites and decide again', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = ['pasta', 'lake'];
+    initial.randomPool = 'COMMON';
+    const { convertWishToPlan, decideWishSelection } = renderTask(initial);
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: copy.sharedManyTitle.replace('{{amount}}', '2'),
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.sharedManyIntro)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: copy.prepare })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: copy.randomPropose }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: candidates[1].title }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: copy.chosenTitle }),
+    ).toBeTruthy();
+    // The tap is stored on the round so both devices show the same pick.
+    expect(
+      decideWishSelection.mock.calls[0][0].wishSelectionDecisionUpdate,
+    ).toEqual({ action: 'CHOOSE', wishId: 'lake', dateIdeaId: undefined });
+    expect(screen.getByText(copy.chosenLabel)).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 2, name: copy.alsoShared }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.unchoose }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: candidates[0].title }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: copy.prepare }));
+    fireEvent.click(await screen.findByRole('button', { name: copy.savePlan }));
+    await screen.findByText('Canonical Plan result');
+    expect(convertWishToPlan.mock.calls[0][0].wishId).toBe('pasta');
+  });
+
+  it('proposes chance only with consent and shows the pending question', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    const { decideWishSelection } = renderTask(initial);
+    await screen.findByRole('heading', { name: copy.noMatchTitle });
+    expect(screen.getByText(new RegExp(copy.randomPoolFavorites))).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.randomPropose }));
+    expect(
+      await screen.findByRole('button', { name: copy.randomWithdraw }),
+    ).toBeTruthy();
+    expect(
+      decideWishSelection.mock.calls[0][0].wishSelectionDecisionUpdate.action,
+    ).toBe('REQUEST_RANDOM');
+    // Nothing is decided before the partner agrees.
+    expect(screen.queryByText(copy.chosenRandomLabel)).toBeNull();
+  });
+
+  it('lets the partner agree to chance and shows the stored result', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    initial.randomRequest = { mine: false, declined: false };
+    renderTask(initial);
+    expect(
+      await screen.findByText(new RegExp(copy.randomOnlyOne)),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: copy.randomChangeFirst }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.randomAccept }));
+    // A short reveal plays first; the stored pick follows on both devices.
+    expect(await screen.findByText(copy.randomRolling)).toBeTruthy();
+    expect(
+      await screen.findByText(copy.chosenRandomLabel, {}, { timeout: 3000 }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 2, name: candidates[1].title }),
+    ).toBeTruthy();
+  });
+
+  it('keeps deciding together when the partner declines chance', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    initial.randomRequest = { mine: false, declined: false };
+    renderTask(initial);
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.randomDecline }),
+    );
+    expect(
+      await screen.findByRole('button', { name: copy.randomPropose }),
+    ).toBeTruthy();
+    expect(screen.queryByText(copy.chosenRandomLabel)).toBeNull();
+  });
+
+  it('hints softly when every candidate is a favourite', async () => {
+    renderTask();
+    for (const candidate of candidates)
+      fireEvent.click(await favorite(candidate.title));
+    expect(
+      screen.getByText(new RegExp(copy.allFavorites.replace('?', '\\?'))),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: copy.share })).toBeTruthy();
+  });
+
   it('keeps the zero-match path useful without claiming mutual agreement', async () => {
     const initial = projection('READY');
     initial.commonWishIds = [];
     renderTask(initial);
     await screen.findByRole('heading', { name: copy.noMatchTitle });
+    expect(screen.getByRole('button', { name: copy.newRound })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: copy.ownContinue }));
     await screen.findByRole('heading', { name: copy.ownTitle });
     expect(screen.getByText(copy.ownBody)).toBeTruthy();
@@ -410,10 +604,8 @@ describe('WishSelectionPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: copy.changeOwn }),
     );
-    const pasta = await screen.findByRole('checkbox', {
-      name: candidates[0].title,
-    });
-    expect(pasta).toHaveProperty('checked', true);
+    const pasta = await favorite(candidates[0].title);
+    expect(pasta.getAttribute('aria-pressed')).toBe('true');
     expect(
       updateOwnWishSelection.mock.calls[0][0].wishSelectionUpdate.published,
     ).toBe(false);
@@ -427,9 +619,7 @@ describe('WishSelectionPage', () => {
     updateOwnWishSelection.mockRejectedValueOnce(
       new ClientProblemError('server'),
     );
-    const pasta = await screen.findByRole('checkbox', {
-      name: candidates[0].title,
-    });
+    const pasta = await favorite(candidates[0].title);
     fireEvent.click(pasta);
     fireEvent.click(screen.getByRole('button', { name: copy.share }));
     await waitFor(() =>
@@ -441,7 +631,7 @@ describe('WishSelectionPage', () => {
         false,
       ),
     );
-    expect(pasta).toHaveProperty('checked', true);
+    expect(pasta.getAttribute('aria-pressed')).toBe('true');
     expect(
       screen.queryByRole('heading', { name: copy.waitingTitle }),
     ).toBeNull();
@@ -449,9 +639,7 @@ describe('WishSelectionPage', () => {
 
   it('does not queue or replay publication while offline', async () => {
     const { updateOwnWishSelection } = renderTask();
-    const pasta = await screen.findByRole('checkbox', {
-      name: candidates[0].title,
-    });
+    const pasta = await favorite(candidates[0].title);
     fireEvent.click(pasta);
     onlineManager.setOnline(false);
     fireEvent.click(screen.getByRole('button', { name: copy.share }));
@@ -464,22 +652,22 @@ describe('WishSelectionPage', () => {
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
     onlineManager.setOnline(true);
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
-    expect(pasta).toHaveProperty('checked', true);
+    expect(pasta.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('retains a dirty selection when Back is cancelled', async () => {
     renderTask();
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    fireEvent.click(await favorite(candidates[0].title));
     fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: m5s3.common.keepEditing }),
     );
     expect(
-      screen.getByRole('checkbox', { name: candidates[0].title }),
-    ).toHaveProperty('checked', true);
+      screen
+        .getByRole('button', { name: candidates[0].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
   it('uses canonical Wish-to-Plan conversion and opens the actual undated result', async () => {
@@ -540,9 +728,7 @@ describe('WishSelectionPage', () => {
 
   it('does not overwrite a local draft when another device changes the round', async () => {
     const { queryClient, updateOwnWishSelection } = renderTask();
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    fireEvent.click(await favorite(candidates[0].title));
     const changed = projection();
     changed.version = 2;
     changed.roundToken = 'round-1:2';
@@ -554,8 +740,10 @@ describe('WishSelectionPage', () => {
       ),
     );
     expect(
-      screen.getByRole('checkbox', { name: candidates[0].title }),
-    ).toHaveProperty('checked', true);
+      screen
+        .getByRole('button', { name: candidates[0].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
     await waitFor(() =>
       expect(screen.getByRole('button', { name: copy.share })).toHaveProperty(
         'disabled',
@@ -567,9 +755,7 @@ describe('WishSelectionPage', () => {
 
   it('keeps the personal draft and offers explicit reload when a source changes', async () => {
     const { queryClient, updateOwnWishSelection } = renderTask();
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    fireEvent.click(await favorite(candidates[0].title));
     const changed = projection('NEEDS_IDEAS');
     changed.candidates[0].version = 2;
     act(() =>
@@ -579,8 +765,10 @@ describe('WishSelectionPage', () => {
       ),
     );
     expect(
-      screen.getByRole('checkbox', { name: candidates[0].title }),
-    ).toHaveProperty('checked', true);
+      screen
+        .getByRole('button', { name: candidates[0].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
     await waitFor(() =>
       expect(screen.getByRole('button', { name: copy.share })).toHaveProperty(
         'disabled',
@@ -594,8 +782,10 @@ describe('WishSelectionPage', () => {
       screen.getByRole('button', { name: m5s3.common.keepEditing }),
     );
     expect(
-      screen.getByRole('checkbox', { name: candidates[0].title }),
-    ).toHaveProperty('checked', true);
+      screen
+        .getByRole('button', { name: candidates[0].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
   });
 
@@ -632,14 +822,14 @@ describe('WishSelectionPage', () => {
 
   it('clears personal drafts when the active account changes', async () => {
     const { switchAccount } = renderTask();
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    fireEvent.click(await favorite(candidates[0].title));
     switchAccount('account-b');
     await waitFor(() =>
       expect(
-        screen.getByRole('checkbox', { name: candidates[0].title }),
-      ).toHaveProperty('checked', false),
+        screen
+          .getByRole('button', { name: candidates[0].title })
+          .getAttribute('aria-pressed'),
+      ).toBe('false'),
     );
   });
 
@@ -654,9 +844,7 @@ describe('WishSelectionPage', () => {
           resolvePublication = resolve;
         }),
     );
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: candidates[0].title }),
-    );
+    fireEvent.click(await favorite(candidates[0].title));
     fireEvent.click(screen.getByRole('button', { name: copy.share }));
     await waitFor(() =>
       expect(updateOwnWishSelection).toHaveBeenCalledTimes(1),
@@ -665,14 +853,16 @@ describe('WishSelectionPage', () => {
       screen.getByRole('button', { name: taskBoundary.back }),
     ).toHaveProperty('disabled', true);
     switchAccount('account-b');
-    await screen.findByRole('checkbox', { name: candidates[0].title });
+    await favorite(candidates[0].title);
     await act(async () => resolvePublication(projection('READY')));
     expect(
       screen.queryByRole('heading', { name: copy.sharedTitle }),
     ).toBeNull();
     expect(
-      screen.getByRole('checkbox', { name: candidates[0].title }),
-    ).toHaveProperty('checked', false);
+      screen
+        .getByRole('button', { name: candidates[0].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('false');
     expect(
       queryClient.getQueryData<WishSelectionView>(
         wishSelectionQueryKey('', 'account-b', 'space-1'),
@@ -687,6 +877,7 @@ describe('WishSelectionPage', () => {
 
   it('adds new ideas through normal idempotent Wish creation', async () => {
     const { createWish } = renderTask(projection('NO_ROUND'));
+    await openWishes();
     const input = await screen.findByPlaceholderText(copy.newIdeaPlaceholder);
     fireEvent.change(input, { target: { value: 'Make bread together' } });
     fireEvent.click(screen.getByRole('button', { name: copy.addIdea }));
@@ -706,27 +897,29 @@ describe('WishSelectionPage', () => {
       false,
       'free',
     );
-    fireEvent.click(
-      await screen.findByRole('button', { name: copy.sourceIdeas }),
-    );
+    await openIdeas();
     expect(
       await screen.findByRole('heading', {
         name: new RegExp(dateCopy.locked.title),
       }),
     ).toBeTruthy();
+    // Free sees no pick bar: nothing can be added from the locked catalog.
+    expect(screen.queryByRole('button', { name: copy.pickDone })).toBeNull();
     expect(screen.getByText(copy.ideasLockedBody)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: dateCopy.locked.action }),
     ).toHaveProperty('href', expect.stringContaining('/more/pro'));
     expect(screen.queryByText(picnic.title)).toBeNull();
     // Wishes stay fully usable in the same draft.
-    fireEvent.click(screen.getByRole('button', { name: copy.sourceWishes }));
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    await openWishes();
     fireEvent.click(
       screen.getByRole('checkbox', { name: candidates[0].title }),
     );
     fireEvent.click(
       screen.getByRole('checkbox', { name: candidates[1].title }),
     );
+    finishPick();
     fireEvent.click(screen.getByRole('button', { name: copy.start }));
     await waitFor(() =>
       expect(replaceWishSelectionRound).toHaveBeenCalledWith(
@@ -747,18 +940,27 @@ describe('WishSelectionPage', () => {
       false,
       'pro',
     );
+    await openWishes();
     fireEvent.click(
       await screen.findByRole('checkbox', { name: candidates[0].title }),
     );
-    fireEvent.click(screen.getByRole('button', { name: copy.sourceIdeas }));
+    finishPick();
+    await openIdeas();
+    // Pick mode shows full cards with one action each and no remember action.
     const add = await screen.findAllByRole('button', { name: copy.ideaAdd });
     expect(add).toHaveLength(3);
+    expect(screen.getAllByText(picnic.description)).toHaveLength(3);
+    expect(screen.queryByRole('link', { name: dateCopy.card.save })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: dateCopy.filters.open }),
+    ).toBeTruthy();
     fireEvent.click(add[0]);
     expect(screen.getByRole('button', { name: copy.ideaAdded })).toHaveProperty(
       'ariaPressed',
       'true',
     );
-    // The summary keeps both sources visible and removable.
+    finishPick();
+    // The tray keeps both sources visible and removable.
     expect(
       screen.getByRole('button', {
         name: copy.removeCandidate.replace('{{title}}', picnic.title),
@@ -778,17 +980,19 @@ describe('WishSelectionPage', () => {
       }),
     );
     expect(
-      await screen.findByRole('checkbox', { name: new RegExp(picnic.title) }),
-    ).toHaveProperty('checked', false);
+      (await favorite(new RegExp(picnic.title))).getAttribute('aria-pressed'),
+    ).toBe('false');
   });
 
   it('never adds a sixth candidate from the catalog', async () => {
     renderTask(projection('NO_ROUND'), false, 'pro');
+    await openWishes();
     for (const candidate of candidates)
       fireEvent.click(
         await screen.findByRole('checkbox', { name: candidate.title }),
       );
-    fireEvent.click(screen.getByRole('button', { name: copy.sourceIdeas }));
+    finishPick();
+    await openIdeas();
     const [first, second, third] = await screen.findAllByRole('button', {
       name: copy.ideaAdd,
     });
@@ -799,12 +1003,14 @@ describe('WishSelectionPage', () => {
     expect(
       screen.getByText(copy.selected.replace('{{count}}', '5')),
     ).toBeTruthy();
-    // Removing one from the summary frees a place again.
+    // Removing one from the tray frees a place again.
+    finishPick();
     fireEvent.click(
       screen.getByRole('button', {
         name: copy.removeCandidate.replace('{{title}}', picnic.title),
       }),
     );
+    await openIdeas();
     expect(third).toHaveProperty('disabled', false);
   });
 
@@ -814,9 +1020,7 @@ describe('WishSelectionPage', () => {
       false,
       'pro',
     );
-    fireEvent.click(
-      await screen.findByRole('checkbox', { name: new RegExp(sunset.title) }),
-    );
+    fireEvent.click(await favorite(new RegExp(sunset.title)));
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: copy.share }));
     await screen.findByRole('heading', { name: copy.waitingTitle });
@@ -879,7 +1083,7 @@ describe('WishSelectionPage', () => {
       await screen.findByRole('heading', { name: copy.setupTitle }),
     ).toBeTruthy();
     // Paused ideas without content are not carried into the Free replacement.
-    expect(screen.getByText(copy.chooseMore)).toBeTruthy();
+    expect(screen.getByText(copy.needOneMore)).toBeTruthy();
     expect(
       screen.getByRole('button', {
         name: copy.removeCandidate.replace('{{title}}', candidates[0].title),

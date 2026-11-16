@@ -1,20 +1,21 @@
 import {
   captureDurableMediaEpoch,
   clearDurableMediaStore,
+  evictDurableMedia,
   readDurableMedia,
   writeDurableMedia,
-  evictDurableMedia,
 } from './durableMediaStore';
-import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
 import {
+  MEDIA_CACHE_MAX_AGE_MS,
   MEDIA_CACHE_MAX_BYTES,
   MEDIA_CACHE_MAX_ENTRIES,
-  MEDIA_CACHE_MAX_AGE_MS,
 } from './mediaCacheLimits';
+import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
+
 export {
+  MEDIA_CACHE_MAX_AGE_MS,
   MEDIA_CACHE_MAX_BYTES,
   MEDIA_CACHE_MAX_ENTRIES,
-  MEDIA_CACHE_MAX_AGE_MS,
 } from './mediaCacheLimits';
 /** Session-memory ownership, shared only within an authorized account/API scope. */
 export interface MediaCacheScope {
@@ -31,7 +32,6 @@ interface CacheLease {
   readonly revocation: number;
   readonly spaceRevocation: number;
   readonly durableEpoch?: string;
-  readonly projectionRevision: number;
 }
 
 interface CachedBlob {
@@ -97,12 +97,6 @@ const pending = new Map<string, PendingBlob>();
 let cachedBytes = 0;
 let generation = 0;
 const revocations = new Map<string, number>();
-let projectionRevision = 0;
-const previewAuthorizations = new Map<
-  string,
-  { lease: CacheLease; expiresAt: number }
->();
-const PREVIEW_AUTHORIZATION_MAX_AGE_MS = 60_000;
 
 export function captureMediaCacheLease(
   client: object,
@@ -121,7 +115,6 @@ export function captureMediaCacheLease(
     durableEpoch: scope.durableIdentity
       ? captureDurableMediaEpoch()
       : undefined,
-    projectionRevision,
   };
 }
 
@@ -181,8 +174,6 @@ function rememberCachedBlob(key: string, blob: Blob): void {
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
-  projectionRevision += 1;
-  previewAuthorizations.clear();
   evictMediaObjectUrls();
   clearDurableMediaStore();
   cached.clear();
@@ -201,8 +192,6 @@ export function evictAuthorizedMedia(
   lease: CacheLease,
   identityPrefix: readonly string[],
 ): void {
-  projectionRevision += 1;
-  previewAuthorizations.clear();
   const resourceKey = keyPrefix(lease, identityPrefix);
   const diskPrefix = durableKey(lease, identityPrefix);
   if (diskPrefix) evictDurableMedia(diskPrefix.slice(0, -1));
@@ -238,58 +227,7 @@ function durableKey(
     : undefined;
 }
 
-/** A fresh parent response authorizes only its exact ready thumbnail identities.
- * These one-use proofs are never persisted or derived from a cached projection.
- */
-export function rememberAuthorizedMediaPreviews(
-  lease: CacheLease,
-  identities: readonly (readonly string[])[],
-): void {
-  if (
-    !lease.scope.durableIdentity ||
-    lease.projectionRevision !== projectionRevision
-  )
-    return;
-  try {
-    assertMediaCacheLease(lease);
-  } catch {
-    return;
-  }
-  for (const identity of identities) {
-    if (identity.at(-1) !== 'thumbnail') continue;
-    const key = keyPrefix(lease, identity);
-    previewAuthorizations.delete(key);
-    previewAuthorizations.set(key, {
-      lease,
-      expiresAt: Date.now() + PREVIEW_AUTHORIZATION_MAX_AGE_MS,
-    });
-  }
-  while (previewAuthorizations.size > MEDIA_CACHE_MAX_ENTRIES) {
-    previewAuthorizations.delete(previewAuthorizations.keys().next().value!);
-  }
-}
-
-export function consumeAuthorizedMediaPreview(
-  lease: CacheLease,
-  identity: readonly string[],
-): boolean {
-  const key = keyPrefix(lease, identity);
-  const authorization = previewAuthorizations.get(key);
-  previewAuthorizations.delete(key);
-  if (!authorization || authorization.expiresAt <= Date.now()) return false;
-  try {
-    assertMediaCacheLease(authorization.lease);
-    assertMediaCacheLease(lease);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Start the local read while the caller verifies parent access. The caller
- * must still authorize delivery before exposing the bytes to a view.
- */
+/** Read bytes this login already stored for the exact lease and identity. */
 export async function readStoredMediaBlob(
   lease: CacheLease,
   identity: readonly string[],
@@ -320,7 +258,7 @@ export async function readStoredMediaBlob(
 }
 
 /**
- * Reuse immutable bytes after the caller's authorization check. Identity must
+ * Reuse immutable bytes stored for this exact scope. Identity must
  * include parent binding, attachment identity and original/thumbnail variant.
  * Cancellation belongs to each consumer; only the last departing consumer
  * cancels the shared transport. Failed/aborted results never enter the cache.

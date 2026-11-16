@@ -26,8 +26,6 @@ const profiles = {
   anniversaryInDays_one: 'in 1 Tag',
   anniversaryInDays_other: 'in {{count}} Tagen',
   relationshipSavedSubtle: '✓ Gespeichert',
-  relationshipNotificationHint:
-    'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',

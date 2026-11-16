@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import mediaOverview from '../../src/i18n/locales/mediaOverview';
@@ -11,6 +10,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 
 const SPACE = '22222222-2222-4222-8222-222222222222';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
@@ -401,7 +401,7 @@ test('media overview: lazy variants, viewer Back, bounded originals and canonica
     .toBeCloseTo(top, 0);
 });
 
-test('media overview: viewer reopen and detail return reuse image bytes while checking access again', async ({
+test('media overview: viewer reopen and detail return reuse image bytes without a new read grant', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -444,10 +444,12 @@ test('media overview: viewer reopen and detail return reuse image bytes while ch
   await selected.click();
   await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
   expect(binaries).toEqual(['thumbnail', 'original']);
+  // Stored bytes are shown without asking the server again (PO decision of
+  // 2026-11-16); the refreshed list decides what remains visible.
   expect(
     reads.filter((read) => read.id === 'photo-1' && read.variant === 'original')
       .length,
-  ).toBeGreaterThanOrEqual(4);
+  ).toBe(1);
   await screenshot(page, testInfo, 'media-cache-viewer-return-390.png');
 });
 
@@ -678,7 +680,7 @@ test('media overview: revoked original access refreshes the projection and dismi
   await screenshot(page, testInfo, 'story-photos-revoked-access.png');
 });
 
-test('media overview: app restart reuses durable bytes and still authorizes every read', async ({
+test('media overview: app restart shows durable bytes without a new read grant', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -740,7 +742,147 @@ test('media overview: app restart reuses durable bytes and still authorizes ever
   expect(
     reads.filter((read) => read.id === 'photo-1' && read.variant === 'original')
       .length,
-  ).toBeGreaterThan(before);
+  ).toBe(before);
+  expect(
+    reads.filter(
+      (read) => read.id === 'photo-1' && read.variant === 'thumbnail',
+    ).length,
+  ).toBe(1);
+});
+
+test('media overview: a return shows known photos in the first frame and a photo deleted meanwhile leaves', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const reads = await mocks(page);
+  await signIn(page);
+  const visible = page.locator('.media-overview-tile img');
+  await expect(visible.first()).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator('.media-overview-tile img[data-media-reveal="ready"]')
+        .count(),
+    )
+    .toBeGreaterThanOrEqual(6);
+  const readsBefore = reads.length;
+  await page.locator('[data-media-id="photo-2"]').click();
+  await page
+    .getByRole('button', { name: mediaOverview.source, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/memory-2$/);
+  // Sample every frame before paint: an on-screen tile must never show a
+  // skeleton or a pending fade while the page returns.
+  await page.evaluate(() => {
+    const frames: number[] = [];
+    (window as unknown as { __mediaFrames: number[] }).__mediaFrames = frames;
+    const sample = () => {
+      const tiles = [
+        ...document.querySelectorAll('.media-overview-tile'),
+      ].filter((tile) => tile.getBoundingClientRect().top < window.innerHeight);
+      frames.push(
+        tiles.filter((tile) =>
+          tile.querySelector(
+            '.story-media-skeleton, img[data-media-reveal="pending"]',
+          ),
+        ).length,
+      );
+      if (frames.length < 120) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/story\/photos$/);
+  await expect(page.locator('[data-media-id="photo-1"] img')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __mediaFrames: number[] }).__mediaFrames
+            .length,
+      ),
+    )
+    .toBeGreaterThanOrEqual(120);
+  const frames = await page.evaluate(
+    () => (window as unknown as { __mediaFrames: number[] }).__mediaFrames,
+  );
+  expect(Math.max(...frames)).toBe(0);
+  expect(
+    reads.slice(readsBefore).filter((read) => read.variant === 'thumbnail'),
+  ).toEqual([]);
+
+  // The photo was deleted while the app was closed. On the next start the
+  // stored list and photos show first; the late server answer removes it.
+  await page.route(`**/api/v1/spaces/${SPACE}/media?**`, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: photos
+          .filter((photo) => photo.attachment.id !== 'photo-3')
+          .slice(0, 40),
+        totalCount: 43,
+        hasMore: true,
+        nextCursor: 'second-page',
+      }),
+    });
+  });
+  await page.reload();
+  await expect(page.locator('[data-media-id="photo-3"] img')).toBeVisible();
+  // A departure lasts one context duration; record it instead of polling.
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __departed: string[] }).__departed = seen;
+    new MutationObserver(() => {
+      for (const node of document.querySelectorAll<HTMLElement>(
+        '[data-departing="true"]',
+      ))
+        if (!seen.includes(node.dataset.motionKey ?? ''))
+          seen.push(node.dataset.motionKey ?? '');
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await expect(page.locator('[data-media-id="photo-3"]')).toHaveCount(0);
+  await expect(page.locator('[data-departing="true"]')).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __departed: string[] }).__departed,
+    ),
+  ).toEqual(['MEMORY:memory-3:photo-3']);
+  await expect(page.locator('.media-overview-tile')).toHaveCount(40);
+  // The deleted photo's stored bytes are removed from this device.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const request = indexedDB.open('eimir-authorized-media-v1');
+            request.onsuccess = () => {
+              const db = request.result;
+              const read = db
+                .transaction('media')
+                .objectStore('media')
+                .getAllKeys();
+              read.onsuccess = () => {
+                db.close();
+                resolve(
+                  read.result.some((key) => String(key).includes('"photo-3"')),
+                );
+              };
+            };
+            request.onerror = () => resolve(true);
+          }),
+      ),
+    )
+    .toBe(false);
+  await screenshot(
+    page,
+    testInfo,
+    'media-overview-return-after-delete-390.png',
+  );
 });
 
 test('media overview opens retained video and returns from a saved Plan photo', async ({

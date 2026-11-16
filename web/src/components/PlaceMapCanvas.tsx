@@ -37,6 +37,8 @@ const TILE_CACHE_ZOOM_LEVELS = 8;
 const PLACE_ZOOM = 15;
 const OVERVIEW_MAX_ZOOM = 12;
 const MARKER_KEYS = ['Enter', ' '];
+/** The connection starts at the latest this long after it was placed. */
+const MAP_READY_FALLBACK_MS = 2500;
 
 export interface MapPoint {
   latitude: number;
@@ -291,10 +293,22 @@ export default function PlaceMapCanvas({
         connectionOverlay.current = null;
         return;
       }
-      connectionOverlay.current ??= new ConnectionOverlay(
-        map.getCanvasContainer(),
-        map.getCanvas(),
-      );
+      if (!connectionOverlay.current) {
+        const overlay = new ConnectionOverlay(
+          map.getCanvasContainer(),
+          map.getCanvas(),
+        );
+        connectionOverlay.current = overlay;
+        // Start once the basemap is drawn; a slow or failing basemap must
+        // not hold the connection back for long.
+        const start = () => {
+          window.clearTimeout(fallback);
+          if (connectionOverlay.current === overlay) overlay.start();
+        };
+        const fallback = window.setTimeout(start, MAP_READY_FALLBACK_MS);
+        if (map.loaded()) start();
+        else map.once('idle', start);
+      }
       connectionOverlay.current.update(
         current,
         map.project(lngLat(from.area)),

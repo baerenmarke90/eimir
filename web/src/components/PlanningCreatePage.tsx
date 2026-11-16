@@ -43,7 +43,11 @@ import {
 } from '../client/problemDetails';
 import { rememberDateIdeaWish } from '../client/dateIdeas';
 import { createReferenceApis } from '../client/referenceFlow';
-import { planDetailPath, wishDetailPath } from '../client/routes';
+import {
+  DATE_IDEAS_ROUTE,
+  planDetailPath,
+  wishDetailPath,
+} from '../client/routes';
 import {
   loadAllPlaces,
   planScheduleFromInputs,
@@ -57,6 +61,7 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { DateIdeasComposerHint } from './DateIdeasComposerHint';
 import { EimirIcon } from './EimirIcon';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
@@ -765,6 +770,18 @@ export function PlanningCreatePage({
       onSubmit={submit}
       onClose={requestClose}
     >
+      {draft?.dateIdeaId ? null : (
+        <DateIdeasComposerHint
+          onOpen={() =>
+            requestClose(() =>
+              navigate(DATE_IDEAS_ROUTE, {
+                replace: true,
+                state: { taskOriginKey: originKey },
+              }),
+            )
+          }
+        />
+      )}
       {offlineAttempt ? (
         <p className="inline-message" role="alert">
           {t('taskBoundary.offline')}

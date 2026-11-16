@@ -50,6 +50,14 @@
   text-align: center;
 }
 
+.partner-map-between-km {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
 .partner-map-people {
   display: grid;
   gap: var(--space-3);

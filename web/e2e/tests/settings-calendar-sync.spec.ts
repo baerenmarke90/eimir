@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import calendarSync from '../../src/i18n/locales/calendarSync';
 import de from '../../src/i18n/locales/de';

@@ -2,24 +2,23 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Configuration } from './apiConfiguration';
 import {
+  captureMediaCacheLease,
+  evictAuthorizedMedia,
+  loadCachedMediaBlob,
+} from './authorizedMediaCache';
+import {
   AttachmentsApi,
-  ProfilesApi,
-  StoryApi,
   DashboardApi,
   PlacesApi,
+  ProfilesApi,
+  StoryApi,
 } from './mediaApis';
-import {
-  captureMediaCacheLease,
-  loadCachedMediaBlob,
-  consumeAuthorizedMediaPreview,
-  evictAuthorizedMedia,
-} from './authorizedMediaCache';
+import { clearProductReadCacheInBackground } from './productReadCache';
 import {
   clearStoredSession,
   refreshSessionTokens,
   storeSession,
 } from './sessionPersistence';
-import { clearProductReadCacheInBackground } from './productReadCache';
 
 const account = { id: 'account', displayName: 'Alex' };
 const tokens = {
@@ -71,131 +70,63 @@ const json = (value: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-it('fresh map projections authorize only their exact thumbnails and reject late revoked responses', async () => {
-  let finish!: (value: Response) => void;
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(
-      () =>
-        new Promise<Response>((resolve) => {
-          finish = resolve;
-        }),
-    ),
-  );
-  const places = new PlacesApi(configuration());
-  const media = new AttachmentsApi(configuration());
-  const payload = {
-    items: [
-      {
-        memoryId: 'parent',
-        placeId: 'place',
-        placeName: 'Lake',
-        latitude: 1,
-        longitude: 2,
-        previewAttachmentId: 'photo',
-        previewHasThumbnail: true,
-        happenedOn: '2026-11-05',
-      },
-      {
-        memoryId: 'other',
-        placeId: 'place',
-        placeName: 'Lake',
-        latitude: 1,
-        longitude: 2,
-        previewAttachmentId: 'original-only',
-        previewHasThumbnail: false,
-        happenedOn: '2026-11-05',
-      },
-    ],
-    nextCursor: null,
-    hasMore: false,
-  };
-  const request = places.listMemoryMap({ spaceId: 'space' });
-  await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
-  finish(json(payload));
-  await request;
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(media, 'space'),
-      preview,
-    ),
-  ).toBe(true);
-  expect(
-    consumeAuthorizedMediaPreview(captureMediaCacheLease(media, 'space'), [
-      'attachment',
-      'MEMORY',
-      'other',
-      'original-only',
-      'thumbnail',
-    ]),
-  ).toBe(false);
-  const previousFinish = finish;
-  const late = places.listMemoryMap({ spaceId: 'space' });
-  await vi.waitFor(() => expect(finish).not.toBe(previousFinish));
-  const parent = ['attachment', 'MEMORY', 'parent'];
-  evictAuthorizedMedia(captureMediaCacheLease(media, 'space', parent), parent);
-  finish(json(payload));
-  await late;
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(media, 'space'),
-      preview,
-    ),
-  ).toBe(false);
-});
+const photo = () => new Blob(['photo'], { type: 'image/jpeg' });
+const parentLease = (media: AttachmentsApi) =>
+  captureMediaCacheLease(media, 'space', ['attachment', 'MEMORY', 'parent']);
 
-it('a completed Story response authorizes exactly its ready thumbnails on the shared media scope', async () => {
+it.each([
+  [
+    'Map',
+    () => new PlacesApi(configuration()).listMemoryMap({ spaceId: 'space' }),
+  ],
+  [
+    'Timeline',
+    () => new StoryApi(configuration()).getStoryTimeline({ spaceId: 'space' }),
+  ],
+  [
+    'Discover',
+    () => new StoryApi(configuration()).getStoryDiscover({ spaceId: 'space' }),
+  ],
+  [
+    'Media gallery',
+    () => new StoryApi(configuration()).getMediaGallery({ spaceId: 'space' }),
+  ],
+  [
+    'Dashboard',
+    () => new DashboardApi(configuration()).getDashboard({ spaceId: 'space' }),
+  ],
+] as const)(
+  'a denied %s list evicts every stored image of that Space',
+  async (_name, read) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ title: 'Forbidden' }, 403)),
+    );
+    const media = new AttachmentsApi(configuration());
+    const load = vi.fn(async () => photo());
+    await loadCachedMediaBlob(parentLease(media), preview, load);
+    await loadCachedMediaBlob(parentLease(media), preview, load);
+    expect(load).toHaveBeenCalledTimes(1);
+    await expect(read()).rejects.toBeTruthy();
+    await loadCachedMediaBlob(parentLease(media), preview, load);
+    expect(load).toHaveBeenCalledTimes(2);
+  },
+);
+
+it('a successful list keeps stored images without a new read grant', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => json(storyPayload)),
   );
-  const stories = new StoryApi(configuration());
   const media = new AttachmentsApi(configuration());
-  await stories.getStoryTimeline({ spaceId: 'space' });
-  const lease = captureMediaCacheLease(media, 'space');
-  expect(consumeAuthorizedMediaPreview(lease, preview)).toBe(true);
-  for (const id of ['processing', 'original-only'])
-    expect(
-      consumeAuthorizedMediaPreview(lease, [
-        'attachment',
-        'MEMORY',
-        'parent',
-        id,
-        'thumbnail',
-      ]),
-    ).toBe(false);
+  const load = vi.fn(async () => photo());
+  await loadCachedMediaBlob(parentLease(media), preview, load);
+  await new StoryApi(configuration()).getStoryTimeline({ spaceId: 'space' });
+  await loadCachedMediaBlob(parentLease(media), preview, load);
+  expect(load).toHaveBeenCalledTimes(1);
 });
 
-it('a fresh Dashboard response authorizes only its own thumbnail previews', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async () =>
-      json({
-        space: { spaceId: 'space', partner: null },
-        upcoming: [],
-        retrospective: null,
-        keepsake: null,
-        recentShared: [
-          {
-            type: 'MEMORY',
-            id: 'parent',
-            previewAttachmentId: 'photo',
-            previewHasThumbnail: true,
-          },
-        ],
-      }),
-    ),
-  );
-  await new DashboardApi(configuration()).getDashboard({ spaceId: 'space' });
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(new AttachmentsApi(configuration()), 'space'),
-      preview,
-    ),
-  ).toBe(true);
-});
-
-it('cannot revive a revoked parent with a late Story response', async () => {
+it('a late denied list from a previous login cannot evict images of the next login', async () => {
   let finish!: (value: Response) => void;
   vi.stubGlobal(
     'fetch',
@@ -206,43 +137,23 @@ it('cannot revive a revoked parent with a late Story response', async () => {
         }),
     ),
   );
-  const stories = new StoryApi(configuration());
-  const media = new AttachmentsApi(configuration());
-  const request = stories.getStoryTimeline({ spaceId: 'space' });
+  const request = new StoryApi(configuration()).getStoryTimeline({
+    spaceId: 'space',
+  });
   await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
-  const parent = ['attachment', 'MEMORY', 'parent'];
-  evictAuthorizedMedia(captureMediaCacheLease(media, 'space', parent), parent);
-  finish(json(storyPayload));
-  await request;
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(media, 'space'),
-      preview,
-    ),
-  ).toBe(false);
-});
-
-it('a denied Story read revokes outstanding preview proofs', async () => {
-  let denied = false;
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async () =>
-      denied ? json({ title: 'Forbidden' }, 403) : json(storyPayload),
-    ),
-  );
-  const stories = new StoryApi(configuration());
-  const media = new AttachmentsApi(configuration());
-  await stories.getStoryTimeline({ spaceId: 'space' });
-  denied = true;
-  await expect(
-    stories.getStoryTimeline({ spaceId: 'space' }),
-  ).rejects.toBeTruthy();
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(media, 'space'),
-      preview,
-    ),
-  ).toBe(false);
+  await clearStoredSession();
+  await storeSession({
+    account,
+    tokens: { ...tokens, accessToken: 'access-b', refreshToken: 'refresh-b' },
+    spaceId: 'space',
+  });
+  const media = new AttachmentsApi(configuration('access-b'));
+  const load = vi.fn(async () => photo());
+  await loadCachedMediaBlob(parentLease(media), preview, load);
+  finish(json({ title: 'Forbidden' }, 403));
+  await expect(request).rejects.toBeTruthy();
+  await loadCachedMediaBlob(parentLease(media), preview, load);
+  expect(load).toHaveBeenCalledTimes(1);
 });
 
 it('shares media across generated client instances and its own token rotation', async () => {

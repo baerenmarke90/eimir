@@ -54,6 +54,26 @@ export const TINY_PNG = Buffer.from(
   'base64',
 );
 
+/** The authoritative projection of a Space without an open round. */
+export const NO_WISH_SELECTION_ROUND = {
+  id: null,
+  version: 0,
+  roundToken: 'absent',
+  title: null,
+  candidates: [],
+  own: {
+    favoriteWishIds: [],
+    favoriteDateIdeaIds: [],
+    published: false,
+    version: 0,
+  },
+  selectionToken: null,
+  resultState: 'NO_ROUND',
+  commonWishIds: [],
+  dateIdeaCandidates: [],
+  commonDateIdeaIds: [],
+};
+
 export async function captureScreenshot(
   target: Page | Locator,
   testInfo: TestInfo,
@@ -277,6 +297,16 @@ export async function installMocks(
         createdAt: '2023-06-17T00:00:00Z',
         partners: [ME, PARTNER],
       });
+      return;
+    }
+
+    // The Wishes entry row reads whether a shared round is open (#1907 J1).
+    // Journeys about the round itself install their own stateful endpoint.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wish-selection`
+    ) {
+      await fulfillJson(NO_WISH_SELECTION_ROUND);
       return;
     }
 

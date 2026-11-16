@@ -11,9 +11,14 @@ export default {
     PLAN_CREATED: '{{name}} hat einen gemeinsamen Plan festgelegt.',
     PLAN_CHANGED: 'Zeit oder Ort eines anstehenden Plans haben sich geändert.',
     PLAN_CANCELLED: 'Ein anstehender gemeinsamer Plan wurde abgesagt.',
-    WISH_SELECTION_SHARED:
-      '{{name}} hat eine gemeinsame Wunschauswahl vorbereitet.',
-    WISH_SELECTION_READY: 'Eure gemeinsame Wunschauswahl ist bereit.',
+    WISH_SELECTION_SHARED: '{{name}} fragt: Was machen wir als Nächstes?',
+    WISH_SELECTION_READY: 'Was machen wir als Nächstes? Euer Ergebnis ist da.',
+    WISH_SELECTION_RANDOM_REQUESTED:
+      '{{name}} möchte den Zufall entscheiden lassen.',
+    WISH_SELECTION_RANDOM_ACCEPTED:
+      'Was machen wir als Nächstes? Der Zufall hat entschieden.',
+    WISH_SELECTION_RANDOM_DECLINED:
+      '{{name}} möchte lieber selbst entscheiden.',
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
     TRANSFER_READY:

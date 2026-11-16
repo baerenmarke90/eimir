@@ -591,7 +591,7 @@ code {
   position: relative;
   z-index: 40;
   width: 100%;
-  min-height: calc(72px + var(--shell-header-safe-top, 0px));
+  min-height: var(--shell-topbar-min-height);
   display: flex;
   align-items: center;
   justify-content: space-between;

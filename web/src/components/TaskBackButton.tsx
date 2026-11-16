@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useContext,
   useLayoutEffect,
+  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { createPath, Link } from 'react-router-dom';
@@ -16,7 +17,31 @@ import './SubpageNavigation.css';
 export const TaskBackSlotContext = createContext<{
   slot: HTMLElement | null;
   register: () => () => void;
+  /** A page heading offers its leading cell; the first one in the document wins. */
+  registerHost?: (host: HTMLElement) => () => void;
 } | null>(null);
+
+/** True inside a secondary destination, where the shell supplies Back. */
+export function useSecondaryPage(): boolean {
+  return useContext(TaskBackSlotContext) !== null;
+}
+
+/**
+ * The leading cell of a secondary page's header row. Back renders here instead
+ * of in a separate shell row; it stays empty when another heading hosts Back.
+ */
+export function BackSlotHost({ className = '' }: { className?: string }) {
+  const registerHost = useContext(TaskBackSlotContext)?.registerHost;
+  const [host, setHost] = useState<HTMLSpanElement | null>(null);
+  useLayoutEffect(
+    () => (host && registerHost ? registerHost(host) : undefined),
+    [host, registerHost],
+  );
+  if (!registerHost) return null;
+  return (
+    <span ref={setHost} className={`page-back-host ${className}`.trim()} />
+  );
+}
 
 function BackGlyph({ children }: { children: ReactNode }) {
   return (

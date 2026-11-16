@@ -1,5 +1,5 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';

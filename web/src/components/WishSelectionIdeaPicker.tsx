@@ -10,20 +10,20 @@ import {
 import { proPaywallPath } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
-import { DateIdeaFacts } from './DateIdeaFacts';
+import { DateIdeaCard } from './DateIdeaCard';
 import { DateIdeaFilters } from './DateIdeaFilters';
-import { DateIdeaImage } from './DateIdeaImage';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
 import { UiState } from './UiState';
 
-/** Ideas per step; keeps the round's primary action within reach on Compact. */
-const PAGE_SIZE = 6;
+/** Ideas per step; full cards keep the Compact DOM light. */
+const PAGE_SIZE = 12;
 
 /**
  * Curated date ideas as candidates of the shared selection (#465 within
- * #1535). Reuses the discovery catalog read, images, facts and filters; the
+ * #1535), shown as the catalog in pick mode (#1907 J1): the same full cards
+ * and `Filtern` sheet as discovery, one action per card, no intro. The
  * selected IDs stay in the selection task's in-memory draft. Free Spaces see
  * the calm locked hint with the shared Pro paywall; Wishes stay usable.
  */
@@ -56,7 +56,6 @@ export function WishSelectionIdeaPicker({
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<DateIdeasFilterState>({});
-  const [moreOpen, setMoreOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const data = catalog.data;
   const ideas = useMemo(
@@ -80,10 +79,10 @@ export function WishSelectionIdeaPicker({
         aria-labelledby="wish-selection-ideas-locked"
       >
         <EimirIcon name="sparkle" className="date-ideas-locked-icon" />
-        <h3 id="wish-selection-ideas-locked">
+        <h2 id="wish-selection-ideas-locked">
           {t('dateIdeas.locked.title')}
           <ProMark label={t('dateIdeas.pro')} />
-        </h3>
+        </h2>
         <p>{t('wishSelection.ideasLockedBody')}</p>
         <Link
           className="button-link secondary-link"
@@ -118,8 +117,6 @@ export function WishSelectionIdeaPicker({
           catalog={data}
           filter={filter}
           matchCount={ideas.length}
-          moreOpen={moreOpen}
-          onMoreOpenChange={setMoreOpen}
           onChange={(next) => {
             setVisibleCount(PAGE_SIZE);
             setFilter(next);
@@ -143,7 +140,7 @@ export function WishSelectionIdeaPicker({
               className="secondary"
               onClick={() => {
                 setFilter({});
-                setMoreOpen(false);
+                setVisibleCount(PAGE_SIZE);
               }}
             >
               {t('dateIdeas.filters.reset')}
@@ -156,46 +153,37 @@ export function WishSelectionIdeaPicker({
           {t('wishSelection.ideasFull')}
         </p>
       ) : null}
-      <ul className="wish-selection-idea-list">
+      <ul className="date-ideas-list">
         {ideas.slice(0, visibleCount).map((idea) => {
           const titleId = `wish-selection-pick-${idea.id}`;
           const chosen = selectedIds.includes(idea.id);
-          const lang =
-            idea.contentLocale !== data.locale ? idea.contentLocale : undefined;
           return (
-            <li key={idea.id} className="wish-selection-idea">
-              <DateIdeaImage
+            <li key={idea.id} className="date-idea">
+              <DateIdeaCard
                 api={api}
                 accountId={accountId}
                 spaceId={spaceId}
-                image={idea.image}
-                lang={lang}
+                idea={idea}
+                titleId={titleId}
+                categoryLabel={categoryLabels.get(idea.category)}
+                placeLabel={placeLabels.get(idea.placeType)}
+                catalogLocale={data.locale}
+                actions={
+                  <AddActionButton
+                    icon={chosen ? 'check' : 'hinzufuegen'}
+                    className={chosen ? 'is-chosen' : ''}
+                    label={t(
+                      chosen
+                        ? 'wishSelection.ideaAdded'
+                        : 'wishSelection.ideaAdd',
+                    )}
+                    aria-pressed={chosen}
+                    aria-describedby={titleId}
+                    disabled={!chosen && full}
+                    onClick={() => onToggle(idea.id)}
+                  />
+                }
               />
-              <div className="wish-selection-idea-body">
-                <p className="date-idea-category">
-                  {categoryLabels.get(idea.category)}
-                </p>
-                <h3 id={titleId} lang={lang}>
-                  {idea.title}
-                </h3>
-                <DateIdeaFacts
-                  idea={idea}
-                  placeLabel={placeLabels.get(idea.placeType)}
-                />
-                <AddActionButton
-                  icon={chosen ? 'check' : 'hinzufuegen'}
-                  className={chosen ? 'is-chosen' : ''}
-                  label={t(
-                    chosen
-                      ? 'wishSelection.ideaAdded'
-                      : 'wishSelection.ideaAdd',
-                  )}
-                  aria-pressed={chosen}
-                  aria-describedby={titleId}
-                  disabled={!chosen && full}
-                  onClick={() => onToggle(idea.id)}
-                />
-              </div>
             </li>
           );
         })}

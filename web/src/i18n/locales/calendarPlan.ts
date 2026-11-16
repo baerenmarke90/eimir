@@ -1,5 +1,7 @@
 export default {
-  add: 'In Kalender übernehmen',
+  sheetTitle: 'Kalender',
+  sheetClose: 'Kalender schließen',
+  add: 'In eigenen Kalender übernehmen',
   download: 'Kalenderdatei herunterladen',
   copyHint:
     'Einmalige Übernahme als Kalendertermin. Spätere Änderungen am Plan werden nicht automatisch synchronisiert.',

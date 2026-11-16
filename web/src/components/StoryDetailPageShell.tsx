@@ -6,6 +6,8 @@ import { PageHeader } from './PageHeader';
 
 export interface StoryDetailPageShellProps {
   before?: ReactNode;
+  /** Type label of the one named item; see PageHeader (#1907 C4). */
+  itemLabel?: ReactNode;
   eyebrow?: string;
   title: ReactNode;
   titleAction?: ReactNode;
@@ -30,6 +32,7 @@ export interface StoryDetailPageShellProps {
  */
 export function StoryDetailPageShell({
   before,
+  itemLabel,
   eyebrow,
   title,
   titleAction,
@@ -57,6 +60,7 @@ export function StoryDetailPageShell({
       ) : null}
       <PageHeader
         before={before}
+        itemLabel={itemLabel}
         variant={composed ? 'composer' : 'default'}
         action={composed ? titleAction : undefined}
         eyebrow={eyebrow}

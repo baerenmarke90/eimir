@@ -176,7 +176,9 @@ export function PartnerDistanceLine({
         })}`;
     const compactContent = (
       <>
-        <Glyph kind={compactFresh ? 'pin' : 'clock'} />
+        {/* Always the familiar distance pin (Product Owner, 2026-11-16); an
+            earlier value is named in the accessible description. */}
+        <Glyph kind="pin" />
         <span aria-hidden="true">{value}</span>
       </>
     );

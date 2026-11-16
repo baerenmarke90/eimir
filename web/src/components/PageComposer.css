@@ -7,10 +7,24 @@
 }
 .page-composer .composer-header.page-heading {
   position: sticky;
-  inset-block-start: var(--composer-viewport-top, 0px);
+  /* Holds below the native status bar: the app draws edge to edge, so the
+     header sticks at the safe-area inset and paints the ground behind it. */
+  inset-block-start: calc(
+    var(--composer-viewport-top, 0px) +
+    var(--shell-header-safe-top, 0px)
+  );
   z-index: 100;
+  isolation: isolate;
   padding-block: var(--space-2);
   background: var(--composer-ground);
+}
+.page-composer .composer-header.page-heading::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--shell-header-safe-top, 0px)) 0 0;
+  background: var(--composer-ground);
+  pointer-events: none;
 }
 .page-composer
   .composer-header

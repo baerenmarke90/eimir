@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -14,10 +14,12 @@ import {
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 /*
- * #1892: Pro date inspiration under Planen → Wishes and the shared Pro
- * paywall. Free Spaces see a calm hint without a catalog read and can open the
- * paywall deliberately. Pro Spaces filter the editorial catalog and adopt an
- * idea only through the existing composers, returning to the same filters.
+ * #1892: Pro date inspiration and the shared Pro paywall. Since #1907 J1 solo
+ * browsing starts from the Wish composer; the shared round has its own pick
+ * mode. Free Spaces see a calm hint without a catalog read and can open the
+ * paywall deliberately. Pro Spaces filter the editorial catalog in one sheet
+ * and adopt an idea only through the existing composers, returning to the
+ * same filters.
  */
 
 const EXISTING_WISH = '55555555-5555-4555-8555-555555555551';
@@ -43,12 +45,20 @@ async function assertNoWcagViolations(page: Page): Promise<void> {
   expect(result.violations, summary || 'No axe violations').toEqual([]);
 }
 
-async function openFromWishes(page: Page): Promise<void> {
+async function openFromWishes(
+  page: Page,
+  capture?: { info: TestInfo; name: string },
+): Promise<void> {
   await page.goto('/plan#wishes');
+  await page
+    .getByRole('link', { name: m5s3.overview.addWish, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   const entry = page.getByRole('link', {
-    name: new RegExp(dateIdeas.entryAction),
+    name: new RegExp(dateIdeas.composerHintAction),
   });
   await expect(entry).toBeVisible();
+  if (capture) await captureScreenshot(page, capture.info, capture.name);
   await entry.click();
   await expect(page).toHaveURL(/\/plan\/ideas$/);
   await expect(
@@ -58,6 +68,13 @@ async function openFromWishes(page: Page): Promise<void> {
 
 function idea(page: Page, title: string) {
   return page.getByRole('article', { name: title });
+}
+
+async function openFilters(page: Page) {
+  await page.getByRole('button', { name: dateIdeas.filters.open }).click();
+  const sheet = page.getByRole('dialog', { name: dateIdeas.filters.label });
+  await expect(sheet).toBeVisible();
+  return sheet;
 }
 
 function back(page: Page) {
@@ -138,16 +155,28 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       .click();
     await expect(page.getByRole('article')).toHaveCount(48);
 
-    const food = page.getByRole('button', {
-      name: categoryLabel('food_drink'),
-      exact: true,
-    });
-    await food.click();
-    await page.getByRole('button', { name: dateIdeas.filters.more }).click();
-    await page
+    const sheet = await openFilters(page);
+    await sheet
+      .getByRole('button', { name: categoryLabel('food_drink'), exact: true })
+      .click();
+    await sheet
       .getByRole('group', { name: dateIdeas.filters.placeLegend })
       .getByRole('button', { name: placeLabel('home') })
       .click();
+    await sheet
+      .getByRole('button', {
+        name: new RegExp(dateIdeas.filters.show_other.replace('{{count}}', '')),
+      })
+      .click();
+    await expect(sheet).toBeHidden();
+    // Active filters stay visible as removable chips above the ideas.
+    const food = page.getByRole('button', {
+      name: dateIdeas.filters.remove.replace(
+        '{{label}}',
+        categoryLabel('food_drink'),
+      ),
+    });
+    await expect(food).toBeVisible();
     const target = idea(page, FIRST.title);
     await expect(target).toBeVisible();
     // The idea's own image, loaded through the protected API, with alt text.
@@ -178,7 +207,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
 
     await back(page).click();
     await expect(page).toHaveURL(/\/plan\/ideas$/);
-    await expect(food).toHaveAttribute('aria-pressed', 'true');
+    await expect(food).toBeVisible();
     const saved = idea(page, FIRST.title);
     await expect(
       saved.getByRole('link', { name: dateIdeas.card.saved }),
@@ -296,14 +325,17 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       );
       const state = await installDateIdeaMocks(page, { pro: true });
       await signIn(page);
-      await openFromWishes(page);
+      await openFromWishes(page, {
+        info,
+        name: `date-inspiration-composer-hint-${width}-${theme}.png`,
+      });
       await expect(idea(page, FIRST.title)).toBeVisible();
       await captureScreenshot(
         page,
         info,
         `date-inspiration-${width}-${theme}.png`,
       );
-      await page.getByRole('button', { name: dateIdeas.filters.more }).click();
+      await openFilters(page);
       if (width === 320)
         // 200 % text must still reflow without horizontal scrolling.
         await page.addStyleTag({

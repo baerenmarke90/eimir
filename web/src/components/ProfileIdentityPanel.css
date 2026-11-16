@@ -109,32 +109,26 @@
   font-size: 0.85rem;
 }
 
-.profile-name-inline-form,
-.profile-birthday-inline-form {
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
+/* One form for name and birthday, beside (or below) the photo actions. */
+.profile-identity-edit-form {
+  width: 100%;
+  text-align: start;
 }
 
-.profile-name-input-group {
+.profile-identity-edit-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  align-items: center;
 }
 
-.profile-name-input-group input {
-  flex: 1;
-  min-width: 0;
+.profile-identity-avatar-col {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
 }
 
-.profile-name-input-group button {
-  min-height: 44px;
-}
-
-@media (max-width: 36rem) {
-  .profile-name-input-group {
-    align-items: stretch;
-    flex-direction: column;
-  }
+.profile-identity-avatar-col .profile-identity-actions-row {
+  justify-content: center;
 }
 
 @media (min-width: 36rem) {

@@ -1,0 +1,16 @@
+eimir. Android 0.2.0-test.87
+
+- Decide what to do next from one entry on Planning > Wishes. Start a round, mark private favourites, and decide a revealed round together. A random pick only happens when your partner agrees, and both of you see the same result.
+- Notices your partner causes, such as plans, comments, reactions, shared moments and wish proposals, now use one calm receipt with a small badge, without the restless waves. Random-pick requests and answers arrive as push and in-app notices.
+- Photos you have already seen stay on screen when you move between pages, with no empty placeholder and no second fade-in. Stored photos open without a new server request, and the device keeps up to 2000 media items. Items deleted while the app was closed disappear when the list refreshes.
+- Every secondary page opens with one header row: a round Back button and the title beside it. Private notes, lists and gift ideas, Person, shared experiences, recaps and insights follow the same pattern.
+- On the partner map, a distance range shows its kilometres below the words, and the connected view always shows the distance pin. The connection animation starts once the map has drawn and is easier to see.
+- The Wir background stays continuous while you swipe between tabs, with no flash at the end of the swipe.
+- Plan details: the date opens a calendar sheet with your own calendar above the shared one. Concealed plans show a centred lock and only say that the plan is hidden. The occasions banner names the next plan next to the next occasion.
+- Notifications and Activity no longer have refresh buttons (pull to refresh covers both). The unread count is a chip, and "mark all as read" only appears while something is unread.
+- The private area opens directly on Notes, and the section chips are the way between sections.
+- Profile has one edit form for name and birthday. The anniversary symbol is the outline Wir mark, and the Mehr description of "Nur für mich" is clearer.
+- On Android versions whose WebView is too old, the app now shows an update notice with a button to the Play Store instead of an empty screen.
+
+The product changes come from main at a33e9cfa8ff6a9cabfb162231ed654cf1bc9dc51.
+Install over test.86 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 87.

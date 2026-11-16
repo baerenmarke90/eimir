@@ -288,10 +288,11 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <path d="m8.5 10 6 6-6 6-6-6 6-6Z" />
     </>
   ),
+  // The anniversary mark is the outline "Wir" tab symbol: two joined circles.
   jahrestag: (
     <>
-      <circle cx="12" cy="13" r="8.5" />
-      <path className="accent" d="M12 1.5v4M8 2.5 12 1l4 1.5" />
+      <circle className="cool" cx="9" cy="12" r="6.5" />
+      <circle className="accent" cx="15" cy="12" r="6.5" />
     </>
   ),
   benachrichtigungen: (

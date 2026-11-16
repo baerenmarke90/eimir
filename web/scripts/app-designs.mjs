@@ -290,21 +290,25 @@ export function buildAppDesigns(tokens, designs) {
     if (design.id === fallback.id) continue;
     const root = `[data-app-design="${design.id}"]`;
     const extra = presetDeclarations(design, tokens);
-    css.push(
-      ...schemeBlocks(
-        `:root${root} ${APP_DESIGN_SCOPE}`,
-        `:root[data-theme="dark"]${root} ${APP_DESIGN_SCOPE}`,
-        `:root:not([data-theme])${root} ${APP_DESIGN_SCOPE}`,
-        [
-          ...paletteDeclarations(design.palette.light, status.light, 'light'),
-          ...extra,
-        ],
-        [
-          ...paletteDeclarations(design.palette.dark, status.dark, 'dark'),
-          ...extra,
-        ],
-      ),
-    );
+    // A design on the default colour world inherits the root palette.
+    if (design.palette.world === identity.defaultWorld)
+      css.push(block(`:root${root} ${APP_DESIGN_SCOPE}`, extra));
+    else
+      css.push(
+        ...schemeBlocks(
+          `:root${root} ${APP_DESIGN_SCOPE}`,
+          `:root[data-theme="dark"]${root} ${APP_DESIGN_SCOPE}`,
+          `:root:not([data-theme])${root} ${APP_DESIGN_SCOPE}`,
+          [
+            ...paletteDeclarations(design.palette.light, status.light, 'light'),
+            ...extra,
+          ],
+          [
+            ...paletteDeclarations(design.palette.dark, status.dark, 'dark'),
+            ...extra,
+          ],
+        ),
+      );
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(

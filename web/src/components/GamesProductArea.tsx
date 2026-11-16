@@ -6,6 +6,7 @@ import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   proPaywallPath,
 } from '../client/routes';
@@ -24,7 +25,13 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective', 'heartHunt'] as const;
+const GAME_ENTRIES = [
+  'moments',
+  'wishes',
+  'perspective',
+  'heartHunt',
+  'pingPong',
+] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
@@ -32,6 +39,7 @@ function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
   if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
+  if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
   return null;
 }
 
@@ -146,6 +154,7 @@ export function GamesProductArea({
                           'wuensche',
                           'gemeinsam',
                           'momente',
+                          'spiele',
                         ] satisfies EimirIconName[]
                       )[index]
                     }

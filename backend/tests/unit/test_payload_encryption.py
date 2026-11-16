@@ -47,6 +47,7 @@ PINNED_CONTEXTS = {
     "calendar_oauth_transactions": "CalendarOAuthPayload",
     "plan_calendar_links": "PlanCalendarLinkPayload",
     "photo_location_drafts": "PhotoLocationPayload",
+    "picture_ping_pong": "PicturePayload",
     "photo_source_selections": "PhotoSelectionPayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",

@@ -53,6 +53,7 @@ from eimir.once_messages import models as _once_messages  # noqa: F401
 from eimir.outbox import models as _outbox  # noqa: F401
 from eimir.people import models as _people  # noqa: F401
 from eimir.photo_sources import models as _photo_sources  # noqa: F401
+from eimir.picture_ping_pong import models as _picture_ping_pong  # noqa: F401
 from eimir.places import models as _places  # noqa: F401
 from eimir.plans import models as _plans  # noqa: F401
 from eimir.presence import models as _presence  # noqa: F401

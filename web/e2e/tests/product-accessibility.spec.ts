@@ -2,6 +2,7 @@ import composer from '../../src/i18n/locales/composer';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 import {
   expectFloatingAddAction,
@@ -793,6 +794,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (await fulfillNoWishSelectionRound(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

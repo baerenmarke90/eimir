@@ -8,8 +8,7 @@ const config: CapacitorConfig = {
   android: {
     path: '../android',
     // The product's Chromium floor, the same as the Vite build target (#1613).
-    // Below it Capacitor logs "System WebView is not supported"; no in-app
-    // notice is configured (`server.errorPath` is unset).
+    // Below it Capacitor loads `server.errorPath` instead of the app.
     minWebViewVersion: 111,
   },
   ios: {
@@ -18,6 +17,10 @@ const config: CapacitorConfig = {
   },
   server: {
     androidScheme: 'https',
+    // Static ES5 notice (#1931): an update request below the WebView floor,
+    // otherwise a retry for a failed main-frame load, which Capacitor also
+    // routes here.
+    errorPath: 'webview-unsupported.html',
   },
   plugins: {
     CapacitorHttp: {

@@ -12,7 +12,9 @@ import { partnerConnectionStyle } from '../client/partnerConnection';
 import {
   DISTANCE_RESUME_MIN_INTERVAL_MS,
   deviceLanguages,
+  distanceBandWords,
   distanceUnitFor,
+  formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine,
   partnerDistanceQueryKey,
@@ -313,6 +315,12 @@ export function PartnerLocationMapPage({
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
     distanceLine?.kind === 'distance' ? distanceText(distanceLine.band) : null;
+  // The map is the detailed view: a range band shown in words also keeps its
+  // kilometres here, as on Wir only the words are shown (#1907 H4).
+  const betweenKm =
+    distanceLine?.kind === 'distance' && distanceBandWords(distanceLine.band)
+      ? formatDistanceBand(distanceLine.band, locale, unit)
+      : null;
   const ownShare =
     settings?.state === 'ACTIVE'
       ? settings.level === 'DISTANCE_AND_MAP'
@@ -381,7 +389,14 @@ export function PartnerLocationMapPage({
         <h2 id="partner-map-sheet-title" className="sr-only">
           {t('partnerLocation.mapPeopleLabel')}
         </h2>
-        {between ? <p className="partner-map-between">{between}</p> : null}
+        {between ? (
+          <p className="partner-map-between">
+            {between}
+            {betweenKm ? (
+              <span className="partner-map-between-km">{betweenKm}</span>
+            ) : null}
+          </p>
+        ) : null}
         <ul className="partner-map-people">
           <li
             className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}

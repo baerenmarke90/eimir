@@ -4,7 +4,11 @@
 implemented.** No end-to-end encryption claim is allowed until the conditions in
 [section 16.3](#163-copy-and-claim-rules) and [section 21](#21-verification-testing-and-external-audit) hold.
 **Milestone:** MX (Roadmap) — "real cryptographic protection: key model, migration, client crypto, Recovery".
-**Baseline reviewed:** `main` at `52d2eeda39f11d430d01676de93ebe11c92a6567` (2026-11-04).
+**Baseline reviewed:** `main` at `6236fe9e06dbd2300b39940551b47afe195cb54a` (2026-11-16).
+First written against `52d2eeda39f11d430d01676de93ebe11c92a6567` (2026-11-04); what the
+re-baseline changed is listed in [Appendix D](#appendix-d--changes-in-the-2026-11-16-re-baseline).
+External standards and library status were **not** rechecked for the re-baseline
+([Appendix C](#appendix-c--sources-checked) keeps its 2026-11-04 date).
 **Owner:** MX tracking issue [#1638](https://github.com/baerenmarke90/eimir/issues/1638).
 **Builds on:** [Encryption at rest (#797)](../ENCRYPTION-AT-REST.md), [Security](../SECURITY.md),
 [Architecture — E2EE readiness](../ARCHITECTURE.md#e2ee-readiness), [Privacy model](../PRIVACY-MODEL.md),
@@ -51,7 +55,8 @@ reuse review, verification, phasing, and the decisions the Product Owner must ta
 
 Appendices: [A — Glossary](#appendix-a--glossary) ·
 [B — Inventory on the baseline](#appendix-b--inventory-on-the-baseline) ·
-[C — Sources checked](#appendix-c--sources-checked)
+[C — Sources checked](#appendix-c--sources-checked) ·
+[D — Changes in the 2026-11-16 re-baseline](#appendix-d--changes-in-the-2026-11-16-re-baseline)
 
 ---
 
@@ -67,8 +72,9 @@ but it can no longer read content.
 **Recommended architecture in twelve points.**
 
 1. **One crypto core in TypeScript**, shipped in the Web bundle and therefore also in the
-   Android app. Native Android code only stores a device key in Android Keystore and
-   decrypts notification previews. No second crypto implementation per platform.
+   Android app and in the iOS wrapper that exists in the repository but is not launched.
+   Native code only stores a device key (Android Keystore, iOS Keychain) and decrypts
+   notification previews. No second crypto implementation per platform.
 2. **Standards and audited libraries only:** Web Crypto (AES-256-GCM, HKDF-SHA-256,
    Ed25519, X25519), HPKE (RFC 9180) with the hybrid post-quantum KEM X-Wing
    (X25519 + ML-KEM-768) for key envelopes, WebAuthn PRF for passkey unlock. No custom
@@ -113,18 +119,20 @@ but it can no longer read content.
 **What remains visible to the server** (and must be stated honestly): account emails and
 identity, membership, timestamps, domain dates (for timeline, reminders and countdowns),
 record types, counts, relations between records, status flags, ciphertext sizes (reduced
-by padding), notification events, IP addresses and device metadata. See
+by padding), notification events, IP addresses and device metadata, and where the couple
+uses them the distance-only partner location and the calendar entries synced to their
+own calendar. See
 [section 10.5](#105-residual-server-visible-metadata).
 
 **What this costs.** Substantial client work (crypto core, key UX, client-side search and
-media pipeline), a backend refactor of roughly forty modules that read protected fields
+media pipeline), a backend refactor of roughly sixty modules that read protected fields
 today, new key-directory tables and endpoints, a client capability gate, UX design for
 eight new flows, an external audit, and a migration pass that re-uploads existing media.
 Server compute for media/AI decreases for protected Spaces; client CPU and battery use
 increase moderately.
 
 **Decisions needed now** are listed in [section 23](#23-product-owner-decisions-required)
-(23 items with recommendations).
+(27 items with recommendations).
 
 ---
 
@@ -154,7 +162,7 @@ increase moderately.
 | N4 | Protection of shared content from the partner | Shared content is meant for both partners; a former partner keeps what their devices already hold. |
 | N5 | Anonymity or traffic-analysis resistance | IP addresses, access times and request patterns remain visible to the operator. |
 | N6 | A real-time messaging protocol | eimir. is an archive with collaboration, not a chat. MLS remains a candidate only for future real-time features (section 20). |
-| N7 | Native iOS | Web-first per ADR 0011; Safari/PWA is covered. |
+| N7 | A separate native implementation per platform | Web-first per ADR 0011: Safari/PWA, the Android app and the iOS wrapper run the same TypeScript core. The iOS wrapper exists in the repository (Keychain session storage, APNs push) but is not launched; its key store and preview decryption are scheduled with the iOS launch (decision D-24). |
 | N8 | Lawful-access or content-scanning hooks | E2EE without exceptional access. Legal developments are tracked as a risk (section 24). |
 
 ### 1.3 Vocabulary and claim boundary
@@ -184,13 +192,19 @@ paths and residual metadata are never covered by the claim.
 
 The architecture was prepared for this milestone from M0:
 
-- 31 `ProtectedPayload` types bound to 30 JSONB columns through `ProtectedPayloadJSON`
-  (`backend/src/eimir/db/protected_payload.py`). Domain code never sees ciphertext; raw
-  dictionaries are rejected.
+- 41 `ProtectedPayload` types: 38 JSONB columns bound through `ProtectedPayloadJSON`
+  (`backend/src/eimir/db/protected_payload.py`) plus three nested models. Domain code
+  never sees ciphertext; raw dictionaries are rejected. Every domain added since the first
+  baseline kept its user-authored text inside a payload.
 - `crypto_version` per row: `0` plaintext, `1` **reserved for client-sealed content**,
-  `2` server AEAD envelope (`backend/src/eimir/domain/payload.py`). The helper
+  `2` server AEAD envelope (`backend/src/eimir/domain/payload.py`). A mapper event sets
+  `0` or `2` on every insert and payload rewrite; `1` is never written. The helper
   `is_readable_by_server(crypto_version)` exists, and `ProtectedPayload.unseal` already
   states that rows the server cannot read must not break a whole list.
+- One domain is already client-sealed: one-time partner messages (#1672) store a client
+  JWE as `OnceEnvelope`. Its rows still carry scheme `0` or `2`, so
+  `is_readable_by_server` reports them as readable although the server holds no
+  decryption key ([section 11.15](#1115-one-time-partner-messages-1672)).
 - `EncryptingMediaStore` wraps every media object (`EIMIRENC` format, 64 KiB AES-GCM
   chunks with index nonce and final flag).
 - Outbox payloads are restricted to an allowlist of non-sensitive metadata
@@ -203,43 +217,99 @@ The architecture was prepared for this milestone from M0:
 
 Appendix B lists the inventory. In summary:
 
-- **About forty backend modules read protected fields** today, for example
+- **About sixty backend modules read protected fields** today, for example
   `dashboard/service.py` (excerpts and titles), `search/service.py` (matching),
-  `engagement/push_preview.py` (notification titles), `recaps/` (composition and local AI
-  wording), `games/service.py` and `memories/experiences.py` (candidate titles),
-  `wish_selections/service.py` (intersection of private favorites), `places/photo_enrichment.py`,
-  `attachments/video_jobs.py`, `daily_checkins/service.py` and the Demo seeding.
+  `engagement/push_preview.py` (notification titles and, since preview version 2, comment
+  and Memory body excerpts), `recaps/` (composition, quoted comments and local AI
+  wording), `story/rediscovery.py`, `games/service.py` and `memories/experiences.py`
+  (candidate titles), `wish_selections/service.py` (intersection of private favorites),
+  `places/photo_enrichment.py`, `attachments/video_jobs.py`, `daily_checkins/service.py`
+  and the Demo seeding.
+- **Server features added since the first baseline that need plaintext:**
+  - calendar sync (#1895, `integration.external_sync`): a worker job copies Plan title,
+    description and Place name into the couple's Google or CalDAV calendar after every
+    Plan change, without a client being online;
+  - tag proposals (`context_tags/jobs.py`): every six hours a job sends Memory title and
+    body or HeartMoment text to the operator-local inference endpoint;
+  - shopping suggestions (#1808): finishing a shopping trip copies item titles into
+    suggestion rows on the server;
+  - server-side copies: repeating a Wish (#1816) and accepting a Wish date proposal
+    (#1910) copy payload text into a new Wish or Plan;
+  - discreet Plans (#1790): the server substitutes the list title in overviews, inbox,
+    push, recaps and calendar output;
+  - voice notes (#1671): a worker decodes each recording and re-encodes it to AAC.
 - **Sensitive values in plaintext metadata columns:** `places.latitude/longitude`,
   `daily_check_ins.vibe/energy_level`, `profile_preferences.topic`,
-  `related_persons.birthday`, `space_profiles.relationship_started_on`,
-  `accounts.display_name`, account emails.
+  `related_persons.birthday` and `relationship`, `space_profiles.relationship_started_on`,
+  `accounts.display_name`, account emails, and the partner-location snapshot
+  (`presence_snapshots.latitude/longitude`, snapped to a 0.01° grid, 24-hour lifetime,
+  #1792).
 - **Server-side media processing:** magic-byte and dimension validation, pixel rewriting,
   EXIF/ICC handling (ADR 0014), thumbnails and posters (M2-D14/D15), HEIC decoding
-  through `pillow-heif`, video remux/probe in the optional media processor (#88), and
-  server-side GPS extraction for selected-photo Places (#1459/#1478).
-- **Server-side fetches of content:** Photon reverse lookup (coordinates), link previews
-  (`/spaces/{spaceId}/link-preview`, the URL), Google Photos and Immich imports (#1444).
+  through `pillow-heif`, video probe, remux and poster in the optional media processor
+  (#88; conversion itself already runs on the device), audio decoding and re-encoding
+  (#1671), PDF header checks (Plan files), and server-side GPS extraction for
+  selected-photo Places (#1459/#1478).
+- **Server-side fetches and sends of content:** Photon reverse lookup (coordinates), link
+  previews (`/spaces/{spaceId}/link-preview`, the URL), Google Photos and Immich imports
+  (#1444), Google Calendar and CalDAV writes (#1895), and the operator-local inference
+  endpoint (recap wording, tag proposals, weekly-review choice).
 - **Server-side Transfer Bundles** (#345): plaintext assembly in the worker, import with new
   target IDs.
 
 ### 2.3 Clients and platforms
 
 - **Web/PWA:** React/Vite bundle served by the operator's Nginx with a strict CSP
-  (`default-src 'none'`, `script-src 'self'`, `worker-src 'none'`). IndexedDB read cache
-  (`web/src/client/productReadCache.ts`) persists **decrypted** `SPACE_SHARED` payloads
-  for seven days. Browser credentials are tab-scoped. Web Crypto is used only for random
-  values today.
+  (`default-src 'none'`, `script-src 'self'`, `worker-src 'self'`, `manifest-src 'none'`).
+  Two module workers exist already: video preparation
+  (`web/src/client/videoCompression.worker.ts`) and the MapLibre renderer; blob workers
+  stay forbidden. Browser credentials are tab-scoped (`sessionStorage`).
+- **Plaintext the browser persists today:**
+  - the IndexedDB read cache (`web/src/client/productReadCache.ts`) keeps **decrypted**
+    `SPACE_SHARED` DTOs for seven days, including shared lists and an outbox of unsent
+    shopping-list changes (#1808);
+  - the durable media store (`web/src/client/durableMediaStore.ts`) keeps shared images,
+    up to 2000 items without a maximum age; private images stay in memory for the session
+    only (#1954);
+  - Memory diary drafts (`web/src/client/memoryDiaryDraft.ts`) keep title, body, tags and
+    places for seven days.
+- **Client-side cryptography that already exists** (all Web Crypto):
+  - one-time partner messages (#1672) seal content on the sender's device as a JWE
+    (`jose`, RSA-OAEP-256 with A256GCM) for registered recipient device keys; the
+    3072-bit private key is a non-extractable `CryptoKey` in IndexedDB, scoped to
+    instance, Account and Space (`web/src/client/onceMessageCrypto.ts`). It is a second,
+    independent key directory without verification, recovery or migration
+    ([section 11.15](#1115-one-time-partner-messages-1672));
+  - the Android app seals every stored image with AES-256-GCM under a per-login key that
+    native code wraps with Android Keystore (`web/src/client/deviceMediaSeal.ts`,
+    `DeviceMediaKey.java`, #1954). This is device storage protection, not E2EE, but it is
+    the pattern the MX key store reuses.
 - **Android:** Capacitor wrapper (ADR 0011) with **bundled** Web assets (`webDir: dist`,
-  no remote `server.url`), `minSdkVersion = 26`, `CapacitorHttp` enabled.
-  `NativeSessionCipher` already protects the session envelope with a non-exportable
-  Android Keystore AES-256-GCM key in no-backup storage. Push previews use a
-  device-provided 256-bit key; the server JWE-encrypts (`dir`/`A256GCM`) previews it
-  composed itself (`engagement/fcm_push.py`). WebAuthn is unavailable inside the WebView
-  until the native passkey bridge (#630) exists.
+  no remote `server.url`), `minSdkVersion = 26`, `CapacitorHttp` enabled, and a WebView
+  floor of Chromium 111 with a localized update page (#1931; a version check, not a
+  capability probe). `NativeSessionCipher` protects the session envelope and the media key
+  with a non-exportable Android Keystore AES-256-GCM key in no-backup storage. Push
+  previews use a device-generated 256-bit key per activation; the server JWE-encrypts
+  (`dir`/`A256GCM`) previews it composed itself (`engagement/fcm_push.py`) and stores
+  that device key, so it holds both plaintext and key. The UnifiedPush path carries no
+  such preview, only a bounded wish-date field. The native passkey bridge (#630) is not
+  implemented, so passkeys are unavailable inside the WebView, and no client requests
+  the WebAuthn PRF extension yet.
+- **iOS:** a Capacitor iOS project was added after the first baseline (`ios/App`): Keychain
+  session storage (`IosSessionStorage.swift`), APNs push (`IosPush.swift`) and the store
+  purchase plugin. It has no media key and keeps the browser's session-only image
+  behavior. The billing strategy schedules Apple In-App Purchase "at the iOS launch";
+  the app is not released.
+- **Media preparation already runs on the device:** videos are converted to H.264/AAC in
+  the browser worker (`mediabunny`, WebCodecs) or by Media3 in the Android app; the server
+  processor only validates, strips container metadata and remuxes without re-encoding
+  (`backend/src/eimir/attachments/videos.py`).
 - **Invitation links** are built on the inviter's client from a token returned once
-  (`web/src/client/invitationLink.ts`); the token travels in the URL fragment
-  (`entryToken.ts`). The server never mails invitation links. This is the anchor for
-  automatic verification in section 8.2.
+  (`web/src/client/invitationLink.ts`). The token travels in the **query string**
+  (`?token=`) and is stripped from the address after reading (`entryToken.ts`); only the
+  Cloud signup detour carries an `invitationToken` in the URL fragment. No backend mail
+  path for invitation links was found. The client-built link is the anchor for automatic
+  verification in section 8.2, which adds its own data to the fragment.
 - **Releases** are immutable with SPDX SBOMs and Sigstore-backed GitHub Artifact
   Attestations for the Web runtime archive (`docs/m6/IMMUTABLE-RELEASES.md`,
   `docs/m6/SBOM-ATTESTATIONS.md`).
@@ -267,7 +337,9 @@ Appendix B lists the inventory. In summary:
 | Shared content | Memories, HeartMoments (shared), Milestones, comments, Plans, Wishes, Places incl. coordinates, Chapters, Collections, reminders, recap texts, shared preferences | confidentiality and integrity against everyone but the two partners |
 | Personal content | private notes, gift ideas, private collections, private HeartMoments, private partner notes, own recap drafts, own Wish favorites | confidentiality against everyone but the owner, including the partner |
 | Gated content | Daily Check-in values before reveal, surprises, time capsules, vault entries, question answers | confidentiality until the release condition |
-| Media | originals (with retained EXIF/GPS per ADR 0014), display variants, thumbnails, posters, video, audio | as for the parent scope |
+| Media | originals (with retained EXIF/GPS per ADR 0014), display variants, thumbnails, posters, video, voice notes, Plan PDF files | as for the parent scope |
+| Temporary content | one-time partner messages (#1672) | confidentiality against everyone but the recipient's devices; already client-sealed, without verification or recovery |
+| Presence | the consented partner-location snapshot (#1792) | decision D-27; server-visible today |
 | Key material | ARK, identity keys, Space and personal keys, file keys, recovery key, PRF outputs | never on the server in usable form |
 | Integrity of trust state | identity keys, device list, epoch chain, member set | tamper-evident |
 
@@ -284,7 +356,7 @@ Appendix B lists the inventory. In summary:
 | A7 | The partner | holds shared keys, uses own devices | cannot read personal scope (no key, no rows); cannot read gated content before release unless the server colludes |
 | A8 | Former partner after leaving | holds old keys and caches | keeps what was already on their devices; cannot obtain new ciphertext (server authorization) and cannot read content created after the leave even with a later dump (epoch rotation) |
 | A9 | Thief of a locked device | physical device | keys under Android Keystore / non-extractable Web Crypto keys; same protection as the current session envelope |
-| A10 | Push provider (Google/UnifiedPush distributor) | sees push payloads | sees opaque wake payloads and sealed previews only |
+| A10 | Push provider (Google, Apple, UnifiedPush distributor, browser push service) | sees push payloads | sees opaque wake payloads and sealed previews only |
 | A11 | Email or OIDC account takeover | can sign in by Magic Link or OIDC | gets a session but **no keys**; the account stays locked; new devices need an unlock factor; partners see no key change |
 | A12 | Passkey provider compromise (synced passkeys) | can complete PRF ceremonies | can unlock the account — the passkey provider is a trust anchor for PRF unlock; users can disable PRF unlock and use device approval plus Recovery Kit instead |
 | A13 | Legal request to the operator | compels disclosure | only ciphertext, key envelopes and metadata can be produced |
@@ -404,8 +476,9 @@ that must follow the account to new devices. It is versioned and written with `I
 Each installation (browser profile or Android app install) creates:
 
 - a **device wrapping key** `DWK`: non-extractable AES-256-GCM `CryptoKey` in IndexedDB
-  (Web) or a non-exportable Android Keystore key (StrongBox when available, no-backup,
-  `setUnlockedDeviceRequired`). It wraps ARK locally so the device can unlock without
+  (Web), a non-exportable Android Keystore key (StrongBox when available, no-backup,
+  `setUnlockedDeviceRequired`), or a this-device-only Keychain item in the iOS wrapper.
+  It wraps ARK locally so the device can unlock without
   network or ceremony. The wrapped ARK stays on the device; the server never stores it.
 - a **device signing key** (Ed25519) for device linking transcripts.
 - a **device certificate**: `{device_id, account_id, device signing public key, platform,
@@ -664,7 +737,9 @@ chunk_i = AES-256-GCM(K_variant, nonce = prefix(7) || i (u32 BE) || last (u8),
 | **3 (new)** | #797 server AEAD envelope whose plaintext is a client envelope | **no** |
 
 `_enc` keeps equal to `crypto_version` (the #797 invariant). `is_readable_by_server`
-returns false for 1 and 3. `audit-raw` gains a check that protected Spaces contain only
+returns false for 1 and 3. The mapper event that sets `0` or `2` on every write today
+must leave client-sealed rows at 1 or 3; one-time message envelopes move to these schemes
+with section 11.15. `audit-raw` gains a check that protected Spaces contain only
 schemes 1/3, and a key-holding `audit-e2ee` (operator KEK only, no user keys) verifies that
 every scheme-3 plaintext is a structurally valid client envelope.
 
@@ -689,7 +764,7 @@ sequenceDiagram
   participant B as Invitee client
   A->>S: POST /spaces/{id}/invitations
   S-->>A: token (returned once)
-  A->>A: build link with token, fp(A) and pairing secret in the URL fragment
+  A->>A: build link, token in the query string, fp(A) and pairing secret in the fragment
   A-->>B: shared through the inviter's own channel (never through the server)
   B->>B: store fragment data locally (survives the signup detour)
   B->>S: sign up or sign in, publish own key bundle, accept invitation
@@ -701,10 +776,13 @@ sequenceDiagram
   A->>S: signed SK envelopes (all epochs) for the AEK of B
 ```
 
-- The link fragment carries `invitationToken` (existing), `ik` (the inviter's identity
-  fingerprint) and `pair` (the 128-bit pairing secret). Fingerprint and pairing secret live
-  only in the URL fragment and on the two clients. A server that substitutes either bundle
-  cannot produce a valid proof. The assurance equals the integrity and confidentiality of
+- The invitation token stays where it is today, in the query string (`?token=`), where
+  the Web server can see it. The new values travel in the URL fragment, which browsers
+  never send: `ik` (the inviter's identity fingerprint) and `pair` (the 128-bit pairing
+  secret). The invitee client reads and removes the fragment before any navigation, as
+  it already strips the token. Fingerprint and pairing secret live only in the fragment
+  and on the two clients. A server that substitutes either bundle cannot produce a valid
+  proof. The assurance equals the integrity and confidentiality of
   the channel the inviter used to share the link; in-person verification (8.3) upgrades it.
 - The Cloud signup detour (#923 binds only the invitation hash to the signup proof) may
   open the mailed link in another browser context. The invitee client therefore stores
@@ -757,7 +835,7 @@ IETF KEYTRANS (drafts as of 2026), section 20.
 | Factor | What it unwraps | Availability | Notes |
 |---|---|---|---|
 | Device key (local) | ARK on this device | after first unlock on the device | Android Keystore; Web only with "keep this browser unlocked" |
-| Passkey with PRF | ARK | browsers/authenticators with PRF; Android app after #630 adds PRF to the native bridge | same ceremony as sign-in; PRF output never leaves the client |
+| Passkey with PRF | ARK | browsers/authenticators with PRF; Android app after #630 adds PRF to the native bridge (open, not implemented; no client requests PRF today); the iOS wrapper needs an equivalent bridge | same ceremony as sign-in; PRF output never leaves the client |
 | Approve from another device | ARK (transferred) | any time a trusted device is available | QR in either direction; short-code comparison fallback |
 | Recovery Kit | ARK | always | 256-bit key shown once, printable, scannable |
 | Partner assistance | shared scope only | if the partner has a trusted device | requires in-person re-verification; personal scope is never recoverable this way |
@@ -874,36 +952,42 @@ option, not part of MX v1.
 | Domain | Payload today | Scope under E2EE | Changes |
 |---|---|---|---|
 | Memories | title, body, tags, photo reactions, cover id, place order | shared | cover id, place order and photo reactions become metadata (10.4) |
-| HeartMoments | text, emotion, tags, cover id | shared or personal by visibility | transition = re-wrap; cover id becomes metadata |
+| HeartMoments | text, emotion, tags, cover id, voice-note title and speaker name (#1671) | shared or personal by visibility | transition = re-wrap; cover id becomes metadata; the voice note follows the audio rule of 11.4 |
 | Milestones | title, body | shared | – |
 | Comments | body | shared | link preview policy (11.6) |
 | Chapters | title, description | by privacy class | dates stay metadata |
 | Places | name, description, address, geocoding source | by privacy class | **latitude/longitude move into the payload**; "photo-generated" becomes an explicit metadata flag |
-| Plans | title, description, cover id | shared | cover id metadata; dates, status, special-event flag metadata |
-| Wishes | title | shared | status metadata |
+| Plans | title, description, tags, cover id, discreet preview title (#1790) | shared | cover id metadata; dates and periods, status, special-event flag, discreet flag and title mode metadata; discreet masking moves to the client (11.19); Plan-to-list links and PDF files (file name in the attachment payload) follow their own rows |
+| Wishes | title, description, tags | shared | status, repeat-series links (#1816), personal reminder times (#812) and date-proposal times (#1910) metadata; repeat and proposal acceptance become client-driven copies (11.19) |
 | Wish selection | round title; private favorite ids | round title shared; favorites see decision D-15 | – |
-| Collections / items | titles | shared | completion and position metadata |
+| Collections / items | titles, quantities | shared | completion, position and list kind (generic or shopping, #1808) metadata |
+| Shopping suggestions (#1808) | title, quantity | shared | written by the finishing client instead of derived on the server (11.19); purchase count and last-bought time stay metadata |
+| Tag proposals (`context_tag_suggestions`) | proposed tags | shared | not produced for protected Spaces unless D-05 allows operator inference (11.18) |
+| One-time messages (#1672) | client JWE envelope | temporary, recipient devices only | already client-sealed; converges on the MX key directory (11.15, D-26) |
 | Private collections / items | titles | personal | – |
 | Private notes | title, body | personal | pinned metadata |
 | Gift ideas | title, description, recipient, occasion, target date, price, URL | personal | status/pinned metadata |
 | Profile preferences | value | `SELF_PROFILE` shared; `PRIVATE_PARTNER_NOTE` personal | **topic moves into the payload**; category/sentiment stay metadata |
 | Partner nicknames | nickname | personal | – |
-| Related persons | display name | by privacy class | birthday split: month/day metadata for annual reminders, **year into the payload** (decision D-17) |
+| Related persons | display name, note | shared (every person is shared collaborative content since #1683) | birthday split: month/day metadata for annual reminders, **year into the payload** (decision D-17); the relationship kind (for example a family role) is a plain column today and moves into the payload unless a server rule is found to need it |
 | Important dates | label | by privacy class | date stays metadata |
 | Reminders | title, description | by privacy class | schedule metadata; sealed notification preview stored with the reminder |
 | Recap editions | headline, introduction | shared | client-side composition (11.7) |
 | Recap reflections | text | personal until shared | – |
 | Daily Check-in | vibe note | gated (Mutual Reveal) | **vibe and energy move into the gated payload** (decision D-14) |
-| Attachments | original name, sensitivity, capture time, orientation, metadata flag | parent scope | adds FK; **width/height/duration move into the payload**; media class and ciphertext size stay metadata |
+| Attachments (images, video, audio, Plan PDF files) | original name, sensitivity, capture time, orientation, metadata flag | parent scope | adds FK; **width/height/duration move into the payload**; media class and ciphertext size stay metadata |
 | Photo location drafts | coordinates | personal (uploader) | replaced by client-side extraction; server drafts no longer needed for protected scopes |
 | Push secrets, preview keys | secrets | server-managed | the preview key concept is replaced by NPK |
-| Photo source connections/selections | credentials and tokens | server-managed | client-side fetch path (11.13) |
+| Photo source connections/selections, Google account hint | credentials, tokens, the linked account address | server-managed | client-side fetch path (11.13) |
+| Calendar connection, target, Plan links, OAuth transaction (#1895) | provider credentials, calendar and event references | server-managed | the event **content** is the question, not these rows (11.16, D-25) |
+| Partner location (#1792) | no payload: snapped coordinates in plain columns | server-visible today | 11.17, D-27 |
 
 ### 10.3 Metadata that moves into ciphertext
 
 `places.latitude/longitude`, `daily_check_ins.vibe/energy_level`,
 `profile_preferences.topic`, attachment `width/height/duration_seconds`, the related-person
-birthday year, and optionally `space_profiles.relationship_started_on` (decision D-18).
+birthday year and relationship kind, the partner-location snapshot for the map level
+(decision D-27), and optionally `space_profiles.relationship_started_on` (decision D-18).
 Each move removes a server function that used the value; section 11 assigns the
 replacement.
 
@@ -924,7 +1008,9 @@ meaning without the content.
 | Time | `created_at`, `updated_at`, UUIDv7 timestamps, access times | ordering, sync | – |
 | Domain dates | `happened_on/until`, `planned_on/end`, important dates, birthdays (month/day), check-in day | timeline, reminders, countdown, rediscovery | coarse dates for selected domains later |
 | Structure | record types, counts, relations (Place/Chapter links, comment targets), cover/order ids | navigation, integrity | – |
-| State | wish/plan status, completion flags, pinned, privacy class, reveal state | workflows | – |
+| State | wish/plan status, completion flags, pinned, privacy class, reveal state, discreet flag, list kind, purchase counters of shopping suggestions, calendar sync state | workflows | – |
+| Presence | consent level and expiry; for the distance-only level the snapped partner position (0.01° grid, 24 hours, no history) and the viewer's position sent per request | server-computed distance band | sealing for the map level (decision D-27) |
+| External copies | calendar events in the couple's own Google or CalDAV calendar | deliberate sync (#1895) | time-only events by default (decision D-25) |
 | Sizes | padded ciphertext length, media size, media class | quotas, limits | Padmé padding |
 | Activity | notification and activity events (kind, actor, target id) | delivery | – |
 | Behavior | gentle-prompt rhythm observations (opt-in), push timing | delivery pacing | – |
@@ -932,8 +1018,9 @@ meaning without the content.
 
 ### 10.6 Server-held secrets that are not user content
 
-Push endpoint secrets, Immich API keys, OAuth tokens and session secrets stay under #797.
-They protect integrations, not couple content, and the server must use them.
+Push endpoint secrets, Immich API keys, OAuth tokens, calendar credentials (CalDAV
+password, Google refresh token), the Google account hint and session secrets stay under
+#797. They protect integrations, not couple content, and the server must use them.
 
 ---
 
@@ -947,7 +1034,7 @@ They protect integrations, not couple content, and the server must use them.
 | Timeline/Story `q` filter | text filter in the API | client filters locally; server rejects `q` for protected Spaces (no misleading empty result) | – |
 | Today/Dashboard (`dashboard/service.py`) | builds titles and 280-char excerpts | server returns metadata + sealed payloads; client builds excerpts | – |
 | Rediscovery (#1546), "Weißt du noch?" | selection by dates; some content-aware reading | selection by metadata; content signals become metadata flags (for example "has text", "has photo") | – |
-| Notifications and push previews (#565) | server composes name + title, JWE to device | sender-sealed preview under NPK; native decrypt; generic fallback | – |
+| Notifications and push previews (#565) | server composes name, title and, since preview version 2, a body excerpt of comments and shared Memories; JWE to the Android device under a key the server stores; APNs stays neutral and UnifiedPush carries only a wish-date field | sender-sealed preview under NPK; native decrypt; generic fallback | – |
 | Email digests | content-free already | unchanged | – |
 | Reminders (M4) | schedule from metadata | unchanged; sealed preview stored at creation | – |
 | Gentle prompts (#1620) | metadata and memory ids | unchanged; client decrypts the referenced memory | – |
@@ -959,13 +1046,24 @@ They protect integrations, not couple content, and the server must use them.
 | Selected-photo Places (#1459/#1478) | server extracts GPS, Photon lookup | client extracts GPS; lookup direct or disclosed relay | D-08 |
 | Saved Memory map (`memories.map`, Premium) | server projection of coordinates | client projection | D-16 (enforcement) |
 | Map tiles | client already | unchanged | – |
-| Recaps (#497/#1528) | server composition + Ollama wording | client-side rules composition; AI on-device later or explicit consent | D-05 |
-| Daily Check-in, Mutual Reveal (#493), insights (#1151) | server projections of plaintext vibe/energy | gated values; client insights | D-14, D-16 |
+| Recaps (#497/#1528) | server composition with quoted comments, mood rhythm from the plain vibe column, Ollama wording over up to eight excerpts | client-side rules composition including quotes and mood rhythm; AI on-device later or explicit consent | D-05 |
+| Daily Check-in, Mutual Reveal (#493), insights and weekly review (#1151) | server projections of plaintext vibe/energy; the weekly review sends derived pattern observations (no free text) to operator inference to choose from fixed recommendations | gated values; client insights; client-computed observations with a rules choice (11.18) | D-05, D-14, D-16 |
+| Tag proposals (`context_tags`) | scheduled job sends Memory title and body or HeartMoment text to operator inference | reuse of learned labels on the client; no model proposals unless allowed (11.18) | D-05 |
+| One-time partner messages (#1672, Pro sending) | none: client JWE, server stores opaque envelopes and a device-key directory | unchanged content path; keys converge on the MX directory (11.15) | D-26 |
+| Calendar sync (#1895, Pro) | worker writes Plan title, description and Place name to Google or CalDAV after every Plan change | time-only events from metadata; optional client-supplied event text as a disclosed external copy (11.16) | D-25 |
+| Partner location (#1792, Pro) | server stores a snapped position and computes distance bands | sealed snapshot for the map level; distance-only level stays server-computed (11.17) | D-27 |
+| Shopping lists and suggestions (#1808) | server copies bought item titles into suggestions | the finishing client writes sealed suggestions (11.19) | – |
+| Wish repeat (#1816), Wish date proposals (#1910) | server copies Wish text into the new Wish or Plan; Wish title in the notice | client-driven copies; sender-sealed notice preview (11.19) | – |
+| Discreet Plans (#1790) | server substitutes the list title in overviews, inbox, push, recaps, calendar | client masks after decryption; previews and calendar output use the list title only (11.19) | – |
+| Voice notes (#1671) | worker decodes and re-encodes audio, measures duration | client encodes the final audio; server checks ciphertext bounds (11.4) | D-10 |
+| Date inspiration (#1892, Pro) | editorial catalog, no couple content | unchanged; Wishes and Plans created from an idea are ordinary sealed content | – |
+| Plan PDF files | header and trailer check only | client checks the header; server checks ciphertext bounds | D-10 |
+| Store billing (#1525) | purchase references only, no content | unchanged | – |
 | Wish selection (#1535) | server intersection of private favorites | opaque ids as metadata (recommended) | D-15 |
 | Surprises, time capsules, scratch cards, trust vault (#514/#446/#449/#461) | server withholds plaintext | split-key gated reveal | – |
 | Questions (M7) | mutual reveal | gated `MUTUAL` | – |
 | Games, guided experiences (#866/#1566) | server reads candidate titles | server selects ids by metadata; client decrypts | – |
-| Calendar handoff (#1560) | client-side ICS already | unchanged | – |
+| Calendar handoff (#1546/#1560) | client-side calendar file or native handoff already | unchanged | – |
 | Transfer export/import (#345) | worker assembles plaintext | client-side export/import; later ciphertext relocation | D-20 |
 | Photo sources (#1444/#1467) | server fetches photo bytes | client-side fetch; server relay = transient exposure | D-21 |
 | Demo Space | server-seeded content | stays server-managed, never labelled end-to-end | – |
@@ -993,10 +1091,16 @@ They protect integrations, not couple content, and the server must use them.
 ### 11.3 Notifications and push previews
 
 - When a client writes something that produces a notification (comment, Memory, Plan
-  completion…), it attaches `sealedPreview = AEAD(NPK[e], {actorLabel, titleExcerpt, kind})`
-  bounded to the existing 3000-byte limit. Reminders store the sealed preview at creation.
+  completion, Wish date notice…), it attaches
+  `sealedPreview = AEAD(NPK[e], {actorLabel, titleExcerpt, bodyExcerpt, kind})`
+  bounded to the existing 3000-byte limit. It applies today's omission rules itself: no
+  title for HeartMoments, discreet Plans, sent lists and Wish reminders, and no preview at
+  all for one-time messages. Reminders store the sealed preview at creation.
 - The server forwards the opaque preview in the FCM data payload or the UnifiedPush
-  encrypted wake payload (both already exist) and never parses it.
+  encrypted wake payload (both already exist) and never parses it. APNs keeps its neutral
+  text until the iOS wrapper has a notification extension (D-24).
+- This removes the server-stored preview key (`PushPreviewKeyPayload`) for protected
+  Spaces: today the server holds both the preview plaintext and the key it encrypts with.
 - The Android service decrypts with NPK from its Keystore-wrapped native store (provisioned
   by the crypto core after unlock). Without NPK it shows the existing generic text.
 - The user's existing preview preference continues to decide whether a preview is shown on
@@ -1024,11 +1128,23 @@ steps 3–5 and 8 for these scopes):**
   decoder (libheif is LGPL-3.0 — license review). Recommended: keep the encrypted
   original, add a JPEG/WebP display variant created where a decoder exists, and ask the
   user to add such photos from their phone when no decoder is available (D-10).
-- **Video:** the client probes MP4/MOV (for example with `mp4box.js`, BSD-3-Clause) for the
-  #88 constraints, extracts a poster with `<video>` + canvas, and does not remux. Container
-  metadata therefore remains inside the encrypted file (visible to the partner, never to
-  the server). Playback decrypts into a bounded Blob in MX-2; chunk-wise streaming
+- **Video:** device preparation already exists: the browser worker (`mediabunny`,
+  WebCodecs) and Media3 in the Android app produce compatible H.264/AAC and already
+  inspect tracks, duration and dimensions for the #88 constraints. For protected scopes
+  this step becomes the only validation: the client extracts a poster with `<video>` +
+  canvas, and the server no longer probes, remuxes or strips metadata. Container
+  metadata of an original that needed no conversion therefore remains inside the
+  encrypted file (visible to the partner, never to the server) unless the client strips
+  it. Playback decrypts into a bounded Blob in MX-2; chunk-wise streaming
   (MediaSource or a native local stream) is a later optimization.
+- **Audio (voice notes, #1671):** today a worker decodes every recording and re-encodes
+  it to AAC without metadata. For protected scopes the recording client produces the
+  final file (the recorder output or a WebCodecs encode), measures the duration and
+  enforces the 180-second and 20 MiB bounds; an imported audio file that the device
+  cannot re-encode is rejected with an explanation instead of being sent unvalidated
+  (D-10).
+- **Plan PDF files:** the client checks the header and size; the server checks ciphertext
+  bounds only. A PDF is opened by the system viewer after local decryption.
 - **Sensitivity blur (#1477):** `is_sensitive` stays inside the attachment payload; the
   client applies the existing blur/reveal behavior identically for all tiers.
 
@@ -1058,6 +1174,8 @@ at all, inside the sealed comment payload.
 - The rule-based composition (selection, ordering, localized templates) moves into the
   client; the server stores sealed editions and metadata (year, variant, sources).
 - The Ollama wording runs on the operator's host and must not receive protected content.
+  The same holds for the comment quotes and the mood rhythm the server adds to an edition
+  today; both become client steps.
   For protected Spaces (decision D-05): the complete rules fallback becomes the default;
   later options are on-device inference or an explicit per-edition consent that sends up
   to eight excerpts to the operator's inference — marked as transient exposure and never
@@ -1128,14 +1246,129 @@ legal orders can act on Accounts and Spaces (suspend, delete) and on metadata, n
 protected content; a reporting user may voluntarily attach material their own client
 decrypted.
 
+### 11.15 One-time partner messages (#1672)
+
+**Today.** The only client-sealed domain on `main`. The sender's client builds a JWE
+(General JSON, RSA-OAEP-256 with A256GCM, `jose`) for up to eight registered recipient
+device keys. Each private key is a non-extractable 3072-bit `CryptoKey` in IndexedDB,
+scoped to instance, Account and Space; public keys sit in `once_devices` as plain JSON.
+The server validates the envelope shape, never decrypts, enforces single claim, 24-hour
+expiry and destruction on acknowledgement, and sends only a neutral push. The documented
+limits are exactly what MX adds: the server's key directory is trusted (it could register
+its own recipient key), there is no device verification, no recovery and no migration to
+a new device.
+
+**Under MX (decision D-26).**
+
+- One key directory, not two. In the shared-scope stage new messages are sealed with HPKE
+  to the recipient's verified AEK (suite E2EE-1, per-message key, sender keeps no copy).
+  A server-injected recipient key then fails the checks of section 8.5, which closes the
+  main gap of the current design, and the envelope gains the hybrid post-quantum KEM.
+- The lifetime contract does not change: single claim, claim lease, 24-hour expiry,
+  destruction on acknowledgement, no export, neutral push, exclusion from official dumps.
+- No data migration is needed. Envelopes live at most 24 hours, so the RSA device keys are
+  retired by letting pending messages expire; `once_devices` is dropped afterwards.
+- Envelope rows are stored as scheme 1 or 3, so `is_readable_by_server` tells the truth.
+- Until that stage nothing changes, including the rule that this domain carries no
+  audited end-to-end claim.
+
+### 11.16 Calendar sync (#1895)
+
+**Today.** With `integration.external_sync`, one partner connects a Google or CalDAV
+calendar; the credentials stay server-held and visible only to that partner. After every
+Plan change an outbox event queues a worker job that reads the Plan and writes an event
+to the provider: title, description, Place name, times and, for non-discreet Plans, a
+backlink. Discreet Plans already sync only their list title and time. The job needs no
+client and runs only on instances with at-rest encryption `required`.
+
+**Under MX.** The worker cannot read a sealed Plan. Dates and times are metadata the
+server keeps (section 10.5), so it can still create, move and delete events.
+
+- **Default for protected Spaces: time-only events.** The event carries the time, a
+  neutral title and the backlink, which is an id-based address without content. This is
+  the shape discreet Plans produce today and adds no exposure beyond residual metadata.
+- **Optional event text, as a disclosed external copy.** If the couple turns it on, the
+  writing client sends a separate calendar text (summary, description, location) with the
+  Plan write. The server stores it server-managed under #797 for updates and retries,
+  forwards it to the provider and deletes it when sync ends. The calendar provider holds
+  this text in plaintext in any case, so the setting says plainly that calendar entries
+  leave the protected area; they are never covered by the claim. The partner can already
+  pause or end sync.
+- **Rejected: sync from the client.** Credentials would have to live on every device,
+  browsers cannot reach arbitrary CalDAV servers across origins, and a change made by the
+  partner who did not connect the calendar could not be synced.
+
+Decision D-25 selects between time-only, optional text, or no sync in protected Spaces.
+
+### 11.17 Partner location (#1792)
+
+**Today.** With `presence.location` and explicit consent, a device publishes a position
+snapped to a 0.01° grid (about 1.1 km). The server stores one snapshot per person and
+Space in plain columns for at most 24 hours, without history. For the distance level it
+computes a distance band from the stored snapshot and the viewer's position, which is
+sent per request and not stored; for the map level it returns the snapped position and
+a radius. Android can update passively in the background from native code.
+
+**Under MX (decision D-27).**
+
+- **Map level:** the publishing device seals the snapped snapshot under the Space Key;
+  expiry stays metadata. The viewer's client decrypts it, computes the distance band and
+  draws the area locally, so the viewer's own position no longer leaves the device.
+  Background updates need sealing without the WebView: the native layer receives a
+  derived presence key, `HKDF(SK[e], "presence")`, next to NPK.
+- **Distance-only level:** this level promises the partner a band and withholds the
+  position. Sealing the snapshot to the Space Key would hand the partner's client the
+  coordinates, making the level a client-side promise only. It therefore stays
+  server-computed and is listed as residual, server-visible data.
+- Until this is built, partner location in a protected Space stays server-managed and is
+  named as outside the claim.
+
+### 11.18 Operator-local inference and derived suggestions
+
+Three features send data to the operator-local inference endpoint or derive content on
+the server. All follow decision D-05.
+
+- **Tag proposals:** the scheduled job cannot read protected rows, so it skips protected
+  Spaces. Reuse of learned labels moves to the client, which already holds the decrypted
+  tags of every row it may read. Model proposals return only with on-device inference or
+  explicit consent.
+- **Weekly review (#1151):** the pattern observations derive from vibe and energy, which
+  become gated values (D-14). The client computes the observations from released values
+  and chooses among the fixed recommendations by rule. The observation packet contains no
+  free text, but it is derived from sensitive values and goes to operator inference only
+  under the D-05 consent option.
+- **Recap mood rhythm:** computed by the client from released values and stored inside
+  the sealed recap edition.
+
+### 11.19 Server-side copies and masks
+
+Features where the server copies or substitutes payload text today move that step into
+the writing client. None needs a product decision; each needs the client to be unlocked.
+
+- **Shopping suggestions (#1808):** the client that finishes a trip holds the decrypted
+  items. It sends the sealed suggestion records with the finish request, de-duplicated by
+  normalized title on the client; the server applies them in the same transaction and
+  keeps the purchase counters.
+- **Wish repeat (#1816) and Wish date proposals (#1910):** the client creates the new
+  Wish or Plan with its own sealed payload and record key; the server links the series or
+  the accepted Plan in the same request. An acceptance given from a notification without
+  an unlocked client records the decision immediately, and the first unlocked client of
+  either partner seals the Plan content.
+- **Discreet Plans (#1790):** both partners hold the Space Key, so discretion is a
+  presentation rule against onlookers, not secrecy from the partner. The client masks
+  titles after decryption; sealed previews, recap evidence and calendar output use the
+  list title only, as today.
+- **Create receipts:** the request fingerprint, an unkeyed hash over normalized titles
+  today, is computed over the sealed envelope for protected scopes (13.6).
+
 ---
 
 ## 12. Client architecture
 
 ### 12.1 Crypto core
 
-- A new module `web/src/crypto/` running in a **dedicated Worker** (requires CSP
-  `worker-src 'self'`). The UI talks to it through a narrow typed message API:
+- A new module `web/src/crypto/` running in a **dedicated Worker** (allowed by the
+  CSP in force, `worker-src 'self'`). The UI talks to it through a narrow typed message API:
   `unlock`, `lock`, `sealRecord`, `openRecords` (batch), `sealMedia`/`openMediaChunk`,
   `prepareInvitationFragment`, `verifyPairing`, `createEpoch`, `linkDevice`,
   `buildRecoveryKit`, `searchLocal`.
@@ -1157,7 +1390,8 @@ decrypted.
 |---|---|---|---|
 | Web (browser tab) | non-extractable AES-GCM `CryptoKey` in IndexedDB | IndexedDB | default: memory only (tab-scoped, like credentials) |
 | Web (installed PWA) | same | same | default: persisted (D-07) |
-| Android app | Android Keystore AES-256-GCM, StrongBox when available, no-backup, unlocked-device-required | app-private no-backup storage via a new `NativeKeyStorePlugin` (pattern of `NativeSessionStoragePlugin`) | optional biometric gate later |
+| Android app | Android Keystore AES-256-GCM, StrongBox when available, no-backup, unlocked-device-required | app-private no-backup storage via a new `NativeKeyStorePlugin`; the wrap-and-hand-over pattern exists in `NativeSessionStoragePlugin.mediaKey` and `DeviceMediaKey` (#1954) | optional biometric gate later |
+| iOS wrapper (not launched) | Keychain item, this device only, as `IosSessionStorage.swift` uses for the session | Keychain; the same plugin interface as Android | scheduled with the iOS launch (D-24) |
 | Safari/iOS PWA | as Web; storage may be evicted | as Web | re-unlock with passkey PRF |
 
 ### 12.3 Data-flow integration
@@ -1168,22 +1402,34 @@ decrypted.
 - **Persistent read cache:** stores **sealed** DTOs only, so the IndexedDB cache stops
   holding plaintext — an improvement over today's persisted `SPACE_SHARED` payloads.
   Offline reads decrypt when local unlock is possible.
-- **Drafts:** unchanged in-memory semantics; any durable draft store must encrypt with the
-  local index key.
+- **Drafts and outbox:** the durable Memory diary draft store
+  (`memoryDiaryDraft.ts`, plaintext for seven days today) and the shopping-list outbox in
+  the read cache must encrypt with the local index key for protected scopes, or stay in
+  memory where the device cannot unlock locally.
 - **Media cache:** decrypted object URLs remain bounded and revoked per
-  `OBJECT-URL-OWNERSHIP.md`; ciphertext may be cached, plaintext not persisted.
+  `OBJECT-URL-OWNERSHIP.md`. The durable media store keeps **ciphertext** (`EIMIRE2E`
+  objects) for protected scopes on every platform, which replaces both today's plaintext
+  shared images in browsers and the Android-only sealing of #1954 for those scopes.
 
 ### 12.4 Android wrapper
 
 - `NativeKeyStorePlugin`: create/load the device wrapping key, wrap/unwrap ARK, store NPKs
-  per Space, wipe on sign-out/Space exit; real-device acceptance like #1357.
-- Push: `EimirFirebaseMessagingService`/UnifiedPush receiver decrypt sealed previews with
-  NPK; the existing activation/ownership binding (#565) stays.
-- Passkeys with PRF arrive with the native bridge (#630): Credential Manager accepts
+  per Space, wipe on sign-out/Space exit; real-device acceptance like #1357. It extends
+  the existing `NativeSessionCipher`/`DeviceMediaKey` code instead of adding a second
+  Keystore path.
+- Push: `EimirFirebaseMessagingService` decrypts sealed previews with NPK in place of
+  today's server-composed JWE preview; the UnifiedPush receiver (`EimirPushService`),
+  which carries only a bounded wish-date field today, gains the same sealed preview
+  within its payload bound. The existing activation/ownership binding (#565) stays.
+- Passkeys with PRF arrive with the native bridge (#630, open): Credential Manager accepts
   standard WebAuthn JSON, so the PRF extension is requested in the same JSON; provider
   support must be verified on devices (Google Password Manager passkeys support PRF).
-- WebView feature gate: the app checks Web Crypto capabilities at startup and shows an
-  "update Android System WebView" state if neither native nor fallback paths are usable.
+- WebView feature gate: the existing floor (#1931) checks the Chromium major version only.
+  MX adds a capability probe for the required Web Crypto algorithms at startup and reuses
+  the existing localized update page when neither native nor fallback paths are usable.
+- iOS wrapper: the same plugin interface backed by Keychain, and a notification service
+  extension for sealed previews, both scheduled with the iOS launch (D-24). Until then a
+  protected Space is not usable from the iOS wrapper; the capability gate (13.4) says so.
 
 ### 12.5 Web delivery integrity
 
@@ -1207,19 +1453,19 @@ The Web client is the weakest link for E2EE (A5). Measures:
 
 | Change | Reason |
 |---|---|
-| `worker-src 'self'` | crypto worker (and the existing PWA service worker registration, which `worker-src 'none'` would block) |
+| none for the crypto worker | `worker-src 'self'` is already in force for the video, map and service workers; the crypto worker is one more same-origin module worker |
 | optional exact `connect-src` origin for direct Photon lookup | only if D-08 selects (a) |
 | no `'wasm-unsafe-eval'` | the recommended stack needs no WebAssembly; adding WASM (for example HEIC decoding) requires its own CSP decision |
 | `require-trusted-types-for 'script'` | XSS hardening |
 
 Baseline observation, independent of E2EE: the production CSP in `web/nginx.conf` (and its
-check `web/scripts/check_csp_header.sh`) sets `manifest-src 'none'` and
-`worker-src 'none'`, while `web/index.html` links `/manifest.webmanifest` and
-`web/src/pwa.ts` registers `/service-worker.js` for production browsers. Under CSP Level 3
-both are blocked, so PWA installation and the offline page cannot work as intended.
-`docs/SECURITY.md` also lists `media-src 'none'` although the header allows `'self'` for
-video. This should be fixed in its own change before MX relies on installed-PWA defaults
-(decision D-07).
+check `web/scripts/check_csp_header.sh`) still sets `manifest-src 'none'`, while
+`web/index.html` links `/manifest.webmanifest`. As far as the files show, the browser's
+manifest load is blocked in production, so installing the PWA cannot work as intended;
+this was not tested in a browser. The worker half of the first-baseline observation is
+resolved: `worker-src 'self'` has been in force since 2026-11-04, the service worker
+registers, and `docs/SECURITY.md` now matches the header. The manifest directive should
+be decided in its own change before MX relies on installed-PWA defaults (decision D-07).
 
 ### 12.7 Performance budgets
 
@@ -1311,7 +1557,8 @@ New stable error codes (client-localized): `E2EE_SEALED_PAYLOAD_REQUIRED`,
   setting). The server answers protected-scope content requests from clients without it
   with `E2EE_CLIENT_UNSUPPORTED`, so an older Android bundle cannot write plaintext into a
   protected Space or show it as empty. The Web client is always current; the Android app
-  shows an update prompt.
+  shows an update prompt, and the iOS wrapper explains that the Space is not available
+  there until its key store exists (D-24).
 
 ### 13.5 Server-side validation of sealed content
 
@@ -1564,7 +1811,9 @@ locked-content state, security activity list.
 | Quotas | measured on ciphertext bytes, the same per-Space quota model; no entity-count limits. |
 | Downgrade, trial, restore | unaffected; protection does not depend on tier; saved Premium artifacts remain readable (they are sealed records). |
 | Export/portability | essential export stays non-paywallable; produced on the client for protected scopes. |
-| Premium features affected | relationship passport/recaps (#497/#1528), daily insights (#1151), saved Memory map, PDF Chronicle (#517), annual video montage, external integrations (#1444). Each keeps its value through client-side computation (section 11), except where decision D-16 is required. |
+| Premium features affected | relationship passport/recaps (#497/#1528), daily insights and weekly review (#1151), saved Memory map, PDF Chronicle (#517), annual video montage, external integrations (#1444), and since the first baseline calendar sync (#1895, `integration.external_sync`), partner location (#1792, `presence.location`) and one-time messages (#1672, `partner.once_messages`). Date inspiration (#1892) is an editorial catalog and is unaffected. Each keeps its value through client-side computation (section 11), except where decisions D-05, D-16, D-25 and D-27 are required. |
+| Paid value in protected Spaces | A paying couple that turns protection on must not lose paid function silently. Where a Pro feature works differently in a protected Space (calendar entries without text by default, no model wording or model tag proposals, distance level computed by the server), the enabling flow says so before the choice, and the decisions above name the alternative. The plan name is eimir. Pro; "Premium" in this document is the matrix classification. |
+| Purchase channels | Store purchases (Google Play Billing now, Apple In-App Purchase at the iOS launch, #1525) unlock a Space entitlement and carry no content; MX does not touch them. App-store distribution adds the encryption export declarations noted in section 17. |
 | Enforcement shift | ADR 0006 requires backend-authoritative enforcement. Purely client-side computations over a user's own decrypted data (for example insights) can only be gated by the server where a server resource is involved (saving an edition, catalogs, templates). Decision D-16 must accept client-enforced gating for those computations or keep a server-side component. |
 | No trust upsell | E2EE must never appear in a paywall or Pro comparison; enabling it must not remove Free features. |
 | Existing matrix wording | The row "Private Area owner-only isolation" already speaks of a "strict cryptographic/authorization boundary"; today only the authorization half holds. Stage A makes the cryptographic half true; until then the wording should not be read as an E2EE statement. |
@@ -1631,7 +1880,9 @@ available.
 | Google Tink | Apache-2.0 | considered | no maintained JS; native-only would split the implementation |
 | MiniSearch | MIT | local search index | candidate |
 | `exifr` | MIT | EXIF/GPS extraction | candidate |
-| `mp4box.js` | BSD-3-Clause | video probing | candidate |
+| `mediabunny` | MPL-2.0 | video probing and conversion | **already a dependency** (device video preparation); reuse it for the protected-scope probe instead of adding `mp4box.js` (BSD-3-Clause), which stays a fallback candidate |
+| `jose` (Web), `nimbus-jose-jwt` (Android) | MIT / Apache-2.0 | JWE for one-time messages and push previews today | **already dependencies**; not selected for MX envelopes, because JOSE has no registered hybrid post-quantum key agreement and the AAD binding of section 7.4 needs a binary transcript. Retired for content when one-time messages and previews converge (11.3, 11.15) |
+| existing native code: `NativeSessionCipher`, `DeviceMediaKey` (Android), `IosSessionStorage` (iOS) | first-party | device key storage | reuse and extend instead of a second Keystore or Keychain path (12.2, 12.4) |
 | `client-zip` / `fflate` | MIT | client-side export | candidate |
 | QR generation (`qrcode`) and ZXing (scan, already on the candidate list) | MIT / Apache-2.0 | Recovery Kit, verification, device linking | candidate |
 | libheif (WASM) | LGPL-3.0 | HEIC decoding on desktop Chromium | license review before any use |
@@ -1677,14 +1928,19 @@ license, Cloud/Self-Hosted use, privacy (none sends data anywhere), cost (none),
 | **MX-0 Decide** | this concept; PO decisions (section 23); MX tracking issue with acceptance criteria; ADRs for suite, key hierarchy and protection modes; external design review; FREEMIUM matrix row; UX preflights with visual references | decisions recorded; review findings resolved |
 | **MX-1 Foundations** (no user-visible claim) | crypto core with test vectors; key directory tables/API; account bundle, device keys, unlock factors (device, Recovery Kit, device approval; PRF on Web); capability gate; schema registry; `crypto_version = 3`; key-less audits | all foundation tests green; interop matrix green |
 | **MX-2a Personal scope** | sealing for stage A domains; client search over personal content; personal migration; security settings UI; beta flag | stage A journeys accepted on Web and Android; implementation audit passed; claim approved for the personal scope |
-| **MX-2b Shared scope** | pairing and verification; epochs; sealed DTOs for all shared domains; client media pipeline; sealed previews and native NPK; client export/import; offboarding/deletion integration | stage B journeys accepted; delta audit passed |
-| **MX-3 Feature completion** | gated reveal for Mutual Reveal and M7 reveal features; recaps rules client-side; insights; games; map; link preview and lookup policies; photo sources client fetch | feature parity table (section 11.1) closed or each gap has a PO decision |
+| **MX-2b Shared scope** | pairing and verification; epochs; sealed DTOs for all shared domains including lists, shopping suggestions, People and Wish copies (11.19); client media pipeline including audio and PDF files; sealed previews and native NPK; one-time messages on the MX directory (11.15); time-only calendar sync (11.16); client export/import; offboarding/deletion integration | stage B journeys accepted; delta audit passed |
+| **MX-3 Feature completion** | gated reveal for Mutual Reveal and M7 reveal features; recaps rules client-side with quotes and mood rhythm; insights and weekly review; client reuse of learned tags; sealed partner location for the map level (11.17); optional calendar event text (11.16); games; map; link preview and lookup policies; photo sources client fetch | feature parity table (section 11.1) closed or each gap has a PO decision |
 | **MX-4 Migration and default** | shared-scope migration of existing Spaces; capability-gated Android release; default-on decision (D-01); docs and privacy notice | migration verified on production-like data; backups aged out per policy before operator statements |
 | **MX-5 Hardening** | presigned E2EE media (D-12), streaming playback, transparency log (KEYTRANS), WAICT adoption when available, OPAQUE evaluation | optional |
 
-Dependencies: #630 (PRF on Android), #797 closure items (the row-binding decision is solved
-for protected content by section 7.4; server-managed content still needs its own
-decision), and M7 reveal features, which should adopt the gated pattern from the start.
+Dependencies: #630 (PRF on Android; open and not implemented), #797 closure items (the
+row-binding decision is solved for protected content by section 7.4; server-managed
+content still needs its own decision), M7 reveal features, which should adopt the gated
+pattern from the start, and the iOS launch schedule (D-24).
+
+The baseline moves quickly: about 900 commits, ten payload types and eight backend modules
+arrived between the two baselines of this document. MX-0 therefore ends with a fresh
+inventory (Appendix B) and MX-1 starts from that revision, not from this one.
 
 ---
 
@@ -1696,12 +1952,12 @@ decision), and M7 reveal features, which should adopt the gated pattern from the
 | D-02 | Consent model for shared migration | both partners must confirm |
 | D-03 | Allow leaving end-to-end protection | allow with both partners' consent |
 | D-04 | Hybrid post-quantum KEM from day one | yes (X-Wing), conditional on design review and library audit; contingency suite E2EE-1C |
-| D-05 | Recap AI wording in protected Spaces | rules fallback by default; on-device later; per-edition consent option only if explicitly wanted |
+| D-05 | Operator-local AI in protected Spaces: recap wording, tag proposals (11.18) and the weekly-review choice | rules fallback and no model proposals by default; on-device later; per-use consent option only if explicitly wanted |
 | D-06 | Partner-assisted recovery of the shared scope | yes, with in-person re-verification |
 | D-07 | Persist keys in plain browser tabs | default off for tabs, default on for installed PWA and Android |
 | D-08 | Photo Place reverse lookup path | direct client request to the configured origin, disclosed |
 | D-09 | Link previews in protected Spaces | explicit server fetch with disclosure; native direct fetch when available |
-| D-10 | E2EE media READY contract, HEIC and video handling | accept the client-validated contract; display variant on capable devices; no server remux |
+| D-10 | E2EE media READY contract; HEIC, video, audio and PDF handling | accept the client-validated contract; display variant on capable devices; no server remux; voice notes encoded on the recording device |
 | D-11 | Client-side search as the only search for protected scopes | yes |
 | D-12 | Presigned direct upload of E2EE media | later optimization after MX-2 |
 | D-13 | Media padding | thumbnails only |
@@ -1715,6 +1971,10 @@ decision), and M7 reveal features, which should adopt the gated pattern from the
 | D-21 | Server-relayed photo imports in protected Spaces | allow, labelled transient exposure |
 | D-22 | Operator ability to disable E2EE after GA | no for Cloud; Self-Hosted operators may restrict new protected Spaces only with a visible instance notice |
 | D-23 | Stage A as the first user-visible milestone | yes |
+| D-24 | iOS wrapper in MX scope | include it with the iOS launch, not before: Keychain key store and a notification extension for sealed previews; until then protected Spaces are not offered in the iOS wrapper |
+| D-25 | Calendar sync (#1895) in protected Spaces | time-only events by default; event text only as an explicit, disclosed external copy supplied by the client (11.16) |
+| D-26 | One-time messages (#1672) and the MX key directory | converge in the shared-scope stage: seal to the verified recipient key, retire the separate device-key directory, keep the lifetime contract (11.15) |
+| D-27 | Partner location (#1792) in protected Spaces | seal the snapshot for the map level in MX-3; keep the distance-only level server-computed and name it as residual data (11.17) |
 
 ---
 
@@ -1725,7 +1985,10 @@ decision), and M7 reveal features, which should adopt the gated pattern from the
 | Key loss frustrates users | passkey PRF, device approval, partner assistance for shared content, Recovery Kit timing, honest consequence copy |
 | Web delivery compromise (A5) | section 12.5; native app guidance; level-3 reset runbook |
 | Post-quantum library immaturity | design review, audit scope, native Web Crypto ML-KEM where available, contingency suite |
-| Large backend refactor (~40 modules) | stage the work by scope; `is_readable_by_server` everywhere; sealed DTO generation; contract tests |
+| Large backend refactor (~60 modules) | stage the work by scope; `is_readable_by_server` everywhere; sealed DTO generation; contract tests |
+| The baseline outruns the concept | new server features that read content arrived between the two baselines before this concept had a replacement for them (calendar sync, tag proposals, shopping suggestions, server-side Wish copies); adopt section 26 now, re-inventory at the end of MX-0, and keep Appendix B generated rather than hand-written |
+| Two client key systems in parallel | one-time messages keep their own device keys until the shared-scope stage (D-26); no third mechanism may be added in the meantime |
+| Paid features change in protected Spaces | disclose before enabling; decisions D-05, D-25, D-27 |
 | Feature regressions (search, recaps, insights, imports) | parity table, client-side replacements, explicit PO decisions instead of silent loss |
 | HEIC and video limitations on Chromium | display variants, native bridge, clear guidance |
 | Old Android bundles | capability gate and update prompt |
@@ -1752,14 +2015,21 @@ faster revocation; exact Padmé parameters; transparency-log timing.
 `docs/SELF-HOSTING.md`, `docs/SELF-HOSTED-RECOVERY.md`, `docs/SERVER-ADMIN.md`,
 `docs/USER-FLOWS.md`, `docs/ACCESSIBILITY-QA-MATRIX.md`, `docs/DEPENDENCIES.md`,
 `PROVENANCE.md`, `docs/IMPLEMENTATION-STATUS.md` (MX tasks), `docs/ROADMAP.md` (MX scope),
-and the OpenAPI contract.
+`docs/product/once-messages.md`, `docs/product/design/calendar-integration.md`,
+`docs/m9/PARTNER-LOCATION.md`, `docs/product/multi-platform-push.md`, the privacy
+policy source, and the OpenAPI contract.
 
 ---
 
 ## 26. E2EE readiness guardrails that apply now
 
 These rules cost little today and avoid rework later. They are proposed for adoption into
-`docs/ARCHITECTURE.md` with the MX issue:
+`docs/ARCHITECTURE.md` with the MX issue. They are not in force yet. The twelve days
+between the two baselines show both sides: every new domain kept its text inside a
+`ProtectedPayload` (rule 1 held without being written down), while four new server
+features read content (calendar sync, tag proposals, shopping suggestions, server-side
+Wish copies) and this concept had no replacement for them (rule 3) until sections 11.16,
+11.18 and 11.19 supplied one after the fact:
 
 1. New user-authored text belongs in a `ProtectedPayload`; never add a plaintext content
    column (the `profile_preferences.topic` pattern should not repeat).
@@ -1773,6 +2043,11 @@ These rules cost little today and avoid rework later. They are proposed for adop
 6. New media processing on the server must name the client-side equivalent.
 7. New imports name their client-side fetch path.
 8. No database index, cache or read model may hold payload plaintext (already a rule).
+9. No further standalone client key mechanism is added next to the one-time message
+   device keys; new client-side sealing waits for, or is designed onto, the MX key
+   directory.
+10. A server job that sends couple content to an external system (a calendar, an
+    inference endpoint, a lookup) states what it sends in a protected Space.
 
 ---
 
@@ -1803,31 +2078,43 @@ These rules cost little today and avoid rework later. They are proposed for adop
 
 ## Appendix B — Inventory on the baseline
 
-### B.1 `ProtectedPayload` types (31)
+Taken on `main` at `6236fe9e06dbd2300b39940551b47afe195cb54a`. Entries marked *(new)*
+arrived after the first baseline.
+
+### B.1 `ProtectedPayload` types (41)
+
+38 types own a JSONB column bound through `ProtectedPayloadJSON`; `MoodBucket`,
+`MoodRhythm` and `SelectedPhotoItem` are nested models.
 
 | Module | Types |
 |---|---|
 | `attachments/models.py` | `AttachmentPayload`, `PhotoLocationPayload` |
+| `calendar_sync/models.py` *(new)* | `CalendarConnectionPayload`, `SpaceCalendarTargetPayload`, `PlanCalendarLinkPayload`, `CalendarOAuthPayload` (server-held credentials and references) |
 | `chapters/models.py` | `ChapterPayload` |
-| `collections/models.py` | `CollectionPayload`, `CollectionItemPayload` |
+| `collections/models.py` | `CollectionPayload`, `CollectionItemPayload`, `CollectionSuggestionPayload` *(new)* |
 | `comments/models.py` | `CommentPayload` |
+| `context_tags/models.py` *(new)* | `TagSuggestionPayload` |
 | `daily_checkins/models.py` | `DailyVibeNotePayload` |
 | `engagement/models.py` | `PushEndpointSecretPayload`, `PushPreviewKeyPayload` (server secrets) |
 | `gift_ideas/models.py` | `GiftIdeaPayload` |
 | `heart_moments/models.py` | `HeartMomentPayload` |
 | `memories/models.py` | `MemoryPayload` |
 | `milestones/models.py` | `MilestonePayload` |
+| `once_messages/models.py` *(new)* | `OnceEnvelope` (client-sealed JWE) |
 | `people/models.py` | `RelatedPersonPayload`, `ImportantDatePayload` |
-| `photo_sources/models.py` | `PhotoConnectionPayload`, `SelectedPhotoItem`, `PhotoSelectionPayload` (server secrets) |
+| `photo_sources/models.py` | `PhotoConnectionPayload`, `GoogleAccountHintPayload` *(new)*, `SelectedPhotoItem`, `PhotoSelectionPayload` (server secrets) |
 | `places/models.py` | `PlacePayload` |
 | `plans/models.py` | `PlanPayload` |
 | `private_collections/models.py` | `PrivateCollectionPayload`, `PrivateCollectionItemPayload` |
 | `private_notes/models.py` | `PrivateNotePayload` |
 | `profiles/models.py` | `ProfilePreferencePayload`, `PartnerNicknamePayload` |
-| `recaps/models.py` | `RecapPayload`, `RecapReflectionPayload` |
+| `recaps/models.py` | `MoodBucket` *(new)*, `MoodRhythm` *(new)*, `RecapPayload`, `RecapReflectionPayload` |
 | `reminders/models.py` | `ReminderPayload` |
 | `wish_selections/models.py` | `WishSelectionRoundPayload`, `WishSelectionPayload` |
 | `wishes/models.py` | `WishPayload` |
+
+Open pull requests at the time of the re-baseline add further types (shared notes,
+picture ping-pong); they are not counted.
 
 ### B.2 Backend modules that read protected fields (selection)
 
@@ -1843,21 +2130,46 @@ wish_selections}.py`. Services: `dashboard/service.py`, `search/service.py`,
 `wish_selections/service.py`, `attachments/service.py`, `attachments/video_jobs.py`,
 `demo/{finalize,presentation,reminders,wish_detective}.py`.
 
+Found in addition by the re-baseline (new modules and modules the first list missed):
+`attachments/binding.py`, `attachments/photo_locations.py`, `calendar_sync/service.py`
+(Plan and Place text to the provider), `calendar_sync/google.py`, `context_tags/jobs.py`
+(text to inference), `context_tags/service.py`, `engagement/presentation.py`,
+`engagement/service.py`, `gift_ideas/service.py`, `heart_moments/media.py`,
+`memories/places.py`, `once_messages/service.py` (recipient key ids only),
+`people/service.py`, `photo_sources/service.py`, `plans/discreet.py`, `plans/media.py`,
+`recaps/jobs.py`, `recaps/mood.py`, `recaps/words.py` (quoted comments),
+`story/rediscovery.py`, `transfer/service.py` (export, bulk reveal),
+`wishes/service.py` and `wishes/date_proposals.py` (server-side copies). Key rotation
+(`security/lifecycle.py`) walks every payload table without interpreting content.
+
 ### B.3 Sensitive plaintext columns
 
 `places.latitude`, `places.longitude`, `daily_check_ins.vibe`, `daily_check_ins.energy_level`,
-`profile_preferences.topic`, `related_persons.birthday`, `space_profiles.relationship_started_on`,
-`accounts.display_name`, `account_emails`, `gentle_profiles.observations` (behavioral,
-opt-in).
+`profile_preferences.topic`, `related_persons.birthday`, `related_persons.relationship`,
+`space_profiles.relationship_started_on`, `accounts.display_name`, `account_emails`,
+`gentle_profiles.observations` (behavioral, opt-in), `presence_snapshots.latitude`,
+`presence_snapshots.longitude` and `accuracy_meters` *(new)*, `once_devices.public_jwk`
+*(new; public keys)*, and `create_receipts.request_fingerprint` (an unkeyed hash over
+normalized request content, kept for 24 hours).
 
 ### B.4 Client and native touch points
 
-`web/src/client/productReadCache.ts` (persisted plaintext read cache),
-`web/src/client/authorizedMediaCache.ts`, `web/src/client/invitationLink.ts`,
+Web: `web/src/client/productReadCache.ts` (persisted plaintext read cache and list
+outbox), `web/src/client/durableMediaStore.ts` and `authorizedMediaCache.ts` (media
+persistence), `web/src/client/deviceMediaSeal.ts` (Android image sealing),
+`web/src/client/memoryDiaryDraft.ts` (plaintext drafts),
+`web/src/client/onceMessageCrypto.ts` (one-time message keys and JWE),
+`web/src/client/nativeSessionStorage.ts`, `web/src/client/invitationLink.ts`,
 `web/src/client/entryToken.ts`, `web/src/client/dailyInsightsModel.ts`,
-`web/src/client/planCalendar.ts`, `web/nginx.conf` (CSP),
-`android/app/src/main/java/de/eimir/app/{NativeSessionCipher,NativeSessionStoragePlugin,
-PushPreview,PushPreviewKeys,EimirFirebaseMessagingService}.java`.
+`web/src/client/planCalendar.ts`, `web/src/client/videoCompression.worker.ts`,
+`web/public/service-worker.js`, `web/nginx.conf` (CSP), `web/capacitor.config.ts`
+(WebView floor).
+
+Android: `android/app/src/main/java/de/eimir/app/{NativeSessionCipher,
+NativeSessionStoragePlugin,DeviceMediaKey,PushPreview,PushPreviewKeys,
+EimirFirebaseMessagingService,EimirPushService,PresenceBackground}.java`.
+
+iOS: `ios/App/App/{IosSessionStorage,IosPush}.swift`.
 
 ---
 
@@ -1879,3 +2191,46 @@ Checked on 2026-11-04. Internet-Drafts are work in progress.
 - IRTF, [RFC 9807 — OPAQUE](https://www.rfc-editor.org/rfc/rfc9807.html) (2025, Informational).
 - Wikipedia, [Regulation to Prevent and Combat Child Sexual Abuse](https://en.wikipedia.org/wiki/Regulation_to_Prevent_and_Combat_Child_Sexual_Abuse) (status October 2026; verify against official EU sources).
 - IETF TLS WG discussion on [BSI TR-02102 and X25519 hybrids](https://mailarchive.ietf.org/arch/msg/tls/ALYea-PbM8a0bSRzKITZQmlN5BQ/); [RFC 10024](https://www.rfc-editor.org/rfc/rfc10024.html) (PQ/T hybrids for TLS 1.3).
+
+---
+
+## Appendix D — Changes in the 2026-11-16 re-baseline
+
+The first version described `main` at `52d2eeda39f11d430d01676de93ebe11c92a6567`
+(2026-11-04). This revision describes `6236fe9e06dbd2300b39940551b47afe195cb54a`
+(2026-11-16), 898 commits later. The cryptographic design (sections 4 to 9) is unchanged.
+
+**Corrected statements.**
+
+- The invitation token travels in the query string, not in the URL fragment; this was
+  already so on the first baseline. Section 8.2 now adds its pairing data to the fragment
+  next to the unchanged token (2.3, 8.2).
+- Web Crypto is not used for random values only: one-time messages and Android image
+  sealing use it (2.3).
+- `worker-src` is `'self'`; only the manifest directive remains as a baseline observation
+  (2.3, 12.6).
+- An iOS wrapper exists in the repository; native iOS is no longer a blanket non-goal
+  (1.2 N7, 12.2, 12.4, D-24).
+- People are shared content since #1683, not "by privacy class" (10.2).
+
+**Added coverage.**
+
+| Topic | Sections | Decision |
+|---|---|---|
+| One-time partner messages, the existing client-sealed domain | 2.1, 2.3, 7.8, 11.15 | D-26 |
+| Calendar sync to Google or CalDAV | 2.2, 10.5, 11.16 | D-25 |
+| Partner location | 2.2, 10.3, 10.5, 11.17 | D-27 |
+| Tag proposals, weekly review, recap quotes and mood rhythm | 11.7, 11.18 | D-05 (widened) |
+| Shopping suggestions, Wish repeat and date proposals, discreet Plans, create receipts | 10.2, 11.19 | – |
+| Voice notes, Plan PDF files, device video preparation | 11.4 | D-10 (widened) |
+| Push preview version 2, APNs, UnifiedPush | 2.3, 11.1, 11.3, 12.4 | – |
+| Browser plaintext stores beyond the read cache | 2.3, 12.3 | – |
+| iOS wrapper | 1.2, 6.3, 12.2, 12.4, 13.4 | D-24 |
+| Paid value in protected Spaces, purchase channels | 18 | – |
+| Existing dependencies and native code to reuse | 20.3 | – |
+
+**Numbers.** Payload types 31 → 41; payload columns 30 → 38; backend modules reading
+protected fields about 40 → about 60; decisions 23 → 27.
+
+**Not rechecked.** External standards, browser and library status (Appendix C), and the
+performance budgets of section 12.7.

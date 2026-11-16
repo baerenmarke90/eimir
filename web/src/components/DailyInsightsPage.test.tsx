@@ -18,12 +18,12 @@ import type { DailyCheckInInsightDayView } from '../api/generated/models/DailyCh
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
 import { DailyVibe } from '../api/generated/models/DailyVibe';
 import { ClientProblemError } from '../client/problemDetails';
-import de from '../i18n/locales/de';
 import dailyInsights from '../i18n/locales/dailyInsights';
 import {
   HIDDEN_STATE_WORDING,
   JUDGING_WORDING,
 } from '../i18n/locales/dailyInsightsWording';
+import de from '../i18n/locales/de';
 import {
   DailyInsightsPage,
   type DailyInsightsViewId,
@@ -204,9 +204,13 @@ describe('Pro insights: capability', () => {
   it('shows the week charts and statements when daily.insights is present', async () => {
     const { insights } = renderPage();
     expect(
-      await screen.findByRole('heading', { name: /Euer Vibe/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.vibeRow,
+      }),
     ).toBeTruthy();
-    expect(screen.getByRole('heading', { name: /Eure Energie/ })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: dailyInsights.patterns.energyRow }),
+    ).toBeTruthy();
     // The anchor read plus the Mon-Sun window including the previous week.
     const ranges = insights.mock.calls.map(([request]) => request);
     expect(ranges.some((request) => request.startDate === undefined)).toBe(
@@ -215,10 +219,12 @@ describe('Pro insights: capability', () => {
     const window = ranges.find((request) => request.startDate !== undefined);
     expect(iso(window.startDate)).toBe('2026-09-14');
     expect(iso(window.endDate)).toBe('2026-09-27');
-    expect(screen.getByText(/21\. September – 27\. September/)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /21\..*27\. Sept/, pressed: true }),
+    ).toBeTruthy();
     // Descriptive statement from real projected values.
     expect(
-      screen.getAllByText(/ging es euch beiden gut/).length,
+      screen.getAllByText(dailyInsights.recap.highlightBothGood).length,
     ).toBeGreaterThan(0);
   });
 
@@ -231,7 +237,9 @@ describe('Pro insights: capability', () => {
     expect(screen.getByText(dailyInsights.gate.keptNote)).toBeTruthy();
     expect(insights).not.toHaveBeenCalled();
     // No charts, no upgrade dialog, no destructive wording.
-    expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: dailyInsights.patterns.vibeRow }),
+    ).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.body.textContent).not.toMatch(
       /gelöscht|verloren|Jetzt upgraden/i,
@@ -273,7 +281,9 @@ describe('Pro insights: capability', () => {
     });
     fireEvent.click(retry);
     expect(
-      await screen.findByRole('heading', { name: /Euer Vibe/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.vibeRow,
+      }),
     ).toBeTruthy();
   });
 });
@@ -282,18 +292,26 @@ describe('Pro insights: Space modules', () => {
   it('renders only the Energy chart when Vibe is disabled', async () => {
     renderPage({ flags: { vibeEnabled: false } });
     expect(
-      await screen.findByRole('heading', { name: /Eure Energie/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.energyRow,
+      }),
     ).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: dailyInsights.patterns.vibeRow }),
+    ).toBeNull();
     expect(screen.getByText(dailyInsights.modulesOff.vibeOff)).toBeTruthy();
   });
 
   it('renders only the Vibe chart when Energy is disabled', async () => {
     renderPage({ flags: { energyEnabled: false } });
     expect(
-      await screen.findByRole('heading', { name: /Euer Vibe/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.vibeRow,
+      }),
     ).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: /Eure Energie/ })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: dailyInsights.patterns.energyRow }),
+    ).toBeNull();
     expect(screen.getByText(dailyInsights.modulesOff.energyOff)).toBeTruthy();
   });
 
@@ -303,7 +321,9 @@ describe('Pro insights: Space modules', () => {
       await screen.findByText(dailyInsights.modulesOff.title),
     ).toBeTruthy();
     expect(screen.getByText(/eimir\. Pro ändert daran nichts/)).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: dailyInsights.patterns.vibeRow }),
+    ).toBeNull();
   });
 });
 
@@ -311,7 +331,9 @@ describe('Pro insights: data states', () => {
   it('shows a calm empty state for a week without values', async () => {
     renderPage({ data: {} });
     expect(await screen.findByText(dailyInsights.empty.title)).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: dailyInsights.patterns.vibeRow }),
+    ).toBeNull();
   });
 
   it('keeps charts and adds a sparse note for a partial week', async () => {
@@ -319,7 +341,9 @@ describe('Pro insights: data states', () => {
       data: { '2026-09-22': { ownVibe: DailyVibe.OKAY, ownEnergy: 40 } },
     });
     expect(
-      await screen.findByRole('heading', { name: /Euer Vibe/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.vibeRow,
+      }),
     ).toBeTruthy();
     expect(screen.getByText(dailyInsights.sparse)).toBeTruthy();
     // No invented statement without enough data.
@@ -340,7 +364,9 @@ describe('Pro insights: data states', () => {
       },
       flags: { energyEnabled: false },
     });
-    await screen.findByRole('heading', { name: /Euer Vibe/ });
+    await screen.findByRole('heading', {
+      name: dailyInsights.patterns.vibeRow,
+    });
     const days = screen.getAllByRole('button', {
       name: /^(Montag|Dienstag), /,
     });
@@ -357,15 +383,22 @@ describe('Pro insights: data states', () => {
 
   it('reveals the values of a day as text on selection', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: /Eure Energie/ });
-    const [monday] = screen.getAllByRole('button', {
+    await screen.findByRole('heading', {
+      name: dailyInsights.patterns.energyRow,
+    });
+    const group = screen.getByRole('group', {
+      name: dailyInsights.chart.dayGroup,
+    });
+    expect(within(group).getAllByRole('button')).toHaveLength(7);
+    const monday = within(group).getByRole('button', {
       name: /^Montag, 21\. September/,
     });
     fireEvent.click(monday);
     const detail = screen
-      .getAllByText(/Montag, 21\. September:/)
-      .find((node) => node.className === 'insight-chart-detail');
-    expect(detail?.textContent).toContain('Lea: Entspannt');
+      .getByRole('heading', { name: /^Montag, 21\. September/ })
+      .closest('.insight-week-detail');
+    expect(detail?.textContent).toContain('Entspannt');
+    expect(detail?.textContent).toContain('80 %');
     expect(monday.getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -385,7 +418,9 @@ describe('Pro insights: data states', () => {
     fail = false;
     fireEvent.click(retry);
     expect(
-      await screen.findByRole('heading', { name: /Euer Vibe/ }),
+      await screen.findByRole('heading', {
+        name: dailyInsights.patterns.vibeRow,
+      }),
     ).toBeTruthy();
     expect(insights.mock.calls.length).toBeGreaterThan(1);
   });
@@ -419,19 +454,39 @@ describe('Pro insights: data states', () => {
 });
 
 describe('Pro insights: navigation between weeks and accounts', () => {
-  it('requests the previous week and disables forward navigation on the current one', async () => {
+  it('selects a nearby week or jumps to a past week by date', async () => {
     const { insights } = renderPage();
-    await screen.findByRole('heading', { name: /Euer Vibe/ });
-    const next = screen.getByRole('button', {
-      name: 'Nächste Woche',
-    }) as HTMLButtonElement;
-    expect(next.disabled).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Vorherige Woche' }));
+    await screen.findByRole('heading', {
+      name: dailyInsights.patterns.vibeRow,
+    });
+    const picker = screen.getByRole('group', {
+      name: dailyInsights.week.picker,
+    });
+    const periods = within(picker).getAllByRole('button');
+    expect(periods).toHaveLength(3);
+    expect(periods[2].getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(periods[1]);
     await waitFor(() => {
-      const starts = insights.mock.calls
-        .map(([request]) => request.startDate && iso(request.startDate))
-        .filter(Boolean);
-      expect(starts).toContain('2026-09-07');
+      expect(
+        insights.mock.calls.some(
+          ([request]) =>
+            request.startDate && iso(request.startDate) === '2026-09-07',
+        ),
+      ).toBe(true);
+    });
+    fireEvent.change(
+      screen.getByLabelText(dailyInsights.week.picker, { selector: 'input' }),
+      {
+        target: { value: '2025-11-16' },
+      },
+    );
+    await waitFor(() => {
+      expect(
+        insights.mock.calls.some(
+          ([request]) =>
+            request.startDate && iso(request.startDate) === '2025-11-03',
+        ),
+      ).toBe(true);
     });
   });
 
@@ -440,7 +495,9 @@ describe('Pro insights: navigation between weeks and accounts', () => {
       defaultOptions: { queries: { retry: false } },
     });
     const harness = renderPage({ client });
-    await screen.findByRole('heading', { name: /Euer Vibe/ });
+    await screen.findByRole('heading', {
+      name: dailyInsights.patterns.vibeRow,
+    });
     const before = harness.insights.mock.calls.length;
     harness.rerenderWith({ spaceId: 'space-2' });
     await waitFor(() => {
@@ -465,30 +522,33 @@ describe('Pro insights: navigation between weeks and accounts', () => {
 });
 
 describe('Pro insights: views', () => {
-  it('links the week view to the recap and the recap to the month', async () => {
+  it('offers two views and shows the derived highlights in the week', async () => {
     renderPage();
-    const link = await screen.findByRole('link', {
-      name: /Wochenrückblick ansehen/,
+    const recap = await screen.findByRole('region', {
+      name: dailyInsights.week.summary,
     });
-    expect(link.getAttribute('href')).toBe('/more/insights/recap');
-    cleanup();
-    renderPage({ view: 'recap' });
-    const month = await screen.findByRole('link', { name: /Monat ansehen/ });
-    expect(month.getAttribute('href')).toBe('/more/insights/patterns');
-  });
-
-  it('renders the recap hero, noticed statements and highlights from real values', async () => {
-    renderPage({ view: 'recap' });
-    expect(await screen.findByText(dailyInsights.recap.heroLabel)).toBeTruthy();
+    const nav = screen.getByRole('navigation', {
+      name: dailyInsights.nav.label,
+    });
     expect(
-      screen.getByRole('heading', { name: dailyInsights.recap.noticedTitle }),
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([dailyInsights.nav.week, dailyInsights.nav.patterns]);
+    expect(
+      within(recap).getByText(dailyInsights.recap.highlightBothGood),
     ).toBeTruthy();
-    const highlights = screen
-      .getByRole('heading', { name: 'Eure Highlights' })
-      .closest('section') as HTMLElement;
-    expect(within(highlights).getAllByText('Beiden ging es gut').length).toBe(
-      2,
-    );
+    const [monday] = within(recap).getAllByRole('button');
+    expect(within(recap).getAllByRole('button')).toHaveLength(2);
+    fireEvent.click(monday);
+    const group = screen.getByRole('group', {
+      name: dailyInsights.chart.dayGroup,
+    });
+    expect(
+      within(group)
+        .getByRole('button', { pressed: true })
+        .getAttribute('aria-label'),
+    ).toMatch(/^Montag, 21\. September/);
   });
 
   it('renders the month patterns with a numbered statement area and calm note', async () => {
@@ -500,12 +560,14 @@ describe('Pro insights: views', () => {
     ).toBeTruthy();
     expect(screen.getByText(dailyInsights.patterns.calmNote)).toBeTruthy();
     expect(
-      screen.getByRole('button', { name: 'Vorheriger Monat' }),
+      screen.getByLabelText(dailyInsights.patterns.monthPicker, {
+        selector: 'input',
+      }),
     ).toBeTruthy();
   });
 
   it('never uses scoring, judging or causal wording anywhere on the pages', async () => {
-    for (const view of ['week', 'patterns', 'recap'] as const) {
+    for (const view of ['week', 'patterns'] as const) {
       renderPage({ view });
       await screen.findByRole('heading', { level: 1 });
       await waitFor(() =>

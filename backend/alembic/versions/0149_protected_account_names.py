@@ -9,16 +9,16 @@ encryption keys and cannot seal a payload for the rows that already exist; they
 keep their name in the old column and a NULL payload until the worker job (or
 ``python -m eimir.security migrate-columns``) has moved it.
 
-Revision ID: 0148
-Revises: 0147
+Revision ID: 0149
+Revises: 0148
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0148"
-down_revision = "0147"
+revision = "0149"
+down_revision = "0148"
 branch_labels = None
 depends_on = None
 

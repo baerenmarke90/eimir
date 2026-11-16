@@ -1,6 +1,7 @@
 
 # GardenWords
 
+Fixed phrases a partner may attach to a seed; clients localize them.
 
 ## Properties
 

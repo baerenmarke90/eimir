@@ -4,7 +4,7 @@ Owning issue: [#1958](https://github.com/baerenmarke90/eimir/issues/1958), pull 
 
 ## How the images were produced
 
-Real screenshots of this branch (`5a78d0ba1`, based on `main` at `ede2aab70`) running locally against its own
+Real screenshots of this branch (after the stronger deep shades, based on `main` at `ede2aab70`) running locally against its own
 backend and a separate database with the canonical demo space, signed in as the demo person Lea. Rendered with
 Playwright and Chromium at 390 px (smartphone, 2x) and 1280 px (Expanded), in Light and Dark. They are not
 output of an image-generation model, and they are not device screenshots: the Pixel check is still open.
@@ -26,8 +26,10 @@ the app. The setting was reset to Automatic afterwards.
 ## Observations
 
 - Both partners stay distinguishable by lightness in every theme; names and initials sit next to every colour.
-- In Dark the marker fills of two same-family colours are close together (the accent bar and rings carry the
-  difference). The contrast values are in `docs/product/design/person-colour-pairs.md`.
+- The first capture showed the base and deep shades too close together (Product Owner feedback). The deep shades
+  were darkened in Light and made more saturated in Dark, so rose against deep rose and blue against deep blue
+  now differ by about 19 to 25 in OKLab distance (x100, was 10 to 14), and the marker fills differ clearly in Dark.
+  Values are in `docs/product/design/person-colour-pairs.md`.
 - The element screenshots of the profile form at 390 px show the sticky bottom navigation over the last row; the
   row itself is fully reachable by scrolling.
 - Avatar placeholders (initials on the neutral avatar disc) are intentionally unchanged.

@@ -74,7 +74,7 @@ describe('person colours (Product Owner decision 2026-11-16)', () => {
         });
       }
 
-      it('keeps the two colours of every pair apart by lightness', () => {
+      it('keeps the two colours of every pair clearly apart by lightness', () => {
         for (const id of PERSON_COLOUR_PAIRS) {
           const pair = personColourPair(id);
           expect(pair.own).not.toBe(pair.partner);
@@ -83,7 +83,7 @@ describe('person colours (Product Owner decision 2026-11-16)', () => {
           const sameFamily =
             pair.own.replace('deep', '') === pair.partner.replace('deep', '');
           if (sameFamily)
-            expect(contrast(own, partner)).toBeGreaterThanOrEqual(1.4);
+            expect(contrast(own, partner)).toBeGreaterThanOrEqual(2);
         }
       });
     });

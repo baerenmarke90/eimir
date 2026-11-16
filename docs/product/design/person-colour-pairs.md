@@ -30,12 +30,12 @@ Rose and blue are the existing identity colours; deep variants and moss green ar
 | Tone | Light accent / surface | Dark accent / surface |
 |---|---|---|
 | rose | `#AA4C86` / `#F9EAF4` | `#F1B3D7` / `#46394F` |
-| deep rose | `#8A2A68` / `#EFC6DE` | `#DC7CB4` / `#6A3F5E` |
+| deep rose | `#6B1A4B` / `#E9A9CC` | `#D14F97` / `#A8457A` |
 | blue | `#5685D1` / `#D6E1F7` | `#AED1FA` / `#303F62` |
-| deep blue | `#2D5AAA` / `#B2C6EE` | `#6EA2EA` / `#2F4F86` |
+| deep blue | `#1B3C80` / `#92AEE6` | `#4F8DEB` / `#2C5AA8` |
 | moss | `#6F7D1F` / `#EEF1D2` | `#C5D36A` / `#414726` |
 
-All initials contrast at least 4.5:1 and all accents at least 3:1 on the surface and page of both themes. Pairs of the same family differ by at least 10 in OKLab distance (x100), also under simulated protan, deutan and tritan vision. The weakest value is rose against blue in Dark for deutan vision (about 5), which the names and initials cover. Moss green was chosen after teal, slate, amber and gold collided with rose or blue under colour-vision simulation.
+All initials contrast at least 4.5:1 and all accents at least 3:1 on the surface and page of both themes. Pairs of the same family differ by at least 18 in OKLab distance (x100), also under simulated protan, deutan and tritan vision. The weakest value is rose against blue in Dark for deutan vision (about 5), which the names and initials cover. Moss green was chosen after teal, slate, amber and gold collided with rose or blue under colour-vision simulation.
 
 ## Business and freemium model
 

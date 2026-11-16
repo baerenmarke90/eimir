@@ -99,6 +99,22 @@ describe('dashboardPreferences', () => {
     expect(isDashboardModuleVisible({ items }, 'retrospective')).toBe(true);
   });
 
+  it('keeps a saved order that predates pinned notes and places the new module after the lists', () => {
+    const saved = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter((key) => key !== 'pinned_note');
+    const order = orderedDashboardModuleKeys({
+      items: saved.map((moduleKey) => ({ moduleKey, visible: true })),
+    });
+    expect(order.filter((key) => key !== 'pinned_note')).toEqual([
+      'relationship_presence',
+      ...saved.filter((key) => key !== 'relationship_presence'),
+    ]);
+    expect(order.indexOf('pinned_note')).toBe(
+      order.indexOf('pinned_collection') + 1,
+    );
+  });
+
   it('pins the couple hero above older personal orders without dropping hidden preferences', () => {
     const keys = [...DASHBOARD_MODULE_KEYS].reverse();
     const value = {

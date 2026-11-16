@@ -106,11 +106,16 @@ follows any design.
 ## Application and scope
 
 `WirDesignProvider` sets `data-app-design` on the root element once the
-selection is resolved, in the same frame as the Wir composition. Generated
-blocks currently apply to Wir only (`APP_DESIGN_SCOPE` in
-`web/scripts/app-designs.mjs`). The approved delivery switches the scope to
-the whole app in its own step with separate Product Owner acceptance, so
-portaled sheets and other tabs follow the design.
+selection is resolved, in the same frame as the Wir composition, and removes
+it on sign-out or Space switch. The generated blocks apply from the root, so
+every tab, portaled sheet and the browser theme colour (`theme-color`, via
+`syncDocumentThemeColor`) follow the design. Layout modes still affect only
+the screens that implement them (Wir).
+
+Contextual colour worlds (`data-color-world="warm"`/`"natural"`, for example
+intimate moments and plan anticipation) stay as they are in designs on the
+default palette. In a design with its own palette (Geborgen, Seite an Seite)
+they resolve to that design's palette, so a page never mixes two designs.
 
 Transitional rule until that step: Seite an Seite already tinted the body,
 its portaled sheets and the bottom navigation while Wir is open. The
@@ -146,4 +151,4 @@ No component CSS is keyed by a design id.
 2. Klar & modern and Klassisch (no visible change).
 3. Seite an Seite (no visible change).
 4. App-wide scope (intended visible change, separate Product Owner
-   acceptance).
+   acceptance); the Seite an Seite transitional shell rule is removed.

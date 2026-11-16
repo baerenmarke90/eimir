@@ -1572,9 +1572,9 @@
     }
   },
   "wirDesign": {
-    "title": "Us design",
-    "intro": "How your Us page feels. Only your view changes.",
-    "choices": "Your Us design",
+    "title": "App design",
+    "intro": "How eimir. feels for you. Only your view changes.",
+    "choices": "Your app design",
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
@@ -1604,7 +1604,7 @@
     "save": "Save choice",
     "saving": "Saving …",
     "selected": "Already selected",
-    "saved": "Your Us design is saved.",
+    "saved": "Your app design is saved.",
     "close": "Close",
     "conflict": "Your appearance has changed in the meantime. Load the latest version, then confirm your choice again.",
     "reload": "Load latest version",
@@ -5445,8 +5445,8 @@
           "body": "Choose to share how far apart you are or show your location on the map. You can stop sharing anytime."
         },
         "wirDesigns": {
-          "title": "More designs for Us",
-          "body": "Make your Us page your own with Our Album, Clear & modern or Classic."
+          "title": "More app designs",
+          "body": "Make eimir. your own with Our Album, Clear & modern or Classic."
         },
         "appIcons": {
           "title": "Alternative app icons",

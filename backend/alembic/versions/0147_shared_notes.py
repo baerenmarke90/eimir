@@ -1,7 +1,7 @@
 """Add shared notes and the Plan-note relation (#1969).
 
-Revision ID: 0146
-Revises: 0145
+Revision ID: 0147
+Revises: 0146
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0146"
-down_revision = "0145"
+revision = "0147"
+down_revision = "0146"
 branch_labels = None
 depends_on = None
 

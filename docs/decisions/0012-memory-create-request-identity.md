@@ -40,6 +40,11 @@ because none of them is anchored in the server's transaction.
 - **Stored metadata (`memory_create_receipts`):** key, Space ID, Account ID, a SHA-256 fingerprint of the
   normalized request (`title`, `body`, `happenedOn`), the created Memory ID and the creation time. The request
   body itself is never stored.
+  **Update 2026-11-16 (#797):** the fingerprint is an HMAC-SHA-256 under a key derived from the installation's
+  cursor signing secret, no longer a plain SHA-256. A plain hash of a short text can be confirmed by anyone who
+  holds a database dump and hashes a guess; the keyed value cannot. A receipt written before the change is still
+  honored until its 24-hour retention ends. Replacing the signing secret makes open receipts unmatchable, as it
+  invalidates open cursors. See `backend/src/eimir/core/request_fingerprint.py`.
 - **Atomicity:** the receipt is claimed with `INSERT ... ON CONFLICT (space_id, account_id, key) DO NOTHING`
   in the same transaction as the Memory and its outbox event. A rollback discards both. Two simultaneous
   equivalent requests serialize on the unique index: the second waits for the first to commit, then observes

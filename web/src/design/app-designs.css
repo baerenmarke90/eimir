@@ -346,10 +346,10 @@
   --color-surface-panel: #ffffff;
   --color-surface-overlay: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-text: #432e42;
-  --color-brand-ocean: #432e42;
-  --color-text-secondary: #745f6f;
-  --color-text-muted: #745f6f;
+  --color-text: #2f1f33;
+  --color-brand-ocean: #2f1f33;
+  --color-text-secondary: #6e5969;
+  --color-text-muted: #6e5969;
   --color-border: #efe0e3;
   --color-border-subtle: #efe0e3;
   --color-header-border: #efe0e3;
@@ -494,19 +494,18 @@
   }
 }
 
-:root[data-app-design="classic"] .today-page {
+:root[data-app-design="classic"] {
   --font-heading-family: var(--font-ui);
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-app-design="modern"] .today-page {
+:root[data-app-design="modern"] {
   --font-heading-family: var(--font-ui);
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-app-design="shared_album"] .today-page,
-:root[data-app-design="shared_album"]
-  body:has(.product-shell[data-top-surface="today"] .today-page) {
+:root[data-app-design="shared_album"],
+:root[data-app-design="shared_album"] [data-color-world] {
   --color-background: #f6f4ec;
   --color-header-surface: #f6f4ec;
   --color-surface: #fbfaf5;
@@ -565,9 +564,8 @@
   --design-backdrop-glow: transparent;
 }
 
-:root[data-theme="dark"][data-app-design="shared_album"] .today-page,
-:root[data-theme="dark"][data-app-design="shared_album"]
-  body:has(.product-shell[data-top-surface="today"] .today-page) {
+:root[data-theme="dark"][data-app-design="shared_album"],
+:root[data-theme="dark"][data-app-design="shared_album"] [data-color-world] {
   --color-background: #182823;
   --color-header-surface: #182823;
   --color-surface: #23362e;
@@ -627,9 +625,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="shared_album"] .today-page,
-  :root:not([data-theme])[data-app-design="shared_album"]
-    body:has(.product-shell[data-top-surface="today"] .today-page) {
+  :root:not([data-theme])[data-app-design="shared_album"],
+  :root:not([data-theme])[data-app-design="shared_album"] [data-color-world] {
     --color-background: #182823;
     --color-header-surface: #182823;
     --color-surface: #23362e;
@@ -689,17 +686,18 @@
   }
 }
 
-:root[data-app-design="warm"] .today-page {
+:root[data-app-design="warm"],
+:root[data-app-design="warm"] [data-color-world] {
   --color-background: #fff9f6;
   --color-header-surface: #fff9f6;
   --color-surface: #ffffff;
   --color-surface-panel: #ffffff;
   --color-surface-overlay: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-text: #432e42;
-  --color-brand-ocean: #432e42;
-  --color-text-secondary: #745f6f;
-  --color-text-muted: #745f6f;
+  --color-text: #2f1f33;
+  --color-brand-ocean: #2f1f33;
+  --color-text-secondary: #6e5969;
+  --color-text-muted: #6e5969;
   --color-border: #efe0e3;
   --color-border-subtle: #efe0e3;
   --color-header-border: #efe0e3;
@@ -742,7 +740,8 @@
   --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-theme="dark"][data-app-design="warm"] .today-page {
+:root[data-theme="dark"][data-app-design="warm"],
+:root[data-theme="dark"][data-app-design="warm"] [data-color-world] {
   --color-background: #2c2334;
   --color-header-surface: #2c2334;
   --color-surface: #3a2e43;
@@ -796,7 +795,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="warm"] .today-page {
+  :root:not([data-theme])[data-app-design="warm"],
+  :root:not([data-theme])[data-app-design="warm"] [data-color-world] {
     --color-background: #2c2334;
     --color-header-surface: #2c2334;
     --color-surface: #3a2e43;

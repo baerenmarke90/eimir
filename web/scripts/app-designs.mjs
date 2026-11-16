@@ -5,20 +5,11 @@ import { paletteDeclarations, paletteRoles } from './identity-palette.mjs';
  * palette and bounded presets; this module validates the file and turns it
  * into semantic custom properties. See docs/DESIGN-TOKEN-SETS.md.
  *
- * Designs currently apply to Wir only. The approved delivery switches the
- * scope to the whole app in a separate step, by changing APP_DESIGN_SCOPE.
+ * A design applies app-wide from the root element (`data-app-design`), so
+ * every tab, portaled sheet and the browser theme colour follow it. In a
+ * design with its own palette, contextual colour worlds (`data-color-world`)
+ * resolve to that palette; designs on the default palette keep them.
  */
-export const APP_DESIGN_SCOPE = '.today-page';
-
-/**
- * Transitional (#1907 C1, removed with the app-wide step): Seite an Seite
- * already tinted the shell, its sheets and the bottom navigation while Wir is
- * open, so its tokens also reach the body there.
- */
-const TRANSITIONAL_SHELL_SCOPES = {
-  shared_album:
-    'body:has(.product-shell[data-top-surface="today"] .today-page)',
-};
 
 const FIELDS = [
   '$description',
@@ -114,10 +105,26 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 function palettes(id, color, identity) {
   if (color && typeof color === 'object' && 'world' in color) {
-    exactKeys(id, 'color', color, ['world']);
+    // A colour world, optionally with single roles replaced per scheme.
+    for (const key of Object.keys(color))
+      if (!['world', ...SCHEMES].includes(key))
+        fail(id, `color.${key} is not allowed with color.world.`);
     const world = identity.colorWorlds[color.world];
     if (!world) fail(id, `color.world "${color.world}" is not a colour world.`);
-    return { light: world.light, dark: world.dark, world: color.world };
+    const overrides = SCHEMES.filter((scheme) => scheme in color);
+    for (const scheme of overrides)
+      for (const [role, value] of Object.entries(color[scheme])) {
+        if (!(role in paletteRoles) && !(role in FINE_ROLES))
+          fail(id, `color.${scheme}.${role} is not a colour role.`);
+        if (!HEX.test(value))
+          fail(id, `color.${scheme}.${role} must be a #RRGGBB colour.`);
+      }
+    return {
+      light: { ...world.light, ...color.light },
+      dark: { ...world.dark, ...color.dark },
+      // An adjusted world is the design's own palette, not the shared one.
+      world: overrides.length ? `${color.world}+${id}` : color.world,
+    };
   }
   exactKeys(id, 'color', color, SCHEMES);
   for (const scheme of SCHEMES) {
@@ -141,6 +148,9 @@ const TEXT_PAIRS = [
   ['text', 'surface'],
   ['mutedText', 'page'],
   ['mutedText', 'surface'],
+  // Supporting text also sits on the soft tinted surfaces.
+  ['mutedText', 'softRose'],
+  ['mutedText', 'softBlue'],
   ['action', 'page'],
   ['action', 'surface'],
   ['onAction', 'actionFill'],
@@ -376,16 +386,14 @@ export function buildAppDesigns(tokens, designs) {
   for (const design of validated) {
     if (design.id === fallback.id) continue;
     const root = `[data-app-design="${design.id}"]`;
-    const scopes = [
-      APP_DESIGN_SCOPE,
-      TRANSITIONAL_SHELL_SCOPES[design.id],
-    ].filter(Boolean);
+    const ownPalette = design.palette.world !== identity.defaultWorld;
     const scoped = (prefix) =>
-      scopes.map((scope) => `${prefix}${root} ${scope}`).join(',\n');
+      ownPalette
+        ? `${prefix}${root},\n${prefix}${root} [data-color-world]`
+        : `${prefix}${root}`;
     const extra = presetDeclarations(design, tokens);
     // A design on the default colour world inherits the root palette.
-    if (design.palette.world === identity.defaultWorld)
-      css.push(block(scoped(':root'), extra));
+    if (!ownPalette) css.push(block(scoped(':root'), extra));
     else
       css.push(
         ...schemeBlocks(
@@ -405,7 +413,7 @@ export function buildAppDesigns(tokens, designs) {
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(
-        `@media (prefers-reduced-motion: no-preference) {\n${block(`:root${root} ${APP_DESIGN_SCOPE}`, motion, '  ')}\n}`,
+        `@media (prefers-reduced-motion: no-preference) {\n${block(scoped(':root'), motion, '  ')}\n}`,
       );
   }
 

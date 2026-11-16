@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { passportHighlights, passportLandmarks } from './relationshipPassport';
 import type { DashboardView } from '../api/generated/models/DashboardView';
+import { passportHighlights, passportLandmarks } from './relationshipPassport';
 
 function duration(startedOn: string, daysTogether: number) {
   return {
@@ -29,7 +29,7 @@ describe('Passport calendar landmarks', () => {
     expect(result?.anniversary.daysRemaining).toBe(0);
     expect(result?.anniversary.years).toBe(1);
     expect(
-      passportLandmarks(duration('2024-01-01', 100))?.roundDay.daysRemaining,
+      passportLandmarks(duration('2024-01-01', 100))?.roundDay?.daysRemaining,
     ).toBe(0);
   });
   it('clamps leap-day anniversaries to February 28 in a non-leap year', () => {
@@ -62,5 +62,26 @@ describe('Passport calendar landmarks', () => {
       passportHighlights(dashboard).map((item) => `${item.type}:${item.id}`),
     ).toEqual(['MEMORY:same', 'HEART_MOMENT:same', 'MEMORY:third']);
     expect(passportHighlights(undefined)).toEqual([]);
+  });
+});
+
+describe('Passport round day after the story overview waymarks', () => {
+  it('follows the round day series instead of plain multiples', () => {
+    expect(passportLandmarks(duration('2023-06-17', 1001))?.roundDay).toEqual({
+      date: new Date('2026-07-02'),
+      days: 1111,
+      daysRemaining: 110,
+    });
+    expect(
+      passportLandmarks(duration('2023-06-17', 1112))?.roundDay?.days,
+    ).toBe(1500);
+  });
+  it('has no next round day once 10,000 days have passed', () => {
+    expect(
+      passportLandmarks(duration('1990-01-01', 10_001))?.roundDay,
+    ).toBeNull();
+    expect(
+      passportLandmarks(duration('1990-01-01', 10_000))?.roundDay?.days,
+    ).toBe(10_000);
   });
 });

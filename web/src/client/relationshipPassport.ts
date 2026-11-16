@@ -1,6 +1,7 @@
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import { dashboardItemPath } from './m4Product';
+import { nextRoundDay } from './storyWaymarks';
 
 const DAY_MS = 86_400_000;
 
@@ -42,11 +43,7 @@ export function passportLandmarks(
     year += 1;
     anniversary = anniversaryIn(year);
   }
-  const step = duration.daysTogether < 1000 ? 100 : 500;
-  const roundDays = Math.max(
-    step,
-    Math.ceil(duration.daysTogether / step) * step,
-  );
+  const roundDays = nextRoundDay(duration.daysTogether);
   return {
     anniversary: {
       date: anniversary,
@@ -55,11 +52,15 @@ export function passportLandmarks(
         (anniversary.getTime() - today.getTime()) / DAY_MS,
       ),
     },
-    roundDay: {
-      date: new Date(startDay + roundDays * DAY_MS),
-      days: roundDays,
-      daysRemaining: roundDays - duration.daysTogether,
-    },
+    // The series ends at 10,000 days; there is no further round day to show.
+    roundDay:
+      roundDays === null
+        ? null
+        : {
+            date: new Date(startDay + roundDays * DAY_MS),
+            days: roundDays,
+            daysRemaining: roundDays - duration.daysTogether,
+          },
   };
 }
 

@@ -91,7 +91,7 @@ describe('dashboardPreferences', () => {
       ),
     ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(order.indexOf('retrospective')).toBe(
-      order.indexOf('pinned_collection') + 1,
+      order.indexOf('pinned_note') + 1,
     );
     expect(isDashboardModuleVisible({ items }, 'relationship_signal')).toBe(
       false,

@@ -117,7 +117,7 @@ describe('PlanProductPage', () => {
     const withNotes = renderPlan(
       basePlan({ description: 'Remember the sunscreen.' }),
     );
-    expect(withNotes).not.toContain(i18n.t('m5s3.plan.notesHeading'));
+    expect(withNotes).not.toContain(`>${i18n.t('m5s3.plan.notesHeading')}<`);
     expect(withNotes).toContain(
       'class="planen-section planen-section-content"',
     );

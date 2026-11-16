@@ -1359,6 +1359,22 @@
     "birthdayValue": "Birthday: {{date}}",
     "birthdayHelp": "Your birthday is visible to your active partner and automatically included in your special days. Leave blank to remove it.",
     "birthdaySaveError": "Your birthday could not be saved.",
+    "colours": {
+      "title": "Your colours",
+      "help": "Choose the colours you see yourself and your partner in – only for your own view.",
+      "order": "First your colour, then your partner's. Your partner chooses their own.",
+      "automatic": "Automatic",
+      "pair": "{{own}} + {{partner}}",
+      "hint": "You: {{own}}, partner: {{partner}}",
+      "saveError": "The colours could not be saved.",
+      "tone": {
+        "rose": "Rose",
+        "deeprose": "Deep rose",
+        "blue": "Blue",
+        "deepblue": "Deep blue",
+        "moss": "Moss green"
+      }
+    },
     "saveProfile": "Save",
     "savingProfile": "Saving …",
     "saved": "Profile saved.",

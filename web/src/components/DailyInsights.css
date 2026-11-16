@@ -8,8 +8,8 @@
  * available as text.
  */
 .daily-insights {
-  --insight-own: var(--color-brand-text);
-  --insight-partner: var(--color-private);
+  --insight-own: var(--person-own-accent);
+  --insight-partner: var(--person-partner-accent);
   --insight-ink: var(--color-text);
   --insight-track: color-mix(
     in srgb,
@@ -48,14 +48,14 @@
 }
 
 :root[data-theme="dark"] .daily-insights {
-  --insight-own: var(--color-brand-text);
-  --insight-partner: var(--color-private);
+  --insight-own: var(--person-own-accent);
+  --insight-partner: var(--person-partner-accent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .daily-insights {
-    --insight-own: var(--color-brand-text);
-    --insight-partner: var(--color-private);
+    --insight-own: var(--person-own-accent);
+    --insight-partner: var(--person-partner-accent);
   }
 }
 

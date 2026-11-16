@@ -1,9 +1,9 @@
 import './FreeComposer.css';
 import { type ButtonHTMLAttributes, useEffect, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import { useTranslation } from '../i18n';
 import { isLocalItemId } from '../client/collectionOutbox';
-import type { PartnerTone } from '../client/sharedListSummary';
+import type { PersonRole } from '../client/personColours';
+import { useTranslation } from '../i18n';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PartnerMarker } from './PartnerMarker';
@@ -53,7 +53,7 @@ export function SharedCollectionItemRow({
   /** A change to this item has not been sent yet (#1808). */
   waiting?: boolean;
   /** Who added the entry, or who finished it once it is done (#1808). */
-  marker?: { name: string; tone: PartnerTone; caption: string };
+  marker?: { name: string; role: PersonRole; caption: string };
   /** The entry just moved between the open entries and the cart. */
   arriving?: boolean;
 }) {
@@ -160,7 +160,7 @@ export function SharedCollectionItemRow({
       </div>
       {marker ? (
         <>
-          <PartnerMarker name={marker.name} tone={marker.tone} />
+          <PartnerMarker name={marker.name} role={marker.role} />
           <span className="sr-only">{marker.caption}</span>
         </>
       ) : null}

@@ -10,6 +10,23 @@ const profileIdentity = {
   birthdayHelp:
     'Dein Geburtstag ist für deinen aktiven Partner sichtbar und wird automatisch unter euren besonderen Tagen berücksichtigt. Leer lassen entfernt ihn.',
   birthdaySaveError: 'Der Geburtstag konnte nicht gespeichert werden.',
+  colours: {
+    title: 'Eure Farben',
+    help: 'Wähle die Farben, in denen du dich und deine Partnerperson siehst – nur für deine Ansicht.',
+    order:
+      'Zuerst deine Farbe, dann die deiner Partnerperson. Deine Partnerperson wählt ihre eigene.',
+    automatic: 'Automatisch',
+    pair: '{{own}} + {{partner}}',
+    hint: 'Du: {{own}}, Partnerperson: {{partner}}',
+    saveError: 'Die Farben konnten nicht gespeichert werden.',
+    tone: {
+      rose: 'Rosé',
+      deeprose: 'Tiefes Rosé',
+      blue: 'Blau',
+      deepblue: 'Tiefes Blau',
+      moss: 'Moosgrün',
+    },
+  },
   saveProfile: 'Speichern',
   savingProfile: 'Wird gespeichert …',
   saved: 'Profil wurde gespeichert.',

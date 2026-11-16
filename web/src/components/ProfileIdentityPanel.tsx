@@ -12,6 +12,8 @@ import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
+import type { PersonColourPairId } from '../client/personColours';
+import { usePersonColours } from '../client/personColoursContext';
 import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
@@ -20,6 +22,7 @@ import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
 import { ListEntryIconButton } from './ListEntryActions';
 import { NativeDateField } from './NativeDateField';
+import { PersonColourChoice } from './PersonColourChoice';
 import { PhotoCropTask } from './PhotoCropTask';
 import './PeopleProfiles.css';
 import { MediaDropZone } from './MediaDropZone';
@@ -63,6 +66,10 @@ export function ProfileIdentityPanel({
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [birthdayDraft, setBirthdayDraft] = useState('');
+  const personColours = usePersonColours();
+  const [coloursDraft, setColoursDraft] = useState<PersonColourPairId | null>(
+    null,
+  );
   const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
   const [cropSource, setCropSource] = useState<PhotoCropSource | null>(null);
   const [preparingAvatar, setPreparingAvatar] = useState(false);
@@ -139,21 +146,42 @@ export function ProfileIdentityPanel({
     await invalidateAuthorSummaryConsumers(queryClient, spaceId, account.id);
   }
 
-  // Name and birthday are one edit: only what changed is sent.
+  // Name, birthday and colours are one edit: only what changed is sent. The
+  // colours are a personal appearance setting with its own endpoint.
   const saveMutation = useMutation({
-    mutationFn: async (changes: {
+    mutationFn: async ({
+      colours,
+      ...changes
+    }: {
       displayName?: string;
       birthday?: Date | null;
-    }) => updateIdentity(changes),
+      colours?: PersonColourPairId | null;
+    }) => {
+      const profile = Object.keys(changes).length
+        ? await updateIdentity(changes)
+        : null;
+      if (colours !== undefined && personColours) {
+        try {
+          await personColours.save(colours);
+        } catch (error) {
+          if (profile) await acceptUpdatedProfile(profile);
+          throw error;
+        }
+      }
+      return profile;
+    },
     onSuccess: async (profile) => {
-      await acceptUpdatedProfile(profile);
+      if (profile) await acceptUpdatedProfile(profile);
+      else setSaved(true);
       setEditingIdentity(false);
       requestAnimationFrame(() => editIdentityButtonRef.current?.focus());
     },
     onError: (_error, changes) =>
       (changes.displayName !== undefined
         ? displayNameInputRef.current
-        : birthdayInputRef.current
+        : changes.birthday !== undefined
+          ? birthdayInputRef.current
+          : null
       )?.focus(),
   });
 
@@ -238,6 +266,7 @@ export function ProfileIdentityPanel({
     saveMutation.reset();
     setNameDraft(profileQuery.data.displayName);
     setBirthdayDraft(dateInputValue(profileQuery.data.birthday));
+    setColoursDraft(personColours?.colours ?? null);
     setEditingIdentity(true);
     requestAnimationFrame(() => displayNameInputRef.current?.focus());
   }
@@ -255,13 +284,19 @@ export function ProfileIdentityPanel({
   function submitIdentity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveMutation.isPending || !profileQuery.data) return;
-    const changes: { displayName?: string; birthday?: Date | null } = {};
+    const changes: {
+      displayName?: string;
+      birthday?: Date | null;
+      colours?: PersonColourPairId | null;
+    } = {};
     if (nameDraft !== profileQuery.data.displayName)
       changes.displayName = nameDraft;
     if (birthdayDraft !== dateInputValue(profileQuery.data.birthday))
       changes.birthday = birthdayDraft
         ? new Date(`${birthdayDraft}T00:00:00.000Z`)
         : null;
+    if (personColours && coloursDraft !== personColours.colours)
+      changes.colours = coloursDraft;
     if (!Object.keys(changes).length) return;
     resetActionState();
     saveMutation.mutate(changes);
@@ -272,10 +307,16 @@ export function ProfileIdentityPanel({
   const dirty =
     Boolean(profile) &&
     (nameDraft !== profile?.displayName ||
-      birthdayDraft !== dateInputValue(profile?.birthday));
+      birthdayDraft !== dateInputValue(profile?.birthday) ||
+      (personColours !== null && coloursDraft !== personColours.colours));
   const nameFailed =
     saveMutation.error !== null &&
     saveMutation.variables?.displayName !== undefined;
+  const coloursFailed =
+    saveMutation.error !== null &&
+    !nameFailed &&
+    saveMutation.variables?.colours !== undefined &&
+    saveMutation.variables?.birthday === undefined;
   const pending =
     saveMutation.isPending ||
     avatarMutation.isPending ||
@@ -416,7 +457,7 @@ export function ProfileIdentityPanel({
                   value={birthdayDraft}
                   disabled={pending}
                   error={
-                    saveMutation.error && !nameFailed
+                    saveMutation.error && !nameFailed && !coloursFailed
                       ? t('profileIdentity.birthdaySaveError')
                       : undefined
                   }
@@ -426,6 +467,24 @@ export function ProfileIdentityPanel({
                     setSaved(false);
                   }}
                 />
+                {personColours?.ready ? (
+                  <div className="field-group">
+                    <PersonColourChoice
+                      value={coloursDraft}
+                      disabled={pending}
+                      onChange={(next) => {
+                        setColoursDraft(next);
+                        if (saveMutation.error) saveMutation.reset();
+                        setSaved(false);
+                      }}
+                    />
+                    {coloursFailed ? (
+                      <p className="field-error" role="alert">
+                        {t('profileIdentity.colours.saveError')}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="form-actions profile-identity-edit-actions">
                   <button type="submit" disabled={pending || !dirty}>
                     {saveMutation.isPending

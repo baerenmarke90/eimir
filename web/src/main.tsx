@@ -46,6 +46,7 @@ import './product-reflow.css';
 import './components/FreeComposer.css';
 import './components/StoryReading.css';
 import './design/identity-roles.css';
+import './design/person-colors.css';
 import './design/identity-components.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 

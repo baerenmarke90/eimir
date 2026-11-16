@@ -8096,6 +8096,65 @@
         "title": "PasswordRequest",
         "type": "object"
       },
+      "PersonColoursId": {
+        "description": "A fixed pair: the owner's own colour first, then the partner's colour.\n\nThe pair is a purely personal view setting. It is never shared with the\npartner, so the two people can see each other in different colours.",
+        "enum": [
+          "rose_blue",
+          "blue_rose",
+          "rose_deeprose",
+          "deeprose_rose",
+          "blue_deepblue",
+          "deepblue_blue",
+          "moss_rose",
+          "moss_blue"
+        ],
+        "title": "PersonColoursId",
+        "type": "string"
+      },
+      "PersonColoursPreferencePatch": {
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "colours"
+        ],
+        "title": "PersonColoursPreferencePatch",
+        "type": "object"
+      },
+      "PersonColoursPreferenceView": {
+        "description": "The caller's own colour pair; ``colours`` is null while automatic.",
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "colours",
+          "version"
+        ],
+        "title": "PersonColoursPreferenceView",
+        "type": "object"
+      },
       "PersonRelationship": {
         "enum": [
           "CHILD",
@@ -22235,6 +22294,167 @@
           }
         },
         "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/person-colours": {
+      "get": {
+        "description": "Read only the caller's own colour pair. No partner value is ever returned.",
+        "operationId": "getPersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Person Colours Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known colour pair, or null for automatic. Free for every Account.\n\nThe pair is a personal view of the people in this Space. It is not shared,\ncarries no gender statement and needs no capability.",
+        "operationId": "updatePersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonColoursPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Person Colours Preference",
         "tags": [
           "appearance"
         ]

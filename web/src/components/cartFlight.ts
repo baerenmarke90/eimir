@@ -1,4 +1,4 @@
-import type { PartnerTone } from '../client/sharedListSummary';
+import type { PersonRole } from '../client/personColours';
 
 /** Marks the place where checked entries end up: the cart bar or the cart section. */
 export const CART_TARGET_ATTRIBUTE = 'data-cart-target';
@@ -31,7 +31,7 @@ export interface CartFlight {
   /** Where the entry was before it moved. */
   from: DOMRect;
   label: string;
-  tone: PartnerTone;
+  role: PersonRole;
 }
 
 /**
@@ -44,7 +44,7 @@ export interface CartFlight {
  * pointer events, and removes itself when it ends. The motion token is 0 ms
  * under reduced motion, which is how the app switches motion off.
  */
-export function flyIntoCart({ from, label, tone }: CartFlight): boolean {
+export function flyIntoCart({ from, label, role }: CartFlight): boolean {
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const duration = tokenMilliseconds('--duration-context') * DURATION_FACTOR;
   if (reduced?.matches || duration <= 0) return true;
@@ -53,7 +53,7 @@ export function flyIntoCart({ from, label, tone }: CartFlight): boolean {
   if (!target) return false;
 
   const ghost = document.createElement('div');
-  ghost.className = `shared-list-flight shared-list-flight-${tone}`;
+  ghost.className = `shared-list-flight person-role-${role}`;
   ghost.setAttribute('aria-hidden', 'true');
   ghost.textContent = label;
   Object.assign(ghost.style, {

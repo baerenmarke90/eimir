@@ -14,10 +14,10 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ClientProblemError } from '../client/problemDetails';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import { ClientProblemError } from '../client/problemDetails';
 import {
   __resetProductReadCacheStateForTests,
   __setProductReadCacheStorageForTests,
@@ -448,25 +448,25 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     expect(within(tray).getByText('Milch')).toBeTruthy();
   });
 
-  it('shows the same colours to both partners', async () => {
+  it('colours each person by role: you are own, your partner is partner', async () => {
     const first = renderPage('anna');
     await screen.findByText('Milch');
-    const colours = (root: HTMLElement) =>
-      Array.from(root.querySelectorAll('.partner-marker')).map(
-        (marker) => marker.className,
+    const roles = (root: HTMLElement) =>
+      new Map(
+        Array.from(root.querySelectorAll('.partner-marker')).map((marker) => [
+          marker.textContent,
+          marker.className.includes('person-role-own') ? 'own' : 'partner',
+        ]),
       );
-    const annaView = colours(first.container);
+    const annaView = roles(first.container);
     first.unmount();
     const second = renderPage('ben');
     await screen.findByText('Milch');
+    const benView = roles(second.container);
 
-    expect(colours(second.container)).toEqual(annaView);
-    expect(annaView.some((name) => name.includes('partner-marker-a'))).toBe(
-      true,
-    );
-    expect(annaView.some((name) => name.includes('partner-marker-b'))).toBe(
-      true,
-    );
+    expect(new Set(annaView.values())).toEqual(new Set(['own', 'partner']));
+    for (const [person, role] of annaView)
+      expect(benView.get(person)).toBe(role === 'own' ? 'partner' : 'own');
   });
 
   it('opens an entry by its name and changes the quantity from the sheet', async () => {

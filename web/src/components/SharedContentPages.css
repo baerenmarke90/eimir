@@ -518,9 +518,6 @@
   pointer-events: none;
   will-change: transform, opacity;
 }
-.shared-list-flight-a {
-  background: var(--color-partner-a-surface);
-}
-.shared-list-flight-b {
-  background: var(--color-partner-b-surface);
+.shared-list-flight {
+  background: var(--person-surface);
 }

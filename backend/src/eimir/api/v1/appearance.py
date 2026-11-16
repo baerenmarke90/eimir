@@ -12,6 +12,7 @@ from eimir.appearance.models import (
     FREE_WIR_DESIGNS,
     AppIconId,
     AppIconPreference,
+    PersonColoursId,
     WirDesignId,
 )
 from eimir.authorization import AuthorizationContext
@@ -142,3 +143,68 @@ def update_wir_design_preference(
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_wir_design(session, authorization, body.design_id, expected_token)
     return _design_view(saved, authorization, response)
+
+
+class PersonColoursPreferenceView(ApiModel):
+    """The caller's own colour pair; ``colours`` is null while automatic."""
+
+    colours: PersonColoursId | None
+    version: int
+
+
+class PersonColoursPreferencePatch(ApiModel):
+    colours: PersonColoursId | None
+
+
+def _colours_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> PersonColoursPreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return PersonColoursPreferenceView(
+        colours=(
+            PersonColoursId(preference.person_colours)
+            if preference and preference.person_colours
+            else None
+        ),
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/person-colours",
+    response_model=PersonColoursPreferenceView,
+    operation_id="getPersonColoursPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_person_colours_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> PersonColoursPreferenceView:
+    """Read only the caller's own colour pair. No partner value is ever returned."""
+    return _colours_view(service.read_preference(session, authorization), authorization, response)
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/person-colours",
+    response_model=PersonColoursPreferenceView,
+    operation_id="updatePersonColoursPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+)
+def update_person_colours_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: PersonColoursPreferencePatch,
+    expected_token: IfMatchToken,
+) -> PersonColoursPreferenceView:
+    """Save a known colour pair, or null for automatic. Free for every Account.
+
+    The pair is a personal view of the people in this Space. It is not shared,
+    carries no gender statement and needs no capability.
+    """
+    saved = service.save_person_colours(session, authorization, body.colours, expected_token)
+    return _colours_view(saved, authorization, response)

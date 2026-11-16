@@ -35,6 +35,7 @@ import {
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { personRoleResolver } from '../client/personColours';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -50,7 +51,6 @@ import { sharedAchievementKind } from '../client/sharedAchievements';
 import {
   knownPersonName,
   listPeople,
-  partnerTone,
   summarizeSharedList,
 } from '../client/sharedListSummary';
 import {
@@ -882,7 +882,8 @@ function CollectionProductDetail({
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
   const shopping = collection.kind === 'SHOPPING';
-  const summary = summarizeSharedList(collection, items);
+  const roleOf = personRoleResolver(accountId);
+  const summary = summarizeSharedList(items, roleOf);
   const markerFor = (item: CollectionItemDetail) => {
     const finisher = item.completed ? item.completer : null;
     const person = finisher ?? item.creator;
@@ -892,7 +893,7 @@ function CollectionProductDetail({
       (person.id === accountId ? t('m5s3.collection.you') : '');
     return {
       name,
-      tone: partnerTone(collection, person.id),
+      role: roleOf(person.id),
       caption: name
         ? t(
             finisher
@@ -922,7 +923,7 @@ function CollectionProductDetail({
         setTripEnd(null);
         finishTrip.mutate({
           itemIds: doneItems.map((entry) => entry.id),
-          shares: summarizeSharedList(collection, doneItems).shares,
+          shares: summarizeSharedList(doneItems, roleOf).shares,
         });
       }}
     />
@@ -1006,7 +1007,7 @@ function CollectionProductDetail({
       ? {
           from: row.getBoundingClientRect(),
           label: targetItem.title,
-          tone: partnerTone(collection, accountId),
+          role: roleOf(accountId),
           at: performance.now(),
         }
       : null;
@@ -1254,7 +1255,7 @@ function CollectionProductDetail({
           <SharedListSummary
             summary={summary}
             shopping={shopping}
-            people={listPeople(collection, items)}
+            people={listPeople(collection, items, roleOf)}
           />
         ) : null}
         <div className="shared-list-toolbar">

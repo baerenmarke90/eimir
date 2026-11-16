@@ -275,7 +275,7 @@ for (const view of [
 
     // Turn the sideways photo upright, then crop freely at two corners.
     await sheet.getByRole('button', { name: photoEdit.turn }).click();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(450);
     const dragHandle = async (label: string, dx: number, dy: number) => {
       const box = await sheet.getByLabel(label, { exact: true }).boundingBox();
       if (!box) throw new Error(`Missing crop handle ${label}.`);
@@ -288,8 +288,31 @@ for (const view of [
       await page.mouse.up();
     };
     await dragHandle(photoEdit.handles.se, -70, -30);
+    await page.waitForTimeout(450);
     await dragHandle(photoEdit.handles.nw, 30, 24);
-    await page.waitForTimeout(300);
+    // Releasing a handle re-centres the frame on the chosen section.
+    await page.waitForTimeout(450);
+
+    // Zoom the photo under the frame, then move it while the frame stays.
+    const frame = await sheet
+      .getByRole('button', { name: photoEdit.cropArea })
+      .boundingBox();
+    if (!frame) throw new Error('Missing crop frame.');
+    const frameX = frame.x + frame.width / 2;
+    const frameY = frame.y + frame.height / 2;
+    await page.mouse.move(frameX, frameY);
+    await page.mouse.wheel(0, -160);
+    await page.waitForTimeout(200);
+    await page.mouse.down();
+    for (let step = 1; step <= 10; step += 1)
+      await page.mouse.move(frameX + step * 3, frameY + step);
+    await captureScreenshot(
+      page,
+      info,
+      `photo-edit-03a-moving-${view.width}-${view.theme}.png`,
+    );
+    await page.mouse.up();
+    await page.waitForTimeout(450);
     await captureScreenshot(
       page,
       info,
@@ -335,6 +358,9 @@ for (const view of [
     await sheet
       .getByRole('radio', { name: photoEdit.colors.white })
       .check({ force: true });
+    await sheet
+      .getByRole('radio', { name: photoEdit.fonts.hand })
+      .check({ force: true });
     const textView = await preview.boundingBox();
     if (!textView) throw new Error('Missing edit preview.');
     await page.mouse.click(
@@ -351,6 +377,25 @@ for (const view of [
     );
     await text.press('Enter');
     await expect(text).toHaveCount(0);
+
+    // The written text stays selected; its corner grip makes it larger.
+    const grip = await sheet
+      .getByRole('button', { name: photoEdit.resizeText })
+      .boundingBox();
+    if (!grip) throw new Error('Missing text resize grip.');
+    const gripX = grip.x + grip.width / 2;
+    const gripY = grip.y + grip.height / 2;
+    await page.mouse.move(gripX, gripY);
+    await page.mouse.down();
+    for (let step = 1; step <= 10; step += 1)
+      await page.mouse.move(gripX + step * 3, gripY + step * 0.8);
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await captureScreenshot(
+      page,
+      info,
+      `photo-edit-05b-resized-${view.width}-${view.theme}.png`,
+    );
 
     await sheet.getByRole('button', { name: photoEdit.confirm }).click();
     await expect(sheet).toBeHidden();

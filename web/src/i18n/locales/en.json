@@ -2339,11 +2339,12 @@
       "text": "Text on the photo"
     },
     "help": {
-      "crop": "Drag the corners and edges to choose the section.",
+      "crop": "Drag the corners for the section. Move the photo with one finger, zoom with two.",
       "draw": "Draw on the photo with your finger.",
-      "text": "Tap the photo to write text. Drag text to move it."
+      "text": "Tap the photo to write text. Drag text to move it, and the dot at its corner to resize it."
     },
-    "cropArea": "Section",
+    "cropArea": "Move the photo in the section",
+    "cropKeys": "Arrow keys move the photo; plus and minus zoom.",
     "handles": {
       "nw": "Drag the top left corner",
       "n": "Drag the top edge",
@@ -2364,7 +2365,17 @@
       "blue": "Blue",
       "yellow": "Yellow"
     },
+    "font": "Font",
+    "fonts": {
+      "ui": "Clean",
+      "serif": "Elegant",
+      "hand": "Handwriting",
+      "script": "Playful",
+      "poster": "Poster",
+      "typewriter": "Typewriter"
+    },
     "addText": "Add text",
+    "resizeText": "Resize text",
     "textLabel": "Text on the photo",
     "preview": "Preview of the edited photo",
     "undo": "Undo",

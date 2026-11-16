@@ -27,9 +27,10 @@ const EDITED_PHOTO_QUALITY = 0.92;
 const EDITED_PHOTO_BACKDROP = '#ffffff';
 /** Pen width as a fraction of the photo's shorter edge. */
 export const PEN_WIDTH = 0.012;
-/** Text size as a fraction of the photo's shorter edge. */
+/** Default text size as a fraction of the photo's shorter edge. */
 export const TEXT_SIZE = 0.075;
-const TEXT_WEIGHT = 700;
+export const MIN_TEXT_SIZE = 0.03;
+export const MAX_TEXT_SIZE = 0.4;
 /** Keeps light and dark marks readable on any photo. */
 const MARK_SHADOW = 'rgb(0 0 0 / 35%)';
 
@@ -53,10 +54,32 @@ export interface PenStroke {
   points: NormalizedPoint[];
 }
 
+/**
+ * Free (SIL OFL 1.1) typefaces for text on photos, self-hosted with the Web
+ * bundle like the UI fonts (ADR 0005). `ui` and `serif` are the product's
+ * own Instrument Sans and Literata.
+ */
+export const TEXT_FONTS = [
+  { key: 'ui', family: 'var(--font-ui)', weight: 700 },
+  { key: 'serif', family: 'var(--font-display)', weight: 700 },
+  { key: 'hand', family: '"Caveat", cursive', weight: 700 },
+  { key: 'script', family: '"Pacifico", cursive', weight: 400 },
+  { key: 'poster', family: '"Bebas Neue", Impact, sans-serif', weight: 400 },
+  {
+    key: 'typewriter',
+    family: '"Courier Prime", "Courier New", monospace',
+    weight: 700,
+  },
+] as const;
+export type TextFontKey = (typeof TEXT_FONTS)[number]['key'];
+
 export interface TextMark {
   id: string;
   text: string;
   color: string;
+  font: TextFontKey;
+  /** Fraction of the photo's shorter edge. */
+  size: number;
   /** Centre of the text. */
   x: number;
   y: number;
@@ -142,22 +165,70 @@ export function photoPoint(
   };
 }
 
-let resolvedTextFamily: string | null = null;
-/** The product UI font, so text marks match eimir. typography. */
-function textFamily(): string {
-  if (resolvedTextFamily) return resolvedTextFamily;
-  const family =
-    typeof document === 'undefined'
-      ? ''
-      : getComputedStyle(document.documentElement)
-          .getPropertyValue('--font-ui')
-          .trim();
-  resolvedTextFamily = family || 'system-ui, sans-serif';
-  return resolvedTextFamily;
+export function clampTextSize(size: number): number {
+  return Math.min(MAX_TEXT_SIZE, Math.max(MIN_TEXT_SIZE, size));
 }
 
-export function textFont(unit: number): string {
-  return `${TEXT_WEIGHT} ${Math.max(1, TEXT_SIZE * unit)}px ${textFamily()}`;
+function textFontEntry(key: TextFontKey) {
+  return TEXT_FONTS.find((font) => font.key === key) ?? TEXT_FONTS[0];
+}
+
+const resolvedFamilies = new Map<TextFontKey, string>();
+/** The font family for canvas text, with the product's tokens resolved. */
+export function textFontFamily(key: TextFontKey): string {
+  const known = resolvedFamilies.get(key);
+  if (known) return known;
+  const { family } = textFontEntry(key);
+  const token = /^var\((--[\w-]+)\)$/.exec(family)?.[1];
+  let resolved: string = family;
+  if (token)
+    resolved =
+      (typeof document === 'undefined'
+        ? ''
+        : getComputedStyle(document.documentElement)
+            .getPropertyValue(token)
+            .trim()) || 'system-ui, sans-serif';
+  resolvedFamilies.set(key, resolved);
+  return resolved;
+}
+
+export function textFontWeight(key: TextFontKey): number {
+  return textFontEntry(key).weight;
+}
+
+export function textFont(
+  mark: Pick<TextMark, 'font' | 'size'>,
+  unit: number,
+): string {
+  const size = Math.max(1, mark.size * unit);
+  return `${textFontWeight(mark.font)} ${size}px ${textFontFamily(mark.font)}`;
+}
+
+/** Wait until the typefaces are ready, so canvas text does not fall back. */
+export async function loadTextFonts(
+  keys: Iterable<TextFontKey>,
+): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts?.load) return;
+  await Promise.all(
+    [...new Set(keys)].map((key) =>
+      document.fonts
+        .load(textFont({ font: key, size: 1 }, 32), 'Äg')
+        .catch(() => []),
+    ),
+  );
+}
+
+let measuring: CanvasRenderingContext2D | null = null;
+/** Size of a text mark in view pixels, where `unit` is the shorter edge. */
+export function textBox(
+  mark: Pick<TextMark, 'font' | 'size' | 'text'>,
+  unit: number,
+): { width: number; height: number } {
+  measuring ??= document.createElement('canvas').getContext('2d');
+  const height = mark.size * unit * 1.3;
+  if (!measuring) return { width: height, height };
+  measuring.font = textFont(mark, unit);
+  return { width: measuring.measureText(mark.text).width, height };
 }
 
 /**
@@ -236,13 +307,13 @@ export function drawMarks(
     context.lineTo(previous.x, previous.y);
     context.stroke();
   }
-  context.font = textFont(unit);
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.shadowBlur = unit * 0.012;
   for (const text of edit.texts) {
     if (text.id === options.hiddenTextId || !text.text.trim()) continue;
     const at = toView(text);
+    context.font = textFont(text, unit);
     context.fillStyle = text.color;
     context.fillText(text.text, at.x, at.y);
   }
@@ -251,7 +322,6 @@ export function drawMarks(
 
 /** The text mark under a view point, topmost first. */
 export function textAt(
-  context: CanvasRenderingContext2D,
   texts: readonly TextMark[],
   turned: { width: number; height: number },
   box: NormalizedBox,
@@ -260,24 +330,96 @@ export function textAt(
 ): TextMark | null {
   const scale = viewWidth / (box.width * turned.width);
   const unit = Math.min(turned.width, turned.height) * scale;
-  context.save();
-  context.font = textFont(unit);
-  try {
-    for (const text of [...texts].reverse()) {
-      if (!text.text.trim()) continue;
-      const halfWidth =
-        context.measureText(text.text).width / 2 / (turned.width * scale);
-      const halfHeight = (TEXT_SIZE * unit * 0.7) / (turned.height * scale);
-      if (
-        Math.abs(point.x - text.x) <= halfWidth &&
-        Math.abs(point.y - text.y) <= halfHeight
-      )
-        return text;
-    }
-    return null;
-  } finally {
-    context.restore();
+  for (const text of [...texts].reverse()) {
+    if (!text.text.trim()) continue;
+    const size = textBox(text, unit);
+    if (
+      Math.abs(point.x - text.x) <= size.width / 2 / (turned.width * scale) &&
+      Math.abs(point.y - text.y) <= size.height / 2 / (turned.height * scale)
+    )
+      return text;
   }
+  return null;
+}
+
+/** Keep `value` inside [min, max]; a reversed range resolves to `min`. */
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/** Move the crop over the photo by a normalized offset, inside the photo. */
+export function panCrop(
+  crop: NormalizedBox,
+  dx: number,
+  dy: number,
+): NormalizedBox {
+  return {
+    ...crop,
+    x: clamp(crop.x + dx, 0, 1 - crop.width),
+    y: clamp(crop.y + dy, 0, 1 - crop.height),
+  };
+}
+
+/**
+ * Zoom the photo under a fixed frame by `factor` (above 1 zooms in), keeping
+ * the photo point at `anchor` (0..1 of the frame) in place. The crop keeps
+ * its shape, never leaves the photo and never gets smaller than `min`.
+ */
+export function zoomCrop(
+  crop: NormalizedBox,
+  factor: number,
+  anchor: NormalizedPoint,
+  min: { width: number; height: number },
+): NormalizedBox {
+  const largest = Math.min(1 / crop.width, 1 / crop.height);
+  const smallest = Math.min(
+    largest,
+    Math.max(min.width / crop.width, min.height / crop.height),
+  );
+  const k = clamp(1 / factor, smallest, largest);
+  const width = Math.min(1, crop.width * k);
+  const height = Math.min(1, crop.height * k);
+  const focus = {
+    x: crop.x + anchor.x * crop.width,
+    y: crop.y + anchor.y * crop.height,
+  };
+  return {
+    width,
+    height,
+    x: clamp(focus.x - anchor.x * width, 0, 1 - width),
+    y: clamp(focus.y - anchor.y * height, 0, 1 - height),
+  };
+}
+
+export type CropHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
+/**
+ * Move the edges a handle owns by a normalized offset. Edges stay inside
+ * `limits` (normalized, within the photo) and at least `min` apart.
+ */
+export function resizeCrop(
+  crop: NormalizedBox,
+  handle: CropHandle,
+  dx: number,
+  dy: number,
+  min: { width: number; height: number },
+  limits: NormalizedBox = FULL_BOX,
+): NormalizedBox {
+  let left = crop.x;
+  let top = crop.y;
+  let right = crop.x + crop.width;
+  let bottom = crop.y + crop.height;
+  const maxRight = Math.min(1, limits.x + limits.width);
+  const maxBottom = Math.min(1, limits.y + limits.height);
+  if (handle.includes('w'))
+    left = clamp(left + dx, Math.max(0, limits.x), right - min.width);
+  if (handle.includes('e'))
+    right = clamp(right + dx, left + min.width, maxRight);
+  if (handle.includes('n'))
+    top = clamp(top + dy, Math.max(0, limits.y), bottom - min.height);
+  if (handle.includes('s'))
+    bottom = clamp(bottom + dy, top + min.height, maxBottom);
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 function editedFileName(originalName: string): string {
@@ -313,6 +455,7 @@ export async function renderEditedPhoto(
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas 2D is unavailable.');
+  await loadTextFonts(edit.texts.map((text) => text.font));
   drawPhoto(context, source, edit.turns, edit.crop, width, height);
   drawMarks(context, edit, turned, edit.crop, width, height);
   const blob = await new Promise<Blob | null>((resolve) =>

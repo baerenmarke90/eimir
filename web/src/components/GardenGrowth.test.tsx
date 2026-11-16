@@ -165,14 +165,16 @@ describe('garden growth and life', () => {
     expect(card.textContent).not.toMatch(/\d/);
     expect(card.querySelector('progress, [role="progressbar"]')).toBeNull();
 
-    fireEvent.click(within(card).getByRole('button', { name: growth.newsDone }));
+    fireEvent.click(
+      within(card).getByRole('button', { name: growth.newsDone }),
+    );
     await waitFor(() => expect(api.acknowledgeNews).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByTestId('garden-news')).toBeNull());
   });
 
   it('shows the garden name as the page title and renames it in the book', async () => {
     const api = services(view({ name: 'Unser Eck' }));
-    api.rename.mockResolvedValue(view({ name: 'Rosengarten' }));
+    vi.mocked(api.rename).mockResolvedValue(view({ name: 'Rosengarten' }));
     renderPage(api);
 
     expect(
@@ -208,7 +210,7 @@ describe('garden growth and life', () => {
       plant('tulip', 5, 3, { species: 'TULIP' }),
     ];
     const api = services(view({ plants }));
-    api.giveBouquet.mockResolvedValue(
+    vi.mocked(api.giveBouquet).mockResolvedValue(
       view({
         plants: plants.map((entry) =>
           ['p1', 'p2', 'p3'].includes(entry.id)
@@ -231,9 +233,9 @@ describe('garden growth and life', () => {
       fireEvent.click(screen.getByTestId(slot));
     }
     fireEvent.click(
-      screen.getAllByTestId('garden-plant-0').find((target) =>
-        target.getAttribute('data-in-pond'),
-      ) as Element,
+      screen
+        .getAllByTestId('garden-plant-0')
+        .find((target) => target.getAttribute('data-in-pond')) as Element,
     );
     expect(give.disabled).toBe(true);
     for (const slot of [0, 1, 2, 3]) {
@@ -250,9 +252,7 @@ describe('garden growth and life', () => {
       expect(api.giveBouquet).toHaveBeenCalledWith(['p1', 'p2', 'p3']),
     );
     expect(
-      await screen.findByText(
-        fill(growth.bouquetSentStatus, { name: 'Alex' }),
-      ),
+      await screen.findByText(fill(growth.bouquetSentStatus, { name: 'Alex' })),
     ).toBeTruthy();
     // One bouquet a day: the action is gone afterwards.
     expect(screen.queryByRole('button', { name: growth.bind })).toBeNull();
@@ -283,7 +283,7 @@ describe('garden growth and life', () => {
       within(card).getByRole('button', { name: growth.bouquetKeep }),
     );
     await waitFor(() => expect(api.saveToMoments).toHaveBeenCalledTimes(1));
-    expect(api.saveToMoments.mock.calls[0][0]).toMatchObject({
+    expect(vi.mocked(api.saveToMoments).mock.calls[0][0]).toMatchObject({
       title: fill(growth.bouquetMemoryTitle, { name: 'Alex' }),
       fileName: 'strauss.png',
     });

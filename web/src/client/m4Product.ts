@@ -149,6 +149,7 @@ export function engagementTargetPath(
     case 'COLLECTION':
       return collectionDetailPath(targetId);
     case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
       return GAMES_GARDEN_ROUTE;
     case 'WISH_SELECTION':
       return '/plan/choose';

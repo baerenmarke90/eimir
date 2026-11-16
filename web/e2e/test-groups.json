@@ -384,8 +384,8 @@
     },
     "garden-game.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3,
-      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture, with reflow, Light/Dark, reduced motion and axe in the production browser."
+      "baselineTests": 5,
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser."
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",

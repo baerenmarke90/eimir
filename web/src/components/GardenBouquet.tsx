@@ -39,7 +39,7 @@ export function BouquetArt({
       aria-hidden={label ? undefined : true}
       focusable="false"
     >
-      {flowers.map((flower, index) => {
+      {flowers.map((_flower, index) => {
         const a = spread(index);
         return (
           <path
@@ -109,7 +109,7 @@ export function BouquetBindCard({
         </div>
       ) : null}
       <div className="garden-card-actions">
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        <button type="button" className="secondary" onClick={onCancel}>
           {t('games.garden.cancel')}
         </button>
         <button
@@ -174,7 +174,7 @@ export function BouquetReceivedCard({
       <div className="garden-card-actions">
         <button
           type="button"
-          className="secondary-button"
+          className="secondary"
           disabled={busy}
           onClick={onThanks}
         >

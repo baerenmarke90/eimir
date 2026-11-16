@@ -16,6 +16,14 @@ import type { GardenView } from '../api/generated/models/GardenView';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
 import {
+  GARDEN_WORDS,
+  type GardenFlight,
+  gardenFlight,
+  gardenQueryKey,
+  gardenWidth,
+  stageChanges,
+} from '../client/garden';
+import {
   isBlooming,
   shownStage,
   unlockedWidth,
@@ -26,15 +34,6 @@ import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
-import { createReferenceApis } from '../client/referenceFlow';
-import {
-  GARDEN_WORDS,
-  type GardenFlight,
-  gardenFlight,
-  gardenQueryKey,
-  gardenWidth,
-  stageChanges,
-} from '../client/garden';
 import { usePartnerDistanceLine } from '../client/partnerDistance';
 import {
   createPartnerLocationApi,
@@ -42,6 +41,7 @@ import {
   partnerLocationSettingsQueryKey,
 } from '../client/partnerLocation';
 import { normalizeClientError } from '../client/problemDetails';
+import { createReferenceApis } from '../client/referenceFlow';
 import {
   entitlementLoader,
   useSpaceCapability,
@@ -54,11 +54,7 @@ import {
   type BouquetFlower,
   BouquetReceivedCard,
 } from './GardenBouquet';
-import {
-  GardenScene,
-  type SceneGrowth,
-  type ScenePlant,
-} from './GardenScene';
+import { GardenScene, type SceneGrowth, type ScenePlant } from './GardenScene';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
@@ -434,8 +430,8 @@ export function GardenGamePage({
       const revealed = next.plants.some(
         (entry) =>
           entry.species === 'MOONFLOWER' &&
-          previous?.plants.find((before) => before.id === entry.id)
-            ?.species === 'SURPRISE',
+          previous?.plants.find((before) => before.id === entry.id)?.species ===
+            'SURPRISE',
       );
       if (revealed) setStatus(t('games.garden.growth.moonRevealed'));
       if (next.sharedToday && previous && !previous.sharedToday) {
@@ -598,9 +594,9 @@ export function GardenGamePage({
             species: speciesName(entry.species),
           })
         : t('games.garden.plantLabel', {
-          species: speciesName(entry.species),
-          name: roleOf(entry) === 'own' ? names.own : names.partner,
-        }),
+            species: speciesName(entry.species),
+            name: roleOf(entry) === 'own' ? names.own : names.partner,
+          }),
   }));
   const selectedPlant = garden.plants.find((entry) => entry.id === selected);
   const dayFormat = new Intl.DateTimeFormat(resolvedLocale(), {
@@ -644,8 +640,7 @@ export function GardenGamePage({
         }),
       quack: t('games.garden.growth.quack'),
     },
-    onReaction: (kind) =>
-      setStatus(t(`games.garden.growth.reactions.${kind}`)),
+    onReaction: (kind) => setStatus(t(`games.garden.growth.reactions.${kind}`)),
     banner,
   };
   const planeWords =
@@ -655,7 +650,9 @@ export function GardenGamePage({
 
   const acknowledge = async () => {
     if (!api.acknowledgeNews) return;
-    const next = await run(() => api.acknowledgeNews?.() as Promise<GardenView>);
+    const next = await run(
+      () => api.acknowledgeNews?.() as Promise<GardenView>,
+    );
     if (next) apply(next, garden);
   };
   const rename = async (name: string) => {
@@ -768,7 +765,7 @@ export function GardenGamePage({
         <p>{t('games.garden.waterBody', { name: names.partner })}</p>
         <button
           type="button"
-          className="secondary-button"
+          className="secondary"
           onClick={() => setWatering(false)}
         >
           {t('games.garden.cancel')}
@@ -993,7 +990,7 @@ export function GardenGamePage({
             <h2>{speciesName(selectedPlant.species)}</h2>
             <button
               type="button"
-              className="secondary-button garden-story-close"
+              className="secondary garden-story-close"
               onClick={() => setSelected(null)}
             >
               {t('games.garden.close')}
@@ -1060,7 +1057,7 @@ export function GardenGamePage({
           {garden.wateredToday == null && garden.plants.length > 0 ? (
             <button
               type="button"
-              className="secondary-button garden-water"
+              className="secondary garden-water"
               onClick={() => {
                 setSelected(null);
                 setWatering(true);
@@ -1072,7 +1069,7 @@ export function GardenGamePage({
           {blooming.length >= 2 && !garden.gaveBouquetToday ? (
             <button
               type="button"
-              className="secondary-button"
+              className="secondary"
               onClick={() => {
                 setSelected(null);
                 setBookOpen(false);
@@ -1085,7 +1082,7 @@ export function GardenGamePage({
           ) : null}
           <button
             type="button"
-            className="secondary-button"
+            className="secondary"
             aria-expanded={bookOpen}
             aria-controls="garden-book"
             onClick={() => setBookOpen((open) => !open)}

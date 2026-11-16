@@ -20,6 +20,15 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  // A garden bouquet reuses the seed notice with its own text (#1907 H3).
+  if (
+    item.kind === 'GARDEN_SEED_ARRIVED' &&
+    item.targetType === 'GARDEN_BOUQUET'
+  ) {
+    return t('coupleExperiences.notifications.GARDEN_BOUQUET', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
   if (
     item.kind === 'WISH_DATE_PROPOSED' ||
     item.kind === 'WISH_DATE_COUNTERED' ||

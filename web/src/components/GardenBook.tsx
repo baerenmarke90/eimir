@@ -44,7 +44,9 @@ export function GardenNewsCard({
             style={{ animationDelay: `${index * 120}ms` }}
           >
             {isFind(unlock)
-              ? t(`games.garden.growth.finds.${unlock}` as 'games.garden.growth.finds.PATH')
+              ? t(
+                  `games.garden.growth.finds.${unlock}` as 'games.garden.growth.finds.PATH',
+                )
               : t('games.garden.growth.newSeeds', {
                   species: t(
                     `games.garden.species.${unlock as GardenSpecies}.name`,
@@ -56,7 +58,7 @@ export function GardenNewsCard({
       <p>{t('games.garden.growth.newsBody')}</p>
       <button
         type="button"
-        className="secondary-button"
+        className="secondary"
         disabled={busy}
         onClick={onDone}
       >
@@ -106,7 +108,10 @@ export function GardenBook({
     >
       <p className="garden-eyebrow">{t('games.garden.growth.book')}</p>
       {renaming ? (
-        <form className="garden-rename" onSubmit={(event) => void submit(event)}>
+        <form
+          className="garden-rename"
+          onSubmit={(event) => void submit(event)}
+        >
           <label htmlFor={inputId}>{t('games.garden.growth.nameLabel')}</label>
           <input
             ref={input}
@@ -121,7 +126,7 @@ export function GardenBook({
           <div className="garden-card-actions">
             <button
               type="button"
-              className="secondary-button"
+              className="secondary"
               onClick={() => {
                 setDraft(name ?? '');
                 setRenaming(false);
@@ -139,7 +144,7 @@ export function GardenBook({
           <h2 id="garden-book-title">{title}</h2>
           <button
             type="button"
-            className="secondary-button"
+            className="secondary"
             onClick={() => {
               setDraft(name ?? '');
               setRenaming(true);
@@ -218,7 +223,7 @@ export function GardenYearCard({
       <p>{t('games.garden.growth.yearBody')}</p>
       <button
         type="button"
-        className="secondary-button"
+        className="secondary"
         disabled={busy || saved}
         onClick={onSave}
       >

@@ -235,9 +235,7 @@ function Plant({ plant }: { plant: ScenePlant }) {
       child
     );
   const previousHeight =
-    from !== undefined && from >= 1
-      ? STAGE_HEIGHT_SHARE[from] * fullHeight
-      : 0;
+    from !== undefined && from >= 1 ? STAGE_HEIGHT_SHARE[from] * fullHeight : 0;
   const stretch = grew && (from ?? 0) >= 1;
   return (
     <g transform={`translate(${x} ${y})`}>
@@ -639,6 +637,8 @@ export function GardenScene({
           </g>
         ) : null}
       </g>
+      {/* Visitors first, so a plant stays on top where they overlap. */}
+      {life.tapTargets}
       {plants.map((plant) => {
         const { x, y } = plantPosition(plant);
         const reach = plant.inPond ? 8 : plantHeight(plant.species);
@@ -677,7 +677,6 @@ export function GardenScene({
           </g>
         );
       })}
-      {life.tapTargets}
     </svg>
   );
 }

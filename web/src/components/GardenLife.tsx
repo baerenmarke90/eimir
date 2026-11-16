@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
 import { blob, groundBack, groundFront } from '../client/garden';
 import {
   ANIMAL_LAYER,
@@ -28,7 +29,6 @@ import {
   POND,
   TREE_X,
 } from '../client/gardenGrowth';
-import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
 
 type Pose = 'rest' | 'graze' | 'curl' | 'hide' | 'alert' | 'quack';
 type Style = 'walk' | 'hop' | 'leap' | 'climb';
@@ -563,12 +563,18 @@ export function useGardenLife({
     });
   }, [move, place, refresh]);
 
+  const inFlight = useRef<PlaneFlight | null>(null);
   const fly = useCallback((text: string | null, onDone?: () => void) => {
     if (settings.current.reduced) {
       onDone?.();
       return;
     }
-    setPlane({ key: Date.now(), text, onDone });
+    // A plane already in the sky stays; only words may take over a plain flight.
+    if (inFlight.current && (text === null || inFlight.current.text !== null))
+      return;
+    const flight = { key: Date.now(), text, onDone };
+    inFlight.current = flight;
+    setPlane(flight);
   }, []);
 
   // Visitors arrive when the garden opens; the plane comes by now and then.
@@ -583,8 +589,7 @@ export function useGardenLife({
     const max = maxVisitors(settings.current.sharedDays);
     const count = Math.max(
       0,
-      Math.min(max, 1 + Math.floor(Math.random() * max)) -
-        animals.current.size,
+      Math.min(max, 1 + Math.floor(Math.random() * max)) - animals.current.size,
     );
     for (let k = 0; k < count; k += 1) later(spawn, 500 + k * 900);
     if (!settings.current.reduced && Math.random() < 0.25)
@@ -706,6 +711,7 @@ export function useGardenLife({
       }
       if (k < 1) frame = window.requestAnimationFrame(step);
       else {
+        inFlight.current = null;
         setPlane(null);
         plane.onDone?.();
       }
@@ -720,7 +726,12 @@ export function useGardenLife({
       if (!animal) return;
       const w = settings.current.width;
       const quiet = settings.current.reduced;
-      if (animal.moving && animal.kind !== 'snail') return;
+      // A tap always answers, even while the visitor is on its way.
+      if (animal.moving) {
+        window.cancelAnimationFrame(animal.frame);
+        animal.moving = false;
+        place(animal);
+      }
       onReaction?.(animal.kind);
       const pose = (next: Pose, ms: number) => {
         animal.pose = next;
@@ -767,7 +778,7 @@ export function useGardenLife({
           break;
       }
     },
-    [later, move, onReaction, refresh, remove],
+    [later, move, onReaction, place, refresh, remove],
   );
 
   const bindArt = (animal: Animal) => (element: SVGGElement | null) => {
@@ -788,8 +799,11 @@ export function useGardenLife({
   const layer = (which: AnimalLayer) => (
     <g data-testid={`garden-animals-${which}`}>
       {list
-        .filter((animal) => ANIMAL_LAYER[animal.kind] === which)
-        .filter((animal) => which !== 'pond' || unlocks.includes('POND'))
+        .filter(
+          (animal) =>
+            ANIMAL_LAYER[animal.kind] === which &&
+            (which !== 'pond' || unlocks.includes('POND')),
+        )
         .map((animal) => (
           <g key={animal.id} ref={bindArt(animal)} className="garden-animal">
             <AnimalArt

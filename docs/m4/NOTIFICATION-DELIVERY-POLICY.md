@@ -23,7 +23,10 @@ Quiet Hours and no email choice; see the
 A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
 immediate delivery without the attached words, its own recipient switch,
 Quiet Hours and no email choice; the notice is current only while the seed
-waits to be planted.
+waits to be planted. A bouquet from the partner reuses the same kind with the
+target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
+while its card waits; a person gets at most one garden notice per local day,
+so a later seed or bouquet on that day stays silent and waits in the garden.
 
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.

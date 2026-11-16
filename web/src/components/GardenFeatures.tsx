@@ -64,12 +64,28 @@ function Crown({
         fill="var(--garden-tree)"
       />
       <path
-        d={blob(cx + r * 0.18, cy + r * 0.28, r * 0.7, r * 0.5, 6, 0.12, seed + 1)}
+        d={blob(
+          cx + r * 0.18,
+          cy + r * 0.28,
+          r * 0.7,
+          r * 0.5,
+          6,
+          0.12,
+          seed + 1,
+        )}
         fill="var(--garden-shade)"
         opacity={0.12}
       />
       <path
-        d={blob(cx - r * 0.3, cy - r * 0.32, r * 0.36, r * 0.26, 5, 0.12, seed + 2)}
+        d={blob(
+          cx - r * 0.3,
+          cy - r * 0.32,
+          r * 0.36,
+          r * 0.26,
+          5,
+          0.12,
+          seed + 2,
+        )}
         fill="var(--garden-highlight)"
         opacity={0.14}
       />

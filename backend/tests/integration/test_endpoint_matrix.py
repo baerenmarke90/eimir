@@ -854,6 +854,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"favoriteWishIds": [], "published": False},
         if_match=True,
     ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/decision",
+        body={"action": "CLEAR"},
+        if_match=True,
+    ),
     Endpoint("DELETE", "/api/v1/spaces/{spaceId}/wish-selection", if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/wishes"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/wishes", body=WISH),

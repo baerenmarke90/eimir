@@ -67,7 +67,8 @@ const wishSelection = {
   sharedTitle: 'Darauf habt ihr beide Lust.',
   sharedOne: 'Gemeinsamer Favorit',
   sharedManyTitle: 'Ihr seid euch bei {{amount}} einig.',
-  sharedManyIntro: 'Tippt an, was ihr machen wollt.',
+  sharedManyIntro:
+    'Tippt an, was ihr machen wollt, oder schlagt den Zufall vor.',
   chosenTitle: 'Das macht ihr als Nächstes.',
   chosenLabel: 'Eure Entscheidung',
   unchoose: 'Doch anders entscheiden',
@@ -79,7 +80,8 @@ const wishSelection = {
     'Du kannst einen Plan vorschlagen. Eine gemeinsame Zustimmung ist damit nicht verbunden.',
   ownContinue: 'Mit meinen Favoriten weiter',
   noMatchTitle: 'Diesmal kein gemeinsamer Favorit.',
-  noMatchBody: 'Ändert eure Favoriten oder stellt eine neue Runde zusammen.',
+  noMatchBody:
+    'Lasst den Zufall wählen, ändert eure Favoriten oder stellt eine neue Runde zusammen.',
   newRound: 'Neue Runde zusammenstellen',
   changeOwn: 'Meine Wahl ändern',
   changeIdeas: 'Andere Wünsche auswählen',
@@ -128,6 +130,51 @@ const wishSelection = {
   saving: 'Wird gespeichert …',
   offline:
     'Noch nicht gespeichert. Verbinde dich mit dem Internet und versuche es erneut.',
+  stepResultBody: 'Uneinig? Dann darf auf Wunsch der Zufall entscheiden.',
+  chosenRandomLabel: 'Der Zufall hat entschieden, ihr habt beide zugestimmt',
+  randomPropose: 'Zufall vorschlagen',
+  randomPoolCommon: 'Der Zufall wählt aus euren gemeinsamen Favoriten.',
+  randomPoolFavorites:
+    'Der Zufall wählt aus allem, was einer von euch als Favorit markiert hat. Ihr seht nur das Ergebnis.',
+  randomPoolAll: 'Der Zufall wählt aus allen Ideen der Runde.',
+  randomConsent: '{{name}} muss zustimmen.',
+  randomAskedTitle: 'Du hast {{name}} gefragt, ob der Zufall entscheiden darf.',
+  randomAskedBody: 'Bis dahin bleibt alles offen.',
+  randomWithdraw: 'Frage zurückziehen',
+  randomIncomingTitle: '{{name}} möchte den Zufall entscheiden lassen.',
+  randomOnlyOne:
+    'Das kann auch etwas sein, das nur einer von euch markiert hat.',
+  randomAccept: 'Zustimmen',
+  randomChangeFirst: 'Erst meine Favoriten ändern',
+  randomDecline: 'Lieber selbst entscheiden',
+  randomDeclinedByPartner: '{{name}} möchte lieber selbst entscheiden.',
+  randomDeclinedByMe:
+    'Du möchtest lieber selbst entscheiden. {{name}} weiß Bescheid.',
+  randomRolling: 'Der Zufall entscheidet …',
+  notice: {
+    sharedTitle: '{{name}} fragt: Was machen wir als Nächstes?',
+    sharedDetail_one:
+      '{{count}} Idee steht zur Wahl. Markiere deine Favoriten, nur du siehst sie.',
+    sharedDetail_other:
+      '{{count}} Ideen stehen zur Wahl. Markiere deine Favoriten, nur du siehst sie.',
+    sharedDetailUncounted: 'Markiere deine Favoriten, nur du siehst sie.',
+    sharedReply: 'Favoriten markieren',
+    readyTitle: 'Euer Ergebnis ist da',
+    readyDetail:
+      '{{name}} hat auch gewählt. Schaut, was ihr als Nächstes macht.',
+    resultReply: 'Ergebnis ansehen',
+    requestedTitle: '{{name}} möchte den Zufall entscheiden lassen',
+    requestedDetail:
+      'Ihr seid euch noch nicht einig, was ihr als Nächstes macht. Nur wenn du zustimmst.',
+    requestedReply: 'Antworten',
+    acceptedTitle: 'Der Zufall hat entschieden',
+    acceptedDetail:
+      '{{name}} hat zugestimmt. Schau, was ihr als Nächstes macht.',
+    declinedTitle: '{{name}} möchte lieber selbst entscheiden',
+    declinedDetail:
+      'Was ihr als Nächstes macht, ist noch offen. Ändert eure Favoriten oder sammelt neue Ideen.',
+    declinedReply: 'Ansehen',
+  },
 };
 
 export default wishSelection;

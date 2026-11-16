@@ -37,6 +37,13 @@ type Round = {
   commonWishIds: string[];
   dateIdeaCandidates: unknown[];
   commonDateIdeaIds: string[];
+  decision?: {
+    wishId: string | null;
+    dateIdeaId: string | null;
+    method: 'RANDOM' | 'MANUAL';
+  } | null;
+  randomRequest?: { mine: boolean; declined: boolean } | null;
+  randomPool?: 'COMMON' | 'FAVORITES' | 'ALL' | null;
 };
 type Candidate = {
   wishId: string;
@@ -95,6 +102,15 @@ function readyRound(common: boolean | number = true): Round {
           : [],
     dateIdeaCandidates: [],
     commonDateIdeaIds: [],
+    decision: null,
+    randomRequest: null,
+    // Chance is offered with several or no common favourites (#1907 J1).
+    randomPool:
+      typeof common === 'number' && common >= 2
+        ? 'COMMON'
+        : common === false
+          ? 'FAVORITES'
+          : null,
   };
 }
 
@@ -195,6 +211,40 @@ async function install(page: Page, initial = emptyRound()) {
       };
       round.roundToken = `${ROUND_ID}:${round.version}`;
       round.selectionToken = `${ROUND_ID}:${round.version}:0`;
+      await json(round);
+      return;
+    }
+    if (path === `${ROOT}/wish-selection/decision` && method === 'PUT') {
+      const body = request.postDataJSON();
+      requests.push({
+        kind: 'decision',
+        body,
+        ifMatch: request.headers()['if-match'],
+      });
+      if (body.action === 'CHOOSE')
+        round.decision = {
+          wishId: body.wishId ?? null,
+          dateIdeaId: body.dateIdeaId ?? null,
+          method: 'MANUAL',
+        };
+      if (body.action === 'CLEAR') round.decision = null;
+      if (body.action === 'REQUEST_RANDOM')
+        round.randomRequest = { mine: true, declined: false };
+      if (body.action === 'WITHDRAW_RANDOM') round.randomRequest = null;
+      if (body.action === 'ACCEPT_RANDOM') {
+        // The server draws once; the mock stands in with a fixed result.
+        round.decision = {
+          wishId: WISH_IDS[1],
+          dateIdeaId: null,
+          method: 'RANDOM',
+        };
+        round.randomRequest = null;
+      }
+      if (body.action === 'DECLINE_RANDOM')
+        round.randomRequest = { mine: false, declined: true };
+      round.version += 1;
+      round.roundToken = `${ROUND_ID}:${round.version}`;
+      round.selectionToken = `${ROUND_ID}:${round.version}:${round.own.version}`;
       await json(round);
       return;
     }
@@ -553,6 +603,61 @@ test('several common favourites: tap one, decide differently, then plan it', asy
   await expect(page.getByLabel(copy.planTitle, { exact: true })).toHaveValue(
     demo.wishes[0],
   );
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('chance decides only after the partner agrees', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const initial = readyRound(false);
+  const fixture = await install(page, initial);
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.noMatchTitle }),
+  ).toBeVisible();
+  await capture(page, info, 'random-offer-390-light');
+  await page
+    .getByRole('button', { name: copy.randomPropose, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: copy.randomWithdraw, exact: true }),
+  ).toBeVisible();
+  await capture(page, info, 'random-asked-390-light');
+  expect(
+    fixture.requests.filter((item) => item.kind === 'decision'),
+  ).toHaveLength(1);
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('the partner agrees to chance and both see the stored pick', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const initial = readyRound(false);
+  initial.randomRequest = { mine: false, declined: false };
+  const fixture = await install(page, initial);
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('button', { name: copy.randomAccept, exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.randomOnlyOne)).toBeVisible();
+  await capture(page, info, 'random-consent-390-light');
+  await page
+    .getByRole('button', { name: copy.randomAccept, exact: true })
+    .click();
+  // Reduced motion settles the reveal at once.
+  await expect(
+    page.getByText(copy.chosenRandomLabel, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: demo.wishes[1] }),
+  ).toBeVisible();
+  await capture(page, info, 'random-decided-390-light');
+  expect(
+    fixture.requests.find((item) => item.kind === 'decision')?.body,
+  ).toEqual({ action: 'ACCEPT_RANDOM' });
   expect(fixture.unexpected).toEqual([]);
 });
 

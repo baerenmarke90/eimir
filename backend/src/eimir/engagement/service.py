@@ -34,6 +34,7 @@ from eimir.engagement import (
     wish_date_notice,
 )
 from eimir.engagement.models import (
+    COALESCED_NOTIFICATION_KINDS,
     WISH_DATE_NOTICE_KINDS,
     Activity,
     ActivityKind,
@@ -338,15 +339,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
                 NotificationKind.PLAN_CANCELLED if cancelled else NotificationKind.PLAN_CHANGED,
                 expires_at=deadline,
             )
-    if event_type in {EventType.WISH_SELECTION_SHARED, EventType.WISH_SELECTION_READY}:
+    if event_type in {
+        EventType.WISH_SELECTION_SHARED,
+        EventType.WISH_SELECTION_READY,
+        EventType.WISH_SELECTION_RANDOM_REQUESTED,
+        EventType.WISH_SELECTION_RANDOM_ACCEPTED,
+        EventType.WISH_SELECTION_RANDOM_DECLINED,
+    }:
         _project_target_notification(
             session,
             event,
             EngagementTarget.WISH_SELECTION,
             event.subject_id,
-            NotificationKind.WISH_SELECTION_SHARED
-            if event_type is EventType.WISH_SELECTION_SHARED
-            else NotificationKind.WISH_SELECTION_READY,
+            NotificationKind(event_type.value),
         )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
         if _has_photo_reaction(session, event.subject_id, event.actor_id):
@@ -552,16 +557,10 @@ def _project_target_notification(
         ),
         **notice_id,
     )
-    if notification_kind in {
-        NotificationKind.PHOTO_REACTION,
-        NotificationKind.WISH_SELECTION_SHARED,
-        NotificationKind.WISH_SELECTION_READY,
-    }:
+    if notification_kind.value in COALESCED_NOTIFICATION_KINDS:
         statement = insert.on_conflict_do_update(
             index_elements=["recipient_account_id", "space_id", "kind", "target_type", "target_id"],
-            index_where=Notification.kind.in_(
-                ["PHOTO_REACTION", "WISH_SELECTION_SHARED", "WISH_SELECTION_READY"]
-            ),
+            index_where=Notification.kind.in_(list(COALESCED_NOTIFICATION_KINDS)),
             set_={
                 "created_at": insert.excluded.created_at,
                 "source_event_id": insert.excluded.source_event_id,
@@ -783,6 +782,34 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
         or_(
             Notification.kind != NotificationKind.WISH_SELECTION_READY.value,
             literal(current.result_state == "READY"),
+        ),
+        _current_random_predicate(current, context),
+    )
+
+
+def _current_random_predicate(
+    current: wish_selections.SelectionProjection, context: AuthorizationContext
+) -> Any:
+    """A random-pick notice only counts while its round state still says so."""
+    round = current.round
+    ready = round is not None and current.result_state == "READY"
+    requested_by = round.random_requested_by if round is not None else None
+    declined = bool(round and round.random_declined)
+    return and_(
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_REQUESTED.value,
+            and_(
+                literal(ready and requested_by is not None and not declined),
+                Notification.actor_id == requested_by,
+            ),
+        ),
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED.value,
+            literal(ready and current.decision is not None and current.decision.method == "RANDOM"),
+        ),
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_RANDOM_DECLINED.value,
+            literal(ready and declined and requested_by == context.account_id),
         ),
     )
 

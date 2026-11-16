@@ -19,6 +19,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type WishSelectionDecisionUpdate,
+    WishSelectionDecisionUpdateFromJSON,
+    WishSelectionDecisionUpdateToJSON,
+} from '../models/WishSelectionDecisionUpdate';
+import {
     type WishSelectionRoundUpdate,
     WishSelectionRoundUpdateFromJSON,
     WishSelectionRoundUpdateToJSON,
@@ -37,6 +42,13 @@ import {
 export interface CloseWishSelectionRoundRequest {
     spaceId: string;
     ifMatch: string;
+}
+
+export interface DecideWishSelectionRequest {
+    spaceId: string;
+    ifMatch: string;
+    wishSelectionDecisionUpdate: WishSelectionDecisionUpdate;
+    locale?: string | null;
 }
 
 export interface GetWishSelectionRequest {
@@ -116,6 +128,76 @@ export class WishSelectionsApi extends runtime.BaseAPI {
      */
     async closeWishSelectionRound(requestParameters: CloseWishSelectionRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.closeWishSelectionRoundRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for decideWishSelection without sending the request
+     */
+    async decideWishSelectionRequestOpts(requestParameters: DecideWishSelectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling decideWishSelection().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling decideWishSelection().'
+            );
+        }
+
+        if (requestParameters['wishSelectionDecisionUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'wishSelectionDecisionUpdate',
+                'Required parameter "wishSelectionDecisionUpdate" was null or undefined when calling decideWishSelection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['locale'] != null) {
+            queryParameters['locale'] = requestParameters['locale'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wish-selection/decision`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WishSelectionDecisionUpdateToJSON(requestParameters['wishSelectionDecisionUpdate']),
+        };
+    }
+
+    /**
+     * Decide Wish Selection
+     */
+    async decideWishSelectionRaw(requestParameters: DecideWishSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishSelectionView>> {
+        const requestOptions = await this.decideWishSelectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishSelectionViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Decide Wish Selection
+     */
+    async decideWishSelection(requestParameters: DecideWishSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishSelectionView> {
+        const response = await this.decideWishSelectionRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

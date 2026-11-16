@@ -33,12 +33,14 @@ import {
   isPartnerGestureKind,
   isPartnerNoticeKind,
   isWishDateReceiptKind,
+  isWishSelectionReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
   PARTNER_NOTICE_ICONS,
   type PartnerGestureReceiptRequest,
   receiptScope,
+  WISH_SELECTION_RECEIPT_COPY,
 } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { PARTNER_QUICK_ACTIONS_CAPABILITY } from '../client/partnerQuickActions';
@@ -114,6 +116,30 @@ function receiptCopy(
       ),
     };
   }
+  if (isWishSelectionReceiptKind(item.kind)) {
+    const copy = WISH_SELECTION_RECEIPT_COPY[item.kind];
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const reply =
+      copy === 'ready' || copy === 'accepted' ? 'resultReply' : `${copy}Reply`;
+    return {
+      variant: {
+        motion: 'calm-ring',
+        reply: 'OPEN',
+        icons: PARTNER_NOTICE_ICONS[item.kind],
+      } as const,
+      title: t(`wishSelection.notice.${copy}Title`, { name }),
+      detail:
+        copy === 'shared'
+          ? item.selectionSize
+            ? t('wishSelection.notice.sharedDetail', {
+                count: item.selectionSize,
+              })
+            : t('wishSelection.notice.sharedDetailUncounted')
+          : t(`wishSelection.notice.${copy}Detail`, { name }),
+      reply: t(`wishSelection.notice.${reply}`),
+    };
+  }
   if (!isPartnerGestureKind(item.kind)) {
     return {
       // Partner-caused notices share the calm receipt; system and owner-only
@@ -127,11 +153,7 @@ function receiptCopy(
         : null,
       title: getNotificationItemTitle(item, t, accountId),
       detail: null,
-      reply: t(
-        item.kind === 'WISH_SELECTION_SHARED'
-          ? 'wishSelection.openOwn'
-          : 'm5s5.common.open',
-      ),
+      reply: t('m5s5.common.open'),
     };
   }
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];

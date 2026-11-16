@@ -1,6 +1,5 @@
 import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
-import coupleExperiences from '../../src/i18n/locales/coupleExperiences';
 import de from '../../src/i18n/locales/de';
 import onceCopy from '../../src/i18n/locales/onceMessages';
 import people from '../../src/i18n/locales/people';
@@ -1288,11 +1287,9 @@ test('a foreground Wish invitation opens the private favorites directly', async 
   await expect(banner).toHaveCount(0);
 
   await refreshUnreadCount(page);
+  // The invitation carries the round's own question (#1907 J1).
   await expect(banner).toContainText(
-    coupleExperiences.notifications.WISH_SELECTION_SHARED.replace(
-      '{{name}}',
-      'Ben',
-    ),
+    wishSelection.notice.sharedTitle.replace('{{name}}', 'Ben'),
   );
   await banner.hover();
   // Partner-caused notices share the calm receipt: badge on the avatar, no waves.
@@ -1335,8 +1332,9 @@ test('the Wish result shows its own symbol with reduced motion', async ({
   await refreshUnreadCount(page);
 
   const banner = page.getByTestId('foreground-notification');
+  await expect(banner).toContainText(wishSelection.notice.readyTitle);
   await expect(banner).toContainText(
-    coupleExperiences.notifications.WISH_SELECTION_READY,
+    wishSelection.notice.readyDetail.replace('{{name}}', 'Ben'),
   );
   await banner.hover();
   await expect(banner).toHaveAttribute('data-variant', 'calm-ring');

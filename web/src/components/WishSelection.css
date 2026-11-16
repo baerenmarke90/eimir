@@ -559,3 +559,71 @@
     transform: scale(0.7);
   }
 }
+
+/* Consent-based random pick (#1907 J1): a proposal, the partner's card and a
+   short reveal that settles instantly with reduced motion. */
+.wish-selection-random {
+  display: grid;
+  gap: var(--space-3);
+}
+.wish-selection-random-propose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+}
+.wish-selection-random-propose .eimir-icon,
+.wish-selection-ask-icon,
+.wish-selection-rolling-icon {
+  flex: none;
+  width: var(--space-6);
+  height: var(--space-6);
+}
+.wish-selection-ask {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-content);
+  background: var(--color-shared-surface);
+}
+.wish-selection-ask.is-incoming {
+  background: var(--color-partner-a-surface);
+}
+.wish-selection-ask-icon {
+  color: var(--color-brand-text);
+}
+.wish-selection-ask strong {
+  font: var(--font-action-label);
+}
+.wish-selection-ask p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.wish-selection-rolling {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-content);
+  background: var(--color-shared-surface);
+  font: var(--font-content-heading);
+}
+.wish-selection-rolling-icon {
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--color-brand-text);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wish-selection-rolling-icon {
+    animation: wish-selection-roll var(--duration-context)
+      var(--easing-standard) infinite;
+  }
+}
+@keyframes wish-selection-roll {
+  50% {
+    transform: rotate(14deg) scale(1.08);
+  }
+}

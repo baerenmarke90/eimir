@@ -198,6 +198,25 @@ function renderTask(
     current.commonWishIds = [];
     return structuredClone(current);
   });
+  const decideWishSelection = vi.fn(async (request) => {
+    const body = request.wishSelectionDecisionUpdate;
+    if (body.action === 'CHOOSE')
+      current.decision = {
+        wishId: body.wishId ?? null,
+        dateIdeaId: body.dateIdeaId ?? null,
+        method: 'MANUAL',
+      };
+    if (body.action === 'CLEAR') current.decision = null;
+    if (body.action === 'REQUEST_RANDOM')
+      current.randomRequest = { mine: true, declined: false };
+    if (body.action === 'ACCEPT_RANDOM') {
+      current.decision = { wishId: 'lake', dateIdeaId: null, method: 'RANDOM' };
+      current.randomRequest = null;
+    }
+    if (body.action === 'DECLINE_RANDOM')
+      current.randomRequest = { mine: false, declined: true };
+    return structuredClone(current);
+  });
   const closeWishSelectionRound = vi.fn(async () => {
     current = projection('NO_ROUND');
   });
@@ -224,6 +243,7 @@ function renderTask(
       replaceWishSelectionRound,
       updateOwnWishSelection,
       closeWishSelectionRound,
+      decideWishSelection,
     },
     wishes: {
       listWishes: vi.fn(
@@ -286,6 +306,7 @@ function renderTask(
     replaceWishSelectionRound,
     updateOwnWishSelection,
     closeWishSelectionRound,
+    decideWishSelection,
     createWish,
     convertWishToPlan,
     switchAccount: (account: string) => rendered.rerender(tree(account)),
@@ -464,7 +485,8 @@ describe('WishSelectionPage', () => {
   it('lets the couple pick one of several common favourites and decide again', async () => {
     const initial = projection('READY');
     initial.commonWishIds = ['pasta', 'lake'];
-    const { convertWishToPlan } = renderTask(initial);
+    initial.randomPool = 'COMMON';
+    const { convertWishToPlan, decideWishSelection } = renderTask(initial);
     expect(
       await screen.findByRole('heading', {
         level: 1,
@@ -473,10 +495,17 @@ describe('WishSelectionPage', () => {
     ).toBeTruthy();
     expect(screen.getByText(copy.sharedManyIntro)).toBeTruthy();
     expect(screen.queryByRole('button', { name: copy.prepare })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: copy.randomPropose }),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: candidates[1].title }));
     expect(
       await screen.findByRole('heading', { level: 1, name: copy.chosenTitle }),
     ).toBeTruthy();
+    // The tap is stored on the round so both devices show the same pick.
+    expect(
+      decideWishSelection.mock.calls[0][0].wishSelectionDecisionUpdate,
+    ).toEqual({ action: 'CHOOSE', wishId: 'lake', dateIdeaId: undefined });
     expect(screen.getByText(copy.chosenLabel)).toBeTruthy();
     expect(
       screen.getByRole('heading', { level: 2, name: copy.alsoShared }),
@@ -489,6 +518,62 @@ describe('WishSelectionPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: copy.savePlan }));
     await screen.findByText('Canonical Plan result');
     expect(convertWishToPlan.mock.calls[0][0].wishId).toBe('pasta');
+  });
+
+  it('proposes chance only with consent and shows the pending question', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    const { decideWishSelection } = renderTask(initial);
+    await screen.findByRole('heading', { name: copy.noMatchTitle });
+    expect(screen.getByText(new RegExp(copy.randomPoolFavorites))).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.randomPropose }));
+    expect(
+      await screen.findByRole('button', { name: copy.randomWithdraw }),
+    ).toBeTruthy();
+    expect(
+      decideWishSelection.mock.calls[0][0].wishSelectionDecisionUpdate.action,
+    ).toBe('REQUEST_RANDOM');
+    // Nothing is decided before the partner agrees.
+    expect(screen.queryByText(copy.chosenRandomLabel)).toBeNull();
+  });
+
+  it('lets the partner agree to chance and shows the stored result', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    initial.randomRequest = { mine: false, declined: false };
+    renderTask(initial);
+    expect(
+      await screen.findByText(new RegExp(copy.randomOnlyOne)),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: copy.randomChangeFirst }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.randomAccept }));
+    // A short reveal plays first; the stored pick follows on both devices.
+    expect(await screen.findByText(copy.randomRolling)).toBeTruthy();
+    expect(
+      await screen.findByText(copy.chosenRandomLabel, {}, { timeout: 3000 }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 2, name: candidates[1].title }),
+    ).toBeTruthy();
+  });
+
+  it('keeps deciding together when the partner declines chance', async () => {
+    const initial = projection('READY');
+    initial.commonWishIds = [];
+    initial.randomPool = 'FAVORITES';
+    initial.randomRequest = { mine: false, declined: false };
+    renderTask(initial);
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.randomDecline }),
+    );
+    expect(
+      await screen.findByRole('button', { name: copy.randomPropose }),
+    ).toBeTruthy();
+    expect(screen.queryByText(copy.chosenRandomLabel)).toBeNull();
   });
 
   it('hints softly when every candidate is a favourite', async () => {

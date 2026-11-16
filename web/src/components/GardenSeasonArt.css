@@ -127,26 +127,23 @@
 }
 
 .garden-scene.is-lively .garden-flicker {
-  animation: garden-flicker 2.6s ease-in-out infinite alternate;
+  animation: garden-flicker calc(var(--duration-connection-travel) * 0.8)
+    var(--easing-travel) infinite alternate;
 }
 
 .garden-fall {
   opacity: 0;
-  animation: garden-fall var(--garden-fall-duration, 3s) linear both;
-  animation-delay: var(--garden-delay, 0ms);
-}
-
-.garden-mist {
-  transition: opacity var(--duration-context) ease-out;
+  animation: garden-fall var(--garden-fall-duration) var(--easing-playback) both;
+  animation-delay: var(--garden-delay);
 }
 
 .garden-mist.is-lifting {
-  animation: garden-mist-lift 1.8s ease-out both;
+  animation: garden-mist-lift var(--duration-gesture-sequence)
+    var(--easing-exit) both;
 }
 
 .garden-sleep-card {
-  animation: garden-unfold var(--duration-context)
-    cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
   transform-origin: 50% 0;
 }
 

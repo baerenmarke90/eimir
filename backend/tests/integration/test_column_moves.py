@@ -16,6 +16,7 @@ from uuid import UUID
 
 import pytest
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
@@ -23,6 +24,7 @@ from eimir.daily_checkins.models import DailyCheckIn
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
 from eimir.identity.models import Account
 from eimir.jobs.models import Job
+from eimir.people.models import PersonRelationship, RelatedPerson, RelatedPersonPayload
 from eimir.places.models import Place, PlacePayload
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import (
@@ -105,6 +107,7 @@ def test_values_in_legacy_columns_stay_readable_until_they_are_moved(
         "daily_check_ins": 0,
         "places": 1,
         "profile_preferences": 1,
+        "related_persons": 0,
     }
 
 
@@ -127,6 +130,7 @@ def test_move_takes_the_values_into_the_payload_and_clears_the_columns(
         "daily_check_ins": 0,
         "places": 0,
         "profile_preferences": 0,
+        "related_persons": 0,
     }
 
     latitude, longitude, has_coordinates, stored, version = _raw(
@@ -226,6 +230,7 @@ def test_worker_job_is_queued_only_while_values_remain(session: Session, space) 
         "daily_check_ins": 0,
         "places": 0,
         "profile_preferences": 0,
+        "related_persons": 0,
     }
     session.expire_all()
     assert place.latitude == LATITUDE
@@ -385,3 +390,201 @@ def test_new_and_renamed_accounts_keep_the_name_out_of_the_plain_column(
     assert "Renamed" not in stored
     session.expire_all()
     assert account.display_name == "Jonah Renamed"
+
+
+BIRTHDAY = date(1988, 3, 14)
+
+
+def _legacy_person(session: Session, space, *, flagged: bool) -> RelatedPerson:  # type: ignore[no-untyped-def]
+    """A person whose birthday is still in its column.
+
+    ``flagged`` is a row the migration visited; unflagged is one that arrived
+    later with the old shape, such as from an older Transfer Bundle.
+    """
+    space_row, account = space
+    person = RelatedPerson(
+        space_id=space_row.id,
+        owner_id=account.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        relationship=PersonRelationship.FRIEND.value,
+        legacy_birthday=BIRTHDAY,
+        has_birthday=flagged,
+        birthday_year_known=True,
+        show_birthday_on_dashboard=True,
+        payload=RelatedPersonPayload(display_name="Column Lisa"),
+    )
+    session.add(person)
+    session.flush()
+    return person
+
+
+@pytest.mark.parametrize("mode", ["disabled", "required"])
+@pytest.mark.parametrize("flagged", [True, False])
+def test_person_birthday_moves_into_the_payload(
+    session: Session, space, encryption, mode: str, flagged: bool
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply(mode)
+    person = _legacy_person(session, space, flagged=flagged)
+    session.expire_all()
+    # Before the move: the date still reads from the column and SQL still finds it.
+    assert person.birthday == BIRTHDAY
+    found = session.execute(select(RelatedPerson.id).where(RelatedPerson.with_birthday())).scalars()
+    assert person.id in set(found)
+    assert column_moves.pending(session)["related_persons"] == 1
+    before = _raw(session, "related_persons", person.id, "version, updated_at")
+
+    results = column_moves.move_columns(session, get_payload_protector())
+
+    assert results["related_persons"].converted == 1
+    column, has_birthday, stored, version = _raw(
+        session,
+        "related_persons",
+        person.id,
+        "birthday, has_birthday, payload::text, crypto_version",
+    )
+    assert column is None
+    assert has_birthday is True
+    if mode == "required":
+        assert json.loads(stored)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
+        assert version == CRYPTO_VERSION_SERVER_AEAD
+        assert "1988" not in stored
+        assert "Lisa" not in stored
+    assert _raw(session, "related_persons", person.id, "version, updated_at") == before
+    session.expire_all()
+    assert person.birthday == BIRTHDAY
+    assert person.payload.display_name == "Column Lisa"
+    found = session.execute(select(RelatedPerson.id).where(RelatedPerson.with_birthday())).scalars()
+    assert person.id in set(found)
+    assert column_moves.pending(session)["related_persons"] == 0
+
+
+def test_new_and_changed_person_birthdays_stay_out_of_the_plain_column(
+    session: Session, space, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    space_row, account = space
+    person = RelatedPerson(
+        space_id=space_row.id,
+        owner_id=account.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        relationship=PersonRelationship.FRIEND.value,
+        birthday=BIRTHDAY,
+        birthday_year_known=True,
+        payload=RelatedPersonPayload(display_name="Column Jonah"),
+    )
+    session.add(person)
+    session.flush()
+
+    column, has_birthday, stored = _raw(
+        session, "related_persons", person.id, "birthday, has_birthday, payload::text"
+    )
+    assert (column, has_birthday) == (None, True)
+    assert "1988" not in stored
+
+    person.birthday = None
+    person.birthday_year_known = False
+    session.flush()
+    assert _raw(session, "related_persons", person.id, "birthday, has_birthday") == (None, False)
+    session.expire_all()
+    assert person.birthday is None
+
+
+def test_the_database_still_refuses_a_known_year_without_a_birthday(
+    session: Session, space
+) -> None:  # type: ignore[no-untyped-def]
+    space_row, account = space
+    person = RelatedPerson(
+        space_id=space_row.id,
+        owner_id=account.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        relationship=PersonRelationship.FRIEND.value,
+        birthday_year_known=True,
+        payload=RelatedPersonPayload(display_name="Column Mara"),
+    )
+    with pytest.raises(IntegrityError), session.begin_nested():
+        session.add(person)
+        session.flush()
+
+
+@pytest.mark.parametrize("mode", ["disabled", "required"])
+def test_account_birthday_joins_the_name_in_the_payload(
+    session: Session, encryption, mode: str
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply(mode)
+    # A name that already moved (the release before this one) and a birthday
+    # that has not; and a row that has neither moved yet.
+    named = Account(display_name="Marlene Already Named")
+    named.legacy_birthday = BIRTHDAY
+    untouched = Account(legacy_display_name="Jonah Untouched")
+    untouched.legacy_birthday = BIRTHDAY
+    without = Account(legacy_display_name="Mara Without A Birthday")
+    session.add_all([named, untouched, without])
+    session.flush()
+    session.expire_all()
+    assert named.birthday == BIRTHDAY
+    assert untouched.birthday == BIRTHDAY
+    assert (untouched.display_name, without.birthday) == ("Jonah Untouched", None)
+    before = _raw(session, "accounts", named.id, "version, updated_at")
+
+    results = column_moves.move_columns(session, get_payload_protector())
+
+    assert results["accounts"].converted == 3
+    for account, name in ((named, "Marlene Already Named"), (untouched, "Jonah Untouched")):
+        row = _raw(
+            session, "accounts", account.id, "display_name, birthday, has_birthday, payload::text"
+        )
+        assert row[:3] == (None, None, True)
+        if mode == "required":
+            assert "1988" not in row[3]
+            assert name.split()[0] not in row[3]
+    # The flag follows the birthday, not the move.
+    assert _raw(session, "accounts", without.id, "birthday, has_birthday") == (None, False)
+    assert _raw(session, "accounts", named.id, "version, updated_at") == before
+    session.expire_all()
+    assert (named.display_name, named.birthday) == ("Marlene Already Named", BIRTHDAY)
+    assert (untouched.display_name, untouched.birthday) == ("Jonah Untouched", BIRTHDAY)
+    assert (without.display_name, without.birthday) == ("Mara Without A Birthday", None)
+    found = set(session.execute(select(Account.id).where(Account.with_birthday())).scalars())
+    assert {named.id, untouched.id} <= found
+    assert without.id not in found
+
+
+def test_account_name_and_birthday_writes_never_lose_each_other(
+    session: Session, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    account = Account(display_name="Jonah New", birthday=BIRTHDAY)
+    session.add(account)
+    session.flush()
+    row = _raw(
+        session, "accounts", account.id, "display_name, birthday, has_birthday, payload::text"
+    )
+    assert row[:3] == (None, None, True)
+    assert "1988" not in row[3]
+
+    account.display_name = "Jonah Renamed"
+    session.flush()
+    session.expire_all()
+    assert (account.display_name, account.birthday) == ("Jonah Renamed", BIRTHDAY)
+
+    account.birthday = None
+    session.flush()
+    session.expire_all()
+    assert (account.display_name, account.birthday) == ("Jonah Renamed", None)
+    assert _raw(session, "accounts", account.id, "birthday, has_birthday") == (None, False)
+
+    # A legacy row that is renamed takes its birthday along instead of leaving it
+    # behind in the column.
+    legacy = Account(legacy_display_name="Mara Legacy")
+    legacy.legacy_birthday = BIRTHDAY
+    session.add(legacy)
+    session.flush()
+    legacy.display_name = "Mara Renamed"
+    session.flush()
+    session.expire_all()
+    assert (legacy.display_name, legacy.birthday) == ("Mara Renamed", BIRTHDAY)
+    assert _raw(session, "accounts", legacy.id, "display_name, birthday, has_birthday") == (
+        None,
+        None,
+        True,
+    )

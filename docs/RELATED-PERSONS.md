@@ -62,7 +62,7 @@ The UI must never display or indirectly reveal whether such private partner date
 
 ## Birthday without known year
 
-`DATE` has no representation for a date without a year. If the birth year is unknown (`birthdayYearKnown = false`), the server stores month and day using placeholder year **1904** — a leap year so February 29 can be represented. The database enforces the placeholder so no second location in code can choose another year.
+`DATE` has no representation for a date without a year. If the birth year is unknown (`birthdayYearKnown = false`), the server stores month and day using placeholder year **1904** — a leap year so February 29 can be represented. The birthday is protected content and is stored in the person's `ProtectedPayload` (#797), which the database cannot inspect; `normalize_birthday` in the people service is the one place that applies the placeholder. The plain column `has_birthday` records only that a birthday exists.
 
 Clients display only day and month when `birthdayYearKnown = false`. A known year without a date is inconsistent and is rejected with 422 (`RELATED_PERSON_BIRTHDAY_REQUIRED`) instead of silently corrected.
 

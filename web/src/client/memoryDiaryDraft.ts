@@ -1,4 +1,14 @@
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import {
+  deviceMediaKey,
+  openJson,
+  openMedia,
+  type SealedJson,
+  type SealedMedia,
+  sealJson,
+  sealMedia,
+  sealsDeviceMedia,
+} from './deviceMediaSeal';
 import type { MemoryCreateAttempt } from './memoryCreateIdentity';
 import {
   memoryOnlyPhotoDescriptor,
@@ -57,11 +67,11 @@ function checkpointValue(value: MemoryDiaryDraft): StoredDraft {
   };
 }
 
-function restoreValue(record: DraftRecord): MemoryDiaryDraft {
+function restoreValue(value: StoredDraft, format?: 3): MemoryDiaryDraft {
   return {
-    ...record.value,
-    legacyMedia: record.format !== 3 && record.value.files.length > 0,
-    files: record.value.files.map((entry) =>
+    ...value,
+    legacyMedia: format !== 3 && value.files.length > 0,
+    files: value.files.map((entry) =>
       'selectedPhoto' in entry
         ? {
             file: missingSelectedPhoto(entry.selectedPhoto),
@@ -78,8 +88,112 @@ interface DraftRecord {
   epoch: string;
   owner: string;
   expiresAt: number;
-  value: StoredDraft;
+  /** Plaintext work: browsers and iOS, and Android rows from before sealing. */
+  value?: StoredDraft;
+  /** The Android app keeps the work sealed under the per-login device key. */
+  sealed?: SealedDraft;
   format?: 3;
+}
+
+/** Text and structure as one sealed JSON value, photo bytes sealed one by one. */
+interface SealedDraft {
+  text: SealedJson;
+  files: SealedMedia[];
+}
+
+// A draft holds `Date` values (inside recovered Memories) and `File` objects,
+// which JSON cannot carry. They are tagged for the sealed form and restored on
+// load; a photo's name and time travel inside the sealed text.
+const DATE_TAG = '$eimirDate';
+const FILE_TAG = '$eimirFile';
+
+function toSealable(value: unknown, files: File[]): unknown {
+  if (value instanceof Date)
+    return {
+      [DATE_TAG]: Number.isNaN(value.getTime()) ? null : value.toISOString(),
+    };
+  if (typeof File !== 'undefined' && value instanceof File) {
+    files.push(value);
+    return {
+      [FILE_TAG]: files.length - 1,
+      name: value.name,
+      lastModified: value.lastModified,
+    };
+  }
+  if (Array.isArray(value)) return value.map((item) => toSealable(item, files));
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([name, item]) => [
+        name,
+        toSealable(item, files),
+      ]),
+    );
+  return value;
+}
+
+function fromSealable(value: unknown, files: readonly Blob[]): unknown {
+  if (Array.isArray(value))
+    return value.map((item) => fromSealable(item, files));
+  if (!value || typeof value !== 'object') return value;
+  const tagged = value as Record<string, unknown>;
+  if (DATE_TAG in tagged) {
+    const iso = tagged[DATE_TAG];
+    return new Date(typeof iso === 'string' ? iso : Number.NaN);
+  }
+  if (FILE_TAG in tagged) {
+    const blob = files[tagged[FILE_TAG] as number];
+    if (!blob) throw new Error('Draft photo missing');
+    return new File([blob], String(tagged.name), {
+      type: blob.type,
+      lastModified: Number(tagged.lastModified),
+    });
+  }
+  return Object.fromEntries(
+    Object.entries(tagged).map(([name, item]) => [
+      name,
+      fromSealable(item, files),
+    ]),
+  );
+}
+
+const fileRowKey = (key: string, index: number) =>
+  `${key}\u0000draft-file\u0000${index}`;
+
+/** Fails without a key: a sealing device never writes plaintext work. */
+async function sealDraft(
+  key: string,
+  value: StoredDraft,
+): Promise<SealedDraft> {
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) throw new Error('Draft write failed');
+  const files: File[] = [];
+  const text = await sealJson(cryptoKey, key, toSealable(value, files));
+  return {
+    text,
+    files: await Promise.all(
+      files.map((file, index) =>
+        sealMedia(cryptoKey, fileRowKey(key, index), file),
+      ),
+    ),
+  };
+}
+
+/** `undefined` when no key is available right now; throws when unreadable. */
+async function openDraft(
+  key: string,
+  sealed: SealedDraft,
+): Promise<StoredDraft | undefined> {
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) return undefined;
+  const files = await Promise.all(
+    sealed.files.map((file, index) =>
+      openMedia(cryptoKey, fileRowKey(key, index), file),
+    ),
+  );
+  return fromSealable(
+    await openJson(cryptoKey, key, sealed.text),
+    files,
+  ) as StoredDraft;
 }
 
 const DATABASE = 'eimir-memory-drafts-v1';
@@ -194,11 +308,12 @@ export class MemoryDiaryDraftStore {
   async load(): Promise<MemoryDiaryDraft | null> {
     this.epoch = epoch();
     const db = await database();
+    let found: DraftRecord | null = null;
     try {
-      return await new Promise((resolve, reject) => {
+      found = await new Promise<DraftRecord | null>((resolve, reject) => {
         const tx = db.transaction(STORE, 'readwrite');
         const store = tx.objectStore(STORE);
-        let result: MemoryDiaryDraft | null = null;
+        let result: DraftRecord | null = null;
         let pendingSweeps = 2;
         const readOwnedDraft = () => {
           if (!this.current()) {
@@ -218,7 +333,7 @@ export class MemoryDiaryDraftStore {
             const record = request.result as DraftRecord | undefined;
             if (record?.epoch === this.epoch && record.expiresAt > Date.now()) {
               this.owner = record.owner;
-              result = restoreValue(record);
+              result = record;
             } else if (record) {
               store.delete(this.key);
             }
@@ -243,6 +358,55 @@ export class MemoryDiaryDraftStore {
     } finally {
       db.close();
     }
+    if (!found) return null;
+    if (!sealsDeviceMedia())
+      return found.value ? restoreValue(found.value, found.format) : null;
+    return this.openSealed(found);
+  }
+
+  /** Android app: open sealed work; seal work kept from before sealing. */
+  private async openSealed(
+    record: DraftRecord,
+  ): Promise<MemoryDiaryDraft | null> {
+    if (!record.sealed) {
+      if (!record.value) return null;
+      // Unsaved work must survive the update that introduced sealing.
+      await this.resealInPlace(record.value).catch(() => undefined);
+      return restoreValue(record.value, record.format);
+    }
+    let value: StoredDraft | undefined;
+    try {
+      value = await openDraft(this.key, record.sealed);
+    } catch {
+      // Sealed under an earlier login's key, or damaged: not recoverable.
+      await this.clear().catch(() => undefined);
+      return null;
+    }
+    return value ? restoreValue(value, record.format) : null;
+  }
+
+  /** Replace a plaintext row by its sealed form without taking ownership. */
+  private async resealInPlace(value: StoredDraft): Promise<void> {
+    const sealed = await sealDraft(this.key, value);
+    const db = await database();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        const store = tx.objectStore(STORE);
+        const request = store.get(this.key);
+        request.onsuccess = () => {
+          const record = request.result as DraftRecord | undefined;
+          if (!this.current() || !record?.value || record.owner !== this.owner)
+            return;
+          const { value: _plaintext, ...kept } = record;
+          store.put({ ...kept, sealed } satisfies DraftRecord);
+        };
+        tx.oncomplete = () => resolve();
+        tx.onabort = tx.onerror = () => reject(new Error('Draft write failed'));
+      });
+    } finally {
+      db.close();
+    }
   }
 
   save(value: MemoryDiaryDraft): Promise<void> {
@@ -257,6 +421,10 @@ export class MemoryDiaryDraftStore {
       .catch(() => undefined)
       .then(async () => {
         if (!this.current()) throw new MemoryDraftOwnershipError();
+        // Web Crypto cannot run inside an IndexedDB transaction, so the work
+        // is sealed first and written as one row afterwards.
+        const sealed =
+          value && sealsDeviceMedia() ? await sealDraft(this.key, value) : null;
         const db = await database();
         try {
           await new Promise<void>((resolve, reject) => {
@@ -278,7 +446,7 @@ export class MemoryDiaryDraftStore {
                     epoch: this.epoch,
                     owner: this.writer,
                     expiresAt: Date.now() + MEMORY_DRAFT_MAX_AGE_MS,
-                    value,
+                    ...(sealed ? { sealed } : { value }),
                     format: 3,
                   } satisfies DraftRecord);
                 else store.delete(this.key);

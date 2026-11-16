@@ -1,0 +1,336 @@
+/* Album look for the Momente map. The map itself keeps its original rounded
+ * shape and the app-wide calm tone; the photo pins and the place list take on
+ * the Album look. A pin is a stack of photos; here each photo is Polaroid
+ * paper (sharper corners, a thicker lower edge) and the top photo lies
+ * slightly crooked. Tokens only. Album view only: the List view keeps the
+ * rounded photos. `:where()` keeps specificity low so the expanded-stack and
+ * "map is moving" states in MemoryMapPage.css still win. */
+
+:where(
+  .memory-map-surface[data-diary-layout="album"],
+  .memory-map-fullscreen-surface[data-diary-layout="album"]
+) .memory-map-stack-photo {
+  box-sizing: border-box;
+  padding: 3px 3px 9px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--color-surface-raised);
+  box-shadow:
+    0 1px 2px var(--color-shadow-card),
+    0 4px 8px var(--color-shadow-soft);
+}
+
+:where(
+    .memory-map-surface[data-diary-layout="album"],
+    .memory-map-fullscreen-surface[data-diary-layout="album"]
+  )
+  .memory-map-stack-photo[data-slot="0"] {
+  transform: rotate(-2deg);
+}
+
+:where(
+    .memory-map-surface[data-diary-layout="album"],
+    .memory-map-fullscreen-surface[data-diary-layout="album"]
+  )
+  .memory-map-stack-photo
+  :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
+  border-radius: 0;
+}
+
+/* ---------- the places under the map: small paper slips ----------
+ * The rounded pink/blue pills would sit beside the Polaroid pins like a
+ * different product. Each place becomes a slip of paper with a mini Polaroid, lying very
+ * slightly crooked. Still one button per place; nothing about order, labels or
+ * behaviour changes. */
+.memory-map-places[data-diary-layout="album"] {
+  gap: var(--space-4);
+}
+.memory-map-places[data-diary-layout="album"] .memory-map-place,
+.memory-map-places[data-diary-layout="album"]
+  li:nth-child(even)
+  .memory-map-place {
+  --place-tilt: -0.3deg;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  filter: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 6px 6px var(--color-shadow-soft));
+  rotate: var(--place-tilt);
+}
+.memory-map-places[data-diary-layout="album"]
+  li:nth-child(even)
+  .memory-map-place {
+  --place-tilt: 0.3deg;
+}
+.memory-map-places[data-diary-layout="album"] .memory-map-thumbnail {
+  box-sizing: border-box;
+  padding: 3px 3px 8px;
+  border-radius: 2px;
+  background: var(--color-surface-raised);
+  box-shadow:
+    0 1px 2px var(--color-shadow-card),
+    0 3px 6px var(--color-shadow-soft);
+  rotate: -2deg;
+}
+
+/* ---------- place slips, second pass: one calm column, taped ----------
+ * Slips stay in one straight column of equal width, only barely crooked, each
+ * held by a small strip of tape, with a larger mini Polaroid. */
+.memory-map-places[data-diary-layout="album"] .memory-map-place {
+  position: relative;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+.memory-map-places[data-diary-layout="album"] .memory-map-place::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  inset-inline-start: 50%;
+  width: 3.5rem;
+  height: 1.1rem;
+  margin-inline-start: -1.75rem;
+  rotate: calc(var(--place-tilt) * -3);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
+      transparent 5px 10px
+    ),
+    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
+  clip-path: polygon(
+    0 0,
+    4% 14%,
+    0 28%,
+    4% 42%,
+    0 57%,
+    4% 71%,
+    0 86%,
+    3% 100%,
+    100% 100%,
+    96% 86%,
+    100% 71%,
+    96% 57%,
+    100% 42%,
+    96% 28%,
+    100% 14%,
+    97% 0
+  );
+  pointer-events: none;
+}
+.memory-map-places[data-diary-layout="album"] .memory-map-thumbnail {
+  padding: 4px 4px 11px;
+}
+.memory-map-places[data-diary-layout="album"]
+  li:nth-child(even)
+  .memory-map-thumbnail {
+  rotate: 3deg;
+}
+
+/* The Polaroid fills its column, so the text sits right next to it. */
+.memory-map-places[data-diary-layout="album"] .memory-map-thumbnail {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+.memory-map-places[data-diary-layout="album"] .memory-map-place {
+  gap: var(--space-3);
+}
+
+/* ---------- the memories of a selected place: scrapbook pieces ----------
+ * Same language as the Tagebuch: a photo memory is a taped Polaroid, a text
+ * memory a lined note. The selected card lies straight, its neighbours very
+ * slightly crooked. The strip scrolls and snaps exactly as before; the paper
+ * shadow sits on each list item so it is not cut by the card shape. */
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip {
+  padding-block: var(--space-4) var(--space-5);
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  > li {
+  filter: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 6px 6px var(--color-shadow-soft));
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory {
+  --memory-tilt: -1deg;
+  position: relative;
+  gap: var(--space-2);
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  box-shadow: none;
+  rotate: var(--memory-tilt);
+  transition: rotate var(--duration-context) var(--easing-standard);
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  > li:nth-child(even)
+  .memory-map-memory {
+  --memory-tilt: 0.8deg;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory[aria-current="true"] {
+  rotate: 0deg;
+}
+
+/* Photo memory: Polaroid with tape. */
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory.has-photo {
+  padding: var(--space-3) var(--space-3) 0;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory.has-photo::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--space-3) * -1);
+  inset-inline-start: 50%;
+  width: 4.5rem;
+  height: 1.4rem;
+  margin-inline-start: -2.25rem;
+  rotate: calc(var(--memory-tilt) * -2);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
+      transparent 5px 10px
+    ),
+    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
+  clip-path: polygon(
+    0 0,
+    4% 14%,
+    0 28%,
+    4% 42%,
+    0 57%,
+    4% 71%,
+    0 86%,
+    3% 100%,
+    100% 100%,
+    96% 86%,
+    100% 71%,
+    96% 57%,
+    100% 42%,
+    96% 28%,
+    100% 14%,
+    97% 0
+  );
+  pointer-events: none;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  .memory-map-thumbnail {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  .memory-map-thumbnail
+  .story-media-preview {
+  object-position: 50% 30%;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  .memory-map-memory-copy {
+  padding: var(--space-1) var(--space-1) var(--space-4);
+}
+
+/* Text memory: lined note, torn at the bottom. */
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo) {
+  justify-content: flex-start;
+  padding: var(--space-5) var(--space-4) var(--space-8) 2.4rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 1.7rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.7rem
+        1.78rem,
+      transparent 1.78rem
+    ),
+    repeating-linear-gradient(
+      transparent 0 calc(1lh - 1px),
+      var(--color-border) calc(1lh - 1px) 1lh
+    )
+    0 var(--space-5) / 100% 100% no-repeat,
+    var(--color-surface-raised);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 95%,
+    96% 100%,
+    91% 95.5%,
+    85% 100%,
+    79% 95%,
+    72% 100%,
+    66% 95.5%,
+    59% 100%,
+    53% 95%,
+    46% 100%,
+    39% 95.5%,
+    32% 100%,
+    25% 95%,
+    18% 100%,
+    11% 95.5%,
+    5% 100%,
+    0 95.5%
+  );
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo)
+  > .eimir-icon {
+  display: none;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-strip
+  .memory-map-memory:not(.has-photo)
+  .memory-map-memory-copy {
+  padding: 0;
+}
+
+/* Let the lines of the note sit under the text, not through it. */
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo)
+  .memory-map-memory-copy {
+  gap: 0;
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo)
+  .memory-map-memory-copy
+  strong,
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo)
+  .memory-map-memory-copy
+  time {
+  line-height: 1.78rem;
+}
+
+/* Ruling follows the text: line spacing from the note's own line height. */
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo) {
+  --note-lh: 1.78rem;
+  line-height: var(--note-lh);
+}
+.memory-map-surface[data-diary-layout="album"]
+  .memory-map-selection
+  .memory-map-memory:not(.has-photo)
+  .memory-map-memory-copy
+  :is(strong, time) {
+  line-height: var(--note-lh);
+}

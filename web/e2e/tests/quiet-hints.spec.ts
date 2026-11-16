@@ -219,6 +219,20 @@ test('Wir: move-in with one action, invitation link and the connected moment', a
   await page.setViewportSize({ width: 1280, height: 900 });
   await shot(page, testInfo, 'wir-move-in-1280-dark');
 
+  // 320 CSS px with doubled text still reflows without sideways scrolling.
+  await page.setViewportSize({ width: 320, height: 700 });
+  const largeText = await page.addStyleTag({
+    content: 'html { font-size: 200% !important; }',
+  });
+  await expect(
+    moveIn.getByRole('link', { name: m5s5.dashboard.newSpaceAction }),
+  ).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  await largeText.evaluate((element) => element.remove());
+
   // Alex accepts the invitation: Lea sees the moment once, then the line.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });

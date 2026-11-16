@@ -1451,6 +1451,98 @@
         "de": "Moment ansehen",
         "en": "View moment"
       }
+    },
+    {
+      "id": "HEART_HUNT_HIDDEN-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f10",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fL68dixkI8X_YYBW.MDlcN0-dyBWMUc6X9GV2ty81LX2Ts-JPtijUOTWFjok7m3o1YTeyqDX9gzAeNFHZkBChECLBy6tGXXLGsQBBubTaYFGYQ-aDd0nTjMEL7Qbh4_xS90FZOe7_zV_RVgycEhEvI4_zUlUQGztjhl9j7P-klpzYUePlULn7Mi8zK-tRTGkiekBUwLYQJtXrtp9eAcZzROgvXiHWH6l1rhvQqUsAsFmN9_LGOwbDyiIIaHUASa8.ElHsEYoERCENr4AZiM1mew",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_HIDDEN-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f11",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..kzSYLd_cFSJPVp1Z.EVUZPCAqA-I69y8l1azO5nmxfaRmJ_FgA_7FQrW5K19nbnILEjuVWME6Cl2NOLMnq9WXzYIFd34pqUoq5WfnkSOhXsDxd3JfoYprqGU1P5kWJlboWGZfOdRwkSWTqdokHC9hFpreW-Er01nQO3glUxlDWu6tiBdwxW2S8vWd6L5dsUTmdQ_v0B38wL0Jyfb2pgl5PZfNh8aUMWPux44Zl0b8j_E-24kIJoxEXz8g9w5Bch0S9z9OFanI3bu_WGnGjTULrg.t6cLpLVq68X3_EBqxA7AYg",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_FOUND-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f20",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..BV7ge9-JEceQVDnx.waMyxj2RgvCJBbcrVdXkbT_JWNJVa7A3G76rxF6slGbC2t9kXuKZEVKlmgEokriXBUbQSvNaB9MpU4hnXajhgzw9xrUewZeBUo7-FW_NVvyPWAhbaD_LhuUGg0jab0B2GBFWfau_cQ7BPg4nVJE1pu2OgJFdFjB0xteMhwkVjdwrqO9TIIE2fpTaJ5dGZe_w32DWAw0ZLxbc8tBTuGOQTWyKdynNMt310Nr78yHE2nFQmQ.O6_5s5zUMz7mXuqx3HtwVg",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "HEART_HUNT_FOUND-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7f21",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..dVmToxHLFy9mkJlE.lhRf8VY8mFjr1QnTuRwH7ob736AnQOzSjpUwGEE0OW9nMOvKD-34CUWDQktP_tTPnBWJts3t3cHi7zkMJRqv_qhrRDzS55IhAAVp0Iy5oW__u1rLGforbqEsZ4GjKvsGil7rv0CISBUCo3F0gxOr4fITU1LJk2WxwKekXLUlYqOXlOmXOmAJVFX-04zuoSFnSvofBRzXACDKzES9fxvC6wnGJEGME19xLYyECNuL3UtPt-PWpHaJfo8F2Kgs8zT0Zv13.VDQkityT9gotDObQu116eQ",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
     }
   ]
 }

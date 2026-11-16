@@ -27,6 +27,7 @@ from eimir.demo import reset as demo_reset
 from eimir.engagement import email_delivery, gentle_jobs, push_providers
 from eimir.engagement import push as push_delivery
 from eimir.engagement import service as engagement_service
+from eimir.heart_hunt import retention as heart_hunt_retention
 from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import run_once
@@ -76,6 +77,7 @@ def _ensure_maintenance() -> None:
             reminder_runtime.ensure_scheduled(session)
             demo_reset.ensure_scheduled(session)
             daily_checkin_retention.ensure_scheduled(session)
+            heart_hunt_retention.ensure_scheduled(session)
             presence_retention.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
@@ -118,6 +120,7 @@ def main() -> None:
     reminder_runtime.register_handlers()
     demo_reset.register_handlers()
     daily_checkin_retention.register_handlers()
+    heart_hunt_retention.register_handlers()
     presence_retention.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()

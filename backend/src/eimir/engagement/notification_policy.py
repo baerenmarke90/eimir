@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 13
+POLICY_VERSION = 14
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -115,6 +115,12 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.HEART_HUNT_HIDDEN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.HEART_HUNT_FOUND: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         # A partner's "rather decide ourselves" never interrupts by push.

@@ -33,6 +33,7 @@ PINNED_CONTEXTS = {
     "collections": "CollectionPayload",
     "comments": "CommentPayload",
     "daily_check_in_vibe_notes": "DailyVibeNotePayload",
+    "daily_check_ins": "DailyCheckInPayload",
     "gift_ideas": "GiftIdeaPayload",
     "google_account_hints": "GoogleAccountHintPayload",
     "heart_moments": "HeartMomentPayload",
@@ -146,3 +147,20 @@ def test_key_lifecycle_module_never_logs_or_prints_content() -> None:
     source = inspect.getsource(lifecycle)
     assert "print(" not in source
     assert "logging" not in source
+
+
+def test_only_an_optional_column_accepts_a_missing_payload() -> None:
+    # ``optional`` exists for a payload column added to a table that already has
+    # rows; every other column keeps rejecting a missing payload in both directions.
+    strict = ProtectedPayloadJSON(NotePayload)
+    with pytest.raises(TypeError):
+        strict.process_bind_param(None, DIALECT)
+    with pytest.raises(ValueError, match="missing"):
+        strict.process_result_value(None, DIALECT)
+
+    optional = ProtectedPayloadJSON(NotePayload, optional=True)
+    assert optional.process_bind_param(None, DIALECT) is None
+    assert optional.process_result_value(None, DIALECT) is None
+    # A raw dictionary is still refused; optional only concerns ``None``.
+    with pytest.raises(TypeError):
+        optional.process_bind_param({"title": "x"}, DIALECT)  # type: ignore[arg-type]

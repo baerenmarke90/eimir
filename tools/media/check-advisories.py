@@ -130,6 +130,9 @@ def main() -> int:
     else:
         with urlopen(FEED, timeout=60) as response:
             data = json.load(response)
+    if not isinstance(data, dict) or not isinstance(data.get("ffmpeg"), dict) or not data["ffmpeg"]:
+        print("The Debian security feed is missing FFmpeg advisory data.")
+        return 1
     built = set(arguments.inventory.read_text(encoding="utf-8").split())
     if not built:
         print(f"{arguments.inventory} is empty; regenerate it with build-inventory.py.")

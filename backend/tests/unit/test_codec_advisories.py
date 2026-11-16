@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import re
 import runpy
+import sys
 from pathlib import Path
 
 import pytest
@@ -132,9 +135,45 @@ def test_source_identifiers_come_from_the_built_files_only(tmp_path: Path) -> No
     assert "dpx_decode_frame" not in found
 
 
-def test_pinned_ffmpeg_source_matches_the_workflow_that_builds_it() -> None:
-    workflow = (MEDIA_TOOLS.parents[1] / ".github/workflows/media-video.yml").read_text(
-        encoding="utf-8"
+@pytest.mark.parametrize("payload", ["{}", '{"ffmpeg":{}}', '{"ffmpeg":[]}'])
+def test_checker_fails_when_the_feed_has_no_ffmpeg_data(
+    payload: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    feed = tmp_path / "feed.json"
+    feed.write_text(payload, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["check-advisories.py", "--feed-file", str(feed)])
+    assert _advisories["main"]() == 1
+    assert "missing FFmpeg advisory data" in capsys.readouterr().out
+
+
+def test_review_evidence_matches_the_pinned_media_build() -> None:
+    root = MEDIA_TOOLS.parents[1]
+    review = json.loads((MEDIA_TOOLS / "advisory-review.json").read_text(encoding="utf-8"))
+    assert review["source"] == _advisories["FEED"]
+    assert review["upstreamCommit"] == _advisories["FFMPEG_COMMIT"]
+    for path in (".github/workflows/media-video.yml", "backend/Dockerfile.media"):
+        build = (root / path).read_text(encoding="utf-8")
+        assert _advisories["FFMPEG_URL"] in build
+        assert _advisories["FFMPEG_SHA256"] in build
+
+    dependencies = review["dependencies"]
+    build_dependencies = (MEDIA_TOOLS / "build-video-dependencies.sh").read_text(encoding="utf-8")
+    build_pins = dict(
+        re.findall(
+            r"^fetch_source (\w+) \\\n  https://[^\n]+/archive/([0-9a-f]{40})\.tar\.gz",
+            build_dependencies,
+            re.M,
+        )
     )
-    assert _advisories["FFMPEG_COMMIT"] in workflow
-    assert _advisories["FFMPEG_SHA256"] in workflow
+    assert set(dependencies) == set(build_pins) == {"openh264", "zimg"}
+    review_pins = {package: entry["upstreamCommit"] for package, entry in dependencies.items()}
+    assert review_pins == build_pins
+
+    assert review["findings"]
+    for package_review in (review, *dependencies.values()):
+        for entry in package_review["findings"].values():
+            assert re.fullmatch(r"[0-9a-f]{64}", entry["evidenceSha256"])
+            assert entry["review"].strip()

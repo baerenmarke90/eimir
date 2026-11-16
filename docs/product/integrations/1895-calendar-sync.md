@@ -65,14 +65,28 @@ token or provider text.
 
 ## Data flow and privacy
 
-- Sent to the chosen calendar: Plan title, description, place name and
-  schedule; discreet Plans send only the list title and schedule.
+- Sent to the chosen calendar: Plan title, description, place name, schedule
+  and a link to the Plan. Discreet Plans send only the list title and schedule.
 - Stored by eimir.: encrypted credentials/refresh token, the target calendar
   reference and name, and per Plan the event reference, UID and ETag. No
   calendar contents are read or stored.
 - Removing a connection revokes the Google grant (best effort) and deletes
   credentials; events in the calendar stay. Account deletion removes
   connections and open consents; a sponsor leaving the Space ends its target.
+
+## Opening the Plan from a calendar event
+
+- The first line of a regular synced event's description is a localized
+  “Open in eimir.” link, even when the Plan has no description. In Google
+  Calendar it uses the event's HTML description. CalDAV clients can use the
+  iCalendar HTML alternative (`ALTREP`), the plain-text first line with the
+  short address, or the standard `URL` property, depending on the client.
+- The short address uses `EIMIR_PUBLIC_BASE_URL` and a compact Plan ID. It
+  opens the existing Plan detail route with the same sign-in and Space access
+  checks. The address does not grant access or contain a credential.
+- On the next full sync (including “Sync now”), active events written before
+  this format update get the link through the existing event mapping. The
+  provider version check still protects externally edited appointments.
 
 ## Acceptance status
 

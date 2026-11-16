@@ -52,6 +52,7 @@ import {
 import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
+import { PersonColoursProvider } from './client/personColoursContext';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -169,6 +170,7 @@ import {
 import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryMapPage } from './components/MemoryMapPage';
+import type { MapViewport } from './components/PlaceMapCanvas';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
@@ -314,6 +316,12 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
+  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+    scope: '',
+  });
+  const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
+  if (memoryMapViewport.current.scope !== mapScope)
+    memoryMapViewport.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -473,6 +481,7 @@ function AuthenticatedApp({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -480,7 +489,7 @@ function AuthenticatedApp({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );
@@ -749,6 +758,7 @@ function AuthenticatedApp({
                 <MemoryMapPage
                   {...planningProductProps}
                   loadMemoryImage={loadMemoryImage}
+                  sessionViewport={memoryMapViewport.current}
                 />
               }
             />
@@ -1150,27 +1160,36 @@ function AuthenticatedApp({
         accountId={account.id}
         spaceId={spaceId}
       >
-        <OnceMessagesProvider
-          apiBaseUrl={apiBaseUrl}
-          accessToken={tokens.accessToken}
+        <PersonColoursProvider
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={appearanceApi}
+          entitlementsApi={entitlementApi}
+          instance={apiBaseUrl}
           accountId={account.id}
           spaceId={spaceId}
         >
-          {relationshipContent}
-        </OnceMessagesProvider>
-        <VoiceShareIngress
-          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
-          scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-        />
+          <OnceMessagesProvider
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+          >
+            {relationshipContent}
+          </OnceMessagesProvider>
+          <VoiceShareIngress
+            key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+            scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          />
 
-        <DevicePushOnboarding
-          key={`${apiBaseUrl}:${account.id}`}
-          devicePush={devicePush}
-          accountId={account.id}
-          apiBaseUrl={apiBaseUrl}
-          onEnablePrompts={enableOnboardingPrompts}
-          onSettled={settlePushPrompt}
-        />
+          <DevicePushOnboarding
+            key={`${apiBaseUrl}:${account.id}`}
+            devicePush={devicePush}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            onEnablePrompts={enableOnboardingPrompts}
+            onSettled={settlePushPrompt}
+          />
+        </PersonColoursProvider>
       </WirDesignProvider>
     </AppIconProvider>
   );

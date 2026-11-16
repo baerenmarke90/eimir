@@ -18,6 +18,7 @@ import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
+import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { createReferenceApis } from '../client/referenceFlow';
 import {
   birthdayFromInput,
@@ -28,10 +29,11 @@ import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
-import { MediaDropZone } from './MediaDropZone';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
-import { MediaActionGroup } from './MediaActionGroup';
 import { AddActionButton } from './AddAction';
+import { MediaActionGroup } from './MediaActionGroup';
+import { MediaDropZone } from './MediaDropZone';
+import { PhotoCropTask } from './PhotoCropTask';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 
 const RELATIONSHIPS: PersonRelationship[] = [
@@ -177,6 +179,13 @@ export function RelatedPersonEditorSheet({
     maxAttachments: 1,
     preserveMetadata: false,
   });
+  // Every avatar passes the round crop step (contract 10.1a, #1907 G1).
+  const [avatarCrop, setAvatarCrop] = useState<{
+    source: PhotoCropSource;
+    apply: (file: File) => void;
+    discard?: () => void;
+  } | null>(null);
+  const cropAfterCommit = useRef<File | null>(null);
   const avatarDraft = avatarDrafts.items[0];
   const avatarPreviewUrl = avatarDraft?.previewUrl ?? null;
   const uploadPhase = avatarDrafts.hasPending ? avatarDraft?.status : null;
@@ -191,6 +200,7 @@ export function RelatedPersonEditorSheet({
     attachmentsApi,
     spaceId,
     person?.avatarAttachmentId,
+    person?.visibility === ContentVisibility.SHARED,
   );
   const displayedAvatarUrl =
     avatarPreviewUrl || (currentAvatarId ? existingAvatarUrl : null);
@@ -291,6 +301,37 @@ export function RelatedPersonEditorSheet({
     }
   }
 
+  function replaceAvatarDraft(file: File) {
+    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
+    avatarDrafts.addFiles([file]);
+  }
+
+  // A photo this device cannot decode is used unchanged, as for the own
+  // profile photo (#1854).
+  async function cropAvatar(
+    file: File,
+    apply: (file: File) => void,
+    discard?: () => void,
+  ) {
+    const source = await loadPhotoCropSource(file);
+    if (source) setAvatarCrop({ source, apply, discard });
+    else apply(file);
+  }
+
+  // A photo from a connected source arrives as a draft; crop it in place.
+  useEffect(() => {
+    const draft = avatarDrafts.items[0];
+    if (!draft || draft.file !== cropAfterCommit.current) return;
+    cropAfterCommit.current = null;
+    void cropAvatar(
+      draft.file,
+      (file) => {
+        if (file !== draft.file) avatarDrafts.replaceFile(draft.id, file);
+      },
+      () => avatarDrafts.remove(draft.id),
+    );
+  });
+
   function selectAvatar(file?: File) {
     if (!file || pending || uploadPhase) return;
 
@@ -300,8 +341,7 @@ export function RelatedPersonEditorSheet({
       return;
     }
 
-    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
-    avatarDrafts.addFiles([file]);
+    void cropAvatar(file, replaceAvatarDraft);
   }
 
   function handleAvatarRemove() {
@@ -445,7 +485,11 @@ export function RelatedPersonEditorSheet({
                             setSelectionError(null);
                             for (const draft of avatarDrafts.items)
                               avatarDrafts.remove(draft.id);
-                            return ticket.commit(files.slice(0, 1));
+                            // The picker ends its selection on close, so the
+                            // photo is committed first and cropped right after.
+                            const committed = ticket.commit(files.slice(0, 1));
+                            if (committed) cropAfterCommit.current = files[0];
+                            return committed;
                           },
                         };
                       }}
@@ -608,6 +652,18 @@ export function RelatedPersonEditorSheet({
           </button>
         </footer>
       </form>
+      <PhotoCropTask
+        source={avatarCrop?.source ?? null}
+        onCancel={() => {
+          avatarCrop?.discard?.();
+          setAvatarCrop(null);
+        }}
+        onConfirm={(file) => {
+          avatarCrop?.apply(file);
+          setAvatarCrop(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }}
+      />
     </section>
   );
 }

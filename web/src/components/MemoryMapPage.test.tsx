@@ -9,24 +9,38 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
 import { MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryMapPage } from './MemoryMapPage';
+import type { MapViewport } from './PlaceMapCanvas';
 
 vi.mock('./PlaceMapCanvas', () => ({
   default: ({
     onLocationSelect,
     locations,
     focus,
+    initialViewport,
+    onViewportChange,
   }: {
     onLocationSelect: (id: string) => void;
     locations: { id: string }[];
     focus?: { latitude: number; longitude: number };
+    initialViewport?: MapViewport;
+    onViewportChange: (viewport: MapViewport) => void;
   }) => (
     <div
       data-testid="external-map"
       data-locations={locations.map((item) => item.id).join(',')}
       data-focus={focus ? `${focus.latitude}:${focus.longitude}` : ''}
+      data-viewport={initialViewport ? JSON.stringify(initialViewport) : ''}
     >
       <button type="button" onClick={() => onLocationSelect('49:7')}>
         Map marker
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onViewportChange({ latitude: 51, longitude: 8, zoom: 10 })
+        }
+      >
+        Pan map
       </button>
     </div>
   ),
@@ -55,21 +69,56 @@ function setup(
     attachmentId: string,
     signal?: AbortSignal,
   ) => Promise<string>,
+  options?: {
+    sessionViewport: { current?: MapViewport };
+    entry?: string;
+  },
 ) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter>
+      <MemoryRouter
+        initialEntries={options?.entry ? [options.entry] : undefined}
+      >
         <MemoryMapPage
           apis={{ places: { listMemoryMap } } as unknown as SharedPlanningApis}
           spaceId="s1"
           accountId="a1"
           loadMemoryImage={loadMemoryImage}
+          sessionViewport={options?.sessionViewport}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 describe('Pro memory map', () => {
+  it('keeps the last viewport on reopen and gives an explicit place priority', async () => {
+    await import('./PlaceMapCanvas');
+    const sessionViewport: { current?: MapViewport } = {};
+    const list = vi.fn().mockResolvedValue({ items: [item], nextCursor: null });
+    const first = setup(list, undefined, { sessionViewport });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pan map' }));
+    expect(sessionViewport.current).toEqual({
+      latitude: 51,
+      longitude: 8,
+      zoom: 10,
+    });
+    first.unmount();
+
+    const second = setup(list, undefined, { sessionViewport });
+    expect(
+      (await screen.findByTestId('external-map')).getAttribute('data-viewport'),
+    ).toBe(JSON.stringify(sessionViewport.current));
+    second.unmount();
+
+    setup(list, undefined, {
+      sessionViewport,
+      entry: '/story/map?place=49%3A7',
+    });
+    const map = await screen.findByTestId('external-map');
+    expect(map.getAttribute('data-viewport')).toBe('');
+    expect(map.getAttribute('data-focus')).toBe('49:7');
+  });
+
   it('bounds stacks to three distinct sources, prefers photos and retains the selected text source', () => {
     const entries = Array.from({ length: 40 }, (_, index) => ({
       ...item,

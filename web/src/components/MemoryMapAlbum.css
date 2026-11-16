@@ -97,7 +97,7 @@
       color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    color-mix(in srgb, var(--color-partner-b) 45%, transparent);
+    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
   clip-path: polygon(
     0 0,
     4% 14%,
@@ -202,7 +202,7 @@
       color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    color-mix(in srgb, var(--color-partner-b) 45%, transparent);
+    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
   clip-path: polygon(
     0 0,
     4% 14%,
@@ -254,7 +254,8 @@
     linear-gradient(
       90deg,
       transparent 1.7rem,
-      color-mix(in srgb, var(--color-partner-a) 55%, transparent) 1.7rem 1.78rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.7rem
+        1.78rem,
       transparent 1.78rem
     ),
     repeating-linear-gradient(

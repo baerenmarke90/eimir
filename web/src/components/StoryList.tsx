@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
@@ -19,11 +20,12 @@ import {
   commentPresenceQueryKey,
   listCommentsPage,
 } from '../client/commentQueries';
-import { authorPartnerTone, storyEntryTone } from '../client/entryTone';
+import { storyEntryTone } from '../client/entryTone';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { personRoleResolver } from '../client/personColours';
 import { photoShape } from '../client/photoShape';
 import {
   heartMomentDetailPath,
@@ -250,6 +252,9 @@ export function StoryList({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
+    /** `false` for the viewer's own private Heart Moment. */
+    persist?: boolean,
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
@@ -263,7 +268,7 @@ export function StoryList({
 }) {
   const { t } = useTranslation();
   const [diaryLayout] = useDiaryLayout();
-  const { nicknameFor, state: partnerState } = usePartnerNickname();
+  const { nicknameFor } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
   const occasions = useSpaceOccasions(
@@ -312,14 +317,15 @@ export function StoryList({
               : undefined;
           const imageAttachment = firstMemoryAttachment ?? heartAttachment;
           // Scrapbook presentation only: tone decides how playful the paper may
-          // look, the author's partner colour tints the tape. Neither changes
-          // content, order or accessible names.
+          // look, the author's person colour (own or partner, as the viewer
+          // chose them) tints the tape. Neither changes content, order or
+          // accessible names.
           const tone = storyEntryTone(item, Boolean(imageAttachment));
-          const authorTone = authorPartnerTone(
-            author.id,
-            currentAccountId ?? apiRuntime?.accountId,
-            partnerState?.partnerId,
-          );
+          const viewerAccountId = currentAccountId ?? apiRuntime?.accountId;
+          const authorRole =
+            author.id && viewerAccountId
+              ? personRoleResolver(viewerAccountId)(author.id)
+              : undefined;
           const hasAnswers =
             item.kind === 'MEMORY' &&
             (item.memory.experienceAnswers?.length ?? 0) > 0;
@@ -329,9 +335,26 @@ export function StoryList({
               : item.kind === 'HEART_MOMENT'
                 ? item.heartMoment.id
                 : '';
+          // Own private Heart Moments are part of the Timeline; their bytes
+          // stay in session memory only (M2-D18 #3). The loader identity is
+          // not a reload trigger, so a per-item closure is safe.
           const imageLoader =
             item.kind === 'HEART_MOMENT'
-              ? loadHeartMomentImage
+              ? item.heartMoment.visibility === ContentVisibility.SHARED
+                ? loadHeartMomentImage
+                : (
+                    heartMomentId: string,
+                    attachmentId: string,
+                    signal?: AbortSignal,
+                    variant?: 'original' | 'thumbnail',
+                  ) =>
+                    loadHeartMomentImage(
+                      heartMomentId,
+                      attachmentId,
+                      signal,
+                      variant,
+                      false,
+                    )
               : loadMemoryImage;
           const productPath = storyProductPath(item);
           const kindSlug = item.kind.toLowerCase().replace('_', '-');
@@ -382,7 +405,7 @@ export function StoryList({
                     )
                   : undefined
               }
-              data-author-tone={authorTone ?? undefined}
+              data-author-role={authorRole}
               data-has-answers={hasAnswers || undefined}
             >
               <StoryTimelineMarker item={item} />

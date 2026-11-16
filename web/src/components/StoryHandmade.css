@@ -18,9 +18,17 @@
     drop-shadow(0 8px 8px var(--color-shadow-soft));
   --story-lift-high: drop-shadow(0 1px 1px var(--color-shadow-card))
     drop-shadow(0 18px 14px var(--color-shadow-overlay));
-  --story-tape-a: color-mix(in srgb, var(--color-partner-a) 58%, transparent);
-  --story-tape-b: color-mix(in srgb, var(--color-partner-b) 58%, transparent);
-  --story-tape-both: color-mix(
+  --story-tape-own: color-mix(
+    in srgb,
+    var(--person-own-accent) 58%,
+    transparent
+  );
+  --story-tape-partner: color-mix(
+    in srgb,
+    var(--person-partner-accent) 58%,
+    transparent
+  );
+  --story-tape-partneroth: color-mix(
     in srgb,
     var(--color-discovery) 30%,
     var(--color-discovery-surface)
@@ -65,9 +73,9 @@
   background:
     linear-gradient(
       180deg,
-      var(--color-partner-a),
-      var(--color-partner-b) 50%,
-      var(--color-partner-a)
+      var(--person-own-accent),
+      var(--person-partner-accent) 50%,
+      var(--person-own-accent)
     )
     0 0 / 100% 30rem repeat-y;
   -webkit-mask:
@@ -98,7 +106,7 @@
   .story-timeline-item {
   z-index: 1;
   width: 88%;
-  --story-tape: var(--story-tape-both);
+  --story-tape: var(--story-tape-partneroth);
 }
 /* Side alternates per entry and flips with every month, so a month holding a
    single entry still zig-zags against its neighbours. */
@@ -353,7 +361,8 @@
     linear-gradient(
       90deg,
       transparent 1.7rem,
-      color-mix(in srgb, var(--color-partner-a) 55%, transparent) 1.7rem 1.78rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.7rem
+        1.78rem,
       transparent 1.78rem
     ),
     repeating-linear-gradient(
@@ -500,7 +509,7 @@
   top: calc(var(--space-2) * -1);
   width: 2.1rem;
   height: 0.85rem;
-  background: var(--story-tape-both);
+  background: var(--story-tape-partneroth);
   clip-path: polygon(
     0 0,
     6% 25%,
@@ -650,16 +659,16 @@
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
-  .story-timeline-item[data-author-tone="a"] {
-  --story-tape: var(--story-tape-a);
-  --story-pin: var(--color-partner-a);
+  .story-timeline-item[data-author-role="own"] {
+  --story-tape: var(--story-tape-own);
+  --story-pin: var(--person-own-accent);
 }
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
-  .story-timeline-item[data-author-tone="b"] {
-  --story-tape: var(--story-tape-b);
-  --story-pin: var(--color-partner-b);
+  .story-timeline-item[data-author-role="partner"] {
+  --story-tape: var(--story-tape-partner);
+  --story-pin: var(--person-partner-accent);
 }
 
 /* Calm entries: nearly straight, no tape, and they settle in without a flourish. */

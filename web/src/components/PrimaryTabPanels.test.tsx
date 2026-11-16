@@ -98,7 +98,7 @@ it('freezes the location a hidden tab sees', async () => {
   expect(screen.getByTestId('plan-search').textContent).toBe('?view=wishes');
 });
 
-it('restores the scroll position a tab had when it is shown again', async () => {
+it('starts Wir at the top when the tab is explicitly reopened', async () => {
   render(<Harness />);
   const scrollTo = vi.mocked(window.scrollTo);
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 });
@@ -107,10 +107,10 @@ it('restores the scroll position a tab had when it is shown again', async () => 
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
   await act(() => navigate('/today'));
-  expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'instant' });
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
 });
 
-it('captures scroll before a new tab can clamp the outgoing document height', async () => {
+it('restores the Wir reading position on Back after a fast navigation', async () => {
   render(<Harness />);
   const scrollTo = vi.mocked(window.scrollTo);
   // A fast root navigation may commit before the browser dispatches a scroll
@@ -118,8 +118,21 @@ it('captures scroll before a new tab can clamp the outgoing document height', as
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 540 });
   await act(() => navigate('/story'));
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 540, behavior: 'instant' });
+});
+
+it('restores Wir on an explicit task return', async () => {
+  render(<Harness />);
+  const scroll = vi.mocked(window.scrollTo);
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 420 });
+  const key = captures.get('today')?.();
+  expect(key).toBeTruthy();
+  await act(() => navigate('/story/memories/m1'));
+  await act(() =>
+    navigate('/today', { replace: true, state: { taskReturnKey: key } }),
+  );
+  expect(scroll).toHaveBeenLastCalledWith({ top: 420, behavior: 'instant' });
 });
 
 it('lets only the visible tab capture a task origin', async () => {
@@ -166,7 +179,7 @@ it('keeps restoring while a revealed tab is still settling to its full height', 
   await act(() => navigate('/story'));
   // The revealed tab is briefly 46px shorter than when it was left.
   scroll.page.max = 324;
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   expect(window.scrollY).toBe(324);
   scroll.page.max = 2000;
   act(() => scroll.flush());
@@ -179,7 +192,7 @@ it('stops restoring as soon as something else scrolls the page', async () => {
   scroll.setScroll(370);
   await act(() => navigate('/story'));
   scroll.page.max = 324;
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   // Reselecting the tab (or the person) scrolls to the top meanwhile.
   scroll.setScroll(0);
   scroll.page.max = 2000;

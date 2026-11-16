@@ -17,7 +17,7 @@ function withMetadata<T>(
   run: (store: IDBObjectStore, done: (value: T) => void) => void,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('eimir-authorized-media-v1', 2);
+    const request = indexedDB.open('eimir-authorized-media-v1', 3);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const db = request.result;

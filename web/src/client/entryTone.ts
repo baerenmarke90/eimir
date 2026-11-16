@@ -1,6 +1,5 @@
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { StoryItem } from '../api/generated/models/StoryItem';
-import type { PartnerTone } from './sharedListSummary';
 
 /**
  * How playful an entry may look (Handmade Diary, scrapbook presentation).
@@ -46,26 +45,6 @@ export function retrospectiveTone(
   item: Pick<DashboardItem, 'previewAttachmentId'>,
 ): EntryTone {
   return item.previewAttachmentId ? 'playful' : 'calm';
-}
-
-/**
- * Partner colour role of an author, independent of who is looking.
- *
- * Provisional rule: of the two people in the space, the smaller account id is
- * partner A, the other partner B, so both phones show the same colours. Shared
- * lists use "creator = A" (#1808); a diary has no creator, so this rule may
- * assign a person a different role than a list does. Product Owner decision
- * pending. Returns null while either id is unknown.
- */
-export function authorPartnerTone(
-  authorId: string | null | undefined,
-  accountId: string | null | undefined,
-  partnerId: string | null | undefined,
-): PartnerTone | null {
-  if (!authorId || !accountId || !partnerId) return null;
-  if (authorId !== accountId && authorId !== partnerId) return null;
-  const first = accountId < partnerId ? accountId : partnerId;
-  return authorId === first ? 'a' : 'b';
 }
 
 export type TapestryRole = 'media' | 'text' | 'note' | 'milestone';

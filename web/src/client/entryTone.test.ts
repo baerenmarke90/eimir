@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
-  authorPartnerTone,
   retrospectiveTone,
   storyEntryTone,
   tapestryEntryTone,
@@ -40,27 +39,6 @@ describe('retrospectiveTone', () => {
     expect(retrospectiveTone({ previewAttachmentId: 'a1' })).toBe('playful');
     expect(retrospectiveTone({ previewAttachmentId: null })).toBe('calm');
     expect(retrospectiveTone({})).toBe('calm');
-  });
-});
-
-describe('authorPartnerTone', () => {
-  it('gives both phones the same role for the same person', () => {
-    const fromAnnasPhone = [
-      authorPartnerTone('anna', 'anna', 'ben'),
-      authorPartnerTone('ben', 'anna', 'ben'),
-    ];
-    const fromBensPhone = [
-      authorPartnerTone('anna', 'ben', 'anna'),
-      authorPartnerTone('ben', 'ben', 'anna'),
-    ];
-    expect(fromAnnasPhone).toEqual(['a', 'b']);
-    expect(fromBensPhone).toEqual(fromAnnasPhone);
-  });
-
-  it('returns null while an id is unknown or the author is a stranger', () => {
-    expect(authorPartnerTone('anna', 'anna', null)).toBeNull();
-    expect(authorPartnerTone(undefined, 'anna', 'ben')).toBeNull();
-    expect(authorPartnerTone('carl', 'anna', 'ben')).toBeNull();
   });
 });
 

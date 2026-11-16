@@ -349,6 +349,7 @@
       "roots": [
         "web/src/components/PageHeader.tsx",
         "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/LogoutDeviceDataSheet.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/PlanProductPage.tsx"
       ]
@@ -1073,6 +1074,21 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "photo-edit.spec.ts": {
+      "roots": [
+        "web/src/components/PhotoEditTask.tsx",
+        "web/src/client/photoEdit.ts",
+        "web/src/client/jpegExif.ts",
+        "web/src/components/AttachmentDraftPicker.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/client/useAttachmentDrafts.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/client/useOrderedPhotoDrafts.ts",
+        "web/src/client/savedPhotoFile.ts"
+      ]
+    },
     "profile-photo-crop.spec.ts": {
       "roots": [
         "web/src/components/ProfilePage.tsx",
@@ -1208,6 +1224,9 @@
     },
     "settings-calendar-sync.spec.ts": {
       "roots": [
+        "web/src/main.tsx",
+        "web/src/client/routes.ts",
+        "web/src/components/PlanProductPage.tsx",
         "web/src/components/CalendarSyncSettings.tsx",
         "web/src/components/CalendarSyncSettings.css",
         "web/src/components/SettingsPage.tsx",

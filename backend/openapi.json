@@ -578,6 +578,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [
@@ -5594,6 +5606,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [
@@ -8096,6 +8120,65 @@
         "title": "PasswordRequest",
         "type": "object"
       },
+      "PersonColoursId": {
+        "description": "A fixed pair: the owner's own colour first, then the partner's colour.\n\nThe pair is a purely personal view setting. It is never shared with the\npartner, so the two people can see each other in different colours.",
+        "enum": [
+          "rose_blue",
+          "blue_rose",
+          "rose_deeprose",
+          "deeprose_rose",
+          "blue_deepblue",
+          "deepblue_blue",
+          "moss_rose",
+          "moss_blue"
+        ],
+        "title": "PersonColoursId",
+        "type": "string"
+      },
+      "PersonColoursPreferencePatch": {
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "colours"
+        ],
+        "title": "PersonColoursPreferencePatch",
+        "type": "object"
+      },
+      "PersonColoursPreferenceView": {
+        "description": "The caller's own colour pair; ``colours`` is null while automatic.",
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "colours",
+          "version"
+        ],
+        "title": "PersonColoursPreferenceView",
+        "type": "object"
+      },
       "PersonRelationship": {
         "enum": [
           "CHILD",
@@ -8256,6 +8339,29 @@
         "title": "PhotoReactionSummary",
         "type": "object"
       },
+      "PhotoSelectionAuthorize": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "code"
+        ],
+        "title": "PhotoSelectionAuthorize",
+        "type": "object"
+      },
       "PhotoSelectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -8287,6 +8393,16 @@
               }
             ],
             "title": "Mediarecoverypolicy"
+          },
+          "returnTo": {
+            "default": "web",
+            "description": "web: Google returns to the browser that started the selection (cookie proof). app: Google returns to the installed eimir. app's own link and the app finishes the sign-in through the authorize call.",
+            "enum": [
+              "web",
+              "app"
+            ],
+            "title": "Returnto",
+            "type": "string"
           },
           "source": {
             "enum": [
@@ -22207,6 +22323,177 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/appearance/person-colours": {
+      "get": {
+        "description": "Read only the caller's own colour pair. No partner value is ever returned.",
+        "operationId": "getPersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Person Colours Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known colour pair (Pro) or return to automatic (always Free).\n\nMembership precedes the capability check. Reads never delete or revert a\nsaved pair when a grant expires, and going back to automatic stays free.\nThe pair is a personal view of the people in this Space. It is not shared\nand carries no gender statement.",
+        "operationId": "updatePersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonColoursPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Person Colours Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/appearance/wir-design": {
       "get": {
         "description": "Read only the caller's personal composition, including after Pro expiry.",
@@ -35803,6 +36090,128 @@
           }
         },
         "summary": "Cancel",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize": {
+      "post": {
+        "description": "Finish an app-flow Google sign-in with the state and code from the app's return link.",
+        "operationId": "authorizePhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionAuthorize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Authorize",
         "tags": [
           "photo-sources"
         ]

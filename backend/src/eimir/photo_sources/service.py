@@ -69,6 +69,9 @@ _SLOTS = threading.BoundedSemaphore(4)
 _LIFETIME = timedelta(minutes=10)
 _CAPABILITY = Capability.INTEGRATION_EXTERNAL_SYNC.value
 GOOGLE_RECOVERY_POLICY = "memory-only-v1"
+# The installed app's own link (AndroidManifest). Only state and Google's one-use code travel on
+# it; the code is useless without the PKCE verifier and client secret that stay on the server.
+APP_RETURN_URL = "de.eimir.app://photos/google"
 VIDEO_TRANSFER_SECONDS = google_photos.VIDEO_DOWNLOAD_SECONDS
 _TRANSFER_RETRIES = 2
 _MAX_BACKOFF_SECONDS = 30.0
@@ -338,11 +341,17 @@ def start(
     browser_binding: str | None = None,
     media_recovery_policy: str | None = None,
     allow_video: bool = False,
+    return_to: Literal["web", "app"] = "web",
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
     _guard_google_import(session, auth.account_id, provider)
+    # The Web flow needs the browser proof. The app flow has none: its return only reaches the
+    # app that started it, and the code is exchanged by that app's authenticated session.
+    app_flow = provider == "google" and return_to == "app"
     if provider == "google" and (
-        not valid_proof(browser_binding) or media_recovery_policy != GOOGLE_RECOVERY_POLICY
+        (not app_flow and not valid_proof(browser_binding))
+        or (app_flow and browser_binding is not None)
+        or media_recovery_policy != GOOGLE_RECOVERY_POLICY
     ):
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
@@ -381,6 +390,7 @@ def start(
             max_items=maximum,
             media_recovery_policy=media_recovery_policy if provider == "google" else None,
             allow_video=allow_video and provider == "google",
+            return_to="app" if app_flow else "web",
         ),
     )
     url: str | None = None
@@ -396,7 +406,9 @@ def start(
                 update={
                     "oauth_state": state,
                     "code_verifier": verifier,
-                    "browser_binding_hash": hash_token(browser_binding or ""),
+                    "browser_binding_hash": (
+                        hash_token(browser_binding) if browser_binding is not None else None
+                    ),
                     "google_client_binding": client.binding,
                 }
             )
@@ -701,6 +713,58 @@ def callback(
         or not tokens_equal(data.browser_binding_hash, hash_token(browser_binding or ""))
     ):
         return None
+    return _complete_authorization(session, row, data, code)
+
+
+def app_return_pending(session: Session, state: str) -> bool:
+    """Whether ``state`` belongs to an open app-flow authorization (read-only, no side effects).
+
+    The public callback uses it only to choose between the browser page and the app link; it
+    never completes anything, so a forged or replayed request changes nothing.
+    """
+    if (
+        not (google_import_available() or get_settings().google_photos_test_account_emails)
+        or not state
+    ):
+        return False
+    row = session.execute(
+        select(PhotoSelection).where(
+            PhotoSelection.provider == "google",
+            PhotoSelection.state_hash == hash_token(state),
+            PhotoSelection.expires_at > now(),
+            PhotoSelection.status == "AUTHORIZING",
+        )
+    ).scalar_one_or_none()
+    return row is not None and row.payload.return_to == "app"
+
+
+def authorize_from_app(session: Session, row: PhotoSelection, state: str, code: str) -> None:
+    """Finish an app-flow sign-in for the app session that owns ``row`` (already locked).
+
+    Google's code reached the app through its link; only this authenticated session can pair it
+    with the stored state and PKCE verifier, so a code captured by another app is useless.
+    """
+    data = row.payload
+    if (
+        row.status != "AUTHORIZING"
+        or data.return_to != "app"
+        or not row.state_hash
+        or not tokens_equal(row.state_hash, hash_token(state))
+        or data.media_recovery_policy != GOOGLE_RECOVERY_POLICY
+    ):
+        raise ConflictError("Photo authorization is not pending.", "PHOTO_SOURCE_SELECTION_INVALID")
+    rate_limit.check(
+        session,
+        "photo-source-authorize",
+        str(row.account_id),
+        rate_limit.Limit(20, timedelta(minutes=15)),
+    )
+    _complete_authorization(session, row, data, code)
+
+
+def _complete_authorization(
+    session: Session, row: PhotoSelection, data: PhotoSelectionPayload, code: str | None
+) -> str | None:
     row.state_hash = None  # consumed even if the provider denies or fails
     try:
         if (

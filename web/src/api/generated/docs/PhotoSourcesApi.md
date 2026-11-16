@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**authorizePhotoSelection**](PhotoSourcesApi.md#authorizephotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize | Authorize |
 | [**cancelPhotoSelection**](PhotoSourcesApi.md#cancelphotoselection) | **DELETE** /api/v1/spaces/{spaceId}/photo-selections/{selectionId} | Cancel |
 | [**connectImmichPhotoSource**](PhotoSourcesApi.md#connectimmichphotosource) | **PUT** /api/v1/spaces/{spaceId}/photo-sources/immich | Connect |
 | [**disconnectImmichPhotoSource**](PhotoSourcesApi.md#disconnectimmichphotosource) | **DELETE** /api/v1/spaces/{spaceId}/photo-sources/immich | Disconnect |
@@ -15,6 +16,86 @@ All URIs are relative to *http://localhost*
 | [**saveGooglePhotoAccount**](PhotoSourcesApi.md#savegooglephotoaccount) | **PUT** /api/v1/spaces/{spaceId}/photo-sources/google/account | Save Google Account |
 | [**startPhotoSelection**](PhotoSourcesApi.md#startphotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections | Start |
 
+
+
+## authorizePhotoSelection
+
+> PhotoSelectionView authorizePhotoSelection(selectionId, spaceId, photoSelectionAuthorize)
+
+Authorize
+
+Finish an app-flow Google sign-in with the state and code from the app\&#39;s return link.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PhotoSourcesApi,
+} from '';
+import type { AuthorizePhotoSelectionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PhotoSourcesApi();
+
+  const body = {
+    // string
+    selectionId: selectionId_example,
+    // string
+    spaceId: spaceId_example,
+    // PhotoSelectionAuthorize
+    photoSelectionAuthorize: ...,
+  } satisfies AuthorizePhotoSelectionRequest;
+
+  try {
+    const data = await api.authorizePhotoSelection(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **selectionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **photoSelectionAuthorize** | [PhotoSelectionAuthorize](PhotoSelectionAuthorize.md) |  | |
+
+### Return type
+
+[**PhotoSelectionView**](PhotoSelectionView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## cancelPhotoSelection

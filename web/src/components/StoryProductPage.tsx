@@ -343,6 +343,7 @@ export function StoryProductPage({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -350,7 +351,7 @@ export function StoryProductPage({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );

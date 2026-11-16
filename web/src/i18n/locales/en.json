@@ -504,7 +504,11 @@
   },
   "header": {
     "sharedArea": "Shared space",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "logoutDeviceTitle": "Sign out?",
+    "logoutDeviceBody": "Signing out deletes everything stored on this phone: photos, content saved for offline use and drafts you have not saved yet. Uploads in progress are cancelled.",
+    "logoutDeviceKept": "Everything stays in eimir. After you sign in again, the app loads your photos again.",
+    "logoutDeviceCancel": "Cancel"
   },
   "brand": {
     "homeAria": "eimir. – go to your shared home",
@@ -1526,6 +1530,38 @@
       "minimal": "Minimal"
     }
   },
+  "personColours": {
+    "title": "Your colours",
+    "choices": "Choose colours",
+    "change": "Choose colours",
+    "close": "Close",
+    "current": "Current",
+    "help": "Choose the colours you see yourself and your partner in – only for your own view.",
+    "order": "First your colour, then your partner's. Your partner chooses their own. Automatic is always available, you can choose your own colour pair with Pro. A saved pair stays after that.",
+    "automatic": "Automatic",
+    "standard": "Standard",
+    "pro": "Pro",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose Automatic.",
+    "retry": "Try again",
+    "denied": "A new choice needs Pro. Your current colours stay.",
+    "pair": "{{own}} + {{partner}}",
+    "hint": "You: {{own}}, partner: {{partner}}",
+    "save": "Save",
+    "saving": "Saving …",
+    "selected": "Selected",
+    "saved": "Colours saved.",
+    "offline": "You are offline. Your choice stays here; save it when you are connected again.",
+    "saveError": "The colours could not be saved.",
+    "tone": {
+      "rose": "Rose",
+      "deeprose": "Deep rose",
+      "blue": "Blue",
+      "deepblue": "Deep blue",
+      "moss": "Moss green"
+    }
+  },
   "wirDesign": {
     "title": "Us design",
     "intro": "How your Us page feels. Only your view changes.",
@@ -2323,6 +2359,67 @@
     "confirm": "Use photo",
     "confirming": "Preparing…"
   },
+  "photoEdit": {
+    "edit": "Edit",
+    "editLabel": "Edit photo: {{name}}",
+    "title": "Edit photo",
+    "replacesSaved": "The edited photo replaces the saved one when you save the entry.",
+    "tools": "Tool",
+    "toolNames": {
+      "crop": "Crop",
+      "draw": "Draw",
+      "text": "Text"
+    },
+    "stage": {
+      "crop": "Crop the photo",
+      "draw": "Draw on the photo",
+      "text": "Text on the photo"
+    },
+    "help": {
+      "crop": "Drag the corners for the section. Move the photo with one finger, zoom with two.",
+      "draw": "Draw on the photo with your finger.",
+      "text": "Tap the photo to write text. Drag text to move it, and the dot at its corner to resize it."
+    },
+    "cropArea": "Move the photo in the section",
+    "cropKeys": "Arrow keys move the photo; plus and minus zoom.",
+    "handles": {
+      "nw": "Drag the top left corner",
+      "n": "Drag the top edge",
+      "ne": "Drag the top right corner",
+      "e": "Drag the right edge",
+      "se": "Drag the bottom right corner",
+      "s": "Drag the bottom edge",
+      "sw": "Drag the bottom left corner",
+      "w": "Drag the left edge"
+    },
+    "turn": "Rotate",
+    "reset": "Reset",
+    "color": "Colour",
+    "colors": {
+      "white": "White",
+      "black": "Black",
+      "rose": "Rose",
+      "blue": "Blue",
+      "yellow": "Yellow"
+    },
+    "font": "Font",
+    "fonts": {
+      "ui": "Clean",
+      "serif": "Elegant",
+      "hand": "Handwriting",
+      "script": "Playful",
+      "poster": "Poster",
+      "typewriter": "Typewriter"
+    },
+    "addText": "Add text",
+    "resizeText": "Resize text",
+    "textLabel": "Text on the photo",
+    "preview": "Preview of the edited photo",
+    "undo": "Undo",
+    "confirm": "Apply",
+    "confirming": "Preparing…",
+    "unavailable": "This photo cannot be edited on this device."
+  },
   "photoSources": {
     "settingsTitle": "Media sources",
     "settingsIntro": "Connect your photo service for new moments.",
@@ -2345,6 +2442,7 @@
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
     "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",
+    "signingIn": "Sign in to Google and allow access. The photo selection opens afterwards.",
     "nothingChosen": "No photos chosen. You can open Google Photos again any time.",
     "progress": "Importing photos …",
     "retryImport": "Try again",
@@ -2401,6 +2499,8 @@
     "googleAccountUnlinked": "Disconnected.",
     "googleAccountInvalid": "Please enter a valid email address.",
     "googleAccountChanged": "The account was changed in another window. Please check it again.",
+    "googleConsentIncomplete": "The account is saved, but Google has not confirmed access yet.",
+    "googleConsentConfirm": "Confirm at Google",
     "googleAccountUnavailable": "That didn't work just now. Please try again.",
     "limit_one": "You can add {{count}} more photo.",
     "limit_other": "You can add {{count}} more photos.",

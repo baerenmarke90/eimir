@@ -8,7 +8,7 @@
   --story-paper: var(--color-surface-raised);
   --story-lift: drop-shadow(0 1px 1px var(--color-shadow-card))
     drop-shadow(0 8px 8px var(--color-shadow-soft));
-  --story-tape-both: color-mix(
+  --story-tape-partneroth: color-mix(
     in srgb,
     var(--color-discovery) 30%,
     var(--color-discovery-surface)
@@ -308,7 +308,7 @@
       color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    var(--story-tape-both);
+    var(--story-tape-partneroth);
   clip-path: polygon(
     0 0,
     4% 14%,
@@ -365,7 +365,8 @@
     linear-gradient(
       90deg,
       transparent 1.4rem,
-      color-mix(in srgb, var(--color-partner-a) 55%, transparent) 1.4rem 1.46rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.4rem
+        1.46rem,
       transparent 1.46rem
     ),
     repeating-linear-gradient(
@@ -421,7 +422,7 @@
   border-radius: 50%;
   rotate: none;
   clip-path: none;
-  background: var(--color-partner-a);
+  background: var(--person-own-accent);
   box-shadow: 0 var(--space-1) var(--space-1) var(--color-shadow-overlay);
 }
 .story-page-unified

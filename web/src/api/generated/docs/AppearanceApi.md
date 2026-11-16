@@ -304,7 +304,7 @@ No authorization required
 
 Update Person Colours Preference
 
-Save a known colour pair, or null for automatic. Free for every Account.  The pair is a personal view of the people in this Space. It is not shared, carries no gender statement and needs no capability.
+Save a known colour pair (Pro) or return to automatic (always Free).  Membership precedes the capability check. Reads never delete or revert a saved pair when a grant expires, and going back to automatic stays free. The pair is a personal view of the people in this Space. It is not shared and carries no gender statement.
 
 ### Example
 
@@ -368,6 +368,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag - Opaque personal preference token; send unchanged as If-Match on writes. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |

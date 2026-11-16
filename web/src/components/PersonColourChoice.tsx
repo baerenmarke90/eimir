@@ -6,11 +6,12 @@ import {
   personColourPair,
 } from '../client/personColours';
 import { useTranslation } from '../i18n';
+import { ProMark } from './ProMark';
 import './PersonColourChoice.css';
 
 const AUTOMATIC = 'automatic';
 
-function Swatches({
+export function Swatches({
   own,
   partner,
 }: {
@@ -47,16 +48,14 @@ export function PersonColourChoice({
 }) {
   const { t } = useTranslation();
   const name = useId();
-  const tone = (id: PersonToneId) => t(`profileIdentity.colours.tone.${id}`);
+  const tone = (id: PersonToneId) => t(`personColours.tone.${id}`);
   const options: { id: PersonColourPairId | null; key: string }[] = [
     { id: null, key: AUTOMATIC },
     ...PERSON_COLOUR_PAIRS.map((id) => ({ id, key: id })),
   ];
   return (
     <fieldset className="person-colour-choice" disabled={disabled}>
-      <legend>{t('profileIdentity.colours.title')}</legend>
-      <p className="field-help">{t('profileIdentity.colours.help')}</p>
-      <p className="field-help">{t('profileIdentity.colours.order')}</p>
+      <legend className="sr-only">{t('personColours.choices')}</legend>
       <div className="person-colour-options">
         {options.map((option) => {
           const pair = personColourPair(option.id);
@@ -75,11 +74,14 @@ export function PersonColourChoice({
               <span className="person-colour-text">
                 <span className="person-colour-label">
                   {automatic
-                    ? t('profileIdentity.colours.automatic')
-                    : t('profileIdentity.colours.pair', { own, partner })}
+                    ? t('personColours.automatic')
+                    : t('personColours.pair', { own, partner })}{' '}
+                  {automatic ? null : (
+                    <ProMark label={t('personColours.pro')} />
+                  )}
                 </span>
                 <span className="person-colour-hint">
-                  {t('profileIdentity.colours.hint', { own, partner })}
+                  {t('personColours.hint', { own, partner })}
                 </span>
               </span>
             </label>

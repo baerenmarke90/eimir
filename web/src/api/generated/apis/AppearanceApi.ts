@@ -342,7 +342,7 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a known colour pair, or null for automatic. Free for every Account.  The pair is a personal view of the people in this Space. It is not shared, carries no gender statement and needs no capability.
+     * Save a known colour pair (Pro) or return to automatic (always Free).  Membership precedes the capability check. Reads never delete or revert a saved pair when a grant expires, and going back to automatic stays free. The pair is a personal view of the people in this Space. It is not shared and carries no gender statement.
      * Update Person Colours Preference
      */
     async updatePersonColoursPreferenceRaw(requestParameters: UpdatePersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonColoursPreferenceView>> {
@@ -353,7 +353,7 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a known colour pair, or null for automatic. Free for every Account.  The pair is a personal view of the people in this Space. It is not shared, carries no gender statement and needs no capability.
+     * Save a known colour pair (Pro) or return to automatic (always Free).  Membership precedes the capability check. Reads never delete or revert a saved pair when a grant expires, and going back to automatic stays free. The pair is a personal view of the people in this Space. It is not shared and carries no gender statement.
      * Update Person Colours Preference
      */
     async updatePersonColoursPreference(requestParameters: UpdatePersonColoursPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonColoursPreferenceView> {

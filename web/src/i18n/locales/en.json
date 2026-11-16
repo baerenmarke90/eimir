@@ -1359,22 +1359,6 @@
     "birthdayValue": "Birthday: {{date}}",
     "birthdayHelp": "Your birthday is visible to your active partner and automatically included in your special days. Leave blank to remove it.",
     "birthdaySaveError": "Your birthday could not be saved.",
-    "colours": {
-      "title": "Your colours",
-      "help": "Choose the colours you see yourself and your partner in – only for your own view.",
-      "order": "First your colour, then your partner's. Your partner chooses their own.",
-      "automatic": "Automatic",
-      "pair": "{{own}} + {{partner}}",
-      "hint": "You: {{own}}, partner: {{partner}}",
-      "saveError": "The colours could not be saved.",
-      "tone": {
-        "rose": "Rose",
-        "deeprose": "Deep rose",
-        "blue": "Blue",
-        "deepblue": "Deep blue",
-        "moss": "Moss green"
-      }
-    },
     "saveProfile": "Save",
     "savingProfile": "Saving …",
     "saved": "Profile saved.",
@@ -1544,6 +1528,38 @@
       "dark": "Dark",
       "monochrome": "Monochrome",
       "minimal": "Minimal"
+    }
+  },
+  "personColours": {
+    "title": "Your colours",
+    "choices": "Choose colours",
+    "change": "Choose colours",
+    "close": "Close",
+    "current": "Current",
+    "help": "Choose the colours you see yourself and your partner in – only for your own view.",
+    "order": "First your colour, then your partner's. Your partner chooses their own. Automatic is always available, you can choose your own colour pair with Pro. A saved pair stays after that.",
+    "automatic": "Automatic",
+    "standard": "Standard",
+    "pro": "Pro",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose Automatic.",
+    "retry": "Try again",
+    "denied": "A new choice needs Pro. Your current colours stay.",
+    "pair": "{{own}} + {{partner}}",
+    "hint": "You: {{own}}, partner: {{partner}}",
+    "save": "Save",
+    "saving": "Saving …",
+    "selected": "Selected",
+    "saved": "Colours saved.",
+    "offline": "You are offline. Your choice stays here; save it when you are connected again.",
+    "saveError": "The colours could not be saved.",
+    "tone": {
+      "rose": "Rose",
+      "deeprose": "Deep rose",
+      "blue": "Blue",
+      "deepblue": "Deep blue",
+      "moss": "Moss green"
     }
   },
   "wirDesign": {

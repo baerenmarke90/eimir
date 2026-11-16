@@ -247,7 +247,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/person-colours",
-        body={"colours": "rose_blue"},
+        body={"colours": None},
         if_match=True,
     ),
     Endpoint(

@@ -4,13 +4,17 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useRef,
+  useState,
 } from 'react';
 import type { AppearanceApi } from '../api/generated/apis/AppearanceApi';
+import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import {
   type PersonColoursPreferenceView,
   PersonColoursPreferenceViewFromJSON,
 } from '../api/generated/models/PersonColoursPreferenceView';
+import { APP_ICON_CAPABILITY } from './appIcon';
 import {
   PERSON_COLOUR_PAIRS,
   type PersonColourPairId,
@@ -28,6 +32,11 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from './problemDetails';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from './spaceEntitlement';
 
 interface Snapshot {
   preference: PersonColoursPreferenceView;
@@ -60,19 +69,25 @@ async function snapshot(response: Response): Promise<Snapshot> {
   return { preference, etag };
 }
 
+/** Choosing a pair is part of the bespoke personalization pack (Pro). */
+export const PERSON_COLOURS_CAPABILITY = APP_ICON_CAPABILITY;
+
 function usePersonColoursState({
   api,
+  entitlementsApi,
   instance,
   accountId,
   spaceId,
 }: {
   api: AppearanceApi;
+  entitlementsApi: EntitlementsApi;
   instance: string;
   accountId: string;
   spaceId: string;
 }) {
   const client = useQueryClient();
   const key = personColoursQueryKey(instance, accountId, spaceId);
+  const [inspect, setInspect] = useState(false);
   const storageKey = personColoursStorageKey(instance, accountId, spaceId);
   const remembered = useRef(readPersonColours(storageKey));
   const query = useQuery({
@@ -122,6 +137,30 @@ function usePersonColoursState({
       client.setQueryData(key, result);
       rememberPersonColours(storageKey, result.preference.colours);
     },
+    onError: (error) => {
+      if (
+        error instanceof ClientProblemError &&
+        error.code === 'PREMIUM_ENTITLEMENT_REQUIRED'
+      )
+        withdrawSpaceCapability(
+          client,
+          accountId,
+          spaceId,
+          PERSON_COLOURS_CAPABILITY,
+        );
+    },
+  });
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Read only when the settings sheet opens; reuses the session's entitlement.
+  const capability = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
+    enabled: inspect,
+    capability: PERSON_COLOURS_CAPABILITY,
   });
   const readDenied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(query.error),
@@ -157,6 +196,11 @@ function usePersonColoursState({
 
   return {
     colours,
+    capability,
+    inspectCapability: () => {
+      if (!inspect) setInspect(true);
+      else if (capability.isError) void capability.refetch();
+    },
     ready:
       !query.isPlaceholderData &&
       query.isSuccess &&

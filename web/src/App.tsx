@@ -1155,6 +1155,7 @@ function AuthenticatedApp({
         <PersonColoursProvider
           key={`${apiBaseUrl}:${account.id}:${spaceId}`}
           api={appearanceApi}
+          entitlementsApi={entitlementApi}
           instance={apiBaseUrl}
           accountId={account.id}
           spaceId={spaceId}

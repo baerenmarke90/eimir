@@ -192,7 +192,7 @@ def get_person_colours_preference(
     "/spaces/{spaceId}/appearance/person-colours",
     response_model=PersonColoursPreferenceView,
     operation_id="updatePersonColoursPreference",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
 )
 def update_person_colours_preference(
     authorization: Authorization,
@@ -201,10 +201,14 @@ def update_person_colours_preference(
     body: PersonColoursPreferencePatch,
     expected_token: IfMatchToken,
 ) -> PersonColoursPreferenceView:
-    """Save a known colour pair, or null for automatic. Free for every Account.
+    """Save a known colour pair (Pro) or return to automatic (always Free).
 
-    The pair is a personal view of the people in this Space. It is not shared,
-    carries no gender statement and needs no capability.
+    Membership precedes the capability check. Reads never delete or revert a
+    saved pair when a grant expires, and going back to automatic stays free.
+    The pair is a personal view of the people in this Space. It is not shared
+    and carries no gender statement.
     """
+    if body.colours is not None:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_person_colours(session, authorization, body.colours, expected_token)
     return _colours_view(saved, authorization, response)

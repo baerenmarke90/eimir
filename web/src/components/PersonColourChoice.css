@@ -4,19 +4,42 @@
   padding: 0;
   border: 0;
 }
-.person-colour-choice > legend {
-  padding: 0;
-  margin-block-end: var(--space-1);
-  color: var(--color-text);
-  font: var(--font-action-label);
-}
-.person-colour-choice .field-help {
-  margin: 0 0 var(--space-2);
-}
 .person-colour-options {
   display: grid;
   gap: var(--space-2);
-  margin-block-start: var(--space-3);
+}
+.person-colours-settings {
+  display: grid;
+  gap: var(--space-3);
+}
+.person-colours-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.person-colours-summary > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.person-colours-summary > button {
+  margin-inline-start: auto;
+}
+.person-colours-hint {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.person-colours-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.person-colours-footer p {
+  margin: 0;
+}
+.person-colours-footer > button {
+  min-block-size: var(--touch-target-web);
+  inline-size: 100%;
 }
 .person-colour-option {
   position: relative;

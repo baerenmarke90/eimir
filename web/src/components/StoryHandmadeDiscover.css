@@ -8,7 +8,7 @@
   --story-paper: var(--color-surface-raised);
   --story-lift: drop-shadow(0 1px 1px var(--color-shadow-card))
     drop-shadow(0 8px 8px var(--color-shadow-soft));
-  --story-tape-partneroth: color-mix(
+  --story-tape-both: color-mix(
     in srgb,
     var(--color-discovery) 30%,
     var(--color-discovery-surface)
@@ -38,9 +38,11 @@
   content: "";
   position: absolute;
   z-index: 0;
-  top: calc(var(--space-6) * -1);
+  /* The string dips to the clothespin: its lowest point sits just above the
+     card edge, so the pin visibly grips both string and photo. */
+  top: calc(var(--space-6) * -1 - 0.4rem);
   inset-inline: calc(var(--page-gutter) * -1);
-  height: calc(var(--space-6) + var(--space-8));
+  height: var(--space-6);
   border-bottom: 2px solid var(--color-text-muted);
   border-radius: 0 0 50% 50% / 0 0 100% 100%;
   pointer-events: none;
@@ -308,7 +310,7 @@
       color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    var(--story-tape-partneroth);
+    var(--story-tape-both);
   clip-path: polygon(
     0 0,
     4% 14%,

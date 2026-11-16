@@ -824,6 +824,7 @@
         "web/src/components/MilestoneProductPage.tsx",
         "web/src/components/ChaptersOverviewPage.tsx",
         "web/src/components/MediaOverviewPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/StoryYearsPage.tsx"
       ]
     },

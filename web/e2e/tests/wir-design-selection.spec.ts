@@ -1183,3 +1183,46 @@ test('Free Wir controls keep readable labels and fit 320px with large text', asy
   });
   expect(state.unexpected).toEqual([]);
 });
+
+// #1907 C1: a saved design is a token set that applies app-wide: other tabs,
+// portaled sheets and the browser theme colour follow it, not only Wir.
+test('a saved design colours Mehr, its sheet and the browser chrome and switches live', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'warm' });
+  await signIn(page);
+  await page.goto('/more/settings/appearance');
+  const pageColour = (selector: string) =>
+    page
+      .locator(selector)
+      .first()
+      .evaluate((node) =>
+        getComputedStyle(node).getPropertyValue('--color-background').trim(),
+      );
+  await expect(page.locator('html')).toHaveAttribute('data-app-design', 'warm');
+  expect(await pageColour('html')).toBe('#fff9f6');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    'content',
+    '#fff9f6',
+  );
+  await open(page);
+  expect(await pageColour('[role="dialog"]')).toBe('#fff9f6');
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.shared_album) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-app-design',
+    'shared_album',
+  );
+  expect(await pageColour('[role="dialog"]')).toBe('#f6f4ec');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    'content',
+    '#f6f4ec',
+  );
+  expect(f.writes).toEqual(['shared_album']);
+  expect(f.unexpected).toEqual([]);
+});

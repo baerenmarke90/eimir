@@ -5,20 +5,11 @@ import { paletteDeclarations, paletteRoles } from './identity-palette.mjs';
  * palette and bounded presets; this module validates the file and turns it
  * into semantic custom properties. See docs/DESIGN-TOKEN-SETS.md.
  *
- * Designs currently apply to Wir only. The approved delivery switches the
- * scope to the whole app in a separate step, by changing APP_DESIGN_SCOPE.
+ * A design applies app-wide from the root element (`data-app-design`), so
+ * every tab, portaled sheet and the browser theme colour follow it. In a
+ * design with its own palette, contextual colour worlds (`data-color-world`)
+ * resolve to that palette; designs on the default palette keep them.
  */
-export const APP_DESIGN_SCOPE = '.today-page';
-
-/**
- * Transitional (#1907 C1, removed with the app-wide step): Seite an Seite
- * already tinted the shell, its sheets and the bottom navigation while Wir is
- * open, so its tokens also reach the body there.
- */
-const TRANSITIONAL_SHELL_SCOPES = {
-  shared_album:
-    'body:has(.product-shell[data-top-surface="today"] .today-page)',
-};
 
 const FIELDS = [
   '$description',
@@ -371,16 +362,14 @@ export function buildAppDesigns(tokens, designs) {
   for (const design of validated) {
     if (design.id === fallback.id) continue;
     const root = `[data-app-design="${design.id}"]`;
-    const scopes = [
-      APP_DESIGN_SCOPE,
-      TRANSITIONAL_SHELL_SCOPES[design.id],
-    ].filter(Boolean);
+    const ownPalette = design.palette.world !== identity.defaultWorld;
     const scoped = (prefix) =>
-      scopes.map((scope) => `${prefix}${root} ${scope}`).join(',\n');
+      ownPalette
+        ? `${prefix}${root},\n${prefix}${root} [data-color-world]`
+        : `${prefix}${root}`;
     const extra = presetDeclarations(design, tokens);
     // A design on the default colour world inherits the root palette.
-    if (design.palette.world === identity.defaultWorld)
-      css.push(block(scoped(':root'), extra));
+    if (!ownPalette) css.push(block(scoped(':root'), extra));
     else
       css.push(
         ...schemeBlocks(
@@ -400,7 +389,7 @@ export function buildAppDesigns(tokens, designs) {
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(
-        `@media (prefers-reduced-motion: no-preference) {\n${block(`:root${root} ${APP_DESIGN_SCOPE}`, motion, '  ')}\n}`,
+        `@media (prefers-reduced-motion: no-preference) {\n${block(scoped(':root'), motion, '  ')}\n}`,
       );
   }
 

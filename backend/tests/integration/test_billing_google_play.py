@@ -10,6 +10,7 @@ import base64
 import json
 from dataclasses import dataclass, field, replace
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -93,7 +94,10 @@ class FakePlay:
 def cloud(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("EIMIR_DEPLOYMENT", "cloud")
     monkeypatch.setenv("EIMIR_BILLING_GOOGLE_PLAY_PACKAGE", PACKAGE)
-    monkeypatch.setenv("EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE", "/run/secrets/play.json")
+    monkeypatch.setenv(
+        "EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE",
+        str(Path("/run/secrets/play.json").absolute()),
+    )
     monkeypatch.setenv("EIMIR_BILLING_GOOGLE_PLAY_RTDN_AUDIENCE", "https://eimir.example" + NOTIFY)
     monkeypatch.setenv(
         "EIMIR_BILLING_GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT", "push@eimir.iam.gserviceaccount.com"
@@ -204,6 +208,20 @@ def test_cloud_lists_google_play_with_both_base_plans(client, couple, play) -> N
 
 
 def test_one_purchase_unlocks_pro_for_both_partners(client, session, couple, play) -> None:  # type: ignore[no-untyped-def]
+    catalog_url = base(couple) + "/date-ideas"
+    wir_design_url = base(couple) + "/appearance/wir-design"
+    design = client.get(wir_design_url, headers=couple["b"])
+    assert design.status_code == 200, design.text
+    design_headers = {**couple["b"], "If-Match": design.headers["ETag"]}
+    design_choice = {"designId": "modern"}
+
+    blocked = client.get(catalog_url, headers=couple["a"])
+    assert blocked.status_code == 403
+    assert blocked.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+    blocked = client.patch(wir_design_url, headers=design_headers, json=design_choice)
+    assert blocked.status_code == 403
+    assert blocked.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+
     started = start(client, couple)
     assert started.status_code == 201
     assert started.json()["productId"] == "eimir_pro"
@@ -220,6 +238,13 @@ def test_one_purchase_unlocks_pro_for_both_partners(client, session, couple, pla
     assert response.json()["entitlement"]["tier"] == "PREMIUM"
     assert tier(client, couple, "a") == tier(client, couple, "b") == "PREMIUM"
     assert play.acknowledged == [TOKEN]
+
+    catalog = client.get(catalog_url, headers=couple["a"])
+    assert catalog.status_code == 200, catalog.text
+    assert catalog.json()["ideas"]
+    saved_design = client.patch(wir_design_url, headers=design_headers, json=design_choice)
+    assert saved_design.status_code == 200, saved_design.text
+    assert saved_design.json()["designId"] == "modern"
 
     grant = session.execute(
         select(EntitlementGrant).where(EntitlementGrant.source_type == "GOOGLE_PLAY")

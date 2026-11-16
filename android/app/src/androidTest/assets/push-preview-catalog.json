@@ -1451,6 +1451,100 @@
         "de": "Moment ansehen",
         "en": "View moment"
       }
+    },
+    {
+      "id": "COLLECTION_SENT-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7036",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..WmsyCajW0SmdEIId.zpybiLvGxYqMeHLfm0XNFeIe6lg3B4adpUjyZpUZsPbTSynrHvhPThPCoo0f9HQjkZrlYNedUCFgsRY3Qmg34f5w9SreFKbdchLdP3fThUfaHHIY-DrLJOPy3dgse5Ym7RVFzfdcSV_oWs0m8twXdOlGOCu0Gx3usTY1XDsNdJSN0slsU0Y7m8IV3DnXbFUNYVJ4kPK2laNYVQMG3gClimYihB2oXOCIAvQWvYedcekp_2wu82CzTQu7wA.k7lBZbJmSg4dUPfGazTXpA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7037",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Hpfeg7EqEyxn1fDq.mpjejNGDzvleli-Hi40O7BY1sJlf-Ck1SV-Qy3f37ENywZ0eOx9fCBqvBrlKV0Uf8c7xnlwGX-pPqf4oM2ZsuLYXZATb6lf41sOFJMt1_QgYiIb4N8wNAmYxx-MrP-hGjdMxGd45Si6vB7mtL2_8PS1DiZz4qTqO1dax4paG_qRvB7Xz_okZIYK22I8vCFmNChEKHvgi42H8Wt5JxpMe10FYf6K3YeB6NbvNReRm03r4AB6hiOic1DMyKx4-EXMAg6OHhuj1zoG1f0XH.DQzhynX39Q4Rs4LpYMLM3Q",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7038",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5UkV8u2g8XLKclLX.CSqPBJFMOTZ5u5Q50sh2rEjhS8Qf5WCLD9K_gLMLTh1Tf6tFsF9gci5Tpndr0NYbKuqpie2pgcb0O-WsKvRzgYyI7WctUxCQTst14hBZ6j3a9vLdSwo6njRJGGPNO5TJFIlfAqaKuOqLy67HYoB7r-eLfw7dVeh21YUNUTNfbmf68weRyJ3bk2f1YR3j_J9nb8zps08Yp_Hdmchpru5h72Hebfu_1jGovFmcQElLyNVKZyddkQzDewNowmjxiYAvqWPJRo0.83c9t3wpJkkUYSPI1cA3NA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "COLLECTION_SENT-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7039",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..myOWKU0ofSPgPKH9.3w9UnPhZu86Ra1fDYjYTNclfzLaRrflds7ruvbbGAzU5iakUDMBwht1OGn3RvJGvvFg4n1kECoXh3m3IYiFMeEr7Ksokm_xI9TcJc2_RS_jWCDDCsTXlMn-euo3nImzx2JQo_Pe-nt9JuvzNTzK4frz99qPqTFzkPjAxDhsUnNiFsp0TCp6mNv8366Un5TN5OS5TIzF8QHssVAGC7TKcNL0fJW4E0WMsjd9jjiH48NliLPYRJBbVAjgxbMAz8oPBj2SlyDcFrB8S9g2J3N3RPPkinG4eLQ.GXB4a71QATjYjJECpT9_sA",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
     }
   ]
 }

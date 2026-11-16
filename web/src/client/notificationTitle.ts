@@ -53,6 +53,7 @@ export function getNotificationItemTitle(
       'PICTURE_PING_PONG_TURN',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
+      'COLLECTION_SENT',
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',

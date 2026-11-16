@@ -306,6 +306,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
         )
 
+    if event_type is EventType.COLLECTION_SENT:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.COLLECTION,
+            event.subject_id,
+            NotificationKind.COLLECTION_SENT,
+        )
+
     if event_type is EventType.MEMORY_CREATED and event.payload.experience_kind is not None:
         _project_target_notification(
             session,

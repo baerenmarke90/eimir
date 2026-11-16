@@ -1176,6 +1176,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         placeholders=("collectionId",),
     ),
     Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/send",
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions",
         resource_absence="COLLECTION_NOT_FOUND",

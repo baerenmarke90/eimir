@@ -6,16 +6,16 @@ One notification kind (`PICTURE_PING_PONG_TURN`) and one target type
 (`PICTURE_GAME`) join the catalog; the notice coalesces per recipient and
 picture like the other single-target notices.
 
-Revision ID: 0143
-Revises: 0142
+Revision ID: 0144
+Revises: 0143
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0143"
-down_revision = "0142"
+revision = "0144"
+down_revision = "0143"
 branch_labels = None
 depends_on = None
 
@@ -27,7 +27,8 @@ _KINDS = (
     "'WISH_SELECTION_RANDOM_ACCEPTED', 'WISH_SELECTION_RANDOM_DECLINED', "
     "'PHOTO_REACTION', 'PARTNER_JOINED', 'COUPLE_EXPERIENCE_SHARED', "
     "'COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', 'PARTNER_CHECK_IN', 'REMINDER_DUE', "
-    "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED'"
+    "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
+    "'COLLECTION_SENT'"
 )
 _TARGETS = (
     "'ONCE_MESSAGE', 'REMINDER', 'TRANSFER_EXPORT', 'TRANSFER_IMPORT', 'WISH_SELECTION', "
@@ -36,7 +37,7 @@ _TARGETS = (
 _COALESCED = (
     "'PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY', "
     "'WISH_SELECTION_RANDOM_REQUESTED', 'WISH_SELECTION_RANDOM_ACCEPTED', "
-    "'WISH_SELECTION_RANDOM_DECLINED'"
+    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT'"
 )
 _NEW_KIND = "'PICTURE_PING_PONG_TURN'"
 _NEW_TARGET = "'PICTURE_GAME'"

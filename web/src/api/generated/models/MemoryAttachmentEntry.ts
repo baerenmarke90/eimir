@@ -38,7 +38,7 @@ export interface MemoryAttachmentEntry {
      */
     position: number;
     /**
-     *
+     * 
      * @type {string}
      * @memberof MemoryAttachmentEntry
      */

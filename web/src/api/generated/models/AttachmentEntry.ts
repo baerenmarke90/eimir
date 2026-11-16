@@ -38,7 +38,7 @@ export interface AttachmentEntry {
      */
     position: number;
     /**
-     *
+     * 
      * @type {string}
      * @memberof AttachmentEntry
      */

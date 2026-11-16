@@ -563,7 +563,7 @@
       "experiencedPlans": "Experienced",
       "experiencedPlansEmpty": "No plans experienced together yet.",
       "experiencedOn": "Experienced on {{date}}",
-      "openPlansEmpty": "No open plans right now.",
+      "openPlansEmpty": "What are you looking forward to next?",
       "pastOpenPlans": "Date has passed",
       "wishScope": "Show wishes",
       "fulfilledWishes": "Fulfilled",
@@ -4517,6 +4517,31 @@
     "create": {
       "title": "Capture something",
       "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
+    }
+  },
+  "quietHints": {
+    "tipLabel": "Tip",
+    "newLabel": "New in eimir.",
+    "newTag": "New",
+    "gotIt": "Got it",
+    "hide": "Hide",
+    "firstPlan": "Create your first plan",
+    "firstWish": "Capture your first wish",
+    "moveIn": {
+      "solo": "Nothing is on the wall yet. Let's hang the first picture.",
+      "invite": "Invite your person"
+    },
+    "connected": {
+      "title": "You are connected now.",
+      "since": "Here together since today"
+    },
+    "tips": {
+      "planFromWish": "Is a wish getting concrete? Open it and turn it into a plan.",
+      "planFromWishAction": "Open wish"
+    },
+    "news": {
+      "waymarks": "Your waymarks: “Your story” now shows the special days behind you.",
+      "waymarksAction": "View"
     }
   },
   "photoReactions": {

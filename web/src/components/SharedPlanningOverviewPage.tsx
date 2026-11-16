@@ -19,6 +19,8 @@ import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
+import { useFirstContentSettle } from '../client/firstContentSettle';
+import { quietHintRetired, useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   MEMORY_CREATE_ROUTE,
@@ -48,6 +50,8 @@ import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
+import { QuietHint } from './QuietHint';
+import './FirstContentSettle.css';
 import {
   type PlanningScope,
   PlanningStatusScope,
@@ -665,6 +669,51 @@ export function SharedPlanningOverviewPage({
             planGroups.past.length,
         );
 
+  // #1907 I1: first items settle in where the empty state stood.
+  const plansSettle = useFirstContentSettle(
+    planStatus === 'OPEN' && !planSearch.trim() && plans.data && !plans.error
+      ? !hasPlans
+      : undefined,
+  );
+  const openWishesShown =
+    activeSegment === 'wishes' &&
+    wishStatus === 'OPEN' &&
+    !wishSearch.trim() &&
+    !wishes.error;
+  const wishesSettle = useFirstContentSettle(
+    openWishesShown && wishes.data && !assemblingWishes
+      ? wishItems.length === 0
+      : undefined,
+  );
+  // The wish-to-plan tip retires once any wish became a plan.
+  const planFromWishHint = 'tip:plan-from-wish';
+  const convertedWish = useQuery({
+    queryKey: ['m5-s3', 'wishes', spaceId, 'converted-probe'],
+    staleTime: OVERVIEW_STALE_TIME,
+    retry: false,
+    enabled:
+      openWishesShown &&
+      wishItems.length > 0 &&
+      !quietHintRetired(accountId, spaceId, planFromWishHint),
+    queryFn: async ({ signal }) => {
+      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+        const result = await apiCall(() =>
+          apis.wishes.listWishes({ spaceId, limit: 1, status }, { signal }),
+        );
+        if (result.items.length) return true;
+      }
+      return false;
+    },
+  });
+  const wishHint = useQuietHint(accountId, spaceId, [
+    {
+      id: planFromWishHint,
+      eligible:
+        openWishesShown && wishItems.length > 0 && convertedWish.data === false,
+      used: convertedWish.data === true,
+    },
+  ]);
+
   function openFromOverview(
     event: MouseEvent<HTMLAnchorElement>,
     to: string,
@@ -1018,7 +1067,18 @@ export function SharedPlanningOverviewPage({
               )}
             </h2>
             {!planSearch.trim() && planStatus === 'OPEN' ? (
-              <p>{t('m5s3.plan.createIntro')}</p>
+              <>
+                <p>{t('m5s3.plan.createIntro')}</p>
+                <AddActionLink
+                  className="first-step-action"
+                  label={t('quietHints.firstPlan')}
+                  {...planningLinkProps(
+                    PLAN_CREATE_ROUTE,
+                    'plans',
+                    'planning-first-plan',
+                  )}
+                />
+              </>
             ) : null}
           </div>
         ) : null}
@@ -1054,7 +1114,9 @@ export function SharedPlanningOverviewPage({
 
         {planStatus === 'OPEN' && planGroups.focal ? (
           <section
-            className="planen-next"
+            className={
+              plansSettle ? 'planen-next first-content-settle' : 'planen-next'
+            }
             aria-labelledby="planen-next-heading"
           >
             <h2 id="planen-next-heading">{t('m5s3.overview.nextHeading')}</h2>
@@ -1225,6 +1287,17 @@ export function SharedPlanningOverviewPage({
                       : 'm5s3.overview.wishesEmpty',
               )}
             </h2>
+            {!wishSearch.trim() && wishStatus === 'OPEN' ? (
+              <AddActionLink
+                className="first-step-action"
+                label={t('quietHints.firstWish')}
+                {...planningLinkProps(
+                  WISH_CREATE_ROUTE,
+                  'wishes',
+                  'planning-first-wish',
+                )}
+              />
+            ) : null}
           </div>
         ) : null}
         {!assemblingWishes && wishItems.length && wishStatus !== 'OPEN' ? (
@@ -1257,8 +1330,30 @@ export function SharedPlanningOverviewPage({
             </ul>
           </div>
         ) : null}
+        {wishHint.activeId ? (
+          <QuietHint
+            onDismiss={wishHint.dismiss}
+            action={
+              wishItems[0]
+                ? {
+                    to: wishDetailPath(wishItems[0].id),
+                    label: t('quietHints.tips.planFromWishAction'),
+                    selectedKey: wishItems[0].id,
+                  }
+                : undefined
+            }
+          >
+            {t('quietHints.tips.planFromWish')}
+          </QuietHint>
+        ) : null}
         {!assemblingWishes && wishItems.length && wishStatus === 'OPEN' ? (
-          <div className="planen-wish-groups">
+          <div
+            className={
+              wishesSettle
+                ? 'planen-wish-groups first-content-settle'
+                : 'planen-wish-groups'
+            }
+          >
             {[...wishGroups].map(([initial, items]) => (
               <section
                 className="planen-wish-group"

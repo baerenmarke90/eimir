@@ -48,9 +48,25 @@ names are fixture names. It is a composition reference, not a pixel lock.
 - Free/Core, identical Cloud and Self-Hosted, no backend. Proposed slices: I1a empty states and
   move-in, I1b hint primitive with limits and "New" notes, I1c Wir rise and connected moment.
 
-## Coordination with PR #1976
+## Product tour and PR #1976
 
-PR #1976 (open, head `d2a8df303`) replaces the #796 tour with an optional introduction: a launch
-offer on Wir for the first signed-in visits and one `ProductTourCue` hint on Wir, Momente and
-Planen after a topic is chosen. It touches the same pages and the same storage pattern.
-I1 builds on it after it merges; see the #1907 I1 entry for the open coordination points.
+The Product Owner stopped PR #1976 (optional introduction) on 2026-11-16 and asked to close it and
+to remove the #796 introduction from More ("eimir. kennenlernen") after I1. Quiet hints are the only
+in-app guidance; the tour removal ships in its own pull request.
+
+## Implementation evidence
+
+Browser captures from `web/e2e/tests/quiet-hints.spec.ts` (mocked API, reduced motion so the settled
+state is captured; Chromium):
+
+| Image | State |
+| --- | --- |
+| [Wir 390 Light](evidence/i1-wir-move-in-390-light.png), [Dark](evidence/i1-wir-move-in-390-dark.png), [1280 Dark](evidence/i1-wir-move-in-1280-dark.png) | Move-in without a partner: one action, the empty frame, the invitation link |
+| [Wir connected](evidence/i1-wir-connected-390-light.png) | Partner joined: the one-time connected moment above the move-in |
+| [Momente](evidence/i1-moments-empty-390-light.png) | Empty discovery with the `story.emptyAction` action |
+| [Plans](evidence/i1-plans-empty-390-light.png) | `m5s3.overview.openPlansEmpty` with the `quietHints.firstPlan` action |
+| [Wishes tip Light](evidence/i1-wishes-tip-390-light.png), [Dark](evidence/i1-wishes-tip-390-dark.png) | The personal wish-to-plan tip with its open and dismiss actions |
+
+Deviation from the prototype: the connected moment is its own small mark under the hero (two person
+circles and the heart line) instead of animating the hero avatars, so it works with every Wir design
+and leaves the hero's own intro untouched.

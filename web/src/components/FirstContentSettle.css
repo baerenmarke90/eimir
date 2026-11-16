@@ -1,0 +1,45 @@
+/*
+ * The first item of an area that was empty settles into place with one soft
+ * glow (#1907 I1). Reduced motion shows it immediately; focus and content are
+ * the same either way.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .first-content-settle {
+    border-radius: var(--radius-content);
+    animation:
+      first-content-settle var(--duration-context) var(--easing-enter) both,
+      first-content-glow var(--duration-gesture-moment) var(--easing-standard)
+      var(--duration-context) both;
+  }
+}
+
+@keyframes first-content-settle {
+  from {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes first-content-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-brand-glow);
+  }
+
+  40% {
+    box-shadow: 0 0 0 0.6rem var(--color-brand-glow);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1.1rem transparent;
+  }
+}
+
+/* The empty area's one action keeps the shared filled presentation. */
+.first-step-action {
+  margin-block-start: var(--space-2);
+}

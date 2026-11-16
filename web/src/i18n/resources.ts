@@ -44,6 +44,7 @@ import photoSources from './locales/photoSources';
 import planFiles from './locales/planFiles';
 import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
+import quietHints from './locales/quietHints';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import proPaywall from './locales/proPaywall';
@@ -120,6 +121,7 @@ export const germanResources = {
   profileIdentity,
   profiles,
   productTour,
+  quietHints,
   serverAdmin,
   spaceOffboarding,
   ...relationshipComponents,

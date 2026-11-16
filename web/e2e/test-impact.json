@@ -402,6 +402,19 @@
         "web/src/components/ProfileAppearancePanel.tsx"
       ]
     },
+    "quiet-hints.spec.ts": {
+      "roots": [
+        "web/src/client/quietHints.ts",
+        "web/src/client/connectedMoment.ts",
+        "web/src/client/firstContentSettle.ts",
+        "web/src/components/QuietHint.tsx",
+        "web/src/components/ConnectedMoment.tsx",
+        "web/src/components/FirstStepAction.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
+      ]
+    },
     "optional-product-tour.spec.ts": {
       "roots": [
         "web/src/client/productTour.tsx",

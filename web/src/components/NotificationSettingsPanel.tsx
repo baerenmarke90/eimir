@@ -41,6 +41,7 @@ const GROUPS = [
     kinds: [
       NotificationKind.THINKING_OF_YOU,
       NotificationKind.COUPLE_EXPERIENCE_SHARED,
+      NotificationKind.COLLECTION_SENT,
       NotificationKind.PARTNER_KISS,
       NotificationKind.PARTNER_CHECK_IN,
     ],
@@ -53,6 +54,7 @@ const KIND_KEYS = {
   [NotificationKind.REMINDER_CREATED]: 'reminderCreated',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
+  [NotificationKind.COLLECTION_SENT]: 'collectionSent',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;

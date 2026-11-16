@@ -2,7 +2,8 @@ const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
   sharedActivityDescription:
     'Kommentare, Fotoreaktionen, neue und fällige Erinnerungen.',
-  closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
+  closenessDescription:
+    'Gedanken aneinander, Küsse, Check-ins und geschickte Listen.',
   individual: 'Einzeln anpassen',
   dates: 'Wichtige Tage',
   mixed:
@@ -21,6 +22,7 @@ const notificationSettings = {
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',
   experience: 'Geteilte Momente',
+  collectionSent: 'Geschickte Listen',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
   checkIn: 'Check-in',

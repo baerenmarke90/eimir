@@ -360,7 +360,8 @@
     },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 9,
+      "reason": "Personal pin, list tile and sheet, optimistic checks and reorder plus sending a list to the partner after asking, in Compact Light, Dark and the wider phone width (#1907 E2)."
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",

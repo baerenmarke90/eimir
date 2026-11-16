@@ -75,7 +75,14 @@ def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
     request = components["AttachmentReadRequest"]
     parent_type = request["properties"]["parentType"]
     values = set(parent_type.get("enum") or [])
-    assert values == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON", "PLAN"}
+    assert values == {
+        "MEMORY",
+        "HEART_MOMENT",
+        "NONE",
+        "RELATED_PERSON",
+        "PLAN",
+        "HEART_HUNT_ROUND",
+    }
     content_variant = request["properties"]["variant"]
     assert set(content_variant["enum"]) == {"original", "thumbnail"}
     assert content_variant["default"] == "original"

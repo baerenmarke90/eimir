@@ -6,14 +6,22 @@
 
 Name | Type
 ------------ | -------------
+`bouquet` | [GardenBouquetView](GardenBouquetView.md)
+`discovered` | [Array&lt;GardenSpecies&gt;](GardenSpecies.md)
+`form` | [GardenForm](GardenForm.md)
+`gaveBouquetToday` | boolean
 `incoming` | [GardenPlantView](GardenPlantView.md)
 `localDate` | Date
+`name` | string
+`news` | [Array&lt;GardenUnlock&gt;](GardenUnlock.md)
 `offer` | [Array&lt;GardenSpecies&gt;](GardenSpecies.md)
 `partnerSentToday` | boolean
 `partnerWateredToday` | string
 `plants` | [Array&lt;GardenPlantView&gt;](GardenPlantView.md)
 `sentToday` | [GardenPlantView](GardenPlantView.md)
+`sharedDays` | number
 `sharedToday` | boolean
+`unlocks` | [Array&lt;GardenUnlock&gt;](GardenUnlock.md)
 `wateredToday` | string
 
 ## Example
@@ -23,14 +31,22 @@ import type { GardenView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "bouquet": null,
+  "discovered": null,
+  "form": null,
+  "gaveBouquetToday": null,
   "incoming": null,
   "localDate": null,
+  "name": null,
+  "news": null,
   "offer": null,
   "partnerSentToday": null,
   "partnerWateredToday": null,
   "plants": null,
   "sentToday": null,
+  "sharedDays": null,
   "sharedToday": null,
+  "unlocks": null,
   "wateredToday": null,
 } satisfies GardenView
 

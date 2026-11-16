@@ -1,6 +1,7 @@
 
 # GardenSpecies
 
+What a seed becomes; a surprise is shown until its moonflower first blooms.
 
 ## Properties
 

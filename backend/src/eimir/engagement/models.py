@@ -130,6 +130,7 @@ class EngagementTarget(StrEnum):
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
     GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
 
 
 class PushDeliveryStatus(StrEnum):

@@ -106,6 +106,54 @@ describe('app design token sets', () => {
     );
   });
 
+  it('lets optional fine roles replace the derived value once', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    const album = css.slice(
+      css.indexOf(':root[data-app-design="shared_album"] .today-page'),
+    );
+    const firstBlock = album.slice(0, album.indexOf('}'));
+    expect(firstBlock.match(/--color-border-subtle:/g)).toHaveLength(1);
+    expect(firstBlock).toContain('--color-border-subtle: #CBD1C1;');
+    expect(firstBlock).toContain('--design-decoration: #123A33;');
+  });
+
+  it('rejects unknown colour roles and weak fine-role contrast', () => {
+    const { light, dark } = designs.shared_album.color;
+    expect(() =>
+      validateDesign(
+        design({ color: { light: { ...light, sparkle: '#FFFFFF' }, dark } }),
+        tokens,
+      ),
+    ).toThrowError(/sparkle is not a colour role/);
+    expect(() =>
+      validateDesign(
+        design({
+          color: { light: { ...light, onDecoration: '#20403A' }, dark },
+        }),
+        tokens,
+      ),
+    ).toThrowError(/light onDecoration on decoration/);
+  });
+
+  it('keeps the transitional shell scope to Seite an Seite', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    expect(css.match(/body:has\(/g)?.length).toBe(3);
+    expect(css).toContain(
+      ':root[data-app-design="shared_album"] body:has(.product-shell[data-top-surface="today"] .today-page)',
+    );
+  });
+
+  it('lets a design follow the app icon stroke with "standard"', () => {
+    expect(() =>
+      validateDesign(
+        design({ icon: { stroke: 'standard', accent: 'duotone' } }),
+        tokens,
+      ),
+    ).not.toThrow();
+    const { css } = buildAppDesigns(tokens, designs);
+    expect(css).not.toContain('--icon-stroke-width');
+  });
+
   it('requires one file per id', () => {
     expect(() =>
       buildAppDesigns(tokens, { ...designs, other: design() }),

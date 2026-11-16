@@ -19,10 +19,7 @@
 /* Keep the full-bleed backdrop on the page so a pager preview and the active
    tab paint the same glow, at the same reading position. The other palettes
    already paint a backdrop on the page. */
-.today-page:not(
-  [data-wir-layout="open"],
-  [data-wir-design="shared_album"]
-)::before {
+.today-page:not([data-wir-layout="open"], [data-wir-layout="rows"])::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -636,6 +633,92 @@
   margin: var(--space-3) 0 var(--space-5);
   color: var(--color-text-secondary);
   font-size: 1rem;
+}
+
+/*
+ * #1907 I1 move-in: an empty frame waits on the wall, then one filled action
+ * opens the existing composer. Without a partner a quiet link leads to the
+ * existing invitation.
+ */
+.today-page .new-space-experience {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.today-page .new-space-experience > .new-space-body {
+  margin: 0;
+}
+
+.new-space-wall {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: 9rem;
+  border-radius: var(--radius-content);
+  background: var(--color-surface-subtle);
+}
+
+.new-space-wall > span {
+  inline-size: 5.5rem;
+  block-size: 4.5rem;
+  border: 2px dashed var(--color-text-muted);
+  border-radius: var(--radius-medium);
+  opacity: 0.6;
+}
+
+.new-space-invite {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target-web);
+  color: var(--color-brand-text);
+  font: var(--font-action-label);
+  text-decoration: none;
+}
+
+.new-space-invite .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+@media (min-width: 840px) {
+  .today-page .new-space-experience {
+    justify-items: center;
+  }
+
+  .new-space-wall {
+    max-inline-size: 28rem;
+  }
+}
+
+/*
+ * #1907 I1: Wir rises like the other roots, once per page load. The header
+ * keeps the floating create action fixed, and the hero keeps its own intro.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .today-content[data-root-intro] > :not(.page-heading, :nth-child(-n + 2)) {
+    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter)
+      var(--root-intro-delay, calc(var(--duration-sequence-beat) * 0)) backwards;
+  }
+
+  .today-content[data-root-intro] > :nth-child(3) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.3);
+  }
+
+  .today-content[data-root-intro] > :nth-child(4) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.6);
+  }
+
+  .today-content[data-root-intro] > :nth-child(5) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.9);
+  }
+
+  .today-content[data-root-intro] > :nth-child(n + 6) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 1.2);
+  }
 }
 
 @media (max-width: 599px) {

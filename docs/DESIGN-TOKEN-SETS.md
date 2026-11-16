@@ -36,7 +36,7 @@ and generates:
 | `shape` | `standard`, `crisp`, `soft` | `--radius-small/medium/large/card` |
 | `type.display` | a key of `designPresets.displayFamilies` | `--font-display` |
 | `type.headings` | `display`, `ui` | `--font-heading-family` |
-| `icon.stroke` | `designPresets.iconStroke` range | `--icon-stroke-width` |
+| `icon.stroke` | `standard` (the app stroke) or a value in the `designPresets.iconStroke` range | `--icon-stroke-width` |
 | `icon.accent` | `duotone`, `mono` | icon accent strokes keep their accent or follow the text colour |
 | `motion` | `standard`, `calm`, `lively` | scaled `--duration-feedback/transition/context` (never under reduced motion) |
 | `surface.backdrop` | `glow`, `flat` | `--design-backdrop-glow` |
@@ -45,6 +45,30 @@ and generates:
 
 `standard` always means the current root tokens and emits nothing. The bounded
 presets live in `design/tokens.json` under `designPresets`.
+
+### Optional fine roles
+
+Product Owner amendment (2026-11-16): an inline palette may also set optional
+fine roles (`FINE_ROLES` in `web/scripts/app-designs.mjs`) in Light and Dark.
+Omitted fine roles keep the value the 16 roles derive.
+
+| Fine role | Sets |
+|---|---|
+| `borderSubtle` | `--color-border-subtle`, `--color-header-border` |
+| `mutedTextSoft` | `--color-text-muted` |
+| `surfaceSubtle` | `--color-surface-subtle`, `--color-surface-panel-tint` |
+| `surfaceOverlay` | `--color-surface-overlay` |
+| `actionStrong` | `--color-brand-strong` |
+| `sharedFill` | `--color-shared` |
+| `glow` | `--color-brand-glow` |
+| `tintBrand`, `tintShared` | `--color-page-tint-brand`, `--color-page-tint-shared` |
+| `decoration`, `onDecoration`, `onDecorationMuted` | `--design-decoration*` (captions and similar decoration) |
+| `highlight`, `onHighlight` | `--design-highlight`, `--design-on-highlight` (stamps, marks) |
+| `decorationIcon` | `--design-decoration-icon` |
+
+The contrast gate also checks soft muted text on page and surface and text on
+decoration and highlight. Layout CSS that consumes a decoration role gives it
+a fallback to a mandatory role.
 
 The generator rejects unknown fields, values outside the presets, and palettes
 that miss WCAG contrast in Light or Dark (text, muted text and action text
@@ -87,6 +111,12 @@ blocks currently apply to Wir only (`APP_DESIGN_SCOPE` in
 `web/scripts/app-designs.mjs`). The approved delivery switches the scope to
 the whole app in its own step with separate Product Owner acceptance, so
 portaled sheets and other tabs follow the design.
+
+Transitional rule until that step: Seite an Seite already tinted the body,
+its portaled sheets and the bottom navigation while Wir is open. The
+generator keeps that reach for this one design
+(`TRANSITIONAL_SHELL_SCOPES`), and `WirSharedAlbum.css` keeps its marked
+bottom-navigation rules; both are removed with the app-wide step.
 
 ## Tiers and stored preferences
 

@@ -6,7 +6,6 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import navigation from '../../src/i18n/locales/navigation';
-import productTour from '../../src/i18n/locales/productTour';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
@@ -819,10 +818,6 @@ test('Diary uses its filter and keeps annual history reachable under More', asyn
   await expect(page.getByRole('tab')).toHaveCount(3);
   await expect(page.locator('.story-filter-toggle')).toBeVisible();
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await page
-    .locator('.product-tour')
-    .getByRole('button', { name: productTour.later, exact: true })
-    .click();
   const years = page.getByRole('link', {
     name: de.more.destinations.yearsAndRecaps,
     exact: true,

@@ -142,6 +142,12 @@ never made silently for them, which is the reason there is no Production default
 `private_collection_items`, `private_collections`, `private_notes`,
 `profile_preferences`, `related_persons`, `reminders`, `wishes`; every media
 original, thumbnail and derived variant; Transfer Bundle artifacts held in storage.
+Tables added since are covered the same way; the authoritative list is whatever
+`python -m eimir.security status` reports, and `PINNED_CONTEXTS` in
+`backend/tests/unit/test_payload_encryption.py` pins it. It includes
+`presence_snapshots`: the snapped partner-location position and its accuracy
+moved from plain columns into the payload (migration 0145), so a dump no longer
+shows where a sharing person was.
 
 **Plaintext by design (routing, authorization, indexing):** `id`, `space_id`,
 `owner_id`, `author_id`, `privacy_class`, `status`, timestamps and date columns

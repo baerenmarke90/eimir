@@ -58,12 +58,17 @@ import {
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { useFirstContentSettle } from '../client/firstContentSettle';
+import { useHideProFeatureMarks } from '../client/proPresentation';
+import { newNoteOpen, useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   heartMomentDetailPath,
+  MEMORY_CREATE_ROUTE,
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
+  STORY_OURS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -82,6 +87,9 @@ import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
+import { FirstStepAction } from './FirstStepAction';
+import './FirstContentSettle.css';
+import { QuietHint } from './QuietHint';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
@@ -882,8 +890,32 @@ export function StoryProductPage({
       </div>
       <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
       <p className="new-space-body">{t('story.emptyBody')}</p>
+      <FirstStepAction
+        to={MEMORY_CREATE_ROUTE}
+        label={t('story.emptyAction')}
+        icon="foto"
+        selectedKey="story-first-moment"
+      />
     </div>
   );
+
+  // #1907 I1: the first moment settles in where the empty state stood.
+  const discoverHasContent = Boolean(featuredItem || discoverItems.length > 0);
+  const discoverSettle = useFirstContentSettle(
+    discoverQuery.data && !discoverDenied ? !discoverHasContent : undefined,
+  );
+  // "New in eimir." for a Pro feature is shown only where it is usable.
+  const proActive = useHideProFeatureMarks();
+  const newsHint = useQuietHint(accountId, spaceId, [
+    {
+      id: 'new:waymarks',
+      eligible:
+        activeView === 'discover' &&
+        discoverHasContent &&
+        proActive &&
+        newNoteOpen('waymarks'),
+    },
+  ]);
 
   return (
     <div
@@ -943,7 +975,11 @@ export function StoryProductPage({
         !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
           <section
-            className="momente-discover-page"
+            className={
+              discoverSettle
+                ? 'momente-discover-page first-content-settle'
+                : 'momente-discover-page'
+            }
             aria-busy={
               renewing || storyQuery.isFetching || discoverQuery.isFetching
             }
@@ -1024,6 +1060,19 @@ export function StoryProductPage({
                   </div>
                 </Link>
               </article>
+            ) : null}
+
+            {newsHint.activeId ? (
+              <QuietHint
+                tone="new"
+                onDismiss={newsHint.dismiss}
+                action={{
+                  to: STORY_OURS_ROUTE,
+                  label: t('quietHints.news.waymarksAction'),
+                }}
+              >
+                {t('quietHints.news.waymarks')}
+              </QuietHint>
             ) : null}
 
             <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />

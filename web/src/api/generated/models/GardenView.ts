@@ -13,13 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GardenBouquetView } from './GardenBouquetView';
-import {
-    GardenBouquetViewFromJSON,
-    GardenBouquetViewFromJSONTyped,
-    GardenBouquetViewToJSON,
-    GardenBouquetViewToJSONTyped,
-} from './GardenBouquetView';
 import type { GardenForm } from './GardenForm';
 import {
     GardenFormFromJSON,
@@ -34,13 +27,6 @@ import {
     GardenPlantViewToJSON,
     GardenPlantViewToJSONTyped,
 } from './GardenPlantView';
-import type { GardenSpecies } from './GardenSpecies';
-import {
-    GardenSpeciesFromJSON,
-    GardenSpeciesFromJSONTyped,
-    GardenSpeciesToJSON,
-    GardenSpeciesToJSONTyped,
-} from './GardenSpecies';
 import type { GardenUnlock } from './GardenUnlock';
 import {
     GardenUnlockFromJSON,
@@ -48,6 +34,20 @@ import {
     GardenUnlockToJSON,
     GardenUnlockToJSONTyped,
 } from './GardenUnlock';
+import type { GardenSpecies } from './GardenSpecies';
+import {
+    GardenSpeciesFromJSON,
+    GardenSpeciesFromJSONTyped,
+    GardenSpeciesToJSON,
+    GardenSpeciesToJSONTyped,
+} from './GardenSpecies';
+import type { GardenBouquetView } from './GardenBouquetView';
+import {
+    GardenBouquetViewFromJSON,
+    GardenBouquetViewFromJSONTyped,
+    GardenBouquetViewToJSON,
+    GardenBouquetViewToJSONTyped,
+} from './GardenBouquetView';
 
 /**
  * 
@@ -215,13 +215,13 @@ export function GardenViewToJSONTyped(value?: GardenView | null, ignoreDiscrimin
     return {
         
         'bouquet': GardenBouquetViewToJSON(value['bouquet']),
-        'discovered': ((value['discovered'] as Array<any>).map(GardenSpeciesToJSON)),
+        'discovered': value['discovered'] == null ? undefined : ((value['discovered'] as Array<any>).map(GardenSpeciesToJSON)),
         'form': GardenFormToJSON(value['form']),
         'gaveBouquetToday': value['gaveBouquetToday'],
         'incoming': GardenPlantViewToJSON(value['incoming']),
         'localDate': value['localDate'].toISOString().substring(0,10),
         'name': value['name'],
-        'news': ((value['news'] as Array<any>).map(GardenUnlockToJSON)),
+        'news': value['news'] == null ? undefined : ((value['news'] as Array<any>).map(GardenUnlockToJSON)),
         'offer': ((value['offer'] as Array<any>).map(GardenSpeciesToJSON)),
         'partnerSentToday': value['partnerSentToday'],
         'partnerWateredToday': value['partnerWateredToday'],
@@ -229,7 +229,7 @@ export function GardenViewToJSONTyped(value?: GardenView | null, ignoreDiscrimin
         'sentToday': GardenPlantViewToJSON(value['sentToday']),
         'sharedDays': value['sharedDays'],
         'sharedToday': value['sharedToday'],
-        'unlocks': ((value['unlocks'] as Array<any>).map(GardenUnlockToJSON)),
+        'unlocks': value['unlocks'] == null ? undefined : ((value['unlocks'] as Array<any>).map(GardenUnlockToJSON)),
         'wateredToday': value['wateredToday'],
     };
 }

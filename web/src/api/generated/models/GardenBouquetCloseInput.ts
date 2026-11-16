@@ -31,7 +31,6 @@ export interface GardenBouquetCloseInput {
  * Check if a given object implements the GardenBouquetCloseInput interface.
  */
 export function instanceOfGardenBouquetCloseInput(value: object): value is GardenBouquetCloseInput {
-
     return true;
 }
 

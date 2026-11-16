@@ -31,7 +31,6 @@ export interface GardenNameInput {
  * Check if a given object implements the GardenNameInput interface.
  */
 export function instanceOfGardenNameInput(value: object): value is GardenNameInput {
-
     return true;
 }
 

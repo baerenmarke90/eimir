@@ -322,8 +322,8 @@ export function Cloud({
       className="garden-drift"
       style={
         {
-          '--garden-drift-duration': `${Math.round(26 + scale * 30)}s`,
-          '--garden-drift-delay': `${Math.round(-x / 9)}s`,
+          '--garden-drift-duration': `calc(var(--duration-connection-travel-far) * ${((26 + scale * 30) / 6).toFixed(2)})`,
+          '--garden-drift-delay': `calc(var(--duration-connection-travel-far) * ${(-x / 54).toFixed(2)})`,
         } as Style
       }
     >

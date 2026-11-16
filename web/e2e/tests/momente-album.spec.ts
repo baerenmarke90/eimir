@@ -19,6 +19,16 @@ import {
 
 type Scheme = 'light' | 'dark';
 
+const CHAPTER_MARKERS = [
+  {
+    id: 'chapter-start',
+    title: 'Festival summer',
+    startOn: '2026-05-12',
+    endOn: null,
+    position: 1,
+  },
+];
+
 const CHAPTERS = [
   {
     id: 'chapter-weekend',
@@ -58,7 +68,10 @@ async function openDiary(
   await page.addInitScript(() =>
     window.localStorage.setItem('eimir.theme', 'system'),
   );
-  await installMocks(page, { chapterPeriods });
+  await installMocks(page, {
+    chapterPeriods,
+    chapterMarkers: chapterPeriods ? CHAPTER_MARKERS : undefined,
+  });
   await signIn(page);
   await page.goto('/story?tab=timeline');
   await page.waitForSelector('.story-timeline .story-card');
@@ -131,6 +144,15 @@ test.describe('Momente Album design (#1960)', () => {
       await expect(strips.first()).toBeVisible();
       // The ribbon replaces the book icon in the Album.
       await expect(strips.first().locator('.eimir-icon')).toBeHidden();
+      // A chapter start is a bookmarked divider between entries, not a tinted card.
+      const divider = page.locator(
+        '.momente-diary-section[data-diary-layout="album"] .chapter-diary-marker',
+      );
+      await expect(divider).toBeVisible();
+      await expect(divider.locator('svg').first()).toBeHidden();
+      await expect(
+        page.getByRole('link', { name: /Festival summer/ }),
+      ).toBeVisible();
       // The link stays a real link with its chapter title as the name.
       await expect(
         page.getByRole('link', { name: new RegExp(CHAPTERS[0].title) }),

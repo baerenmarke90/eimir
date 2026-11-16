@@ -36,7 +36,8 @@
   position: relative;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--space-4) var(--space-3)
+    calc(var(--space-8) + var(--space-3));
   background: var(--story-paper);
   border-radius: var(--story-paper-radius);
   color: var(--color-text-secondary);
@@ -89,6 +90,69 @@
   .momente-diary-section[data-diary-layout="album"]
   .diary-chapter-periods
   a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ---------- chapter start: the divider where a chapter begins ---------- */
+/* Same bookmarked strip as the ongoing chapters, a little larger, with the
+   word "Kapitel" as a small-caps heading so it reads as a divider page. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-marker {
+  position: relative;
+  align-items: center;
+  margin-block: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4)
+    calc(var(--space-8) + var(--space-3));
+  background: var(--story-paper);
+  border-radius: var(--story-paper-radius);
+  filter: var(--story-lift);
+  rotate: -0.4deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-marker::before {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  inset-inline-start: var(--space-4);
+  inline-size: var(--space-4);
+  background: var(--story-tape-both);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-marker
+  > svg {
+  display: none;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-kind {
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-copy
+  > strong {
+  font: var(--font-composer-lead);
+  font-size: 1.4rem;
+  letter-spacing: var(--tracking-composer-lead);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-period {
+  padding-block-start: var(--space-1);
+  border-block-start: 1px dashed
+    color-mix(in srgb, var(--color-text-secondary) 40%, transparent);
+  inline-size: fit-content;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .chapter-diary-marker:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }

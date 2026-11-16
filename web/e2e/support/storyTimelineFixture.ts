@@ -200,6 +200,14 @@ export type MockOptions = {
     startOn: string;
     endOn?: string | null;
   }>;
+  /** Chapter start dividers placed between Diary entries. */
+  chapterMarkers?: ReadonlyArray<{
+    id: string;
+    title: string;
+    startOn: string;
+    endOn?: string | null;
+    position: number;
+  }>;
 };
 
 export async function installMocks(
@@ -404,7 +412,10 @@ export async function installMocks(
         hasMore: false,
         nextCursor: null,
         ...(options.chapterPeriods
-          ? { chapterMarkers: [], chapterPeriods: options.chapterPeriods }
+          ? {
+              chapterMarkers: options.chapterMarkers ?? [],
+              chapterPeriods: options.chapterPeriods,
+            }
           : {}),
       });
       return;

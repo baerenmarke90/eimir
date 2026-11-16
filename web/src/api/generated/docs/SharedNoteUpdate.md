@@ -3,7 +3,6 @@
 
 Partial text update. Pinning is a separate state, see ``SharedNotePresentation``.
 
-
 ## Properties
 
 Name | Type

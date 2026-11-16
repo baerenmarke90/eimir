@@ -13,7 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-
 /**
  * Partial text update. Pinning is a separate state, see ``SharedNotePresentation``.
  * @export

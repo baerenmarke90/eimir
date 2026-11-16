@@ -12,6 +12,7 @@ All URIs are relative to *http://localhost*
 | [**updateSharedNote**](SharedNotesApi.md#updatesharednote) | **PATCH** /api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId} | Update Shared Note |
 
 
+
 ## createSharedNote
 
 > SharedNoteDetail createSharedNote(spaceId, sharedNoteCreate)
@@ -459,3 +460,4 @@ No authorization required
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

@@ -699,7 +699,7 @@ No authorization required
 
 ## listPlanNotes
 
-> Array<SharedNoteDetail> listPlanNotes(planId, spaceId)
+> Array&lt;SharedNoteDetail&gt; listPlanNotes(planId, spaceId)
 
 List Plan Notes
 
@@ -745,7 +745,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**Array<SharedNoteDetail>**](SharedNoteDetail.md)
+[**Array&lt;SharedNoteDetail&gt;**](SharedNoteDetail.md)
 
 ### Authorization
 

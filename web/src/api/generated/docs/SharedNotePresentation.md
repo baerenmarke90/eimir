@@ -3,7 +3,6 @@
 
 Whether a note is pinned (overview and Wir) and whether Wir hides its excerpt.
 
-
 ## Properties
 
 Name | Type

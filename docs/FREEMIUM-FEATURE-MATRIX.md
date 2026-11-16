@@ -1,7 +1,7 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.28  
+**Version:** 1.27  
 
 **Audit date:** 2026-09-21  
 **Revision:** 2026-11-16 — Product Owner decision (#1907 H3, concept A "Unser Garten"): a shared garden in the Games area where each partner sends one seed per day, optionally with fixed kind words ("liebe Worte"), the partner plants it and the garden grows on days both took part; no streaks, nothing withers. Part of the Premium "Gemeinsam spielen" row (`games.couple`); one neutral seed notice with its own switch among the partner notices, no email. The messenger follows the existing `presence.location` band on the reading device; nothing about location is stored. Self-Hosted equals Cloud, negligible managed cost, no tier change.  

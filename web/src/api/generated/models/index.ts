@@ -239,6 +239,7 @@ export * from './PhotoParentType';
 export * from './PhotoReaction';
 export * from './PhotoReactionSet';
 export * from './PhotoReactionSummary';
+export * from './PhotoSelectionAuthorize';
 export * from './PhotoSelectionCreate';
 export * from './PhotoSelectionItemView';
 export * from './PhotoSelectionView';

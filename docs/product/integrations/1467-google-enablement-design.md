@@ -112,6 +112,44 @@ in a URL and observes completion only through its existing authenticated task.
 This adds a browser sign-in when necessary and requires a separate product/
 security preflight; it is not an implemented native bridge in this slice.
 
+### Installed Android app: return through the app's own link (2026-11-16)
+
+Product Owner bug report: in the app, Google's browser opened, the person could not finish, and the app
+ended without photos. Cause: the browser-proof cookie is set on an API response received by the app
+and can never reach the system browser (a separate cookie jar), so the callback always refused and only
+showed a bare page. This section supersedes the blanket "native Google stays unavailable" and the
+"no OAuth code in the return link" sentences above **for the app flow only**; the Web flow and its
+cookie proof are unchanged.
+
+- `PhotoSelectionCreate.returnTo` is `web` (default) or `app`. The app sends `app` on Android; no cookie
+  is issued and no browser proof is stored for it. A stray proof with `app` is refused.
+- Google still redirects to the one registered HTTPS callback. For an open `app` selection that callback
+  completes nothing: it answers `303` to `de.eimir.app://photos/google?state=…&code=…` (or
+  `…&outcome=denied`). Any other state, an expired or finished task, or a closed production gate gives
+  the plain page as before.
+- The signed-in app session calls `POST …/photo-selections/{id}/authorize` with that `state` and `code`.
+  The server requires the owning DeviceSession, Membership and entitlement (the same `owned` checks as
+  every other route), a still-pending `app` task, the exact stored state, and the recovery policy; then it
+  exchanges the code with the PKCE verifier and client secret that never left the server, creates the
+  Picker session and returns `pickerUri`. The app then opens the Photos picker in the system browser and
+  keeps the existing polling. The state is consumed first, so a replay or a second try changes nothing.
+- Why a code in a custom-scheme link is acceptable here: it is a single-use code that is worthless without
+  the server-held verifier and client secret and without this DeviceSession. Another app claiming the
+  scheme can at most make the sign-in fail. A forwarded Google URL delivers the code to the victim's own
+  device, never to the task owner's session. Rate limit: 20 authorizations per Account per 15 minutes.
+- No account address is needed: without a saved hint Google shows its own account chooser. The saved
+  address (above) stays an optional shortcut and grants nothing.
+- Setup in Settings (app only): after the address is saved, the app runs the same app-link sign-in once
+  with a temporary one-photo task and cancels that task right away, so the person confirms eimir.'s
+  access at Google where the account is set up. Google remembers the consent, so later imports go
+  straight to the photo selection. If Google is not confirmed (closed browser, denial, error) the address
+  stays saved, a notice says so and a "Confirm at Google" button repeats only that step. Nothing is
+  chosen or copied by this step, and no token is kept.
+- Business/freemium: no impact. External import stays Premium (`integration.external_sync`); no quota,
+  storage or Self-Hosted/Cloud difference.
+- Not verified here: the real Pixel behaviour (the Chrome Custom Tab following the redirect into the app
+  link, Back/close handling, the second browser open for the Photos picker) and a live Google run.
+
 ## Implemented nonpersistent selected-photo recovery
 
 Google copies use a **memory-only File path plus authorized server attachment

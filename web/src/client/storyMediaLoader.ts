@@ -18,7 +18,7 @@ import {
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
-  'MEMORY' | 'HEART_MOMENT' | 'PLAN'
+  'MEMORY' | 'HEART_MOMENT' | 'PLAN' | 'HEART_HUNT_ROUND'
 >;
 
 type StoryMediaLoaderOptions = {

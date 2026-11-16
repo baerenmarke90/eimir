@@ -32,6 +32,7 @@ from eimir.api.v1 import (
     games,
     gentle_prompts,
     health,
+    heart_hunt,
     heart_moments,
     instance,
     invitations,
@@ -120,6 +121,7 @@ normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(billing.router)
 normal_router.include_router(games.router)
+normal_router.include_router(heart_hunt.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)

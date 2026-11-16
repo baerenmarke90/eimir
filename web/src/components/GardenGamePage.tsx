@@ -528,7 +528,7 @@ export function GardenGamePage({
         <p>{t('games.garden.waterBody', { name: names.partner })}</p>
         <button
           type="button"
-          className="secondary-button"
+          className="secondary"
           onClick={() => setWatering(false)}
         >
           {t('games.garden.cancel')}
@@ -736,7 +736,7 @@ export function GardenGamePage({
             <h2>{speciesName(selectedPlant.species)}</h2>
             <button
               type="button"
-              className="secondary-button garden-story-close"
+              className="secondary garden-story-close"
               onClick={() => setSelected(null)}
             >
               {t('games.garden.close')}
@@ -791,7 +791,7 @@ export function GardenGamePage({
       garden.plants.length > 0 ? (
         <button
           type="button"
-          className="secondary-button garden-water"
+          className="secondary garden-water"
           onClick={() => {
             setSelected(null);
             setWatering(true);

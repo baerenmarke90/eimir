@@ -165,7 +165,10 @@ Account change and Space change. Whether stored bytes are shown is decided by
 the parent read data the view renders, which keeps the seven-day rule above;
 a denied parent list or read evicts the affected bytes, and Media overview
 deletes the bytes of items its refreshed list no longer contains. Details:
-`docs/frontend/web.md`.
+`docs/frontend/web.md`. The exception covers `SPACE_SHARED` image bytes only:
+rule 3 above still applies, so images of `OWNER_ONLY` parents stay
+session-memory-only on Web and a copy stored before a parent became private
+is removed.
 
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently

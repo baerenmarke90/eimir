@@ -93,6 +93,12 @@ export function mediaCacheScopeForClient(client: object): MediaCacheScope {
 
 const cached = new Map<string, CachedBlob>();
 const stored = new Map<string, Promise<Blob | undefined>>();
+/**
+ * Identity prefixes whose bytes stay in session memory only. M2-D18 #3: Web
+ * does not persist `OWNER_ONLY` payloads, so a private parent never reaches
+ * the durable store, even when another surface loads the same bytes later.
+ */
+const sessionOnly = new Set<string>();
 const pending = new Map<string, PendingBlob>();
 let cachedBytes = 0;
 let generation = 0;
@@ -178,6 +184,7 @@ export function clearAuthorizedMediaCache(): void {
   clearDurableMediaStore();
   cached.clear();
   stored.clear();
+  sessionOnly.clear();
   cachedBytes = 0;
   revocations.clear();
   for (const entry of pending.values()) entry.controller.abort();
@@ -213,6 +220,34 @@ export function evictAuthorizedMedia(
   }
 }
 
+function isSessionOnly(
+  lease: CacheLease,
+  identity: readonly string[],
+): boolean {
+  for (let length = 1; length <= identity.length; length += 1) {
+    if (sessionOnly.has(keyPrefix(lease, identity.slice(0, length))))
+      return true;
+  }
+  return false;
+}
+
+/**
+ * Keep every media identity under this prefix in session memory only for
+ * the rest of this login. Bytes this device stored earlier (for example while
+ * the parent was still shared) are removed from the durable store once.
+ */
+export function keepMediaInSession(
+  lease: CacheLease,
+  identityPrefix: readonly string[],
+): void {
+  const key = keyPrefix(lease, identityPrefix);
+  if (sessionOnly.has(key)) return;
+  sessionOnly.add(key);
+  const diskKey = durableKey(lease, identityPrefix);
+  // The open array matches the exact identity and every longer one below it.
+  if (diskKey) evictDurableMedia(diskKey.slice(0, -1));
+}
+
 function durableKey(
   lease: CacheLease,
   identity: readonly string[],
@@ -238,7 +273,7 @@ export async function readStoredMediaBlob(
   if (hit) return hit;
   const diskKey = durableKey(lease, identity);
   const epoch = lease.durableEpoch;
-  if (!diskKey || !epoch) return undefined;
+  if (!diskKey || !epoch || isSessionOnly(lease, identity)) return undefined;
   let read = stored.get(key);
   if (!read) {
     const created = readDurableMedia(diskKey, epoch)
@@ -257,6 +292,15 @@ export async function readStoredMediaBlob(
   return blob;
 }
 
+export interface MediaCacheOptions {
+  /**
+   * `false` keeps the bytes in session memory only: no durable read or write,
+   * and an earlier durable copy is removed. Required for every `OWNER_ONLY`
+   * parent (M2-D18 #3). Session-only wins for the rest of the login.
+   */
+  readonly persist?: boolean;
+}
+
 /**
  * Reuse immutable bytes stored for this exact scope. Identity must
  * include parent binding, attachment identity and original/thumbnail variant.
@@ -270,9 +314,11 @@ export async function loadCachedMediaBlob(
   load: (signal: AbortSignal) => Promise<Blob>,
   signal?: AbortSignal,
   storedRead?: Promise<Blob | undefined>,
+  options: MediaCacheOptions = {},
 ): Promise<Blob> {
   signal?.throwIfAborted();
   assertMediaCacheLease(lease);
+  if (options.persist === false) keepMediaInSession(lease, identity);
   const key = keyPrefix(lease, identity);
   const hit = findCachedBlob(key);
   if (hit) return hit;
@@ -286,10 +332,12 @@ export async function loadCachedMediaBlob(
       promise: Promise.resolve()
         .then(async () => {
           controller.signal.throwIfAborted();
-          const diskKey = durableKey(lease, identity);
-          const diskRead =
-            storedRead ??
-            (diskKey ? readStoredMediaBlob(lease, identity) : undefined);
+          const diskKey = isSessionOnly(lease, identity)
+            ? undefined
+            : durableKey(lease, identity);
+          const diskRead = diskKey
+            ? (storedRead ?? readStoredMediaBlob(lease, identity))
+            : undefined;
           const diskBlob = diskRead ? await diskRead : undefined;
           controller.signal.throwIfAborted();
           assertMediaCacheLease(lease);
@@ -300,7 +348,10 @@ export async function loadCachedMediaBlob(
             void writeDurableMedia(diskKey, lease.durableEpoch, blob, () => {
               try {
                 assertMediaCacheLease(lease);
-                return !controller.signal.aborted;
+                // A consumer may have marked the identity private meanwhile.
+                return (
+                  !controller.signal.aborted && !isSessionOnly(lease, identity)
+                );
               } catch {
                 return false;
               }

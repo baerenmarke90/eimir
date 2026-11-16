@@ -208,6 +208,9 @@ export function HeartMomentProductPage({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
+    /** `false` for a private Heart Moment: session memory only. */
+    persist?: boolean,
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
@@ -1437,6 +1440,9 @@ export function HeartMomentProductPage({
                   spaceId={spaceId}
                   planId={heartMoment.id}
                   parentType="HEART_MOMENT"
+                  persistMedia={
+                    heartMoment.visibility === ContentVisibility.SHARED
+                  }
                   disabled={updateMutation.isPending}
                   canUpload
                   canManageExisting={heartMoment.capabilities.canDelete}
@@ -1788,7 +1794,13 @@ export function HeartMomentProductPage({
                     isSensitive: item.isSensitive,
                   }))}
                   loadMedia={(attachmentId, signal) =>
-                    loadAttachment(heartMoment.id, attachmentId, signal)
+                    loadAttachment(
+                      heartMoment.id,
+                      attachmentId,
+                      signal,
+                      undefined,
+                      shared,
+                    )
                   }
                   loadPoster={(id, signal) =>
                     loadAuthorizedStoryImageResource(
@@ -1797,7 +1809,7 @@ export function HeartMomentProductPage({
                       'HEART_MOMENT',
                       heartMoment.id,
                       id,
-                      { signal, variant: 'thumbnail' },
+                      { signal, variant: 'thumbnail', persist: shared },
                     )
                   }
                   loadPlayback={(id, signal) =>

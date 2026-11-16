@@ -57,6 +57,14 @@ closed can stay visible (online usually under a second, offline until the next
 successful response). Credentials, signed URLs, playback grants, video originals
 and non-image payloads do not enter the durable image store. Logout and
 Account/Space changes invalidate it.
+Images of `OWNER_ONLY` parents never enter the durable store either
+(M2-D18 #3): the private Media overview filter, the viewer's private Heart
+Moments (detail, editor and Timeline) and private People pass
+`persist: false`, and uploads not yet bound to a parent are never persisted.
+Such bytes stay in the session-memory caches only. Once a parent is known to
+be private, it stays session-only for the rest of the login even for a view
+that does not know its visibility, and any copy stored while it was still
+shared is removed.
 
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all

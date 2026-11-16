@@ -49,8 +49,8 @@
   margin: 0;
   font: var(--font-subpage-title);
   letter-spacing: var(--tracking-subpage-title);
-  /* Hyphenate long words before breaking them anywhere (320 px, 200 %). */
-  overflow-wrap: break-word;
+  /* Hyphenate where the language allows; never widen the page (320 px, 200 %). */
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 
@@ -84,7 +84,7 @@
 .page-heading-item-label {
   min-inline-size: 0;
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   hyphens: auto;
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);

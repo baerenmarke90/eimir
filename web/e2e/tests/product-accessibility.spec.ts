@@ -1,24 +1,24 @@
-import composer from '../../src/i18n/locales/composer';
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { fulfillNoWishSelectionRound } from '../support/productContext';
-import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import {
-  expectFloatingAddAction,
-  expectLabeledAddAction,
-} from '../support/addAction';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import gentleCopy from '../../src/i18n/locales/gentlePrompts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
-import gentleCopy from '../../src/i18n/locales/gentlePrompts';
-import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import privateArea from '../../src/i18n/locales/privateArea';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -925,10 +925,17 @@ for (const view of [
       }
       await route.fallback();
     });
+    // The area opens on the notes; this journey only passes through them.
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await page.goto('/more/private');
     await signIn(page);
     await page
-      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .getByRole('link', {
+        name: privateArea.partnerNotes.shortTitle,
+        exact: true,
+      })
       .click();
     await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
@@ -1087,7 +1094,7 @@ for (const view of [
     await page
       .getByRole('link', { name: privateArea.backToHub, exact: true })
       .click();
-    await expect(page).toHaveURL(/\/more\/private$/);
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
     await page.goto('/more/profile');
     await expect(
       page.getByText('Book the cabin for autumn', { exact: true }),

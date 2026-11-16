@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
@@ -10,6 +9,7 @@ import reflections from '../../src/i18n/locales/relationshipReflections';
 import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
 import copy from '../../src/i18n/locales/wirDesign';
 import { expectFloatingAddAction } from '../support/addAction';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
@@ -1048,6 +1048,11 @@ for (const [width, theme] of [
         });
       if (path === '/api/v1/account/photo-location-preference')
         return route.fulfill({ json: { enabled: false, version: 1 } });
+      // The private area opens on its notes.
+      if (request.method() === 'GET' && path.endsWith('/private/notes'))
+        return route.fulfill({
+          json: { hasMore: false, items: [], nextCursor: null },
+        });
       return route.fallback();
     });
     await signIn(page);

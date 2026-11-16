@@ -2,8 +2,8 @@ import { type ReactNode, useState } from 'react';
 import type { MediaType } from '../api/generated/models/MediaType';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
-import type { VideoSource } from '../client/video';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
+import type { VideoSource } from '../client/video';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
@@ -39,6 +39,7 @@ export function PhotoDraftGallery({
   onSensitive,
   onRemove,
   onRetry,
+  onEdit,
   removeLabel,
   resourceScopeKey = 'draft-gallery',
   onOrderChange,
@@ -54,6 +55,8 @@ export function PhotoDraftGallery({
   onSensitive?: (key: string, value: boolean) => void;
   onRemove: (key: string) => void;
   onRetry?: (key: string) => void;
+  /** Opens the photo edit step for a selected, not yet saved photo (#1907 G1). */
+  onEdit?: (key: string) => void;
   removeLabel?: (key: string) => string;
   resourceScopeKey?: string;
 }) {
@@ -232,6 +235,22 @@ export function PhotoDraftGallery({
                         <span>{t('experiences.chooseCover')}</span>
                       </button>
                     )
+                  ) : null}
+                  {addAction &&
+                  onEdit &&
+                  item.draft &&
+                  !isVideo(item) &&
+                  !selectedPhotoUnavailable(item.draft.file) ? (
+                    <button
+                      type="button"
+                      className="photo-draft-stage-edit media-overlay"
+                      disabled={disabled}
+                      aria-label={t('photoEdit.editLabel', { name: item.name })}
+                      onClick={() => onEdit(item.key)}
+                    >
+                      <EimirIcon name="crop" />
+                      <span aria-hidden="true">{t('photoEdit.edit')}</span>
+                    </button>
                   ) : null}
                   {addAction && item.canRemove !== false ? (
                     <button

@@ -2323,6 +2323,29 @@
     "confirm": "Use photo",
     "confirming": "Preparing…"
   },
+  "photoEdit": {
+    "edit": "Edit",
+    "editLabel": "Edit photo: {{name}}",
+    "title": "Edit photo",
+    "help": "Move and zoom the photo inside the frame. The photo keeps its date and place.",
+    "stageLabel": "Move the photo inside the frame",
+    "keyboardHelp": "The arrow keys move the photo. Plus and minus zoom in or out, zero resets the section.",
+    "aspect": "Format",
+    "aspects": {
+      "original": "Original",
+      "square": "Square",
+      "classic": "4:3",
+      "classic_portrait": "3:4",
+      "wide": "16:9",
+      "wide_portrait": "9:16"
+    },
+    "turn": "Rotate",
+    "zoom": "Size",
+    "confirm": "Apply",
+    "confirming": "Preparing…",
+    "unavailable": "This photo cannot be edited on this device.",
+    "edited": "Edited"
+  },
   "photoSources": {
     "settingsTitle": "Media sources",
     "settingsIntro": "Connect your photo service for new moments.",

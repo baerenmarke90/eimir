@@ -1,0 +1,149 @@
+/* The frame is the stage: its shape follows the chosen aspect and it never
+   grows taller than about half the viewport, so the tools stay reachable. */
+.photo-edit-stage {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 24rem, calc(48dvh * var(--photo-edit-ratio, 1)));
+  aspect-ratio: var(--photo-edit-ratio, 1);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--radius-media);
+  background: var(--color-surface-subtle);
+  touch-action: none;
+  user-select: none;
+}
+
+.photo-edit-stage:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Thirds guide: a quiet composition aid over the photo. */
+.photo-edit-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--media-overlay-foreground);
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      var(--media-overlay-foreground),
+      var(--media-overlay-foreground)
+    )
+    33.333% 0 / 1px 100% no-repeat,
+    linear-gradient(
+      var(--media-overlay-foreground),
+      var(--media-overlay-foreground)
+    )
+    66.666% 0 / 1px 100% no-repeat,
+    linear-gradient(
+      var(--media-overlay-foreground),
+      var(--media-overlay-foreground)
+    )
+    0 33.333% / 100% 1px no-repeat,
+    linear-gradient(
+      var(--media-overlay-foreground),
+      var(--media-overlay-foreground)
+    )
+    0 66.666% / 100% 1px no-repeat;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.photo-edit-turned {
+  position: relative;
+}
+
+.photo-edit-photo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  max-width: none;
+  max-height: none;
+  -webkit-user-drag: none;
+}
+
+.photo-edit-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.photo-edit-aspects {
+  display: flex;
+  flex: 1 1 14rem;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.photo-edit-aspect {
+  position: relative;
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-width: 0;
+  min-height: var(--touch-target-web);
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.photo-edit-aspect input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.photo-edit-aspect:has(input:checked) {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-soft);
+}
+
+.photo-edit-aspect:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.photo-edit-turn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.photo-edit-turn > .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+@media (forced-colors: active) {
+  .photo-edit-stage::after {
+    border-color: CanvasText;
+    background: none;
+  }
+
+  .photo-edit-aspect:has(input:checked) {
+    outline: 2px solid Highlight;
+  }
+}

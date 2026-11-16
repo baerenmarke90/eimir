@@ -3,6 +3,7 @@ import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
+import { waitForSettledMotion } from '../support/settledMotion';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -25,6 +26,7 @@ const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
+  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',
@@ -2012,9 +2014,6 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
-  // Contrast is measured on the settled page, not mid route-entry fade.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);

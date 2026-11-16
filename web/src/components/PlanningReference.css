@@ -1116,10 +1116,9 @@
   content: none;
 }
 
-/* Momente's switch has unequal segments and one of them is its own page, so
-   it keeps the plain active state. */
+/* The sliding mark supplies the shadow. The active button supplies its own
+   background under the label when the mark lands, including at layout zoom. */
 .planen-segmented:not(.story-view-tabs) > .planen-segment.is-active {
-  background: transparent;
   box-shadow: none;
 }
 
@@ -1130,9 +1129,19 @@
       width var(--duration-transition) var(--easing-standard);
   }
 
+  .planen-segmented:not(.story-view-tabs) > .planen-segment.is-active {
+    animation: planen-segment-fill var(--duration-transition) step-end;
+  }
+
   .planen-panel:not([hidden]),
   .story-page-unified [role="tabpanel"]:not([hidden]) {
     animation: planen-panel-in var(--duration-transition) var(--easing-enter);
+  }
+}
+
+@keyframes planen-segment-fill {
+  from {
+    background-color: transparent;
   }
 }
 

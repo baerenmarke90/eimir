@@ -11,6 +11,7 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import { waitForSettledMotion } from '../support/settledMotion';
 import experiences from '../../src/i18n/locales/experiences';
 import importantDates from '../../src/i18n/locales/importantDates';
 import memoryMap from '../../src/i18n/locales/memoryMap';
@@ -486,6 +487,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
     await expectNoHorizontalOverflow(page);
 
+    await waitForSettledMotion(page);
     const result = await new AxeBuilder({ page })
       .withTags([
         'wcag2a',
@@ -551,6 +553,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
     ).toBeVisible();
 
+    await waitForSettledMotion(page);
     const result = await new AxeBuilder({ page })
       .withTags([
         'wcag2a',

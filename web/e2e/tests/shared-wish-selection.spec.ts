@@ -1,4 +1,5 @@
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { waitForSettledMotion } from '../support/settledMotion';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
@@ -512,6 +513,7 @@ for (const scenario of [
         () => document.documentElement.scrollWidth - window.innerWidth,
       ),
     ).toBeLessThanOrEqual(1);
+    await waitForSettledMotion(page);
     const findings = await new AxeBuilder({ page })
       .include('.wish-selection-task')
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])

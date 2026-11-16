@@ -11,6 +11,7 @@ import {
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 /**
  * #969: Timeline cards lead with content, not taxonomy. Kind badges, the
@@ -765,6 +766,7 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     await capture(page, testInfo, '11-timeline-390-dark-full.png', {
       fullPage: true,
     });
+    await waitForSettledMotion(page);
     const results = await new AxeBuilder({ page })
       .include('.story-timeline-months')
       .withTags(WCAG_TAGS)
@@ -776,6 +778,7 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     page,
   }) => {
     await openTimeline(page, { width: 390, height: 844 });
+    await waitForSettledMotion(page);
     const results = await new AxeBuilder({ page })
       .include('.story-timeline-months')
       .withTags(WCAG_TAGS)

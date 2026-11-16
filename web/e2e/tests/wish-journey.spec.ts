@@ -12,6 +12,7 @@ import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 /*
  * #1790 F2: a wish's journey (wished, planned, experienced, remembered) is
@@ -474,6 +475,7 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
+  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

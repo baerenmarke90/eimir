@@ -13,6 +13,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishDateProposal } from '../support/productContext';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 /*
  * #1816: a completed wish can be experienced again. The repeat is a new wish
@@ -338,6 +339,7 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
+  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

@@ -17,6 +17,7 @@ import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -30,6 +31,7 @@ const LONG_DATE_LABEL =
   'Our first shared seaside holiday and the beginning of an exceptionally long journey together';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
+  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',

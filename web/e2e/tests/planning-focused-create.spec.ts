@@ -13,6 +13,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
 import { expectLabeledComposerTool } from '../support/addAction';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -355,6 +356,7 @@ for (const scenario of [
     await expectNoHorizontalOverflow(page);
 
     if (scenario.name === '320-light') {
+      await waitForSettledMotion(page);
       const result = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
         .analyze();

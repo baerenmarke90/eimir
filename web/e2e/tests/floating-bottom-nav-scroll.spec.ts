@@ -8,6 +8,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame } from '../support/mediaCarouselGesture';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -802,17 +803,6 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       ),
     ).toBe('none');
 
-    const finishEntry = () =>
-      page.locator('main.product-main').evaluate(async (element) => {
-        // Contrast should be measured once both the route and its content
-        // have finished entering.
-        const finite = element
-          .getAnimations({ subtree: true })
-          .filter((animation) =>
-            Number.isFinite(animation.effect?.getComputedTiming().endTime),
-          );
-        await Promise.allSettled(finite.map((animation) => animation.finished));
-      });
     const more = page.locator('.mobile-bottom-nav a[href="/more"]');
     await more.focus();
     await expect(more).toBeFocused();
@@ -825,13 +815,13 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     );
     await notifications.focus();
     await expect(notifications).toBeFocused();
-    await finishEntry();
+    await waitForSettledMotion(page);
     const moreAxe = await new AxeBuilder({ page })
       .include('.more-page')
       .analyze();
     expect(moreAxe.violations).toEqual([]);
     await page.goBack();
-    await finishEntry();
+    await waitForSettledMotion(page);
     const axe = await new AxeBuilder({ page }).include('.today-hero').analyze();
     expect(axe.violations).toEqual([]);
 

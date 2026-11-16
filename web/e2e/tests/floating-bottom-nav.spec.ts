@@ -7,6 +7,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
+import { waitForSettledMotion } from '../support/settledMotion';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -869,6 +870,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
 
     await page.goto('/games');
     await waitForGamesHub(page);
+    await waitForSettledMotion(page);
     const gamesAxe = await new AxeBuilder({ page }).analyze();
     expect(gamesAxe.violations).toEqual([]);
 

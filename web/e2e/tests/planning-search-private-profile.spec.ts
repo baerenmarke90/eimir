@@ -255,7 +255,7 @@ for (const view of [
     }
     await expect(
       page.getByRole('link', {
-        name: wishSelection.compactEntryAction,
+        name: wishSelection.entryStart,
         exact: true,
       }),
     ).toHaveCount(0);
@@ -348,14 +348,13 @@ for (const view of [
       'Z',
     ]);
     await expect(page.locator('.planen-wish-chevron')).toHaveCount(0);
+    // One slim entry row with one filled action (#1907 J1).
     const selection = page.getByRole('link', {
-      name: wishSelection.compactEntryAction,
+      name: wishSelection.entryStart,
       exact: true,
     });
-    await expect(selection.locator('.eimir-icon')).toHaveCSS(
-      'width',
-      view.large ? '40px' : '20px',
-    );
+    await expect(selection).toBeVisible();
+    expect((await selection.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     await captureScreenshot(
       page,
       info,

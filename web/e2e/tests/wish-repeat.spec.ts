@@ -11,7 +11,10 @@ import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillNoWishDateProposal } from '../support/productContext';
+import {
+  fulfillNoWishDateProposal,
+  fulfillNoWishSelectionRound,
+} from '../support/productContext';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { waitForSettledMotion } from '../support/settledMotion';
 
@@ -306,6 +309,7 @@ async function installMocks(page: Page): Promise<RepeatState> {
       );
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillNoWishSelectionRound(route)) return;
     state.unexpected.push(`${method} ${pathname}`);
     return json(
       {

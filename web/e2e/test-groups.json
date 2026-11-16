@@ -153,9 +153,10 @@
       "baselineTests": 20,
       "reason": "Feature-owned Moments Album design (#1960): Album default, Compact and Expanded, Light and Dark, 320px and 200% text reflow, reduced motion, axe, and the setting that restores the compact list."
     },
-    "optional-product-tour.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 2
+    "quiet-hints.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 3,
+      "reason": "Feature-owned #1907 I1 acceptance: Wir move-in with its one action and invitation link, the one-time connected moment and its same-day line after reload, one action in empty Momente, plans and wishes, and the personal wish-to-plan tip that retires after Got it across reload, with focus, axe, reflow and Compact/Expanded Light/Dark captures."
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",

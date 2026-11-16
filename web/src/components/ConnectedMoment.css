@@ -1,0 +1,112 @@
+.connected-moment {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  margin-block: var(--space-2) var(--space-4);
+  text-align: center;
+}
+
+.connected-moment-mark {
+  position: relative;
+  display: block;
+  inline-size: 7.5rem;
+  block-size: 2.75rem;
+}
+
+.connected-moment-own,
+.connected-moment-partner {
+  position: absolute;
+  inset-block-start: 0;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: var(--radius-pill);
+}
+
+.connected-moment-own {
+  inset-inline-start: calc(50% - 1.45rem);
+  background: var(--person-own-accent, var(--color-brand));
+}
+
+.connected-moment-partner {
+  inset-inline-start: calc(50% - 0.3rem);
+  background: var(--person-partner-accent, var(--color-shared));
+  box-shadow: 0 0 0 0.15rem var(--color-surface);
+}
+
+.connected-moment-mark svg {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  inline-size: 100%;
+  block-size: 1rem;
+  fill: none;
+  stroke: var(--person-own-accent, var(--color-brand));
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.connected-moment-title {
+  margin: 0;
+  color: var(--color-text);
+  font: var(--font-story-summary);
+}
+
+.connected-moment-line {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .connected-moment[data-playing] .connected-moment-partner {
+    animation: connected-moment-join var(--duration-gesture-moment)
+      var(--easing-enter) both;
+  }
+
+  .connected-moment[data-playing] .connected-moment-mark svg {
+    animation: connected-moment-draw var(--duration-gesture-moment)
+      var(--easing-standard) var(--duration-context) both;
+  }
+
+  .connected-moment[data-playing] :is(h2, p) {
+    animation: connected-moment-rise var(--duration-context) var(--easing-enter)
+      var(--duration-gesture-moment) both;
+  }
+}
+
+@keyframes connected-moment-join {
+  from {
+    opacity: 0;
+    transform: translateX(2.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes connected-moment-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes connected-moment-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

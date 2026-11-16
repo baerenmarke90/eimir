@@ -402,11 +402,17 @@
         "web/src/components/ProfileAppearancePanel.tsx"
       ]
     },
-    "optional-product-tour.spec.ts": {
+    "quiet-hints.spec.ts": {
       "roots": [
-        "web/src/client/productTour.tsx",
+        "web/src/client/quietHints.ts",
+        "web/src/client/connectedMoment.ts",
+        "web/src/client/firstContentSettle.ts",
+        "web/src/components/QuietHint.tsx",
+        "web/src/components/ConnectedMoment.tsx",
+        "web/src/components/FirstStepAction.tsx",
+        "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MomentCreateMenu.tsx"
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "partner-nickname.spec.ts": {
@@ -998,6 +1004,13 @@
       "roots": [
         "web/src/components/WishDetectiveGamePage.tsx",
         "web/src/components/GamesProductArea.tsx"
+      ]
+    },
+    "picture-ping-pong.spec.ts": {
+      "roots": [
+        "web/src/components/PicturePingPongPage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/client/picturePingPong.ts"
       ]
     },
     "chapter-experience.spec.ts": {

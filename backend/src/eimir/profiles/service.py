@@ -413,10 +413,14 @@ def profile_preferences(
                 ProfilePreference.account_id == subject.id,
                 ProfilePreference.visibility == ProfileVisibility.SELF_PROFILE.value,
             )
-            .order_by(ProfilePreference.category, ProfilePreference.topic, ProfilePreference.id)
+            .order_by(ProfilePreference.category, ProfilePreference.id)
         )
         .scalars()
         .all()
+    )
+    # The topic is protected content, so the database cannot sort by it.
+    preferences = sorted(
+        preferences, key=lambda item: (item.category, item.topic.casefold(), item.topic, item.id)
     )
     return profile, subject, preferences
 
@@ -499,10 +503,9 @@ def create_preference(
         profile_id=profile_id,
         account_id=subject.id,
         category=category.value,
-        topic=_clean_topic(topic),
         sentiment=sentiment.value,
         visibility=visibility.value,
-        payload=ProfilePreferencePayload(value=_clean_value(value)),
+        payload=ProfilePreferencePayload(value=_clean_value(value), topic=_clean_topic(topic)),
     )
     session.add(preference)
     session.flush()
@@ -528,9 +531,11 @@ def update_preference(
         )
 
     preference.category = category.value
-    preference.topic = _clean_topic(topic)
+    preference.legacy_topic = None
     preference.sentiment = sentiment.value
-    preference.payload = ProfilePreferencePayload(value=_clean_value(value))
+    preference.payload = ProfilePreferencePayload(
+        value=_clean_value(value), topic=_clean_topic(topic)
+    )
 
     try:
         session.flush()

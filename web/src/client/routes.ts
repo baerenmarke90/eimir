@@ -252,6 +252,7 @@ export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
 export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 export const GAMES_GARDEN_ROUTE = '/games/garden';
 export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
+export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
 
 /* Story content ---------------------------------------------------------- */
 

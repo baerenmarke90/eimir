@@ -3826,6 +3826,7 @@
           "PLACE",
           "CHAPTER",
           "COLLECTION",
+          "PICTURE_GAME",
           "GARDEN_SEED"
         ],
         "title": "EngagementTarget",
@@ -7348,6 +7349,7 @@
           "WISH_DATE_COUNTERED",
           "WISH_DATE_ACCEPTED",
           "COLLECTION_SENT",
+          "PICTURE_PING_PONG_TURN",
           "GARDEN_SEED_ARRIVED"
         ],
         "title": "NotificationKind",
@@ -9147,6 +9149,237 @@
           "consent"
         ],
         "title": "PhotoSourceConnectionCreate",
+        "type": "object"
+      },
+      "PictureColour": {
+        "enum": [
+          "PERSON",
+          "INK",
+          "SUN"
+        ],
+        "title": "PictureColour",
+        "type": "string"
+      },
+      "PictureFinishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "turnsDone": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Turnsdone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turnsDone"
+        ],
+        "title": "PictureFinishInput",
+        "type": "object"
+      },
+      "PicturePingPongState": {
+        "properties": {
+          "picture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PicturePingPongView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PicturePingPongState",
+        "type": "object"
+      },
+      "PicturePingPongView": {
+        "properties": {
+          "drawerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whose turn it is; absent once finished.",
+            "title": "Drawerid"
+          },
+          "finishedEarly": {
+            "title": "Finishedearly",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "maxTurns": {
+            "title": "Maxturns",
+            "type": "integer"
+          },
+          "savedMemoryId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Memory the finished picture was saved to, if the couple chose so.",
+            "title": "Savedmemoryid"
+          },
+          "startedBy": {
+            "format": "uuid",
+            "title": "Startedby",
+            "type": "string"
+          },
+          "status": {
+            "description": "`DRAWING` while turns remain, then `FINISHED`.",
+            "title": "Status",
+            "type": "string"
+          },
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/PictureStrokeView"
+            },
+            "title": "Strokes",
+            "type": "array"
+          },
+          "turnsDone": {
+            "title": "Turnsdone",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "drawerId",
+          "startedBy",
+          "turnsDone",
+          "maxTurns",
+          "finishedEarly",
+          "savedMemoryId",
+          "strokes",
+          "updatedAt"
+        ],
+        "title": "PicturePingPongView",
+        "type": "object"
+      },
+      "PictureSavedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ],
+        "title": "PictureSavedInput",
+        "type": "object"
+      },
+      "PictureStrokeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "colour": {
+            "$ref": "#/components/schemas/PictureColour"
+          },
+          "points": {
+            "description": "Flat `x0, y0, x1, y1, ...` list on a 0 to 1000 grid.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 480,
+            "minItems": 4,
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "colour",
+          "points"
+        ],
+        "title": "PictureStrokeInput",
+        "type": "object"
+      },
+      "PictureStrokeView": {
+        "properties": {
+          "authorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent for the starting squiggle.",
+            "title": "Authorid"
+          },
+          "colour": {
+            "$ref": "#/components/schemas/PictureColour"
+          },
+          "points": {
+            "description": "Flat `x0, y0, x1, y1, ...` list on a 0 to 1000 grid.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "turn": {
+            "description": "`0` is the starting squiggle; `1` to `6` are the turns.",
+            "title": "Turn",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn",
+          "authorId",
+          "colour",
+          "points"
+        ],
+        "title": "PictureStrokeView",
+        "type": "object"
+      },
+      "PictureTurnInput": {
+        "additionalProperties": false,
+        "properties": {
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/PictureStrokeInput"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Strokes",
+            "type": "array"
+          },
+          "turnsDone": {
+            "description": "The turn count this client saw; a mismatch is a conflict.",
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Turnsdone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turnsDone",
+          "strokes"
+        ],
+        "title": "PictureTurnInput",
         "type": "object"
       },
       "PlaceCreate": {
@@ -30564,6 +30797,399 @@
           }
         },
         "summary": "Get Game Moment Candidates",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong": {
+      "get": {
+        "description": "The current shared picture, or `null` when none was started.",
+        "operationId": "getPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      },
+      "post": {
+        "description": "Open a new picture; the partner who opens it draws first.",
+        "operationId": "startPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish": {
+      "post": {
+        "description": "Either partner may call the picture finished early.",
+        "operationId": "finishPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureFinishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Finish Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved": {
+      "post": {
+        "description": "Record the Memory the finished picture was saved to (explicit tap only).",
+        "operationId": "markPicturePingPongSaved",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureSavedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Mark Picture Ping Pong Saved",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns": {
+      "post": {
+        "description": "Add up to three strokes for the current turn and pass the picture on.",
+        "operationId": "handOverPicturePingPongTurn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureTurnInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Hand Over Picture Ping Pong Turn",
         "tags": [
           "games"
         ]

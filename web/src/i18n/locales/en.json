@@ -97,6 +97,11 @@
     "visibility": {
       "onlyYou": "Only you can see this"
     },
+    "accountId": {
+      "copy": "Copy account ID",
+      "copied": "Account ID copied",
+      "failed": "Copying did not work. Your account ID:"
+    },
     "eyebrow": "More",
     "title": "Everything else",
     "intro": "Personal details, shared lists and settings.",
@@ -563,7 +568,7 @@
       "experiencedPlans": "Experienced",
       "experiencedPlansEmpty": "No plans experienced together yet.",
       "experiencedOn": "Experienced on {{date}}",
-      "openPlansEmpty": "No open plans right now.",
+      "openPlansEmpty": "What are you looking forward to next?",
       "pastOpenPlans": "Date has passed",
       "wishScope": "Show wishes",
       "fulfilledWishes": "Fulfilled",
@@ -1571,9 +1576,9 @@
     }
   },
   "wirDesign": {
-    "title": "Us design",
-    "intro": "How your Us page feels. Only your view changes.",
-    "choices": "Your Us design",
+    "title": "App design",
+    "intro": "How eimir. feels for you. Only your view changes.",
+    "choices": "Your app design",
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
@@ -1603,7 +1608,7 @@
     "save": "Save choice",
     "saving": "Saving …",
     "selected": "Already selected",
-    "saved": "Your Us design is saved.",
+    "saved": "Your app design is saved.",
     "close": "Close",
     "conflict": "Your appearance has changed in the meantime. Load the latest version, then confirm your choice again.",
     "reload": "Load latest version",
@@ -3152,6 +3157,11 @@
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
       },
+      "pingPong": {
+        "role": "Feel close",
+        "title": "Picture ping-pong",
+        "description": "Take turns adding to one picture until it is finished."
+      },
       "heartHunt": {
         "role": "Be close",
         "title": "Heart hunt",
@@ -3232,6 +3242,56 @@
         "bottomLeft": "at the bottom left",
         "bottom": "at the bottom",
         "bottomRight": "at the bottom right"
+      }
+    },
+    "pingPong": {
+      "intro": "One picture, two hands: each of you draws up to three strokes and passes it on.",
+      "loadingTitle": "Fetching your picture",
+      "loadingBody": "You will see whose turn it is in a moment.",
+      "emptyEyebrow": "No picture yet",
+      "emptyTitle": "Start a picture.",
+      "emptyBody": "You begin with a small squiggle. After that you draw in turns, six turns long.",
+      "newPicture": "Start a new picture",
+      "canvasLabel": "Your shared picture",
+      "you": "You",
+      "partnerFallback": "Partner",
+      "turnYou": "Your turn",
+      "turnPartner": "{{name}} is up",
+      "strokesUsed": "{{count}} of {{max}} strokes",
+      "turnsLabel": "Turns",
+      "turnDone": "drawn",
+      "turnCurrent": "current",
+      "turnOpen": "still open",
+      "turnDot": "Turn {{turn}} of {{total}}, {{name}}, {{state}}",
+      "colourLegend": "Choose a colour",
+      "colourOwn": "Your colour",
+      "colourInk": "Ink",
+      "colourSun": "Sun yellow",
+      "undo": "Undo stroke",
+      "send": "Send to {{name}}",
+      "sentNote": "Sent. {{name}} is up now; you will be told when it continues.",
+      "waitingNote": "The picture is waiting for {{name}}. You will be told when it is your turn again.",
+      "changedMeanwhile": "Something changed in the meantime. The picture was reloaded.",
+      "finishEarly": "Finish the picture now",
+      "finishConfirm": "The picture will be complete and you can put it into Moments.",
+      "finishConfirmAction": "Yes, finish",
+      "finishKeep": "Keep drawing",
+      "doneTitle": "Your picture is finished",
+      "doneBody": "Give it a name and keep it, if you like.",
+      "titleLegend": "What should it be called?",
+      "saveToMoments": "Put into Moments",
+      "saving": "Saving …",
+      "saved": "Put into Moments.",
+      "openMoment": "View moment",
+      "memoryBody": "Drawn together with {{name}}.",
+      "backToGames": "Back to Games",
+      "titles": {
+        "one": "Our artwork",
+        "two": "Drawn between us",
+        "three": "Little scribble",
+        "four": "Two hands, one picture",
+        "five": "From here to there",
+        "six": "Our doodle"
       }
     },
     "momentsGame": {
@@ -3479,6 +3539,7 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "PICTURE_PING_PONG_TURN": "{{name}} added to your picture. It is your turn.",
       "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
@@ -4253,7 +4314,7 @@
       "body": "Manage account and sign-in status without accessing private relationship content.",
       "totalSuffix": "accounts",
       "search": "Search",
-      "searchPlaceholder": "Name, email or account ID",
+      "searchPlaceholder": "Email or account ID",
       "loading": "Loading accounts …",
       "error": "The account list could not be loaded.",
       "empty": "No matching accounts found.",
@@ -4690,32 +4751,29 @@
     "offline": "You are offline",
     "offlineBody": "Connect to the internet to load media."
   },
-  "productTour": {
-    "eyebrow": "Quick introduction",
-    "replay": "Get to know eimir.",
-    "later": "Later",
-    "start": "View",
-    "next": "Next",
-    "openCreate": "Open plus",
-    "invite": {
-      "title": "A quick look at eimir.",
-      "body": "If you like, we will show you the main places in four little steps."
+  "quietHints": {
+    "tipLabel": "Tip",
+    "newLabel": "New in eimir.",
+    "newTag": "New",
+    "gotIt": "Got it",
+    "hide": "Hide",
+    "firstPlan": "Create your first plan",
+    "firstWish": "Capture your first wish",
+    "moveIn": {
+      "solo": "Nothing is on the wall yet. Let's hang the first picture.",
+      "invite": "Invite your person"
     },
-    "today": {
-      "title": "Your shared home",
-      "body": "On Us, see what connects you right now and what is coming up next."
+    "connected": {
+      "title": "You are connected now.",
+      "since": "Here together since today"
     },
-    "story": {
-      "title": "Find moments again",
-      "body": "Discover brings familiar things back. Find your story in order in the timeline."
+    "tips": {
+      "planFromWish": "Is a wish getting concrete? Open it and turn it into a plan.",
+      "planFromWishAction": "Open wish"
     },
-    "plan": {
-      "title": "Wishes become plans",
-      "body": "Planning brings together ideas and concrete plans for your time together."
-    },
-    "create": {
-      "title": "Capture something",
-      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
+    "news": {
+      "waymarks": "Your waymarks: “Your story” now shows the special days behind you.",
+      "waymarksAction": "View"
     }
   },
   "photoReactions": {
@@ -5562,8 +5620,8 @@
           "body": "Choose to share how far apart you are or show your location on the map. You can stop sharing anytime."
         },
         "wirDesigns": {
-          "title": "More designs for Us",
-          "body": "Make your Us page your own with Our Album, Clear & modern or Classic."
+          "title": "More app designs",
+          "body": "Make eimir. your own with Our Album, Clear & modern or Classic."
         },
         "appIcons": {
           "title": "Alternative app icons",

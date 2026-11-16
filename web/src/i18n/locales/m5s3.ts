@@ -48,7 +48,7 @@ const m5s3 = {
     experiencedPlans: 'Erlebt',
     experiencedPlansEmpty: 'Noch keine gemeinsam erlebten Pläne.',
     experiencedOn: 'Erlebt am {{date}}',
-    openPlansEmpty: 'Gerade keine offenen Pläne.',
+    openPlansEmpty: 'Worauf freut ihr euch als Nächstes?',
     pastOpenPlans: 'Termin liegt zurück',
     wishScope: 'Wünsche anzeigen',
     fulfilledWishes: 'Erfüllt',

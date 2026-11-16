@@ -63,8 +63,10 @@ def quote(
     text = cut(comment.payload.body) if comment is not None else ""
     if comment is None or not text:
         return None
-    name = session.scalar(select(Account.display_name).where(Account.id == comment.owner_id))
-    return {"text": text, "author_id": comment.owner_id, "author_name": name or ""}
+    # The name is protected content, so the row is loaded and read in Python.
+    author = session.get(Account, comment.owner_id)
+    name = author.display_name if author is not None else ""
+    return {"text": text, "author_id": comment.owner_id, "author_name": name}
 
 
 def partners(session: Session, space_id: UUID) -> frozenset[UUID] | None:

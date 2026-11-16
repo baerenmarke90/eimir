@@ -164,9 +164,14 @@ topic (`profile_preferences.topic`), Place coordinates (`places.latitude`,
 NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows written
 earlier are moved as described in section 8, "Legacy plain columns".
 
-**Outside the ProtectedPayload boundary today:** account display names, email
-addresses, birthdays and relationship kinds of related persons, and the relationship
-start date. They are listed as follow-ups in section 12.
+Account display names (`accounts.display_name`) moved the same way with migration
+0149. Because a name inside a payload cannot be matched in SQL, the administration
+account search finds an account by e-mail address or by its complete account ID, which a
+person can copy from the More page of the app.
+
+**Outside the ProtectedPayload boundary today:** email addresses, birthdays and
+relationship kinds of related persons, and the relationship start date. They are listed
+as follow-ups in section 12.
 
 ## 6. Data flows
 
@@ -413,8 +418,8 @@ Known limits and follow-ups (deliberately not implemented here):
   rotation).
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
-- Columns outside the `ProtectedPayload` contract remain plaintext: display names,
-  e-mail addresses, birthdays, relationship kinds and the relationship start date. The
+- Columns outside the `ProtectedPayload` contract remain plaintext: e-mail addresses,
+  birthdays, relationship kinds and the relationship start date. The
   check-in day itself (who checked in on which date) stays plain metadata. `places.has_coordinates` (whether a place has a position,
   not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
   lookups, uniqueness and administrative search need them in SQL.
@@ -536,9 +541,9 @@ Product Owner decisions still required before the remaining items can be built:
   (a new scheme number and migration) before Cloud go-live.
 - **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
   and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
-  the partner-location position before them and the daily check-in values after them.
-  Display names, birthdays and relationship kinds are open follow-ups; e-mail addresses
-  stay plaintext.
+  the partner-location position before them, the daily check-in values and account
+  display names after them. Birthdays and relationship kinds are open follow-ups; e-mail
+  addresses stay plaintext.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

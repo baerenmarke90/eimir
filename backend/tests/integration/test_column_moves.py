@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from eimir.authorization import PrivacyClass
 from eimir.daily_checkins.models import DailyCheckIn
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
+from eimir.identity.models import Account
 from eimir.jobs.models import Job
 from eimir.places.models import Place, PlacePayload
 from eimir.profiles import service as profile_service
@@ -100,6 +101,7 @@ def test_values_in_legacy_columns_stay_readable_until_they_are_moved(
     assert (place.latitude, place.longitude) == (LATITUDE, LONGITUDE)
     assert preference.topic == TOPIC
     assert column_moves.pending(session) == {
+        "accounts": 0,
         "daily_check_ins": 0,
         "places": 1,
         "profile_preferences": 1,
@@ -121,6 +123,7 @@ def test_move_takes_the_values_into_the_payload_and_clears_the_columns(
     assert results["places"].converted == 1
     assert results["profile_preferences"].converted == 1
     assert column_moves.pending(session) == {
+        "accounts": 0,
         "daily_check_ins": 0,
         "places": 0,
         "profile_preferences": 0,
@@ -219,6 +222,7 @@ def test_worker_job_is_queued_only_while_values_remain(session: Session, space) 
     column_moves.handle_moves(session, {})
 
     assert column_moves.pending(session) == {
+        "accounts": 0,
         "daily_check_ins": 0,
         "places": 0,
         "profile_preferences": 0,
@@ -330,3 +334,54 @@ def test_new_check_in_keeps_its_values_out_of_the_plain_columns(
     session.flush()
     session.expire_all()
     assert (check_in.vibe, check_in.energy_level) == (None, 60)
+
+
+@pytest.mark.parametrize("mode", ["disabled", "required"])
+def test_account_name_moves_into_a_payload_the_table_did_not_have(
+    session: Session, encryption, mode: str
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply(mode)
+    account = Account(legacy_display_name="Marlene Before The Move")
+    session.add(account)
+    session.flush()
+    session.expire_all()
+    # Before the move: no payload yet, the name still reads from the column.
+    assert account.payload is None
+    assert account.display_name == "Marlene Before The Move"
+    before = _raw(session, "accounts", account.id, "version, updated_at")
+
+    results = column_moves.move_columns(session, get_payload_protector())
+
+    assert results["accounts"].converted == 1
+    name, stored, version = _raw(
+        session, "accounts", account.id, "display_name, payload::text, crypto_version"
+    )
+    assert name is None
+    if mode == "required":
+        assert json.loads(stored)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
+        assert version == CRYPTO_VERSION_SERVER_AEAD
+        assert "Marlene" not in stored
+    assert _raw(session, "accounts", account.id, "version, updated_at") == before
+    session.expire_all()
+    assert account.display_name == "Marlene Before The Move"
+
+
+def test_new_and_renamed_accounts_keep_the_name_out_of_the_plain_column(
+    session: Session, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    account = Account(display_name="Jonah New")
+    session.add(account)
+    session.flush()
+
+    name, stored = _raw(session, "accounts", account.id, "display_name, payload::text")
+    assert name is None
+    assert "Jonah" not in stored
+
+    account.display_name = "Jonah Renamed"
+    session.flush()
+    name, stored = _raw(session, "accounts", account.id, "display_name, payload::text")
+    assert name is None
+    assert "Renamed" not in stored
+    session.expire_all()
+    assert account.display_name == "Jonah Renamed"

@@ -161,8 +161,12 @@ def _verify_reconciled_state(scenario: Scenario, stale_owner_token: str) -> None
 
     _expect_scalar(
         scenario,
+        # The name is protected content (#797): the tombstone text is written
+        # into the account's payload and the legacy column stays empty. This
+        # scenario runs without encryption at rest, so the payload is readable.
         f"SELECT count(*) FROM accounts WHERE id = '{OWNER_ID}'::uuid "
-        "AND disabled_at IS NOT NULL AND display_name = 'Deleted account'",
+        "AND disabled_at IS NOT NULL AND display_name IS NULL "
+        "AND payload ->> 'display_name' = 'Deleted account'",
         "1",
     )
     _expect_scalar(

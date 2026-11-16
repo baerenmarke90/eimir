@@ -76,6 +76,11 @@
   --media-overlay-edge: #ffffff59;
   --media-overlay-foreground: #ffffff;
   --media-overlay-backdrop-blur: 8px;
+  --photo-mark-white: #ffffff;
+  --photo-mark-black: #1d2433;
+  --photo-mark-rose: #e8789a;
+  --photo-mark-blue: #3f73d1;
+  --photo-mark-yellow: #f6c445;
   --navigation-surface-opacity: 72%;
   --navigation-backdrop-blur: 24px;
   --map-dark-tile-filter: invert(1) hue-rotate(180deg) brightness(0.85)

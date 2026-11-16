@@ -163,7 +163,7 @@
     },
     "plan-files.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Plan-owned PDF create/edit, retry, browser download and native runtime viewer handoff."
     },
     "plan-inline-place-create.spec.ts": {
@@ -383,7 +383,7 @@
     },
     "session-retention.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
     },
     "photo-places.spec.ts": {
@@ -536,8 +536,13 @@
     },
     "profile-photo-crop.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition."
+      "baselineTests": 9,
+      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition. Turning before cropping saves the turned photo (#1907 G1)."
+    },
+    "photo-edit.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5,
+      "reason": "Feature-owned photo edit step before upload (#1907 G1): turn, frame handles, wheel zoom and pan under the fixed frame, pen, text with a typeface and the resize grip, then the edited photo replaces the draft and keeps its EXIF date and place; Compact 360/390/430 and Expanded 1280, Light and Dark, with and without reduced motion."
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -546,12 +551,12 @@
     },
     "polish-root-refresh.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
     },
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {

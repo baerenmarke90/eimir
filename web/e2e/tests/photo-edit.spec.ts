@@ -223,19 +223,21 @@ async function decodedSize(page: Page, body: Buffer) {
   }, body.toString('base64'));
 }
 
-test.use({
-  viewport: { width: 390, height: 844 },
-  video: { mode: 'on', size: { width: 390, height: 844 } },
-});
-
 for (const view of [
-  { width: 390, theme: 'light' },
-  { width: 390, theme: 'dark' },
+  { width: 360, height: 740, theme: 'light', motion: 'no-preference' },
+  { width: 390, height: 844, theme: 'light', motion: 'no-preference' },
+  { width: 390, height: 844, theme: 'dark', motion: 'no-preference' },
+  { width: 430, height: 932, theme: 'dark', motion: 'reduce' },
+  { width: 1280, height: 900, theme: 'light', motion: 'reduce' },
 ] as const) {
   test(`a selected photo is turned, cropped, drawn on and labelled before saving and keeps its date and place (${view.width} ${view.theme})`, async ({
     page,
   }, info) => {
-    await page.emulateMedia({ colorScheme: view.theme });
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: view.motion,
+    });
     const state = await installUploads(page);
     await signIn(page);
     await page.goto('/story/memories/new');
@@ -244,12 +246,12 @@ for (const view of [
     ).toBeVisible();
     const photo = await sidewaysLakePhoto(page);
     await page.locator('#memory-create-images').setInputFiles({
-      name: 'am see.jpg',
+      name: 'lake evening.jpg',
       mimeType: 'image/jpeg',
       buffer: photo,
     });
     const edit = page.getByRole('button', {
-      name: photoEdit.editLabel.replace('{{name}}', 'am see.jpg'),
+      name: photoEdit.editLabel.replace('{{name}}', 'lake evening.jpg'),
     });
     await expect(edit).toBeVisible();
     await expect.poll(() => state.bodies.size).toBe(1);
@@ -369,7 +371,7 @@ for (const view of [
     );
     const text = sheet.getByRole('textbox', { name: photoEdit.textLabel });
     await expect(text).toBeFocused();
-    await text.pressSequentially('Unser Abend am See', { delay: 30 });
+    await text.pressSequentially('Our evening at the lake', { delay: 30 });
     await captureScreenshot(
       page,
       info,

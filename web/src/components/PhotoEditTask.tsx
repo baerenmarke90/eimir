@@ -52,15 +52,18 @@ const TOOLS: readonly { tool: Tool; icon: EimirIconName }[] = [
 ];
 /**
  * Mark colours are content baked into the photo, not interface colour, so they
- * stay the same in Light and Dark. Prototype palette; to be tokenized.
+ * stay the same in Light and Dark (`photoMark` tokens).
  */
-const MARK_COLORS = [
-  { key: 'white', value: '#ffffff' },
-  { key: 'black', value: '#1d2433' },
-  { key: 'rose', value: '#e8789a' },
-  { key: 'blue', value: '#3f73d1' },
-  { key: 'yellow', value: '#f6c445' },
-] as const;
+const MARK_COLORS = ['white', 'black', 'rose', 'blue', 'yellow'] as const;
+type MarkColor = (typeof MARK_COLORS)[number];
+
+/** The token's value; canvas drawing cannot read CSS variables itself. */
+function markColor(key: MarkColor): string {
+  if (typeof document === 'undefined') return '';
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(`--photo-mark-${key}`)
+    .trim();
+}
 const HANDLES: readonly CropHandle[] = [
   'nw',
   'n',
@@ -229,7 +232,8 @@ export function PhotoEditTask({
   const [edit, setEdit] = useState<PhotoEdit>(emptyEdit);
   const [history, setHistory] = useState<Marks[]>([]);
   const [tool, setTool] = useState<Tool>('crop');
-  const [color, setColor] = useState<string>(MARK_COLORS[0].value);
+  const [colorKey, setColorKey] = useState<MarkColor>(MARK_COLORS[0]);
+  const color = markColor(colorKey) || 'white';
   const [font, setFont] = useState<TextFontKey>(TEXT_FONTS[0].key);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -1114,26 +1118,30 @@ export function PhotoEditTask({
                   <legend className="sr-only">{t('photoEdit.color')}</legend>
                   {MARK_COLORS.map((choice) => (
                     <label
-                      key={choice.key}
+                      key={choice}
                       className="photo-edit-color"
                       style={
-                        { '--photo-edit-swatch': choice.value } as CSSProperties
+                        {
+                          '--photo-edit-swatch': `var(--photo-mark-${choice})`,
+                        } as CSSProperties
                       }
                     >
                       <input
                         type="radio"
                         name={colorsId}
                         checked={
-                          (tool === 'text' && styledText
-                            ? styledText.color
-                            : color) === choice.value
+                          tool === 'text' && styledText
+                            ? styledText.color === markColor(choice)
+                            : colorKey === choice
                         }
-                        aria-label={t(`photoEdit.colors.${choice.key}`)}
+                        aria-label={t(`photoEdit.colors.${choice}`)}
                         disabled={rendering}
                         onChange={() => {
-                          setColor(choice.value);
+                          setColorKey(choice);
                           if (tool === 'text' && styledText)
-                            updateText(styledText.id, { color: choice.value });
+                            updateText(styledText.id, {
+                              color: markColor(choice) || 'white',
+                            });
                         }}
                       />
                     </label>

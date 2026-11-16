@@ -1,16 +1,16 @@
-import { MediaProcessingState } from './MediaProcessingState';
-import { useRef, useState, type ReactNode } from 'react';
-import { EimirIcon } from './EimirIcon';
-import { loadVideoSource } from '../client/video';
+import { type ReactNode, useRef, useState } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import type { PlanPhotoDraftController } from '../client/usePlanPhotoDrafts';
+import { loadVideoSource } from '../client/video';
 import { useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { DraftMediaPreview } from './DraftMediaPreview';
+import { EimirIcon } from './EimirIcon';
+import { MediaProcessingState } from './MediaProcessingState';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import './PlanPhotosEditor.css';
@@ -135,7 +135,7 @@ export function PlanPhotosEditor({
               }
             : undefined
         }
-        gallery={
+        gallery={(_, editDraft) =>
           controller.items.length ? (
             <PhotoDraftGallery
               addAction={
@@ -281,6 +281,16 @@ export function PlanPhotosEditor({
                 )?.draft;
                 if (draft) controller.uploads.retry(draft);
               }}
+              onEdit={
+                editDraft
+                  ? (key) => {
+                      const draft = controller.items.find(
+                        (item) => item.key === key,
+                      )?.draft;
+                      if (draft) editDraft(draft.id);
+                    }
+                  : undefined
+              }
             />
           ) : undefined
         }

@@ -162,3 +162,43 @@ export async function renderCroppedPhoto(
     lastModified: source.file.lastModified,
   });
 }
+
+/** Longest edge of a turned crop source; avatars are rendered far smaller. */
+const TURNED_SOURCE_MAX_EDGE = 2048;
+
+/**
+ * The photo turned a quarter counter-clockwise, as phone photo apps do, as a
+ * new crop source (#1907 G1). Resolves to `null` when the device cannot
+ * render it; the caller keeps the current source then.
+ */
+export async function turnPhotoCropSourceLeft(
+  source: PhotoCropSource,
+): Promise<PhotoCropSource | null> {
+  const scale = Math.min(
+    1,
+    TURNED_SOURCE_MAX_EDGE / Math.max(source.width, source.height),
+  );
+  const width = Math.max(1, Math.round(source.height * scale));
+  const height = Math.max(1, Math.round(source.width * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  context.imageSmoothingQuality = 'high';
+  context.translate(0, height);
+  context.rotate(-Math.PI / 2);
+  context.drawImage(source.image, 0, 0, height, width);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, CROPPED_PHOTO_TYPE, 0.95),
+  );
+  canvas.width = 0;
+  canvas.height = 0;
+  if (!blob?.size) return null;
+  return loadPhotoCropSource(
+    new File([blob], croppedFileName(source.file.name), {
+      type: CROPPED_PHOTO_TYPE,
+      lastModified: source.file.lastModified,
+    }),
+  );
+}

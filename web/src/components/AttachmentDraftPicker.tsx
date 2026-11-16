@@ -49,7 +49,16 @@ export function AttachmentDraftPicker({
   mediaTrigger?: (open: () => void) => ReactNode;
   pageWideDrop?: boolean;
   additionalActions?: ReactNode;
-  gallery?: ReactNode | ((addAction: ReactNode) => ReactNode);
+  /**
+   * A custom gallery. `editDraft` opens the edit step for a selected, not yet
+   * saved photo by its draft id, when this picker can replace drafts.
+   */
+  gallery?:
+    | ReactNode
+    | ((
+        addAction: ReactNode,
+        editDraft?: (draftId: string) => void,
+      ) => ReactNode);
   hasMedia?: boolean;
   id: string;
   selectedCoverKey?: string | null;
@@ -86,6 +95,10 @@ export function AttachmentDraftPicker({
     if (source) setEditing({ id: key, source });
     else setEditUnavailable(true);
   }
+  const editDraft =
+    replaceFile && presentation !== 'default'
+      ? (draftId: string) => void startEdit(draftId)
+      : undefined;
   const populated =
     hasMedia ?? (attachments.items.length > 0 || Boolean(gallery));
   const addAction =
@@ -139,7 +152,9 @@ export function AttachmentDraftPicker({
         data-has-media={populated}
       >
         <MediaActionGroup unframed>
-          {typeof gallery === 'function' ? gallery(addAction) : gallery}
+          {typeof gallery === 'function'
+            ? gallery(addAction, editDraft)
+            : gallery}
           {showItems && attachments.items.length > 0 ? (
             <PhotoDraftGallery
               key={JSON.stringify([
@@ -194,11 +209,7 @@ export function AttachmentDraftPicker({
                 const draft = attachments.items.find((item) => item.id === key);
                 if (draft) attachments.retry(draft);
               }}
-              onEdit={
-                replaceFile && presentation !== 'default'
-                  ? (key) => void startEdit(key)
-                  : undefined
-              }
+              onEdit={editDraft}
             />
           ) : null}
           <PhotoEditTask

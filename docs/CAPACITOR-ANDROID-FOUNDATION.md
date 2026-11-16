@@ -28,6 +28,7 @@ web/ (Vite + TypeScript)
   - `android.path`: `'../android'`
   - `android.minWebViewVersion`: `111` (the supported WebView floor; see [Supported WebView and browser floor](#supported-webview-and-browser-floor-1613))
   - `server.androidScheme`: `'https'` (`https://localhost` inside WebView)
+  - `server.errorPath`: `'webview-unsupported.html'` (static ES5 notice below the WebView floor or after a failed main-frame load, #1931)
   - `plugins.CapacitorHttp.enabled`: `true` (native cross-origin HTTP bridge)
 - **API Base Requirement (Fail-Closed)**:
   - In native mode (`Capacitor.isNativePlatform()`), the app **strictly requires** a non-empty `VITE_EIMIR_API_BASE_URL` pointing to a valid remote server (HTTP/HTTPS).
@@ -493,14 +494,27 @@ their vendor's WebView updates.
 - **SDK level is not a browser capability.** An API level says nothing about
   the installed WebView. Capacitor's `Bridge.isMinimumWebViewInstalled()`
   compares the actual provider's major version with `android.minWebViewVersion`.
-- **Below the floor.** Capacitor logs `System WebView is not supported` and
-  loads the app anyway. No in-app update notice is configured yet:
-  `server.errorPath` is unset, and showing one is a separate product decision.
+- **Below the floor** ([#1931](https://github.com/baerenmarke90/eimir/issues/1931)).
+  Capacitor logs `System WebView is not supported` and loads
+  `web/public/webview-unsupported.html` (`server.errorPath`) instead of the app.
+  The page reuses the PWA offline page's stylesheet. Its generated ES5 script
+  (`npm run i18n:generate`, copy from the `webViewNotice` locale resources)
+  compares the WebView's Chromium version with the same floor:
+  - Below the floor, it asks for an Android System WebView update, with one
+    action that opens the Play Store listing.
+  - Otherwise, the page was reached through a failed main-frame load, which
+    Capacitor also routes to `errorPath`. It then offers a retry of the app root.
+
+  `webViewFloor.test.ts` keeps the floor identical in `vite.config.ts`,
+  `capacitor.config.ts` and the notice, and keeps the notice script free of
+  syntax newer than ES5.
 - **Native acceptance lanes.** API 36 and 37.1 run with providers above the
   floor and must reach the bundled interface (`RuntimeRecoveryTest` waits for it
   whenever `isMinimumWebViewInstalled()` is true). The stock API 28 image
   (Chromium 69) is the explicit native-only legacy lane. It keeps its native
   adapter, launcher, frame, real crash/recovery, picker, privacy, signing and
-  source checks, and it is not counted as Web-product acceptance. If the
+  source checks, and it is not counted as Web-product acceptance. There
+  `RuntimeRecoveryTest` requires the painted update notice instead and captures
+  `webview-update-notice.png`. If the
   configured floor were missing, the API 28 lane would have to show the bundled
   interface and fail, so the classification cannot pass silently.

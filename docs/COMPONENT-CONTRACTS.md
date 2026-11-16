@@ -564,6 +564,16 @@ retains visible feeling radios and its separate visibility task.
   stays as selected.
 - Motion: the frame re-centres with `--duration-transition`; reduced motion
   moves it at once.
+- Saved photos (Product Owner, 2026-11-16): only inside the entry's own edit
+  mode (`Bearbeiten` on the Memory, Plan or HeartMoment), never from reading
+  it, a saved image the viewer may remove shows the same overlay action. The
+  sheet says that the edited photo replaces the saved one when the entry is
+  saved. Nothing changes before that save; cancelling the entry edit keeps the
+  saved photo. On save the edited photo takes the original's position, cover
+  and sensitivity, the gallery write names the replaced photo
+  (`replacesAttachmentId`), the original is deleted like any removed photo,
+  photo reactions move to the edited photo, and its location creates no second
+  Place. There is no server copy of the unedited original.
 
 ### 10.2 Avatar Pair
 

@@ -2331,6 +2331,7 @@
     "edit": "Edit",
     "editLabel": "Edit photo: {{name}}",
     "title": "Edit photo",
+    "replacesSaved": "The edited photo replaces the saved one when you save the entry.",
     "tools": "Tool",
     "toolNames": {
       "crop": "Crop",

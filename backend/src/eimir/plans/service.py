@@ -602,6 +602,7 @@ def update_plan(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    photo_replacements: dict[UUID, UUID] | None = None,
     add_file_attachment_ids: list[UUID] | None = None,
     remove_file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
@@ -620,7 +621,7 @@ def update_plan(
 
     if "attachments" in changed_fields:
         assert photos is not None
-        replace_photos(session, context, plan, photos)
+        replace_photos(session, context, plan, photos, replacements=photo_replacements)
         plan.updated_at = now()
     elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
         replace_cover(

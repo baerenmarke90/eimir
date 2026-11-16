@@ -55,7 +55,10 @@ export function PhotoDraftGallery({
   onSensitive?: (key: string, value: boolean) => void;
   onRemove: (key: string) => void;
   onRetry?: (key: string) => void;
-  /** Opens the photo edit step for a selected, not yet saved photo (#1907 G1). */
+  /**
+   * Opens the photo edit step (#1907 G1): for a selected photo, and for a saved
+   * one the viewer may remove, which the edit then replaces.
+   */
   onEdit?: (key: string) => void;
   removeLabel?: (key: string) => string;
   resourceScopeKey?: string;
@@ -238,9 +241,12 @@ export function PhotoDraftGallery({
                   ) : null}
                   {addAction &&
                   onEdit &&
-                  item.draft &&
                   !isVideo(item) &&
-                  !selectedPhotoUnavailable(item.draft.file) ? (
+                  (item.draft
+                    ? !selectedPhotoUnavailable(item.draft.file)
+                    : Boolean(item.loadMedia) &&
+                      item.canRemove !== false &&
+                      (item.status ?? 'READY') === 'READY') ? (
                     <button
                       type="button"
                       className="photo-draft-stage-edit media-overlay"

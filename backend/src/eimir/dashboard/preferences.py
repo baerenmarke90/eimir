@@ -49,6 +49,7 @@ class DashboardModuleKey(StrEnum):
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
+    PINNED_NOTE = "pinned_note"
     KEEPSAKE = "keepsake"
     RETROSPECTIVE = "retrospective"
     RELATIONSHIP_SIGNAL = "relationship_signal"
@@ -125,6 +126,9 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         default_visible=True,
         selects_collection=True,
     ),
+    # #1969: pinned shared notes. The note itself carries the pin, so unlike the
+    # list module this one selects nothing per person; it is only hideable and movable.
+    DashboardModuleDefinition(key=DashboardModuleKey.PINNED_NOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RETROSPECTIVE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.MONTHLY_HIGHLIGHTS, default_visible=True),
@@ -234,6 +238,7 @@ def set_module_order(
         DashboardModuleKey.SHARED_EXPERIENCE.value,
         DashboardModuleKey.RETROSPECTIVE.value,
         DashboardModuleKey.PARTNER_DISTANCE.value,
+        DashboardModuleKey.PINNED_NOTE.value,
     }
     missing = expected - set(module_keys)
     if (

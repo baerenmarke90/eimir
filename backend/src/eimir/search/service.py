@@ -48,6 +48,7 @@ from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
 from eimir.private_notes.models import PrivateNote
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes.models import Wish
 
 DEFAULT_LIMIT = 25
@@ -73,6 +74,7 @@ class SearchKind(StrEnum):
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
     COLLECTION_ITEM = "COLLECTION_ITEM"
+    SHARED_NOTE = "SHARED_NOTE"
     PRIVATE_NOTE = "PRIVATE_NOTE"
     GIFT_IDEA = "GIFT_IDEA"
     PRIVATE_COLLECTION = "PRIVATE_COLLECTION"
@@ -354,6 +356,17 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             lambda row: row.payload.title,
             _none,
             parent=Collection,
+        ),
+    ),
+    SearchKind.SHARED_NOTE: (
+        _Source(
+            SearchKind.SHARED_NOTE,
+            SearchScope.SHARED,
+            SharedNote,
+            (("title", "A"), ("body", "B")),
+            # A note may have no title: show the start of its text instead.
+            lambda row: row.payload.title or _bounded(row.payload.body.split("\n", 1)[0]),
+            lambda row: _bounded(row.payload.body),
         ),
     ),
     SearchKind.PRIVATE_NOTE: (

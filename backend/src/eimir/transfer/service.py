@@ -74,7 +74,13 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones", "milestone_plans"),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans", "plan_attachments", "plan_file_attachments", "plan_collections"),
+    "plans.json": (
+        "plans",
+        "plan_attachments",
+        "plan_file_attachments",
+        "plan_collections",
+        "plan_notes",
+    ),
     "places.json": (
         "places",
         "place_memories",
@@ -88,6 +94,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
         "chapter_heart_moments",
     ),
     "collections.json": ("collections", "collection_items", "collection_suggestions"),
+    "shared-notes.json": ("shared_notes",),
     "reminders.json": ("reminders", "reminder_offsets", "reminder_preferences"),
     "rules.json": ("rule_preferences",),
     "recaps.json": ("recap_editions", "recap_sources", "recap_reflections"),
@@ -115,6 +122,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "plan_collections": (("plan_id", "plans"), ("collection_id", "collections")),
+    "plan_notes": (("plan_id", "plans"), ("note_id", "shared_notes")),
     "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
     "heart_moment_plans": (("heart_moment_id", "heart_moments"), ("plan_id", "plans")),
     "milestone_plans": (("milestone_id", "milestones"), ("plan_id", "plans")),
@@ -131,7 +139,9 @@ RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
 }
 # Columns that reference a member account. ``completed_by`` is optional (#1808):
 # an item completed before the actor was recorded has none.
-ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id", "completed_by"})
+ACCOUNT_REFERENCE_COLUMNS = frozenset(
+    {"owner_id", "created_by", "account_id", "completed_by", "edited_by"}
+)
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
@@ -149,6 +159,7 @@ INSERT_ORDER = (
     "collections",
     "collection_items",
     "collection_suggestions",
+    "shared_notes",
     "private_notes",
     "gift_ideas",
     "private_collections",
@@ -167,6 +178,7 @@ INSERT_ORDER = (
     "milestone_plans",
     "memory_wishes",
     "plan_collections",
+    "plan_notes",
     "place_memories",
     "place_milestones",
     "place_heart_moments",

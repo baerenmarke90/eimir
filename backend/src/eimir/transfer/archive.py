@@ -46,6 +46,7 @@ _ALLOWED_ROOT_FILES = {
     "places.json",
     "chapters.json",
     "collections.json",
+    "shared-notes.json",
     "reminders.json",
     "rules.json",
     "recaps.json",

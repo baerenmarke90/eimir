@@ -102,6 +102,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
         "keepsake",
         "upcoming",
         "pinned_collection",
+        "pinned_note",
         "retrospective",
         "relationship_signal",
         "monthly_highlights",
@@ -202,6 +203,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
             {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
             {"moduleKey": "pinned_collection", "visible": True},
+            {"moduleKey": "pinned_note", "visible": True},
             {"moduleKey": "retrospective", "visible": True},
             {"moduleKey": "relationship_signal", "visible": True},
             {"moduleKey": "monthly_highlights", "visible": True},
@@ -235,6 +237,7 @@ def test_unknown_module_is_rejected_and_fails_closed(
     [
         "relationship_presence",
         "pinned_collection",
+        "pinned_note",
         "keepsake",
         "relationship_signal",
         "monthly_highlights",
@@ -690,7 +693,7 @@ def test_legacy_order_inserts_rediscovery_and_preserves_independent_visibility(
     assert result.status_code == 200, result.text
     actual = [item["moduleKey"] for item in result.json()["items"]]
     assert [key for key in actual if key not in missing] == legacy
-    assert actual.index("retrospective") == actual.index("pinned_collection") + 1
+    assert actual.index("retrospective") == actual.index("pinned_note") + 1
     assert _item(result.json(), "relationship_signal")["visible"] is False
     assert _item(result.json(), "retrospective")["visible"] is True
     _patch(client, space_id, token, "retrospective", {"visible": False}).raise_for_status()
@@ -699,6 +702,23 @@ def test_legacy_order_inserts_rediscovery_and_preserves_independent_visibility(
     partner = _preferences(client, space_id, couple["token_b"]).json()
     assert _item(partner, "retrospective")["visible"] is True
     assert _item(partner, "relationship_signal")["visible"] is True
+
+
+def test_older_clients_without_pinned_notes_keep_their_order(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    """#1969 adds `pinned_note`; complete older orders stay valid and get it after the lists."""
+    older = [key for key in ALL_MODULE_KEYS if key != "pinned_note"]
+    older = [older[0], *reversed(older[1:])]
+    response = client.put(
+        f"/api/v1/spaces/{couple['space'].id}/dashboard/preferences/order",
+        json={"moduleKeys": older},
+        headers=auth(couple["token_a"]),
+    )
+    assert response.status_code == 200, response.text
+    keys = [item["moduleKey"] for item in response.json()["items"]]
+    assert [key for key in keys if key != "pinned_note"] == older
+    assert keys.index("pinned_note") == keys.index("pinned_collection") + 1
 
 
 def test_older_clients_without_partner_distance_keep_their_order(

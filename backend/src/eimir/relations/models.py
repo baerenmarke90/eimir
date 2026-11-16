@@ -154,6 +154,30 @@ class PlanCollection(_RelationAuditColumns, Base):
     )
 
 
+class PlanNote(_RelationAuditColumns, Base):
+    """Independent shared notes referenced by one or more Plans (#1969).
+
+    The Planning system owns this link: a note carries no reference to the Plans
+    that mention it.
+    """
+
+    __tablename__ = "plan_notes"
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    note_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["note_id", "space_id"],
+            ["shared_notes.id", "shared_notes.space_id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_plan_notes_note_id", "note_id"),
+        Index("ix_plan_notes_space_id", "space_id"),
+    )
+
+
 class PlaceMemory(_PlaceRelationColumns, Base):
     """A memory that took place at a location."""
 

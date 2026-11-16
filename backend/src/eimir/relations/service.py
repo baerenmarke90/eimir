@@ -61,7 +61,9 @@ from eimir.relations.models import (
     PlaceMemory,
     PlaceMilestone,
     PlanCollection,
+    PlanNote,
 )
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes.models import Wish
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -114,7 +116,9 @@ class RelationKind:
     ]
     target: type[PrivateResourceMixin]
     target_column: str
-    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION"]
+    event_target_type: Literal[
+        "MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION", "SHARED_NOTE"
+    ]
     linked_event: EventType
     unlinked_event: EventType
     shared_target_only: bool = False
@@ -132,6 +136,20 @@ PLAN_COLLECTIONS = RelationKind(
     event_target_type="COLLECTION",
     linked_event=EventType.PLAN_COLLECTION_LINKED,
     unlinked_event=EventType.PLAN_COLLECTION_UNLINKED,
+)
+
+
+PLAN_NOTES = RelationKind(
+    slug="notes",
+    relation=PlanNote,
+    parent=Plan,
+    parent_column="plan_id",
+    subject_type="plan_relation",
+    target=SharedNote,
+    target_column="note_id",
+    event_target_type="SHARED_NOTE",
+    linked_event=EventType.PLAN_NOTE_LINKED,
+    unlinked_event=EventType.PLAN_NOTE_UNLINKED,
 )
 
 

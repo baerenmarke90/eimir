@@ -40,6 +40,7 @@ from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
 from eimir.recaps import jobs as recap_jobs
 from eimir.relationship import retention as space_retention
 from eimir.reminders import runtime as reminder_runtime
+from eimir.security import column_moves
 from eimir.transfer import jobs as transfer_jobs
 
 log = logging.getLogger(__name__)
@@ -79,6 +80,7 @@ def _ensure_maintenance() -> None:
             daily_checkin_retention.ensure_scheduled(session)
             heart_hunt_retention.ensure_scheduled(session)
             presence_retention.ensure_scheduled(session)
+            column_moves.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
             photo_source_retention.ensure_scheduled(session)
@@ -122,6 +124,7 @@ def main() -> None:
     daily_checkin_retention.register_handlers()
     heart_hunt_retention.register_handlers()
     presence_retention.register_handlers()
+    column_moves.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()

@@ -119,6 +119,7 @@ export const PARTNER_NOTICE_ICONS = {
     center: 'benachrichtigungen',
   },
   PARTNER_JOINED: { badge: 'gemeinsam', center: 'gemeinsam' },
+  COLLECTION_SENT: { badge: 'gemeinsam', center: 'listen' },
   ONCE_MESSAGE_RECEIVED: { badge: 'nachrichten', center: 'nachrichten' },
 } as const satisfies Partial<Record<NotificationKind, PartnerNoticeIcons>>;
 

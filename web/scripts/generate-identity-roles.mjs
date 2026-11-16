@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const tokenUrl = new URL('../../design/tokens.json', import.meta.url);
 const outputUrl = new URL('../src/design/identity-roles.css', import.meta.url);
+const personOutputUrl = new URL(
+  '../src/design/person-colors.css',
+  import.meta.url,
+);
 const { identity } = JSON.parse(readFileSync(tokenUrl, 'utf8'));
 const roles = {
   page: ['color-background', 'color-header-surface'],
@@ -19,21 +23,16 @@ const roles = {
     'identity-icon-accent',
     'identity-icon-warm-fill',
     'color-private',
-    // Partner A of a shared list: the creator is rose (#1808).
-    'color-partner-a',
   ],
   accentSky: [
     'identity-icon-cool',
     'identity-icon-cool-fill',
     'color-shared-accent',
-    // Partner B of a shared list: the other person is blue (#1808).
-    'color-partner-b',
   ],
   softRose: [
     'identity-surface-warm',
     'color-brand-surface',
     'color-page-tint-brand',
-    'color-partner-a-surface',
   ],
   softBlue: [
     'identity-surface-cool',
@@ -41,7 +40,6 @@ const roles = {
     'color-surface-panel-tint',
     'color-shared-surface',
     'color-page-tint-shared',
-    'color-partner-b-surface',
   ],
   focus: ['color-focus'],
   pressed: [],
@@ -120,14 +118,57 @@ const output = execFileSync(
     encoding: 'utf8',
   },
 );
+function personColorCss() {
+  const { tones, defaultPair } = identity.personColors;
+  const names = Object.keys(tones);
+  const declare = (mode, indent) =>
+    names
+      .flatMap((tone) => [
+        `${indent}--color-person-${tone}: ${tones[tone][mode].accent};`,
+        `${indent}--color-person-${tone}-surface: ${tones[tone][mode].surface};`,
+      ])
+      .join('\n');
+  const defaults = [
+    `  --person-own-accent: var(--color-person-${defaultPair.own});`,
+    `  --person-own-surface: var(--color-person-${defaultPair.own}-surface);`,
+    `  --person-partner-accent: var(--color-person-${defaultPair.partner});`,
+    `  --person-partner-surface: var(--color-person-${defaultPair.partner}-surface);`,
+  ].join('\n');
+  const roles = ['own', 'partner']
+    .map(
+      (role) =>
+        `.person-role-${role} {\n  --person-accent: var(--person-${role}-accent);\n  --person-surface: var(--person-${role}-surface);\n}`,
+    )
+    .join('\n\n');
+  return [
+    '/* Generated from design/tokens.json identity.personColors. Do not edit. */',
+    `:root {\n${declare('light', '  ')}\n${defaults}\n}`,
+    `:root[data-theme="dark"] {\n${declare('dark', '  ')}\n}`,
+    `@media (prefers-color-scheme: dark) {\n  :root:not([data-theme]) {\n${declare('dark', '    ')}\n  }\n}`,
+    roles,
+  ].join('\n\n');
+}
+const personOutput = execFileSync(
+  biome,
+  [
+    'format',
+    '--vcs-enabled=false',
+    '--stdin-file-path=src/design/person-colors.css',
+  ],
+  { input: `${personColorCss()}\n`, encoding: 'utf8' },
+);
 const check = process.argv[2] === '--check';
 if (process.argv.length > (check ? 3 : 2))
   throw new Error('Unexpected arguments');
 if (check) {
-  if (readFileSync(outputUrl, 'utf8') !== output)
+  if (
+    readFileSync(outputUrl, 'utf8') !== output ||
+    readFileSync(personOutputUrl, 'utf8') !== personOutput
+  )
     throw new Error('Identity roles are stale. Run npm run tokens:generate.');
   console.log('Identity roles match design/tokens.json.');
 } else {
   writeFileSync(outputUrl, output);
+  writeFileSync(personOutputUrl, personOutput);
   console.log(`Generated ${fileURLToPath(outputUrl)}.`);
 }

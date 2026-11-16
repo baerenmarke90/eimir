@@ -32,7 +32,10 @@ are triggered by successful completions of the required main workflows:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
-   SBOM, provenance and offline verification. Nothing builds on the Docker host.
+   SBOM, provenance and offline verification. Release Evidence requires a fresh
+   codec advisory check before building the derivative. An unreviewed finding or
+   a failed feed check keeps the previous channel in place. Nothing builds on the
+   Docker host.
 4. Loads all three archives, verifies source/version/platform labels, publishes to the
    existing GHCR backend/Web/media packages and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd

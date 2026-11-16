@@ -67,3 +67,56 @@ it('stages mixed saved/uploaded order, classification and removal without mutati
   expect(result.current.items).toEqual([]);
   expect(result.current.entries).toEqual([]);
 });
+
+it('puts an edited saved photo in its place, keeps cover and sensitivity, and names the replaced photo (#1907 G1)', async () => {
+  const saved = [
+    {
+      id: 'first',
+      position: 0,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      isSensitive: false,
+    },
+    {
+      id: 'second',
+      position: 1,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      isSensitive: true,
+    },
+  ] as OrderedAttachmentSummary[];
+  const upload = vi.fn(async () => ({ attachmentId: 'edited' }));
+  const { result } = renderHook(() =>
+    usePlanPhotoDrafts({
+      apis: {} as ReferenceApis,
+      apiBaseUrl: 'https://api.example.org',
+      accessToken: 'token',
+      accountId: 'account',
+      spaceId: 'space',
+      uploadAttachmentFn: upload,
+    }),
+  );
+  act(() => result.current.load(saved, 'second'));
+  await act(async () =>
+    result.current.replaceSaved(
+      result.current.items[1],
+      new File(['edited'], 'second.jpg', { type: 'image/jpeg' }),
+    ),
+  );
+  expect(result.current.hasPending).toBe(false);
+  expect(result.current.entries).toEqual([
+    { attachmentId: 'first', position: 0, isSensitive: false },
+    {
+      attachmentId: 'edited',
+      position: 1,
+      isSensitive: true,
+      replacesAttachmentId: 'second',
+    },
+  ]);
+  expect(result.current.selectedCoverAttachmentId).toBe('edited');
+  // Removing the edited photo also leaves the original out of the gallery.
+  act(() => result.current.remove(result.current.items[1]));
+  expect(result.current.entries).toEqual([
+    { attachmentId: 'first', position: 0, isSensitive: false },
+  ]);
+});

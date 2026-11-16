@@ -208,9 +208,10 @@ export function MediaOverviewPage({
         item.parentType,
         item.parentId,
         item.attachment.id,
-        { signal, variant },
+        // Private media stays in session memory only (M2-D18 #3).
+        { signal, variant, persist: !isPrivate },
       ).catch(handleMediaReadError),
-    [apis, spaceId, handleMediaReadError],
+    [apis, spaceId, isPrivate, handleMediaReadError],
   );
 
   const scope = `media-overview:${accountId}:${spaceId}:${visibility}`;

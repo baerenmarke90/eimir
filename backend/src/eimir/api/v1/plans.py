@@ -29,7 +29,13 @@ from eimir.api.shared_achievements import (
     SHARED_ACHIEVEMENT_HEADER,
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
-from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
+from eimir.api.v1.attachments import (
+    AttachmentEntry,
+    AttachmentSummary,
+    OrderedAttachmentSummary,
+    reject_replacements,
+    replacements_of,
+)
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
 from eimir.attachments.documents import display_name
@@ -469,6 +475,7 @@ def create_plan(
     idempotency_key: IdempotencyKey,
 ) -> PlanDetail:
     planned_on, planned_start, planned_end, planned_until = _schedule_values(body.schedule)
+    reject_replacements(body.attachments)
     result = service.create_plan_once(
         session,
         authorization,
@@ -587,6 +594,7 @@ def update_plan(
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),
+        photo_replacements=replacements_of(body.attachments),
         add_file_attachment_ids=body.file_attachment_changes.add
         if body.file_attachment_changes
         else None,

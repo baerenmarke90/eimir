@@ -50,7 +50,7 @@ describe('flyIntoCart (#1808)', () => {
   const flight = {
     from: rect(20, 100, 300, 48),
     label: 'Milch',
-    tone: 'b' as const,
+    role: 'partner' as const,
   };
 
   it('flies a copy of the entry toward the middle of the cart and removes it afterwards', () => {
@@ -61,7 +61,7 @@ describe('flyIntoCart (#1808)', () => {
     const ghost = document.querySelector('.shared-list-flight');
     expect(ghost?.textContent).toBe('Milch');
     expect(ghost?.getAttribute('aria-hidden')).toBe('true');
-    expect(ghost?.className).toContain('shared-list-flight-b');
+    expect(ghost?.className).toContain('person-role-partner');
     const [keyframes, options] = animate.mock.calls[0] as [
       Keyframe[],
       KeyframeAnimationOptions,

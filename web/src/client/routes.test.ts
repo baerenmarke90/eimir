@@ -38,6 +38,7 @@ import {
   PLAN_DETAIL_ROUTE_PATTERN,
   PRIMARY_APP_ROUTES,
   placeDetailPath,
+  planPathFromCalendarLink,
   planDetailPath,
   recapDetailPath,
   rewriteLegacyPath,
@@ -215,6 +216,17 @@ describe('content deep links', () => {
     expect(collectionDetailPath('collection-1')).toBe(
       '/plan/collections/collection-1',
     );
+  });
+
+  it('expands a calendar short link into the existing Plan detail path', () => {
+    const shortPath = '/p/_-7dzLuqSZiId2ZVRDMiEQ';
+    const target = '/plan/plans/ffeeddcc-bbaa-4998-8877-665544332211';
+    expect(planPathFromCalendarLink(shortPath)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/`)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/edit`)).toBeNull();
+    expect(planPathFromCalendarLink('/p/new')).toBeNull();
+    expect(planPathFromCalendarLink(`/other${shortPath}`)).toBeNull();
+    expect(planPathFromCalendarLink(target)).toBeNull();
   });
 
   it('treats Activity as a More destination for its shell Back fallback', () => {

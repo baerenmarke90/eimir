@@ -364,7 +364,8 @@ layers keep their upstream colors. Google Maps (key and billing) and CARTO tiles
 versioned and served with ten-year caching; the production service worker also
 keeps basemap responses in a bounded cache (1,500 entries, oldest first) so
 revisited areas load without the network. There is no prefetching and no bulk or
-offline download. The native app relies on its WebView HTTP cache. Photon search
+offline download. The native app prefers the WebView HTTP cache for the public
+versioned tiles. Style and TileJSON follow HTTP freshness rules. Photon search
 reuses the existing backend provider normalization and operator-controlled
 origin. It adds no Python dependency, end-user key or paid account. Existing
 places and manual coordinates survive provider outages. The original preflight

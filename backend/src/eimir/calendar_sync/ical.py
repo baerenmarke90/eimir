@@ -9,6 +9,7 @@ instants for timed Plans.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from urllib.parse import quote
 
 from eimir.core import clock
 from eimir.providers.calendar import CalendarEvent
@@ -71,7 +72,13 @@ def render(event: CalendarEvent, *, stamp: datetime | None = None) -> bytes:
             lines.append(f"DTEND:{_instant(event.end)}")
     else:
         raise ValueError("A calendar event needs a start.")
-    if event.description:
+    if event.backlink is not None:
+        # Use the inline HTML form understood by clients such as Thunderbird.
+        html = quote(event.backlink.html_description(event.description), safe="")
+        plain = _text(event.backlink.plain_description(event.description))
+        lines.append(f'DESCRIPTION;ALTREP="data:text/html,{html}":{plain}')
+        lines.append(f"URL:{event.backlink.url}")
+    elif event.description:
         lines.append(f"DESCRIPTION:{_text(event.description)}")
     if event.location:
         lines.append(f"LOCATION:{_text(event.location)}")

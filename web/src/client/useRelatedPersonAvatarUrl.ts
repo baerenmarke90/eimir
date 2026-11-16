@@ -1,17 +1,19 @@
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
-import { useObjectUrlResource } from './useObjectUrlResources';
 import {
-  captureMediaCacheLease,
   assertMediaCacheLease,
+  captureMediaCacheLease,
   loadCachedMediaBlob,
   mediaCacheScopeForClient,
 } from './authorizedMediaCache';
 import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
+import { useObjectUrlResource } from './useObjectUrlResources';
 
 export function useRelatedPersonAvatarUrl(
   attachmentsApi: AttachmentsApi | undefined | null,
   spaceId: string,
   avatarAttachmentId: string | null | undefined,
+  /** `false` for a private Person: the photo stays in session memory only. */
+  persist = true,
 ): { avatarUrl: string | null; loadFailed: boolean } {
   const scope = attachmentsApi
     ? mediaCacheScopeForClient(attachmentsApi)
@@ -36,6 +38,8 @@ export function useRelatedPersonAvatarUrl(
           return response.raw.blob();
         },
         signal,
+        undefined,
+        { persist },
       );
       signal.throwIfAborted();
       assertMediaCacheLease(lease);

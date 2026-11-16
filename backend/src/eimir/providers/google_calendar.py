@@ -283,8 +283,13 @@ class GoogleCalendarApi(CalendarProvider):
             "sequence": event.sequence,
             "extendedProperties": {"private": {OWNER_PROPERTY: event.uid}},
         }
-        if event.description:
-            body["description"] = event.description
+        description = (
+            event.backlink.html_description(event.description)
+            if event.backlink is not None
+            else event.description
+        )
+        if description:
+            body["description"] = description
         if event.location:
             body["location"] = event.location
         if event.start_date is not None and event.end_date is not None:

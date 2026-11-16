@@ -48,6 +48,13 @@ font files on both Web (`web/public/fonts/OFL-Literata.txt`,
 **Variable fonts.** A single variable file per family covers all required weights
 without bundling multiple static cuts.
 
+**Text on edited photos (#1907 G1).** The photo edit step offers four more
+free faces next to Instrument Sans and Literata: Caveat, Pacifico, Bebas Neue
+and Courier Prime. They are delivered the same way (self-hosted latin woff2 in
+`web/public/fonts/`, OFL-1.1 license file beside each), declared only in the
+editor's stylesheet, and fetched only when a text uses them. They are content
+drawn into a photo, never interface typography.
+
 ## Alternatives considered
 
 - **Platform grotesque fallback.** Previously accepted to avoid bundle size, but

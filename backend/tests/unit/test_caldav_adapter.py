@@ -5,6 +5,7 @@ from __future__ import annotations
 import socket
 import time
 from datetime import UTC, date, datetime
+from urllib.parse import unquote
 
 import pytest
 
@@ -14,6 +15,7 @@ from eimir.providers.caldav import CalDavAccount, CalDavClient
 from eimir.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
+    CalendarEventLink,
     CalendarEventMissingError,
     CalendarProviderError,
     CalendarVersionConflictError,
@@ -238,3 +240,23 @@ def test_ical_renders_periods_instants_and_escapes_content() -> None:
     assert "DTSTART:20261121T090000Z\r\n" in timed and "DTEND:20261121T100000Z\r\n" in timed
     long = ical.render(event(title="Ü🌈" * 60), stamp=stamp)
     assert all(len(line) <= 75 for line in long.split(b"\r\n"))
+
+
+def test_ical_keeps_the_link_in_both_description_formats_and_event_url() -> None:
+    url = "https://eimir.example/p/MzMzMzMzQzODMzMzMzMzMw"
+    rendered = ical.render(
+        event(
+            description="Snacks <fruit> & drinks\r\nBring a blanket",
+            backlink=CalendarEventLink(url, "In eimir. öffnen"),
+        )
+    )
+    assert all(len(line) <= 75 for line in rendered.split(b"\r\n"))
+    lines = rendered.replace(b"\r\n ", b"").decode().split("\r\n")
+    [description] = [line for line in lines if line.startswith("DESCRIPTION;")]
+    html, plain = description.removeprefix('DESCRIPTION;ALTREP="data:text/html,').split('":', 1)
+    assert unquote(html) == (
+        f'<a href="{url}">In eimir. öffnen</a><br><br>'
+        "Snacks &lt;fruit&gt; &amp; drinks<br>Bring a blanket"
+    )
+    assert plain == f"In eimir. öffnen · {url}\\n\\nSnacks <fruit> & drinks\\nBring a blanket"
+    assert f"URL:{url}" in lines

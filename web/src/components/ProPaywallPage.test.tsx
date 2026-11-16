@@ -101,8 +101,8 @@ describe('ProPaywallPage', () => {
     ['recaps', proPaywall.contexts.recaps],
     ['memoryMap', proPaywall.contexts.memoryMap],
     ['photoSources', proPaywall.contexts.photoSources],
+    ['calendar', proPaywall.contexts.calendar],
     ['games', proPaywall.contexts.games],
-    ['unknown', proPaywall.contexts.general],
   ])('presents the %s context with three benefits', (context, copy) => {
     renderPaywall(`/more/pro?context=${context}`);
     expect(
@@ -113,6 +113,25 @@ describe('ProPaywallPage', () => {
     expect(
       screen.getByRole('list', { name: proPaywall.benefitsLabel }).children,
     ).toHaveLength(3);
+  });
+
+  it('uses the full catalogue for an unknown context', () => {
+    renderPaywall('/more/pro?context=unknown');
+    const catalogue = screen.getByRole('region', {
+      name: proPaywall.catalogue.title,
+    });
+    for (const group of Object.values(proPaywall.catalogue.groups)) {
+      expect(catalogue.textContent).toContain(group);
+    }
+    for (const { title, body } of Object.values(
+      proPaywall.catalogue.features,
+    )) {
+      expect(catalogue.textContent).toContain(title);
+      expect(catalogue.textContent).toContain(body);
+    }
+    expect(
+      screen.queryByRole('list', { name: proPaywall.benefitsLabel }),
+    ).toBeNull();
   });
 
   it('preselects the yearly plan and lets the monthly plan be chosen', () => {
@@ -131,6 +150,7 @@ describe('ProPaywallPage', () => {
   it('shows no purchase action without a billing provider', () => {
     renderPaywall('/more/pro');
     expect(screen.getByText(proPaywall.unavailableTitle)).toBeTruthy();
+    expect(screen.getByText(proPaywall.webUnavailableBody)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /abonnieren/ })).toBeNull();
     expect(
       screen.queryByRole('button', { name: proPaywall.restore }),

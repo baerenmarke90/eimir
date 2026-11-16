@@ -11,6 +11,19 @@ const storyProducts = {
     text: 'Erinnerung',
     milestone: 'Meilenstein',
   },
+  momentsLayout: {
+    title: 'Momente-Design',
+    intro:
+      'So sehen eure Erinnerungen aus, im Tagebuch und auf Wir. Nur auf diesem Gerät.',
+    album: {
+      name: 'Album',
+      hint: 'Wie ein Fotoalbum: große Fotos als Polaroids, dazu kleine Zettel.',
+    },
+    compact: {
+      name: 'Liste',
+      hint: 'Kleine Vorschaubilder auf einer ruhigen Zeitleiste.',
+    },
+  },
   storyFilters: {
     title: 'Filter',
     aria: 'Story filtern und sortieren',

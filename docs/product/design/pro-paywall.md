@@ -18,13 +18,13 @@ context selects copy and benefits only; it never grants or checks access.
 | `recaps` | Recap library gate, relationship passport | `proPaywall.contexts.recaps.title` |
 | `memoryMap` | Memory map Pro state | `proPaywall.contexts.memoryMap.title` |
 | `photoSources` | Photo source settings (Pro required) | `proPaywall.contexts.photoSources.title` |
+| `calendar` | Calendar sync settings | `proPaywall.contexts.calendar.title` |
 | `games` | Games area for Free Spaces | `proPaywall.contexts.games.title` |
-| `general` | Account Pro panel, Wir designs, app icons, video, once messages, partner quick actions, partner location | `proPaywall.contexts.general.title` |
+| `general` | Account Pro row, Wir designs, app icons, video, once messages, partner quick actions, partner location | `proPaywall.contexts.general.title` |
 
-Each context shows exactly three benefits, all of them features that exist in
-this repository today. Unknown context values fall back to `general`. The
-account settings panel (`PRO_INFORMATION_ROUTE`) stays as the product
-information section and links to the general paywall.
+Each feature-specific context shows three benefits. Unknown context values
+fall back to `general`, which has the complete feature overview. The Account
+settings row (`PRO_INFORMATION_ROUTE`) links to the general paywall.
 
 ## Composition (Compact first)
 
@@ -32,7 +32,7 @@ information section and links to the general paywall.
 2. Emotional hero: a composed brand surface (entry hero gradient, two meeting
    circles, context icon); no stock imagery; decorative only.
 3. Context title (Literata) and a short description.
-4. Three concrete benefits with icons.
+4. Three concrete benefits with icons for feature-specific contexts.
 5. Plan choice as native radio inputs presented as cards; yearly is preselected
    and shows the rounded saving, monthly is one tap away.
 6. Purchase action only when a real billing channel exists.
@@ -46,6 +46,49 @@ paywall opens only from a deliberate user action (a link or button); nothing
 navigates to it automatically. Expanded keeps the same single column within
 `--reading-max`. Reduced motion removes the hero animation and plan
 transitions without hiding information.
+
+### Account overview
+
+The Account entry opens the general context. Its feature overview uses the
+Settings template and R5 reading hierarchy. Keep the existing Back, brand
+hero, plan choice or active status, provider feedback, and terms in one column.
+Replace the general benefit teaser with expandable descriptions beneath the
+plan or subscription controls. Context-specific pages keep their three benefits.
+Use native disclosures and the existing semantic surface and motion tokens.
+Animate the hero once and reveal the text when each group opens. Reduced motion
+shows the same text immediately. The overview reads no relationship content
+and requires no additional API request in any billing state.
+
+The mobile visual preflight used `main` at `1ccac04079bd67224bc403ca9b84faff0e1728de`
+and reviewed `/more/settings/account#eimir-pro` and `/more/pro`, including the
+existing plan controls and browser availability note. Use live store offers
+and the existing reference price calculation for plan amounts and savings.
+See the [generated reference and browser evidence](evidence/pro-overview/README.md).
+
+### Commercial coverage
+
+Google Play verification and authenticated notifications feed the same
+Space-level entitlement used by the feature APIs. The general overview covers
+the following implemented Pro boundaries without changing their classification.
+
+| Capability | Protected behavior |
+| --- | --- |
+| `memories.map`, `relationship.passport` | Memory map, new recap composition, relationship passport and the shared story lifeline. Existing saved recaps and ordinary places remain Core. |
+| `media.video_upload` | New short videos require both a grant and an enabled media processor. Existing videos remain accessible. |
+| `planning.date_inspiration` | Curated catalog, catalog images and catalog participation in shared Wish selection. Ordinary Wishes and Plans remain Core. |
+| `games.couple` | Premium gameplay and new Happiness/Time Travel experiences. Existing shared memories remain accessible. |
+| `daily.insights`, `daily.quote` | Long-term mood and energy trends plus the daily quote. Daily mood and energy entries stay Free. |
+| `presence.location`, `partner.once_messages`, `partner.quick_actions.extended` | Consensual location sharing and distance, new one-time messages, and extended partner gestures. Receiving retained messages, stopping sharing and Thinking of You remain available as specified in the feature matrix. |
+| `theme.bespoke_packs` | Saving new paid Wir designs, app icons and person-colour pairs. Defaults and previously saved selections continue to work. |
+| `integration.external_sync` | Photo import from configured sources and automatic calendar sync. Imported media and one-time calendar handoff remain Core. |
+
+The catalogue omits the reserved capability identifiers for rich Chapter
+presentation, occasion automation, the PDF Yearbook, video montage, five-year
+question mirror, Surprise Mode, and the proposed Cloud storage allowance. They
+have no implemented Premium feature gate in this revision. Google Photos,
+calendar sync and video availability still depend on installation or platform
+configuration. The [feature matrix](../../FREEMIUM-FEATURE-MATRIX.md) governs
+downgrade behavior, including preserved data and Free actions.
 
 ## Prices and billing channel
 

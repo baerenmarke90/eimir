@@ -4,6 +4,7 @@ import {
   assertMediaCacheLease,
   captureMediaCacheLease,
   evictAuthorizedMedia,
+  keepMediaInSession,
   loadCachedMediaBlob,
 } from './authorizedMediaCache';
 import type { OwnedObjectUrl } from './objectUrlResource';
@@ -25,7 +26,23 @@ type StoryMediaLoaderOptions = {
   createObjectUrl?: (blob: Blob) => string;
   signal?: AbortSignal;
   variant?: 'original' | 'thumbnail';
+  /**
+   * `false` for an `OWNER_ONLY` parent: its bytes stay in session memory and
+   * never reach the durable store (M2-D18 #3). Unbound uploads (`NONE`) have
+   * no parent whose visibility is known yet and are never persisted.
+   */
+  persist?: boolean;
 };
+
+function keepPrivateParentInSession(
+  lease: ReturnType<typeof captureMediaCacheLease>,
+  parentType: StoryMediaParentType | 'NONE',
+  parentIdentity: readonly string[],
+  options: StoryMediaLoaderOptions,
+): void {
+  if (options.persist === false || parentType === 'NONE')
+    keepMediaInSession(lease, parentIdentity);
+}
 
 /** A video reached an image surface; only its poster may be shown there. */
 class VideoPosterRedirect extends Error {}
@@ -57,6 +74,7 @@ async function loadAuthorizedStoryBlob(
     spaceId,
     parentIdentity,
   );
+  keepPrivateParentInSession(lease, parentType, parentIdentity, options);
   const variant = options.variant ?? 'original';
   const descriptorRequest = {
     spaceId,
@@ -190,6 +208,14 @@ export function loadAuthorizedStoryImageResource(
       parentId,
     ]);
     assertMediaCacheLease(lease);
+    // Before the decoded-URL shortcut, so a parent that became private also
+    // leaves the durable store when its bytes are still decoded in memory.
+    keepPrivateParentInSession(
+      lease,
+      parentType,
+      ['attachment', parentType, parentId],
+      options,
+    );
   } catch (error) {
     return Promise.reject(error);
   }

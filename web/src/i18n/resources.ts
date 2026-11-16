@@ -32,12 +32,13 @@ import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import occasionMarks from './locales/occasionMarks';
 import offlinePage from './locales/offlinePage';
-import webViewNotice from './locales/webViewNotice';
 import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
 import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
+import personColours from './locales/personColours';
 import photoCrop from './locales/photoCrop';
+import photoEdit from './locales/photoEdit';
 import photoPlaces from './locales/photoPlaces';
 import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
@@ -60,6 +61,7 @@ import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
+import webViewNotice from './locales/webViewNotice';
 import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
@@ -116,6 +118,7 @@ export const germanResources = {
   people,
   privateArea,
   proPaywall,
+  personColours,
   profileIdentity,
   profiles,
   productTour,
@@ -131,6 +134,7 @@ export const germanResources = {
   composer,
   mediaOverview,
   photoCrop,
+  photoEdit,
   photoSources,
   photoPlaces,
   photoReactions,

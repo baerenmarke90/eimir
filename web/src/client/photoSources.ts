@@ -362,3 +362,55 @@ export function videoVerdictReason(code: string | undefined): string {
   if (code === 'ATTACHMENT_TOO_LARGE') return 'video.tooLarge';
   return 'photoSources.itemVideoRejected';
 }
+
+export type GoogleConsentResult = 'confirmed' | 'denied' | 'abandoned';
+
+/**
+ * Android app: let the person confirm eimir.'s access at Google once, right where the account is
+ * set up. It runs the same app-link sign-in as an import, then drops the temporary Picker task:
+ * Google remembers the consent, so later imports go straight to the photo selection.
+ */
+export async function confirmGoogleAccessInApp(
+  api: PhotoSourcesApi,
+  spaceId: string,
+  signal: AbortSignal,
+): Promise<GoogleConsentResult> {
+  const started = await api.startPhotoSelection(
+    {
+      spaceId,
+      photoSelectionCreate: {
+        source: 'google',
+        maxItems: 1,
+        consent: true,
+        mediaRecoveryPolicy: 'memory-only-v1',
+        returnTo: 'app',
+      },
+    },
+    { signal },
+  );
+  try {
+    if (!started.authorizationUrl)
+      throw new Error('Photo authorization is unavailable.');
+    const signedIn = watchGoogleAppReturn(signal);
+    await openPhotoBrowser(started.authorizationUrl, null);
+    const result = await signedIn;
+    await closePhotoBrowser(null);
+    if (typeof result === 'string') return result;
+    const finished = await api.authorizePhotoSelection(
+      {
+        spaceId,
+        selectionId: started.id,
+        photoSelectionAuthorize: result,
+      },
+      { signal },
+    );
+    // Throws when Google ended the sign-in; PICKING means it worked.
+    selectionReady(finished);
+    return 'confirmed';
+  } finally {
+    // Ends the temporary Google task; nothing was chosen or copied.
+    void api
+      .cancelPhotoSelection({ spaceId, selectionId: started.id })
+      .catch(() => {});
+  }
+}

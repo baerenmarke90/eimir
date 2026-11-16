@@ -139,6 +139,12 @@ cookie proof are unchanged.
   device, never to the task owner's session. Rate limit: 20 authorizations per Account per 15 minutes.
 - No account address is needed: without a saved hint Google shows its own account chooser. The saved
   address (above) stays an optional shortcut and grants nothing.
+- Setup in Settings (app only): after the address is saved, the app runs the same app-link sign-in once
+  with a temporary one-photo task and cancels that task right away, so the person confirms eimir.'s
+  access at Google where the account is set up. Google remembers the consent, so later imports go
+  straight to the photo selection. If Google is not confirmed (closed browser, denial, error) the address
+  stays saved, a notice says so and a "Confirm at Google" button repeats only that step. Nothing is
+  chosen or copied by this step, and no token is kept.
 - Business/freemium: no impact. External import stays Premium (`integration.external_sync`); no quota,
   storage or Self-Hosted/Cloud difference.
 - Not verified here: the real Pixel behaviour (the Chrome Custom Tab following the redirect into the app

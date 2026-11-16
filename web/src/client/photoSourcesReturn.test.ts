@@ -5,6 +5,7 @@ import { Browser } from '@capacitor/browser';
 import { describe, expect, it, vi } from 'vitest';
 import * as platform from '../pwa';
 import {
+  confirmGoogleAccessInApp,
   readGoogleAppReturn,
   watchGoogleAppReturn,
   watchPhotoBrowserReturn,
@@ -161,5 +162,78 @@ describe('Google sign-in returning to the app link', () => {
     const result = watchGoogleAppReturn(controller.signal);
     controller.abort();
     await expect(result).resolves.toBe('abandoned');
+  });
+});
+
+describe('confirming Google access once in the app', () => {
+  function api() {
+    return {
+      startPhotoSelection: vi.fn().mockResolvedValue({
+        id: 'selection',
+        status: 'AUTHORIZING',
+        authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?s=1',
+      }),
+      authorizePhotoSelection: vi
+        .fn()
+        .mockResolvedValue({ id: 'selection', status: 'PICKING' }),
+      cancelPhotoSelection: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  function prepare(url: string) {
+    vi.mocked(platform.isCapacitorNative).mockReturnValue(true);
+    vi.mocked(Browser.close).mockResolvedValue(undefined);
+    let open: (event: { url: string }) => void = () => {};
+    vi.mocked(App.addListener).mockImplementation((async (
+      _event: string,
+      callback: (event: { url: string }) => void,
+    ) => {
+      open = callback;
+      return { remove: vi.fn() };
+    }) as never);
+    vi.mocked(Browser.addListener).mockImplementation((async () => ({
+      remove: vi.fn(),
+    })) as never);
+    vi.mocked(Browser.open).mockImplementation((async () => {
+      queueMicrotask(() => open({ url }));
+    }) as never);
+  }
+
+  it('signs in through the app link, authorizes and drops the temporary task', async () => {
+    prepare('de.eimir.app://photos/google?state=s1&code=c1');
+    const photoApi = api();
+    await expect(
+      confirmGoogleAccessInApp(
+        photoApi as never,
+        'space',
+        new AbortController().signal,
+      ),
+    ).resolves.toBe('confirmed');
+    expect(photoApi.startPhotoSelection.mock.calls[0][0]).toMatchObject({
+      photoSelectionCreate: { source: 'google', returnTo: 'app', maxItems: 1 },
+    });
+    expect(photoApi.authorizePhotoSelection.mock.calls[0][0]).toEqual({
+      spaceId: 'space',
+      selectionId: 'selection',
+      photoSelectionAuthorize: { state: 's1', code: 'c1' },
+    });
+    expect(photoApi.cancelPhotoSelection).toHaveBeenCalledWith({
+      spaceId: 'space',
+      selectionId: 'selection',
+    });
+  });
+
+  it('reports a denial without authorizing and still drops the task', async () => {
+    prepare('de.eimir.app://photos/google?state=s1&outcome=denied');
+    const photoApi = api();
+    await expect(
+      confirmGoogleAccessInApp(
+        photoApi as never,
+        'space',
+        new AbortController().signal,
+      ),
+    ).resolves.toBe('denied');
+    expect(photoApi.authorizePhotoSelection).not.toHaveBeenCalled();
+    expect(photoApi.cancelPhotoSelection).toHaveBeenCalledTimes(1);
   });
 });

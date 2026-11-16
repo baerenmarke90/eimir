@@ -2410,6 +2410,8 @@
     "googleAccountUnlinked": "Disconnected.",
     "googleAccountInvalid": "Please enter a valid email address.",
     "googleAccountChanged": "The account was changed in another window. Please check it again.",
+    "googleConsentIncomplete": "The account is saved, but Google has not confirmed access yet.",
+    "googleConsentConfirm": "Confirm at Google",
     "googleAccountUnavailable": "That didn't work just now. Please try again.",
     "limit_one": "You can add {{count}} more photo.",
     "limit_other": "You can add {{count}} more photos.",

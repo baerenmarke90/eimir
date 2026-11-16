@@ -109,6 +109,9 @@ const photoSources = {
   googleAccountInvalid: 'Bitte gib eine gültige E-Mail-Adresse ein.',
   googleAccountChanged:
     'Das Konto wurde in einem anderen Fenster geändert. Bitte prüfe es noch einmal.',
+  googleConsentIncomplete:
+    'Das Konto ist gemerkt, aber Google hat den Zugriff noch nicht bestätigt.',
+  googleConsentConfirm: 'Bei Google bestätigen',
   googleAccountUnavailable:
     'Das hat gerade nicht geklappt. Versuche es noch einmal.',
 };

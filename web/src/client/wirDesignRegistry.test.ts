@@ -25,5 +25,7 @@ describe('design token files and stored Wir designs (#1907 C1)', () => {
   it('maps migrated designs to their layout mode', () => {
     expect(wirDesignLayout(WirDesignId.connected)).toBe('connected');
     expect(wirDesignLayout(WirDesignId.warm)).toBe('open');
+    expect(wirDesignLayout(WirDesignId.modern)).toBe('compact');
+    expect(wirDesignLayout(WirDesignId.classic)).toBe('classic');
   });
 });

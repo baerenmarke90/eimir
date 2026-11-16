@@ -109,6 +109,7 @@ import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
 import './StoryHandmade.css';
+import './StoryHandmadeChapters.css';
 import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
 import { groupDiaryEntries } from '../client/diaryEntries';

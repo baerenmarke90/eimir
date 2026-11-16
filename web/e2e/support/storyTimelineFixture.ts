@@ -193,6 +193,13 @@ export type MockOptions = {
   asPartner?: boolean;
   withDetailComments?: boolean;
   strict?: boolean;
+  /** Ongoing chapters shown under the matching Diary months. */
+  chapterPeriods?: ReadonlyArray<{
+    id: string;
+    title: string;
+    startOn: string;
+    endOn?: string | null;
+  }>;
 };
 
 export async function installMocks(
@@ -396,6 +403,9 @@ export async function installMocks(
         items,
         hasMore: false,
         nextCursor: null,
+        ...(options.chapterPeriods
+          ? { chapterMarkers: [], chapterPeriods: options.chapterPeriods }
+          : {}),
       });
       return;
     }

@@ -19,6 +19,21 @@ import {
 
 type Scheme = 'light' | 'dark';
 
+const CHAPTERS = [
+  {
+    id: 'chapter-weekend',
+    title: 'Weekends away',
+    startOn: '2026-04-19',
+    endOn: '2026-11-06',
+  },
+  {
+    id: 'chapter-cooking',
+    title: 'Cooking evenings',
+    startOn: '2026-04-20',
+    endOn: null,
+  },
+];
+
 const WCAG_TAGS = [
   'wcag2a',
   'wcag2aa',
@@ -32,13 +47,18 @@ async function openDiary(
   page: Page,
   viewport: { width: number; height: number },
   scheme: Scheme,
+  chapterPeriods?: Parameters<typeof installMocks>[1] extends infer O
+    ? O extends { chapterPeriods?: infer C }
+      ? C
+      : never
+    : never,
 ): Promise<void> {
   await page.emulateMedia({ colorScheme: scheme });
   await page.setViewportSize(viewport);
   await page.addInitScript(() =>
     window.localStorage.setItem('eimir.theme', 'system'),
   );
-  await installMocks(page);
+  await installMocks(page, { chapterPeriods });
   await signIn(page);
   await page.goto('/story?tab=timeline');
   await page.waitForSelector('.story-timeline .story-card');
@@ -96,6 +116,49 @@ test.describe('Momente Album design (#1960)', () => {
       );
     });
   }
+
+  for (const item of CASES.filter((c) =>
+    ['320-light', '390-light', '390-dark', '1280-light'].includes(c.name),
+  )) {
+    test(`Chapters in the Album diary at ${item.name} are bookmarked strips that reflow and pass axe`, async ({
+      page,
+    }, testInfo) => {
+      await openDiary(page, item, item.scheme, CHAPTERS);
+
+      const strips = page.locator(
+        '.momente-diary-section[data-diary-layout="album"] .diary-chapter-periods a',
+      );
+      await expect(strips.first()).toBeVisible();
+      // The ribbon replaces the book icon in the Album.
+      await expect(strips.first().locator('.eimir-icon')).toBeHidden();
+      // The link stays a real link with its chapter title as the name.
+      await expect(
+        page.getByRole('link', { name: new RegExp(CHAPTERS[0].title) }),
+      ).toBeVisible();
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+      const result = await new AxeBuilder({ page })
+        .withTags(WCAG_TAGS)
+        .analyze();
+      expect(result.violations).toEqual([]);
+
+      await strips.first().scrollIntoViewIfNeeded();
+      await captureScreenshot(
+        page,
+        testInfo,
+        `1960-album-chapters-${item.name}.png`,
+        { fullPage: false },
+      );
+    });
+  }
+
+  test('Chapters keep the book icon in the compact list', async ({ page }) => {
+    await pinDiaryLayout(page, 'compact');
+    await openDiary(page, { width: 390, height: 844 }, 'light', CHAPTERS);
+    await expect(
+      page.locator('.diary-chapter-periods a').first().locator('.eimir-icon'),
+    ).toBeVisible();
+  });
 
   test('Tagebuch Album keeps reading at 200% text and 320px without overflow', async ({
     page,

@@ -148,6 +148,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13
     },
+    "momente-album.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 15,
+      "reason": "Feature-owned Moments Album design (#1960): Album default, Compact and Expanded, Light and Dark, 320px and 200% text reflow, reduced motion, axe, and the setting that restores the compact list."
+    },
     "optional-product-tour.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
@@ -586,7 +591,7 @@
     },
     "partner-location-settings.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10,
+      "baselineTests": 15,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
     "partner-distance-wir.spec.ts": {

@@ -437,8 +437,8 @@
   .momente-discover-page[data-diary-layout="album"]
   .momente-tapestry-milestone {
   background: var(--color-background);
-  color: var(--color-story-milestone);
-  outline: 3px double currentcolor;
+  color: var(--color-text);
+  outline: 3px double var(--color-story-milestone);
   outline-offset: calc(var(--space-2) * -1);
   border-radius: var(--radius-medium);
 }
@@ -451,7 +451,7 @@
   .momente-discover-page[data-diary-layout="album"]
   .momente-tapestry-milestone-icon {
   background: transparent;
-  color: currentcolor;
+  color: var(--color-story-milestone);
 }
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]
@@ -619,4 +619,12 @@
   .momente-tapestry-text
   :is(.momente-tapestry-title, .momente-tapestry-meta) {
   line-height: var(--note-lh);
+}
+
+/* Taped corners and tilted paper may reach into the page gutter, never past the
+   screen edge: clipping (not hiding) keeps sticky headings working and the page
+   from scrolling sideways. */
+.story-page-unified .momente-discover-page[data-diary-layout="album"] {
+  overflow-x: clip;
+  overflow-clip-margin: var(--page-gutter);
 }

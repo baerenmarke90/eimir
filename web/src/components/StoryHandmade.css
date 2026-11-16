@@ -436,9 +436,9 @@
   .story-card-milestone {
   padding: var(--space-5) var(--space-4);
   background: var(--color-background);
-  color: var(--color-story-milestone);
+  color: var(--color-text);
   text-align: center;
-  outline: 3px double currentcolor;
+  outline: 3px double var(--color-story-milestone);
   outline-offset: calc(var(--space-2) * -1);
   border-radius: var(--radius-medium);
 }
@@ -771,4 +771,12 @@
   .story-card-memory.no-image
   :is(h4, .story-preview) {
   line-height: var(--note-lh);
+}
+
+/* Taped corners and tilted paper may reach into the page gutter, never past the
+   screen edge: clipping (not hiding) keeps sticky headings working and the page
+   from scrolling sideways. */
+.story-page-unified .momente-diary-section[data-diary-layout="album"] {
+  overflow-x: clip;
+  overflow-clip-margin: var(--page-gutter);
 }

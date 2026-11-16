@@ -30,6 +30,7 @@ import {
   memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -261,6 +262,7 @@ export function StoryList({
   progressiveReveal?: boolean;
 }) {
   const { t } = useTranslation();
+  const [diaryLayout] = useDiaryLayout();
   const { nicknameFor, state: partnerState } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
@@ -397,7 +399,9 @@ export function StoryList({
                 <article
                   className={cardClasses}
                   data-color-world={
-                    item.kind === 'MEMORY' && !imageAttachment
+                    diaryLayout === 'album' &&
+                    item.kind === 'MEMORY' &&
+                    !imageAttachment
                       ? 'warm'
                       : undefined
                   }

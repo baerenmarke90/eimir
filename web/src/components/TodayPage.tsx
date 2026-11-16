@@ -274,7 +274,7 @@ export function TodayModuleSection({
 function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   const names: Partial<Record<DashboardItemType, EimirIconName>> = {
     HEART_MOMENT: 'momente',
-    ANNIVERSARY: 'momente',
+    ANNIVERSARY: 'jahrestag',
     BIRTHDAY: 'geburtstag',
     MILESTONE: 'meilensteine',
     CHAPTER: 'kapitel',

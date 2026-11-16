@@ -361,19 +361,34 @@
 }
 
 /* 1. The next occasion leads, like the next plan does. */
-.occasions-next {
+/* One banner for what is coming up: the next occasion and the next Plan. */
+.occasions-next-card {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.occasions-next,
+.occasions-next-plan {
   display: grid;
   justify-items: start;
   gap: var(--space-1);
   border: 0;
-  border-radius: var(--radius-card);
   padding: var(--space-5);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
+  background: transparent;
   color: var(--color-text);
   font: inherit;
   text-align: start;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.occasions-next-card > * + * {
+  border-block-start: var(--border-surface-width) solid
+    var(--color-border-subtle);
+  padding-block: var(--space-4);
 }
 
 .occasions-next-when {
@@ -393,6 +408,10 @@
   line-height: 1.15;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
+}
+
+.occasions-next-card > * + * .occasions-next-title {
+  font-size: clamp(1.15rem, 4.8vw, 1.4rem);
 }
 
 .occasions-next-date {

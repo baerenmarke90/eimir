@@ -4,11 +4,11 @@ import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { Configuration } from '../client/apiConfiguration';
 import { calendarSyncApi } from '../client/calendarSync';
+import { SETTINGS_CATEGORY_ROUTES } from '../client/routes';
 import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
-import { SETTINGS_CATEGORY_ROUTES } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import './PlanCalendarAction.css';

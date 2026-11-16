@@ -57,9 +57,6 @@ function renderPanel() {
   fireEvent.click(
     screen.getByRole('button', { name: profileIdentity.editProfile }),
   );
-  fireEvent.click(
-    screen.getByRole('button', { name: profileIdentity.editName }),
-  );
   return { onDisplayNameChanged };
 }
 
@@ -208,9 +205,6 @@ describe('ProfileIdentityPanel birthday editing', () => {
     fireEvent.click(
       screen.getByRole('button', { name: profileIdentity.editProfile }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: profileIdentity.editBirthday }),
-    );
     const input = screen.getByLabelText(
       profileIdentity.birthdayLabel,
     ) as HTMLInputElement;
@@ -238,9 +232,6 @@ describe('ProfileIdentityPanel birthday editing', () => {
     fireEvent.click(
       screen.getByRole('button', { name: profileIdentity.editProfile }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: profileIdentity.editBirthday }),
-    );
     const clearInput = screen.getByLabelText(
       profileIdentity.birthdayLabel,
     ) as HTMLInputElement;
@@ -249,5 +240,52 @@ describe('ProfileIdentityPanel birthday editing', () => {
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     expect(update.mock.calls[1][0].profileIdentityUpdate.birthday).toBeNull();
+  });
+});
+
+describe('ProfileIdentityPanel single edit form', () => {
+  it('saves name and birthday in one request and only when something changed', async () => {
+    const update = vi
+      .spyOn(ProfilesApi.prototype, 'updateProfileIdentity')
+      .mockResolvedValue({
+        ...profile('New name', 2),
+        birthday: new Date('1992-05-14T00:00:00Z'),
+      });
+    vi.spyOn(
+      ProfilesApi.prototype,
+      'getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet',
+    ).mockResolvedValue(profile('New name', 2));
+    renderPanel();
+
+    const save = screen.getByRole('button', {
+      name: profileIdentity.saveProfile,
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(profileIdentity.displayNameLabel), {
+      target: { value: 'New name' },
+    });
+    fireEvent.change(screen.getByLabelText(profileIdentity.birthdayLabel), {
+      target: { value: '1992-05-14' },
+    });
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const body = update.mock.calls[0][0].profileIdentityUpdate;
+    expect(body.displayName).toBe('New name');
+    expect(body.birthday?.toISOString().slice(0, 10)).toBe('1992-05-14');
+  });
+
+  it('closes without saving on cancel', () => {
+    const update = vi.spyOn(ProfilesApi.prototype, 'updateProfileIdentity');
+    renderPanel();
+    fireEvent.change(screen.getByLabelText(profileIdentity.displayNameLabel), {
+      target: { value: 'Unsaved' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(update).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText(profileIdentity.displayNameLabel),
+    ).toBeNull();
   });
 });

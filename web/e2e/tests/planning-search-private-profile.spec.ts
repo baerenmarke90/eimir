@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
@@ -7,6 +6,7 @@ import privateArea from '../../src/i18n/locales/privateArea';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import wishSelection from '../../src/i18n/locales/wishSelection';
 import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -229,6 +229,10 @@ for (const view of [
       view.theme,
     );
     const state = await fixture(page);
+    // The private area opens on its notes.
+    await page.route(`**${base}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await signIn(page);
     await page.goto('/plan');
     if (view.large)
@@ -413,7 +417,7 @@ for (const view of [
       .click();
     await expect(
       page.getByRole('link', {
-        name: privateArea.partnerNotes.title,
+        name: privateArea.partnerNotes.shortTitle,
         exact: true,
       }),
     ).toBeVisible();

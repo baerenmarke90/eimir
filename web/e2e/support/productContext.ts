@@ -1,4 +1,5 @@
 import type { Route } from '@playwright/test';
+import { NO_WISH_SELECTION_ROUND } from './storyTimelineFixture';
 
 /** Unrelated Wish journeys have no active date exchange. */
 export async function fulfillNoWishDateProposal(
@@ -13,6 +14,27 @@ export async function fulfillNoWishDateProposal(
     return false;
   await route.fulfill({
     json: { canPropose: false, proposal: null },
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+  return true;
+}
+
+/**
+ * The Wishes entry row reads whether a shared round is open (#1907 J1).
+ * Unrelated Planning journeys have none; round journeys install their own.
+ */
+export async function fulfillNoWishSelectionRound(
+  route: Route,
+): Promise<boolean> {
+  const request = route.request();
+  const pathname = new URL(request.url()).pathname;
+  if (
+    request.method() !== 'GET' ||
+    !/^\/api\/v1\/spaces\/[^/]+\/wish-selection$/.test(pathname)
+  )
+    return false;
+  await route.fulfill({
+    json: NO_WISH_SELECTION_ROUND,
     headers: { 'Cache-Control': 'private, no-store' },
   });
   return true;

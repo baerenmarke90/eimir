@@ -66,7 +66,7 @@ function emptyRound(): Round {
     commonDateIdeaIds: [],
   };
 }
-function readyRound(common = true): Round {
+function readyRound(common: boolean | number = true): Round {
   return {
     id: ROUND_ID,
     version: 1,
@@ -87,7 +87,12 @@ function readyRound(common = true): Round {
     },
     selectionToken: `${ROUND_ID}:1:1`,
     resultState: 'READY',
-    commonWishIds: common ? [WISH_IDS[0]] : [],
+    commonWishIds:
+      typeof common === 'number'
+        ? WISH_IDS.slice(0, common)
+        : common
+          ? [WISH_IDS[0]]
+          : [],
     dateIdeaCandidates: [],
     commonDateIdeaIds: [],
   };
@@ -315,6 +320,17 @@ async function enter(page: Page) {
 }
 async function capture(page: Page, info: TestInfo, name: string) {
   await page.evaluate(() => window.scrollTo(0, 0));
+  // Let finite entry motion settle, bounded so a paused animation cannot hang.
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]),
+  );
   await captureScreenshot(page, info, `wish-selection-${name}.png`, {
     fullPage: true,
   });
@@ -331,28 +347,54 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await page
     .getByRole('tab', { name: planning.overview.segmentWishes, exact: true })
     .click();
+  // One slim entry replaces the selection link and the catalog card (#1907 J1).
+  const entry = page.locator('.wish-selection-entry');
+  await expect(entry).toContainText(copy.entryTitle);
+  await expect(
+    page.getByText(demo.wishes[0], { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.locator('a[href="/plan/ideas"]')).toHaveCount(0);
   await capture(page, info, 'hub-390-light');
-  await page
-    .getByRole('link', { name: copy.compactEntryAction, exact: true })
-    .click();
+  await entry.getByRole('link', { name: copy.entryStart, exact: true }).click();
   await expect(page.locator('.product-shell')).toHaveAttribute(
     'data-focused-task',
     'true',
   );
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.setupTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('list', { name: copy.stepsLabel }).locator('li'),
+  ).toHaveCount(3);
+  await capture(page, info, 'compose-390-light');
+  await page
+    .getByRole('button', { name: new RegExp(copy.sourceWishesTitle) })
+    .click();
   await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
   await page.getByRole('checkbox', { name: demo.wishes[1] }).check();
+  await expect(
+    page.locator('.wish-selection-pick-bar').getByRole('status'),
+  ).toHaveText(copy.selected.replace('{{count}}', '2'));
+  await capture(page, info, 'pick-wishes-390-light');
+  await page.getByRole('button', { name: copy.pickDone, exact: true }).click();
+  await expect(
+    page.getByText(copy.sourceCount.replace('{{count}}', '2'), {
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByLabel(copy.occasion, { exact: true }).fill(demo.occasion);
   await capture(page, info, 'setup-390-light');
   await page.getByRole('button', { name: copy.start, exact: true }).click();
-  // Setup already has a checked input with this label; wait for the new task.
-  const favorites = page.getByRole('group', {
-    name: copy.favorites,
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.chooseTitle }),
+  ).toBeVisible();
+  const favorite = page.getByRole('button', {
+    name: demo.wishes[0],
     exact: true,
   });
-  await expect(favorites).toBeVisible();
-  const favorite = favorites.getByRole('checkbox', { name: demo.wishes[0] });
-  await favorite.check();
-  await expect(favorite).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'false');
+  await favorite.click();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );
@@ -394,7 +436,7 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     1,
   );
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.wish-selection-heading .task-back-control').click();
   await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
   await expect(
     page.getByRole('tab', {
@@ -421,12 +463,14 @@ test('publication failure/offline retain private input and never replay a write'
   const fixture = await install(page, initial);
   await enter(page);
   await page.goto('/plan/choose');
-  await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+  const favorite = page.getByRole('button', {
+    name: demo.wishes[0],
+    exact: true,
+  });
+  await favorite.click();
   fixture.failNextShare();
   await page.getByRole('button', { name: copy.share, exact: true }).click();
-  await expect(
-    page.getByRole('checkbox', { name: demo.wishes[0] }),
-  ).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   await expect(
     page.getByRole('heading', { name: copy.waitingTitle }),
   ).toHaveCount(0);
@@ -442,9 +486,7 @@ test('publication failure/offline retain private input and never replay a write'
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     1,
   );
-  await expect(
-    page.getByRole('checkbox', { name: demo.wishes[0] }),
-  ).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   expect(fixture.unexpected).toEqual([]);
 });
 
@@ -480,6 +522,38 @@ test('zero common favorites allows a clearly labeled individual proposal and saf
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     0,
   );
+});
+
+test('several common favourites: tap one, decide differently, then plan it', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const fixture = await install(page, readyRound(2));
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: copy.sharedManyTitle.replace('{{amount}}', '2'),
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.prepare, exact: true }),
+  ).toHaveCount(0);
+  await capture(page, info, 'several-390-light');
+  await page.getByRole('button', { name: demo.wishes[1], exact: true }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.chosenTitle }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.chosenLabel, { exact: true })).toBeVisible();
+  await capture(page, info, 'chosen-390-light');
+  await page.getByRole('button', { name: copy.unchoose, exact: true }).click();
+  await page.getByRole('button', { name: demo.wishes[0], exact: true }).click();
+  await page.getByRole('button', { name: copy.prepare, exact: true }).click();
+  await expect(page.getByLabel(copy.planTitle, { exact: true })).toHaveValue(
+    demo.wishes[0],
+  );
+  expect(fixture.unexpected).toEqual([]);
 });
 
 for (const scenario of [
@@ -522,6 +596,67 @@ for (const scenario of [
       info,
       `result-${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`,
     );
+    expect(fixture.unexpected).toEqual([]);
+  });
+
+  test(`composing and choosing at ${scenario.width} ${scenario.theme}${scenario.large ? ' large text and reduced motion' : ''}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: scenario.theme as 'light' | 'dark',
+      reducedMotion: scenario.large ? 'reduce' : 'no-preference',
+    });
+    const fixture = await install(page);
+    await enter(page);
+    await page.goto('/plan#wishes');
+    await expect(page.locator('.wish-selection-entry')).toBeVisible();
+    await expect(
+      page.getByText(demo.wishes[0], { exact: true }).first(),
+    ).toBeVisible();
+    if (scenario.large)
+      await page.evaluate(
+        () => (document.documentElement.style.fontSize = '200%'),
+      );
+    const suffix = `${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`;
+    await capture(page, info, `entry-${suffix}`);
+    await page.goto('/plan/choose');
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.setupTitle }),
+    ).toBeVisible();
+    if (scenario.large)
+      await page.evaluate(
+        () => (document.documentElement.style.fontSize = '200%'),
+      );
+    for (const view of ['compose', 'favorites']) {
+      if (view === 'favorites') {
+        await page
+          .getByRole('button', { name: new RegExp(copy.sourceWishesTitle) })
+          .click();
+        await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+        await page.getByRole('checkbox', { name: demo.wishes[1] }).check();
+        await page
+          .getByRole('button', { name: copy.pickDone, exact: true })
+          .click();
+        await page
+          .getByRole('button', { name: copy.start, exact: true })
+          .click();
+        await page
+          .getByRole('button', { name: demo.wishes[0], exact: true })
+          .click();
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      ).toBeLessThanOrEqual(1);
+      const findings = await new AxeBuilder({ page })
+        .include('.wish-selection-task')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(findings.violations).toEqual([]);
+      await capture(page, info, `${view}-${suffix}`);
+    }
     expect(fixture.unexpected).toEqual([]);
   });
 }

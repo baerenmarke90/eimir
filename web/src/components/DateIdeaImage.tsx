@@ -18,12 +18,15 @@ export function DateIdeaImage({
   spaceId,
   image,
   lang,
+  decorative = false,
 }: {
   api: Pick<DateIdeasApi, 'getDateIdeaImage'>;
   accountId: string;
   spaceId: string;
   image: DateIdeaImageView;
   lang?: string;
+  /** A thumbnail next to the idea's title repeats nothing for screen readers. */
+  decorative?: boolean;
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(
@@ -80,8 +83,8 @@ export function DateIdeaImage({
       {url ? (
         <img
           src={url}
-          alt={image.alt}
-          lang={lang}
+          alt={decorative ? '' : image.alt}
+          lang={decorative ? undefined : lang}
           width={image.width}
           height={image.height}
           decoding="async"

@@ -11,6 +11,12 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';

@@ -1480,7 +1480,7 @@
     "settingsSensitiveEyebrow": "With care",
     "settingsSensitiveTitle": "Sensitive actions",
     "settingsSensitiveIntro": "Leaving the shared space and deleting your account are separate actions. Review the consequences of each before continuing.",
-    "appearanceIntro": "Choose your colour mode, language and the icon that suits you."
+    "appearanceIntro": "Choose your colour mode, language, moments design and the icon that suits you."
   },
   "appIcon": {
     "title": "App icon",
@@ -4369,6 +4369,18 @@
       "hourMany": "hours",
       "dayOne": "day",
       "dayMany": "days"
+    }
+  },
+  "momentsLayout": {
+    "title": "Moments design",
+    "intro": "How your memories look, in the diary and on Us. This device only.",
+    "album": {
+      "name": "Album",
+      "hint": "Like a photo album: large photos as Polaroids, with little notes."
+    },
+    "compact": {
+      "name": "List",
+      "hint": "Small previews on a calm timeline."
     }
   },
   "storyFilters": {

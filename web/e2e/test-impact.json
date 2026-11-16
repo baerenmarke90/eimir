@@ -396,6 +396,12 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
+    "momente-album.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx"
+      ]
+    },
     "optional-product-tour.spec.ts": {
       "roots": [
         "web/src/client/productTour.tsx",

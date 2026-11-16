@@ -1,0 +1,21 @@
+/* Two plain choices: the radio sits on the first line, name above hint. */
+.moments-layout-choices {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+
+.moments-layout-choices .choice-row {
+  align-items: flex-start;
+  padding-block: var(--space-2);
+}
+
+.moments-layout-choices .choice-row > input {
+  margin-block-start: var(--space-1);
+}
+
+.moments-layout-choices .choice-row strong {
+  color: var(--color-text);
+  font: var(--font-action-label);
+  letter-spacing: var(--tracking-action-label);
+}

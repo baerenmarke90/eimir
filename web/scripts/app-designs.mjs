@@ -105,10 +105,26 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 function palettes(id, color, identity) {
   if (color && typeof color === 'object' && 'world' in color) {
-    exactKeys(id, 'color', color, ['world']);
+    // A colour world, optionally with single roles replaced per scheme.
+    for (const key of Object.keys(color))
+      if (!['world', ...SCHEMES].includes(key))
+        fail(id, `color.${key} is not allowed with color.world.`);
     const world = identity.colorWorlds[color.world];
     if (!world) fail(id, `color.world "${color.world}" is not a colour world.`);
-    return { light: world.light, dark: world.dark, world: color.world };
+    const overrides = SCHEMES.filter((scheme) => scheme in color);
+    for (const scheme of overrides)
+      for (const [role, value] of Object.entries(color[scheme])) {
+        if (!(role in paletteRoles) && !(role in FINE_ROLES))
+          fail(id, `color.${scheme}.${role} is not a colour role.`);
+        if (!HEX.test(value))
+          fail(id, `color.${scheme}.${role} must be a #RRGGBB colour.`);
+      }
+    return {
+      light: { ...world.light, ...color.light },
+      dark: { ...world.dark, ...color.dark },
+      // An adjusted world is the design's own palette, not the shared one.
+      world: overrides.length ? `${color.world}+${id}` : color.world,
+    };
   }
   exactKeys(id, 'color', color, SCHEMES);
   for (const scheme of SCHEMES) {
@@ -132,6 +148,9 @@ const TEXT_PAIRS = [
   ['text', 'surface'],
   ['mutedText', 'page'],
   ['mutedText', 'surface'],
+  // Supporting text also sits on the soft tinted surfaces.
+  ['mutedText', 'softRose'],
+  ['mutedText', 'softBlue'],
   ['action', 'page'],
   ['action', 'surface'],
   ['onAction', 'actionFill'],

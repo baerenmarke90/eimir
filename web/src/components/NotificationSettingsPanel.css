@@ -36,6 +36,11 @@
   overflow-wrap: anywhere;
 }
 
+/* The link takes the design's link role instead of the browser default. */
+.notification-destination a {
+  color: var(--color-link-text);
+}
+
 .notification-settings-group {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

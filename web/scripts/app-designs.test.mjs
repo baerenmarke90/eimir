@@ -139,6 +139,20 @@ describe('app design token sets', () => {
     ).toThrowError(/light onDecoration on decoration/);
   });
 
+  it('lets a design adjust single roles of a colour world', () => {
+    const { css } = buildAppDesigns(tokens, designs);
+    const geborgen = css.slice(css.indexOf(':root[data-app-design="warm"],'));
+    expect(geborgen.slice(0, geborgen.indexOf('}'))).toContain(
+      '--color-text-secondary: #6E5969;',
+    );
+    expect(() =>
+      validateDesign(
+        design({ color: { world: 'warm', light: { glitter: '#FFFFFF' } } }),
+        tokens,
+      ),
+    ).toThrowError(/glitter is not a colour role/);
+  });
+
   it('requires one file per id', () => {
     expect(() =>
       buildAppDesigns(tokens, { ...designs, other: design() }),

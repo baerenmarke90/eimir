@@ -1,12 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import recaps from '../../src/i18n/locales/recaps';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 
 const moduleContract: { moduleKeys: string[] } = JSON.parse(
@@ -448,12 +448,13 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
         'href',
         '/story/heart-moments/heart-1',
       );
+      // Primary actions keep the canonical action fill in every design.
       const colors = await action.evaluate((node) => {
         const actual = getComputedStyle(node).backgroundColor;
         const probe = document.createElement('span');
         probe.style.backgroundColor = getComputedStyle(
           document.documentElement,
-        ).getPropertyValue('--color-brand-strong');
+        ).getPropertyValue('--color-action-primary');
         node.append(probe);
         const expected = getComputedStyle(probe).backgroundColor;
         probe.remove();

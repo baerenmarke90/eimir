@@ -4,12 +4,11 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import { waitForSettledMotion } from '../support/settledMotion';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
 } from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -27,7 +26,6 @@ const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
-  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',

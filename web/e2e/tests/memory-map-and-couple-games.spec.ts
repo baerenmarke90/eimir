@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';

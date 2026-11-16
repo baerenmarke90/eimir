@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -16,7 +16,6 @@ import {
   fulfillNoWishSelectionRound,
 } from '../support/productContext';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
-import { waitForSettledMotion } from '../support/settledMotion';
 
 /*
  * #1816: a completed wish can be experienced again. The repeat is a new wish
@@ -343,7 +342,6 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
-  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { NOTIFICATION_WAKE_EVENT } from '../../src/client/foregroundNotifications';
 import de from '../../src/i18n/locales/de';
@@ -12,7 +12,6 @@ import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
-import { waitForSettledMotion } from '../support/settledMotion';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 /*
@@ -477,7 +476,6 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
-  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

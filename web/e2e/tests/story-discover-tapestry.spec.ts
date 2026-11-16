@@ -1,7 +1,7 @@
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
@@ -11,14 +11,12 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
-import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
-  await waitForSettledMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',

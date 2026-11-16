@@ -1,11 +1,10 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import dailyInsights from '../../src/i18n/locales/dailyInsights';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import weeklyInsights from '../../src/i18n/locales/weeklyInsights';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -428,7 +427,6 @@ async function openInsightsFromMore(
     page.getByText(dailyInsights.week.subtitle, { exact: true }),
   ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
-  await waitForSettledMotion(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
   if (testInfo && label) {
@@ -461,7 +459,6 @@ async function visitViews(
   await openInsightsFromMore(page, testInfo, label);
   await goToPreviousWeek(page);
   await expectNoHorizontalOverflow(page);
-  await waitForSettledMotion(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath(`insights-week-${label}.png`),
@@ -473,7 +470,6 @@ async function visitViews(
     page.getByRole('heading', { name: dailyInsights.patterns.glanceTitle }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
-  await waitForSettledMotion(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath(`insights-patterns-${label}.png`),
@@ -489,7 +485,6 @@ async function visitViews(
     page.getByRole('heading', { name: dailyInsights.recap.noticedTitle }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
-  await waitForSettledMotion(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath(`insights-recap-${label}.png`),
@@ -563,7 +558,6 @@ test('Free Spaces see a calm gated state and never request insights', async ({
   await expect(page.getByText(dailyInsights.gate.freeNote)).toBeVisible();
   expect(requests.insights).toBe(0);
   await expectNoHorizontalOverflow(page);
-  await waitForSettledMotion(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath('insights-gated-390-light.png'),
@@ -619,7 +613,6 @@ for (const state of [
       page.getByRole('link', { name: dailyInsights.week.closingCta }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
-    await waitForSettledMotion(page);
     expect(
       (await new AxeBuilder({ page }).include('.weekly-review').analyze())
         .violations,

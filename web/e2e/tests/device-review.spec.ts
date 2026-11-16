@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test } from '@playwright/test';
 import tags from '../../src/i18n/locales/contextTags';
 import memory from '../../src/i18n/locales/memoryProduct';

@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import de from '../../src/i18n/locales/webViewNotice';

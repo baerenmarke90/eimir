@@ -1,5 +1,5 @@
 import content from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import de from '../../src/i18n/locales/de';

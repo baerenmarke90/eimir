@@ -2,7 +2,7 @@ import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -11,7 +11,6 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
-import { waitForSettledMotion } from '../support/settledMotion';
 import experiences from '../../src/i18n/locales/experiences';
 import importantDates from '../../src/i18n/locales/importantDates';
 import memoryMap from '../../src/i18n/locales/memoryMap';
@@ -487,7 +486,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
     await expectNoHorizontalOverflow(page);
 
-    await waitForSettledMotion(page);
     const result = await new AxeBuilder({ page })
       .withTags([
         'wcag2a',
@@ -553,7 +551,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
     ).toBeVisible();
 
-    await waitForSettledMotion(page);
     const result = await new AxeBuilder({ page })
       .withTags([
         'wcag2a',

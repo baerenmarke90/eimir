@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
@@ -8,7 +8,6 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame } from '../support/mediaCarouselGesture';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -815,13 +814,11 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     );
     await notifications.focus();
     await expect(notifications).toBeFocused();
-    await waitForSettledMotion(page);
     const moreAxe = await new AxeBuilder({ page })
       .include('.more-page')
       .analyze();
     expect(moreAxe.violations).toEqual([]);
     await page.goBack();
-    await waitForSettledMotion(page);
     const axe = await new AxeBuilder({ page }).include('.today-hero').analyze();
     expect(axe.violations).toEqual([]);
 

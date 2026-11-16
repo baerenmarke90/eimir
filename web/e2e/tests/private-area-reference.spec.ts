@@ -7,7 +7,7 @@ import {
 } from '../support/addAction';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   test,

@@ -129,17 +129,13 @@ describe('GamesProductArea', () => {
       );
       await screen.findByRole('heading', { name: games.whoOfUs.finishTitle });
       expect(
-        view.container.querySelectorAll(
-          '.subpage-back-slot .task-back-control',
-        ),
+        view.container.querySelectorAll('.task-back-control'),
       ).toHaveLength(1);
       fireEvent.click(screen.getByRole('button', { name: games.whoOfUs.back }));
       // Leaving the game first releases its history entry.
       await waitFor(expectThreeGameEntries);
       expect(
-        view.container.querySelectorAll(
-          '.subpage-back-slot .task-back-control',
-        ),
+        view.container.querySelectorAll('.task-back-control'),
       ).toHaveLength(1);
     } finally {
       view.unmount();

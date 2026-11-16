@@ -986,6 +986,7 @@
     "subpage-navigation-context.spec.ts": {
       "roots": [
         "web/src/components/AppShell.tsx",
+        "web/src/components/PageHeader.tsx",
         "web/src/components/SubpageNavigation.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/MemoryProductPage.tsx",

@@ -1,10 +1,10 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
-import copy from '../../src/i18n/locales/wishSelection';
 import planning from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import copy from '../../src/i18n/locales/wishSelection';
 import localizedFixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,

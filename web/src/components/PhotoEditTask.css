@@ -404,6 +404,15 @@
   padding-inline: var(--space-2);
 }
 
+/* An unavailable action recedes behind the available ones (Pixel check). */
+.photo-edit-context button.photo-edit-action:disabled {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-color: transparent;
+  opacity: 0.6;
+  cursor: default;
+}
+
 .photo-edit-colors {
   display: flex;
   gap: var(--space-1);

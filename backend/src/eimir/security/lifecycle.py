@@ -346,6 +346,9 @@ class RawAuditReport:
     # Rows that are not a well-formed envelope (legacy plaintext, extra keys next
     # to the envelope, a scalar, or a scheme that disagrees with crypto_version).
     not_enveloped: Counter[str] = field(default_factory=Counter)
+    # Rows that still hold a value in a legacy plain column whose home is now the
+    # payload (``eimir.security.column_moves``); plaintext beside the envelope.
+    plaintext_columns: Counter[str] = field(default_factory=Counter)
     objects_sampled: int = 0
     objects_encrypted: int = 0
     objects_plaintext: int = 0
@@ -354,7 +357,7 @@ class RawAuditReport:
 
     @property
     def ok(self) -> bool:
-        return not self.not_enveloped and not self.objects_plaintext
+        return not self.not_enveloped and not self.objects_plaintext and not self.plaintext_columns
 
 
 _ENVELOPE_KEY_LIST = ", ".join(f"'{key}'" for key in sorted(ENVELOPE_KEYS))

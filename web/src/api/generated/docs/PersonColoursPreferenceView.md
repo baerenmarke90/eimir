@@ -1,6 +1,7 @@
 
 # PersonColoursPreferenceView
 
+The caller\'s own colour pair; ``colours`` is null while automatic.
 
 ## Properties
 

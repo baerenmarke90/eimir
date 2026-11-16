@@ -1,6 +1,7 @@
 
 # PersonColoursId
 
+A fixed pair: the owner\'s own colour first, then the partner\'s colour.  The pair is a purely personal view setting. It is never shared with the partner, so the two people can see each other in different colours.
 
 ## Properties
 

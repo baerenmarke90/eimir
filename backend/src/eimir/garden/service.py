@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
@@ -260,7 +261,9 @@ def water(session: Session, context: AuthorizationContext, plant_id: UUID) -> Ga
     return state(session, context)
 
 
-def seed_is_waiting(session: Session, context: AuthorizationContext, seed_id: object) -> object:
+def seed_is_waiting(
+    session: Session, context: AuthorizationContext, seed_id: Any
+) -> Select[tuple[UUID]]:
     """Selectable predicate: a seed for the reader that is not planted yet."""
     return select(GardenPlant.id).where(
         GardenPlant.id == seed_id,

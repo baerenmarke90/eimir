@@ -226,13 +226,14 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
 ## getGarden
 
 > GardenView getGarden(spaceId)
 
 Get Garden
 
-The shared garden and today's step for the reader.
+The shared garden and today\&#39;s step for the reader.
 
 ### Example
 
@@ -377,7 +378,7 @@ No authorization required
 
 Send Garden Seed
 
-Send today's seed to the partner; one per partner and day.
+Send today\&#39;s seed to the partner; one per partner and day.
 
 ### Example
 

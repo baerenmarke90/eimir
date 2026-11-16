@@ -855,6 +855,12 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
+    "story-waymarks.spec.ts": {
+      "roots": [
+        "web/src/components/RelationshipStoryPage.tsx",
+        "web/src/components/RelationshipPassport.tsx"
+      ]
+    },
     "story-years-product-reference.spec.ts": {
       "roots": [
         "web/src/components/StoryYearsPage.tsx",

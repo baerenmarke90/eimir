@@ -64,6 +64,26 @@ import {
     HeartHuntTapResultToJSON,
 } from '../models/HeartHuntTapResult';
 import {
+    type PictureFinishInput,
+    PictureFinishInputFromJSON,
+    PictureFinishInputToJSON,
+} from '../models/PictureFinishInput';
+import {
+    type PicturePingPongState,
+    PicturePingPongStateFromJSON,
+    PicturePingPongStateToJSON,
+} from '../models/PicturePingPongState';
+import {
+    type PictureSavedInput,
+    PictureSavedInputFromJSON,
+    PictureSavedInputToJSON,
+} from '../models/PictureSavedInput';
+import {
+    type PictureTurnInput,
+    PictureTurnInputFromJSON,
+    PictureTurnInputToJSON,
+} from '../models/PictureTurnInput';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -72,6 +92,11 @@ import {
 export interface CreateHeartHuntRoundRequest {
     spaceId: string;
     heartHuntRoundCreate: HeartHuntRoundCreate;
+}
+
+export interface FinishPicturePingPongRequest {
+    spaceId: string;
+    pictureFinishInput: PictureFinishInput;
 }
 
 export interface GetCoupleExperienceQuestionsRequest {
@@ -91,10 +116,28 @@ export interface GetHeartHuntRequest {
     spaceId: string;
 }
 
+export interface GetPicturePingPongRequest {
+    spaceId: string;
+}
+
+export interface HandOverPicturePingPongTurnRequest {
+    spaceId: string;
+    pictureTurnInput: PictureTurnInput;
+}
+
 export interface KeepHeartHuntRoundRequest {
     roundId: string;
     spaceId: string;
     heartHuntKept: HeartHuntKept;
+}
+
+export interface MarkPicturePingPongSavedRequest {
+    spaceId: string;
+    pictureSavedInput: PictureSavedInput;
+}
+
+export interface StartPicturePingPongRequest {
+    spaceId: string;
 }
 
 export interface TapHeartHuntRoundRequest {
@@ -162,6 +205,63 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async createHeartHuntRound(requestParameters: CreateHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
         const response = await this.createHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for finishPicturePingPong without sending the request
+     */
+    async finishPicturePingPongRequestOpts(requestParameters: FinishPicturePingPongRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling finishPicturePingPong().'
+            );
+        }
+
+        if (requestParameters['pictureFinishInput'] == null) {
+            throw new runtime.RequiredError(
+                'pictureFinishInput',
+                'Required parameter "pictureFinishInput" was null or undefined when calling finishPicturePingPong().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PictureFinishInputToJSON(requestParameters['pictureFinishInput']),
+        };
+    }
+
+    /**
+     * Either partner may call the picture finished early.
+     * Finish Picture Ping Pong
+     */
+    async finishPicturePingPongRaw(requestParameters: FinishPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
+        const requestOptions = await this.finishPicturePingPongRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PicturePingPongStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Either partner may call the picture finished early.
+     * Finish Picture Ping Pong
+     */
+    async finishPicturePingPong(requestParameters: FinishPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
+        const response = await this.finishPicturePingPongRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -362,6 +462,110 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPicturePingPong without sending the request
+     */
+    async getPicturePingPongRequestOpts(requestParameters: GetPicturePingPongRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPicturePingPong().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The current shared picture, or `null` when none was started.
+     * Get Picture Ping Pong
+     */
+    async getPicturePingPongRaw(requestParameters: GetPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
+        const requestOptions = await this.getPicturePingPongRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PicturePingPongStateFromJSON(jsonValue));
+    }
+
+    /**
+     * The current shared picture, or `null` when none was started.
+     * Get Picture Ping Pong
+     */
+    async getPicturePingPong(requestParameters: GetPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
+        const response = await this.getPicturePingPongRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for handOverPicturePingPongTurn without sending the request
+     */
+    async handOverPicturePingPongTurnRequestOpts(requestParameters: HandOverPicturePingPongTurnRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling handOverPicturePingPongTurn().'
+            );
+        }
+
+        if (requestParameters['pictureTurnInput'] == null) {
+            throw new runtime.RequiredError(
+                'pictureTurnInput',
+                'Required parameter "pictureTurnInput" was null or undefined when calling handOverPicturePingPongTurn().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PictureTurnInputToJSON(requestParameters['pictureTurnInput']),
+        };
+    }
+
+    /**
+     * Add up to three strokes for the current turn and pass the picture on.
+     * Hand Over Picture Ping Pong Turn
+     */
+    async handOverPicturePingPongTurnRaw(requestParameters: HandOverPicturePingPongTurnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
+        const requestOptions = await this.handOverPicturePingPongTurnRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PicturePingPongStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Add up to three strokes for the current turn and pass the picture on.
+     * Hand Over Picture Ping Pong Turn
+     */
+    async handOverPicturePingPongTurn(requestParameters: HandOverPicturePingPongTurnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
+        const response = await this.handOverPicturePingPongTurnRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for keepHeartHuntRound without sending the request
      */
     async keepHeartHuntRoundRequestOpts(requestParameters: KeepHeartHuntRoundRequest): Promise<runtime.RequestOpts> {
@@ -423,6 +627,110 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async keepHeartHuntRound(requestParameters: KeepHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
         const response = await this.keepHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for markPicturePingPongSaved without sending the request
+     */
+    async markPicturePingPongSavedRequestOpts(requestParameters: MarkPicturePingPongSavedRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling markPicturePingPongSaved().'
+            );
+        }
+
+        if (requestParameters['pictureSavedInput'] == null) {
+            throw new runtime.RequiredError(
+                'pictureSavedInput',
+                'Required parameter "pictureSavedInput" was null or undefined when calling markPicturePingPongSaved().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PictureSavedInputToJSON(requestParameters['pictureSavedInput']),
+        };
+    }
+
+    /**
+     * Record the Memory the finished picture was saved to (explicit tap only).
+     * Mark Picture Ping Pong Saved
+     */
+    async markPicturePingPongSavedRaw(requestParameters: MarkPicturePingPongSavedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
+        const requestOptions = await this.markPicturePingPongSavedRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PicturePingPongStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Record the Memory the finished picture was saved to (explicit tap only).
+     * Mark Picture Ping Pong Saved
+     */
+    async markPicturePingPongSaved(requestParameters: MarkPicturePingPongSavedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
+        const response = await this.markPicturePingPongSavedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for startPicturePingPong without sending the request
+     */
+    async startPicturePingPongRequestOpts(requestParameters: StartPicturePingPongRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling startPicturePingPong().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Open a new picture; the partner who opens it draws first.
+     * Start Picture Ping Pong
+     */
+    async startPicturePingPongRaw(requestParameters: StartPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
+        const requestOptions = await this.startPicturePingPongRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PicturePingPongStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Open a new picture; the partner who opens it draws first.
+     * Start Picture Ping Pong
+     */
+    async startPicturePingPong(requestParameters: StartPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
+        const response = await this.startPicturePingPongRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

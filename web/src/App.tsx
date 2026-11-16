@@ -71,6 +71,7 @@ import {
   DEFAULT_APP_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
@@ -181,6 +182,7 @@ import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
+import { PicturePingPongPage } from './components/PicturePingPongPage';
 import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
@@ -844,6 +846,17 @@ function AuthenticatedApp({
               path={GAMES_MOMENTS_ROUTE}
               element={
                 <OurMomentsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_PICTURE_PING_PONG_ROUTE}
+              element={
+                <PicturePingPongPage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
                   spaceId={spaceId}

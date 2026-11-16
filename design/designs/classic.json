@@ -6,7 +6,7 @@
   "color": { "world": "original" },
   "shape": "standard",
   "type": { "display": "literata", "headings": "ui" },
-  "icon": { "stroke": 1.65, "accent": "duotone" },
+  "icon": { "stroke": "standard", "accent": "duotone" },
   "motion": "standard",
   "surface": { "backdrop": "glow", "elevation": "standard", "edges": "none" }
 }

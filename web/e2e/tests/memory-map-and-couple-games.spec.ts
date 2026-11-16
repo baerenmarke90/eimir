@@ -488,7 +488,7 @@ test('three Pro games retain their existing independent home', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(3).fill(gameCopy.status.playNow),
+    Array(4).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {

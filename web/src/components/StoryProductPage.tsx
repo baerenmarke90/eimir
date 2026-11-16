@@ -41,9 +41,11 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { storyEntryTone, tapestryEntryTone } from '../client/entryTone';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { photoShape } from '../client/photoShape';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -75,6 +77,7 @@ import {
 } from '../client/storyProduct';
 import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -105,6 +108,8 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
+import './StoryHandmade.css';
+import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
 import { groupDiaryEntries } from '../client/diaryEntries';
 import { DiaryList } from './DiaryList';
@@ -307,6 +312,8 @@ export function StoryProductPage({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  // Chosen in Mehr > Einstellungen > Darstellung; read-only here.
+  const [diaryLayout] = useDiaryLayout();
   const [draftFilters, setDraftFilters] = useState<StoryFilters>(
     DEFAULT_STORY_FILTERS,
   );
@@ -938,10 +945,18 @@ export function StoryProductPage({
               renewing || storyQuery.isFetching || discoverQuery.isFetching
             }
             aria-labelledby="momente-tab-discover"
+            data-diary-layout={diaryLayout}
           >
             {/* 1. Featured Editorial Highlight */}
             {featuredItem && featuredPresentation ? (
-              <article className="momente-hero-highlight">
+              <article
+                className="momente-hero-highlight"
+                data-tone={storyEntryTone(featuredItem, Boolean(featuredMedia))}
+                data-photo-shape={
+                  featuredMedia ? photoShape(featuredMedia) : undefined
+                }
+                data-color-world={featuredMedia ? undefined : 'warm'}
+              >
                 <Link
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
@@ -1069,6 +1084,7 @@ export function StoryProductPage({
                               }
                               to={path}
                               className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
+                              data-tone="playful"
                               data-discover-reveal-key={`item:${entry.key}`}
                               aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
                               onClick={(event) => openDiscoverItem(event, path)}
@@ -1113,10 +1129,22 @@ export function StoryProductPage({
                             }
                             to={path}
                             data-media-shape={entry.mediaShape}
+                            data-photo-shape={
+                              role === 'media' && entry.firstAttachment
+                                ? photoShape(entry.firstAttachment)
+                                : undefined
+                            }
                             data-heart-emotion={
                               role === 'note' ? entry.emotion : undefined
                             }
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
+                            data-tone={tapestryEntryTone(
+                              role,
+                              entry.experience?.experienceKind,
+                            )}
+                            data-color-world={
+                              role === 'text' ? 'warm' : undefined
+                            }
                             data-discover-reveal-key={`item:${entry.key}`}
                             aria-label={tapestryAccessibleName(
                               t,
@@ -1242,6 +1270,7 @@ export function StoryProductPage({
           id="momente-diary"
           aria-labelledby="momente-tab-timeline"
           className="momente-diary-section"
+          data-diary-layout={diaryLayout}
         >
           {timelineMonthGroups.length === 0 ? (
             <header className="momente-section-header">{filterTrigger}</header>

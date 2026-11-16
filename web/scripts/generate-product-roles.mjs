@@ -157,6 +157,7 @@ for (const part of value('mapAppearance.darkTileFilter').split(' ')) {
   } else mapFilterLines[last] += ` ${part}`;
 }
 declarations.push(`${mapFilterLines.join('\n')};`);
+declare('map-paper-tile-filter', value('mapAppearance.paperTileFilter'));
 
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));

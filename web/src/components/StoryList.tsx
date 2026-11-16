@@ -19,10 +19,12 @@ import {
   commentPresenceQueryKey,
   listCommentsPage,
 } from '../client/commentQueries';
+import { authorPartnerTone, storyEntryTone } from '../client/entryTone';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { photoShape } from '../client/photoShape';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
@@ -259,7 +261,7 @@ export function StoryList({
   progressiveReveal?: boolean;
 }) {
   const { t } = useTranslation();
-  const { nicknameFor } = usePartnerNickname();
+  const { nicknameFor, state: partnerState } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
   const occasions = useSpaceOccasions(
@@ -299,7 +301,7 @@ export function StoryList({
         {items.map((item, index) => {
           const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t, nicknameFor);
-          const _author = storyItemAuthor(item);
+          const author = storyItemAuthor(item);
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? galleryCover(item.memory) : undefined;
           const heartAttachment =
@@ -307,6 +309,18 @@ export function StoryList({
               ? (item.heartMoment.attachment ?? undefined)
               : undefined;
           const imageAttachment = firstMemoryAttachment ?? heartAttachment;
+          // Scrapbook presentation only: tone decides how playful the paper may
+          // look, the author's partner colour tints the tape. Neither changes
+          // content, order or accessible names.
+          const tone = storyEntryTone(item, Boolean(imageAttachment));
+          const authorTone = authorPartnerTone(
+            author.id,
+            currentAccountId ?? apiRuntime?.accountId,
+            partnerState?.partnerId,
+          );
+          const hasAnswers =
+            item.kind === 'MEMORY' &&
+            (item.memory.experienceAnswers?.length ?? 0) > 0;
           const imageEntityId =
             item.kind === 'MEMORY'
               ? item.memory.id
@@ -355,6 +369,19 @@ export function StoryList({
               data-timeline-reveal-key={
                 progressiveReveal ? `item:${itemKey}` : undefined
               }
+              data-tone={tone}
+              data-photo-shape={
+                imageAttachment
+                  ? photoShape(
+                      imageAttachment as {
+                        width?: number | null;
+                        height?: number | null;
+                      },
+                    )
+                  : undefined
+              }
+              data-author-tone={authorTone ?? undefined}
+              data-has-answers={hasAnswers || undefined}
             >
               <StoryTimelineMarker item={item} />
               <Link
@@ -369,6 +396,11 @@ export function StoryList({
               >
                 <article
                   className={cardClasses}
+                  data-color-world={
+                    item.kind === 'MEMORY' && !imageAttachment
+                      ? 'warm'
+                      : undefined
+                  }
                   data-heart-emotion={
                     item.kind === 'HEART_MOMENT'
                       ? item.heartMoment.emotion

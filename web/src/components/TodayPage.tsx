@@ -40,6 +40,7 @@ import {
 } from '../client/dashboardPreferences';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { retrospectiveTone } from '../client/entryTone';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
@@ -86,6 +87,7 @@ import {
   rememberRetrospectiveDismissal,
   retrospectiveDismissalToken,
 } from '../client/todayRetrospectiveDismissal';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useHeldQuery, useResumeSettling } from '../client/useResumeSettling';
 import { useRevealAfterCache } from '../client/useRevealAfterCache';
@@ -134,6 +136,7 @@ import { WirLists } from './WirLists';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
+import './TodayRetrospectiveAlbum.css';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
 import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
@@ -601,6 +604,7 @@ function TodayRetrospectiveCard({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const [diaryLayout] = useDiaryLayout();
   const path = dashboardItemPath(item.type, item.id);
   // #1790 C2: varying wording instead of a bare date as the title.
   const wording = useRediscoveryWording(
@@ -625,7 +629,12 @@ function TodayRetrospectiveCard({
     : rawDate?.toISOString();
 
   return (
-    <article className="today-living today-living-retrospective eimir-motion-lift">
+    <article
+      className="today-living today-living-retrospective eimir-motion-lift"
+      data-color-world={diaryLayout === 'album' ? 'warm' : undefined}
+      data-diary-layout={diaryLayout}
+      data-tone={hasMedia ? retrospectiveTone(item) : 'calm'}
+    >
       <figure className="today-retrospective-photo">
         {hasMedia && previewAttachmentId && loadMemoryImage ? (
           <div className="today-retrospective-media">

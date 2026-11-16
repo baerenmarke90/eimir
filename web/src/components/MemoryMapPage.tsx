@@ -56,11 +56,13 @@ export function MemoryMapPage({
   accountId,
   apiBaseUrl,
   loadMemoryImage,
+  sessionViewport,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   accountId: string;
   apiBaseUrl?: string;
+  sessionViewport?: { current?: MapViewport };
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -111,7 +113,9 @@ export function MemoryMapPage({
   });
   const viewport = useRef<{ scope: string; value?: MapViewport }>({
     scope: fullscreenScope,
-    value: returnContext?.viewport,
+    value:
+      returnContext?.viewport ??
+      (placeParam ? undefined : sessionViewport?.current),
   });
   if (viewport.current.scope !== fullscreenScope)
     viewport.current = { scope: fullscreenScope };
@@ -119,8 +123,9 @@ export function MemoryMapPage({
     (value: MapViewport) => {
       if (viewport.current.scope === fullscreenScope)
         viewport.current.value = value;
+      if (!hasOrigin && sessionViewport) sessionViewport.current = value;
     },
-    [fullscreenScope],
+    [fullscreenScope, hasOrigin, sessionViewport],
   );
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);

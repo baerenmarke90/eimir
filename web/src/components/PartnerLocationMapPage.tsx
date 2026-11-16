@@ -173,7 +173,7 @@ export function PartnerLocationMapPage({
   const distanceText = useDistanceText();
   const [showUs, setShowUs] = useState(0);
 
-  const shared = map.data?.available ? map.data : null;
+  const shared = map.isSuccess && map.data.available ? map.data : null;
   // The partner's area only counts when it has a position and a radius; the
   // map itself works without it (own position, or the default view).
   const area =
@@ -271,19 +271,11 @@ export function PartnerLocationMapPage({
     </Link>
   );
 
-  if (capability.isPending || (entitled && map.isPending)) {
+  if (capability.isPending) {
     return (
       <div className="page partner-map-page">
         {header}
         <UiState kind="loading" title={t('partnerLocation.mapLoading')} />
-      </div>
-    );
-  }
-  if (entitled && map.isError) {
-    return (
-      <div className="page partner-map-page">
-        {header}
-        <ProblemState error={map.error} onRetry={() => void map.refetch()} />
       </div>
     );
   }
@@ -314,7 +306,9 @@ export function PartnerLocationMapPage({
   const asOf = capturedAt ? asOfLabel(capturedAt) : null;
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
-    distanceLine?.kind === 'distance' ? distanceText(distanceLine.band) : null;
+    map.isSuccess && distanceLine?.kind === 'distance'
+      ? distanceText(distanceLine.band)
+      : null;
   // The map is the detailed view: a range band shown in words also keeps its
   // kilometres here, as on Wir only the words are shown (#1907 H4).
   const betweenKm =
@@ -367,9 +361,11 @@ export function PartnerLocationMapPage({
                 radius,
                 time: asOf ?? '',
               })
-            : t('partnerLocation.mapPartnerNotSharing', {
-                partner: partnerFirstName,
-              })}{' '}
+            : map.isSuccess
+              ? t('partnerLocation.mapPartnerNotSharing', {
+                  partner: partnerFirstName,
+                })
+              : null}{' '}
           {ownPosition ? t('partnerLocation.mapOwnDescription') : null}
           {connection ? ' ' : null}
           {connection
@@ -398,36 +394,46 @@ export function PartnerLocationMapPage({
           </p>
         ) : null}
         <ul className="partner-map-people">
-          <li
-            className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
-          >
-            <span aria-hidden="true">
-              <SingleAvatar
-                person={{ displayName: partnerName, imageUrl: partnerAvatar }}
-                size="small"
+          {map.isError ? (
+            <li>
+              <ProblemState
+                error={map.error}
+                onRetry={() => void map.refetch()}
               />
-            </span>
-            <span className="partner-map-person-copy">
-              <strong>
-                {area
-                  ? t('partnerLocation.mapPartnerArea', {
-                      partner: partnerFirstName,
-                    })
-                  : t('partnerLocation.mapPartnerNotSharing', {
-                      partner: partnerFirstName,
-                    })}
-              </strong>
-              {area ? (
-                asOf ? (
+            </li>
+          ) : (
+            <li
+              className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
+            >
+              <span aria-hidden="true">
+                <SingleAvatar
+                  person={{ displayName: partnerName, imageUrl: partnerAvatar }}
+                  size="small"
+                />
+              </span>
+              <span className="partner-map-person-copy">
+                <strong role={map.isPending ? 'status' : undefined}>
+                  {map.isPending
+                    ? t('states.loading.title')
+                    : area
+                      ? t('partnerLocation.mapPartnerArea', {
+                          partner: partnerFirstName,
+                        })
+                      : t('partnerLocation.mapPartnerNotSharing', {
+                          partner: partnerFirstName,
+                        })}
+                </strong>
+                {map.isSuccess && !area ? (
+                  <span>{t('partnerLocation.mapUnavailableBody')}</span>
+                ) : null}
+                {area && asOf ? (
                   <span>
                     {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
                   </span>
-                ) : null
-              ) : (
-                <span>{t('partnerLocation.mapUnavailableBody')}</span>
-              )}
-            </span>
-          </li>
+                ) : null}
+              </span>
+            </li>
+          )}
           <li className="partner-map-person">
             <span aria-hidden="true">
               <SingleAvatar

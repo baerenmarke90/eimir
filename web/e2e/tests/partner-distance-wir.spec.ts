@@ -31,6 +31,7 @@ type Scenario = {
   ownLevel?: 'OFF' | 'DISTANCE' | 'DISTANCE_AND_MAP';
   distance?: { band: Band; asOf: Date } | null;
   map?: boolean;
+  mapReadGate?: Promise<void>;
   mapPosition?: { latitude: number; longitude: number };
   capturedAt?: Date;
 };
@@ -71,6 +72,7 @@ async function distanceMocks(
       asOf: minutesAgo(20),
     },
     map = true,
+    mapReadGate,
     mapPosition = { latitude: 53.55, longitude: 10.0 },
     capturedAt = minutesAgo(20),
   }: Scenario = {},
@@ -181,6 +183,10 @@ async function distanceMocks(
     }
     if (url.pathname === mapPath && method === 'GET') {
       server.mapReads += 1;
+      // Wir reads map availability before it offers a link to the map.
+      if (mapReadGate && new URL(page.url()).pathname === MAP_ROUTE) {
+        await mapReadGate;
+      }
       return route.fulfill({
         json: map
           ? {
@@ -269,7 +275,12 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await grantBrowserLocation(page);
-  const server = await distanceMocks(page, { ownLevel: 'DISTANCE' });
+  const { promise: mapReadGate, resolve: releaseMapRead } =
+    Promise.withResolvers<void>();
+  const server = await distanceMocks(page, {
+    ownLevel: 'DISTANCE',
+    mapReadGate,
+  });
   await openWir(page);
 
   const line = hero(page).getByRole('link', {
@@ -292,11 +303,27 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   await page.waitForTimeout(1500);
   expect(server.distanceBodies.length).toBe(reads);
 
+  const mapReadsBeforeOpen = server.mapReads;
   await line.click();
   await expect(page).toHaveURL(MAP_ROUTE);
   await expect(
     page.getByRole('heading', { name: copy.mapTitle, level: 1 }),
   ).toBeVisible();
+  try {
+    await expect(
+      page.locator('.place-map-viewport .maplibregl-canvas'),
+    ).toBeVisible();
+    await expect
+      .poll(() => server.mapReads)
+      .toBeGreaterThan(mapReadsBeforeOpen);
+    await expect(page.locator('.place-map-area.is-partner')).toHaveCount(0);
+    await expect(
+      page.getByText(forPartner(copy.mapPartnerNotSharing)),
+    ).toHaveCount(0);
+    await captureScreenshot(page, info, 'today-location-map-pending-390.png');
+  } finally {
+    releaseMapRead();
+  }
   await expect(
     page.getByText(forPartner(copy.mapPartnerArea).replace('Alex', 'Alex')),
   ).toBeVisible();

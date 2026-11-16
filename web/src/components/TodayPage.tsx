@@ -91,10 +91,6 @@ import { useHeldQuery, useResumeSettling } from '../client/useResumeSettling';
 import { useRevealAfterCache } from '../client/useRevealAfterCache';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
-import {
-  rememberWirScroll,
-  takeColdStartWirScroll,
-} from '../client/wirScrollMemory';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AnticipationCard } from './AnticipationCard';
@@ -143,30 +139,39 @@ import { alignWirIntroAnimations } from './wirIntroClock';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 
-// The hero's opening sequence plays once per page load, not on every return
-// to the tab. The window covers the whole sequence with some margin.
-let wirHeroIntroStartedAt: number | null = null;
-const WIR_HERO_INTRO_WINDOW_MS = 5000;
+// Undefined means the opening has not been considered yet; null means it was
+// skipped or interrupted. Late children can join an opening already in flight.
+let wirHeroIntroStartedAt: number | null | undefined;
+const WIR_HERO_INTRO_WINDOW_MS = 1000;
 
-function WirIntroStage({
-  intro,
-  children,
-}: {
-  intro: boolean;
-  children: ReactNode;
-}) {
+function WirIntroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
-  // Runs after every render: a remount anywhere in the hero (a new wrapper,
-  // a split avatar pair, a late badge) joins the running sequence instead of
-  // restarting it.
   useLayoutEffect(() => {
-    if (intro) alignWirIntroAnimations(stageRef.current, wirHeroIntroStartedAt);
+    const stage = stageRef.current;
+    if (!stage) return;
+    if (
+      stage.closest('[hidden], [data-primary-tab-peek]') ||
+      document.visibilityState === 'hidden'
+    ) {
+      if (wirHeroIntroStartedAt !== undefined) wirHeroIntroStartedAt = null;
+      stage.classList.remove('wir-stage-intro');
+      return;
+    }
+    if (wirHeroIntroStartedAt === undefined) {
+      const { top, bottom } = stage.getBoundingClientRect();
+      wirHeroIntroStartedAt =
+        window.scrollY === 0 && bottom > 0 && top < window.innerHeight
+          ? performance.now()
+          : null;
+    }
+    const intro =
+      wirHeroIntroStartedAt !== null &&
+      performance.now() - wirHeroIntroStartedAt < WIR_HERO_INTRO_WINDOW_MS;
+    stage.classList.toggle('wir-stage-intro', intro);
+    if (intro) alignWirIntroAnimations(stage, wirHeroIntroStartedAt);
   });
   return (
-    <div
-      ref={stageRef}
-      className={`wir-stage${intro ? ' wir-stage-intro' : ''}`}
-    >
+    <div ref={stageRef} className="wir-stage">
       {children}
     </div>
   );
@@ -1327,43 +1332,6 @@ export function TodayPage({
 
   const revealAfterCache = useRevealAfterCache(dashboardQuery.isCached);
 
-  // A cold start (the OS dropped the WebView in the background) returns to the
-  // remembered position once there is content to scroll through.
-  const accountId = account?.id ?? '';
-  const [coldStartScroll] = useState(() =>
-    takeColdStartWirScroll(accountId, spaceId),
-  );
-  const [coldStartScrollSettled, setColdStartScrollSettled] = useState(false);
-  useLayoutEffect(() => {
-    if (!contentReady || coldStartScrollSettled) return;
-    setColdStartScrollSettled(true);
-    if (coldStartScroll) window.scrollTo(0, coldStartScroll);
-  }, [contentReady, coldStartScroll, coldStartScrollSettled]);
-  useEffect(() => {
-    // Never record before the restore had its chance, or a background right
-    // after launch would overwrite the position with the top.
-    if (!accountId || !contentReady || !coldStartScrollSettled) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const save = () => rememberWirScroll(accountId, spaceId, window.scrollY);
-    const onScroll = () => {
-      clearTimeout(timer);
-      timer = setTimeout(save, 400);
-    };
-    const flush = () => {
-      clearTimeout(timer);
-      if (document.visibilityState === 'hidden') save();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', flush);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', onScroll);
-      document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', flush);
-    };
-  }, [accountId, spaceId, contentReady, coldStartScrollSettled]);
-
   const relationshipPresenceVisible = isDashboardModuleVisible(
     dashboardPreferences,
     'relationship_presence',
@@ -1562,23 +1530,11 @@ export function TodayPage({
     t('m5s5.activity.you', { defaultValue: 'Du' }),
   );
 
-  if (
-    connectedDesign &&
-    wirHeroIntroStartedAt === null &&
-    dashboardQuery.data
-  ) {
-    wirHeroIntroStartedAt = performance.now();
-  }
-  const heroIntro =
-    connectedDesign &&
-    wirHeroIntroStartedAt !== null &&
-    performance.now() - wirHeroIntroStartedAt < WIR_HERO_INTRO_WINDOW_MS;
-
   const renderConnectedHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
-    <WirIntroStage intro={heroIntro}>
+    <WirIntroStage>
       <CouplePresence
         className="today-hero"
         headingLevel="h2"
@@ -2130,7 +2086,6 @@ export function TodayPage({
   return (
     <div
       className="page today-page"
-      data-wir-intro={heroIntro ? 'true' : undefined}
       data-wir-design={
         wirDesign?.presentationReady === false ? undefined : wirDesignId
       }

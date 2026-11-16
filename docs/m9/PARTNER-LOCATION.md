@@ -73,6 +73,12 @@ The complete feature is Premium under the Space capability **`presence.location`
   (≈ 1.1 km north–south) before storage. The raw device fix is not stored.
 - The stored accuracy is the reported accuracy rounded up to 100 m, never below
   1,000 m.
+- The snapped position and its accuracy are stored as a `ProtectedPayload`
+  (`PresencePositionPayload`), not in plain columns. With encryption at rest
+  (#797) the database holds them as ciphertext: a dump or replica shows who
+  shares with whom and until when, not where. The running application decrypts
+  the position to compute the distance band and the map area; this is
+  encryption at rest, not end-to-end encryption.
 - The map projection exposes the snapped position and an approximate-area
   radius of at least 1,500 m. Clients must render an area, not a precise pin.
 - Distance bands (PO 2026-11-13), computed with the haversine formula from the

@@ -50,6 +50,7 @@ PINNED_CONTEXTS = {
     "photo_source_selections": "PhotoSelectionPayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",
+    "presence_snapshots": "PresencePositionPayload",
     "push_endpoint_secrets": "PushEndpointSecretPayload",
     "push_preview_secrets": "PushPreviewKeyPayload",
     "private_collection_items": "PrivateCollectionItemPayload",

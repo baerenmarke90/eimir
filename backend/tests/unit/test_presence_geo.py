@@ -54,3 +54,26 @@ def test_haversine_matches_a_known_city_pair() -> None:
 )
 def test_distance_bands_follow_the_product_decision(kilometres: float, band: DistanceBand) -> None:
     assert geo.distance_band(kilometres) == band
+
+
+def test_position_payload_keeps_the_bounds_the_columns_used_to_check() -> None:
+    from pydantic import ValidationError
+
+    from eimir.presence.models import PresencePositionPayload
+
+    stored = PresencePositionPayload(
+        latitude=geo.snap_coordinate(53.5512),
+        longitude=geo.snap_coordinate(9.9937),
+        accuracy_meters=geo.stored_accuracy(12),
+    )
+    # The snapped decimals survive the JSON form the payload is sealed as.
+    assert PresencePositionPayload.unseal(stored.seal()) == stored
+    assert (stored.latitude, stored.longitude) == (Decimal("53.55"), Decimal("9.99"))
+
+    for invalid in (
+        {"latitude": Decimal("90.01"), "longitude": Decimal("0"), "accuracy_meters": 1000},
+        {"latitude": Decimal("0"), "longitude": Decimal("-180.01"), "accuracy_meters": 1000},
+        {"latitude": Decimal("0"), "longitude": Decimal("0"), "accuracy_meters": 999},
+    ):
+        with pytest.raises(ValidationError):
+            PresencePositionPayload(**invalid)

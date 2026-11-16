@@ -1637,6 +1637,100 @@
         "de": null,
         "en": null
       }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7040",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..v3tly-655adEAiA8.Ki0o9xuX7mgLxe_ftSj3KyZU-PeFK6QIXg035B-vpxchqW5mqfxADqMPAMyZhBmsCK5lKvwQ9KABnYpyATREeFwKP2nNeaDLuA-cjoseVYnCdObkgyBhFE0bEQAMe5fw0Vvu4J7RfCMvOIfVyuHOLaadwaVJzl61O_LvxIS_1GidS9iR3AKj_syzNb5_Nr_6szPoWJYjpXD3bFkRB54_1EWZ4e9YUh1Mnl4odYb06mgCMzOfZ78ngOPd-wdPm-S7cEN9Mw.CeMWqiNGHLDVYlKXET6gTw",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7041",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..oWtz_llVU8bB8IJQ.sUM1H9d7Co2COF0J_AL179P0otnAInC_ZIVbcmSmQmpnVsrHvIsCvEm8wsWjXxowE8bdFpiJDQaT9Fam5-mkKAFM95VA3m7VgdKq4gWMpDWE84wIdHivQp_wrdo65_ZqES7zW8qGdZ9nQs06Y4xBX_bAkpR-Jbw-M747L55pRs4T8gJi_RC3aoi3FDiCXDlXl6uDVWlh1pBay7_ldBFw8UN8uqHFEbY5G0WRX3kTvuc2kHQrcmhlbzLe7q_nZpqcF2JRTb4tu9IHSRab-EvyclA34yVh.q85Dr31Jay7m3aS3tfJ44w",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7042",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1-h0xwHWKH4Ds39U.paEJnmzsNAMWg_MliLMO_zr5nPCntmMgI8TtNi0UtATTtMRSvatA01XGdkgJDXnBKdL7QmFqoTf8OZPBSfQ3Kk0KAASg3mB6SbOYkSJp2OevFWwQZrXqugayKBzkn_mKDzHmNu7ovT4Uics7oyADGePJiSCsNwi4qi3NdApaNTOuv9N2riJEKUrVihkHX4dh4vNdj9OAog9G9MoJ4JcHgaTmG0tZE2MY9a7b4808D6QAYUQTdzg9CA_JNTHzMWI-jIiv_-NnzFO_rsjdFmY.ASgyNLEvjpgrsJ_KHLoNKw",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_TURN-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7043",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9.._PQ27tm6BoLyQIjV.dwqpsIDey-wcBJfNuOECE9VER29Cr7RqjHIUB7l34Zj6YXlJDPcNJ-_sIFFn51Jbfz4pDCfPQMFAgatSYROOd6vTsoHabLVqGllS2WpZPnhtSsI-XT4qwQIx3Q4DvKryLcMgv5XgclsHcWO2pXZXGcP4Vg8BJkd4xP-EPIEFhcenGMyGcP1JcpAIraATdlE9kmAMkstq1XEqHlYYsLlw8juA_sH8nkodmji7x9jaDFq57rRs7-n7AEqefkAHOvVZb3NkFv_MSJbbvdotQ6JeNI28UWAUjexxdZMT4v9qZA.M5NaU9GVvWcU2xxaFwcsTg",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
     }
   ]
 }

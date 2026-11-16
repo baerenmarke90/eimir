@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
@@ -7,6 +6,7 @@ import de from '../../src/i18n/locales/de';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import { type MapTileMock, mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
@@ -458,7 +458,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('three Pro games retain their existing independent home', async ({
+test('five Pro games retain their existing independent home', async ({
   page,
 }, info) => {
   await installMocks(page);
@@ -488,7 +488,7 @@ test('three Pro games retain their existing independent home', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(4).fill(gameCopy.status.playNow),
+    Array(5).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {

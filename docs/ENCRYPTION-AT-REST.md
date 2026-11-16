@@ -165,7 +165,7 @@ NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows writ
 earlier are moved as described in section 8, "Legacy plain columns".
 
 Account display names (`accounts.display_name`) moved the same way with migration
-0148. Because a name inside a payload cannot be matched in SQL, the administration
+0149. Because a name inside a payload cannot be matched in SQL, the administration
 account search finds an account by e-mail address or by its complete account ID, which a
 person can copy from the More page of the app.
 

@@ -9,6 +9,7 @@ import {
   test,
 } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
+import sharedNotes from '../../src/i18n/locales/sharedNotes';
 import planFiles from '../../src/i18n/locales/planFiles';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
@@ -678,6 +679,7 @@ for (const view of [
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
         edit: true,

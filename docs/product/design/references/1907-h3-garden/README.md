@@ -278,3 +278,9 @@ with motion, 360 px Dark with reduced motion) are in [`evidence/`](evidence/):
 - **No numbers:** news, book and scene never show a count of days or a
   distance to the next unlock (#866). The only number is the picked-flower
   count while binding (`games.garden.growth.bindCount`), as in the prototype.
+
+## Update 2026-11-17: live partner sync
+
+The garden page reads its state live while it is open, so the partner's moves
+appear without leaving the page. Contract, reuse and business review:
+[live partner sync](../1907-h3-live-sync/README.md).

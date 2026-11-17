@@ -174,6 +174,41 @@ def test_the_partner_who_opens_a_picture_draws_first_with_a_squiggle_to_start(
     assert seen["id"] == picture["id"] and seen["strokes"] == picture["strokes"]
 
 
+def test_the_opener_may_start_on_a_blank_page_or_with_the_squiggle(client, premium) -> None:  # type: ignore[no-untyped-def]
+    blank = client.post(_url(premium), headers=_headers(premium, "a"), json={"starter": "BLANK"})
+    assert blank.status_code == 200, blank.text
+    picture = blank.json()["picture"]
+    assert picture["strokes"] == [] and picture["turnsDone"] == 0
+    assert picture["drawerId"] == str(premium["anna"].id)
+    # The partner sees the same blank page, and the first turn draws on it.
+    seen = client.get(_url(premium), headers=_headers(premium, "b")).json()["picture"]
+    assert seen["id"] == picture["id"] and seen["strokes"] == []
+    first = _turn(client, premium, "a", 0)
+    assert first.status_code == 200, first.text
+    assert [stroke["turn"] for stroke in first.json()["picture"]["strokes"]] == [1]
+
+    finished = client.post(
+        _url(premium, "/finish"), headers=_headers(premium, "b"), json={"turnsDone": 1}
+    )
+    assert finished.status_code == 200, finished.text
+    squiggle = client.post(
+        _url(premium), headers=_headers(premium, "b"), json={"starter": "SQUIGGLE"}
+    )
+    assert squiggle.status_code == 200, squiggle.text
+    [seed] = squiggle.json()["picture"]["strokes"]
+    assert seed["turn"] == 0 and seed["authorId"] is None
+
+
+def test_an_unknown_starter_is_rejected(client, premium) -> None:  # type: ignore[no-untyped-def]
+    response = client.post(_url(premium), headers=_headers(premium), json={"starter": "STAMP"})
+    assert response.status_code == 422
+    extra = client.post(
+        _url(premium), headers=_headers(premium), json={"starter": "BLANK", "strokes": []}
+    )
+    assert extra.status_code == 422
+    assert client.get(_url(premium), headers=_headers(premium)).json() == {"picture": None}
+
+
 def test_a_second_picture_cannot_start_while_one_is_open(client, premium) -> None:  # type: ignore[no-untyped-def]
     assert _start(client, premium).status_code == 200
     again = _start(client, premium, "b")

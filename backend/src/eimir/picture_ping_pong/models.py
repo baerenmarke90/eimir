@@ -36,6 +36,13 @@ class PictureStatus(StrEnum):
     FINISHED = "FINISHED"
 
 
+class PictureStarter(StrEnum):
+    """How a new picture begins: with the gentle seed squiggle or a blank page."""
+
+    SQUIGGLE = "SQUIGGLE"
+    BLANK = "BLANK"
+
+
 class PictureColour(StrEnum):
     # Semantic colour slots; each client resolves them to design tokens.
     PERSON = "PERSON"

@@ -1277,11 +1277,11 @@ No authorization required
 
 ## startPicturePingPong
 
-> PicturePingPongState startPicturePingPong(spaceId)
+> PicturePingPongState startPicturePingPong(spaceId, pictureStartInput)
 
 Start Picture Ping Pong
 
-Open a new picture; the partner who opens it draws first.
+Open a new picture; the partner who opens it draws first.  Without a body the picture begins with the seed squiggle.
 
 ### Example
 
@@ -1299,6 +1299,8 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
+    // PictureStartInput (optional)
+    pictureStartInput: ...,
   } satisfies StartPicturePingPongRequest;
 
   try {
@@ -1319,6 +1321,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **pictureStartInput** | [PictureStartInput](PictureStartInput.md) |  | [Optional] |
 
 ### Return type
 
@@ -1330,7 +1333,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 

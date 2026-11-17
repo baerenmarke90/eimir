@@ -306,10 +306,100 @@
   outline-offset: 2px;
 }
 
+/* Starting choice: the seed squiggle or a blank page, as two tap targets. */
+.pingpong-starters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.pingpong-starters legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.pingpong-starter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background-color var(--duration-feedback) var(--easing-standard);
+}
+
+.pingpong-starter input {
+  position: absolute;
+  opacity: 0;
+}
+
+.pingpong-starter.is-selected {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand) inset;
+  background: var(--color-brand-surface);
+}
+
+.pingpong-starter:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.pingpong-starter-preview {
+  display: inline-flex;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  /* A small sheet of paper on the tinted tile. */
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+}
+
+.pingpong-starter-preview svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.pingpong-starter-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pingpong-starter-title {
+  font-weight: 600;
+}
+
+.pingpong-starter-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.pingpong-restart {
+  display: grid;
+  gap: var(--space-3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* The same hand-over without movement: the caption and status carry it. */
   .pingpong-flyer {
     display: none;
+  }
+
+  .pingpong-starter {
+    transition: none;
   }
 }
 

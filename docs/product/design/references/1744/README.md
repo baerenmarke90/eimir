@@ -420,8 +420,9 @@ more animations, transitions and presentation logic, and must feel clean and
 well made throughout. "Choices" means **automatisms, not settings**: the app
 itself picks the most beautiful moments and stages them attractively. No option
 or setting reaches the couple. The Product Owner approved the plan below in chat
-without a preview; the synthetic browser captures below are the
-review evidence. The baseline was this stack's base
+without a preview. On 2026-11-17 the Product Owner accepted the synthetic
+browser captures below as the visual product reference instead of a generated
+image. The baseline was this stack's base
 `claude/recap-year-film-6b7fbd@94608eb42` (PR #2019).
 
 ### Catalogue (server `recaps/film.py`, reader `recapFilm.ts`)
@@ -557,8 +558,7 @@ The monthly and year film captures above were renewed with this change: the
 monthly highlight now plays its three pictures as a collage, and the year
 climax, closing and tag captures follow the new arrangement.
 
-Not performed: a generated visual reference image (the Product Owner approved
-the textual plan directly), captures of the blinds, flip and diagonal or
+Not performed: captures of the blinds, flip and diagonal or
 breathing camera paths in flight (unit tests cover their selection), large-text
 captures of the new forms, a video clip in the new layouts, and Android device
 acceptance on the Pixel.

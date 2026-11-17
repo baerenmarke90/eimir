@@ -11,6 +11,7 @@ import * as identityFlow from '../client/identityFlow';
 import * as instanceStatus from '../client/instanceStatus';
 import * as oidcSignIn from '../client/oidcSignIn';
 import * as passkeys from '../client/passkeys';
+import * as pwa from '../pwa';
 import { ClientProblemError } from '../client/problemDetails';
 import de from '../i18n/locales/de';
 import { IdentityEntry } from './IdentityEntry';
@@ -84,6 +85,29 @@ describe('IdentityEntry providers and passkeys', () => {
     ).toHaveLength(1);
   });
 
+  it('offers only providers with a native callback in the Android app', async () => {
+    vi.spyOn(pwa, 'isCapacitorNative').mockReturnValue(true);
+    vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
+      cloudStatus({
+        oidcConnections: [
+          GOOGLE,
+          {
+            id: 'pocket',
+            provider: 'generic',
+            label: 'Pocket ID',
+            nativeAvailable: false,
+          },
+        ],
+      }),
+    );
+    renderEntry();
+
+    expect(
+      await screen.findByRole('button', { name: de.identity.googleContinue }),
+    ).toBeDefined();
+    expect(screen.queryByText('Weiter mit Pocket ID')).toBeNull();
+  });
+
   it('offers nothing extra where no provider is configured', async () => {
     vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
       cloudStatus({ oidcConnections: [], oidcSignupAvailable: false }),
@@ -107,7 +131,7 @@ describe('IdentityEntry providers and passkeys', () => {
     const start = vi
       .spyOn(oidcSignIn, 'startOidcSignIn')
       .mockResolvedValue('https://accounts.google.example/authorize?x=1');
-    const leave = vi.spyOn(oidcSignIn, 'goToProvider').mockReturnValue();
+    const leave = vi.spyOn(oidcSignIn, 'goToProvider').mockResolvedValue();
     renderEntry();
 
     fireEvent.click(
@@ -131,7 +155,7 @@ describe('IdentityEntry providers and passkeys', () => {
     const start = vi
       .spyOn(oidcSignIn, 'startOidcSignIn')
       .mockResolvedValue('https://accounts.google.example/authorize');
-    vi.spyOn(oidcSignIn, 'goToProvider').mockReturnValue();
+    vi.spyOn(oidcSignIn, 'goToProvider').mockResolvedValue();
     renderEntry();
 
     fireEvent.click(

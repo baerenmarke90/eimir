@@ -1,9 +1,18 @@
+import { Browser } from '@capacitor/browser';
 import type { SessionView } from '../api/generated/models/SessionView';
+import { isAndroidApp } from './config';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
+const NATIVE_DEVICE_NAME = 'eimir. Android';
+const NATIVE_PLATFORM = 'android';
+
+/** The app returns through its verified App Link; the server picks that callback. */
+function clientKind(): 'web' | 'android' {
+  return isAndroidApp() ? 'android' : 'web';
+}
 
 export interface OidcStartOptions {
   /** Create a new Account if the provider identity has none (Cloud). */
@@ -44,6 +53,7 @@ export async function startOidcSignIn(
     auth.startOidcApiV1AuthOidcConnectionIdStartPost({
       connectionId,
       oidcStartRequest: {
+        client: clientKind(),
         ...(options.signup ? { signup: true } : {}),
         ...(options.acceptedTermsVersion
           ? { acceptedTermsVersion: options.acceptedTermsVersion }
@@ -63,7 +73,10 @@ export async function startOidcLink(
 ): Promise<string> {
   const { auth } = createReferenceApis(apiBaseUrl, accessToken);
   return authorizationUrl(() =>
-    auth.linkOidcApiV1AuthOidcConnectionIdLinkPost({ connectionId }),
+    auth.linkOidcApiV1AuthOidcConnectionIdLinkPost({
+      connectionId,
+      oidcLinkRequest: { client: clientKind() },
+    }),
   );
 }
 
@@ -81,8 +94,8 @@ export async function completeOidcSignIn(
       eimirApiV1AuthOidcCallbackRequest: {
         code,
         state,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        deviceName: isAndroidApp() ? NATIVE_DEVICE_NAME : WEB_DEVICE_NAME,
+        platform: isAndroidApp() ? NATIVE_PLATFORM : WEB_PLATFORM,
       },
     });
   } catch (error) {
@@ -90,7 +103,15 @@ export async function completeOidcSignIn(
   }
 }
 
-/** Leave for the provider in this window; the return arrives as an entry link. */
-export function goToProvider(url: string): void {
+/**
+ * Leave for the provider. Browsers navigate in this window; the Android app
+ * opens the system browser tab. Either way the return arrives as an entry
+ * link: a route in the browser, a verified App Link in the app.
+ */
+export async function goToProvider(url: string): Promise<void> {
+  if (isAndroidApp()) {
+    await Browser.open({ url });
+    return;
+  }
   window.location.assign(url);
 }

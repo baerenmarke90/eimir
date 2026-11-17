@@ -94,6 +94,17 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     1. `@capacitor/app` `appUrlOpen` listener (for warm starts / in-background resume).
     2. `App.getLaunchUrl()` (for cold-boot starts when the activity is created by the intent).
   - The handler verifies matching session `state`, extracts `code`, invokes the backend completion endpoint (`completeRecentAuthentication`), and closes the browser view (`Browser.close()`).
+- **Sign-in with an external provider (#58):**
+  - The sign-in and settings screens start Google (or another configured provider) with `client: android`; the
+    server answers with the connection's `android_redirect_uri` and `nativeAvailable` in the public instance
+    status decides whether the app offers it. The authorization page opens in the system browser tab
+    (`Browser.open`).
+  - The registered callback is the connection's verified HTTPS address `/auth/oidc/<id>`. The manifest claims
+    the prefix `/auth/oidc/` on the verified hosts, so Android returns the provider to the app, which reads it
+    through the same `appUrlOpen`/launch-URL intake as mailed links. Only the parameters a provider adds
+    (`code`, `state`, `error`, `scope`, `authuser`, `prompt`, `iss`, `hd`) are accepted, each once, on the
+    configured origin.
+  - Setting-up steps for operators: `docs/operations/google-and-passkey-sign-in.md`.
 - **Client Capabilities Filter**:
   - `loadRecentAuthenticationCapabilities()` automatically passes `client: RecentAuthenticationClient.android` when running natively.
   - The backend returns only OIDC connections that have an `android_redirect_uri` configured, preventing users from selecting unsupported web-only flows in the Android container.
@@ -106,7 +117,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
-- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
+- The bounded native passkey bridge (#630) is the `Passkeys` Capacitor plugin (`PasskeysPlugin.java`): Android Credential Manager with the Play services provider for Android 13 and older. The server's WebAuthn options go to the platform as JSON and its JSON response goes back unchanged, so the Web layer never interprets credential material. The sign-in screen and Settings offer passkeys only after the plugin reports itself available; recent-authentication (account deletion, ServerAdmin) still reports `passkey: false` natively. The relying party must trust the app through Digital Asset Links (`get_login_creds`) and the server must accept the app's `android:apk-key-hash:` origin (`docs/operations/google-and-passkey-sign-in.md`). A real device check is required before the bridge counts as accepted. OIDC needs no bridge.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---

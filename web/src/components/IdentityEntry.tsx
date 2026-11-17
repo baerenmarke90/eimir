@@ -33,8 +33,10 @@ import {
 } from '../client/oidcSignIn';
 import {
   PasskeyCancelledError,
+  PasskeyNotOnDeviceError,
   passkeysAvailable,
   signInWithPasskey,
+  usePasskeyProbe,
 } from '../client/passkeys';
 import {
   ClientProblemError,
@@ -119,6 +121,7 @@ export function IdentityEntry({
   onSession: (session: StoredSession) => void;
 }) {
   const { t } = useTranslation();
+  usePasskeyProbe();
   const invitationToken =
     entryToken?.kind === 'invitation' ? entryToken.token : null;
   const recoveryToken =
@@ -136,6 +139,7 @@ export function IdentityEntry({
   );
   const [oidcSignupAvailable, setOidcSignupAvailable] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [passkeyMissing, setPasskeyMissing] = useState(false);
   const [failedAction, setFailedAction] = useState<PendingAction | null>(null);
   const [pendingConnection, setPendingConnection] = useState<string | null>(
     null,
@@ -496,6 +500,7 @@ export function IdentityEntry({
   }
 
   function continueWithPasskey() {
+    setPasskeyMissing(false);
     void runAction(
       'passkey',
       async () => {
@@ -503,6 +508,10 @@ export function IdentityEntry({
           return await signInWithPasskey(apiBaseUrl);
         } catch (error) {
           if (error instanceof PasskeyCancelledError) return null;
+          if (error instanceof PasskeyNotOnDeviceError) {
+            setPasskeyMissing(true);
+            return null;
+          }
           throw error;
         }
       },
@@ -547,10 +556,10 @@ export function IdentityEntry({
     termsOfUseVersion !== null && termsOfUseVersion !== BUNDLED_TERMS_VERSION;
   const acceptedTermsVersion = termsOutdated ? null : termsOfUseVersion;
   const asksForTerms = acceptedTermsVersion !== null;
-  // The Android app gets its own provider and passkey ceremonies later (#58).
-  const providersAvailable = !isCapacitorNative();
+  // The Android app runs a provider in the system browser tab when the server
+  // registered its native callback, and passkeys through Credential Manager.
+  const native = isCapacitorNative();
   const passkeyOffered =
-    providersAvailable &&
     passkeysAvailable() &&
     authCapabilities?.passkey !== false &&
     !invitationToken &&
@@ -566,7 +575,11 @@ export function IdentityEntry({
     // Until the instance status arrives, the mode and the methods are unknown.
     if (registrationAvailability === 'checking') return null;
     const connections =
-      providersAvailable && options.show !== false ? oidcConnections : [];
+      options.show === false
+        ? []
+        : native
+          ? oidcConnections.filter((connection) => connection.nativeAvailable)
+          : oidcConnections;
     if (connections.length === 0 && !(options.passkey && passkeyOffered))
       return null;
     const blockedByTerms = options.needsTerms && !termsAccepted;
@@ -581,6 +594,11 @@ export function IdentityEntry({
         passkeyPending={pendingAction === 'passkey'}
         onPasskey={continueWithPasskey}
         dividerKey={options.dividerKey}
+        notice={
+          passkeyMissing && options.passkey
+            ? t('identity.passkeyNoneOnDevice')
+            : null
+        }
       />
     );
   }

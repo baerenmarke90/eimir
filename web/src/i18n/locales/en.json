@@ -3049,7 +3049,12 @@
       "places": "Your places this month",
       "tags": "Your tags in {{month}}",
       "answer": "“{{text}}”",
-      "video": "Video clip without sound"
+      "video": "Video clip without sound",
+      "coverFallbackYear": "Your {{year}}",
+      "placesYear": "Your places this year",
+      "tagsYear": "Your tags of {{year}}",
+      "firsts": "Your firsts",
+      "covers": "Your months of {{year}}"
     },
     "quote": "{{name}}: “{{text}}”",
     "quoteAnonymous": "“{{text}}”",

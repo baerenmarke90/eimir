@@ -48,11 +48,26 @@ function dayLabel(value: Date, locale: string): string {
   }).format(value);
 }
 
-function monthLabel(value: RecapView, locale: string): string {
+function monthName(
+  year: number,
+  month: number,
+  locale: string,
+  width: 'long' | 'short' = 'long',
+): string {
   return new Intl.DateTimeFormat(locale, {
-    month: 'long',
+    month: width,
     timeZone: 'UTC',
-  }).format(new Date(Date.UTC(value.year, (value.month ?? 1) - 1, 1)));
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
+/** The edition's period name: the month of a monthly film, the year of a year film. */
+function periodLabel(value: RecapView, locale: string): string {
+  return value.kind === 'YEAR'
+    ? new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(Date.UTC(value.year, 0, 1)))
+    : monthName(value.year, value.month ?? 1, locale);
 }
 
 /** One authorized picture of a film scene. */
@@ -307,7 +322,8 @@ export function RecapFilmScene({
 }: RecapFilmSceneProps) {
   const { t } = useTranslation();
   const locale = resolvedLocale();
-  const month = monthLabel(value, locale);
+  const yearly = value.kind === 'YEAR';
+  const month = periodLabel(value, locale);
   const pictureProps = { ...media, playing, reducedMotion };
   // Text-only scenes have nothing to load; their time starts at once.
   const hasMedia =
@@ -316,14 +332,19 @@ export function RecapFilmScene({
       scene.type === 'closing') &&
     scene.media.length > 0
       ? true
-      : scene.type === 'photo';
+      : scene.type === 'photo' ||
+        (scene.type === 'covers' && scene.covers.length > 0);
   useEffect(() => {
     if (!hasMedia) onSettled();
   }, [hasMedia, onSettled]);
 
   switch (scene.type) {
     case 'cover': {
-      const title = scene.title ?? t('recaps.film.coverFallback', { month });
+      const title =
+        scene.title ??
+        (yearly
+          ? t('recaps.film.coverFallbackYear', { year: month })
+          : t('recaps.film.coverFallback', { month }));
       const layout = scene.media.length ? scene.layout : 'type';
       const shown =
         layout === 'mosaic'
@@ -360,13 +381,15 @@ export function RecapFilmScene({
           ) : null}
           <div className="recap-film-caption">
             <p className="recap-film-eyebrow">
-              {new Intl.DateTimeFormat(locale, {
-                month: 'long',
-                year: 'numeric',
-                timeZone: 'UTC',
-              }).format(
-                new Date(Date.UTC(value.year, (value.month ?? 1) - 1, 1)),
-              )}
+              {yearly
+                ? month
+                : new Intl.DateTimeFormat(locale, {
+                    month: 'long',
+                    year: 'numeric',
+                    timeZone: 'UTC',
+                  }).format(
+                    new Date(Date.UTC(value.year, (value.month ?? 1) - 1, 1)),
+                  )}
             </p>
             <h1 className="recap-film-title">{title}</h1>
           </div>
@@ -378,7 +401,9 @@ export function RecapFilmScene({
         <div className="recap-film-frame" data-layout={scene.layout}>
           <ul
             className="recap-film-places"
-            aria-label={t('recaps.film.places')}
+            aria-label={t(
+              yearly ? 'recaps.film.placesYear' : 'recaps.film.places',
+            )}
           >
             {scene.places.map((place, index) => (
               <li key={place} style={{ '--film-i': index } as CSSProperties}>
@@ -538,7 +563,9 @@ export function RecapFilmScene({
         <div className="recap-film-frame">
           <div className="recap-film-caption">
             <p className="recap-film-eyebrow">
-              {t('recaps.film.tags', { month })}
+              {yearly
+                ? t('recaps.film.tagsYear', { year: month })
+                : t('recaps.film.tags', { month })}
             </p>
             <ul className="recap-film-tags">
               {scene.tags.map((tag, index) => (
@@ -559,6 +586,78 @@ export function RecapFilmScene({
         </div>
       );
     }
+    case 'month':
+      // A chapter marker: only the localized month name, no invented text.
+      return (
+        <div className="recap-film-frame" data-layout="month">
+          <div className="recap-film-caption">
+            <p className="recap-film-eyebrow">{month}</p>
+            <h1 className="recap-film-month">
+              {monthName(value.year, scene.month, locale)}
+            </h1>
+          </div>
+        </div>
+      );
+    case 'firsts':
+      return (
+        <div className="recap-film-frame" data-layout="firsts">
+          <div className="recap-film-caption">
+            <p className="recap-film-eyebrow">{t('recaps.film.firsts')}</p>
+            <ol className="recap-film-firsts">
+              {scene.sources.map((source, index) => (
+                <li
+                  key={source.key}
+                  style={{ '--film-i': index } as CSSProperties}
+                >
+                  <span className="recap-film-firsts-when">
+                    {source.occurredOn
+                      ? dayLabel(source.occurredOn, locale)
+                      : ''}
+                  </span>
+                  <span className="recap-film-firsts-title">
+                    {filmSourceTitle(source) ?? t('recaps.untitled')}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      );
+    case 'covers':
+      return (
+        <div className="recap-film-frame" data-layout="covers">
+          <ol
+            className="recap-film-media recap-film-covers"
+            data-count={scene.covers.length}
+            aria-label={t('recaps.film.covers', { year: month })}
+          >
+            {scene.covers.map((cover, index) => (
+              <li
+                key={cover.month}
+                className="recap-film-cover-tile"
+                style={{ '--film-i': index } as CSSProperties}
+              >
+                <Picture
+                  {...pictureProps}
+                  source={cover.source}
+                  media={cover.media}
+                  index={index}
+                  quality="thumbnail"
+                  onSettled={index === 0 ? onSettled : undefined}
+                />
+                <span className="recap-film-cover-month">
+                  {monthName(value.year, cover.month, locale, 'short')}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="recap-film-caption">
+            <p className="recap-film-eyebrow">
+              {t('recaps.film.covers', { year: month })}
+            </p>
+          </div>
+        </div>
+      );
     case 'closing':
       return (
         <div className="recap-film-frame" data-layout="closing">

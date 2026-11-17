@@ -216,6 +216,120 @@ function filmMonth() {
     },
   };
 }
+/** A year film (#1744): ten month chapters, three firsts, tags and a frozen look. */
+function filmYear() {
+  const words = fixtureCopy.yearFilm;
+  const photos = [
+    'recap-photo',
+    'recap-photo-dusk',
+    'recap-photo-warm',
+    'recap-photo-detail',
+    'recap-photo-mono',
+  ];
+  const day = (month: number, value: number) =>
+    `2026-${String(month).padStart(2, '0')}-${String(value).padStart(2, '0')}`;
+  const picture = (attachmentId: string, parentId: string) => ({
+    attachmentId,
+    parentId,
+    kind: 'IMAGE',
+  });
+  const sources: Record<string, unknown>[] = [];
+  const monthHighlights: { month: number; key: string }[] = [];
+  words.highlights.forEach((title, index) => {
+    const month = index + 1;
+    const id = `year-top-${month}`;
+    const photo = photos[index % photos.length];
+    const place = [7, 5, 4].indexOf(month);
+    sources.push({
+      key: `MEMORY:${id}`,
+      id,
+      kind: 'MEMORY',
+      occurredOn: day(month, 6),
+      version: 1,
+      title,
+      excerpt: null,
+      previewAttachmentId: photo,
+      previewIsSensitive: false,
+      available: true,
+      media:
+        month === 7
+          ? [picture(photo, id), picture(photos[(index + 1) % 5], id)]
+          : [picture(photo, id)],
+      answers: [],
+      placeName: place >= 0 ? words.places[place] : null,
+    });
+    monthHighlights.push({ month, key: `MEMORY:${id}` });
+    const further = words.further[index];
+    const heart = further.endsWith('.');
+    const furtherId = `year-more-${month}`;
+    const furtherPhoto =
+      !heart && index % 3 === 0 ? photos[(index + 2) % 5] : null;
+    sources.push({
+      key: `${heart ? 'HEART_MOMENT' : 'MEMORY'}:${furtherId}`,
+      id: furtherId,
+      kind: heart ? 'HEART_MOMENT' : 'MEMORY',
+      occurredOn: day(month, 19),
+      version: 1,
+      title: further,
+      excerpt: heart ? further : null,
+      previewAttachmentId: furtherPhoto,
+      previewIsSensitive: false,
+      available: true,
+      media: furtherPhoto ? [picture(furtherPhoto, furtherId)] : [],
+      answers: [],
+      placeName: null,
+    });
+  });
+  words.firsts.forEach((title, index) => {
+    const id = `year-first-${index}`;
+    sources.push({
+      key: `MILESTONE:${id}`,
+      id,
+      kind: 'MILESTONE',
+      occurredOn: day(2 + index * 3, 11),
+      version: 1,
+      title,
+      excerpt: null,
+      previewAttachmentId: null,
+      previewIsSensitive: false,
+      available: true,
+      media: [],
+      answers: [],
+      placeName: null,
+    });
+  });
+  sources.sort((left, right) =>
+    String(left.occurredOn).localeCompare(String(right.occurredOn)),
+  );
+  return {
+    sources,
+    facts: {
+      ...DENSE_FACTS,
+      memories: 18,
+      heartMoments: 2,
+      milestones: 3,
+      activeDays: 23,
+    },
+    film: {
+      mood: 'sage',
+      transitions: ['rise', 'wipe'],
+      cover: 'mosaic',
+      motions: ['zoom-out', 'drift-right', 'parallax'],
+      layouts: {
+        photo: ['inset', 'bleed', 'polaroid', 'split', 'tilted'],
+        duo: ['side', 'overlap', 'stacked'],
+        words: ['centered', 'letter', 'lines', 'on-photo'],
+        title: ['band', 'stamp', 'outline'],
+        answers: ['stacked', 'dialog'],
+        place: ['list', 'marker'],
+        fact: ['large', 'row'],
+      },
+      highlightKey: 'MEMORY:year-top-7',
+      monthHighlights,
+      tags: words.tags.map((label, index) => ({ label, count: 9 - index })),
+    },
+  };
+}
 const DENSE_FACTS = {
   memories: 11,
   heartMoments: 6,
@@ -240,6 +354,7 @@ async function setup(
     native?: boolean;
     earlier?: boolean;
     film?: boolean;
+    yearFilm?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -325,6 +440,7 @@ async function setup(
       },
     });
   if (options.film) Object.assign(month, filmMonth());
+  if (options.yearFilm) Object.assign(year, filmYear());
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
@@ -1671,6 +1787,100 @@ test('the former More addresses of the recap library and reader redirect with th
   await expect(page).toHaveURL(/\/story\/our-story\?tab=years$/);
   await open('/more/passport/october?page=2');
   await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
+});
+
+// #1744 year film: month chapters with markers, the firsts, the climax and the
+// month covers; progress orients by chapter instead of one bar per scene.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the year film plays its month chapters at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    // A year has dozens of scenes; each one is opened by address.
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { yearFilm: true });
+    await page.goto(recapDetailPath('year'));
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    // Intro, ten month chapters and the finale.
+    await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+    const total = await page.locator('.recap-progress-step').count();
+    expect(total).toBeGreaterThan(30);
+    const captured = new Set<string>();
+    const wanted = all
+      ? null
+      : new Set(['cover', 'month', 'firsts', 'covers', 'climax']);
+    for (let index = 0; index < total; index++) {
+      await page.goto(`${recapDetailPath('year')}?page=${index}`);
+      const spread = page.locator('.recap-spread').first();
+      await expect(spread).toBeVisible();
+      const type = (await spread.getAttribute('class'))?.match(
+        /recap-scene-([a-z]+)/u,
+      )?.[1];
+      const name =
+        (await spread.getAttribute('data-climax')) === 'true'
+          ? 'climax'
+          : (type ?? 'scene');
+      if (captured.has(name) || (wanted && !wanted.has(name))) continue;
+      captured.add(name);
+      await page.waitForTimeout(500);
+      // A caption band never sits under a picture.
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const frame = picture.closest('[data-layout]');
+            if (frame?.getAttribute('data-layout') === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-year-film-${name}-${width}-${scheme}.png`,
+      );
+    }
+    expect([...captured]).toEqual(
+      expect.arrayContaining(['cover', 'month', 'firsts', 'covers', 'climax']),
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('the year film keeps browser-only arrows hidden in the native app', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await setup(page, { yearFilm: true, native: true });
+  await page.goto(`${recapDetailPath('year')}?page=2`);
+  await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+  await expect(page.locator('.recap-film-month')).toBeVisible();
+  for (const name of [copy.previous, copy.next])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveClass(
+      /sr-only/,
+    );
+  await captureScreenshot(page, info, 'recaps-year-film-native-390-light.png');
+  expect(state.unexpected).toEqual([]);
 });
 
 // #1744 monthly film: every scene type of a curated month, captions never under a picture.

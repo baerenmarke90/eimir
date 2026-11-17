@@ -139,7 +139,16 @@ function Leaf({
 }
 
 /** The couple's tree; it grows bigger and gets a swing in the paradise. */
-function CoupleTree({ big, swingNew }: { big: boolean; swingNew: boolean }) {
+function CoupleTree({
+  big,
+  swingNew,
+  decor,
+}: {
+  big: boolean;
+  swingNew: boolean;
+  /** Seasonal blossoms, lights or the two on the swing (GardenAmbience). */
+  decor?: ReactNode;
+}) {
   const x = TREE_X;
   const y = groundBack(x) + 6;
   return (
@@ -181,6 +190,7 @@ function CoupleTree({ big, swingNew }: { big: boolean; swingNew: boolean }) {
             />
           </PopIn>
         ) : null}
+        {decor}
       </g>
     </g>
   );
@@ -218,6 +228,27 @@ function Bench({ x }: { x: number }) {
   );
 }
 
+/** A small bird facing right; its wing is its own group so it can flap. */
+export function SmallBird({ wingClass }: { wingClass?: string }) {
+  return (
+    <g>
+      <path
+        d="M-12 -1 C-8 -5 0 -6 5 -5 C7 -8.6 12.6 -8.6 13.8 -4.6 C15 -1 12 3 6 3.6 C0 4.4 -8 3 -12 -1Z"
+        fill="var(--garden-bird)"
+      />
+      <path
+        className={wingClass}
+        d="M-3 -2 C-3 -8 3 -12 8 -11 C5.4 -8.6 4 -5 4 -2Z"
+        fill="var(--garden-bird-wing)"
+      />
+      <path
+        d="M13.6 -4.6 C15.2 -4.8 16.8 -4.2 17.6 -3.4 C16.6 -2.8 15 -2.6 13.8 -3Z"
+        fill="var(--garden-sun)"
+      />
+    </g>
+  );
+}
+
 function Birdhouse({ withBird }: { withBird: boolean }) {
   const x = BIRDHOUSE_X;
   const y = groundBack(x) + 8;
@@ -248,18 +279,7 @@ function Birdhouse({ withBird }: { withBird: boolean }) {
       />
       {withBird ? (
         <g transform="translate(6 -52) scale(.55)">
-          <path
-            d="M-12 -1 C-8 -5 0 -6 5 -5 C7 -8.6 12.6 -8.6 13.8 -4.6 C15 -1 12 3 6 3.6 C0 4.4 -8 3 -12 -1Z"
-            fill="var(--garden-bird)"
-          />
-          <path
-            d="M-3 -2 C-3 -8 3 -12 8 -11 C5.4 -8.6 4 -5 4 -2Z"
-            fill="var(--garden-bird-wing)"
-          />
-          <path
-            d="M13.6 -4.6 C15.2 -4.8 16.8 -4.2 17.6 -3.4 C16.6 -2.8 15 -2.6 13.8 -3Z"
-            fill="var(--garden-sun)"
-          />
+          <SmallBird />
         </g>
       ) : null}
     </g>
@@ -486,7 +506,7 @@ export function BackgroundTrees({ trees }: { trees: BackgroundTree[] }) {
   );
 }
 
-/** Fireflies over the paradise; they only show at night (Dark theme). */
+/** Fireflies over the paradise; they only show at night (device clock). */
 export function Fireflies({ width }: { width: number }) {
   const flies = useMemo(() => {
     const random = seededRandom(90);
@@ -519,12 +539,15 @@ export function GardenFeatures({
   unlocks,
   width,
   fresh,
+  treeDecor,
 }: {
   layer: 'back' | 'ground' | 'arch';
   unlocks: ReadonlyArray<GardenUnlock>;
   width: number;
   /** Unlocks announced right now; they pop in once. */
   fresh: ReadonlySet<GardenUnlock>;
+  /** Drawn in the couple's tree, so it sways with the crown. */
+  treeDecor?: ReactNode;
 }) {
   const has = (unlock: GardenUnlock) => unlocks.includes(unlock);
   if (layer === 'back') {
@@ -535,6 +558,7 @@ export function GardenFeatures({
             <CoupleTree
               big={has('SWING')}
               swingNew={fresh.has('SWING') && !fresh.has('TREE')}
+              decor={treeDecor}
             />
           </PopIn>
         ) : null}

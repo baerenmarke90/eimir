@@ -22,18 +22,19 @@ import {
   seededRandom,
   slotPosition,
 } from '../client/garden';
+import { sunPlace } from '../client/gardenAmbience';
 import {
   backgroundTrees,
+  type GardenAnimal,
   pondSlotPosition,
   SPECIES_HEIGHT,
 } from '../client/gardenGrowth';
 import {
-  Butterfly,
-  Cloud,
-  FlowerHead,
-  SunAndMoon,
-  WateringCan,
-} from './GardenArt';
+  type SceneAmbience,
+  sceneClouds,
+  useGardenAmbience,
+} from './GardenAmbience';
+import { Butterfly, Cloud, FlowerHead, SunAndMoon } from './GardenArt';
 import { BackgroundTrees, Fireflies, GardenFeatures } from './GardenFeatures';
 import { Bulb, PondLily, StrawberryPlant } from './GardenFlora';
 import { type GardenLifeLabels, useGardenLife } from './GardenLife';
@@ -69,6 +70,10 @@ export interface SceneGrowth {
   onReaction?: Parameters<typeof useGardenLife>[0]['onReaction'];
   /** `liebe Worte` towed by the plane; a new key starts a flight. */
   banner?: { key: number; text: string; onDone: () => void } | null;
+  /** "Rufen" from the garden book; a new key calls the visitor once. */
+  call?: { key: number; kind: GardenAnimal } | null;
+  /** Whether the called visitor came (false while nobody may visit). */
+  onCall?: (kind: GardenAnimal, came: boolean) => void;
 }
 
 const NO_GROWTH: SceneGrowth = {
@@ -332,6 +337,20 @@ function Plant({ plant }: { plant: ScenePlant }) {
   );
 }
 
+/** A plant's art in a group that can bounce or perk up from its base. */
+function PlantArt({ plant }: { plant: ScenePlant }) {
+  const { x, y } = plantPosition(plant);
+  return (
+    <g
+      className="garden-plant-art"
+      data-plant-art={plant.id}
+      style={{ '--garden-plant-origin': `${x}px ${y}px` } as Style}
+    >
+      <Plant plant={plant} />
+    </g>
+  );
+}
+
 /**
  * The garden scene. Decoration is hidden from assistive technology; each
  * plant is a named button so its story can be opened by keyboard too.
@@ -344,11 +363,11 @@ export function GardenScene({
   onSelect,
   gustKey,
   celebrationKey,
-  wateredPlantId,
   lively,
   label,
   layers,
   growth = NO_GROWTH,
+  ambience,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -357,7 +376,6 @@ export function GardenScene({
   onSelect: (id: string) => void;
   gustKey: number;
   celebrationKey: number;
-  wateredPlantId: string | null;
   lively: boolean;
   label: string;
   /** Presentation layers (seasons, lanterns, reunion, mist; PR 2). */
@@ -368,8 +386,11 @@ export function GardenScene({
     overlay?: ReactNode;
   };
   growth?: SceneGrowth;
+  /** Time of day, seasonal particles, taps and together moments. */
+  ambience?: SceneAmbience;
 }) {
   const id = useId().replace(/:/g, '');
+  const svg = useRef<SVGSVGElement | null>(null);
   const life = useGardenLife({
     width,
     sharedDays: growth.sharedDays,
@@ -385,6 +406,24 @@ export function GardenScene({
   useEffect(() => {
     if (banner) fly(banner.text, banner.onDone);
   }, [banner, fly]);
+  // "Rufen": each new call reaches the visitor once.
+  const call = growth.call;
+  const calling = useRef({ visit: life.call, done: growth.onCall });
+  calling.current = { visit: life.call, done: growth.onCall };
+  useEffect(() => {
+    if (!call) return;
+    const came = calling.current.visit(call.kind);
+    calling.current.done?.(call.kind, came);
+  }, [call]);
+  const scene = useGardenAmbience({
+    ambience,
+    width,
+    plants,
+    unlocks: growth.unlocks,
+    reduced: growth.reduced,
+    svg,
+  });
+  const sun = sunPlace(ambience?.daytime ?? 'day', width);
   const trees = useMemo(
     () => backgroundTrees(growth.sharedDays, width),
     [growth.sharedDays, width],
@@ -455,8 +494,6 @@ export function GardenScene({
     });
   }, [width]);
 
-  const watered = plants.find((plant) => plant.id === wateredPlantId);
-  const wateredAt = watered ? plantPosition(watered) : null;
   const rays = Array.from({ length: 8 }, (_, k) => {
     const a = ((k * 45 + 22.5) * Math.PI) / 180;
     return `M0 0 L${(Math.cos(a) * 240).toFixed(1)} ${(Math.sin(a) * 240).toFixed(1)}`;
@@ -471,6 +508,7 @@ export function GardenScene({
 
   return (
     <svg
+      ref={svg}
       className={`garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}`}
       viewBox={`0 0 ${width} ${GARDEN_HEIGHT}`}
       style={{ width: `${((width / 340) * 100).toFixed(1)}%` }}
@@ -507,12 +545,25 @@ export function GardenScene({
             fill="var(--garden-star)"
           />
         ))}
+        {scene.sky}
         <g className="garden-clouds">
-          <Cloud x={74} y={44} scale={0.9} />
-          <Cloud x={212} y={68} scale={0.62} flip />
-          {width > 340 ? <Cloud x={width - 150} y={36} scale={0.75} /> : null}
+          {sceneClouds(width).map((cloud, index) => (
+            <Cloud
+              key={`${cloud.x}-${cloud.y}`}
+              x={cloud.x}
+              y={cloud.y}
+              scale={cloud.scale}
+              flip={cloud.flip}
+            >
+              {scene.shower(index)}
+            </Cloud>
+          ))}
         </g>
-        <g transform={`translate(${width - 58} 44)`}>
+        <g
+          className="garden-sun-place"
+          style={{ transform: `translate(${sun.x}px, ${sun.y}px)` }}
+          data-testid="garden-sun"
+        >
           <g className="garden-rays">
             {rays.map((d) => (
               <path
@@ -536,7 +587,9 @@ export function GardenScene({
           unlocks={growth.unlocks}
           width={width}
           fresh={growth.fresh}
+          treeDecor={scene.treeDecor}
         />
+        {scene.back}
         {life.layer('back')}
         <Tufts
           ground={groundBack}
@@ -559,7 +612,7 @@ export function GardenScene({
           fresh={growth.fresh}
         />
         {pondPlants.map((plant) => (
-          <Plant key={plant.id} plant={plant} />
+          <PlantArt key={plant.id} plant={plant} />
         ))}
         {life.layer('pond')}
         <Tufts
@@ -586,7 +639,7 @@ export function GardenScene({
           fresh={growth.fresh}
         />
         {landPlants.map((plant) => (
-          <Plant key={plant.id} plant={plant} />
+          <PlantArt key={plant.id} plant={plant} />
         ))}
         <Tufts
           ground={() => 214}
@@ -597,10 +650,11 @@ export function GardenScene({
           width={width}
           fill="var(--garden-grass-front)"
         />
+        {life.layer('front')}
+        {scene.tint}
         {growth.unlocks.includes('STREAM') && growth.visitors ? (
           <Fireflies width={width} />
         ) : null}
-        {life.layer('front')}
         {celebrating ? (
           <g>
             {pollen.map((dot) => (
@@ -627,30 +681,11 @@ export function GardenScene({
             </g>
           </g>
         ) : null}
-        {wateredAt ? (
-          <g
-            key={wateredPlantId}
-            transform={`translate(${wateredAt.x} ${wateredAt.y - 64})`}
-            className="garden-watering"
-          >
-            <g transform="translate(-8 -2) rotate(24)">
-              <WateringCan />
-            </g>
-            {[-6, -1, 4].map((dx, k) => (
-              <path
-                key={dx}
-                className="garden-rain"
-                style={{ '--garden-delay': `${200 + k * 120}ms` } as Style}
-                transform={`translate(${dx} 0)`}
-                d="M0 -2 Q 2 1 0 3 Q -2 1 0 -2Z"
-                fill="var(--garden-dew)"
-              />
-            ))}
-          </g>
-        ) : null}
+        {scene.front}
         {layers?.overlay}
       </g>
-      {/* Visitors first, so a plant stays on top where they overlap. */}
+      {/* Tree, pond and clouds, then visitors, so a plant stays on top. */}
+      {scene.targets}
       {life.tapTargets}
       {plants.map((plant) => {
         const { x, y } = plantPosition(plant);

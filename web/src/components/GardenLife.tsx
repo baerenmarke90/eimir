@@ -19,6 +19,7 @@
  */
 
 import {
+  type CSSProperties,
   type KeyboardEvent,
   type ReactElement,
   useCallback,
@@ -47,7 +48,8 @@ type Pose =
   | 'quack'
   | 'perk'
   | 'climb'
-  | 'peek';
+  | 'peek'
+  | 'hello';
 type Style = 'walk' | 'hop' | 'leap';
 
 interface Animal {
@@ -62,6 +64,12 @@ interface Animal {
   /** Degrees; the squirrel turns upright to climb the trunk. */
   tilt: number;
   frame: number;
+}
+
+interface Hearts {
+  key: number;
+  x: number;
+  y: number;
 }
 
 interface NameTag {
@@ -84,6 +92,17 @@ const REACTION_MS: Record<GardenAnimal, number> = {
 /** The snail takes its time to come out again; the hedgehog uncurls. */
 const RECOVER_MS = 1300;
 const NAME_TAG_MS = 1900;
+/** A called visitor hops or waves this long, with a few hearts. */
+const GREET_MS = 1800;
+/** When a called visitor that just arrives is close enough to greet. */
+const CALL_ARRIVAL_MS: Record<GardenAnimal, number> = {
+  snail: 800,
+  rabbit: 2700,
+  hedgehog: 2000,
+  ducks: 1200,
+  squirrel: 2300,
+  deer: 600,
+};
 
 const TICK_MS = 3200;
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -552,6 +571,7 @@ export function useGardenLife({
   const [, setVersion] = useState(0);
   const [plane, setPlane] = useState<PlaneFlight | null>(null);
   const [tag, setTag] = useState<NameTag | null>(null);
+  const [hearts, setHearts] = useState<Hearts | null>(null);
   const planeRef = useRef<SVGGElement | null>(null);
   const trailRef = useRef<SVGPathElement | null>(null);
   const settings = useRef({
@@ -670,63 +690,67 @@ export function useGardenLife({
     [place],
   );
 
-  const spawn = useCallback(() => {
-    const { width: w, sharedDays: days, unlocks: found } = settings.current;
-    const present = new Set(
-      [...animals.current.values()].map((animal) => animal.kind),
-    );
-    const free = availableAnimals(days, found).filter(
-      (kind) => !present.has(kind),
-    );
-    if (free.length === 0) return;
-    const kind = free[Math.floor(Math.random() * free.length)];
-    sequence.current += 1;
-    const animal: Animal = {
-      id: sequence.current,
-      kind,
-      x: 0,
-      dir: 1,
-      pose: kind === 'deer' ? 'graze' : 'rest',
-      moving: false,
-      reacting: false,
-      tilt: 0,
-      frame: 0,
-    };
-    const target = 40 + Math.random() * (w - 110);
-    const arrivals: Record<GardenAnimal, () => void> = {
-      rabbit: () => {
-        animal.x = -24;
-        move(animal, target, 2600, 'hop');
-      },
-      hedgehog: () => {
-        animal.x = w + 20;
-        move(animal, w - 60 - Math.random() * (w / 2), 5200, 'walk');
-      },
-      snail: () => {
-        animal.x = 30 + Math.random() * (w - 80);
-        move(animal, animal.x + 26, 9000, 'walk');
-      },
-      ducks: () => {
-        animal.x = POND.cx - POND.rx + 12;
-        move(animal, POND.cx + 6, 4200, 'walk');
-      },
-      squirrel: () => {
-        animal.x = -20;
-        move(animal, TREE_X - 12, 2200, 'hop');
-      },
-      deer: () => {
-        animal.x = w - 70;
-        animal.dir = -1;
-        place(animal);
-      },
-    };
-    animals.current.set(animal.id, animal);
-    refresh();
-    // Wait one frame so the new element exists before it starts to move.
-    window.requestAnimationFrame(() => {
-      if (animals.current.has(animal.id)) arrivals[kind]();
-    });
-  }, [move, place, refresh]);
+  const spawn = useCallback(
+    (wanted?: GardenAnimal): Animal | null => {
+      const { width: w, sharedDays: days, unlocks: found } = settings.current;
+      const present = new Set(
+        [...animals.current.values()].map((animal) => animal.kind),
+      );
+      const free = availableAnimals(days, found).filter(
+        (kind) => !present.has(kind) && (!wanted || kind === wanted),
+      );
+      if (free.length === 0) return null;
+      const kind = free[Math.floor(Math.random() * free.length)];
+      sequence.current += 1;
+      const animal: Animal = {
+        id: sequence.current,
+        kind,
+        x: 0,
+        dir: 1,
+        pose: kind === 'deer' ? 'graze' : 'rest',
+        moving: false,
+        reacting: false,
+        tilt: 0,
+        frame: 0,
+      };
+      const target = 40 + Math.random() * (w - 110);
+      const arrivals: Record<GardenAnimal, () => void> = {
+        rabbit: () => {
+          animal.x = -24;
+          move(animal, target, 2600, 'hop');
+        },
+        hedgehog: () => {
+          animal.x = w + 20;
+          move(animal, w - 60 - Math.random() * (w / 2), 5200, 'walk');
+        },
+        snail: () => {
+          animal.x = 30 + Math.random() * (w - 80);
+          move(animal, animal.x + 26, 9000, 'walk');
+        },
+        ducks: () => {
+          animal.x = POND.cx - POND.rx + 12;
+          move(animal, POND.cx + 6, 4200, 'walk');
+        },
+        squirrel: () => {
+          animal.x = -20;
+          move(animal, TREE_X - 12, 2200, 'hop');
+        },
+        deer: () => {
+          animal.x = w - 70;
+          animal.dir = -1;
+          place(animal);
+        },
+      };
+      animals.current.set(animal.id, animal);
+      refresh();
+      // Wait one frame so the new element exists before it starts to move.
+      window.requestAnimationFrame(() => {
+        if (animals.current.has(animal.id)) arrivals[kind]();
+      });
+      return animal;
+    },
+    [move, place, refresh],
+  );
 
   const inFlight = useRef<PlaneFlight | null>(null);
   const fly = useCallback((text: string | null, onDone?: () => void) => {
@@ -756,7 +780,7 @@ export function useGardenLife({
       0,
       Math.min(max, 1 + Math.floor(Math.random() * max)) - animals.current.size,
     );
-    for (let k = 0; k < count; k += 1) later(spawn, 500 + k * 900);
+    for (let k = 0; k < count; k += 1) later(() => spawn(), 500 + k * 900);
     if (!settings.current.reduced && Math.random() < 0.25)
       later(() => fly(null), 1500);
   }, [visitors, spawn, fly, later, refresh]);
@@ -1074,6 +1098,71 @@ export function useGardenLife({
     [climb, later, move, onReaction, place, refresh, rustle, showName],
   );
 
+  /** A called visitor greets: a hop or a wave, its name tag and hearts. */
+  const greet = useCallback(
+    (animal: Animal) => {
+      if (!animals.current.has(animal.id)) return;
+      if (animal.moving) {
+        window.cancelAnimationFrame(animal.frame);
+        animal.moving = false;
+        place(animal);
+      }
+      animal.reacting = true;
+      animal.pose = 'hello';
+      refresh();
+      showName(animal);
+      sequence.current += 1;
+      const key = sequence.current;
+      const w = settings.current.width;
+      setHearts({
+        key,
+        x: Math.min(w - 12, Math.max(12, animal.x)),
+        y: Math.max(
+          24,
+          animalY(animal.kind, animal.x) - TAG_LIFT[animal.kind] + 2,
+        ),
+      });
+      later(() => {
+        setHearts((current) => (current?.key === key ? null : current));
+        if (!animals.current.has(animal.id)) return;
+        animal.reacting = false;
+        animal.pose = animal.kind === 'deer' ? 'graze' : 'rest';
+        refresh();
+      }, GREET_MS);
+    },
+    [later, place, refresh, showName],
+  );
+
+  /**
+   * "Rufen" from the garden book: the visitor greets where it is, or comes
+   * into the garden first. False when nobody may visit right now.
+   */
+  const call = useCallback(
+    (kind: GardenAnimal): boolean => {
+      const {
+        visitors: open,
+        sharedDays: days,
+        unlocks: found,
+      } = settings.current;
+      if (!open || !availableAnimals(days, found).includes(kind)) return false;
+      const present = [...animals.current.values()].find(
+        (animal) => animal.kind === kind,
+      );
+      if (present) {
+        if (!present.reacting) greet(present);
+        return true;
+      }
+      const arrived = spawn(kind);
+      if (!arrived) return false;
+      later(
+        () => greet(arrived),
+        settings.current.reduced ? 80 : CALL_ARRIVAL_MS[kind],
+      );
+      return true;
+    },
+    [greet, later, spawn],
+  );
+
   const bindArt = (animal: Animal) => (element: SVGGElement | null) => {
     if (element) {
       arts.current.set(animal.id, element);
@@ -1166,6 +1255,32 @@ export function useGardenLife({
           />
         </g>
       ))}
+      {hearts ? (
+        // biome-ignore lint/a11y/noAriaHiddenOnFocusable: a decorative SVG group that takes no focus; the status line announces the greeting
+        <g
+          key={hearts.key}
+          transform={`translate(${r1(hearts.x)} ${r1(hearts.y)})`}
+          className="garden-greet-hearts"
+          aria-hidden="true"
+          pointerEvents="none"
+          data-testid="garden-greet-hearts"
+        >
+          {[-9, 0, 9].map((dx, k) => (
+            <g key={dx} transform={`translate(${dx} ${k === 1 ? -4 : 0})`}>
+              <path
+                className="garden-greet-heart"
+                style={
+                  {
+                    '--garden-delay': `${k * 160}ms`,
+                  } as CSSProperties
+                }
+                d="M0 2.6 C-4.4 -.6 -3.6 -4.6 -1 -4 C-.2 -3.8 0 -3 0 -2.6 C0 -3 .2 -3.8 1 -4 C3.6 -4.6 4.4 -.6 0 2.6Z"
+                fill="var(--garden-heart)"
+              />
+            </g>
+          ))}
+        </g>
+      ) : null}
       {tag ? (
         // biome-ignore lint/a11y/noAriaHiddenOnFocusable: a decorative SVG group that takes no focus; the status line announces the name
         <g
@@ -1212,5 +1327,5 @@ export function useGardenLife({
     </g>
   ) : null;
 
-  return { layer, tapTargets, sky, fly, spawn };
+  return { layer, tapTargets, sky, fly, spawn, call };
 }

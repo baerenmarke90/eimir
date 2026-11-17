@@ -146,6 +146,7 @@ export function GardenVisitors({
   failed,
   onEdit,
   onName,
+  onCall,
 }: {
   /** Visitors the couple has already met; the others stay a secret. */
   met: ReadonlyArray<GardenAnimal>;
@@ -157,6 +158,8 @@ export function GardenVisitors({
   failed: { kind: GardenAnimal; draft: string } | null;
   onEdit: (kind: GardenAnimal | null) => void;
   onName: (kind: GardenAnimal, name: string) => void;
+  /** "Rufen": a named visitor comes to greet; the book closes. */
+  onCall?: (kind: GardenAnimal) => void;
 }) {
   const { t } = useTranslation();
   const actions = useRef(new Map<GardenAnimal, HTMLButtonElement>());
@@ -230,24 +233,39 @@ export function GardenVisitors({
                   </span>
                 </span>
                 {open ? null : (
-                  <button
-                    ref={(element) => {
-                      if (element) actions.current.set(kind, element);
-                      else actions.current.delete(kind);
-                    }}
-                    type="button"
-                    className="tertiary garden-visitor-action"
-                    aria-label={`${
-                      name
+                  <span className="garden-visitor-actions">
+                    {name && onCall ? (
+                      <button
+                        type="button"
+                        className="tertiary garden-visitor-action"
+                        aria-label={t('games.garden.ambience.call.label', {
+                          name,
+                        })}
+                        data-testid={`garden-visitor-call-${kind}`}
+                        onClick={() => onCall(kind)}
+                      >
+                        {t('games.garden.ambience.call.action')}
+                      </button>
+                    ) : null}
+                    <button
+                      ref={(element) => {
+                        if (element) actions.current.set(kind, element);
+                        else actions.current.delete(kind);
+                      }}
+                      type="button"
+                      className="tertiary garden-visitor-action"
+                      aria-label={`${
+                        name
+                          ? t('games.garden.growth.visitors.rename')
+                          : t('games.garden.growth.visitors.give')
+                      }: ${name ?? t(`games.garden.growth.visitors.own.${kind}`)}`}
+                      onClick={() => onEdit(kind)}
+                    >
+                      {name
                         ? t('games.garden.growth.visitors.rename')
-                        : t('games.garden.growth.visitors.give')
-                    }: ${name ?? t(`games.garden.growth.visitors.own.${kind}`)}`}
-                    onClick={() => onEdit(kind)}
-                  >
-                    {name
-                      ? t('games.garden.growth.visitors.rename')
-                      : t('games.garden.growth.visitors.give')}
-                  </button>
+                        : t('games.garden.growth.visitors.give')}
+                    </button>
+                  </span>
                 )}
               </span>
               {open ? (

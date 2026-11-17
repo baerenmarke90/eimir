@@ -7,6 +7,7 @@ import {
   PasskeyCancelledError,
   passkeysAvailable,
   registerPasskey,
+  usePasskeyProbe,
 } from '../client/passkeys';
 import { ClientProblemError } from '../client/problemDetails';
 import {
@@ -45,6 +46,7 @@ export function SignInMethodsPanel({
   spaceId: string | null;
 }) {
   const { t } = useTranslation();
+  usePasskeyProbe();
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<Notice>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -61,7 +63,9 @@ export function SignInMethodsPanel({
 
   const native = isCapacitorNative();
   const canAddPasskey = passkeysAvailable();
-  const connections = native ? [] : (status.data?.oidcConnections ?? []);
+  const connections = (status.data?.oidcConnections ?? []).filter(
+    (connection) => !native || connection.nativeAvailable,
+  );
 
   function refresh() {
     return queryClient.invalidateQueries({
@@ -140,7 +144,7 @@ export function SignInMethodsPanel({
       const url = await startOidcLink(apiBaseUrl, accessToken, connectionId);
       // Bring the person back here after the round trip through the provider.
       rememberCurrentAuthReturnTarget(accountId, spaceId);
-      goToProvider(url);
+      await goToProvider(url);
     },
     onMutate: () => setNotice(null),
     onError: (error) => setNotice(failure(error)),

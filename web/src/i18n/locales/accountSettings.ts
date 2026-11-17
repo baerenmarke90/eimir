@@ -28,8 +28,7 @@ export default {
   passkeyDefaultName: 'Dieses Gerät',
   passkeyAddedMessage: 'Passkey hinzugefügt.',
   passkeyRemovedMessage: 'Passkey entfernt.',
-  passkeyNotOnThisDevice:
-    'Passkeys richtest du im Browser ein. In der App folgt das später.',
+  passkeyNotOnThisDevice: 'Auf diesem Gerät sind Passkeys nicht verfügbar.',
   lastMethod:
     'Das ist deine einzige Anmeldemethode. Richte zuerst eine andere ein.',
   methodFailed: 'Das hat nicht geklappt. Bitte versuche es noch einmal.',

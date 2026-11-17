@@ -188,7 +188,7 @@ describe('SignInMethodsPanel', () => {
     const start = vi
       .spyOn(oidcSignIn, 'startOidcLink')
       .mockResolvedValue('https://accounts.google.example/authorize');
-    const leave = vi.spyOn(oidcSignIn, 'goToProvider').mockReturnValue();
+    const leave = vi.spyOn(oidcSignIn, 'goToProvider').mockResolvedValue();
     renderPanel();
 
     fireEvent.click(

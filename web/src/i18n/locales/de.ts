@@ -162,6 +162,8 @@ const de = {
   identity: {
     dividerEmailLink: 'oder mit E-Mail-Link',
     dividerOr: 'oder',
+    passkeyNoneOnDevice:
+      'Auf diesem Gerät ist kein Passkey für eimir. gespeichert.',
     googleContinue: 'Weiter mit Google',
     googleSignUp: 'Mit Google registrieren',
     providerContinue: 'Weiter mit {{name}}',

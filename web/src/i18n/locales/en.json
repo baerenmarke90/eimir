@@ -203,6 +203,7 @@
   "identity": {
     "dividerEmailLink": "or with an e-mail link",
     "dividerOr": "or",
+    "passkeyNoneOnDevice": "No passkey for eimir. is stored on this device.",
     "googleContinue": "Continue with Google",
     "googleSignUp": "Sign up with Google",
     "providerContinue": "Continue with {{name}}",
@@ -1380,7 +1381,7 @@
     "passkeyDefaultName": "This device",
     "passkeyAddedMessage": "Passkey added.",
     "passkeyRemovedMessage": "Passkey removed.",
-    "passkeyNotOnThisDevice": "You set up passkeys in the browser. The app follows later.",
+    "passkeyNotOnThisDevice": "Passkeys are not available on this device.",
     "lastMethod": "This is your only sign-in method. Set up another one first.",
     "methodFailed": "That did not work. Please try again.",
     "title": "Account",

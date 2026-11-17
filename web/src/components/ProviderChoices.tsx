@@ -99,6 +99,7 @@ export function ProviderChoices({
   passkeyPending,
   onPasskey,
   dividerKey,
+  notice = null,
 }: {
   connections: OidcConnectionView[];
   /** Label the provider entries as creating an Account. */
@@ -110,6 +111,8 @@ export function ProviderChoices({
   passkeyPending: boolean;
   onPasskey: () => void;
   dividerKey: 'identity.dividerEmailLink' | 'identity.dividerOr';
+  /** A quiet line below the buttons, for example when no passkey is stored here. */
+  notice?: string | null;
 }) {
   const { t } = useTranslation();
   if (connections.length === 0 && !passkey) return null;
@@ -148,6 +151,11 @@ export function ProviderChoices({
           <KeyMark />
           <span>{t('identity.passkeySignIn')}</span>
         </button>
+      ) : null}
+      {notice ? (
+        <p className="login-hint" role="status">
+          {notice}
+        </p>
       ) : null}
       <p className="provider-divider">
         <span>{t(dividerKey)}</span>

@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Path, Query, Response
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
@@ -75,6 +75,18 @@ class StoryLifelineView(ApiModel):
     starts_on: date | None
     today: date
     weeks: list[StoryLifelineWeek]
+
+
+class StoryLifelineEntry(ApiModel):
+    item: DashboardItem
+    excerpt: str | None = None
+    """A short plain-text excerpt of the entry's own text, when it has one."""
+
+
+class StoryLifelineEntriesView(ApiModel):
+    total: int
+    """How many shared entries the range holds; ``items`` holds at most a bounded part."""
+    items: list[StoryLifelineEntry]
 
 
 class DashboardAnticipation(ApiModel):
@@ -445,6 +457,43 @@ def get_story_lifeline(
                 highlight=_project_item(week.highlight),
             )
             for week in lifeline.weeks
+        ],
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/story-lifeline/entries",
+    response_model=StoryLifelineEntriesView,
+    operation_id="getStoryLifelineEntries",
+    responses=problem_responses(401, 403, 404, 422),
+)
+def get_story_lifeline_entries(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    starts_on: Annotated[
+        date, Query(alias="from", description="First day of the range (inclusive).")
+    ],
+    ends_before: Annotated[date, Query(alias="to", description="Day after the range (exclusive).")],
+) -> StoryLifelineEntriesView:
+    """Return the shared entries of one lifeline period, oldest first.
+
+    Read lazily when a lifeline column is selected. The entries are exactly
+    those the lifeline counts for the range; at most a bounded number is
+    returned together with the range total.
+    """
+    ensure_capability(
+        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
+    )
+    entries = service.read_story_lifeline_entries(
+        session, authorization, starts_on=starts_on, ends_before=ends_before
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return StoryLifelineEntriesView(
+        total=entries.total,
+        items=[
+            StoryLifelineEntry(item=_project_item(entry.item), excerpt=entry.excerpt)
+            for entry in entries.items
         ],
     )
 

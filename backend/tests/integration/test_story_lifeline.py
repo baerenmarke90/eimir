@@ -210,3 +210,158 @@ def test_lifeline_is_empty_without_shared_entries(client, session, context):  # 
     result = lifeline(client, context)
     assert result.status_code == 200
     assert result.json()["weeks"] == []
+
+
+def lifeline_entries(client, context, *, start, end, token=None, space=None):  # type: ignore[no-untyped-def]
+    return client.get(
+        f"/api/v1/spaces/{(space or context['space']).id}/story-lifeline/entries",
+        params={"from": start, "to": end},
+        headers=auth(token or context["token"]),
+    )
+
+
+def test_lifeline_entries_require_the_passport_capability_before_reading(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    def unexpected(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("A Free request must not read lifeline entries")
+
+    monkeypatch.setattr(dashboard_service, "read_story_lifeline_entries", unexpected)
+    result = lifeline_entries(client, context, start="2026-10-05", end="2026-10-12")
+    assert result.status_code == 403
+    assert result.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+
+
+def test_lifeline_entries_list_only_shared_past_entries_of_the_range_in_order(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    grant(session, context)
+    milestone = Milestone(
+        **shared(context),
+        happened_on=date(2026, 10, 6),
+        payload=MilestonePayload(title="Moved in together", body="  The keys,\n finally. "),
+    )
+    first_memory = Memory(
+        **shared(context),
+        happened_on=date(2026, 10, 5),
+        payload=MemoryPayload(title="Monday walk", body="Along the river"),
+    )
+    heart = HeartMoment(
+        **shared(context),
+        happened_on=date(2026, 10, 8),
+        payload=HeartMomentPayload(text="A shared feeling", emotion=HeartEmotion.LOVED),
+    )
+    before = Memory(
+        **shared(context),
+        happened_on=date(2026, 10, 4),
+        payload=MemoryPayload(title="Sunday before", body=""),
+    )
+    after = Memory(
+        **shared(context),
+        happened_on=date(2026, 10, 12),
+        payload=MemoryPayload(title="Next Monday", body=""),
+    )
+    private_heart = HeartMoment(
+        **shared(context, private=True),
+        happened_on=date(2026, 10, 7),
+        payload=HeartMomentPayload(text="Only mine", emotion=HeartEmotion.GRATEFUL),
+    )
+    foreign_memory = Memory(
+        **shared(context, foreign=True),
+        happened_on=date(2026, 10, 6),
+        payload=MemoryPayload(title="Another couple", body=""),
+    )
+    session.add_all([milestone, first_memory, heart, before, after, private_heart, foreign_memory])
+    session.flush()
+
+    for token in (context["token"], context["partner_token"]):
+        result = lifeline_entries(
+            client, context, start="2026-10-05", end="2026-10-12", token=token
+        )
+        assert result.status_code == 200, result.text
+        assert result.headers["Cache-Control"] == "private, no-store"
+        value = result.json()
+        assert value["total"] == 3
+        assert [
+            (entry["item"]["type"], entry["item"]["titleOrText"], entry["excerpt"])
+            for entry in value["items"]
+        ] == [
+            ("MEMORY", "Monday walk", "Along the river"),
+            ("MILESTONE", "Moved in together", "The keys, finally."),
+            ("HEART_MOMENT", "A shared feeling", None),
+        ]
+        assert value["items"][0]["item"]["id"] == str(first_memory.id)
+        assert value["items"][0]["item"]["previewAttachmentId"] is None
+        assert "Only mine" not in result.text
+        assert "Another couple" not in result.text
+
+    # The entries of a week add up to the lifeline's count for that week.
+    weeks = lifeline(client, context).json()["weeks"]
+    counted = next(week for week in weeks if week["weekStart"] == "2026-10-05")
+    assert counted["memories"] + counted["heartMoments"] + counted["milestones"] == 3
+
+
+def test_lifeline_entries_stop_at_today_and_are_bounded(client, session, context, monkeypatch):  # type: ignore[no-untyped-def]
+    grant(session, context)
+    monkeypatch.setattr(dashboard_service, "LIFELINE_ENTRIES_LIMIT", 2)
+    session.add_all(
+        [
+            Memory(
+                **shared(context),
+                happened_on=date(2026, 10, 20 + offset),
+                payload=MemoryPayload(title=f"Day {offset}", body=""),
+            )
+            for offset in range(4)
+        ]
+        + [
+            Memory(
+                **shared(context),
+                happened_on=date(2026, 10, 30),
+                payload=MemoryPayload(title="Tomorrow", body=""),
+            )
+        ]
+    )
+    session.flush()
+    value = lifeline_entries(client, context, start="2026-10-19", end="2026-11-02").json()
+    assert value["total"] == 4
+    assert [entry["item"]["titleOrText"] for entry in value["items"]] == ["Day 0", "Day 1"]
+
+    empty = lifeline_entries(client, context, start="2026-11-02", end="2026-11-09")
+    assert empty.status_code == 200
+    assert empty.json() == {"total": 0, "items": []}
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [("2026-10-12", "2026-10-12"), ("2026-10-12", "2026-10-05"), ("2026-01-01", "2026-06-01")],
+)
+def test_lifeline_entries_reject_an_invalid_range(client, session, context, start, end):  # type: ignore[no-untyped-def]
+    grant(session, context)
+    result = lifeline_entries(client, context, start=start, end=end)
+    assert result.status_code == 422
+    assert result.json()["code"] == "STORY_LIFELINE_RANGE_INVALID"
+
+
+def test_lifeline_entries_are_not_readable_outside_the_space(client, session, context):  # type: ignore[no-untyped-def]
+    grant(session, context)
+    session.add(
+        Memory(
+            **shared(context),
+            happened_on=date(2026, 10, 6),
+            payload=MemoryPayload(title="Ours", body=""),
+        )
+    )
+    session.flush()
+    outsider = lifeline_entries(
+        client,
+        context,
+        start="2026-10-05",
+        end="2026-10-12",
+        token=sign_in(session, context["outsider"]),
+    )
+    assert outsider.status_code == 404
+    assert "Ours" not in outsider.text
+    foreign = lifeline_entries(
+        client, context, start="2026-10-05", end="2026-10-12", space=context["foreign"]
+    )
+    assert foreign.status_code == 404

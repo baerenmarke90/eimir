@@ -25,6 +25,7 @@ from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.collections.models import Collection
 from eimir.core import clock
+from eimir.core.errors import ValidationError
 from eimir.engagement import thinking
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
@@ -46,6 +47,11 @@ from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
+LIFELINE_ENTRIES_LIMIT = 60
+"""The most entries of one lifeline period returned at once."""
+LIFELINE_ENTRIES_MAX_DAYS = 120
+"""The longest period a lifeline column covers: one quarter plus its edge weeks."""
+STORY_LIFELINE_RANGE_INVALID = "STORY_LIFELINE_RANGE_INVALID"
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
 RETROSPECTIVE_SCAN_LIMIT = 50
@@ -203,6 +209,22 @@ class StoryLifeline:
     weeks: list[LifelineWeek]
 
 
+@dataclass(frozen=True)
+class LifelineEntry:
+    """One shared Story entry of a lifeline period, with a short excerpt."""
+
+    item: DashboardItem
+    excerpt: str | None = None
+
+
+@dataclass(frozen=True)
+class StoryLifelineEntries:
+    """The entries behind one lifeline column, oldest first."""
+
+    total: int
+    items: list[LifelineEntry]
+
+
 _LIFELINE_HIGHLIGHT_PREFERENCE: dict[story_service.StoryKind, int] = {
     # Memories are the only Story type with photos, so a week shows one first.
     story_service.StoryKind.MEMORY: 0,
@@ -277,16 +299,81 @@ def read_story_lifeline(
     return StoryLifeline(starts_on=starts_on, today=today, weeks=weeks)
 
 
+def read_story_lifeline_entries(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    starts_on: date,
+    ends_before: date,
+    at: datetime | None = None,
+) -> StoryLifelineEntries:
+    """Return every entry of one lifeline period, oldest first.
+
+    The lifeline only carries one highlight per week; selecting a column
+    reads its entries lazily. The set is exactly the one `read_story_lifeline`
+    counts (relationship-shared, up to the viewer's local today), narrowed to
+    the half-open range ``[starts_on, ends_before)``, so a column's dots and
+    its entries always agree. At most `LIFELINE_ENTRIES_LIMIT` entries are
+    loaded; `total` tells how many the period holds.
+    """
+    if ends_before <= starts_on:
+        raise ValidationError(
+            "The lifeline range must end after it starts.", STORY_LIFELINE_RANGE_INVALID
+        )
+    if (ends_before - starts_on).days > LIFELINE_ENTRIES_MAX_DAYS:
+        raise ValidationError(
+            "The lifeline range is longer than one period.", STORY_LIFELINE_RANGE_INVALID
+        )
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    today = clock.today_in(account.timezone, at=instant)
+    through = min(today, ends_before - timedelta(days=1))
+    if through < starts_on:
+        return StoryLifelineEntries(total=0, items=[])
+    rows = story_service.read_shared_story_rows(
+        session, authorization, through=through, since=starts_on
+    )
+    shown = rows[:LIFELINE_ENTRIES_LIMIT]
+    entries = _lifeline_entries(session, authorization, shown)
+    return StoryLifelineEntries(
+        total=len(rows),
+        items=[entries.get(row.id) or LifelineEntry(item=_lifeline_fallback(row)) for row in shown],
+    )
+
+
+def _lifeline_fallback(row: story_service.StoryRow) -> DashboardItem:
+    return DashboardItem(
+        type=DashboardItemType(row.kind.value),
+        id=row.id,
+        occurred_on=row.effective_date,
+        created_at=row.created_at,
+    )
+
+
 def _lifeline_highlights(
     session: Session,
     authorization: AuthorizationContext,
     rows: list[story_service.StoryRow],
 ) -> dict[UUID, DashboardItem]:
     """Load the displayed entries in one batch per Story type."""
+    return {
+        entry_id: entry.item
+        for entry_id, entry in _lifeline_entries(session, authorization, rows).items()
+    }
+
+
+def _lifeline_entries(
+    session: Session,
+    authorization: AuthorizationContext,
+    rows: list[story_service.StoryRow],
+) -> dict[UUID, LifelineEntry]:
+    """Load lifeline entries in one batch per Story type, with an excerpt."""
     ids: dict[story_service.StoryKind, list[UUID]] = defaultdict(list)
     for row in rows:
         ids[row.kind].append(row.id)
-    highlights: dict[UUID, DashboardItem] = {}
+    entries: dict[UUID, LifelineEntry] = {}
 
     memory_ids = ids[story_service.StoryKind.MEMORY]
     if memory_ids:
@@ -301,17 +388,22 @@ def _lifeline_highlights(
                 galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
             )
             ready = preview is not None and preview.status == AttachmentStatus.READY
-            highlights[memory.id] = DashboardItem(
-                type=DashboardItemType.MEMORY,
-                id=memory.id,
-                title_or_text=_bounded(memory.payload.title),
-                occurred_on=memory.happened_on,
-                created_at=memory.created_at,
-                preview_attachment_id=preview.id if ready and preview is not None else None,
-                preview_is_sensitive=bool(
-                    ready and preview is not None and preview.payload.is_sensitive
+            entries[memory.id] = LifelineEntry(
+                item=DashboardItem(
+                    type=DashboardItemType.MEMORY,
+                    id=memory.id,
+                    title_or_text=_bounded(memory.payload.title),
+                    occurred_on=memory.happened_on,
+                    created_at=memory.created_at,
+                    preview_attachment_id=preview.id if ready and preview is not None else None,
+                    preview_is_sensitive=bool(
+                        ready and preview is not None and preview.payload.is_sensitive
+                    ),
+                    preview_has_thumbnail=bool(
+                        ready and preview is not None and preview.has_thumbnail
+                    ),
                 ),
-                preview_has_thumbnail=bool(ready and preview is not None and preview.has_thumbnail),
+                excerpt=_excerpt(memory.payload.body),
             )
 
     heart_moment_ids = ids[story_service.StoryKind.HEART_MOMENT]
@@ -322,12 +414,15 @@ def _lifeline_highlights(
                 HeartMoment.id.in_(heart_moment_ids),
             )
         ).scalars():
-            highlights[heart_moment.id] = DashboardItem(
-                type=DashboardItemType.HEART_MOMENT,
-                id=heart_moment.id,
-                title_or_text=_bounded(heart_moment.payload.text),
-                occurred_on=heart_moment.happened_on,
-                created_at=heart_moment.created_at,
+            # The text is the Heart Moment itself and already its title.
+            entries[heart_moment.id] = LifelineEntry(
+                item=DashboardItem(
+                    type=DashboardItemType.HEART_MOMENT,
+                    id=heart_moment.id,
+                    title_or_text=_bounded(heart_moment.payload.text),
+                    occurred_on=heart_moment.happened_on,
+                    created_at=heart_moment.created_at,
+                )
             )
 
     milestone_ids = ids[story_service.StoryKind.MILESTONE]
@@ -335,14 +430,17 @@ def _lifeline_highlights(
         for milestone in session.execute(
             readable(Milestone, authorization).where(Milestone.id.in_(milestone_ids))
         ).scalars():
-            highlights[milestone.id] = DashboardItem(
-                type=DashboardItemType.MILESTONE,
-                id=milestone.id,
-                title_or_text=_bounded(milestone.payload.title),
-                occurred_on=milestone.happened_on,
-                created_at=milestone.created_at,
+            entries[milestone.id] = LifelineEntry(
+                item=DashboardItem(
+                    type=DashboardItemType.MILESTONE,
+                    id=milestone.id,
+                    title_or_text=_bounded(milestone.payload.title),
+                    occurred_on=milestone.happened_on,
+                    created_at=milestone.created_at,
+                ),
+                excerpt=_excerpt(milestone.payload.body),
             )
-    return highlights
+    return entries
 
 
 def read_anticipation(
@@ -1073,3 +1171,11 @@ def _bounded(value: str | None) -> str | None:
     if value is None:
         return None
     return value[:MAX_RECOGNITION_TEXT]
+
+
+def _excerpt(value: str | None) -> str | None:
+    """A short, whitespace-normalized excerpt, or nothing for an empty text."""
+    if value is None:
+        return None
+    text = " ".join(value.split())
+    return text[:MAX_RECOGNITION_TEXT] or None

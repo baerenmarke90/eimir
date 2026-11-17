@@ -16842,6 +16842,50 @@
         "title": "StoryKind",
         "type": "string"
       },
+      "StoryLifelineEntriesView": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StoryLifelineEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "StoryLifelineEntriesView",
+        "type": "object"
+      },
+      "StoryLifelineEntry": {
+        "properties": {
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "item": {
+            "$ref": "#/components/schemas/DashboardItem"
+          }
+        },
+        "required": [
+          "item"
+        ],
+        "title": "StoryLifelineEntry",
+        "type": "object"
+      },
       "StoryLifelineView": {
         "properties": {
           "startsOn": {
@@ -48768,6 +48812,103 @@
           }
         },
         "summary": "Get Story Lifeline",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/story-lifeline/entries": {
+      "get": {
+        "description": "Return the shared entries of one lifeline period, oldest first.\n\nRead lazily when a lifeline column is selected. The entries are exactly\nthose the lifeline counts for the range; at most a bounded number is\nreturned together with the range total.",
+        "operationId": "getStoryLifelineEntries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of the range (inclusive).",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the range (inclusive).",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the range (exclusive).",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Day after the range (exclusive).",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryLifelineEntriesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Story Lifeline Entries",
         "tags": [
           "dashboard"
         ]

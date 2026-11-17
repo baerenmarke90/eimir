@@ -18,7 +18,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import ErrorCode, UnauthenticatedError
 from eimir.presence import device, geo, service
-from eimir.presence.models import SharingLevel
+from eimir.presence.models import SharingLevel, SharingPrecision
 
 router = APIRouter(tags=["partner-location"])
 
@@ -34,6 +34,12 @@ class PartnerLocationSettingsView(ApiModel):
         )
     )
     level: SharingLevel
+    precision: SharingPrecision = Field(
+        description=(
+            "How finely the caller shares (own choice). Precise stays inactive when the "
+            "device only grants an approximate position."
+        )
+    )
     state: service.SharingState
     indefinite: bool
     expires_at: datetime | None
@@ -50,6 +56,13 @@ class PartnerLocationSettingsUpdate(ApiModel):
         default=None,
         description="Server-authoritative end of a bounded share, at most 24 hours ahead.",
     )
+    precision: SharingPrecision | None = Field(
+        default=None,
+        description=(
+            "Omit to keep the stored choice (approximate for a new decision). Choosing precise "
+            "needs the Premium capability; approximate and OFF never do."
+        ),
+    )
 
 
 class PresencePosition(ApiModel):
@@ -58,6 +71,15 @@ class PresencePosition(ApiModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     captured_at: datetime
+    accuracy_meters: float | None = Field(
+        default=None,
+        ge=0,
+        le=geo.MAX_ACCEPTED_ACCURACY_METERS,
+        description=(
+            "Reported accuracy of the position. Required to publish; for a distance read it "
+            "only lets a precise choice count when the fix itself is precise."
+        ),
+    )
 
     @model_validator(mode="after")
     def _aware(self) -> Self:
@@ -72,10 +94,12 @@ class PresencePublish(PresencePosition):
 
 
 class DistanceBandView(ApiModel):
-    kind: Literal["NEARBY", "RANGE", "APPROXIMATE"]
+    kind: Literal["NEARBY", "CLOSE", "RANGE", "APPROXIMATE"]
     min_km: int | None = None
     max_km: int | None = None
     approximate_km: int | None = None
+    min_meters: int | None = Field(default=None, description="Only for CLOSE.")
+    max_meters: int | None = Field(default=None, description="Only for CLOSE.")
 
 
 class PartnerDistanceView(ApiModel):
@@ -102,6 +126,7 @@ def _settings(view: service.SettingsView) -> PartnerLocationSettingsView:
     return PartnerLocationSettingsView(
         available=view.available,
         level=view.level,
+        precision=view.precision,
         state=view.state,
         indefinite=view.indefinite,
         expires_at=view.expires_at,
@@ -145,6 +170,7 @@ def update_partner_location_settings(
             level=body.level,
             indefinite=body.indefinite,
             expires_at=body.expires_at,
+            precision=body.precision,
         )
     )
 
@@ -196,6 +222,7 @@ def get_partner_distance(
         latitude=body.latitude,
         longitude=body.longitude,
         captured_at=body.captured_at,
+        accuracy_meters=body.accuracy_meters,
     )
     if not view.available or view.band is None:
         return PartnerDistanceView(available=False)
@@ -206,6 +233,8 @@ def get_partner_distance(
             min_km=view.band.min_km,
             max_km=view.band.max_km,
             approximate_km=view.band.approximate_km,
+            min_meters=view.band.min_meters,
+            max_meters=view.band.max_meters,
         ),
         as_of=view.as_of,
     )

@@ -426,6 +426,7 @@ export * from './SharedNoteUpdate';
 export * from './SharedPhoto';
 export * from './SharedPhotoPage';
 export * from './SharingLevel';
+export * from './SharingPrecision';
 export * from './SharingState';
 export * from './SignInMethodsView';
 export * from './SignInRequest';

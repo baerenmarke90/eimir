@@ -3756,6 +3756,7 @@
           "kind": {
             "enum": [
               "NEARBY",
+              "CLOSE",
               "RANGE",
               "APPROXIMATE"
             ],
@@ -3773,6 +3774,18 @@
             ],
             "title": "Maxkm"
           },
+          "maxMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Maxmeters"
+          },
           "minKm": {
             "anyOf": [
               {
@@ -3783,6 +3796,18 @@
               }
             ],
             "title": "Minkm"
+          },
+          "minMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Minmeters"
           }
         },
         "required": [
@@ -8440,6 +8465,17 @@
           },
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SharingPrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Omit to keep the stored choice (approximate for a new decision). Choosing precise needs the Premium capability; approximate and OFF never do."
           }
         },
         "required": [
@@ -8491,6 +8527,10 @@
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
           },
+          "precision": {
+            "$ref": "#/components/schemas/SharingPrecision",
+            "description": "How finely the caller shares (own choice). Precise stays inactive when the device only grants an approximate position."
+          },
           "state": {
             "$ref": "#/components/schemas/SharingState"
           }
@@ -8498,6 +8538,7 @@
         "required": [
           "available",
           "level",
+          "precision",
           "state",
           "indefinite",
           "expiresAt",
@@ -10830,6 +10871,20 @@
       "PresencePosition": {
         "additionalProperties": false,
         "properties": {
+          "accuracyMeters": {
+            "anyOf": [
+              {
+                "maximum": 50000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reported accuracy of the position. Required to publish; for a distance read it only lets a precise choice count when the fix itself is precise.",
+            "title": "Accuracymeters"
+          },
           "capturedAt": {
             "format": "date-time",
             "title": "Capturedat",
@@ -15553,6 +15608,15 @@
           "DISTANCE_AND_MAP"
         ],
         "title": "SharingLevel",
+        "type": "string"
+      },
+      "SharingPrecision": {
+        "description": "How finely the owner agrees to share (PO 2026-11-17); a person-level choice.",
+        "enum": [
+          "APPROXIMATE",
+          "PRECISE"
+        ],
+        "title": "SharingPrecision",
         "type": "string"
       },
       "SharingState": {

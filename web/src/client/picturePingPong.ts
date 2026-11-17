@@ -174,7 +174,7 @@ export function flightProfile(
   if (!line || line.kind !== 'distance') return DEFAULT_FLIGHT;
   const { band } = line;
   let durationScale: number;
-  if (band.kind === 'NEARBY') durationScale = 0.6;
+  if (band.kind === 'NEARBY' || band.kind === 'CLOSE') durationScale = 0.6;
   else if (band.kind === 'RANGE') {
     const max = band.maxKm ?? 25;
     durationScale = max <= 5 ? 0.7 : max <= 10 ? 0.85 : max <= 25 ? 1 : 1.15;

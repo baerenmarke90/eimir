@@ -6,6 +6,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import {
   type ApproximatePosition,
   currentApproximatePosition,
+  type LocationPrecision,
   locationPermission,
 } from '../client/approximateLocation';
 import { partnerConnectionStyle } from '../client/partnerConnection';
@@ -51,7 +52,10 @@ const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
  * map is shown. Held in component state only and never sent anywhere: the
  * map read needs no own position. Never opens the OS permission dialog.
  */
-function useOwnPositionWhileOpen(enabled: boolean) {
+function useOwnPositionWhileOpen(
+  enabled: boolean,
+  precision: LocationPrecision,
+) {
   const [position, setPosition] = useState<ApproximatePosition | null>(null);
   useEffect(() => {
     if (!enabled) return;
@@ -66,7 +70,7 @@ function useOwnPositionWhileOpen(enabled: boolean) {
           if (!disposed) setPosition(null);
           return;
         }
-        const next = await currentApproximatePosition();
+        const next = await currentApproximatePosition(undefined, precision);
         if (!disposed) setPosition(next);
       } catch {
         if (!disposed) setPosition(null);
@@ -80,7 +84,7 @@ function useOwnPositionWhileOpen(enabled: boolean) {
       disposed = true;
       unsubscribe();
     };
-  }, [enabled]);
+  }, [enabled, precision]);
   return position;
 }
 
@@ -157,7 +161,10 @@ export function PartnerLocationMapPage({
     spaceId,
     enabled: entitled,
   });
-  const ownPosition = useOwnPositionWhileOpen(entitled);
+  const ownPosition = useOwnPositionWhileOpen(
+    entitled,
+    settings?.precision ?? 'APPROXIMATE',
+  );
   // The Wir line's band, if it was read; no additional distance request.
   const distanceLine = useQuery<PartnerDistanceLine>({
     queryKey: partnerDistanceQueryKey(account.id, spaceId),

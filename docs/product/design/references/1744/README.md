@@ -189,3 +189,84 @@ Built from the reference above (reviewed against `main@71f1680a2`, built on `mai
 - On Expanded the row spans the full width of the two-column group so no cell stays empty.
 - Not performed: large-text capture of the new row, the Free/pending/no-edition states in the browser (selector covered by unit tests), and Android device acceptance.
 
+
+## The monthly film (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: a monthly recap is an automatic best-of,
+cut like a short film from the month's shared material, **without a model and
+without generated text**, presented in the existing scene reader (no rendered
+video file). The Product Owner reviewed an animated prototype on the live app
+with the couple's real data (read-only, nothing stored) and approved its cut,
+layouts and timing ("exactly like this"). The baseline was `main@43fabb129`.
+
+### Selection and cut (server, `recaps/film.py`, `recaps/montage.py`)
+
+- **Pool:** every shared moment that starts in the month (Memory, HeartMoment,
+  Milestone, Chapter, completed Plan). Both answers to one guided happiness or
+  time-travel question are one moment. A multi-day moment belongs to the month
+  it starts in. Owner-only content never enters.
+- **Points, no model:** real photos, collage material (three or more), words,
+  both partners' answers, a mutual positive reaction, a linked Place, a
+  multi-day moment and a member's own birthday. Deductions for moments that
+  only have screenshots or duplicates, for blur and for the app's automatic
+  fallback title. The highlight is guaranteed.
+- **Length:** at most 12 moments, two per day, and about 90 seconds of running
+  time (Google and Apple memories run 30-60 s; the couple's words need reading
+  time). Sparse months get fewer scenes, never filler.
+- **Photos:** quality is measured on the stored 512 px thumbnail with Pillow
+  only: Laplacian variance (blur), the share of flat areas plus a tall format
+  (screenshots) and a 64-bit difference hash (duplicates). Real photos lead,
+  then videos, then screenshots. A sensitive photo stays out while its moment
+  stays (Product Owner 2026-11-17). A video plays a muted clip of at most five
+  seconds from its first third through the existing short-lived playback access.
+- **Look:** eight moods, eight transitions (56 ordered pairs), five motions, four
+  covers and two to five layouts per scene type. Each edition freezes one look,
+  chosen deterministically from Space and period against the frozen looks of the
+  latest five monthly editions: no mood and no transition pair repeats within
+  five recaps, consecutive recaps never share a cover or a first layout. A
+  recomposition keeps the frozen look. Moods are names; the reader maps them to
+  semantic tokens, so app designs and Light/Dark apply.
+- **Never served:** scores, ranks and selection reasons (Product Owner: the cut
+  plan is a trade secret). The read contract carries the frozen look, the
+  highlight key, curated media per moment, live answers, the first Place name
+  and the month's authored tags with counts. All of these are re-authorized on
+  every read; a newly sensitive or removed photo disappears at once.
+- **Scene rules:** a calm opener (Places of the month, else the days with
+  entries), chronological order with the highlight as the longest and strongest
+  scene, never the same scene type twice in a row, answers in the picture when
+  short or as the next scene, a scene where the month's tags fly together, and a
+  quiet closing. A HeartMoment with a photo shows the photo with its words.
+  Music stays optional and is not built; the contract leaves room for it.
+- **Year editions** keep the classic story; editions without a frozen film use
+  the existing reader unchanged.
+
+### Mobile Interaction Contract (film)
+
+Human task: watch the month in one sitting, like a photo memory. Focal point: a
+real photo or the couple's own words. Single dominant action: play/pause; tap
+left/right, hold to pause and the explicit controls stay. Captions never sit
+under an image area; full-bleed captions use the strong scrim. States:
+loading reserves the scene frame; pending, empty, error, offline and downgrade
+semantics are unchanged. Reduced motion replaces every transition by a calm
+crossfade, removes drift, zoom, stagger and the tag flight, and shows video
+posters instead of clips; state and focus are unchanged. Large text reflows;
+long words are never set as a display heading. Browser-only arrows stay hidden
+in the native runtime. Expanded keeps the same order inside the reading column.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** Pillow (already a dependency) for photo measures; ImageHash and
+  OpenCV were considered and are not needed for three statistics on a thumbnail.
+  Existing worker queue, authorized media loader, playback access, scene reader
+  and Web Animations API. No new dependency, provider or model.
+- **Business/freemium impact reviewed:** unchanged row "Relationship passport and
+  automatic recaps (#497, #1528)": Premium composition behind
+  `relationship.passport`, retained editions stay readable after expiry (the
+  frozen look is part of the edition). Identical on Cloud and Self-Hosted; no
+  inference, so managed cost falls. Thumbnail reads add bounded worker CPU per
+  composed month.
+- **Privacy:** only shared, authorized content; derived measures are never
+  stored; the frozen look and curated media live in the protected edition
+  payload and follow the edition lifecycle. No faces, no biometrics.
+- **Not part of this change:** removing the local wording model and its texts
+  (separate step), music, a per-entry "not in recaps" control.

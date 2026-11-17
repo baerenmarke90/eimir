@@ -20,7 +20,6 @@
   inline-size: var(--space-6);
   block-size: var(--space-6);
   stroke: currentColor;
-  stroke-width: 1.65;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

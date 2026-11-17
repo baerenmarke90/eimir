@@ -147,7 +147,7 @@ export function SharedCollectionItemRow({
               viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
-              className="shared-list-item-waiting-icon"
+              className="shared-list-item-waiting-icon inline-icon"
             >
               <circle cx="12" cy="12" r="8" />
               <path d="M12 8v4l3 2" />

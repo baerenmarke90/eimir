@@ -18,7 +18,7 @@ from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
 from eimir.recaps import local_ai, montage, mood, service
-from eimir.recaps.composition import Candidate, select_candidates, theme_for
+from eimir.recaps.composition import Candidate, theme_for
 from eimir.recaps.models import RecapEdition, RecapFilm, RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.relationship.service import require_membership
@@ -27,7 +27,7 @@ SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
 SCAN_LOCK = 8_150_228
 EVIDENCE_LIMIT = 8
-# Moments per kind a monthly film may weigh; a month rarely has more.
+# Moments per kind and month a film may weigh; a month rarely has more.
 FILM_POOL = 60
 
 
@@ -85,24 +85,20 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
 
     def choose(
         ctx: AuthorizationContext, current: RecapEdition
-    ) -> tuple[list[Candidate], RecapFilm | None]:
-        if kind == RecapKind.MONTH:
-            # The monthly film: content-led cut, frozen look, no model (#1744).
-            pool = service.candidates(
-                session,
-                ctx,
-                current.starts_on,
-                current.through_on,
-                current.variant,
-                per_month=FILM_POOL,
-                starting_only=True,
-            )
-            return montage.compose(session, ctx, current, pool, quality)
+    ) -> tuple[list[Candidate], RecapFilm]:
+        # Month and year are films: content-led cut, frozen look, no model (#1744).
         pool = service.candidates(
-            session, ctx, current.starts_on, current.through_on, current.variant
+            session,
+            ctx,
+            current.starts_on,
+            current.through_on,
+            current.variant,
+            per_month=FILM_POOL,
+            starting_only=True,
         )
-        seed = f"{space_id}:{kind}:{current.year}:{current.month}"
-        return select_candidates(pool, kind, seed, current.variant), None
+        if kind == RecapKind.YEAR:
+            return montage.compose_year(session, ctx, current, pool, quality)
+        return montage.compose(session, ctx, current, pool, quality)
 
     selected, _ = choose(context, value)
     material = [

@@ -3,6 +3,7 @@ import { RecapViewFromJSON } from '../api/generated/models/RecapView';
 import {
   FILM_INLINE_ANSWER_CHARS,
   type FilmScene,
+  filmChapters,
   filmExcerpt,
   isFallbackTitle,
   recapFilmScenes,
@@ -117,7 +118,9 @@ const types = (scenes: FilmScene[]) => scenes.map((scene) => scene.type);
 describe('monthly recap film', () => {
   it('keeps the established reader when an edition has no film', () => {
     expect(recapFilmScenes(edition([], {}, null))).toBe(null);
-    expect(recapFilmScenes(edition([], { kind: 'YEAR', month: 0 }))).toBe(null);
+    expect(recapFilmScenes(edition([], { kind: 'YEAR', month: 0 }, null))).toBe(
+      null,
+    );
   });
 
   it('opens calmly, keeps chronology and ends with the closing scene', () => {
@@ -317,5 +320,153 @@ describe('monthly recap film', () => {
     const cut = filmExcerpt(text, 50);
     expect(cut).toBe('First sentence here. A second one follows soon. …');
     expect(filmExcerpt('kurz')).toBe('kurz');
+  });
+});
+
+const yearSource = (
+  key: string,
+  month: number,
+  day: number,
+  overrides: Record<string, unknown> = {},
+) =>
+  source(key, day, {
+    occurredOn: `2025-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    ...overrides,
+  });
+
+const year = (overrides: Record<string, unknown> = {}) => {
+  const sources = [];
+  const monthHighlights = [];
+  for (let month = 1; month <= 12; month += 1) {
+    const top = `MEMORY:top${month}`;
+    sources.push(
+      yearSource(top, month, 4, {
+        media: [image(`top${month}`)],
+        placeName: month % 2 ? 'See' : 'Stadt',
+      }),
+      yearSource(`MEMORY:more${month}`, month, 18),
+    );
+    monthHighlights.push({ month, key: top });
+  }
+  sources.push(
+    yearSource('MILESTONE:keys', 3, 9),
+    yearSource('MILESTONE:move', 9, 1),
+  );
+  sources.sort((a, b) =>
+    String(a.occurredOn).localeCompare(String(b.occurredOn)),
+  );
+  return edition(
+    sources,
+    {
+      kind: 'YEAR',
+      month: 0,
+      year: 2025,
+      startsOn: '2025-01-01',
+      throughOn: '2025-12-31',
+    },
+    {
+      highlightKey: 'MEMORY:top7',
+      monthHighlights,
+      tags: [
+        { label: 'See', count: 9 },
+        { label: 'Stadt', count: 4 },
+        { label: 'Herbst', count: 2 },
+      ],
+      ...overrides,
+    },
+  );
+};
+
+describe('year recap film', () => {
+  it('plays month chapters with markers, then the firsts, the climax and the covers', () => {
+    const scenes = recapFilmScenes(year()) ?? [];
+    const markers = scenes.filter((scene) => scene.type === 'month');
+    expect(
+      markers.map((scene) => scene.type === 'month' && scene.month),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(scenes[0].type).toBe('cover');
+    const finale = scenes.slice(
+      scenes.findIndex((scene) => scene.type === 'firsts'),
+    );
+    expect(types(finale)).toEqual([
+      'firsts',
+      'tags',
+      'photo',
+      'covers',
+      'closing',
+    ]);
+    const climax = finale[2];
+    expect(climax.climax && 'source' in climax && climax.source?.key).toBe(
+      'MEMORY:top7',
+    );
+    // The year highlight plays once: as the climax, not in July.
+    expect(
+      scenes
+        .filter(
+          (scene) => 'source' in scene && scene.source?.key === 'MEMORY:top7',
+        )
+        .filter((scene) => scene.type !== 'cover'),
+    ).toHaveLength(1);
+    // Milestones play only in the firsts sequence.
+    expect(
+      scenes.some(
+        (scene) => 'source' in scene && scene.source?.kind === 'MILESTONE',
+      ),
+    ).toBe(false);
+    const firsts = finale[0];
+    expect(
+      firsts.type === 'firsts' && firsts.sources.map((item) => item.key),
+    ).toEqual(['MILESTONE:keys', 'MILESTONE:move']);
+    const covers = finale[3];
+    expect(
+      covers.type === 'covers' && covers.covers.map((item) => item.month),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    for (let index = 1; index < scenes.length; index += 1)
+      expect(scenes[index].type).not.toBe(scenes[index - 1].type);
+  });
+
+  it('groups the progress by chapter and orients by month', () => {
+    const scenes = recapFilmScenes(year()) ?? [];
+    const chapters = filmChapters(scenes) ?? [];
+    expect(chapters.map((chapter) => chapter.chapter)).toEqual([
+      'intro',
+      ...Array.from({ length: 12 }, (_, index) => `m${index + 1}`),
+      'finale',
+    ]);
+    expect(chapters.reduce((sum, chapter) => sum + chapter.count, 0)).toBe(
+      scenes.length,
+    );
+    // July lost its highlight to the finale but keeps its other moment.
+    expect(chapters.find((chapter) => chapter.chapter === 'm7')?.count).toBe(2);
+    expect(filmChapters(recapFilmScenes(month()))).toBe(null);
+  });
+
+  it('keeps a lone milestone as a title scene and skips a thin cover montage', () => {
+    const value = edition(
+      [
+        yearSource('MEMORY:spring', 4, 2, { media: [image('spring')] }),
+        yearSource('MILESTONE:keys', 5, 9),
+        yearSource('MEMORY:summer', 7, 2, { media: [image('summer')] }),
+      ],
+      { kind: 'YEAR', month: 0, year: 2025 },
+      {
+        highlightKey: 'MEMORY:summer',
+        monthHighlights: [
+          { month: 4, key: 'MEMORY:spring' },
+          { month: 7, key: 'MEMORY:summer' },
+        ],
+      },
+    );
+    const scenes = recapFilmScenes(value) ?? [];
+    expect(types(scenes)).toEqual([
+      'cover',
+      'fact',
+      'month',
+      'photo',
+      'title',
+      'photo',
+      'closing',
+    ]);
+    expect(scenes.at(-2)?.climax).toBe(true);
   });
 });

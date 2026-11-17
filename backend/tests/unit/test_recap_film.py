@@ -198,3 +198,118 @@ def test_a_long_month_is_bounded_by_scene_count_and_running_time() -> None:
         film.estimated_ms(film.score(m, [])) for m in moments if m.key in result.keys
     )
     assert total <= film.DURATION_LIMIT_MS
+
+
+# --- The year film ---------------------------------------------------------------
+
+
+def dated(key: str, day: date, **values: object) -> Moment:
+    kind = str(values.pop("kind", "MEMORY"))
+    return Moment(key=key, kind=kind, occurred_on=day, **values)  # type: ignore[arg-type]
+
+
+def full_year(per_month: int = 8, year: int = 2025) -> list[Moment]:
+    moments = []
+    for month in range(1, 13):
+        for n in range(per_month):
+            key = f"{month}-{n}"
+            moments.append(
+                dated(
+                    key,
+                    date(year, month, 1 + (n * 3) % 28),
+                    photos=pictures(key, 1 + n % 3),
+                    words=20 * (n % 4),
+                    has_place=n % 2 == 0,
+                )
+            )
+    moments.append(
+        dated("anniversary", date(year, 6, 14), photos=pictures("anniversary", 3), birthday=True)
+    )
+    for month in (2, 5, 8, 11):
+        moments.append(dated(f"first-{month}", date(year, month, 20), kind="MILESTONE"))
+    return moments
+
+
+def month_of(moments: list[Moment], key: str) -> int:
+    return next(m.occurred_on.month for m in moments if m.key == key)
+
+
+def test_every_month_keeps_its_highlight_and_the_year_highlight_is_the_strongest() -> None:
+    moments = full_year()
+    result = film.year_cut(moments, "space:YEAR:2025:0:0")
+    assert set(result.months) == set(range(1, 13))
+    assert set(result.months.values()) <= set(result.keys)
+    assert result.highlight == "anniversary" and result.months[6] == "anniversary"
+    # The year highlight closes the film, so its month keeps another moment.
+    june = [key for key in result.keys if month_of(moments, key) == 6]
+    assert len(june) >= 2
+    assert result == film.year_cut(list(reversed(moments)), "space:YEAR:2025:0:0")
+
+
+def test_the_year_is_bounded_chronological_and_spread_over_the_months() -> None:
+    moments = full_year(per_month=20)
+    result = film.year_cut(moments, "seed")
+    assert len(result.keys) <= film.YEAR_SCENE_LIMIT
+    days = [next(m.occurred_on for m in moments if m.key == key) for key in result.keys]
+    assert days == sorted(days)
+    chapters = [m for m in moments if m.key in result.keys and m.kind != "MILESTONE"]
+    for month in range(1, 13):
+        assert 1 <= sum(m.occurred_on.month == month for m in chapters) <= film.YEAR_PER_MONTH
+    for day in set(days):
+        assert days.count(day) <= film.MAX_PER_DAY
+    chosen = [film.score(m, []) for m in chapters]
+    firsts = sum(m.kind == "MILESTONE" for m in moments if m.key in result.keys)
+    assert firsts == 4
+    assert film.year_ms(chosen, 12, firsts) <= film.YEAR_DURATION_LIMIT_MS
+
+
+def test_milestones_form_one_bounded_sequence_and_never_take_a_month_highlight() -> None:
+    moments = [dated(f"walk-{m}", date(2025, m, 3)) for m in range(1, 13)]
+    moments += [dated(f"first-{n}", date(2025, 1 + n, 9), kind="MILESTONE") for n in range(11)]
+    result = film.year_cut(moments, "seed")
+    shown = [key for key in result.keys if key.startswith("first-")]
+    assert len(shown) == film.YEAR_FIRSTS_LIMIT
+    assert all(not key.startswith("first-") for key in result.months.values())
+
+
+def test_a_composed_monthly_film_keeps_its_highlight_and_its_selection() -> None:
+    moments = full_year()
+    frozen = {3: film.FrozenMonth(highlight="3-5", keys=("3-5", "3-6"))}
+    result = film.year_cut(moments, "seed", frozen)
+    assert result.months[3] == "3-5"
+    march = {key for key in result.keys if month_of(moments, key) == 3}
+    assert march <= {"3-5", "3-6"}
+    # A frozen month whose moments are all gone falls back to the monthly rules.
+    gone = {4: film.FrozenMonth(highlight="deleted", keys=("deleted",))}
+    assert 4 in film.year_cut(moments, "seed", gone).months
+
+
+def test_a_months_own_cut_decides_where_no_monthly_film_exists() -> None:
+    moments = full_year()
+    seeds = {month: f"space:MONTH:2025:{month}:0" for month in range(1, 13)}
+    result = film.year_cut(moments, "seed", month_seed=seeds.__getitem__)
+    for month in range(1, 13):
+        own = film.cut(
+            [m for m in moments if m.occurred_on.month == month and m.kind != "MILESTONE"],
+            seeds[month],
+        )
+        assert result.months[month] == own.highlight
+
+
+def test_sparse_and_empty_years_stay_short() -> None:
+    assert film.year_cut([], "seed").keys == ()
+    lone = film.year_cut([dated("only", date(2025, 4, 2))], "seed")
+    assert lone.keys == ("only",) and lone.highlight == "only" and lone.months == {4: "only"}
+    milestones = film.year_cut([dated("first", date(2025, 4, 2), kind="MILESTONE")], "seed")
+    assert milestones.keys == ("first",) and milestones.highlight is None
+
+
+def test_the_year_look_avoids_earlier_years_and_the_december_film() -> None:
+    december = film.choose_look("space:MONTH:2025:12:0", [])
+    years: list[Look] = []
+    for year in range(2018, 2026):
+        look = film.choose_look(f"space:YEAR:{year}:0:0", years, [december])
+        assert look.mood != december.mood and look.transitions != december.transitions
+        assert look.mood not in {other.mood for other in years[-film.LOOK_MEMORY :]}
+        assert look.transitions not in {other.transitions for other in years[-film.LOOK_MEMORY :]}
+        years.append(look)

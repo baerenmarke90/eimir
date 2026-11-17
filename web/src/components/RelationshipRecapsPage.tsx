@@ -30,6 +30,7 @@ import { isCapacitorNativePlatform } from '../client/config';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   type FilmScene,
+  filmChapters,
   filmSceneLeadMedia,
   filmSceneSource,
   filmSerif,
@@ -554,8 +555,8 @@ function RecapReader({
     capability: 'relationship.passport',
   });
   const value = query.data;
-  // A monthly film edition plays its timed scenes; every other edition keeps
-  // the established reader unchanged.
+  // A monthly or yearly film edition plays its timed scenes; every other
+  // edition keeps the established reader unchanged.
   const filmScenes = useMemo(
     () => (value ? recapFilmScenes(value) : null),
     [value],
@@ -565,6 +566,7 @@ function RecapReader({
     [value, filmScenes],
   );
   const sceneKeys = (filmScenes ?? scenes).map(({ key: step }) => step);
+  const chapters = useMemo(() => filmChapters(filmScenes), [filmScenes]);
   const pageCount = sceneKeys.length || 2;
   const requestedPage = Number(search.get('page'));
   const page = Number.isInteger(requestedPage)
@@ -941,19 +943,58 @@ function RecapReader({
             />
           ) : (
             <>
-              <div className="recap-progress" aria-hidden="true">
-                {sceneKeys.map((step, index) => (
-                  <span
-                    key={step}
-                    data-complete={index < page}
-                    data-current={index === page}
-                  >
-                    <span
-                      className="recap-step-fill"
-                      key={`${step}:${pageKey}`}
-                    />
-                  </span>
-                ))}
+              <div
+                className="recap-progress"
+                aria-hidden="true"
+                data-chapters={chapters ? 'true' : undefined}
+              >
+                {chapters
+                  ? // A year film orients by month: one segment per chapter,
+                    // filled scene by scene (PO 2026-11-17).
+                    chapters.map((chapter) => (
+                      <span
+                        key={chapter.chapter}
+                        className="recap-progress-chapter"
+                        data-chapter={chapter.chapter}
+                        data-complete={page >= chapter.start + chapter.count}
+                        data-current={
+                          page >= chapter.start &&
+                          page < chapter.start + chapter.count
+                        }
+                      >
+                        {sceneKeys
+                          .slice(chapter.start, chapter.start + chapter.count)
+                          .map((step, offset) => {
+                            const index = chapter.start + offset;
+                            return (
+                              <span
+                                key={step}
+                                className="recap-progress-step"
+                                data-complete={index < page}
+                                data-current={index === page}
+                              >
+                                <span
+                                  className="recap-step-fill"
+                                  key={`${step}:${pageKey}`}
+                                />
+                              </span>
+                            );
+                          })}
+                      </span>
+                    ))
+                  : sceneKeys.map((step, index) => (
+                      <span
+                        key={step}
+                        className="recap-progress-step"
+                        data-complete={index < page}
+                        data-current={index === page}
+                      >
+                        <span
+                          className="recap-step-fill"
+                          key={`${step}:${pageKey}`}
+                        />
+                      </span>
+                    ))}
               </div>
               <article
                 className={`recap-spread recap-scene-${filmScene?.type ?? scene?.type ?? 'cover'}${

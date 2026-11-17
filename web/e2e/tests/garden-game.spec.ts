@@ -115,6 +115,10 @@ async function installMocks(
       version: 0,
     },
     [`${SPACE_PATH}/notifications/unread-count`]: { unreadCount: 0 },
+    // Already on Wir, so the one-time Wir offer (wir-garden.spec.ts) stays away.
+    [`${SPACE_PATH}/dashboard/preferences`]: {
+      items: [{ moduleKey: 'shared_garden', visible: true }],
+    },
   };
   for (const [id, displayName] of [
     [ACCOUNT_ID, 'Lea'],

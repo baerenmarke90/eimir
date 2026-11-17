@@ -1,8 +1,8 @@
 {
-  "$description": "Handschrift: a Pro design. Warm paper tones and wine-red accents across the app with display headings; on Wir the open, editorial layout with a full-bleed keepsake.",
+  "$description": "Handschrift: a Pro design. Warm paper tones and wine-red accents across the app with display headings; on Wir a compact header followed by the latest shared Heart Moment as a note.",
   "id": "handwriting",
   "tier": "pro",
-  "layout": "open",
+  "layout": "note",
   "color": {
     "light": {
       "page": "#FAF7F0",

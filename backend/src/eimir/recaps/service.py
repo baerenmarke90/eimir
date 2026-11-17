@@ -33,10 +33,11 @@ from eimir.milestones.models import Milestone
 from eimir.plans import discreet
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps import mood, words
+from eimir.recaps import montage, mood, words
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
+    RecapFilm,
     RecapKind,
     RecapPayload,
     RecapReflection,
@@ -128,6 +129,11 @@ def _metadata(context: AuthorizationContext) -> Any:
             statement = statement.where(
                 model.status == PlanStatus.COMPLETED.value, model.experienced_on.is_not(None)
             )
+        if kind == RecapSourceKind.MEMORY:
+            from eimir.memories.experiences import roots_only
+
+            # Both answers to one guided question are one moment, not two.
+            statement = statement.where(roots_only())
         legs.append(
             statement.with_only_columns(
                 literal(kind.value).label("kind"),
@@ -145,9 +151,20 @@ def _metadata(context: AuthorizationContext) -> Any:
 
 
 def candidates(
-    session: Session, context: AuthorizationContext, starts: date, through: date, variant: int = 0
+    session: Session,
+    context: AuthorizationContext,
+    starts: date,
+    through: date,
+    variant: int = 0,
+    *,
+    per_month: int = 4,
+    starting_only: bool = False,
 ) -> list[Candidate]:
-    """A bounded pool drawn across the full period, before any content is read."""
+    """A bounded pool drawn across the full period, before any content is read.
+
+    The monthly film reads a wider pool, limited to moments that start in the
+    month, because its selection depends on content rather than on chance.
+    """
     source = _metadata(context)
     ranked = (
         select(
@@ -159,12 +176,15 @@ def candidates(
             )
             .label("rank"),
         )
-        .where(source.c.day <= through, source.c.through >= starts)
+        .where(
+            source.c.day <= through,
+            source.c.day >= starts if starting_only else source.c.through >= starts,
+        )
         .subquery()
     )
     values = (
         session.execute(
-            select(ranked).where(ranked.c.rank <= 4).order_by(ranked.c.day, ranked.c.id)
+            select(ranked).where(ranked.c.rank <= per_month).order_by(ranked.c.day, ranked.c.id)
         )
         .mappings()
         .all()
@@ -568,6 +588,7 @@ def source_material(
     *,
     lock: bool = False,
     own_words: bool = False,
+    film: RecapFilm | None = None,
 ) -> dict[str, Any] | None:
     model = MODELS[item.kind]
     statement = readable(model, context).where(
@@ -631,6 +652,10 @@ def source_material(
             if item.kind == RecapSourceKind.MEMORY
             else None
         )
+    if film is not None:
+        result.update(
+            montage.source_extras(session, context, item.kind, value, film.media.get(item.key))
+        )
     return result
 
 
@@ -642,6 +667,7 @@ def materials(
     refs = session.scalars(
         select(RecapSource).where(RecapSource.edition_id == value.id).order_by(RecapSource.position)
     ).all()
+    film = value.payload.film if value.kind == RecapKind.MONTH.value else None
     for ref in refs:
         metadata = _metadata(context)
         interval = session.execute(
@@ -661,6 +687,7 @@ def materials(
                     ref.source_version,
                 ),
                 own_words=True,
+                film=film,
             )
             if day
             and interval
@@ -683,6 +710,9 @@ def materials(
                 "preview_attachment_id": None,
                 "preview_is_sensitive": False,
                 "available": False,
+                "media": [],
+                "answers": [],
+                "place_name": None,
             }
         )
     # The reaction line stays rare: only the first few in reading order keep it.
@@ -747,6 +777,7 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "mood": mood.visible(session, context.space_id, value.payload)
             if value.status == "READY"
             else None,
+            "film": film_view(session, context, value) if value.status == "READY" else None,
             "reflections": [
                 {
                     "id": n.id,
@@ -761,6 +792,20 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
         }
     )
     return result
+
+
+def film_view(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> dict[str, Any] | None:
+    """The frozen look and the guaranteed highlight; never scores or reasons."""
+    film = value.payload.film
+    if film is None or value.kind != RecapKind.MONTH.value:
+        return None
+    return {
+        **film.look.model_dump(),
+        "highlight_key": film.highlight_key,
+        "tags": montage.month_tags(session, context, value),
+    }
 
 
 def summaries(
@@ -874,7 +919,16 @@ def replace_sources(
                 position=position,
             )
         )
-    value.payload = RecapPayload(mood=value.payload.mood)
+    film = value.payload.film
+    if film is not None:
+        # A curated selection keeps its look; picks of removed sources are dropped.
+        film = film.model_copy(
+            update={
+                "highlight_key": film.highlight_key if film.highlight_key in keys else None,
+                "media": {key: media for key, media in film.media.items() if key in keys},
+            }
+        )
+    value.payload = RecapPayload(mood=value.payload.mood, film=film)
     value.generated_by = "RULES"
     value.customized = True
     value.status = "READY" if keys else "EMPTY"

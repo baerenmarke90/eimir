@@ -11772,6 +11772,31 @@
         "title": "Readiness",
         "type": "object"
       },
+      "RecapAnswerView": {
+        "description": "One partner's own answer to a guided question, cut at a sentence or word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapAnswerView",
+        "type": "object"
+      },
       "RecapDraftView": {
         "properties": {
           "text": {
@@ -11839,6 +11864,124 @@
           "busiestMonth"
         ],
         "title": "RecapFactsView",
+        "type": "object"
+      },
+      "RecapFilmMediaView": {
+        "description": "A curated picture of a film scene; a video names the muted clip it plays.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "clipSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipseconds"
+          },
+          "clipStartSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipstartseconds"
+          },
+          "kind": {
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "parentId",
+          "kind"
+        ],
+        "title": "RecapFilmMediaView",
+        "type": "object"
+      },
+      "RecapFilmView": {
+        "description": "The frozen look of a monthly film, from a fixed catalogue of design variants.\n\nNames map to design tokens in the reader. Selection scores and reasons are\ndeliberately not part of the contract.",
+        "properties": {
+          "cover": {
+            "title": "Cover",
+            "type": "string"
+          },
+          "highlightKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlightkey"
+          },
+          "layouts": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Layouts",
+            "type": "object"
+          },
+          "mood": {
+            "title": "Mood",
+            "type": "string"
+          },
+          "motions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motions",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/RecapTagView"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "transitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Transitions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mood",
+          "transitions",
+          "cover",
+          "motions",
+          "layouts",
+          "highlightKey",
+          "tags"
+        ],
+        "title": "RecapFilmView",
         "type": "object"
       },
       "RecapKind": {
@@ -12143,6 +12286,13 @@
       },
       "RecapSourceView": {
         "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/RecapAnswerView"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
           "available": {
             "title": "Available",
             "type": "boolean"
@@ -12169,6 +12319,13 @@
           },
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMediaView"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "mutualReaction": {
             "anyOf": [
@@ -12197,6 +12354,17 @@
               }
             ],
             "title": "Occurredon"
+          },
+          "placeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placename"
           },
           "previewAttachmentId": {
             "anyOf": [
@@ -12262,12 +12430,40 @@
         "title": "RecapSourceView",
         "type": "object"
       },
+      "RecapTagView": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "RecapTagView",
+        "type": "object"
+      },
       "RecapView": {
         "properties": {
           "facts": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RecapFactsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFilmView"
               },
               {
                 "type": "null"

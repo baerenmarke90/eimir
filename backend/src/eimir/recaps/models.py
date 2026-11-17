@@ -59,10 +59,42 @@ class MoodRhythm(ProtectedPayload):
     leading: int | None = None
 
 
+class FilmMedia(ProtectedPayload):
+    """A curated picture of a moment; a video carries the short muted clip it plays."""
+
+    attachment_id: UUID
+    parent_id: UUID
+    video: bool = False
+    clip_start: float | None = None
+    clip_seconds: float | None = None
+
+
+class FilmLook(ProtectedPayload):
+    """Design variants chosen once per edition from a fixed catalogue (``recaps.film``)."""
+
+    mood: str = Field(max_length=16)
+    transitions: list[str] = Field(min_length=2, max_length=2)
+    cover: str = Field(max_length=16)
+    motions: list[str] = Field(max_length=5)
+    layouts: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class RecapFilm(ProtectedPayload):
+    """The monthly film: frozen look, guaranteed highlight and curated media per source.
+
+    Scores and selection reasons are never stored or served.
+    """
+
+    look: FilmLook
+    highlight_key: str | None = None
+    media: dict[str, list[FilmMedia]] = Field(default_factory=dict)
+
+
 class RecapPayload(ProtectedPayload):
     headline: str | None = None
     introduction: str | None = None
     mood: MoodRhythm | None = None
+    film: RecapFilm | None = None
 
 
 class RecapEdition(IdMixin, TimestampMixin, VersionMixin, Base):

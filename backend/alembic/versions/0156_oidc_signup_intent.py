@@ -5,15 +5,15 @@ states that intent, and accepts the terms of use, before leaving for the
 provider. Both facts must survive the redirect, so they live on the short-lived
 authentication request. The terms acceptance record gains the matching origin.
 
-Revision ID: 0154
-Revises: 0153
+Revision ID: 0156
+Revises: 0155
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0154"
-down_revision = "0153"
+revision = "0156"
+down_revision = "0155"
 branch_labels = None
 depends_on = None
 

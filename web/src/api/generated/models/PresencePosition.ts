@@ -65,7 +65,7 @@ export function PresencePositionFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
-        'accuracyMeters': json['accuracyMeters'] == null ? undefined : json['accuracyMeters'],
+        'accuracyMeters': json['accuracyMeters'] === undefined ? undefined : json['accuracyMeters'] === null ? null : json['accuracyMeters'],
         'capturedAt': (new Date(json['capturedAt'])),
         'latitude': json['latitude'],
         'longitude': json['longitude'],

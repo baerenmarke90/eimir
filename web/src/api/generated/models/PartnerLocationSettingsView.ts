@@ -14,13 +14,6 @@
 
 import { mapValues } from '../runtime';
 import type { SharingLevel } from './SharingLevel';
-import type { SharingPrecision } from './SharingPrecision';
-import {
-    SharingPrecisionFromJSON,
-    SharingPrecisionFromJSONTyped,
-    SharingPrecisionToJSON,
-    SharingPrecisionToJSONTyped,
-} from './SharingPrecision';
 import {
     SharingLevelFromJSON,
     SharingLevelFromJSONTyped,
@@ -34,6 +27,13 @@ import {
     SharingStateToJSON,
     SharingStateToJSONTyped,
 } from './SharingState';
+import type { SharingPrecision } from './SharingPrecision';
+import {
+    SharingPrecisionFromJSON,
+    SharingPrecisionFromJSONTyped,
+    SharingPrecisionToJSON,
+    SharingPrecisionToJSONTyped,
+} from './SharingPrecision';
 
 /**
  * The caller's own sharing state; never the partner's.

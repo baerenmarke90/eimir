@@ -14,6 +14,12 @@
 
 import { mapValues } from '../runtime';
 import type { SharingLevel } from './SharingLevel';
+import {
+    SharingLevelFromJSON,
+    SharingLevelFromJSONTyped,
+    SharingLevelToJSON,
+    SharingLevelToJSONTyped,
+} from './SharingLevel';
 import type { SharingPrecision } from './SharingPrecision';
 import {
     SharingPrecisionFromJSON,
@@ -21,12 +27,6 @@ import {
     SharingPrecisionToJSON,
     SharingPrecisionToJSONTyped,
 } from './SharingPrecision';
-import {
-    SharingLevelFromJSON,
-    SharingLevelFromJSONTyped,
-    SharingLevelToJSON,
-    SharingLevelToJSONTyped,
-} from './SharingLevel';
 
 /**
  * 
@@ -83,7 +83,7 @@ export function PartnerLocationSettingsUpdateFromJSONTyped(json: any, ignoreDisc
         'expiresAt': json['expiresAt'] === undefined ? undefined : json['expiresAt'] === null ? null : (new Date(json['expiresAt'])),
         'indefinite': json['indefinite'] == null ? undefined : json['indefinite'],
         'level': SharingLevelFromJSON(json['level']),
-        'precision': json['precision'] == null ? undefined : SharingPrecisionFromJSON(json['precision']),
+        'precision': json['precision'] === undefined ? undefined : json['precision'] === null ? null : SharingPrecisionFromJSON(json['precision']),
     };
 }
 

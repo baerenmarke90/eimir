@@ -1,6 +1,7 @@
 
 # SharingPrecision
 
+How finely the owner agrees to share (PO 2026-11-17); a person-level choice.
 
 ## Properties
 

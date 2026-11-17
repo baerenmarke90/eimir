@@ -47,6 +47,16 @@ The app asks Android Credential Manager directly, so the relying party must trus
 3. Credential Manager needs a credential provider: Android 14 and newer ship one, older versions
    use Google Play services. Where none is present the app hides the passkey buttons.
 
+When adding a passkey in the app fails, Settings tells the causes apart:
+
+- "Passkeys sind für diese App noch nicht freigeschaltet" (`NOT_TRUSTED`): Android refused the
+  ceremony because `assetlinks.json` has no `get_login_creds` statement for the installed package
+  and signing certificate (step 1).
+- "Der Server hat den Passkey von dieser App nicht angenommen" (`PASSKEY_CEREMONY_INVALID` from the
+  finish call): the platform created the passkey, but the origin is not in
+  `EIMIR_WEBAUTHN_ORIGINS` (step 2).
+- The generic "Das hat nicht geklappt" remains for every other failure.
+
 Passkeys created in the browser and in the app use the same relying party and are listed together
 in Settings, Sign-in methods.
 

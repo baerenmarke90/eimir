@@ -854,12 +854,12 @@ export function StoryProductPage({
       }}
     >
       <svg
+        className="inline-icon"
         viewBox="0 0 24 24"
         width="20"
         height="20"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
@@ -878,6 +878,7 @@ export function StoryProductPage({
     <div className="new-space-experience">
       <div className="new-space-mark" aria-hidden="true">
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="36"
           height="36"
@@ -1025,7 +1026,7 @@ export function StoryProductPage({
                         height="14"
                         fill="currentColor"
                         aria-hidden="true"
-                        className="kicker-icon"
+                        className="kicker-icon inline-icon"
                       >
                         <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                       </svg>
@@ -1145,6 +1146,7 @@ export function StoryProductPage({
                                 aria-hidden="true"
                               >
                                 <svg
+                                  className="inline-icon"
                                   viewBox="0 0 24 24"
                                   width="16"
                                   height="16"

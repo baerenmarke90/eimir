@@ -717,7 +717,7 @@ export function ShortTaskSheet({
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
           <svg
-            className="short-task-sheet-close-icon"
+            className="short-task-sheet-close-icon inline-icon"
             viewBox="0 0 24 24"
             aria-hidden="true"
             focusable="false"

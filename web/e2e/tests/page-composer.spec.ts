@@ -653,11 +653,14 @@ for (const view of [
       {
         name: 'plan-empty-frame-9',
         path: '/plan/plans/new',
+        // #1969: the Notiz tool collects notes in the draft and links them
+        // after the Plan is saved, so the create frame offers it as well.
         tools: [
           composer.photo,
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
       },

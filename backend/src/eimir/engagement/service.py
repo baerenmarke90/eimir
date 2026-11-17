@@ -57,6 +57,7 @@ from eimir.plans.models import Plan
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import delivery as reminder_delivery
 from eimir.reminders.models import Reminder, ReminderSource
+from eimir.shared_notes.models import SharedNote
 from eimir.transfer.models import TransferExport, TransferImport
 from eimir.wish_selections import service as wish_selections
 from eimir.wish_selections.models import WishSelectionRound
@@ -97,6 +98,7 @@ _TARGET_MODELS: dict[EngagementTarget, Any] = {
     EngagementTarget.PLACE: Place,
     EngagementTarget.CHAPTER: Chapter,
     EngagementTarget.COLLECTION: Collection,
+    EngagementTarget.SHARED_NOTE: SharedNote,
 }
 
 _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
@@ -320,6 +322,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             EngagementTarget.COLLECTION,
             event.subject_id,
             NotificationKind.COLLECTION_SENT,
+        )
+
+    if event_type in {EventType.SHARED_NOTE_CREATED, EventType.SHARED_NOTE_UPDATED}:
+        # #1969: the partner learns that a shared note exists or changed. The
+        # event carries the recipient and references only; no text is copied.
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.SHARED_NOTE,
+            event.subject_id,
+            NotificationKind.SHARED_NOTE_CREATED
+            if event_type is EventType.SHARED_NOTE_CREATED
+            else NotificationKind.SHARED_NOTE_CHANGED,
         )
 
     if event_type is EventType.MEMORY_CREATED and event.payload.experience_kind is not None:

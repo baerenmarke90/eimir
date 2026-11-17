@@ -131,6 +131,7 @@ CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
 STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
+SHARED_NOTE = {"title": "Matrix Shared Note", "body": "Shared body"}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -1142,6 +1143,36 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/chapters/{chapterId}/milestones/{targetId}",
         resource_absence="CHAPTER_NOT_FOUND",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/shared-notes"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/shared-notes", body=SHARED_NOTE),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        body={"body": "Matrix Shared Note updated"},
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}/presentation",
+        body={"pinned": True},
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/collections"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/collections", body=COLLECTION),
     Endpoint(
@@ -1344,6 +1375,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
         resource_absence="PLAN_NOT_FOUND",
     ),
     Endpoint(
@@ -1654,6 +1700,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
         json=COLLECTION_ITEM,
         headers=headers,
     ).json()
+    shared_note = client.post(f"{base_path}/shared-notes", json=SHARED_NOTE, headers=headers).json()
     private_collection = client.post(
         f"{base_path}/private/collections",
         json=PRIVATE_COLLECTION,
@@ -1754,6 +1801,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "privateCollectionId": private_collection["id"],
             "privateCollectionItemId": private_collection_item["id"],
             "noteId": private_note["id"],
+            "sharedNoteId": shared_note["id"],
             "giftIdeaId": gift_idea["id"],
             "exportId": str(uuid4()),
             "importId": str(uuid4()),

@@ -28,6 +28,7 @@ import {
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  NOTE_CREATE_ROUTE,
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
 } from '../client/routes';
@@ -256,6 +257,8 @@ function AuthenticatedAppShell({
     location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
     location.pathname === '/story/heart-moments/new' ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
+    location.pathname === NOTE_CREATE_ROUTE ||
+    /^\/more\/notes\/[^/]+\/edit$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
     location.pathname === '/plan/chapters/new' ||

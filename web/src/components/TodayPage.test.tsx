@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { onTestFinished, vi } from 'vitest';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -2433,6 +2434,34 @@ describe('formatRelationshipDuration', () => {
         },
       );
 
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.sharedNoteWir('space-1'),
+        {
+          items: [
+            {
+              id: 'note-1',
+              spaceId: 'space-1',
+              createdBy: 'account-1',
+              title: 'Holiday flat',
+              body: 'Key box next to the door',
+              pinned: true,
+              wirTitleOnly: false,
+              version: 1,
+              createdAt: new Date('2026-09-21T10:00:00Z'),
+              editedAt: new Date('2026-09-21T10:00:00Z'),
+              creator: { id: 'account-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: false,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          ],
+          nextCursor: null,
+          hasMore: false,
+        },
+      );
+
       return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
           <MemoryRouter>
@@ -2441,6 +2470,7 @@ describe('formatRelationshipDuration', () => {
               spaceId="space-1"
               account={{ id: 'account-1', displayName: 'Alex' }}
               collectionsApi={{} as CollectionsApi}
+              sharedNotesApi={{} as SharedNotesApi}
               loadMemoryImage={() => Promise.resolve('blob:http://localhost/x')}
             />
           </MemoryRouter>
@@ -2465,6 +2495,7 @@ describe('formatRelationshipDuration', () => {
       daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',
+      pinned_note: 'today-section-pinned-note',
       keepsake: 'today-section-moment',
       retrospective: 'today-section-retrospective',
       relationship_signal: 'today-section-living',

@@ -58,6 +58,7 @@ PINNED_CONTEXTS = {
     "private_collection_items": "PrivateCollectionItemPayload",
     "private_collections": "PrivateCollectionPayload",
     "private_notes": "PrivateNotePayload",
+    "shared_notes": "SharedNotePayload",
     "profile_preferences": "ProfilePreferencePayload",
     "related_persons": "RelatedPersonPayload",
     "recap_editions": "RecapPayload",

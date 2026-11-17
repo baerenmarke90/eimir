@@ -16,6 +16,7 @@ import {
   DATE_IDEAS_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PRIVATE_ROUTE,
@@ -36,6 +37,8 @@ export interface TaskOriginMetadata {
   /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
   searchQuery?: string;
   searchKind?: string;
+  /** Restores the Shared Notes overview search; never published in the URL. */
+  sharedNotesSearch?: string;
   /** Restores the Planning peer mode without publishing it in the URL. */
   planningSegment?: 'plans' | 'wishes' | 'dates';
   planningWishStatus?: 'OPEN' | 'PLANNED' | 'COMPLETED';
@@ -121,10 +124,13 @@ export function taskOriginPath(
   const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
     pathname,
   );
+  // A shared note read page is a return target for its editor (#1969).
+  const sharedNoteDetail = /^\/more\/notes\/(?!new$)[^/]+$/.test(pathname);
   const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
     !recapReader &&
+    !sharedNoteDetail &&
     !storyYear &&
     !memoryEditor &&
     !planningDetail &&
@@ -140,6 +146,7 @@ export function taskOriginPath(
       STORY_PHOTOS_ROUTE,
       MEMORY_MAP_ROUTE,
       MORE_COLLECTIONS_ROUTE,
+      MORE_NOTES_ROUTE,
       MORE_PLACES_ROUTE,
       '/plan',
       WISH_SELECTION_ROUTE,
@@ -176,6 +183,11 @@ export function taskOriginPath(
     const scope = new URLSearchParams(search).get('scope');
     return scope === 'COMPLETED' || scope === 'ALL'
       ? `${pathname}?scope=${scope}`
+      : pathname;
+  }
+  if (pathname === MORE_NOTES_ROUTE) {
+    return new URLSearchParams(search).get('scope') === 'PINNED'
+      ? `${pathname}?scope=PINNED`
       : pathname;
   }
   if (pathname === ACTIVITY_ROUTE) {
@@ -275,6 +287,7 @@ export function TaskOriginProvider({
         selectedOffset: snapshot.selectedOffset,
         searchQuery: snapshot.searchQuery,
         searchKind: snapshot.searchKind,
+        sharedNotesSearch: snapshot.sharedNotesSearch,
         planningSegment: snapshot.planningSegment,
         planningWishStatus: snapshot.planningWishStatus,
         planningPlanStatus: snapshot.planningPlanStatus,

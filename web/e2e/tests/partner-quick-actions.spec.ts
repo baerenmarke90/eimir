@@ -512,9 +512,13 @@ for (const scenario of [
       .evaluate((button: HTMLButtonElement) => button.click());
     expect(network.gestures()).toHaveLength(1);
     network.releaseGesture();
-    await expect(surface.getByText(scenario.confirmed)).toBeVisible();
-    await expect(surface.getByText(scenario.pending)).toHaveCount(0);
-    await expect(page.locator('.snackbar')).toHaveCount(0);
+    // Confirmed by the server: the sheet closes, the gesture flies to the
+    // partner and the confirmation is posted (the in-sheet line closes with it).
+    await expect(page.locator('.snackbar')).toContainText(scenario.confirmed);
+    await expect(surface).toHaveCount(0);
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0, {
+      timeout: 15_000,
+    });
     await page.screenshot({
       path: testInfo.outputPath(
         `gesture-${scenario.kind}-confirmed-${scenario.width}-${scenario.theme}.png`,
@@ -522,6 +526,11 @@ for (const scenario of [
       fullPage: true,
       animations: 'disabled',
     });
+    await triggerLocator(page).click();
+    surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    await expect(surface.getByText(scenario.pending)).toHaveCount(0);
     await expect(
       surface.getByRole('button', {
         name: new RegExp(scenario.label.replace('?', '\\?')),
@@ -629,6 +638,8 @@ test('Expanded and narrow reduced-motion pending surfaces remain readable and di
     hasExtendedCapability: true,
     holdFirstGesture: true,
   });
+  // Reduced motion from the start: no flight, the in-sheet confirmation stays.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1280, height: 900 });
   await signIn(page);
   await triggerLocator(page).click();
@@ -868,14 +879,20 @@ test('sends both extended gestures once the central entitlement grants the capab
   });
   await expect(kissButton).toBeEnabled();
   await kissButton.click();
-  await expect(sheet.getByText(copy.sentKiss)).toBeVisible();
+  // Confirmed: the sheet closes and the kiss flies; the cooldown holds it back.
+  await expect(page.locator('.snackbar')).toContainText(copy.sentKiss);
+  await expect(sheet).toHaveCount(0);
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0, {
+    timeout: 15_000,
+  });
+  await triggerLocator(page).click();
   await expect(kissButton).toBeDisabled();
 
   const checkInButton = sheet.getByRole('button', {
     name: new RegExp(copy.checkIn),
   });
   await checkInButton.click();
-  await expect(sheet.getByText(copy.sentCheckIn)).toBeVisible();
+  await expect(page.locator('.snackbar')).toContainText(copy.sentCheckIn);
   expect(
     network
       .sentActions()
@@ -1573,4 +1590,131 @@ test('receipt: Expanded keeps the top navigation free', async ({
     testInfo,
     'gesture-receipt-heart-pulse-1280-light.png',
   );
+});
+
+/**
+ * Gesture send flight: the symbol lifts out of the sheet, waits for the
+ * server, then the sheet closes and it flies to the partner avatar. A failed
+ * send returns it and the sheet stays.
+ */
+async function slowAnimations(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const animation = original.apply(this, args);
+      animation.playbackRate = 0.25;
+      return animation;
+    };
+  });
+}
+
+const gestureGhosts = (page: Page) =>
+  page.locator('.wir-checkin-flight-layer .is-gesture');
+
+for (const scenario of [
+  {
+    kind: 'THINKING',
+    label: copy.thinking,
+    confirmed: copy.sentThinking,
+    width: 360,
+    theme: 'light',
+  },
+  {
+    kind: 'KISS',
+    label: copy.kiss,
+    confirmed: copy.sentKiss,
+    width: 390,
+    theme: 'dark',
+  },
+  {
+    kind: 'CHECK_IN',
+    label: copy.checkIn,
+    confirmed: copy.sentCheckIn,
+    width: 430,
+    theme: 'light',
+  },
+] as const) {
+  test(`gesture ${scenario.kind} flies to the partner avatar once the server confirmed it (${scenario.width} ${scenario.theme})`, async ({
+    page,
+  }, testInfo) => {
+    await slowAnimations(page);
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({ colorScheme: scenario.theme });
+    const network = await installMocks(page, {
+      hasExtendedCapability: true,
+      holdFirstGesture: true,
+    });
+    await signIn(page);
+    await triggerLocator(page).click();
+    const surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    await surface
+      .getByRole('button', {
+        name: new RegExp(scenario.label.replace('?', '\\?')),
+      })
+      .click();
+
+    // Waiting for the server: the symbol hovers in the top layer above the
+    // open sheet, which stays; nothing is announced as sent yet.
+    await expect(gestureGhosts(page)).toHaveCount(1);
+    const layer = page.locator('.wir-checkin-flight-layer');
+    await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(await layer.evaluate((node) => node.matches(':popover-open'))).toBe(
+      true,
+    );
+    expect(
+      await gestureGhosts(page)
+        .first()
+        .evaluate((node) => getComputedStyle(node).pointerEvents),
+    ).toBe('none');
+    await expect(surface).toBeVisible();
+    await expect(page.locator('.snackbar')).toHaveCount(0);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gesture-flight-${scenario.kind}-${scenario.width}-${scenario.theme}-hover.png`,
+      ),
+      animations: 'allow',
+    });
+
+    // Confirmed: the sheet closes, the symbol flies and lands on the partner.
+    network.releaseGesture();
+    await expect(surface).toHaveCount(0);
+    await expect(page.locator('.snackbar')).toContainText(scenario.confirmed);
+    await expect(gestureGhosts(page).first()).toBeVisible();
+    if (scenario.kind === 'KISS') {
+      // The second heart of the kiss starts from the own avatar.
+      await expect
+        .poll(() => gestureGhosts(page).count(), { timeout: 20_000 })
+        .toBeGreaterThanOrEqual(2);
+    }
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gesture-flight-${scenario.kind}-${scenario.width}-${scenario.theme}-flying.png`,
+      ),
+      animations: 'allow',
+    });
+    await expect(gestureGhosts(page)).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+    expect(network.gestures()).toHaveLength(1);
+  });
+}
+
+test('a failed gesture sinks back into the sheet and flies nowhere', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page, { failFirstGesture: true });
+  await signIn(page);
+  await triggerLocator(page).click();
+  const surface = page.getByRole('dialog', {
+    name: copy.title.replace('{{partner}}', 'Ben'),
+  });
+  await surface.getByRole('button', { name: copy.thinking }).click();
+  await expect(surface.getByRole('alert')).toBeVisible();
+  await expect(surface).toBeVisible();
+  await expect(gestureGhosts(page)).toHaveCount(0);
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+  await expect(page.locator('[data-flight-source]')).toHaveCount(0);
+  await expect(page.locator('.snackbar')).toHaveCount(0);
 });

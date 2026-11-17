@@ -100,7 +100,7 @@ export function useDistanceText() {
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg
-      className={`partner-distance-glyph is-${kind}`}
+      className={`inline-icon partner-distance-glyph is-${kind}`}
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

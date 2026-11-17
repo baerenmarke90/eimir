@@ -1284,7 +1284,9 @@
       "PLACE_CREATED": "Place added",
       "CHAPTER_CREATED": "A new chapter begun",
       "COLLECTION_CREATED": "List added",
-      "COMMENT_CREATED": "A new comment left"
+      "COMMENT_CREATED": "A new comment left",
+      "SHARED_NOTE_CREATED": "New shared note",
+      "SHARED_NOTE_CHANGED": "Shared note revised"
     },
     "activityAction": {
       "MEMORY_CREATED": "captured a memory",
@@ -1296,7 +1298,9 @@
       "PLACE_CREATED": "added a place",
       "CHAPTER_CREATED": "started a chapter",
       "COLLECTION_CREATED": "created a list",
-      "COMMENT_CREATED": "left a comment"
+      "COMMENT_CREATED": "left a comment",
+      "SHARED_NOTE_CREATED": "created a shared note",
+      "SHARED_NOTE_CHANGED": "revised a shared note"
     },
     "activityActionOwn": {
       "MEMORY_CREATED": "captured a memory",
@@ -1308,7 +1312,9 @@
       "PLACE_CREATED": "added a place",
       "CHAPTER_CREATED": "started a chapter",
       "COLLECTION_CREATED": "created a list",
-      "COMMENT_CREATED": "left a comment"
+      "COMMENT_CREATED": "left a comment",
+      "SHARED_NOTE_CREATED": "created a shared note",
+      "SHARED_NOTE_CHANGED": "revised a shared note"
     },
     "notificationKind": {
       "REMINDER_CREATED": "New reminder",

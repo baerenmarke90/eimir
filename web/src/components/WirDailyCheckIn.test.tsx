@@ -1078,3 +1078,468 @@ describe('WirDailyCheckIn availability', () => {
     await waitFor(() => expect(queryClient.isMutating()).toBe(0));
   });
 });
+
+/** jsdom runs no layout, animation or top layer: stand in for all three. */
+/** Animations whose end the test releases by hand, so a state can be observed. */
+const heldAnimations: Array<() => void> = [];
+function releaseAnimations() {
+  for (const release of heldAnimations.splice(0)) release();
+}
+
+function installFlightSupport(hold = false) {
+  const root = document.documentElement.style;
+  root.setProperty('--duration-context', '280ms');
+  root.setProperty('--duration-send-flight', '560ms');
+  root.setProperty('--duration-feedback', '120ms');
+  root.setProperty('--easing-enter', 'cubic-bezier(0, 0, 0.2, 1)');
+  root.setProperty('--easing-standard', 'cubic-bezier(0.2, 0, 0, 1)');
+  const animate = vi.fn(() => ({
+    finished: hold
+      ? new Promise<void>((resolve) => heldAnimations.push(resolve))
+      : Promise.resolve(),
+    cancel: vi.fn(),
+  }));
+  const rect = () => ({
+    x: 10,
+    y: 10,
+    left: 10,
+    top: 10,
+    right: 50,
+    bottom: 50,
+    width: 40,
+    height: 40,
+    toJSON: () => ({}),
+  });
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+    rect as never,
+  );
+  Object.assign(HTMLElement.prototype, {
+    animate,
+    showPopover: vi.fn(),
+    hidePopover: vi.fn(),
+  });
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
+  });
+  return () => {
+    heldAnimations.length = 0;
+    for (const name of [
+      '--duration-context',
+      '--duration-send-flight',
+      '--duration-feedback',
+      '--easing-enter',
+      '--easing-standard',
+    ])
+      root.removeProperty(name);
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    delete proto.animate;
+    delete proto.showPopover;
+    delete proto.hidePopover;
+  };
+}
+
+function ghosts() {
+  return document.querySelectorAll('.wir-checkin-flight-ghost');
+}
+
+function ownSlot(kind: string) {
+  return screen
+    .getByTestId('wir-checkin-own-badge')
+    .querySelector(`[data-flight-slot="${kind}"]`);
+}
+
+describe('WirDailyCheckIn send flight (Fertig)', () => {
+  let restore: () => void;
+  beforeEach(() => {
+    restore = installFlightSupport();
+  });
+  afterEach(() => restore());
+
+  it('flies the confirmed values to the badge and closes the sheet afterwards', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValueOnce(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownEnergy: 70 }),
+          '"today:3"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+
+    // Waiting for the server: the values hover, the sheet stays, nothing lands.
+    await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(ownSlot('vibe')?.getAttribute('data-flight-hidden')).toBe('true');
+    expect(
+      document.querySelector('[popover]')?.getAttribute('aria-hidden'),
+    ).toBe('true');
+
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    // Arrived: the slot is visible again and settles in; no flight element is left.
+    await waitFor(() =>
+      expect(ownSlot('vibe')?.getAttribute('data-flight-hidden')).toBeNull(),
+    );
+    expect(ownSlot('vibe')?.getAttribute('data-flight-landing')).toBe('true');
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('flies the feeling, the battery and the note together and lands each in its slot', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValue(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownEnergy: 70, ownNote: 'Hallo' }),
+          '"today:9"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() =>
+      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+    );
+    fireEvent.change(slider(), { target: { value: '70' } });
+    fireEvent.pointerUp(slider());
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+    );
+    fireEvent.change(noteField(), { target: { value: 'Hallo' } });
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() => expect(ghosts().length).toBe(3));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(ownSlot('vibe')).not.toBeNull();
+    expect(ownSlot('energy')).not.toBeNull();
+    expect(ownSlot('note')).not.toBeNull();
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+  });
+
+  it('returns a value that could not be saved and keeps the sheet open', async () => {
+    const update = vi
+      .fn()
+      .mockRejectedValue(new ClientProblemError('server', 500, 'BROKEN'));
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('SAD'));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await screen.findByText(wirCheckIn.saveError);
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('true');
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+    expect(document.querySelector('[data-flight-landing="true"]')).toBeNull();
+    expect(vibeButton('SAD').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('closes at once when nothing changed', async () => {
+    const { api } = apiFor(projection({ ownVibe: 'GOOD' }));
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    expect(ghosts()).toHaveLength(0);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('keeps a calm close with reduced motion: no flight at all', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }),
+    });
+    const update = vi
+      .fn()
+      .mockResolvedValue(
+        rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(ghosts()).toHaveLength(0);
+    expect(document.querySelector('[popover]')).toBeNull();
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+  });
+
+  it('drops the flight when the sheet is dismissed while it waits', async () => {
+    const held = deferredResponse();
+    const update = vi.fn().mockReturnValue(held.promise);
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
+    fireEvent.keyDown(screen.getByRole('dialog', { hidden: true }), {
+      key: 'Escape',
+    });
+    fireEvent(
+      screen.getByRole('dialog', { hidden: true }),
+      new Event('cancel', { cancelable: true }),
+    );
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    expect(document.querySelector('[data-flight-hidden="true"]')).toBeNull();
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+  });
+});
+
+describe('WirDailyCheckIn pending intent', () => {
+  it('keeps the chosen feeling visible while a note is queued behind its save', async () => {
+    const held = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(held.promise)
+      .mockResolvedValue(
+        rawResponse(
+          projection({ ownVibe: 'GOOD', ownNote: 'Hallo' }),
+          '"today:3"',
+        ),
+      );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.change(noteField(), { target: { value: 'Hallo' } });
+    fireEvent.blur(noteField());
+    // The note waits behind the feeling's save, and the feeling stays chosen.
+    expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-label'),
+    ).toContain(dailyVibe.values.GOOD);
+    held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('WirDailyCheckIn partner arrival', () => {
+  const SEEN_ARRIVAL_KEY = 'eimir.wir.partnerArrivalSeen:account-1:space-1';
+  let restore: () => void;
+  beforeEach(() => {
+    restore = installFlightSupport(true);
+  });
+  afterEach(() => restore());
+
+  function partnerSlot(kind: string) {
+    return screen
+      .getByTestId('wir-checkin-partner-badge')
+      .querySelector(`[data-flight-slot="${kind}"]`);
+  }
+  const visiblePartner = projection({
+    ownVibe: 'GOOD',
+    partnerVibe: { state: 'VISIBLE', value: 'OKAY' },
+    partnerEnergy: { state: 'VISIBLE', value: 80 },
+  });
+
+  it('plays one movement for values this device has not seen, then remembers them', async () => {
+    const { api } = apiFor(visiblePartner);
+    const first = renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    // The values rise together; their places stay empty until they land.
+    await waitFor(() => expect(ghosts().length).toBe(2));
+    expect(
+      document.querySelector('[popover]')?.getAttribute('aria-hidden'),
+    ).toBe('true');
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBe(
+      'true',
+    );
+    act(() => releaseAnimations());
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+    await waitFor(() =>
+      expect(
+        partnerSlot('vibe')?.getAttribute('data-flight-hidden'),
+      ).toBeNull(),
+    );
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-landing')).toBe(
+      'true',
+    );
+    expect(
+      JSON.parse(window.localStorage.getItem(SEEN_ARRIVAL_KEY) ?? '{}'),
+    ).toMatchObject({
+      vibe: 'OKAY',
+      energy: 80,
+    });
+    first.unmount();
+
+    // Visiting again with nothing new: no movement at all.
+    const again = apiFor(visiblePartner);
+    renderCheckIn({ api: again.api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    expect(ghosts()).toHaveLength(0);
+    expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('plays again only for what changed since the last visit', async () => {
+    window.localStorage.setItem(
+      SEEN_ARRIVAL_KEY,
+      JSON.stringify({
+        day: '2026-09-21:Europe/Berlin',
+        vibe: 'SAD',
+        energy: 80,
+        note: null,
+      }),
+    );
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    // Only the feeling changed: one value travels, the battery stays put.
+    await waitFor(() => expect(ghosts().length).toBe(1));
+    expect(
+      partnerSlot('energy')?.getAttribute('data-flight-hidden'),
+    ).toBeNull();
+    act(() => releaseAnimations());
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+  });
+
+  it('keeps the old feeling in its place until the changed one has landed', async () => {
+    window.localStorage.setItem(
+      SEEN_ARRIVAL_KEY,
+      JSON.stringify({
+        day: '2026-09-21:Europe/Berlin',
+        vibe: 'SAD',
+        energy: 80,
+        note: null,
+      }),
+    );
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    // The new feeling rises; the old one waits in the slot and shrinks away.
+    await waitFor(() => expect(ghosts().length).toBe(1));
+    const farewell = partnerSlot('vibe')?.querySelector(
+      '[data-flight-farewell]',
+    );
+    expect(farewell).not.toBeNull();
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBe(
+      'true',
+    );
+    act(() => releaseAnimations());
+    await waitFor(() =>
+      expect(
+        partnerSlot('vibe')?.querySelector('[data-flight-farewell]'),
+      ).toBeNull(),
+    );
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBeNull();
+  });
+
+  it('shows no farewell when the feeling is new rather than changed', async () => {
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    await waitFor(() => expect(ghosts().length).toBe(2));
+    expect(document.querySelector('[data-flight-farewell]')).toBeNull();
+    act(() => releaseAnimations());
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+  });
+
+  it('stays quiet while the partner values are still hidden', async () => {
+    const { api } = apiFor(projection());
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    expect(ghosts()).toHaveLength(0);
+    expect(window.localStorage.getItem(SEEN_ARRIVAL_KEY)).toBeNull();
+  });
+
+  it('shows the values at once with reduced motion and still remembers them', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }),
+    });
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    expect(ghosts()).toHaveLength(0);
+    expect(document.querySelector('[popover]')).toBeNull();
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBeNull();
+    await waitFor(() =>
+      expect(window.localStorage.getItem(SEEN_ARRIVAL_KEY)).not.toBeNull(),
+    );
+  });
+
+  it('waits until the own sheet and its flight are done', async () => {
+    const update = vi.fn().mockResolvedValue(
+      rawResponse(
+        projection({
+          ownVibe: 'GOOD',
+          partnerVibe: { state: 'VISIBLE', value: 'OKAY' },
+        }),
+        '"today:2"',
+      ),
+    );
+    const { api } = apiFor(projection(), { update });
+    renderCheckIn({ api });
+    await openPanel();
+    fireEvent.click(vibeButton('GOOD'));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTestId('wir-checkin-partner-badge')
+          .getAttribute('data-state'),
+      ).toBe('visible'),
+    );
+    // The partner's values are revealed behind the open sheet: no arrival yet.
+    expect(document.querySelector('.is-arrival')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
+    expect(document.querySelector('.is-arrival')).toBeNull();
+    // Once the own flight has landed, the partner's values arrive.
+    await waitFor(() => {
+      act(() => releaseAnimations());
+      expect(document.querySelector('.is-arrival')).not.toBeNull();
+    });
+  });
+});

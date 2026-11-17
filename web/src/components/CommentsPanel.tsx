@@ -410,10 +410,10 @@ function CommentsPanelContent({
         }}
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -515,12 +515,12 @@ function CommentsPanelContent({
                         title={t('comments.moreActions')}
                       >
                         <svg
+                          className="inline-icon"
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           aria-hidden="true"

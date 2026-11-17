@@ -534,11 +534,10 @@ export function PartnerLocationSettingsPage({
               </span>
               {permission === 'granted' ? (
                 <svg
-                  className="partner-location-permission-mark"
+                  className="partner-location-permission-mark inline-icon"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"

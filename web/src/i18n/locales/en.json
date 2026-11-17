@@ -2372,6 +2372,7 @@
     "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
+    "pendingLegend": "Dashed: chosen, but it only takes effect once the channel is set up.",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
     "groupSaving": "Saving selection …",
     "groupSaved": "Selection saved.",

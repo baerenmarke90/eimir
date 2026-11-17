@@ -5,6 +5,8 @@ const notificationSettings = {
   closenessDescription:
     'Gedanken aneinander, Küsse, Check-ins, geschickte Listen und Samen aus eurem Garten.',
   individual: 'Einzeln anpassen',
+  pendingLegend:
+    'Gestrichelt: gewählt, wirkt aber erst, sobald der Kanal eingerichtet ist.',
   dates: 'Wichtige Tage',
   mixed:
     'Unterschiedlich eingestellt. Unter „Einzeln anpassen“ siehst du die Auswahl.',

@@ -378,11 +378,16 @@ function RecentSharedItemCard({
 
 function WirSharedAlbumArrow() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path
         d="M3.5 12h16m-6-6 6 6-6 6"
         stroke="currentColor"
-        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -1670,7 +1675,12 @@ export function TodayPage({
                 className="wir-stage-gesture wir-stage-gesture-own"
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <svg
+                  className="inline-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
                   {dailyCheckIn.ownHasValue ? (
                     <path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4L16.5 4.5z" />
                   ) : (
@@ -1690,7 +1700,12 @@ export function TodayPage({
               {dailyCheckIn?.partnerBadge}
               {avatarAction ? (
                 <span className="wir-stage-gesture" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <svg
+                    className="inline-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
                     <path d="M20.5 3.5 10.5 13.5M20.5 3.5l-6 17-4-7-7-4 17-6z" />
                   </svg>
                 </span>

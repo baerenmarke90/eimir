@@ -1,4 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
+import composerCopy from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import sharedNotesCopy from '../../src/i18n/locales/sharedNotes';
 import {
   ACCOUNT_ID,
@@ -14,6 +17,7 @@ import {
 const copy = sharedNotesCopy.sharedNotes;
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const stamp = '2026-11-09T10:00:00Z';
+const CREATED_PLAN_ID = '44444444-4444-4444-8444-444444444444';
 
 type NoteFixture = {
   id: string;
@@ -73,11 +77,64 @@ async function fixture(page: Page, initial: NoteFixture[]) {
   const store = new Map(initial.map((entry) => [entry.id, { ...entry }]));
   const edited = new Set<string>();
   const patches: Record<string, unknown>[] = [];
+  // A Plan created in the browser: its notes are linked by separate calls.
+  const plan = {
+    id: CREATED_PLAN_ID,
+    spaceId: SPACE_ID,
+    title: '',
+    description: null,
+    status: 'IDEA',
+    experiencedOn: null,
+    plannedOn: null,
+    plannedStart: null,
+    plannedEnd: null,
+    sourceWishId: null,
+    placeId: null,
+    attachments: [],
+    createdBy: ACCOUNT_ID,
+    creator: ME,
+    capabilities: CAPABILITIES,
+    createdAt: stamp,
+    updatedAt: stamp,
+    version: 1,
+  };
+  const planCalls = {
+    creates: [] as Record<string, unknown>[],
+    links: [] as string[],
+    failLinks: false,
+  };
+  const linked = new Set<string>();
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());
     const path = url.pathname;
+    if (path === `${base}/plans` && method === 'POST') {
+      const values = request.postDataJSON() as Record<string, unknown>;
+      planCalls.creates.push(values);
+      Object.assign(plan, values);
+      return route.fulfill({ status: 201, json: plan });
+    }
+    if (path === `${base}/plans/${CREATED_PLAN_ID}` && method === 'GET')
+      return route.fulfill({ json: plan });
+    if (path === `${base}/plans/${CREATED_PLAN_ID}/notes` && method === 'GET') {
+      return route.fulfill({
+        json: [...store.values()]
+          .filter((entry) => linked.has(entry.id))
+          .map((entry) => detail(entry)),
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
+    }
+    const planLink = path.match(
+      new RegExp(`^${base}/plans/${CREATED_PLAN_ID}/notes/([^/]+)$`),
+    );
+    if (planLink && method === 'PUT') {
+      if (planCalls.failLinks)
+        return route.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } });
+      linked.add(planLink[1]);
+      planCalls.links.push(planLink[1]);
+      return route.fulfill({ status: 204 });
+    }
     if (method === 'GET' && path === `${base}/shared-notes`) {
       const pinned = url.searchParams.get('pinned');
       const items = [...store.values()]
@@ -118,7 +175,7 @@ async function fixture(page: Page, initial: NoteFixture[]) {
     }
     return route.fallback();
   });
-  return { patches };
+  return { patches, planCalls };
 }
 
 const holiday = note(
@@ -316,4 +373,50 @@ test('a pinned note appears on Wir as a tile that opens the note', async ({
     })
     .click();
   await expect(page.getByText('Bins on Monday', { exact: true })).toBeVisible();
+});
+
+test('a Plan is created with a shared note: chosen in the draft, linked after the save, retried honestly', async ({
+  page,
+}, testInfo) => {
+  const { planCalls } = await fixture(page, [holiday, places]);
+  await signIn(page);
+  await page.goto('/plan/plans/new');
+  await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend at the lake');
+  await page.getByRole('button', { name: copy.plan.tool, exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: copy.plan.choose });
+  // A new note would leave the unsaved Plan behind, so the sheet does not offer it.
+  await expect(
+    dialog.getByRole('button', { name: copy.plan.createNew }),
+  ).toHaveCount(0);
+  await dialog
+    .getByRole('checkbox', { name: new RegExp(holiday.title) })
+    .check();
+  await dialog
+    .getByRole('button', { name: copy.plan.link, exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: holiday.title, exact: true }),
+  ).toBeVisible();
+  expect(planCalls.links).toEqual([]);
+  await captureScreenshot(
+    page,
+    testInfo,
+    'shared-notes-plan-create-compact-light.png',
+    { animations: 'disabled' },
+  );
+
+  planCalls.failLinks = true;
+  await page
+    .getByRole('button', { name: m5s3.common.save, exact: true })
+    .click();
+  await expect(page.getByText(composerCopy.planSavedLinkFailed)).toBeVisible();
+  expect(planCalls.creates).toHaveLength(1);
+  planCalls.failLinks = false;
+  await page
+    .getByRole('button', { name: de.common.retry, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${CREATED_PLAN_ID}$`));
+  expect(planCalls.creates).toHaveLength(1);
+  expect(planCalls.links).toEqual([holiday.id]);
 });

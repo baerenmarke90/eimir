@@ -479,6 +479,8 @@
         "web/src/components/GardenFlora.tsx",
         "web/src/components/GardenLife.tsx",
         "web/src/components/GardenVisitors.tsx",
+        "web/src/components/GardenAmbience.tsx",
+        "web/src/client/gardenAmbience.ts",
         "web/src/components/GardenGrowth.css",
         "web/src/components/GamesProductArea.tsx"
       ]

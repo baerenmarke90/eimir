@@ -403,6 +403,64 @@ const games = {
       wokeBody: 'Euer Garten ist wieder wach. Nichts ist verloren gegangen.',
       wokeClose: 'Schön',
     },
+    ambience: {
+      daytime: {
+        morning: 'Es ist Morgen im Garten',
+        day: 'Es ist Tag im Garten',
+        evening: 'Es ist Abend im Garten',
+        night: 'Es ist Nacht im Garten, Sterne stehen am Himmel',
+      },
+      labels: {
+        tree: 'Euer Baum antippen',
+        pond: 'Euer Teich antippen',
+        cloud: 'Wolke antippen',
+        birdhouse: 'Zettel von {{name}} im Vogelhäuschen ansehen',
+      },
+      tap: {
+        tree: 'Es raschelt im Baum, ein Vogel fliegt auf.',
+        treeAutumn: 'Bunte Blätter rieseln herab, ein Vogel fliegt auf.',
+        treeWinter: 'Schnee rieselt von den Zweigen, ein Vogel fliegt auf.',
+        treeNight: 'Psst, im Baum schlafen die Vögel.',
+        pond: 'Platsch! Ein kleiner Fisch springt.',
+        cloud: 'Ein kleiner Schauer. Die Pflanzen freuen sich.',
+        cloudSnow: 'Ein paar Schneeflocken rieseln.',
+        flower: 'Die Blume wippt, ein Schmetterling flattert los.',
+        flowerNight: 'Die Blume wippt. Die Schmetterlinge schlafen schon.',
+        flowerWinter:
+          'Die Blume wippt. Die Schmetterlinge warten auf den Frühling.',
+        sprout: 'Das Pflänzchen wippt.',
+        seed: 'Hier schläft ein Samen in der Erde.',
+      },
+      doubleRainbow: 'Ein doppelter Regenbogen: ihr habt heute beide gegossen',
+      together: {
+        swing:
+          'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
+        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum, ihr habt heute beide einen Samen geschickt',
+        bench:
+          'Ihr zwei sitzt zusammen auf einer Bank, ihr habt heute beide einen Samen geschickt',
+      },
+      birdhouseLabel: 'Im Vogelhäuschen steckt ein Zettel von {{name}}',
+      birdhouseStatus:
+        'Im Vogelhäuschen steckt ein Zettel von {{name}}: „{{words}}“',
+      celebration: {
+        birthdayOwn:
+          'Alles Gute zum Geburtstag! Der Garten ist für dich geschmückt.',
+        birthdayPartner:
+          'Heute hat {{name}} Geburtstag. Der Garten ist geschmückt.',
+        anniversary:
+          'Heute ist euer Jahrestag. Der Garten ist für euch geschmückt.',
+      },
+      firstSnow:
+        'Über Nacht ist der erste Schnee gefallen. Alles schläft warm darunter, nichts geht verloren.',
+      call: {
+        action: 'Rufen',
+        label: '{{name}} rufen',
+        greeted: '{{name}} hat dich gehört und winkt.',
+        greetedPlural: '{{name}} haben dich gehört und winken.',
+        later: '{{name}} kommt später wieder vorbei.',
+        laterPlural: '{{name}} kommen später wieder vorbei.',
+      },
+    },
     stages: {
       '0': 'Gerade: ein Samen in der Erde',
       '1': 'Gerade: ein kleiner Keim',

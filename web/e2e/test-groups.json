@@ -395,8 +395,8 @@
     },
     "garden-game.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
-      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser."
+      "baselineTests": 24,
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser; the ambience from the device clock (morning to night with moon, stars and fireflies in either theme), seasonal particles, taps on the tree, the pond, the clouds and a flower, the watering can tilting onto the plant with a rainbow, the partner's watering arriving live, today's together moments, the note in the birdhouse, a birthday decoration and calling a named visitor from the book, with reflow, Light/Dark, reduced motion and axe."
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",

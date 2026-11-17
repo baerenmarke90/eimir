@@ -3635,6 +3635,56 @@
         "wokeBody": "Your garden is awake again. Nothing was lost.",
         "wokeClose": "Lovely"
       },
+      "ambience": {
+        "daytime": {
+          "morning": "It is morning in the garden",
+          "day": "It is daytime in the garden",
+          "evening": "It is evening in the garden",
+          "night": "It is night in the garden, stars are in the sky"
+        },
+        "labels": {
+          "tree": "Tap your tree",
+          "pond": "Tap your pond",
+          "cloud": "Tap the cloud",
+          "birdhouse": "Read the note from {{name}} in the birdhouse"
+        },
+        "tap": {
+          "tree": "The tree rustles and a bird flies up.",
+          "treeAutumn": "Colourful leaves drift down and a bird flies up.",
+          "treeWinter": "Snow trickles from the branches and a bird flies up.",
+          "treeNight": "Shh, the birds are asleep in the tree.",
+          "pond": "Splash! A little fish jumps.",
+          "cloud": "A little shower. The plants are happy.",
+          "cloudSnow": "A few snowflakes drift down.",
+          "flower": "The flower bobs and a butterfly flutters off.",
+          "flowerNight": "The flower bobs. The butterflies are already asleep.",
+          "flowerWinter": "The flower bobs. The butterflies are waiting for spring.",
+          "sprout": "The little plant bobs.",
+          "seed": "A seed is sleeping in the soil here."
+        },
+        "doubleRainbow": "A double rainbow: you both watered today",
+        "together": {
+          "swing": "The two of you sit together on the swing, you both sent a seed today",
+          "tree": "The two of you sit together on a bench under your tree, you both sent a seed today",
+          "bench": "The two of you sit together on a bench, you both sent a seed today"
+        },
+        "birdhouseLabel": "A note from {{name}} is tucked into the birdhouse",
+        "birdhouseStatus": "A note from {{name}} is tucked into the birdhouse: “{{words}}”",
+        "celebration": {
+          "birthdayOwn": "Happy birthday! The garden is decorated for you.",
+          "birthdayPartner": "It is {{name}}’s birthday today. The garden is decorated.",
+          "anniversary": "It is your anniversary today. The garden is decorated for you both."
+        },
+        "firstSnow": "The first snow fell overnight. Everything sleeps warmly underneath, nothing is lost.",
+        "call": {
+          "action": "Call",
+          "label": "Call {{name}}",
+          "greeted": "{{name}} heard you and waves.",
+          "greetedPlural": "{{name}} heard you and wave.",
+          "later": "{{name}} will come by again later.",
+          "laterPlural": "{{name}} will come by again later."
+        }
+      },
       "stages": {
         "0": "Right now: a seed in the ground",
         "1": "Right now: a little sprout",

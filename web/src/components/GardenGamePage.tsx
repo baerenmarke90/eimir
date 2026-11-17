@@ -36,6 +36,13 @@ import {
   withVisitorName,
   wordsArriveByPlane,
 } from '../client/gardenGrowth';
+import {
+  gardenCelebration,
+  isFirstSnowDay,
+  togetherArrivals,
+  togetherMoments,
+  togetherSeat,
+} from '../client/gardenAmbience';
 import { renderSvgPng } from '../client/gardenImage';
 import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
@@ -48,6 +55,7 @@ import {
   PARTNER_LOCATION_CAPABILITY,
   partnerLocationSettingsQueryKey,
 } from '../client/partnerLocation';
+import type { SpaceOccasion } from '../client/occasionMatches';
 import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
 import {
@@ -55,7 +63,9 @@ import {
   useSpaceCapability,
 } from '../client/spaceEntitlement';
 import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { type SceneAmbience, useGardenClock } from './GardenAmbience';
 import { Messenger, SeedIcon } from './GardenArt';
 import { GardenBook, GardenNewsCard, GardenYearCard } from './GardenBook';
 import {
@@ -346,6 +356,7 @@ export function GardenGamePage({
   services,
   loadPartners,
   flightOverride,
+  occasionsOverride,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -357,6 +368,8 @@ export function GardenGamePage({
   >;
   /** Tests pass a fixed band instead of reading partner location. */
   flightOverride?: GardenFlight;
+  /** Tests pass the couple's occasions instead of reading them. */
+  occasionsOverride?: ReadonlyArray<SpaceOccasion>;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -458,7 +471,25 @@ export function GardenGamePage({
   const [changes, setChanges] = useState<Map<string, number>>(new Map());
   const [gustKey, setGustKey] = useState(0);
   const [celebrationKey, setCelebrationKey] = useState(0);
-  const [wateredNow, setWateredNow] = useState<string | null>(null);
+  // Ambience (#1907 H3 extensions): one-shot moments keyed by a new number.
+  const [wateringMoment, setWateringMoment] =
+    useState<SceneAmbience['watering']>(null);
+  const [bounce, setBounce] = useState<SceneAmbience['bounce']>(null);
+  const [arrival, setArrival] = useState<SceneAmbience['arrival']>(null);
+  const [call, setCall] = useState<SceneGrowth['call']>(null);
+  const bookToggle = useRef<HTMLButtonElement | null>(null);
+  // A counter, not the clock: two moments in the same millisecond differ.
+  const moments = useRef(0);
+  const nextMoment = useCallback(() => {
+    moments.current += 1;
+    return moments.current;
+  }, []);
+  const clock = useGardenClock();
+  const readOccasions = useSpaceOccasions(
+    occasionsOverride ? undefined : spaceId,
+    currentAccountId,
+  );
+  const occasions = occasionsOverride ?? readOccasions;
   const greeted = useRef<string | null>(null);
   const frame = useRef<HTMLDivElement | null>(null);
   const defaultSaveMoment = useGardenMomentSaver({
@@ -514,6 +545,25 @@ export function GardenGamePage({
             'SURPRISE',
       );
       if (revealed) setStatus(t('games.garden.growth.moonRevealed'));
+      if (previous) {
+        // What the partner did arrives live: their can, the double rainbow,
+        // the two on the swing, a note in the birdhouse. Each plays once.
+        const arrived = togetherArrivals(previous, next, currentAccountId);
+        const key = nextMoment();
+        if (arrived.partnerWatered)
+          setWateringMoment({
+            key,
+            plantId: arrived.partnerWatered,
+            who: 'partner',
+          });
+        if (arrived.bothWatered || arrived.bothSent || arrived.partnerWords)
+          setArrival({
+            key,
+            bothWatered: arrived.bothWatered,
+            bothSent: arrived.bothSent,
+            words: arrived.partnerWords,
+          });
+      }
       if (next.sharedToday && previous && !previous.sharedToday) {
         setCelebrationKey((key) => key + 1);
         setGustKey((key) => key + 1);
@@ -521,7 +571,7 @@ export function GardenGamePage({
         setGustKey((key) => key + 1);
       }
     },
-    [t],
+    [currentAccountId, nextMoment, t],
   );
 
   // Every new answer is staged against the last one shown, so growth the
@@ -623,6 +673,7 @@ export function GardenGamePage({
       return;
     }
     if (!watering) {
+      if (selected !== plantId) setBounce({ key: nextMoment(), plantId });
       setSelected((current) => (current === plantId ? null : plantId));
       return;
     }
@@ -630,7 +681,7 @@ export function GardenGamePage({
     setWatering(false);
     if (!next) return;
     void apply(next);
-    setWateredNow(plantId);
+    setWateringMoment({ key: nextMoment(), plantId, who: 'own' });
     setStatus(t('games.garden.wateredStatus', { name: names.partner }));
   };
 
@@ -767,6 +818,27 @@ export function GardenGamePage({
       quack: t('games.garden.growth.quack'),
       name: (kind) => named[kind] ?? null,
     },
+    call,
+    onCall: (kind, came) => {
+      const name = named[kind] ?? ownVisitor(kind);
+      const plural = kind === 'ducks';
+      setAsk(null);
+      setStatus(
+        came
+          ? t(
+              plural
+                ? 'games.garden.ambience.call.greetedPlural'
+                : 'games.garden.ambience.call.greeted',
+              { name },
+            )
+          : t(
+              plural
+                ? 'games.garden.ambience.call.laterPlural'
+                : 'games.garden.ambience.call.later',
+              { name },
+            ),
+      );
+    },
     onReaction: (kind) => {
       const name = named[kind];
       const text = name
@@ -777,6 +849,62 @@ export function GardenGamePage({
       setAsk(name ? null : { kind, text });
     },
     banner,
+  };
+  const together = togetherMoments(garden, currentAccountId);
+  const celebration = gardenCelebration(clock.day, occasions);
+  const firstSnow = isFirstSnowDay(garden.localDate);
+  const ambience: SceneAmbience = {
+    daytime: clock.daytime,
+    season: presentation.season,
+    together,
+    arrival,
+    watering: wateringMoment,
+    bounce,
+    celebration,
+    partnerName: names.partner,
+    partnerWordsText: together.partnerWords
+      ? t(`games.garden.words.${together.partnerWords}`)
+      : null,
+    onStatus: setStatus,
+  };
+  const celebrationText = !celebration
+    ? null
+    : celebration.kind === 'anniversary'
+      ? t('games.garden.ambience.celebration.anniversary')
+      : celebration.isViewer
+        ? t('games.garden.ambience.celebration.birthdayOwn')
+        : t('games.garden.ambience.celebration.birthdayPartner', {
+            name: celebration.name || names.partner,
+          });
+  const firstSnowText = firstSnow ? t('games.garden.ambience.firstSnow') : null;
+  const ambienceSentences = [
+    t(`games.garden.ambience.daytime.${clock.daytime}`),
+    ...(together.bothWatered && clock.daytime !== 'night'
+      ? [t('games.garden.ambience.doubleRainbow')]
+      : []),
+    ...(together.bothSent
+      ? [t(`games.garden.ambience.together.${togetherSeat(unlocks)}`)]
+      : []),
+    ...(ambience.partnerWordsText && unlocks.includes('BIRDHOUSE')
+      ? [
+          t('games.garden.ambience.birdhouseLabel', {
+            name: names.partner,
+          }),
+        ]
+      : []),
+  ];
+  const callVisitor = (kind: GardenAnimal) => {
+    setBookOpen(false);
+    setVisitorEditing(null);
+    setCall({ key: nextMoment(), kind });
+    // The book closes; focus returns to its toggle and the scene comes into view.
+    window.requestAnimationFrame(() => {
+      bookToggle.current?.focus({ preventScroll: true });
+      frame.current?.scrollIntoView?.({
+        block: 'nearest',
+        behavior: reduced ? 'auto' : 'smooth',
+      });
+    });
   };
   const planeWords =
     incoming?.words != null && !reduced && wordsArriveByPlane(incoming.id);
@@ -1152,6 +1280,7 @@ export function GardenGamePage({
         data-testid="garden-frame"
         data-season={presentation.season}
         data-sleep={presentation.sleep}
+        data-daytime={clock.daytime}
       >
         <GardenScene
           plants={scenePlants}
@@ -1161,18 +1290,36 @@ export function GardenGamePage({
           onSelect={(plantId) => void choosePlant(plantId)}
           gustKey={gustKey}
           celebrationKey={celebrationKey}
-          wateredPlantId={wateredNow}
           lively
           label={[
             `${title}, ${t(`games.garden.growth.forms.${form}`)}: ${t('games.garden.sceneLabel', { count: garden.plants.length })}`,
             ...sceneSentences,
+            ...ambienceSentences,
           ].join('. ')}
           layers={presentation.layers(width)}
           growth={growth}
+          ambience={ambience}
         />
       </div>
       {width > 340 ? (
         <p className="garden-pan-hint">{t('games.garden.panHint')}</p>
+      ) : null}
+      {celebrationText ? (
+        <p
+          className="garden-note garden-celebration-note"
+          data-testid="garden-celebration"
+          data-kind={celebration?.kind}
+        >
+          {celebrationText}
+        </p>
+      ) : null}
+      {firstSnowText ? (
+        <p
+          className="garden-note garden-snow-note"
+          data-testid="garden-first-snow"
+        >
+          {firstSnowText}
+        </p>
       ) : null}
       <GardenSleepCard presentation={presentation} />
       {selectedPlant ? (
@@ -1295,6 +1442,7 @@ export function GardenGamePage({
             </button>
           ) : null}
           <button
+            ref={bookToggle}
             type="button"
             className="secondary"
             aria-expanded={bookOpen}
@@ -1327,6 +1475,7 @@ export function GardenGamePage({
                   setVisitorEditing(kind);
                 }}
                 onName={(kind, name) => void nameVisitor(kind, name)}
+                onCall={callVisitor}
               />
             }
           />

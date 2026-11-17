@@ -157,12 +157,12 @@ function StoryCommentPresence({
           title={t('comments.timelinePresence')}
         >
           <svg
+            className="inline-icon"
             viewBox="0 0 24 24"
             width="14"
             height="14"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -202,6 +202,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         aria-hidden="true"
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="14"
           height="14"
@@ -220,6 +221,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         aria-hidden="true"
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="12"
           height="12"
@@ -516,12 +518,12 @@ export function StoryList({
                           title={presentation.mediaLabel}
                         >
                           <svg
+                            className="inline-icon"
                             viewBox="0 0 24 24"
                             width="14"
                             height="14"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             aria-hidden="true"

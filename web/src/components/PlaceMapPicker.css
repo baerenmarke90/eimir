@@ -89,6 +89,15 @@
   color: var(--color-link-text);
 }
 
+/* MapLibre's own rule paints the attribution strip translucent white. Over the
+   dark map that is the brightest thing on screen, so Dark swaps it for the
+   page surface at the same translucency. Light keeps the stock strip. */
+:root[data-theme="dark"]
+  .place-map-viewport
+  .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+
 /* One calm, muted map tone for every map in the app (Momente map, distance map,
    place picker). Only map pixels change; authored previews, markers and
    attribution keep their true colours. */

@@ -15,8 +15,40 @@ UI, keyframes or notification priorities.
 > with a calendar icon and the same reduced-motion behavior. The Product Owner
 > removed the three waves on 2026-11-15; see
 > [calm notices](partner-gesture-receipt.md#calm-partner-notices-standard-2026-11-15).
-> This applies to the explicit proposal exchange. Vibe and Energy status
-> updates still reconcile silently.
+> This applies to the explicit proposal exchange. The partner's shared day
+> (Vibe, Energy, note) arrives with one movement on Wir since 2026-11-16, see
+> [below](#product-owner-decision-2026-11-16-the-partners-shared-day-arrives-on-wir).
+
+## Product Owner decision 2026-11-16: the partner's shared day arrives on Wir
+
+This **deliberately supersedes** the original rule below for exactly one case.
+The partner's feeling, battery and note are the reason the partner avatar
+carries a badge, and the Product Owner wants the moment they appear or change
+to be felt instead of replaced silently. The rule is therefore:
+
+- **What:** only values the partner has shared and the server has revealed to
+  this person (the Mutual Reveal projection). Hidden values never animate and
+  nothing is inferred from a hidden state.
+- **When:** when Wir is opened, or while Wir is open, and a revealed value is
+  new or different from what this device last saw. The trigger is a comparison
+  with a per-device "seen" state (local, like the partner-note dot; no read
+  receipt and nothing is sent), not a poll, an unread count or a cache event.
+  That is what keeps this case clear of the ambiguity the original rule guards
+  against: a refetch with identical values, a reconnect or a tab resume plays
+  nothing, and a state plays at most once per device.
+- **How:** one movement, never a chain. The changed values rise together out
+  of the partner avatar, stay together for a short reading moment and fly
+  together into their places on the partner badge, which settles in once. A
+  single changed battery or note only settles in place. It is non-blocking
+  decoration (hidden from assistive technology, no pointer events).
+- **When not:** not while the own check-in sheet or its flight is on screen
+  (it waits), not while the page is hidden, and never with reduced motion,
+  where the badge is simply up to date. The existing "now visible"
+  announcement for the reveal is unchanged.
+- **Roles:** `motion.duration.emphasized` (rise and hold) and
+  `motion.duration.sendFlight` (the flight into the badge), see the
+  [Web Motion Guideline](motion-guideline.md). No other event type, poll or
+  list change gains arrival motion from this decision.
 
 ## Original product/UX decision before the scoped approvals
 

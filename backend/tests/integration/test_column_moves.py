@@ -19,11 +19,12 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from eimir.authorization import PrivacyClass
+from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.daily_checkins.models import DailyCheckIn
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
 from eimir.identity.models import Account
 from eimir.jobs.models import Job
+from eimir.people import service as people_service
 from eimir.people.models import PersonRelationship, RelatedPerson, RelatedPersonPayload
 from eimir.places.models import Place, PlacePayload
 from eimir.profiles import service as profile_service
@@ -396,7 +397,7 @@ BIRTHDAY = date(1988, 3, 14)
 
 
 def _legacy_person(session: Session, space, *, flagged: bool) -> RelatedPerson:  # type: ignore[no-untyped-def]
-    """A person whose birthday is still in its column.
+    """A person whose birthday and relationship are still in their columns.
 
     ``flagged`` is a row the migration visited; unflagged is one that arrived
     later with the old shape, such as from an older Transfer Bundle.
@@ -406,7 +407,7 @@ def _legacy_person(session: Session, space, *, flagged: bool) -> RelatedPerson: 
         space_id=space_row.id,
         owner_id=account.id,
         privacy_class=PrivacyClass.SPACE_SHARED.value,
-        relationship=PersonRelationship.FRIEND.value,
+        legacy_relationship=PersonRelationship.FRIEND.value,
         legacy_birthday=BIRTHDAY,
         has_birthday=flagged,
         birthday_year_known=True,
@@ -436,13 +437,13 @@ def test_person_birthday_moves_into_the_payload(
     results = column_moves.move_columns(session, get_payload_protector())
 
     assert results["related_persons"].converted == 1
-    column, has_birthday, stored, version = _raw(
+    column, relationship, has_birthday, stored, version = _raw(
         session,
         "related_persons",
         person.id,
-        "birthday, has_birthday, payload::text, crypto_version",
+        "birthday, relationship, has_birthday, payload::text, crypto_version",
     )
-    assert column is None
+    assert (column, relationship) == (None, None)
     assert has_birthday is True
     if mode == "required":
         assert json.loads(stored)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
@@ -452,6 +453,7 @@ def test_person_birthday_moves_into_the_payload(
     assert _raw(session, "related_persons", person.id, "version, updated_at") == before
     session.expire_all()
     assert person.birthday == BIRTHDAY
+    assert person.relationship == PersonRelationship.FRIEND.value
     assert person.payload.display_name == "Column Lisa"
     found = session.execute(select(RelatedPerson.id).where(RelatedPerson.with_birthday())).scalars()
     assert person.id in set(found)
@@ -588,3 +590,115 @@ def test_account_name_and_birthday_writes_never_lose_each_other(
         None,
         True,
     )
+
+
+def _person(session: Session, space, name: str, **values: Any) -> RelatedPerson:  # type: ignore[no-untyped-def]
+    space_row, account = space
+    person = RelatedPerson(
+        space_id=space_row.id,
+        owner_id=account.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=RelatedPersonPayload(display_name=name),
+        **values,
+    )
+    session.add(person)
+    session.flush()
+    return person
+
+
+@pytest.mark.parametrize("mode", ["disabled", "required"])
+def test_person_relationship_moves_into_the_payload(
+    session: Session, space, encryption, mode: str
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply(mode)
+    person = _person(
+        session, space, "Column Mother", legacy_relationship=PersonRelationship.MOTHER.value
+    )
+    session.expire_all()
+    # Before the move: the value still reads from the column.
+    assert person.relationship == PersonRelationship.MOTHER.value
+    assert column_moves.pending(session)["related_persons"] == 1
+    before = _raw(session, "related_persons", person.id, "version, updated_at")
+
+    results = column_moves.move_columns(session, get_payload_protector())
+
+    assert results["related_persons"].converted == 1
+    relationship, has_birthday, stored, version = _raw(
+        session,
+        "related_persons",
+        person.id,
+        "relationship, has_birthday, payload::text, crypto_version",
+    )
+    assert relationship is None
+    # The flag follows a birthday, not the move.
+    assert has_birthday is False
+    if mode == "required":
+        assert json.loads(stored)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
+        assert version == CRYPTO_VERSION_SERVER_AEAD
+        assert "MOTHER" not in stored
+    assert _raw(session, "related_persons", person.id, "version, updated_at") == before
+    session.expire_all()
+    assert person.relationship == PersonRelationship.MOTHER.value
+    assert column_moves.pending(session)["related_persons"] == 0
+
+
+def test_new_and_changed_relationships_stay_out_of_the_plain_column(
+    session: Session, space, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    person = _person(session, space, "Column Aunt", relationship=PersonRelationship.AUNT.value)
+
+    relationship, stored = _raw(
+        session, "related_persons", person.id, "relationship, payload::text"
+    )
+    assert relationship is None
+    assert "AUNT" not in stored
+
+    person.relationship = PersonRelationship.COLLEAGUE.value
+    session.flush()
+    relationship, stored = _raw(
+        session, "related_persons", person.id, "relationship, payload::text"
+    )
+    assert relationship is None
+    assert "COLLEAGUE" not in stored
+    session.expire_all()
+    assert person.relationship == PersonRelationship.COLLEAGUE.value
+    assert person.payload.display_name == "Column Aunt"
+
+    # A legacy row that is changed leaves nothing behind in its column.
+    legacy = _person(
+        session, space, "Column Uncle", legacy_relationship=PersonRelationship.UNCLE.value
+    )
+    legacy.relationship = PersonRelationship.FRIEND.value
+    session.flush()
+    session.expire_all()
+    assert legacy.relationship == PersonRelationship.FRIEND.value
+    assert _raw(session, "related_persons", legacy.id, "relationship")[0] is None
+
+
+def test_an_unknown_relationship_is_refused_before_it_reaches_the_payload(
+    session: Session, space
+) -> None:  # type: ignore[no-untyped-def]
+    # The database check can only see the legacy column; the payload refuses instead.
+    with pytest.raises(ValueError):
+        _person(session, space, "Column Boss", relationship="BOSS")
+    person = _person(session, space, "Column Friend", relationship=PersonRelationship.FRIEND.value)
+    with pytest.raises(ValueError):
+        person.relationship = "BOSS"
+
+
+def test_people_keep_their_order_across_moved_and_legacy_rows(session: Session, space) -> None:  # type: ignore[no-untyped-def]
+    space_row, account = space
+    # The list used to be ordered by the relationship column in SQL. It must give
+    # the same order now that some rows hold the value in the payload and some
+    # still in the column.
+    son = _person(session, space, "Son", legacy_relationship=PersonRelationship.SON.value)
+    aunt = _person(session, space, "Aunt", relationship=PersonRelationship.AUNT.value)
+    mother = _person(session, space, "Mother", legacy_relationship=PersonRelationship.MOTHER.value)
+    friend = _person(session, space, "Friend", relationship=PersonRelationship.FRIEND.value)
+    second_aunt = _person(session, space, "Second aunt", relationship=PersonRelationship.AUNT.value)
+    context = AuthorizationContext(account_id=account.id, space_id=space_row.id)
+
+    listed = [person.id for person in people_service.list_persons(session, context)]
+
+    assert listed == [aunt.id, second_aunt.id, friend.id, mother.id, son.id]

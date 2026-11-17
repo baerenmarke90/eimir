@@ -9,7 +9,7 @@
   },
   "shape": "standard",
   "type": { "display": "literata", "headings": "display" },
-  "icon": { "stroke": 1.65, "accent": "duotone" },
+  "icon": { "stroke": 1.85, "accent": "duotone" },
   "motion": "standard",
   "surface": { "backdrop": "glow", "elevation": "standard", "edges": "none" }
 }

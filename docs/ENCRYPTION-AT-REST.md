@@ -178,9 +178,13 @@ metadata the server needs to know when to remind, and they name the person or ac
 they were derived from. An important date (`important_dates.date`) is also still a plain
 column; its label is protected.
 
-**Outside the ProtectedPayload boundary today:** email addresses, relationship kinds of
-related persons, the date of an important date, and the relationship start date. They
-are listed in section 12.
+Who a related person is to the couple (`related_persons.relationship`: mother, friend,
+colleague and so on) moved with migration 0155, by Product Owner decision of 2026-11-17.
+No flag replaces it: the only SQL use was the order of the people list, which the
+application now sorts after loading the few people of one Space.
+
+**Outside the ProtectedPayload boundary today:** email addresses, the date of an important
+date, and the relationship start date. They are listed in section 12.
 
 ## 6. Data flows
 
@@ -273,8 +277,8 @@ registered too; that table had no payload column, so migration 0147 adds a **nul
 one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
 move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
 a row through `legacy_plain_columns`, not as a malformed envelope. `accounts.display_name`
-(migration 0149) and the two birthday columns (migration 0150) are registered the same
-way:
+(migration 0149), the two birthday columns (migration 0150) and
+`related_persons.relationship` (migration 0155) are registered the same way:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered
   column still holds a value and repeats it until none does. It needs no operator
@@ -430,7 +434,7 @@ Known limits and follow-ups (deliberately not implemented here):
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
 - Columns outside the `ProtectedPayload` contract remain plaintext: e-mail addresses,
-  relationship kinds, the date of an important date and the relationship start date.
+  the date of an important date and the relationship start date.
   A birthday is protected, but the day and month of its reminder
   (`reminders.annual_month`, `annual_day`) and the fact that it exists (`has_birthday`)
   are not. The
@@ -556,9 +560,10 @@ Product Owner decisions still required before the remaining items can be built:
 - **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
   and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
   the partner-location position before them, the daily check-in values, account
-  display names and birthdays after them. Relationship kinds, the date of an important
-  date and the relationship start date stay plaintext, and no move is commissioned for
-  them; e-mail addresses stay plaintext by design.
+  display names and birthdays after them, and on 2026-11-17 the relationship of a
+  related person. The date of an important date and the relationship start date stay
+  plaintext, and no move is commissioned for them; e-mail addresses stay plaintext by
+  design.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

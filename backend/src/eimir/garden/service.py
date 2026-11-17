@@ -14,6 +14,7 @@ PR 3 (growth and life) adds the cumulative shared days that unlock new things,
 more species (a water lily lives in the pond, a tulip waits for spring, a
 wrapped surprise becomes a moonflower), bouquets, the garden's name and the
 once-per-person "new in the garden" news. Every rule stays server-side.
+The couple may also give each visiting animal one shared name.
 """
 
 from __future__ import annotations
@@ -42,6 +43,8 @@ from eimir.garden.models import (
     GardenReader,
     GardenSpecies,
     GardenUnlock,
+    GardenVisitor,
+    GardenVisitorName,
     GardenWatering,
     GardenWords,
 )
@@ -77,6 +80,7 @@ class GardenState:
     news: list[GardenUnlock] = field(default_factory=list)
     discovered: list[GardenSpecies] = field(default_factory=list)
     name: str | None = None
+    visitor_names: dict[GardenVisitor, str] = field(default_factory=dict)
     bouquet: GardenBouquet | None = None
     gave_bouquet_today: bool = False
 
@@ -283,6 +287,12 @@ def state(session: Session, context: AuthorizationContext) -> GardenState:
         .distinct()
     )
     garden = session.get(Garden, context.space_id)
+    visitor_names = {
+        GardenVisitor(row.animal): row.name
+        for row in session.scalars(
+            select(GardenVisitorName).where(GardenVisitorName.space_id == context.space_id)
+        )
+    }
     bouquet = session.scalar(
         select(GardenBouquet)
         .where(
@@ -317,6 +327,10 @@ def state(session: Session, context: AuthorizationContext) -> GardenState:
         news=growth.reached_between(seen or 0, days),
         discovered=growth.discovered(bloomed),
         name=garden.name if garden else None,
+        # Closed catalog order, so both partners read the same list.
+        visitor_names={
+            animal: visitor_names[animal] for animal in GardenVisitor if animal in visitor_names
+        },
         bouquet=bouquet,
         gave_bouquet_today=gave_today is not None,
         # Only a pause of both lets it sleep; it never sleeps on a reunion day.
@@ -475,13 +489,19 @@ def acknowledge_news(session: Session, context: AuthorizationContext) -> GardenS
     return state(session, context)
 
 
+def _clean_name(name: str | None, *, message: str, code: str) -> str:
+    """Collapse whitespace; the result is empty or at most NAME_MAX characters."""
+    cleaned = " ".join((name or "").split())
+    if len(cleaned) > NAME_MAX:
+        raise ValidationError(message, code)
+    return cleaned
+
+
 def rename(session: Session, context: AuthorizationContext, name: str | None) -> GardenState:
     """Name the garden; an empty name returns to the default title."""
     relationship.lock_space(session, context.space_id)
     _partner_of(session, context)
-    cleaned = " ".join((name or "").split())
-    if len(cleaned) > NAME_MAX:
-        raise ValidationError("The garden name is too long.", "GARDEN_NAME_TOO_LONG")
+    cleaned = _clean_name(name, message="The garden name is too long.", code="GARDEN_NAME_TOO_LONG")
     garden = session.get(Garden, context.space_id)
     if not cleaned:
         if garden is not None:
@@ -491,6 +511,38 @@ def rename(session: Session, context: AuthorizationContext, name: str | None) ->
     else:
         garden.name = cleaned
         garden.updated_at = clock.now()
+    session.flush()
+    return state(session, context)
+
+
+def name_visitor(
+    session: Session,
+    context: AuthorizationContext,
+    animal: GardenVisitor,
+    name: str | None,
+) -> GardenState:
+    """Name a visiting animal for both partners; an empty name removes it."""
+    relationship.lock_space(session, context.space_id)
+    _partner_of(session, context)
+    cleaned = _clean_name(
+        name, message="The visitor name is too long.", code="GARDEN_VISITOR_NAME_TOO_LONG"
+    )
+    row = session.get(GardenVisitorName, (context.space_id, animal.value))
+    if not cleaned:
+        if row is not None:
+            session.delete(row)
+    elif row is None:
+        session.add(
+            GardenVisitorName(
+                space_id=context.space_id,
+                animal=animal.value,
+                name=cleaned,
+                updated_at=clock.now(),
+            )
+        )
+    else:
+        row.name = cleaned
+        row.updated_at = clock.now()
     session.flush()
     return state(session, context)
 
@@ -618,5 +670,6 @@ def purge_space(session: Session, space_id: UUID) -> None:
     session.execute(delete(GardenPlant).where(GardenPlant.space_id == space_id))
     session.execute(delete(GardenBouquet).where(GardenBouquet.space_id == space_id))
     session.execute(delete(GardenReader).where(GardenReader.space_id == space_id))
+    session.execute(delete(GardenVisitorName).where(GardenVisitorName.space_id == space_id))
     session.execute(delete(Garden).where(Garden.space_id == space_id))
     session.flush()

@@ -18,6 +18,7 @@ All URIs are relative to *http://localhost*
 | [**handOverPicturePingPongTurn**](GamesApi.md#handoverpicturepingpongturn) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/turns | Hand Over Picture Ping Pong Turn |
 | [**keepHeartHuntRound**](GamesApi.md#keephearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept | Keep Round |
 | [**markPicturePingPongSaved**](GamesApi.md#markpicturepingpongsaved) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/saved | Mark Picture Ping Pong Saved |
+| [**nameGardenVisitor**](GamesApi.md#namegardenvisitor) | **PUT** /api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name | Name Garden Visitor |
 | [**plantGardenSeed**](GamesApi.md#plantgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant | Plant Garden Seed |
 | [**renameGarden**](GamesApi.md#renamegarden) | **PUT** /api/v1/spaces/{spaceId}/games/garden/name | Rename Garden |
 | [**sendGardenSeed**](GamesApi.md#sendgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds | Send Garden Seed |
@@ -1047,6 +1048,84 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## nameGardenVisitor
+
+> GardenView nameGardenVisitor(animal, spaceId, gardenVisitorNameInput)
+
+Name Garden Visitor
+
+Name a visiting animal; both partners see the same name (the duck pair shares one).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { NameGardenVisitorRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // GardenVisitor
+    animal: ...,
+    // string
+    spaceId: spaceId_example,
+    // GardenVisitorNameInput
+    gardenVisitorNameInput: ...,
+  } satisfies NameGardenVisitorRequest;
+
+  try {
+    const data = await api.nameGardenVisitor(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **animal** | `GardenVisitor` |  | [Defaults to `undefined`] [Enum: SNAIL, RABBIT, HEDGEHOG, DUCKS, SQUIRREL, DEER] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **gardenVisitorNameInput** | [GardenVisitorNameInput](GardenVisitorNameInput.md) |  | |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

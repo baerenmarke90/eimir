@@ -5,6 +5,8 @@ export default {
   change: 'Design auswählen',
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
+  compact: { own: 'Dein Vibe', partner: '{{name}} heute' },
+  note: { open: 'Herzmoment öffnen' },
   names: {
     connected: 'Verbunden',
     shared_album: 'Seite an Seite',
@@ -25,9 +27,9 @@ export default {
     classic:
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
     quiet_together:
-      'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen, durch eine Linie verbunden.',
+      'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen groß und euer Moment kompakt.',
     handwriting:
-      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir ein großes Erinnerungsfoto.',
+      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir euer neuester Herzmoment wie eine Notiz.',
   },
   standard: 'Standard',
   free: 'Kostenlos',

@@ -1226,3 +1226,71 @@ test('a saved design colours Mehr, its sheet and the browser chrome and switches
   expect(f.writes).toEqual(['shared_album']);
   expect(f.unexpected).toEqual([]);
 });
+
+// #1907 C1: the names layout (Zu zweit) sets the names large with the add
+// action in the moment header; the note layout (Handschrift) leads with the
+// latest shared Heart Moment and opens it.
+test('the names and note layouts compose Wir and the note opens its Heart Moment', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'quiet_together', agenda: true });
+  await signIn(page);
+  await page.goto('/today');
+  const today = page.locator('.today-page');
+  await expect(today).toHaveAttribute('data-wir-layout', 'names');
+  await expect(
+    page.locator('.wir-compact-hero .couple-presence-title > span'),
+  ).toHaveCount(2);
+  await expect(
+    page.locator('.today-section-moment .today-section-header .add-action'),
+  ).toBeVisible();
+  await expect(page.locator('.wir-note-card')).toHaveCount(0);
+
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/appearance/wir-design`,
+    (route) =>
+      route.fulfill({
+        json: { designId: 'handwriting', version: 5 },
+        headers: { ETag: '"appearance:5"' },
+      }),
+  );
+  // A dashboard whose latest shared item is a Heart Moment with words.
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
+    route.fulfill({
+      json: {
+        space: { spaceId: SPACE_ID, partner: PARTNER },
+        relationshipDuration: null,
+        retrospective: null,
+        keepsake: null,
+        upcoming: [],
+        anticipation: null,
+        recentShared: [
+          {
+            type: 'HEART_MOMENT',
+            id: 'heart-note',
+            titleOrText: 'Coffee by the water tomorrow?',
+            occurredOn: '2026-11-14',
+            createdAt: '2026-11-14T08:00:00Z',
+            scheduledAt: null,
+            previewIsSensitive: false,
+            concealed: false,
+          },
+        ],
+        sharedStorySummary: { memories: 0, heartMoments: 1, milestones: 0 },
+        viewerLocalDate: '2026-11-15',
+      },
+    }),
+  );
+  await page.reload();
+  await expect(today).toHaveAttribute('data-wir-layout', 'note');
+  const note = page.locator('.wir-note-card');
+  await expect(note).toContainText('Coffee by the water tomorrow?');
+  await expect(note).toHaveAttribute(
+    'href',
+    /\/story\/heart-moments\/heart-note$/,
+  );
+  await expect(page.locator('.wir-note-add .add-action')).toBeVisible();
+  expect(f.unexpected).toEqual([]);
+});

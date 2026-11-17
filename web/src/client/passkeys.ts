@@ -4,6 +4,8 @@ import { isCapacitorNative } from '../pwa';
 import {
   NativePasskeys,
   nativePasskeyErrorCode,
+  PasskeyAlreadyOnDeviceError,
+  PasskeyAppNotTrustedError,
   PasskeyNotOnDeviceError,
 } from './nativePasskeys';
 import { normalizeClientError } from './problemDetails';
@@ -15,7 +17,11 @@ import {
   requestOptionsFromJson,
 } from './webauthnCodec';
 
-export { PasskeyNotOnDeviceError } from './nativePasskeys';
+export {
+  PasskeyAlreadyOnDeviceError,
+  PasskeyAppNotTrustedError,
+  PasskeyNotOnDeviceError,
+} from './nativePasskeys';
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
@@ -85,6 +91,16 @@ function isCancellation(error: unknown): boolean {
   );
 }
 
+/** Outcomes the caller presents itself; they are not request problems. */
+function isCeremonyOutcome(error: unknown): boolean {
+  return (
+    error instanceof PasskeyCancelledError ||
+    error instanceof PasskeyNotOnDeviceError ||
+    error instanceof PasskeyAppNotTrustedError ||
+    error instanceof PasskeyAlreadyOnDeviceError
+  );
+}
+
 async function nativeCeremony(
   run: () => Promise<{ responseJson: string }>,
 ): Promise<Record<string, unknown>> {
@@ -97,6 +113,10 @@ async function nativeCeremony(
         throw new PasskeyCancelledError();
       case 'NO_CREDENTIAL':
         throw new PasskeyNotOnDeviceError();
+      case 'NOT_TRUSTED':
+        throw new PasskeyAppNotTrustedError();
+      case 'ALREADY_REGISTERED':
+        throw new PasskeyAlreadyOnDeviceError();
       default:
         throw error;
     }
@@ -142,11 +162,7 @@ export async function signInWithPasskey(
       },
     );
   } catch (error) {
-    if (
-      error instanceof PasskeyCancelledError ||
-      error instanceof PasskeyNotOnDeviceError
-    )
-      throw error;
+    if (isCeremonyOutcome(error)) throw error;
     throw await normalizeClientError(error);
   }
 }
@@ -185,11 +201,7 @@ export async function registerPasskey(
       { passkeyRegistrationRequest: { credential, name } },
     );
   } catch (error) {
-    if (
-      error instanceof PasskeyCancelledError ||
-      error instanceof PasskeyNotOnDeviceError
-    )
-      throw error;
+    if (isCeremonyOutcome(error)) throw error;
     throw await normalizeClientError(error);
   }
 }

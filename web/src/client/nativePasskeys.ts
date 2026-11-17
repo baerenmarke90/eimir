@@ -13,6 +13,10 @@ export type NativePasskeyErrorCode =
   | 'NO_CREDENTIAL'
   /** No credential provider is available (for example no Play services). */
   | 'UNAVAILABLE'
+  /** The platform does not trust this app for the relying party (Digital Asset Links). */
+  | 'NOT_TRUSTED'
+  /** This device already holds a passkey of this Account for the relying party. */
+  | 'ALREADY_REGISTERED'
   /** The platform refused the ceremony. */
   | 'FAILED';
 
@@ -32,6 +36,22 @@ export class PasskeyNotOnDeviceError extends Error {
   }
 }
 
+/** The platform does not trust this app for the relying party. */
+export class PasskeyAppNotTrustedError extends Error {
+  constructor() {
+    super('The platform does not trust this app for this service.');
+    this.name = 'PasskeyAppNotTrustedError';
+  }
+}
+
+/** This device already stores a passkey of the Account for the service. */
+export class PasskeyAlreadyOnDeviceError extends Error {
+  constructor() {
+    super('A passkey of this Account is already stored on this device.');
+    this.name = 'PasskeyAlreadyOnDeviceError';
+  }
+}
+
 export function nativePasskeyErrorCode(
   error: unknown,
 ): NativePasskeyErrorCode | null {
@@ -43,6 +63,8 @@ export function nativePasskeyErrorCode(
     case 'CANCELLED':
     case 'NO_CREDENTIAL':
     case 'UNAVAILABLE':
+    case 'NOT_TRUSTED':
+    case 'ALREADY_REGISTERED':
     case 'FAILED':
       return code;
     default:

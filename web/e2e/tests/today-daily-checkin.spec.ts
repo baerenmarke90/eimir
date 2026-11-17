@@ -790,3 +790,141 @@ test('Fertig without a change closes at once and flies nothing', async ({
   await expect(panel).toBeHidden();
   await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
 });
+
+/**
+ * Partner arrival: the partner's revealed values that are new or changed since
+ * this device last saw them rise out of the partner avatar together and fly
+ * into the partner badge, once.
+ */
+const ARRIVAL_SEEN_KEY = `eimir.wir.partnerArrivalSeen:${ACCOUNT_ID}:${SPACE_ID}`;
+
+/** Slows every animation down so the movement can be observed. */
+async function slowAnimations(page: Page) {
+  await page.addInitScript(() => {
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const animation = original.apply(this, args);
+      animation.playbackRate = 0.25;
+      return animation;
+    };
+  });
+}
+
+const arrivalGhosts = (page: Page) =>
+  page.locator('.wir-checkin-flight-layer .is-arrival');
+
+for (const { width, theme } of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 430, theme: 'light' },
+] as const) {
+  test(`the partner's new day arrives once as one movement (${width} ${theme})`, async ({
+    page,
+  }) => {
+    await slowAnimations(page);
+    await installMocks(page, {
+      ownVibe: 'GOOD',
+      partnerVibe: 'OKAY',
+      partnerEnergy: 40,
+      partnerNote: fixtureCopy.wirCheckIn.partnerShortNote,
+    });
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({ colorScheme: theme });
+    await signIn(page);
+
+    await expect(arrivalGhosts(page)).toHaveCount(3);
+    const layer = page.locator('.wir-checkin-flight-layer');
+    await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(await layer.evaluate((node) => node.matches(':popover-open'))).toBe(
+      true,
+    );
+    const pointer = await arrivalGhosts(page)
+      .first()
+      .evaluate((node) => getComputedStyle(node).pointerEvents);
+    expect(pointer).toBe('none');
+    const badge = page.getByTestId('wir-checkin-partner-badge');
+    await expect(badge.locator('[data-flight-slot="vibe"]')).toHaveAttribute(
+      'data-flight-hidden',
+      'true',
+    );
+    await saveEvidence(page, `partner-arrival-${width}-${theme}-rise`);
+
+    // Everything landed: no flight element is left and the values are in place.
+    await expect(arrivalGhosts(page)).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+    await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
+    await expect(badge.locator('.daily-energy-battery-icon')).toBeVisible();
+    await expect(page.getByTestId('wir-checkin-note-dot')).toBeVisible();
+    await expectInsideViewport(page, 'wir-checkin-partner-badge');
+    await saveEvidence(page, `partner-arrival-${width}-${theme}-landed`);
+
+    // Opening Wir again with nothing new plays nothing.
+    await page.reload();
+    await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+  });
+}
+
+test('only what changed since the last visit arrives again', async ({
+  page,
+}) => {
+  await slowAnimations(page);
+  await page.addInitScript(
+    ([key]) => {
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          day: '2026-11-13:Europe/Berlin',
+          vibe: 'GOOD',
+          energy: 40,
+          note: null,
+        }),
+      );
+    },
+    [ARRIVAL_SEEN_KEY],
+  );
+  await installMocks(page, {
+    ownVibe: 'GOOD',
+    partnerVibe: 'OKAY',
+    partnerEnergy: 40,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  // Only the feeling changed: one value travels, the battery stays in place.
+  await expect(arrivalGhosts(page)).toHaveCount(1);
+  const badge = page.getByTestId('wir-checkin-partner-badge');
+  await expect(badge.locator('.daily-energy-battery-icon')).toBeVisible();
+  await expect(arrivalGhosts(page)).toHaveCount(0, { timeout: 15_000 });
+});
+
+test('a hidden partner value never arrives, reduced motion shows values at once', async ({
+  page,
+}) => {
+  await installMocks(page, {
+    visibility: 'MUTUAL_REVEAL',
+    partnerVibe: 'OKAY',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await expect(page.getByTestId('wir-checkin-partner-badge')).toHaveAttribute(
+    'data-state',
+    'hidden',
+  );
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+
+  const reduced = await page.context().newPage();
+  await installMocks(reduced, {
+    ownVibe: 'GOOD',
+    partnerVibe: 'OKAY',
+    partnerEnergy: 40,
+  });
+  await reduced.emulateMedia({ reducedMotion: 'reduce' });
+  await reduced.setViewportSize({ width: 390, height: 844 });
+  await signIn(reduced);
+  await expect(
+    reduced
+      .getByTestId('wir-checkin-partner-badge')
+      .locator('[data-vibe-icon="OKAY"]'),
+  ).toBeVisible();
+  await expect(reduced.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+});

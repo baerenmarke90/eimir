@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -26,6 +27,11 @@ import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
+import {
+  arrivalMode,
+  type PartnerArrival,
+  startPartnerArrival,
+} from './partnerArrival';
 import {
   type FlightItem,
   type FlightKind,
@@ -101,6 +107,18 @@ function subscribeOnlineState(onStoreChange: () => void): () => void {
     window.removeEventListener('online', onStoreChange);
     window.removeEventListener('offline', onStoreChange);
   };
+}
+
+function subscribeVisibility(onStoreChange: () => void): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  document.addEventListener('visibilitychange', onStoreChange);
+  return () => document.removeEventListener('visibilitychange', onStoreChange);
+}
+
+function visibilitySnapshot(): boolean {
+  return typeof document === 'undefined'
+    ? true
+    : document.visibilityState !== 'hidden';
 }
 
 function onlineSnapshot(): boolean {
@@ -187,6 +205,35 @@ function usePartnerNoteSeen(
   return { unread: Boolean(current && seen !== current), markSeen };
 }
 
+/**
+ * What this device has already seen of the partner's shared day. It decides
+ * which values arrive with a movement on Wir; like the note dot it is local to
+ * this device and never sent anywhere.
+ */
+interface ArrivalSeen {
+  day: string;
+  vibe: DailyVibeValue | null;
+  energy: number | null;
+  note: string | null;
+}
+
+function readArrivalSeen(key: string): ArrivalSeen | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as ArrivalSeen) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeArrivalSeen(key: string, value: ArrivalSeen): void {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Local convenience only; storage may be unavailable.
+  }
+}
+
 export type PartnerDayState = 'visible' | 'hidden' | 'none' | 'off';
 
 export interface WirDailyCheckIn {
@@ -263,6 +310,18 @@ export function useWirDailyCheckIn({
     useState<ReadonlySet<FlightKind>>(NO_KINDS);
   const [flightWaiting, setFlightWaiting] = useState(false);
   const flightRef = useRef<ActiveFlight | null>(null);
+  // Partner arrival: the values still travelling, the slots that just landed.
+  const [arrivalHidden, setArrivalHidden] =
+    useState<ReadonlySet<FlightKind>>(NO_KINDS);
+  const [arrivalLanding, setArrivalLanding] =
+    useState<ReadonlySet<FlightKind>>(NO_KINDS);
+  const arrivalRef = useRef<PartnerArrival | null>(null);
+  const partnerBadgeRef = useRef<HTMLSpanElement | null>(null);
+  const pageVisible = useSyncExternalStore(
+    subscribeVisibility,
+    visibilitySnapshot,
+    () => true,
+  );
   const baselineRef = useRef<OwnDay>({ vibe: null, energy: null, note: null });
   const panelId = useId();
   const ownTriggerRef = useRef<HTMLButtonElement>(null);
@@ -341,6 +400,107 @@ export function useWirDailyCheckIn({
     ? `${projection.checkedOn.toISOString().slice(0, 10)}:${projection.dailyContextTimezone}`
     : null;
   const noteSeen = usePartnerNoteSeen(account, spaceId, day, partnerNote);
+
+  // Arrival: when the partner's revealed values are new or changed since this
+  // device last saw them, they arrive in one movement. It waits until no own
+  // sheet or flight is on screen and the page is visible, and each state is
+  // played at most once.
+  const arrivalKey = `eimir.wir.partnerArrivalSeen:${account}:${spaceId}`;
+  useLayoutEffect(() => {
+    if (partnerState !== 'visible' || !day) return;
+    if (
+      !pageVisible ||
+      panelOpen ||
+      flightWaiting ||
+      flightHidden.size > 0 ||
+      arrivalRef.current
+    )
+      return;
+    const current: ArrivalSeen = {
+      day,
+      vibe: partnerVibeValue,
+      energy: partnerEnergyValue,
+      note: partnerNote ? noteFingerprint(partnerNote) : null,
+    };
+    const stored = readArrivalSeen(arrivalKey);
+    const base: ArrivalSeen =
+      stored && stored.day === day
+        ? stored
+        : { day, vibe: null, energy: null, note: null };
+    const kinds = (
+      [
+        current.vibe !== null && current.vibe !== base.vibe ? 'vibe' : null,
+        current.energy !== null && current.energy !== base.energy
+          ? 'energy'
+          : null,
+        current.note !== null && current.note !== base.note ? 'note' : null,
+      ] as (FlightKind | null)[]
+    ).filter((kind): kind is FlightKind => kind !== null);
+    if (
+      kinds.length === 0 &&
+      current.vibe === base.vibe &&
+      current.energy === base.energy &&
+      current.note === base.note
+    )
+      return;
+    // From now on this state counts as seen: it never plays twice.
+    writeArrivalSeen(arrivalKey, current);
+    if (kinds.length === 0) return;
+    const badge = partnerBadgeRef.current;
+    const avatar =
+      badge?.closest('.partner-avatar-slot') ?? badge?.parentElement;
+    if (!badge || !avatar) return;
+    const slotOf = (kind: FlightKind) =>
+      kind === 'note'
+        ? (badge.parentElement?.querySelector('[data-flight-slot="note"]') ??
+          null)
+        : badge.querySelector(`[data-flight-slot="${kind}"]`);
+    const arrival = startPartnerArrival(
+      {
+        avatar,
+        badge,
+        items: kinds.map((kind) => ({ kind, slot: () => slotOf(kind) })),
+      },
+      {
+        onLand: (kind) => {
+          setArrivalHidden((current) => withoutKind(current, kind));
+          setArrivalLanding((current) => withKind(current, kind));
+        },
+      },
+    );
+    if (!arrival) return;
+    arrivalRef.current = arrival;
+    if (arrivalMode(kinds) === 'travel') setArrivalHidden(new Set(kinds));
+    void arrival.done.finally(() => {
+      if (arrivalRef.current === arrival) arrivalRef.current = null;
+      setArrivalHidden(NO_KINDS);
+    });
+  }, [
+    arrivalKey,
+    day,
+    flightHidden,
+    flightWaiting,
+    pageVisible,
+    panelOpen,
+    partnerEnergyValue,
+    partnerNote,
+    partnerState,
+    partnerVibeValue,
+  ]);
+  // The arrival never outlives the values it shows or its screen.
+  useEffect(() => {
+    if (partnerState === 'visible') return;
+    arrivalRef.current?.cancel();
+    arrivalRef.current = null;
+    setArrivalHidden(NO_KINDS);
+  }, [partnerState]);
+  useEffect(
+    () => () => {
+      arrivalRef.current?.cancel();
+      arrivalRef.current = null;
+    },
+    [],
+  );
 
   const vibeLabel = (value: DailyVibeValue) => t(`dailyVibe.values.${value}`);
   const summary = (parts: string[]) =>
@@ -835,11 +995,18 @@ export function useWirDailyCheckIn({
     </ClampedBadge>
   ) : null;
 
+  const partnerSlotState = {
+    hidden: arrivalHidden,
+    landing: arrivalLanding,
+    onLanded: (kind: FlightKind) =>
+      setArrivalLanding((current) => withoutKind(current, kind)),
+  };
   const partnerBadge =
     partnerState === 'visible' || partnerState === 'hidden' ? (
       <>
         <ClampedBadge
           className="wir-checkin-badge wir-checkin-badge-partner"
+          badgeRef={partnerBadgeRef}
           data-state={partnerState}
           data-testid="wir-checkin-partner-badge"
           aria-hidden="true"
@@ -853,27 +1020,32 @@ export function useWirDailyCheckIn({
             ) : (
               <>
                 {partnerVibeValue ? (
-                  <DailyVibeIcon
-                    value={partnerVibeValue}
-                    className="wir-checkin-glyph"
-                  />
+                  <FlightSlot kind="vibe" {...partnerSlotState}>
+                    <DailyVibeIcon
+                      value={partnerVibeValue}
+                      className="wir-checkin-glyph"
+                    />
+                  </FlightSlot>
                 ) : null}
                 {partnerEnergyValue !== null ? (
-                  <BatteryIcon value={partnerEnergyValue} />
+                  <FlightSlot kind="energy" {...partnerSlotState}>
+                    <BatteryIcon value={partnerEnergyValue} />
+                  </FlightSlot>
                 ) : null}
               </>
             )}
           </span>
         </ClampedBadge>
         {partnerNote && noteSeen.unread ? (
-          <span
+          <FlightSlot
             key={`dot:${revealKey}`}
+            kind="note"
             className="wir-checkin-note-dot"
-            data-testid="wir-checkin-note-dot"
-            aria-hidden="true"
+            testId="wir-checkin-note-dot"
+            {...partnerSlotState}
           >
             <EimirIcon name="nachrichten" />
-          </span>
+          </FlightSlot>
         ) : null}
       </>
     ) : null;
@@ -1176,6 +1348,7 @@ function FlightSlot({
   landing,
   onLanded,
   className = 'wir-checkin-slot',
+  testId,
   children,
 }: {
   kind: FlightKind;
@@ -1183,11 +1356,14 @@ function FlightSlot({
   landing: ReadonlySet<FlightKind>;
   onLanded: (kind: FlightKind) => void;
   className?: string;
+  testId?: string;
   children: ReactNode;
 }) {
   return (
     <span
       className={className}
+      aria-hidden="true"
+      data-testid={testId}
       data-flight-slot={kind}
       data-flight-hidden={hidden.has(kind) ? 'true' : undefined}
       data-flight-landing={landing.has(kind) ? 'true' : undefined}

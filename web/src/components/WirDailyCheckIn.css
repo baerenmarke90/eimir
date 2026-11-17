@@ -625,6 +625,75 @@
     var(--easing-standard);
 }
 
+/* Partner arrival: the values rise out of the partner avatar and settle in. */
+.wir-checkin-flight-ghost.is-arrival {
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-vibe {
+  --identity-icon-accent: var(--color-brand-text);
+
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note {
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  max-width: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.wir-checkin-flight-ring {
+  position: absolute;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  pointer-events: none;
+}
+
+.wir-checkin-flight-ring.is-halo {
+  background: var(--color-action-primary);
+}
+
+.wir-checkin-flight-dot {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  pointer-events: none;
+}
+
+.wir-checkin-flight-dot.is-1 {
+  background: var(--color-action-primary);
+}
+
+.wir-checkin-flight-dot.is-2 {
+  background: var(--color-brand-text);
+}
+
+.wir-checkin-flight-dot.is-3 {
+  background: var(--color-link-text);
+}
+
+.wir-checkin-note-dot[data-flight-hidden="true"] {
+  visibility: hidden;
+}
+
+.wir-checkin-note-dot[data-flight-landing="true"] {
+  animation: wir-checkin-slot-land var(--duration-context)
+    var(--easing-standard);
+}
+
 @keyframes wir-checkin-slot-land {
   0% {
     transform: scale(0.6);
@@ -664,6 +733,7 @@
 @media (prefers-reduced-motion: reduce) {
   .wir-checkin-badge .wir-checkin-badge-content,
   .wir-checkin-badge [data-flight-landing="true"],
+  .wir-checkin-note-dot[data-flight-landing="true"],
   .wir-checkin-note-dot,
   .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
     animation: none;

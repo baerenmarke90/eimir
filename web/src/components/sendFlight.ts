@@ -12,6 +12,21 @@
  * generated motion roles, never written here.
  */
 
+import {
+  centre,
+  flightKeyframes,
+  landingScale,
+  openFlightLayer,
+  type Point,
+} from './flightKit';
+
+export {
+  arcPoint,
+  flightKeyframes,
+  landingScale,
+  type Point,
+} from './flightKit';
+
 export type FlightKind = 'vibe' | 'energy' | 'note';
 
 export interface FlightItem {
@@ -40,106 +55,11 @@ export interface SendFlight {
   cancel: () => void;
 }
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
 /** How far an item grows while it hovers above its place. */
 const LIFT_SCALE = 1.18;
-/** How high the arc rises above the straight line, in pixels. */
-const ARC_RISE = 48;
 /** How far the arc leans sideways, in pixels. */
 const ARC_LEAN = 36;
-const PATH_STEPS = 12;
 const NOTE_PREVIEW_LENGTH = 18;
-
-/** A quadratic arc between two points, bulging up and to one side. */
-export function arcPoint(
-  from: Point,
-  to: Point,
-  lean: number,
-  rise: number,
-): (progress: number) => Point {
-  const control = {
-    x: (from.x + to.x) / 2 + lean,
-    y: Math.min(from.y, to.y) - rise,
-  };
-  return (progress) => ({
-    x:
-      (1 - progress) ** 2 * from.x +
-      2 * (1 - progress) * progress * control.x +
-      progress ** 2 * to.x,
-    y:
-      (1 - progress) ** 2 * from.y +
-      2 * (1 - progress) * progress * control.y +
-      progress ** 2 * to.y,
-  });
-}
-
-/** Sampled keyframes along the arc, relative to the starting point. */
-export function flightKeyframes(
-  from: Point,
-  to: Point,
-  startScale: number,
-  endScale: number,
-  lean: number,
-  rise: number = ARC_RISE,
-  steps: number = PATH_STEPS,
-): Keyframe[] {
-  const path = arcPoint(from, to, lean, rise);
-  const frames: Keyframe[] = [];
-  for (let step = 0; step <= steps; step += 1) {
-    const progress = step / steps;
-    const point = path(progress);
-    const scale = startScale + (endScale - startScale) * progress;
-    frames.push({
-      transform: `translate(${point.x - from.x}px, ${point.y - from.y}px) scale(${scale})`,
-    });
-  }
-  return frames;
-}
-
-/** The scale that makes the flying element as wide as its landing slot. */
-export function landingScale(ghostWidth: number, slotWidth: number): number {
-  return ghostWidth > 0 && slotWidth > 0 ? slotWidth / ghostWidth : 1;
-}
-
-interface MotionRoles {
-  context: number;
-  flight: number;
-  stagger: number;
-  enter: string;
-  standard: string;
-}
-
-function readRole(name: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-}
-
-function readDuration(name: string): number {
-  const raw = readRole(name);
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return 0;
-  return raw.endsWith('ms') ? value : value * 1000;
-}
-
-/** Null when any role is missing or zero (reduced motion resolves to zero). */
-function readMotionRoles(): MotionRoles | null {
-  const context = readDuration('--duration-context');
-  const flight = readDuration('--duration-send-flight');
-  const feedback = readDuration('--duration-feedback');
-  const enter = readRole('--easing-enter');
-  const standard = readRole('--easing-standard');
-  if (context <= 0 || flight <= 0 || !enter || !standard) return null;
-  return { context, flight, stagger: feedback / 2, enter, standard };
-}
-
-function centre(rect: DOMRect): Point {
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-}
 
 interface Ghost {
   kind: FlightKind;
@@ -197,38 +117,18 @@ function buildGhost(item: FlightItem, layer: HTMLElement, index: number) {
  * closes the sheet with a calm state change instead.
  */
 export function startSendFlight(items: FlightItem[]): SendFlight | null {
-  if (typeof document === 'undefined' || items.length === 0) return null;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
-    return null;
-  const found = readMotionRoles();
-  if (!found) return null;
-  const roles: MotionRoles = found;
-  const probe = document.createElement('div');
-  if (
-    typeof probe.animate !== 'function' ||
-    typeof probe.showPopover !== 'function'
-  )
-    return null;
-
-  // A popover lives in the top layer, so the flight stays visible above the
-  // modal sheet and keeps going after the sheet is gone.
-  const layer = document.createElement('div');
-  layer.className = 'wir-checkin-flight-layer';
-  layer.setAttribute('popover', 'manual');
-  layer.setAttribute('aria-hidden', 'true');
-  document.body.append(layer);
-  try {
-    layer.showPopover();
-  } catch {
-    layer.remove();
-    return null;
-  }
+  if (items.length === 0) return null;
+  // A top-layer layer stays visible above the modal sheet and keeps going
+  // after the sheet is gone.
+  const opened = openFlightLayer();
+  if (!opened) return null;
+  const { layer, roles, dispose: disposeLayer } = opened;
 
   const ghosts = items
     .map((item, index) => buildGhost(item, layer, index))
     .filter((ghost): ghost is Ghost => ghost !== null);
   if (ghosts.length === 0) {
-    layer.remove();
+    disposeLayer();
     return null;
   }
   for (const ghost of ghosts) {
@@ -255,15 +155,8 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
   };
   const cleanup = () => {
     for (const ghost of ghosts) dispose(ghost);
-    try {
-      layer.hidePopover();
-    } catch {
-      // The layer may already be gone.
-    }
-    layer.remove();
+    disposeLayer();
   };
-
-  const motion = roles;
 
   async function fly(
     ghost: Ghost,
@@ -278,8 +171,8 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
         .animate(
           [{ transform: `scale(${LIFT_SCALE})` }, { transform: 'scale(1)' }],
           {
-            duration: motion.context,
-            easing: motion.standard,
+            duration: roles.context,
+            easing: roles.standard,
             fill: 'forwards',
           },
         )
@@ -295,9 +188,9 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
     const lean = ghost.kind === 'note' ? -ARC_LEAN : ARC_LEAN / 2;
     await ghost.element
       .animate(flightKeyframes(ghost.origin, end, LIFT_SCALE, scale, lean), {
-        duration: motion.flight,
-        delay: ghost.index * motion.stagger,
-        easing: motion.standard,
+        duration: roles.flight,
+        delay: ghost.index * roles.stagger,
+        easing: roles.standard,
         fill: 'forwards',
       })
       .finished.catch(() => undefined);

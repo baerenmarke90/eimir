@@ -65,14 +65,13 @@ const m5s5 = {
       '{{period}}: {{entries}} · {{kind}}: {{title}}, {{position}} von {{total}}',
     storyLifelineHint:
       'Seitlich wischen wählt einen Zeitraum, hoch und runter einen einzelnen Moment.',
-    storyLifelineEntryHint: 'Hoch und runter wählt einen einzelnen Moment.',
+    storyLifelineEntryHint:
+      'Im Fenster seitlich wischen oder auf der Linie hoch und runter schieben. Tippen öffnet.',
+    storyLifelineEntryLabel: 'Moment {{position}} von {{total}}',
     storyLifelineKindMemory: 'Erinnerung',
     storyLifelineKindHeartMoment: 'Herzmoment',
     storyLifelineKindMilestone: 'Meilenstein',
     storyLifelinePosition: '{{position}} von {{total}}',
-    storyLifelineShortPosition: '{{position}}/{{total}}',
-    storyLifelineNext: 'Nächster Moment',
-    storyLifelinePrevious: 'Vorheriger Moment',
     storyLifelineAll_one: 'Den Moment aus {{period}} ansehen',
     storyLifelineAll_other: 'Alle {{count}} aus {{period}} ansehen',
     storyLifelineLoading: 'Momente werden geladen',

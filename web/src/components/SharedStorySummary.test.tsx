@@ -350,7 +350,7 @@ describe('SharedStorySummary lifeline', () => {
     );
     const preview = screen.getByRole('link', { name: /Moved in together/ });
     expect(preview.getAttribute('href')).toBe('/story/milestones/ms1');
-    expect(preview.className).toContain('is-from-above');
+    expect(preview.className).toContain('is-from-left');
     expect(preview.textContent).toContain(copy.storyLifelineKindMilestone);
     // The chosen entry's dot stands out in its column.
     const chosen = document.querySelector(
@@ -361,12 +361,12 @@ describe('SharedStorySummary lifeline', () => {
     fireEvent.keyDown(band, { key: 'ArrowUp' });
     expect(
       screen.getByRole('link', { name: /Thank you for today/ }).className,
-    ).toContain('is-from-below');
+    ).toContain('is-from-right');
     expect(
       screen
-        .getByRole('button', { name: copy.storyLifelineNext })
-        .hasAttribute('disabled'),
-    ).toBe(true);
+        .getByRole('button', { name: 'Moment 4 von 4' })
+        .getAttribute('aria-current'),
+    ).toBe('true');
     // Moving to another period starts again from its highlight.
     fireEvent.keyDown(band, { key: 'ArrowLeft' });
     expect(
@@ -380,25 +380,86 @@ describe('SharedStorySummary lifeline', () => {
     );
   });
 
-  it('steps through a period with the preview buttons', async () => {
+  it('moves through a period by swipe, keys and pagination dots in the preview', async () => {
     renderSummary(async () => LIFELINE, undefined, {
       getStoryLifelineEntries: async () => LATEST_ENTRIES,
     });
     const band = await screen.findByRole('slider');
     fireEvent.keyDown(band, { key: 'End' });
-    const previous = screen.getByRole('button', {
-      name: copy.storyLifelinePrevious,
+    const pager = await screen.findByRole('group', { name: '3 von 4' });
+    const dots = within(pager).getAllByRole('button');
+    expect(dots.map((dot) => dot.getAttribute('aria-label'))).toEqual([
+      'Moment 1 von 4',
+      'Moment 2 von 4',
+      'Moment 3 von 4',
+      'Moment 4 von 4',
+    ]);
+    expect(dots[2].getAttribute('aria-current')).toBe('true');
+    // A dot is the non-gesture way to any entry; the preview stays open.
+    fireEvent.click(dots[0]);
+    const first = screen.getByRole('link', { name: /Morning coffee/ });
+    expect(first.className).toContain('is-from-left');
+    expect(dots[0].getAttribute('aria-current')).toBe('true');
+    // A left swipe past the threshold brings the next entry and does not
+    // open the one under the finger.
+    const card = first.closest(
+      '.shared-story-lifeline-preview-card',
+    ) as HTMLElement;
+    fireEvent.pointerDown(first, {
+      pointerType: 'touch',
+      pointerId: 7,
+      clientX: 200,
+      clientY: 20,
     });
-    await vi.waitFor(() =>
-      expect(previous.hasAttribute('disabled')).toBe(false),
+    fireEvent.pointerMove(first, {
+      pointerType: 'touch',
+      pointerId: 7,
+      clientX: 150,
+      clientY: 22,
+    });
+    fireEvent.pointerUp(first, {
+      pointerType: 'touch',
+      pointerId: 7,
+      clientX: 150,
+      clientY: 22,
+    });
+    // With the pointer captured, the click that ends the swipe reaches the
+    // card, which swallows it.
+    expect(fireEvent.click(card)).toBe(false);
+    expect(fireEvent.click(card)).toBe(true);
+    const second = screen.getByRole('link', { name: /Moved in together/ });
+    expect(second.className).toContain('is-from-right');
+    // A short swipe snaps back without changing the entry.
+    fireEvent.pointerDown(second, {
+      pointerType: 'touch',
+      pointerId: 8,
+      clientX: 100,
+      clientY: 20,
+    });
+    fireEvent.pointerMove(second, {
+      pointerType: 'touch',
+      pointerId: 8,
+      clientX: 125,
+      clientY: 20,
+    });
+    fireEvent.pointerUp(second, {
+      pointerType: 'touch',
+      pointerId: 8,
+      clientX: 125,
+      clientY: 20,
+    });
+    expect(screen.getByRole('link', { name: /Moved in together/ })).toBe(
+      second,
     );
-    expect(screen.getByText('3/4')).toBeDefined();
-    fireEvent.click(previous);
-    fireEvent.click(previous);
-    expect(screen.getByText('1/4')).toBeDefined();
-    expect(previous.hasAttribute('disabled')).toBe(true);
-    // The buttons sit inside the lifeline, so the preview stays open.
-    expect(screen.getByRole('link', { name: /Morning coffee/ })).toBeDefined();
+    // Left and Right inside the card step too and keep focus on the card.
+    second.focus();
+    fireEvent.keyDown(second, { key: 'ArrowRight' });
+    const third = screen.getByRole('link', { name: /An ordinary Tuesday/ });
+    expect(document.activeElement).toBe(third);
+    fireEvent.keyDown(card, { key: 'ArrowLeft' });
+    expect(
+      screen.getByRole('link', { name: /Moved in together/ }),
+    ).toBeDefined();
     // Compact keeps only the floating preview, no list below the band.
     expect(document.querySelector('.shared-story-lifeline-fan')).toBeNull();
   });

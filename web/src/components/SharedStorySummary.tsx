@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent,
   type PointerEvent,
   useEffect,
   useId,
@@ -55,6 +56,13 @@ const DRAG_THRESHOLD = 6;
 const DRAG_ENTRY_STEP = 14;
 /** The most rows the full variant lists around the selected entry. */
 const FAN_ROWS = 6;
+/** The most pagination dots the preview shows around the selection. */
+const PAGER_DOTS = 9;
+/** Horizontal travel on the preview that changes the entry. */
+const SWIPE_COMMIT = 40;
+/** The swiped card fades with distance, never below this much. */
+const SWIPE_FADE_DISTANCE = 200;
+const SWIPE_FADE_MAX = 0.5;
 
 const KIND_LABEL: Record<LifelineKind, string> = {
   memories: 'm5s5.dashboard.storyLifelineKindMemory',
@@ -675,7 +683,6 @@ function LifelineBand({
             style={{ '--lifeline-x': current.position } as CSSProperties}
           >
             <LifelinePreview
-              column={current}
               item={selectedItem}
               position={selected}
               count={entries?.length ?? null}
@@ -685,6 +692,7 @@ function LifelineBand({
               spaceId={spaceId}
               loadMemoryImage={loadMemoryImage}
               onStep={step}
+              onChoose={chooseEntry}
             />
           </div>
         ) : null}
@@ -773,11 +781,11 @@ function itemDate(item: DashboardItem): string | null {
 }
 
 /**
- * The selected entry, floating above its column inside the graphic: the
- * whole card opens the entry, the controls beside it step through the period.
+ * The selected entry, floating above its column inside the graphic. The whole
+ * card opens the entry; a sideways swipe on it, its pagination dots or the
+ * Left/Right keys move through the period.
  */
 function LifelinePreview({
-  column,
   item,
   position,
   count,
@@ -786,8 +794,8 @@ function LifelinePreview({
   spaceId,
   loadMemoryImage,
   onStep,
+  onChoose,
 }: {
-  column: LifelineColumn;
   item: DashboardItem;
   position: number | null;
   count: number | null;
@@ -796,17 +804,101 @@ function LifelinePreview({
   spaceId: string;
   loadMemoryImage?: LoadMemoryImage;
   onStep: (delta: number) => void;
+  onChoose: (index: number) => void;
 }) {
   const { t } = useTranslation();
   const { title } = dashboardItemTitle(item, t);
   const kind = lifelineKindOf(item.type);
   const path = dashboardItemPath(item.type, item.id);
   const date = itemDate(item);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    moved: boolean;
+    pointerId: number;
+  } | null>(null);
+  // A click that ends a swipe must not open the entry.
+  const swipedRef = useRef(false);
+  const refocusRef = useRef(false);
+
+  // Keyboard stepping replaces the focused card; keep focus on the new one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs per entry.
+  useEffect(() => {
+    if (!refocusRef.current) return;
+    refocusRef.current = false;
+    mainRef.current
+      ?.querySelector<HTMLElement>('.shared-story-lifeline-preview-main')
+      ?.focus();
+  }, [item.id, travel.at]);
+
+  const follow = (dx: number) => {
+    const main = mainRef.current;
+    if (!main) return;
+    main.style.transform = dx ? `translateX(${dx}px)` : '';
+    main.style.opacity = dx
+      ? String(1 - Math.min(SWIPE_FADE_MAX, Math.abs(dx) / SWIPE_FADE_DISTANCE))
+      : '';
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // A swipe that ended without a click must not swallow the next tap.
+    swipedRef.current = false;
+    swipeRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      pointerId: event.pointerId,
+    };
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const swipe = swipeRef.current;
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    if (
+      !swipe.moved &&
+      Math.abs(dx) > DRAG_THRESHOLD &&
+      Math.abs(dx) > Math.abs(dy)
+    ) {
+      swipe.moved = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      mainRef.current?.classList.add('is-dragging');
+    }
+    if (swipe.moved) follow(dx);
+  };
+  const endSwipe = (event: PointerEvent<HTMLDivElement>, commit: boolean) => {
+    const swipe = swipeRef.current;
+    swipeRef.current = null;
+    if (!swipe?.moved) return;
+    mainRef.current?.classList.remove('is-dragging');
+    follow(0);
+    swipedRef.current = true;
+    const dx = event.clientX - swipe.x;
+    // A left swipe brings the next entry, a right swipe the previous one.
+    if (commit && Math.abs(dx) > SWIPE_COMMIT) onStep(dx < 0 ? 1 : -1);
+  };
+  const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+    if (!swipedRef.current) return;
+    swipedRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    event.stopPropagation();
+    refocusRef.current = (event.target as HTMLElement).classList.contains(
+      'shared-story-lifeline-preview-main',
+    );
+    onStep(event.key === 'ArrowRight' ? 1 : -1);
+  };
+
   const motion =
     travel.direction > 0
-      ? ' is-from-below'
+      ? ' is-from-right'
       : travel.direction < 0
-        ? ' is-from-above'
+        ? ' is-from-left'
         : '';
   const content = (
     <>
@@ -825,57 +917,75 @@ function LifelinePreview({
       </span>
     </>
   );
-  const mainClass = `shared-story-lifeline-preview-main${motion}`;
+  const dots: number[] = [];
+  if (position !== null && count !== null && count > 1) {
+    const shown = Math.min(PAGER_DOTS, count);
+    const start = Math.min(
+      Math.max(0, position - Math.floor(PAGER_DOTS / 2)),
+      count - shown,
+    );
+    for (let index = start; index < start + shown; index += 1) dots.push(index);
+  }
   return (
-    <div className="shared-story-lifeline-preview-card">
-      {path ? (
-        <TodayDestinationLink
-          key={`${item.id}:${travel.at}`}
-          to={path}
-          className={mainClass}
-        >
-          {content}
-        </TodayDestinationLink>
-      ) : (
-        <span key={`${item.id}:${travel.at}`} className={mainClass}>
-          {content}
-        </span>
-      )}
-      <span className="shared-story-lifeline-stepper">
-        <button
-          type="button"
-          className="shared-story-lifeline-step is-next"
-          aria-label={t('m5s5.dashboard.storyLifelineNext')}
-          disabled={
-            position === null || count === null || position >= count - 1
-          }
-          onClick={() => onStep(1)}
-        >
-          <EimirIcon name="chevron-right" />
-        </button>
-        <span className="shared-story-lifeline-step-position">
-          {position !== null && count !== null
-            ? t('m5s5.dashboard.storyLifelineShortPosition', {
-                position: position + 1,
+    // The card only adds a swipe to the link and buttons inside it.
+    // biome-ignore lint/a11y/noStaticElementInteractions: see above.
+    <div
+      className="shared-story-lifeline-preview-card"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={(event) => endSwipe(event, true)}
+      onPointerCancel={(event) => endSwipe(event, false)}
+      onClickCapture={onClickCapture}
+      onKeyDown={onKeyDown}
+    >
+      <div ref={mainRef} className="shared-story-lifeline-preview-swipe">
+        {path ? (
+          <TodayDestinationLink
+            key={`${item.id}:${travel.at}`}
+            to={path}
+            className={`shared-story-lifeline-preview-main${motion}`}
+          >
+            {content}
+          </TodayDestinationLink>
+        ) : (
+          <span
+            key={`${item.id}:${travel.at}`}
+            className={`shared-story-lifeline-preview-main${motion}`}
+          >
+            {content}
+          </span>
+        )}
+      </div>
+      {dots.length > 0 && position !== null && count !== null ? (
+        <fieldset className="shared-story-lifeline-pager">
+          <legend className="sr-only">
+            {t('m5s5.dashboard.storyLifelinePosition', {
+              position: position + 1,
+              total: count,
+            })}
+          </legend>
+          {dots.map((index) => (
+            <button
+              key={index}
+              type="button"
+              className="shared-story-lifeline-pager-dot"
+              aria-label={t('m5s5.dashboard.storyLifelineEntryLabel', {
+                position: index + 1,
                 total: count,
-              })
-            : column.total}
-          {loading ? (
-            <span className="sr-only" role="status">
-              {t('m5s5.dashboard.storyLifelineLoading')}
-            </span>
-          ) : null}
+              })}
+              aria-current={index === position ? 'true' : undefined}
+              onClick={() => onChoose(index)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
+      {loading ? (
+        <span className="sr-only" role="status">
+          {t('m5s5.dashboard.storyLifelineLoading')}
         </span>
-        <button
-          type="button"
-          className="shared-story-lifeline-step is-previous"
-          aria-label={t('m5s5.dashboard.storyLifelinePrevious')}
-          disabled={position === null || position <= 0}
-          onClick={() => onStep(-1)}
-        >
-          <EimirIcon name="chevron-right" />
-        </button>
-      </span>
+      ) : null}
     </div>
   );
 }

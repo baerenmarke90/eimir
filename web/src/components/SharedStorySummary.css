@@ -156,6 +156,7 @@
     calc(100% - var(--lifeline-preview-width))
   );
   inline-size: var(--lifeline-preview-width);
+  container-type: inline-size;
   animation: shared-story-lifeline-preview-in var(--duration-context)
     var(--easing-enter);
 }
@@ -175,15 +176,24 @@
 }
 .shared-story-lifeline-preview-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-1);
+  gap: 0;
   overflow: hidden;
-  padding: var(--space-1);
+  padding: var(--space-1) var(--space-1) 0;
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-raised);
   color: var(--color-text);
+  /* Sideways swipes change the entry; vertical ones still scroll the page. */
+  touch-action: pan-y;
+}
+.shared-story-lifeline-preview-swipe {
+  min-inline-size: 0;
+  transition:
+    transform var(--duration-context) var(--easing-standard),
+    opacity var(--duration-context) var(--easing-standard);
+}
+.shared-story-lifeline-preview-swipe.is-dragging {
+  transition: none;
 }
 .shared-story-lifeline-preview-main {
   display: grid;
@@ -199,6 +209,9 @@
   border-radius: var(--radius-medium);
   color: inherit;
   text-decoration: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .shared-story-lifeline-preview-main:focus-visible {
   outline: 2px solid var(--color-focus);
@@ -207,12 +220,12 @@
 .shared-story-lifeline-preview-main:is(:hover, :active) {
   background: var(--color-surface-subtle);
 }
-.shared-story-lifeline-preview-main.is-from-below {
-  animation: shared-story-lifeline-from-below var(--duration-context)
+.shared-story-lifeline-preview-main.is-from-right {
+  animation: shared-story-lifeline-from-right var(--duration-context)
     var(--easing-enter);
 }
-.shared-story-lifeline-preview-main.is-from-above {
-  animation: shared-story-lifeline-from-above var(--duration-context)
+.shared-story-lifeline-preview-main.is-from-left {
+  animation: shared-story-lifeline-from-left var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-preview-media,
@@ -225,7 +238,6 @@
   background: var(--color-surface-subtle);
 }
 .shared-story-lifeline-preview-media {
-  /* Large text keeps room for the words instead of growing the photo. */
   inline-size: var(--space-story-lifeline-preview-media);
 }
 .shared-story-lifeline-preview-media :is(img, .story-media-preview),
@@ -234,6 +246,7 @@
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 .shared-story-lifeline-tile {
   display: grid;
@@ -267,6 +280,7 @@
 }
 .shared-story-lifeline-preview-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   min-inline-size: 0;
@@ -278,43 +292,48 @@
 .shared-story-lifeline-preview-meta .story-kind-glyph {
   font-size: 0.75rem;
 }
-.shared-story-lifeline-stepper {
-  display: grid;
-  justify-items: center;
-  color: var(--color-text-secondary);
-  font: var(--font-media-caption);
-  font-variant-numeric: tabular-nums;
+/* Large text keeps room for the words: the photo moves above them. */
+@container (width < 16rem) {
+  .shared-story-lifeline-preview-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.shared-story-lifeline-step {
-  display: grid;
-  place-items: center;
-  inline-size: var(--touch-target-web);
-  block-size: var(--space-8);
+
+/* Pagination dots: the non-gesture way through the period. */
+.shared-story-lifeline-pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-inline-size: 0;
+  margin: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-medium);
+}
+.shared-story-lifeline-pager-dot {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
   background: transparent;
-  color: var(--color-text);
   cursor: pointer;
 }
-.shared-story-lifeline-step svg {
-  inline-size: var(--space-4);
-  block-size: var(--space-4);
+.shared-story-lifeline-pager-dot span {
+  inline-size: 0.375rem;
+  block-size: 0.375rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text-secondary) 40%, transparent);
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    background-color var(--duration-feedback) var(--easing-standard);
 }
-.shared-story-lifeline-step.is-next svg {
-  transform: rotate(-90deg);
+.shared-story-lifeline-pager-dot[aria-current="true"] span {
+  background: var(--color-text);
+  transform: scale(1.4);
 }
-.shared-story-lifeline-step.is-previous svg {
-  transform: rotate(90deg);
-}
-.shared-story-lifeline-step:is(:hover, :active):not(:disabled) {
-  background: var(--color-surface-subtle);
-}
-.shared-story-lifeline-step:disabled {
-  opacity: var(--opacity-disabled, 0.56);
-  cursor: default;
-}
-.shared-story-lifeline-step:focus-visible {
+.shared-story-lifeline-pager-dot:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
@@ -325,16 +344,16 @@
     scale: 0.96;
   }
 }
-@keyframes shared-story-lifeline-from-below {
+@keyframes shared-story-lifeline-from-right {
   from {
     opacity: 0;
-    transform: translateY(var(--space-4));
+    transform: translateX(var(--space-6));
   }
 }
-@keyframes shared-story-lifeline-from-above {
+@keyframes shared-story-lifeline-from-left {
   from {
     opacity: 0;
-    transform: translateY(calc(var(--space-4) * -1));
+    transform: translateX(calc(var(--space-6) * -1));
   }
 }
 
@@ -519,13 +538,15 @@
   .shared-story-summary-row,
   .shared-story-lifeline-row,
   .shared-story-lifeline-column,
-  .shared-story-lifeline-dot {
+  .shared-story-lifeline-dot,
+  .shared-story-lifeline-preview-swipe,
+  .shared-story-lifeline-pager-dot span {
     transition: none;
   }
   .shared-story-lifeline-preview,
   .shared-story-lifeline-preview-tail,
-  .shared-story-lifeline-preview-main.is-from-below,
-  .shared-story-lifeline-preview-main.is-from-above,
+  .shared-story-lifeline-preview-main.is-from-right,
+  .shared-story-lifeline-preview-main.is-from-left,
   .shared-story-lifeline-fan,
   .shared-story-lifeline-rows > li {
     animation: none;
@@ -548,5 +569,11 @@
   }
   .shared-story-lifeline-preview-tail {
     display: none;
+  }
+  .shared-story-lifeline-pager-dot span {
+    background: CanvasText;
+  }
+  .shared-story-lifeline-pager-dot[aria-current="true"] span {
+    background: Highlight;
   }
 }

@@ -116,4 +116,21 @@ describe('native passkeys through Credential Manager', () => {
       passkeys.signInWithPasskey('https://app.eimir.de'),
     ).rejects.toBeInstanceOf(passkeys.PasskeyNotOnDeviceError);
   });
+
+  it('reports an app the platform does not trust for the service', async () => {
+    bridge.create.mockRejectedValue({ code: 'NOT_TRUSTED' });
+    const passkeys = await load();
+    await expect(
+      passkeys.registerPasskey('https://app.eimir.de', 'token', 'Pixel'),
+    ).rejects.toBeInstanceOf(passkeys.PasskeyAppNotTrustedError);
+    expect(apis.finishRegistration).not.toHaveBeenCalled();
+  });
+
+  it('reports a passkey that this device already stores', async () => {
+    bridge.create.mockRejectedValue({ code: 'ALREADY_REGISTERED' });
+    const passkeys = await load();
+    await expect(
+      passkeys.registerPasskey('https://app.eimir.de', 'token', 'Pixel'),
+    ).rejects.toBeInstanceOf(passkeys.PasskeyAlreadyOnDeviceError);
+  });
 });

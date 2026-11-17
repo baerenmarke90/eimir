@@ -1,4 +1,4 @@
-"""The monthly film on authorized shared material: compose once, read live.
+"""Monthly and yearly films on authorized shared material: compose once, read live.
 
 Composition reads the bounded period pool, measures photo quality on the stored
 thumbnails and freezes the look and the curated media in the protected edition
@@ -40,6 +40,7 @@ from eimir.recaps.models import (
     RecapEdition,
     RecapFilm,
     RecapKind,
+    RecapSource,
     RecapSourceKind,
 )
 from eimir.recaps.words import POSITIVE_REACTIONS, partners
@@ -323,12 +324,12 @@ def look_from(payload: FilmLook) -> film.Look:
 
 
 def previous_looks(session: Session, value: RecapEdition) -> list[film.Look]:
-    """Frozen looks of the latest earlier monthly editions of this Space, oldest first."""
+    """Frozen looks of the latest earlier editions of the same kind, oldest first."""
     rows = session.scalars(
         select(RecapEdition)
         .where(
             RecapEdition.space_id == value.space_id,
-            RecapEdition.kind == RecapKind.MONTH.value,
+            RecapEdition.kind == value.kind,
             RecapEdition.variant == 0,
             RecapEdition.id != value.id,
             (RecapEdition.year * 12 + RecapEdition.month) < value.year * 12 + value.month,
@@ -352,6 +353,130 @@ def previous_looks(session: Session, value: RecapEdition) -> list[film.Look]:
     return list(reversed(looks))
 
 
+def counterpart_looks(session: Session, value: RecapEdition) -> list[film.Look]:
+    """The December film and the year film of one year never share a mood or pair."""
+    if value.kind == RecapKind.MONTH.value and value.month != 12:
+        return []
+    other = (
+        (RecapKind.YEAR.value, 0)
+        if value.kind == RecapKind.MONTH.value
+        else (
+            RecapKind.MONTH.value,
+            12,
+        )
+    )
+    edition = session.scalar(
+        select(RecapEdition)
+        .where(
+            RecapEdition.space_id == value.space_id,
+            RecapEdition.kind == other[0],
+            RecapEdition.year == value.year,
+            RecapEdition.month == other[1],
+            RecapEdition.variant == 0,
+        )
+        .order_by(RecapEdition.saved_at.desc().nulls_last())
+        .limit(1)
+    )
+    if edition is None or edition.payload.film is None:
+        return []
+    return [look_from(edition.payload.film.look)]
+
+
+def frozen_months(session: Session, value: RecapEdition) -> dict[int, film.FrozenMonth]:
+    """The selection and highlight each composed monthly film of the year froze."""
+    editions = session.scalars(
+        select(RecapEdition)
+        .where(
+            RecapEdition.space_id == value.space_id,
+            RecapEdition.kind == RecapKind.MONTH.value,
+            RecapEdition.year == value.year,
+            RecapEdition.variant == 0,
+            RecapEdition.status == "READY",
+        )
+        .order_by(RecapEdition.month, RecapEdition.saved_at.desc().nulls_last())
+    )
+    result: dict[int, film.FrozenMonth] = {}
+    for edition in editions:
+        if edition.month in result or edition.payload.film is None:
+            continue
+        keys = session.execute(
+            select(RecapSource.kind, RecapSource.source_id)
+            .where(RecapSource.edition_id == edition.id)
+            .order_by(RecapSource.position)
+        ).all()
+        result[edition.month] = film.FrozenMonth(
+            highlight=edition.payload.film.highlight_key,
+            keys=tuple(f"{kind}:{source_id}" for kind, source_id in keys),
+        )
+    return result
+
+
+def _seed(value: RecapEdition) -> str:
+    return f"{value.space_id}:{value.kind}:{value.year}:{value.month}:{value.variant}"
+
+
+def _frozen_look(session: Session, value: RecapEdition, seed: str) -> FilmLook:
+    # A look is chosen once and then frozen, so reopening never changes it.
+    existing = value.payload.film
+    if existing is not None:
+        return existing.look
+    return look_payload(
+        film.choose_look(seed, previous_looks(session, value), counterpart_looks(session, value))
+    )
+
+
+def _film_media(media: dict[str, tuple[film.Media, ...]]) -> dict[str, list[FilmMedia]]:
+    return {
+        key: [
+            FilmMedia(
+                attachment_id=UUID(item.attachment_id),
+                parent_id=UUID(item.parent_id),
+                video=item.video,
+                clip_start=item.clip_start,
+                clip_seconds=item.clip_seconds,
+            )
+            for item in items
+        ]
+        for key, items in media.items()
+    }
+
+
+def compose_year(
+    session: Session,
+    context: AuthorizationContext,
+    value: RecapEdition,
+    pool: list[Candidate],
+    cache: QualityCache,
+) -> tuple[list[Candidate], RecapFilm]:
+    """The year as month chapters; composed monthly films keep their choices."""
+    seed = _seed(value)
+    frozen = frozen_months(session, value)
+    # Months with a film contribute only what that film chose (plus milestones),
+    # which also bounds the photos measured for a whole year.
+    bounded = [
+        item
+        for item in pool
+        if item.occurred_on.month not in frozen
+        or item.kind == RecapSourceKind.MILESTONE
+        or item.key in frozen[item.occurred_on.month].keys
+    ]
+    signals = moments(session, context, bounded, cache)
+    result = film.year_cut(
+        signals,
+        seed,
+        frozen,
+        lambda month: f"{value.space_id}:{RecapKind.MONTH.value}:{value.year}:{month}:0",
+    )
+    by_key = {item.key: item for item in bounded}
+    selected = [by_key[key] for key in result.keys if key in by_key]
+    return selected, RecapFilm(
+        look=_frozen_look(session, value, seed),
+        highlight_key=result.highlight,
+        months={str(month): key for month, key in result.months.items()},
+        media=_film_media(result.media),
+    )
+
+
 def compose(
     session: Session,
     context: AuthorizationContext,
@@ -363,30 +488,11 @@ def compose(
     signals = moments(session, context, pool, cache)
     result = film.cut(signals, seed)
     by_key = {item.key: item for item in pool}
-    # A look is chosen once and then frozen, so reopening never changes it.
-    existing = value.payload.film
-    look = (
-        existing.look
-        if existing is not None
-        else look_payload(film.choose_look(seed, previous_looks(session, value)))
-    )
     selected = [by_key[key] for key in result.keys if key in by_key]
     return selected, RecapFilm(
-        look=look,
+        look=_frozen_look(session, value, seed),
         highlight_key=result.highlight,
-        media={
-            key: [
-                FilmMedia(
-                    attachment_id=UUID(media.attachment_id),
-                    parent_id=UUID(media.parent_id),
-                    video=media.video,
-                    clip_start=media.clip_start,
-                    clip_seconds=media.clip_seconds,
-                )
-                for media in items
-            ]
-            for key, items in result.media.items()
-        },
+        media=_film_media(result.media),
     )
 
 

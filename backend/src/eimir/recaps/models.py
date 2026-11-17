@@ -80,13 +80,15 @@ class FilmLook(ProtectedPayload):
 
 
 class RecapFilm(ProtectedPayload):
-    """The monthly film: frozen look, guaranteed highlight and curated media per source.
+    """A recap film: frozen look, guaranteed highlight and curated media per source.
 
-    Scores and selection reasons are never stored or served.
+    A year film also names the highlight of every month chapter, keyed by the
+    month number. Scores and selection reasons are never stored or served.
     """
 
     look: FilmLook
     highlight_key: str | None = None
+    months: dict[str, str] = Field(default_factory=dict, max_length=12)
     media: dict[str, list[FilmMedia]] = Field(default_factory=dict)
 
 

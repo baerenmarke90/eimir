@@ -1,10 +1,11 @@
 
 # RecapFilmView
 
-The frozen look of a monthly film, from a fixed catalogue of design variants.
+The frozen look of a recap film, from a fixed catalogue of design variants.
  *
  * Names map to design tokens in the reader. Selection scores and reasons are
- * deliberately not part of the contract.
+ * deliberately not part of the contract. A year film lists the highlight of
+ * every month chapter; a monthly film lists none.
 
 ## Properties
 
@@ -13,6 +14,7 @@ Name | Type
 `cover` | string
 `highlightKey` | string
 `layouts` | { [key: string]: Array&lt;string&gt;; }
+`monthHighlights` | [Array&lt;RecapFilmMonthView&gt;](RecapFilmMonthView.md)
 `mood` | string
 `motions` | Array&lt;string&gt;
 `tags` | [Array&lt;RecapTagView&gt;](RecapTagView.md)
@@ -28,6 +30,7 @@ const example = {
   "cover": null,
   "highlightKey": null,
   "layouts": null,
+  "monthHighlights": null,
   "mood": null,
   "motions": null,
   "tags": null,

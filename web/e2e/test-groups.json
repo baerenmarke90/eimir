@@ -653,8 +653,8 @@
     },
     "wir-garden.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5,
-      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion. No always-run expansion."
+      "baselineTests": 7,
+      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion; the one-time in-game offer after a first garden moment at 390 Light/Dark with axe, accepted through the Wir preference, leading to the module on Wir and not offered again. No always-run expansion."
     }
   }
 }

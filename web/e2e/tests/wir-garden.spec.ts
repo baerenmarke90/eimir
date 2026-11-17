@@ -39,7 +39,7 @@ const plant = (id: string, slot: number, stage: number, senderId: string) => ({
   slot,
 });
 
-function gardenView(name: string | null) {
+function gardenView(name: string | null, extra: Record<string, unknown> = {}) {
   return {
     localDate: '2026-07-16',
     name,
@@ -66,12 +66,21 @@ function gardenView(name: string | null) {
     sleeping: false,
     reunionOn: null,
     reunionToday: false,
+    ...extra,
   };
 }
 
 async function gardenMocks(
   page: Page,
-  { pro = true, name = null }: { pro?: boolean; name?: string | null } = {},
+  {
+    pro = true,
+    name = null,
+    garden = {},
+  }: {
+    pro?: boolean;
+    name?: string | null;
+    garden?: Record<string, unknown>;
+  } = {},
 ): Promise<Server> {
   await installMocks(page);
   const server: Server = {
@@ -97,7 +106,13 @@ async function gardenMocks(
     }
     if (method === 'GET' && url.pathname === GARDEN_PATH) {
       server.gardenReads += 1;
-      return route.fulfill({ json: gardenView(name) });
+      return route.fulfill({ json: gardenView(name, garden) });
+    }
+    if (method === 'POST' && url.pathname === `${GARDEN_PATH}/waterings`) {
+      const { plantId } = request.postDataJSON() as { plantId: string };
+      return route.fulfill({
+        json: gardenView(name, { ...garden, wateredToday: plantId }),
+      });
     }
     if (method === 'GET' && url.pathname === `${SPACE_PATH}/dashboard`) {
       return route.fulfill({
@@ -282,5 +297,79 @@ for (const theme of ['light', 'dark'] as const) {
     await expectNoHorizontalOverflow(page);
     await card.scrollIntoViewIfNeeded();
     await captureScreenshot(page, info, `wir-garden-1280-${theme}.png`);
+  });
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`the garden offers Wir once after a moment and turns it on: ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme });
+    const server = await gardenMocks(page, { garden: { incoming: null } });
+    await signIn(page);
+    await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+    await page.goto('/games/garden');
+    await expect(page.getByTestId('garden-scene')).toBeVisible();
+    const hint = page.locator('.garden-wir-hint aside');
+    await expect(hint).toHaveCount(0);
+
+    // A first moment: the daily watering gesture.
+    await page
+      .getByRole('button', {
+        name: copy.plantLabel
+          .replace('{{species}}', copy.species.STARFLOWER.name)
+          .replace('{{name}}', PARTNER.displayName),
+      })
+      .first()
+      .click();
+    await page.getByRole('button', { name: copy.water }).click();
+    await page
+      .getByRole('button', {
+        name: copy.waterPlantLabel.replace(
+          '{{species}}',
+          copy.species.STARFLOWER.name,
+        ),
+      })
+      .first()
+      .click();
+    await expect(
+      page.getByText(
+        copy.wateredStatus.replace('{{name}}', PARTNER.displayName),
+      ),
+    ).toBeVisible();
+
+    await expect(hint.getByText(copy.wirHint.text)).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectAxeClean(page, '.garden-wir-hint');
+    await expect(page.locator('.garden-wir-hint [role="status"]')).toHaveText(
+      copy.wirHint.text,
+    );
+    await hint.scrollIntoViewIfNeeded();
+    await captureScreenshot(page, info, `wir-garden-hint-390-${theme}.png`);
+
+    await hint.getByRole('button', { name: copy.wirHint.accept }).click();
+    await expect(hint.getByText(copy.wirHint.done)).toBeVisible();
+    expect(server.preferenceWrites).toEqual([
+      { moduleKey: 'shared_garden', visible: true },
+    ]);
+    await captureScreenshot(
+      page,
+      info,
+      `wir-garden-hint-done-390-${theme}.png`,
+    );
+
+    await hint.getByRole('link', { name: copy.wirHint.toWir }).click();
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(gardenCard(page)).toBeVisible();
+
+    // Once per account and device: no second offer on the next visit.
+    await page.goto('/games/garden');
+    await expect(page.getByTestId('garden-scene')).toBeVisible();
+    await page.waitForTimeout(2_000);
+    await expect(hint).toHaveCount(0);
   });
 }

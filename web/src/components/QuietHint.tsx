@@ -27,11 +27,17 @@ export function QuietHint({
   tone = 'tip',
   children,
   action,
+  dismissLabel,
   onDismiss,
 }: {
   tone?: 'tip' | 'new';
   children: ReactNode;
-  action?: { to: string; label: string; selectedKey?: string };
+  /** A link to the place it explains, or an in-place button. */
+  action?:
+    | { to: string; label: string; selectedKey?: string }
+    | { onClick: () => void; label: string; disabled?: boolean };
+  /** Replaces the default "Verstanden"/"Ausblenden" wording. */
+  dismissLabel?: string;
   onDismiss: () => void;
 }) {
   const { t } = useTranslation();
@@ -73,7 +79,16 @@ export function QuietHint({
           ) : null}
           <p>{children}</p>
           <div className="quiet-hint-actions">
-            {action ? (
+            {action && 'onClick' in action ? (
+              <button
+                type="button"
+                className="quiet-hint-action"
+                disabled={action.disabled}
+                onClick={action.onClick}
+              >
+                {action.label}
+              </button>
+            ) : action ? (
               <TaskOriginLink
                 to={action.to}
                 selectedKey={action.selectedKey}
@@ -88,7 +103,8 @@ export function QuietHint({
               className="quiet-hint-dismiss"
               onClick={dismiss}
             >
-              {t(tone === 'new' ? 'quietHints.hide' : 'quietHints.gotIt')}
+              {dismissLabel ??
+                t(tone === 'new' ? 'quietHints.hide' : 'quietHints.gotIt')}
             </button>
           </div>
         </div>

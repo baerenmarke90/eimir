@@ -74,6 +74,7 @@ import {
 } from './GardenPresentation';
 import { GardenScene, type SceneGrowth, type ScenePlant } from './GardenScene';
 import { GardenVisitors } from './GardenVisitors';
+import { GardenWirHint } from './GardenWirHint';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
@@ -484,6 +485,9 @@ export function GardenGamePage({
   );
   const [banner, setBanner] = useState<SceneGrowth['banner']>(null);
   const [yearSaved, setYearSaved] = useState(false);
+  // Successful garden moments of this visit, for the one-time Wir offer.
+  const [moments, setMoments] = useState(0);
+  const markMoment = useCallback(() => setMoments((count) => count + 1), []);
   const bouquetSvg = useRef<SVGSVGElement | null>(null);
   const reduced = prefersReducedMotion();
 
@@ -584,6 +588,7 @@ export function GardenGamePage({
           name: names.partner,
         }),
       );
+      markMoment();
     };
     if (prefersReducedMotion()) {
       done();
@@ -632,6 +637,7 @@ export function GardenGamePage({
     void apply(next);
     setWateredNow(plantId);
     setStatus(t('games.garden.wateredStatus', { name: names.partner }));
+    markMoment();
   };
 
   if (gardenQuery.isPending) {
@@ -775,6 +781,7 @@ export function GardenGamePage({
       setStatus(text);
       // An unnamed visitor asks for a name, right next to its reaction.
       setAsk(name ? null : { kind, text });
+      markMoment();
     },
     banner,
   };
@@ -848,6 +855,7 @@ export function GardenGamePage({
             visitor: ownVisitor(kind),
           }),
     );
+    markMoment();
   };
   const askForName = (kind: GardenAnimal) => {
     setSelected(null);
@@ -1174,6 +1182,25 @@ export function GardenGamePage({
       {width > 340 ? (
         <p className="garden-pan-hint">{t('games.garden.panHint')}</p>
       ) : null}
+      {services ? null : (
+        <GardenWirHint
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          moment={moments}
+          quiet={
+            busy ||
+            landing ||
+            watering ||
+            binding ||
+            bookOpen ||
+            wordsOpen ||
+            banner !== null ||
+            visitorEditing !== null
+          }
+        />
+      )}
       <GardenSleepCard presentation={presentation} />
       {selectedPlant ? (
         <section className="garden-card garden-story" aria-live="polite">

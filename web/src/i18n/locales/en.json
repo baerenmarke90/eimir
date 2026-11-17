@@ -3848,6 +3848,15 @@
         "bothWatered": "You both watered today.",
         "empty": "Everything is still open. Send each other the first seed."
       },
+      "wirHint": {
+        "text": "See your garden on Wir too?",
+        "accept": "Show on Wir",
+        "saving": "Adding …",
+        "later": "Not now",
+        "done": "Your garden is on Wir now.",
+        "toWir": "Go to Wir",
+        "failed": "That did not work just now. You can try again in a moment."
+      },
       "words": {
         "THINKING_OF_YOU": "Thinking of you",
         "MISS_YOU": "Miss you",

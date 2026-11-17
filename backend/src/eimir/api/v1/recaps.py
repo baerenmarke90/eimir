@@ -59,6 +59,10 @@ class RecapFilmMediaView(ApiModel):
     kind: Literal["IMAGE", "VIDEO"]
     clip_start_seconds: float | None = None
     clip_seconds: float | None = None
+    # Format and crop centre (0-1) measured on the thumbnail; presentation only.
+    shape: str | None = None
+    focus_x: float | None = None
+    focus_y: float | None = None
 
 
 class RecapAnswerView(ApiModel):
@@ -94,6 +98,8 @@ class RecapFilmView(ApiModel):
     cover: str
     motions: list[str]
     layouts: dict[str, list[str]]
+    accents: list[str] = Field(default_factory=list)
+    pace: str | None = None
     highlight_key: str | None
     month_highlights: list[RecapFilmMonthView] = Field(default_factory=list)
     tags: list[RecapTagView]

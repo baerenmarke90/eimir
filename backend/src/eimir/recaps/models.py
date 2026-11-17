@@ -67,6 +67,10 @@ class FilmMedia(ProtectedPayload):
     video: bool = False
     clip_start: float | None = None
     clip_seconds: float | None = None
+    # Presentation hints measured on the thumbnail: format and crop centre.
+    shape: str | None = Field(default=None, max_length=16)
+    focus_x: float | None = Field(default=None, ge=0, le=1)
+    focus_y: float | None = Field(default=None, ge=0, le=1)
 
 
 class FilmLook(ProtectedPayload):
@@ -77,6 +81,9 @@ class FilmLook(ProtectedPayload):
     cover: str = Field(max_length=16)
     motions: list[str] = Field(max_length=5)
     layouts: dict[str, list[str]] = Field(default_factory=dict)
+    # Additive since the variety catalogue; older editions read with defaults.
+    accents: list[str] = Field(default_factory=list, max_length=3)
+    pace: str | None = Field(default=None, max_length=16)
 
 
 class RecapFilm(ProtectedPayload):

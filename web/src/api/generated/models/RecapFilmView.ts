@@ -40,6 +40,12 @@ import {
 export interface RecapFilmView {
     /**
      * 
+     * @type {Array<string>}
+     * @memberof RecapFilmView
+     */
+    accents?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof RecapFilmView
      */
@@ -74,6 +80,12 @@ export interface RecapFilmView {
      * @memberof RecapFilmView
      */
     motions: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecapFilmView
+     */
+    pace?: string | null;
     /**
      * 
      * @type {Array<RecapTagView>}
@@ -112,12 +124,14 @@ export function RecapFilmViewFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
+        'accents': json['accents'] == null ? undefined : json['accents'],
         'cover': json['cover'],
         'highlightKey': json['highlightKey'],
         'layouts': json['layouts'],
         'monthHighlights': json['monthHighlights'] == null ? undefined : ((json['monthHighlights'] as Array<any>).map(RecapFilmMonthViewFromJSON)),
         'mood': json['mood'],
         'motions': json['motions'],
+        'pace': json['pace'] === undefined ? undefined : json['pace'] === null ? null : json['pace'],
         'tags': ((json['tags'] as Array<any>).map(RecapTagViewFromJSON)),
         'transitions': json['transitions'],
     };
@@ -134,12 +148,14 @@ export function RecapFilmViewToJSONTyped(value?: RecapFilmView | null, ignoreDis
 
     return {
         
+        'accents': value['accents'],
         'cover': value['cover'],
         'highlightKey': value['highlightKey'],
         'layouts': value['layouts'],
         'monthHighlights': value['monthHighlights'] == null ? undefined : ((value['monthHighlights'] as Array<any>).map(RecapFilmMonthViewToJSON)),
         'mood': value['mood'],
         'motions': value['motions'],
+        'pace': value['pace'],
         'tags': ((value['tags'] as Array<any>).map(RecapTagViewToJSON)),
         'transitions': value['transitions'],
     };

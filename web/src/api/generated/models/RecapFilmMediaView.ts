@@ -39,6 +39,18 @@ export interface RecapFilmMediaView {
     clipStartSeconds?: number | null;
     /**
      * 
+     * @type {number}
+     * @memberof RecapFilmMediaView
+     */
+    focusX?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecapFilmMediaView
+     */
+    focusY?: number | null;
+    /**
+     * 
      * @type {RecapFilmMediaViewKindEnum}
      * @memberof RecapFilmMediaView
      */
@@ -49,6 +61,12 @@ export interface RecapFilmMediaView {
      * @memberof RecapFilmMediaView
      */
     parentId: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecapFilmMediaView
+     */
+    shape?: string | null;
 }
 
 
@@ -85,8 +103,11 @@ export function RecapFilmMediaViewFromJSONTyped(json: any, ignoreDiscriminator: 
         'attachmentId': json['attachmentId'],
         'clipSeconds': json['clipSeconds'] === undefined ? undefined : json['clipSeconds'] === null ? null : json['clipSeconds'],
         'clipStartSeconds': json['clipStartSeconds'] === undefined ? undefined : json['clipStartSeconds'] === null ? null : json['clipStartSeconds'],
+        'focusX': json['focusX'] === undefined ? undefined : json['focusX'] === null ? null : json['focusX'],
+        'focusY': json['focusY'] === undefined ? undefined : json['focusY'] === null ? null : json['focusY'],
         'kind': json['kind'],
         'parentId': json['parentId'],
+        'shape': json['shape'] === undefined ? undefined : json['shape'] === null ? null : json['shape'],
     };
 }
 
@@ -104,8 +125,11 @@ export function RecapFilmMediaViewToJSONTyped(value?: RecapFilmMediaView | null,
         'attachmentId': value['attachmentId'],
         'clipSeconds': value['clipSeconds'],
         'clipStartSeconds': value['clipStartSeconds'],
+        'focusX': value['focusX'],
+        'focusY': value['focusY'],
         'kind': value['kind'],
         'parentId': value['parentId'],
+        'shape': value['shape'],
     };
 }
 

@@ -11896,6 +11896,28 @@
             ],
             "title": "Clipstartseconds"
           },
+          "focusX": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusx"
+          },
+          "focusY": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusy"
+          },
           "kind": {
             "enum": [
               "IMAGE",
@@ -11908,6 +11930,17 @@
             "format": "uuid",
             "title": "Parentid",
             "type": "string"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
           }
         },
         "required": [
@@ -11940,6 +11973,13 @@
       "RecapFilmView": {
         "description": "The frozen look of a recap film, from a fixed catalogue of design variants.\n\nNames map to design tokens in the reader. Selection scores and reasons are\ndeliberately not part of the contract. A year film lists the highlight of\nevery month chapter; a monthly film lists none.",
         "properties": {
+          "accents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accents",
+            "type": "array"
+          },
           "cover": {
             "title": "Cover",
             "type": "string"
@@ -11982,6 +12022,17 @@
             },
             "title": "Motions",
             "type": "array"
+          },
+          "pace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace"
           },
           "tags": {
             "items": {

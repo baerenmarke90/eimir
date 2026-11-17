@@ -9,7 +9,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, delete, func, literal, or_, select, update
+from sqlalchemy import and_, delete, func, literal, or_, select, text, update
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -83,6 +83,8 @@ _OWN_NOISE_KINDS = {
     ActivityKind.PLACE_CREATED.value,
     ActivityKind.COLLECTION_CREATED.value,
     ActivityKind.WISH_CREATED.value,
+    ActivityKind.SHARED_NOTE_CREATED.value,
+    ActivityKind.SHARED_NOTE_CHANGED.value,
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
@@ -125,7 +127,19 @@ _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
         ActivityKind.COLLECTION_CREATED,
         EngagementTarget.COLLECTION,
     ),
+    EventType.SHARED_NOTE_CREATED: (
+        ActivityKind.SHARED_NOTE_CREATED,
+        EngagementTarget.SHARED_NOTE,
+    ),
+    EventType.SHARED_NOTE_UPDATED: (
+        ActivityKind.SHARED_NOTE_CHANGED,
+        EngagementTarget.SHARED_NOTE,
+    ),
 }
+
+_SHARED_NOTE_ACTIVITY_KINDS = frozenset(
+    {ActivityKind.SHARED_NOTE_CREATED, ActivityKind.SHARED_NOTE_CHANGED}
+)
 
 
 @dataclass(frozen=True)
@@ -550,6 +564,34 @@ def _insert_activity(
     # repeated private/share transitions from adding a second feed entry.
     if kind is ActivityKind.HEART_MOMENT_CREATED:
         statement = insert.on_conflict_do_nothing()
+    elif kind in _SHARED_NOTE_ACTIVITY_KINDS:
+        # A note has one "created" and one "changed" entry. A later edit moves
+        # the "changed" entry forward; an older or repeated event never does.
+        note_elements = ["space_id", "target_id", "kind"]
+        note_where = text(
+            "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') AND target_type = 'SHARED_NOTE'"
+        )
+        if kind is ActivityKind.SHARED_NOTE_CREATED:
+            statement = insert.on_conflict_do_nothing(
+                index_elements=note_elements, index_where=note_where
+            )
+        else:
+            statement = insert.on_conflict_do_update(
+                index_elements=note_elements,
+                index_where=note_where,
+                set_={
+                    "source_event_id": insert.excluded.source_event_id,
+                    "actor_id": insert.excluded.actor_id,
+                    "occurred_at": insert.excluded.occurred_at,
+                },
+                where=or_(
+                    Activity.occurred_at < insert.excluded.occurred_at,
+                    and_(
+                        Activity.occurred_at == insert.excluded.occurred_at,
+                        Activity.source_event_id < insert.excluded.source_event_id,
+                    ),
+                ),
+            )
     else:
         statement = insert.on_conflict_do_nothing(index_elements=["source_event_id", "kind"])
     session.execute(statement)

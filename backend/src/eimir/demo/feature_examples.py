@@ -15,7 +15,9 @@ Covered features:
 - shopping lists (#1808): a shopping list with a finished trip (suggestions),
   open entries and a filled cart;
 - multi-day date-only Plans (#1895);
-- a date proposal from a Wish (#1911) that Lea has not answered yet.
+- a date proposal from a Wish (#1911) that Lea has not answered yet;
+- shared notes (#1969): a pinned note, a pinned note whose Wir tile shows only
+  the title, and a note with bullet entries.
 """
 
 from __future__ import annotations
@@ -42,6 +44,8 @@ from eimir.presence import service as presence_service
 from eimir.presence.models import SharingLevel
 from eimir.profiles import service as profile_service
 from eimir.relationship import profile as relationship_profile
+from eimir.shared_notes import service as shared_note_service
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes import date_proposals
 from eimir.wishes.models import Wish, WishStatus
 
@@ -78,6 +82,34 @@ SHOPPING_CURRENT_ITEMS = (
 )
 
 MULTI_DAY_PLAN_TITLE = "Wochenende in Hamburg"
+# (written by Lea, title, body, pinned to Wir, the Wir tile shows the title only)
+SHARED_NOTE_EXAMPLES = (
+    (
+        False,
+        "Wochenende am See",
+        "Treffpunkt um neun am Parkplatz. "
+        "Sonnencreme nicht vergessen, am Nachmittag soll es warm werden.",
+        True,
+        False,
+    ),
+    (
+        True,
+        "WLAN im Gästezimmer",
+        "Netzwerk: Sofa-Café\nDer Zugang steht auf dem Zettel im Flur.",
+        True,
+        True,
+    ),
+    (
+        True,
+        "Herbstideen",
+        "Dafür wollen wir uns Zeit nehmen:\n"
+        "• Kürbissuppe kochen\n"
+        "• Drachen steigen lassen am Waldsee\n"
+        "• Das Sommer-Fotoalbum fertig machen",
+        False,
+        False,
+    ),
+)
 PROPOSAL_WISH_TITLE = "Frühstück am See"
 # Stable idempotency key so a repeated ensure resolves the same proposal.
 _PROPOSAL_NAMESPACE = uuid5(NAMESPACE_URL, "urn:eimir:demo:wish-date-proposal")
@@ -285,6 +317,24 @@ def _ensure_wish_date_proposal(
     )
 
 
+def _ensure_shared_notes(session: Session, result: DemoSeedResult) -> None:
+    existing = {
+        note.payload.title
+        for note in session.scalars(
+            select(SharedNote).where(SharedNote.space_id == result.space_id)
+        )
+    }
+    for by_lea, title, body, pinned, title_only in SHARED_NOTE_EXAMPLES:
+        if title in existing:
+            continue
+        context = _context(result, result.lea_id if by_lea else result.alex_id)
+        note = shared_note_service.create_note(session, context, title=title, body=body)
+        if pinned or title_only:
+            shared_note_service.set_presentation(
+                session, context, note.id, pinned=pinned, wir_title_only=title_only
+            )
+
+
 def ensure_feature_examples(
     session: Session, result: DemoSeedResult, *, reference_date: date
 ) -> None:
@@ -294,3 +344,4 @@ def ensure_feature_examples(
     _ensure_shopping_list(session, result)
     _ensure_multi_day_plan(session, result, reference_date=reference_date)
     _ensure_wish_date_proposal(session, result, reference_date=reference_date)
+    _ensure_shared_notes(session, result)

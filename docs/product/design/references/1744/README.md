@@ -244,8 +244,8 @@ reader.
   short or as the next scene, a scene where the month's tags fly together, and a
   quiet closing. A HeartMoment with a photo shows the photo with its words.
   Music stays optional and is not built; the contract leaves room for it.
-- **Year editions** keep the classic story; editions without a frozen film use
-  the existing reader unchanged.
+- **Year editions** are cut as a longer film (see "The year film" below);
+  editions without a frozen film use the existing reader unchanged.
 
 ### Mobile Interaction Contract (film)
 
@@ -305,3 +305,90 @@ the scrim), no horizontal overflow and no axe violation in the reader.
 Not performed: captures of the transitions and motions in flight, a video clip
 (the fixture has no video; the clip path is covered by unit tests), large-text
 capture of the film scenes, and Android device acceptance.
+
+## The year film (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: year recaps work exactly like the monthly
+film, but longer and with the year's highlights. The Product Owner approved the
+cut plan below in chat, including three choices: the year highlight closes the
+film as its climax, the milestones play as one "firsts" sequence in the finale,
+and the film is bounded to 36 moments (about 3.5 minutes, at most 4). The
+synthetic storyboard shown with the plan and the browser captures below serve
+as the visual reference; the baseline was this stack's base
+`claude/recap-bestof-8cf63b@d212c72ab` (PR #2018 on `main@1daf96b48`).
+
+### Cut (server, `recaps/film.py` `year_cut`, `recaps/montage.py` `compose_year`)
+
+- **Per month:** where a monthly film of that month exists, its frozen highlight
+  and its frozen selection are reused; otherwise the monthly cut rules choose,
+  with the seed the monthly film would use. Months with a film therefore only
+  contribute what that film chose, which also bounds the photos measured for a
+  year. Months without material get no chapter.
+- **Fill:** the year's strongest further moments, at most four per month
+  (highlight included) and two per day, until 36 moments or about 3.5 minutes.
+  Month highlights are never removed; the hard limit of four minutes is held by
+  dropping the weakest milestones down to three.
+- **Year highlight:** the strongest month highlight, guaranteed. Because it
+  closes the film, its month keeps at least one other moment when one exists.
+- **Firsts:** every milestone of the year (at most eight) plays as one sequence
+  in the finale and never again inside a month chapter. A month film whose
+  highlight is a milestone therefore opens its year chapter with its next pick.
+- **Look:** frozen per year edition; no mood and no transition pair of the latest
+  five year editions, and never the mood or transition pair of the December film
+  of the same year (checked from either side, whichever is composed later).
+- **Contract:** additive `film.monthHighlights` (month number and source key);
+  scores, ranks and selection reasons are still never stored or served.
+
+### Scenes (Web, `recapFilm.ts`, `RecapFilmScene`)
+
+- **Intro:** cover with the year and a mosaic of the month highlights (the year
+  highlight's own title as heading, else `recaps.film.coverFallbackYear`), the counted facts or
+  Places of the year and the rhythm scene with twelve buckets when frozen.
+- **Month chapters:** a short marker that shows only the localized month name
+  (no generated text), followed by the month's moments under every monthly rule
+  (chronology, no scene type twice in a row, answers in the picture or next).
+- **Finale:** the firsts (`recaps.film.firsts`) with each milestone's day and own title appearing one
+  after another, the year's tags flying together, the year highlight as the
+  longest and strongest scene, a montage of the month covers with the short
+  month name below each picture (never on it), and the quiet closing.
+- **Progress:** one segment per chapter (intro, each month, finale) that fills
+  scene by scene; taps, swipes and arrow keys still page by scene. The monthly
+  film keeps one bar per scene.
+
+### Mobile Interaction Contract (year film)
+
+Unchanged from the monthly film: watch in one sitting, a real photo or the
+couple's own words as focal point, play/pause as the single dominant action,
+tap left/right and hold to pause. Captions never sit under an image area. Reduced
+motion replaces every transition by the calm crossfade and removes the month
+marker zoom and the staggered firsts and covers; state and focus are unchanged.
+Browser-only arrows stay hidden in the native runtime. Expanded keeps the same
+order inside the reading column. Pending, empty, error, offline and downgrade
+behavior is unchanged; a year without material keeps the empty state.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** the monthly film's scoring, photo measures, look catalogue, reader,
+  playback and progress fill; no new dependency, provider or model.
+- **Business/freemium impact reviewed:** the same Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)"; the matrix wording
+  now names monthly and yearly films. No tier change; identical on Cloud and
+  Self-Hosted; retained year editions keep their look after expiry. A year job
+  measures at most the photos of months without a monthly film, so worker CPU
+  stays bounded; no inference.
+- **Privacy:** only shared, authorized content; month highlights are source keys
+  the edition already references; derived measures are not stored.
+- **Performance:** reading a year edition re-authorizes up to 36 sources with the
+  same per-source live extras as a month (answers, first Place, media).
+
+### Runtime evidence: the year film
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the year film plays its
+month chapters …" and "the year film keeps browser-only arrows hidden in the
+native app") from a synthetic year (January to October 2026, one highlight and
+one further moment per month, three milestones, six tags, frozen mood `sage`).
+Reduced motion is on, so every capture shows a settled scene; each run asserts
+twelve progress chapters, that no caption band sits under a picture, no
+horizontal overflow and no axe violation in the reader.
+
+EVIDENCE_TABLE

@@ -609,6 +609,13 @@ const games = {
           'Der Name konnte nicht gespeichert werden. Versucht es gleich noch einmal.',
       },
     },
+    // The optional Wir module (Product Owner 2026-11-17).
+    wir: {
+      openAria: '{{title}} öffnen',
+      resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
+      bothWatered: 'Heute habt ihr beide gegossen.',
+      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+    },
     words: {
       THINKING_OF_YOU: 'Denk an dich',
       MISS_YOU: 'Vermiss dich',

@@ -2,6 +2,7 @@ import contract from './dashboardModuleCatalog.contract.json';
 import {
   DASHBOARD_MODULE_CATALOG,
   DASHBOARD_MODULE_KEYS,
+  dashboardModuleDefaultVisible,
 } from './dashboardModules';
 
 describe('dashboardModules', () => {
@@ -20,7 +21,16 @@ describe('dashboardModules', () => {
       'monthly_highlights',
       'recent_shared',
       'shared_story_summary',
+      'shared_garden',
     ]);
+  });
+
+  it('keeps only the opt-in shared garden hidden without a saved choice', () => {
+    expect(
+      DASHBOARD_MODULE_KEYS.filter(
+        (key) => !dashboardModuleDefaultVisible(key),
+      ),
+    ).toEqual(['shared_garden']);
   });
 
   it('registers every module key exactly once', () => {

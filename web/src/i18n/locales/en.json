@@ -3842,6 +3842,12 @@
           "failed": "The name could not be saved. Please try again in a moment."
         }
       },
+      "wir": {
+        "openAria": "Open {{title}}",
+        "resting": "Your garden is resting and simply waits for you.",
+        "bothWatered": "You both watered today.",
+        "empty": "Everything is still open. Send each other the first seed."
+      },
       "words": {
         "THINKING_OF_YOU": "Thinking of you",
         "MISS_YOU": "Miss you",

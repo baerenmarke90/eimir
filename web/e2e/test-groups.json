@@ -650,6 +650,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
       "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
+    },
+    "wir-garden.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5,
+      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion. No always-run expansion."
     }
   }
 }

@@ -3735,11 +3735,99 @@
         },
         "reactions": {
           "snail": "The snail hides in its shell.",
-          "rabbit": "The rabbit hops away.",
+          "rabbit": "The rabbit hops away and will be right back.",
           "hedgehog": "The hedgehog curls up.",
           "ducks": "Quack! The ducks paddle a little.",
-          "squirrel": "The squirrel dashed up your tree.",
-          "deer": "Oh! The deer got startled."
+          "squirrel": "The squirrel dashes up your tree.",
+          "deer": "Oh! The deer got startled and leaps away."
+        },
+        "animalLabelNamed": "Tap {{name}}, the {{animal}}",
+        "reactionsNamed": {
+          "snail": "{{name}} hides in her shell.",
+          "rabbit": "{{name}} hops away and will be right back.",
+          "hedgehog": "{{name}} curls up.",
+          "ducks": "Quack! {{name}} paddle a little.",
+          "squirrel": "{{name}} dashes up your tree.",
+          "deer": "Oh! {{name}} got startled and leaps away."
+        },
+        "askName": {
+          "snail": "What should she be called?",
+          "rabbit": "What should it be called?",
+          "hedgehog": "What should he be called?",
+          "ducks": "What should they be called?",
+          "squirrel": "What should it be called?",
+          "deer": "What should it be called?"
+        },
+        "visitors": {
+          "title": "Your visitors",
+          "own": {
+            "snail": "Your snail",
+            "rabbit": "Your rabbit",
+            "hedgehog": "Your hedgehog",
+            "ducks": "Your duck pair",
+            "squirrel": "Your squirrel",
+            "deer": "Your deer"
+          },
+          "where": {
+            "snail": "crawls through the flower bed",
+            "rabbit": "nibbles the clover",
+            "hedgehog": "sniffs through the leaves",
+            "ducks": "lives by the pond",
+            "squirrel": "lives in your tree",
+            "deer": "passes by at the edge of the woods"
+          },
+          "question": {
+            "snail": "What is your snail called?",
+            "rabbit": "What is your rabbit called?",
+            "hedgehog": "What is your hedgehog called?",
+            "ducks": "What is your duck pair called?",
+            "squirrel": "What is your squirrel called?",
+            "deer": "What is your deer called?"
+          },
+          "suggestions": {
+            "snail": {
+              "a": "Shelly",
+              "b": "Turbo",
+              "c": "Herbert",
+              "d": "Daisy"
+            },
+            "rabbit": {
+              "a": "Clover",
+              "b": "Flopsy",
+              "c": "Biscuit",
+              "d": "Hazel"
+            },
+            "hedgehog": {
+              "a": "Spike",
+              "b": "Bramble",
+              "c": "Hattie",
+              "d": "Conker"
+            },
+            "ducks": {
+              "a": "Pip & Puddle",
+              "b": "Dot & Dash",
+              "c": "Bill & Bea"
+            },
+            "squirrel": {
+              "a": "Nutmeg",
+              "b": "Acorn",
+              "c": "Scout",
+              "d": "Rusty"
+            },
+            "deer": { "a": "Fern", "b": "Rosie", "c": "Moss", "d": "Willow" }
+          },
+          "namedSub": "{{animal}} · {{where}}",
+          "unnamed": "No name yet",
+          "unknown": "Has not visited yet",
+          "give": "Give a name",
+          "rename": "Rename",
+          "placeholder": "For example {{name}}",
+          "suggestionsLabel": "Suggestions",
+          "counter": "{{count}} / {{max}}",
+          "hint": "Leave it empty to remove the name.",
+          "namedStatus": "{{visitor}} is now called “{{name}}”.",
+          "clearedStatus": "{{visitor}} no longer has a name.",
+          "failed": "The name could not be saved. Please try again in a moment."
         }
       },
       "words": {

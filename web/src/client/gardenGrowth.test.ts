@@ -10,7 +10,10 @@ import {
   pondSlotPosition,
   shownStage,
   stableChance,
+  cleanVisitorName,
   unlockedWidth,
+  visitorNames,
+  withVisitorName,
   wordsArriveByPlane,
 } from './gardenGrowth';
 
@@ -85,5 +88,28 @@ describe('garden growth', () => {
     const byPlane = ids.filter(wordsArriveByPlane).length;
     expect(byPlane).toBeGreaterThan(40);
     expect(byPlane).toBeLessThan(120);
+  });
+
+  it('maps visitor names by animal and keeps the catalog order', () => {
+    expect(visitorNames(undefined)).toEqual({});
+    expect(
+      visitorNames([
+        { animal: 'DUCKS', name: 'Lotte & Otto' },
+        { animal: 'SNAIL', name: 'Frieda' },
+      ]),
+    ).toEqual({ snail: 'Frieda', ducks: 'Lotte & Otto' });
+    const named = withVisitorName(
+      [{ animal: 'DEER', name: 'Fenja' }],
+      'snail',
+      'Turbo',
+    );
+    expect(named).toEqual([
+      { animal: 'SNAIL', name: 'Turbo' },
+      { animal: 'DEER', name: 'Fenja' },
+    ]);
+    expect(withVisitorName(named, 'snail', '')).toEqual([
+      { animal: 'DEER', name: 'Fenja' },
+    ]);
+    expect(cleanVisitorName('  Pip   &\tPünktchen ')).toBe('Pip & Pünktchen');
   });
 });

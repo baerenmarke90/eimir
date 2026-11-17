@@ -75,6 +75,8 @@
                 <data android:path="/auth/invitation" />
                 <data android:path="/auth/verify-email" />
                 <data android:path="/auth/recovery" />
+                <!-- Return from an external sign-in provider (Google); the app finishes the sign-in. -->
+                <data android:pathPrefix="/auth/oidc/" />
             </intent-filter>
 
         </activity>

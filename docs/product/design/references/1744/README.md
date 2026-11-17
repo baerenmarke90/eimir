@@ -254,9 +254,10 @@ real photo or the couple's own words. Single dominant action: play/pause; tap
 left/right, hold to pause and the explicit controls stay. Captions never sit
 under an image area; full-bleed captions use the strong scrim. States:
 loading reserves the scene frame; pending, empty, error, offline and downgrade
-semantics are unchanged. Reduced motion replaces every transition by a calm
-crossfade, removes drift, zoom, stagger and the tag flight, and shows video
-posters instead of clips; state and focus are unchanged. Large text reflows;
+semantics are unchanged. Reduced motion follows the app's motion tokens, which
+are zero under that preference: scenes change without transition, drift, zoom,
+stagger and the tag flight stop, and video posters replace clips; state and
+focus are unchanged. Large text reflows;
 long words are never set as a display heading. Browser-only arrows stay hidden
 in the native runtime. Expanded keeps the same order inside the reading column.
 

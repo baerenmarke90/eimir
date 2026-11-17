@@ -11,7 +11,9 @@
   --film-tint: color-mix(in srgb, var(--film-accent) 14%, var(--film-bg));
   --film-enter: calc(var(--duration-context) * 2.7);
   /* A calm crossfade is the one movement kept under reduced motion. */
-  --film-calm-fade: 320ms;
+  --film-calm-fade: var(--duration-transition);
+  /* Pictures keep moving briefly into the next scene's entrance. */
+  --film-motion-tail: var(--duration-gesture-moment);
   color: var(--film-fg);
   background: var(--film-bg);
   min-block-size: min(72dvh, 46rem);
@@ -273,7 +275,7 @@
   border-radius: 0;
 }
 
-/* Two pictures: stacked, side by side or overlapping, all above the caption. */
+/* Two pictures: stacked, next to each other or overlapping, all above the caption. */
 .recap-film-frame[data-layout="stacked"] .recap-film-media {
   grid-template-rows: 1fr 1fr;
 }
@@ -522,7 +524,9 @@
   }
   .recap-film .recap-film-picture .story-media-preview,
   .recap-film .recap-film-media[data-count] .recap-film-clip {
-    animation: recap-film-zoom-in calc(var(--recap-dwell) + 900ms) linear both;
+    animation: recap-film-zoom-in
+      calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
+      both;
     animation-play-state: paused;
   }
   .recap-film[data-motion="drift-left"]
@@ -542,7 +546,9 @@
     animation-name: recap-film-parallax;
   }
   .recap-film-frame[data-layout="strip"] .recap-film-media {
-    animation: recap-film-strip calc(var(--recap-dwell) + 900ms) linear both;
+    animation: recap-film-strip
+      calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
+      both;
     animation-play-state: paused;
   }
   .recap-reader[data-playing="true"]
@@ -559,17 +565,20 @@
   .recap-film-places li,
   .recap-film-caption > .recap-film-words {
     animation: recap-film-stagger var(--film-enter) var(--easing-enter) both;
-    animation-delay: calc(250ms + var(--film-i, 0) * 260ms);
+    animation-delay: calc(
+      var(--duration-sequence-beat) *
+      (1 + var(--film-i, 0) * 1.3)
+    );
   }
   .recap-film-tags li {
     animation: recap-film-fly calc(var(--film-enter) * 1.4) var(--easing-travel)
       both;
-    animation-delay: calc(var(--film-i, 0) * 90ms);
+    animation-delay: calc(var(--film-i, 0) * var(--duration-sequence-beat) / 2);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .recap-film.recap-spread {
-    animation: recap-film-fade var(--film-calm-fade) linear both;
+    animation: recap-film-fade var(--film-calm-fade) var(--easing-playback) both;
   }
 }
 @keyframes recap-film-fade {

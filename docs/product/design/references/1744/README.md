@@ -577,8 +577,8 @@ approved the plan in chat and decided the open questions:
    notice of its own.
 3. **Retained editions:** late entries may produce a newer version when they are
    significant; the earlier version stays readable.
-4. **Wording:** "Euer Rückblick auf Oktober ist fertig", "Euer Jahr 2026 ist
-   fertig", and for a newer version "Euer März hat Zuwachs bekommen".
+4. **Wording:** the proposed German copy for a ready month, a ready year and
+   a newer version (`recaps.notice.readyMonth`, `readyYear`, `grewMonth`).
 
 The baseline was this stack's base `claude/recap-film-variety-18ddaa@111f6a74a`
 (PR #2020). The Product Owner accepted the synthetic browser captures below as
@@ -604,7 +604,8 @@ the visual reference, as for the film variety.
   changed after its composition) becomes the highlight, or at least three late
   moments join the film. Otherwise the candidate is discarded and the retained
   edition records that it has weighed this material. The earlier version stays
-  readable; the archive marks "Frühere Fassung" and "Mit Nachträgen", and the
+  readable; the archive marks `recaps.versionEarlier` and
+  `recaps.versionGrown`, and the
   earlier film's closing scene links to the newer one.
 - **Untouched:** curated selections (`customized`), manual variants and the
   running period's daily refresh. A year waits while one of its months is still
@@ -618,10 +619,10 @@ the visual reference, as for the film variety.
 - **Grew:** a kept newer version gets one notice.
 - **Earlier:** a period that only appears now (late entries for an empty month,
   a first Pro month, an import) is earlier news. Earlier and grew notices are
-  sent at most once a day per Space; several at once become one notice ("In
-  euren Rückblicken gibt es Neues.") that opens the overview.
+  sent at most once a day per Space; several at once become one notice
+  (`recaps.notice.earlier`) that opens the overview.
 - **Delivery:** never for the running period; not before 09:00 or after 21:00
-  in the Space's time zone; recipient Quiet Hours, the own "Rückblicke" switch
+  in the Space's time zone; recipient Quiet Hours, the own recaps switch (`notificationSettings.recaps`)
   (`RECAP_GREW` follows it) and the in-app/Push channel choices apply; never by
   email. Both active partners receive the identical notice (one outbox event
   each, no actor). The device preview names only the period as a machine key
@@ -634,10 +635,12 @@ the visual reference, as for the film variety.
 - **Notice:** one line in the Notification Center with the recap icon and a
   gentle bloom (the existing prompt motion, off under reduced motion); a tap
   opens the recap (or the overview for a collected notice).
-- **Settings:** a "Rückblicke" group beside "Gemeinsame Aktivität" and "Nähe"
-  with the same per-channel switches; no new pattern.
+- **Settings:** a recaps group (`notificationSettings.recaps`) beside the
+  shared-activity and closeness groups with the same per-channel switches; no
+  new pattern.
 - **Archive:** both versions of a period stay in the list; the period note says
-  "Mit Nachträgen" or "Frühere Fassung" in place of the period status. The
+  `recaps.versionGrown` or `recaps.versionEarlier` in place of the period
+  status. The
   earlier film's closing scene carries one quiet sentence and a text link to
   the newer version; no dialog, no extra primary action.
 - Compact and Expanded share the layout of the existing archive and reader.

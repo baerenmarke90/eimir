@@ -168,7 +168,7 @@ const de = {
     googleSignUp: 'Mit Google registrieren',
     providerContinue: 'Weiter mit {{name}}',
     providerContinueDefault: 'Mit einem anderen Konto anmelden',
-    passkeySignIn: 'Mit Passkey anmelden',
+    passkeySignIn: 'Weiter mit Passkey',
     passkeyLaterHint:
       'Einen Passkey richtest du nach der Anmeldung in den Einstellungen ein.',
     providerTermsFirst: 'Setze zuerst das Häkchen, dann geht es weiter.',

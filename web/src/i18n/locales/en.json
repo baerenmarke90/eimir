@@ -208,7 +208,7 @@
     "googleSignUp": "Sign up with Google",
     "providerContinue": "Continue with {{name}}",
     "providerContinueDefault": "Sign in with another account",
-    "passkeySignIn": "Sign in with a passkey",
+    "passkeySignIn": "Continue with a passkey",
     "passkeyLaterHint": "You can set up a passkey in Settings after you have signed in.",
     "providerTermsFirst": "Tick the box first, then you can continue.",
     "magicLinkHint": "We will send you a link that signs you in.",

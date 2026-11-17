@@ -70,6 +70,8 @@ for (const [name, role] of [
   ['story-lifeline-dot', 'storyLifelineDot'],
   ['story-lifeline-step', 'storyLifelineStep'],
   ['story-lifeline-band', 'storyLifelineBand'],
+  ['story-lifeline-preview-media', 'storyLifelinePreviewMedia'],
+  ['story-lifeline-row-media', 'storyLifelineRowMedia'],
 ])
   declare(`space-${name}`, rem(`spacing.${role}`));
 declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);

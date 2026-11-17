@@ -1,0 +1,26 @@
+/* One colour per shared Story kind, read by glyphs, bars and tinted tiles. */
+.story-kind-memories {
+  --story-kind-color: var(--color-story-memory);
+}
+.story-kind-heartMoments {
+  --story-kind-color: var(--color-story-heart-moment);
+}
+.story-kind-milestones {
+  --story-kind-color: var(--color-story-milestone);
+}
+
+.story-kind-glyph {
+  display: block;
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
+  color: var(--story-kind-color, currentColor);
+  fill: currentColor;
+}
+
+@media (forced-colors: active) {
+  /* The shape tells the kinds apart; the system text colour keeps contrast. */
+  .story-kind-glyph {
+    color: CanvasText;
+  }
+}

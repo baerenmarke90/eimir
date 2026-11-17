@@ -7,6 +7,7 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import { Configuration } from '../client/apiConfiguration';
 import { ProfilesApi } from '../client/mediaApis';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -18,6 +19,7 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import type { LifelineKind } from '../client/storyLifeline';
 import {
   type MilestoneRef,
   nextMilestoneAnniversary,
@@ -44,10 +46,24 @@ import {
   useWaymarkLabel,
 } from './RelationshipWaymarks';
 import { SharedStorySummary } from './SharedStorySummary';
+import { StoryKindGlyph } from './StoryKindGlyph';
 import './RelationshipReflections.css';
 
 const CAPABILITY = 'relationship.passport';
-export function RelationshipPassport(props: ProfilePageProps) {
+
+/** Loads a Memory's photo through the authorized story media path. */
+export type PassportImageLoader = (
+  memoryId: string,
+  attachmentId: string,
+  signal?: AbortSignal,
+  variant?: 'original' | 'thumbnail',
+) => Promise<ObjectUrlSource>;
+
+type PassportProps = ProfilePageProps & {
+  loadMemoryImage?: PassportImageLoader;
+};
+
+export function RelationshipPassport(props: PassportProps) {
   const { t } = useTranslation();
   const apis = useMemo(() => {
     const configuration = new Configuration({
@@ -119,8 +135,9 @@ function PassportProEntry() {
 
 function PassportRead({
   apis,
+  loadMemoryImage,
   ...props
-}: ProfilePageProps & {
+}: PassportProps & {
   apis: { dashboard: DashboardApi; profiles: ProfilesApi };
 }) {
   const { t } = useTranslation();
@@ -180,6 +197,8 @@ function PassportRead({
           accountId={props.account.id}
           spaceId={props.spaceId}
           dashboardApi={apis.dashboard}
+          loadMemoryImage={loadMemoryImage}
+          variant="full"
         />
         <StoryChapters
           apiBaseUrl={props.apiBaseUrl}
@@ -269,21 +288,30 @@ function PassportContent({
     key === 'fulfilledWishes'
       ? t('relationshipReflections.passport.fulfilledWishes', { count })
       : t(`relationshipReflections.passport.${key}`, { count });
-  const metrics = [
+  const metrics: {
+    key: string;
+    count: number;
+    to: string;
+    /** The three shared Story kinds keep their shape and colour here too. */
+    kind?: LifelineKind;
+  }[] = [
     {
       key: 'memories',
       count: value.memories,
       to: '/story?tab=timeline&type=MEMORY',
+      kind: 'memories',
     },
     {
       key: 'heartMoments',
       count: value.heartMoments,
       to: '/story?tab=timeline&type=HEART_MOMENT',
+      kind: 'heartMoments',
     },
     {
       key: 'milestones',
       count: value.milestones,
       to: '/story?tab=timeline&type=MILESTONE',
+      kind: 'milestones',
     },
     { key: 'completedPlans', count: value.completedPlans, to: '/plan#plans' },
     { key: 'places', count: value.places, to: MORE_PLACES_ROUTE },
@@ -373,11 +401,29 @@ function PassportContent({
           <h3>{t('relationshipReflections.passport.history')}</h3>
           <ul className="passport-metrics">
             {metrics.map((metric) => (
-              <li key={metric.key}>
+              <li
+                key={metric.key}
+                className={
+                  metric.kind
+                    ? `passport-metric-story story-kind-${metric.kind}`
+                    : undefined
+                }
+              >
                 <Link
                   to={metric.to}
                   aria-label={`${numbers.format(metric.count)} ${metricLabel(metric.key, metric.count)}`}
                 >
+                  {metric.kind ? (
+                    <StoryKindGlyph
+                      kind={metric.kind}
+                      className="passport-metric-glyph"
+                    />
+                  ) : (
+                    <span
+                      className="passport-metric-glyph"
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className="passport-metric-label">
                     {metricLabel(metric.key, metric.count)}
                   </span>

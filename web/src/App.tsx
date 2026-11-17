@@ -974,6 +974,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
                 />
               }
             />

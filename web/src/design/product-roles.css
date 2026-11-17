@@ -17,9 +17,11 @@
   --space-story-summary-inset: 1.125rem;
   --space-story-category-gap: 0.625rem;
   --space-story-bar-gap: 0.1875rem;
-  --space-story-lifeline-dot: 0.625rem;
-  --space-story-lifeline-step: 0.75rem;
-  --space-story-lifeline-band: 4.5rem;
+  --space-story-lifeline-dot: 0.75rem;
+  --space-story-lifeline-step: 0.875rem;
+  --space-story-lifeline-band: 5.75rem;
+  --space-story-lifeline-preview-media: 3.5rem;
+  --space-story-lifeline-row-media: 2.25rem;
   --opacity-story-chip-fill: 16%;
   --opacity-story-chip-fill-active: 26%;
   --color-story-memory: #3055b8;

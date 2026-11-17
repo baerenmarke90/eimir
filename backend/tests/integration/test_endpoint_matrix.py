@@ -205,6 +205,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/story-lifeline/entries",
+        query={"from": "2026-10-05", "to": "2026-10-12"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),

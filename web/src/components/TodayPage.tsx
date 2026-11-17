@@ -2290,6 +2290,7 @@ export function TodayPage({
             spaceId={spaceId}
             dashboardApi={apis.dashboard}
             loadMemoryImage={loadMemoryImage}
+            variant="compact"
           />
         ) : dashboardQuery.isCached &&
           wirStatistics.allowed &&

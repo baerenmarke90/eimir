@@ -1353,7 +1353,7 @@ function CollectionProductDetail({
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"
-                  className="shared-list-outbox-icon"
+                  className="shared-list-outbox-icon inline-icon"
                 >
                   {online ? (
                     <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />

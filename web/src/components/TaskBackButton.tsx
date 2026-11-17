@@ -51,7 +51,13 @@ function BackLabel({ children }: { children: ReactNode }) {
   }
   return (
     <>
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <svg
+        className="inline-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
         <path d="m14 5-7 7 7 7" />
       </svg>
       <span className="sr-only">{children}</span>

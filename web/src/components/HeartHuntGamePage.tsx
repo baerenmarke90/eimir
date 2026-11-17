@@ -20,7 +20,6 @@ import type { HeartHuntTapResult } from '../api/generated/models/HeartHuntTapRes
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
-import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   arcPoints,
   composeHeartPhoto,
@@ -32,6 +31,7 @@ import {
   placeKey,
   warmthKey,
 } from '../client/heartHunt';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,

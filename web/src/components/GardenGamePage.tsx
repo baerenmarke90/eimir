@@ -16,7 +16,6 @@ import type { GardenView } from '../api/generated/models/GardenView';
 import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
-import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   GARDEN_WORDS,
   type GardenFlight,
@@ -38,6 +37,7 @@ import {
   wordsArriveByPlane,
 } from '../client/gardenGrowth';
 import { renderSvgPng } from '../client/gardenImage';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,
@@ -836,7 +836,7 @@ export function GardenGamePage({
       setVisitorEditing(kind);
       return;
     }
-    apply(next, previous);
+    void apply(next);
     const saved = visitorNames(next.visitorNames)[kind];
     setStatus(
       saved

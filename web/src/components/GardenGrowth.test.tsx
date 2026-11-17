@@ -103,6 +103,7 @@ function services(initial: GardenView): Required<GardenServices> {
     giveBouquet: vi.fn(),
     closeBouquet: vi.fn().mockResolvedValue({ ...initial, bouquet: null }),
     saveToMoments: vi.fn().mockResolvedValue({ memoryId: 'memory-1' }),
+    loadMilestones: vi.fn().mockResolvedValue([]),
   };
 }
 

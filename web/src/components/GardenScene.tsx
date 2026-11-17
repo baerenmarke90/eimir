@@ -368,6 +368,7 @@ export function GardenScene({
   layers,
   growth = NO_GROWTH,
   ambience,
+  story,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -388,6 +389,18 @@ export function GardenScene({
   growth?: SceneGrowth;
   /** Time of day, seasonal particles, taps and together moments. */
   ambience?: SceneAmbience;
+  /**
+   * The couple's story in the garden (#1907 H3 follow-up): rare visitors on
+   * the back hill and the pond, Milestone plants at the meadow's front edge,
+   * a find in front, and their named tap targets.
+   */
+  story?: {
+    back?: ReactNode;
+    meadow?: ReactNode;
+    pond?: ReactNode;
+    front?: ReactNode;
+    targets?: ReactNode;
+  };
 }) {
   const id = useId().replace(/:/g, '');
   const svg = useRef<SVGSVGElement | null>(null);
@@ -591,6 +604,7 @@ export function GardenScene({
         />
         {scene.back}
         {life.layer('back')}
+        {story?.back}
         <Tufts
           ground={groundBack}
           count={Math.round((34 * width) / 340)}
@@ -615,6 +629,7 @@ export function GardenScene({
           <PlantArt key={plant.id} plant={plant} />
         ))}
         {life.layer('pond')}
+        {story?.pond}
         <Tufts
           ground={groundFront}
           count={Math.round((40 * width) / 340)}
@@ -650,7 +665,9 @@ export function GardenScene({
           width={width}
           fill="var(--garden-grass-front)"
         />
+        {story?.meadow}
         {life.layer('front')}
+        {story?.front}
         {scene.tint}
         {growth.unlocks.includes('STREAM') && growth.visitors ? (
           <Fireflies width={width} />
@@ -687,6 +704,7 @@ export function GardenScene({
       {/* Tree, pond and clouds, then visitors, so a plant stays on top. */}
       {scene.targets}
       {life.tapTargets}
+      {story?.targets}
       {plants.map((plant) => {
         const { x, y } = plantPosition(plant);
         const reach = plant.inPond ? 8 : plantHeight(plant.species);

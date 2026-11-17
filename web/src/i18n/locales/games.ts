@@ -674,6 +674,110 @@ const games = {
       GOOD_NIGHT: 'Gute Nacht',
       FOR_YOU: 'Für dich',
     },
+    story: {
+      eyebrow: 'Gewachsen aus eurer Geschichte',
+      memoryLabel: 'Meilenstein „{{title}}“, {{date}}',
+      open: 'Ansehen',
+      openLabel: '„{{title}}“ ansehen',
+      bookTitle: 'Eure Geschichte im Garten',
+      bookIntro:
+        'Eure Meilensteine wachsen in einer stillen Ecke eures Gartens.',
+      bookSub: '{{piece}} · {{date}}',
+      pieceNames: {
+        heartBush: 'Herzbusch',
+        youngTree: 'Junger Baum',
+        lanternFlower: 'Lampionblume',
+        steppingStones: 'Trittsteine',
+        roseTrellis: 'Rosenspalier',
+        memoryStone: 'Erinnerungsstein',
+      },
+      pieces: {
+        heartBush: 'Für diesen Tag wächst ein Herzbusch in eurem Garten.',
+        youngTree: 'Für diesen Tag wächst ein junger Baum in eurem Garten.',
+        lanternFlower:
+          'Für diesen Tag leuchtet eine Lampionblume in eurem Garten.',
+        steppingStones:
+          'Für diesen Tag liegen Trittsteine in eurem Garten, ein Stück gemeinsamer Weg.',
+        roseTrellis:
+          'Für diesen Tag blüht ein kleines Rosenspalier in eurem Garten.',
+        memoryStone:
+          'Für diesen Tag liegt ein Erinnerungsstein in eurem Garten.',
+      },
+      keepsakesTitle: 'Fundstücke',
+      keepsakesIntro:
+        'Kleine Dinge, die eure Besucher für euch dagelassen haben.',
+      keepsakes: {
+        feather: 'Feder',
+        hazelnut: 'Haselnuss',
+        snailShell: 'Schneckenhaus',
+        shinyPebble: 'Glänzender Kiesel',
+        clover: 'Kleeblatt',
+        acorn: 'Eichel',
+        pineCone: 'Tannenzapfen',
+        heartLeaf: 'Herzblatt',
+      },
+      keepsakeLeft: {
+        feather:
+          '{{visitor}} hat euch eine Feder dagelassen. Sie liegt jetzt im Gartenbuch.',
+        hazelnut:
+          '{{visitor}} hat euch eine Haselnuss dagelassen. Sie liegt jetzt im Gartenbuch.',
+        snailShell:
+          '{{visitor}} hat euch ein Schneckenhaus dagelassen. Es liegt jetzt im Gartenbuch.',
+        shinyPebble:
+          '{{visitor}} hat euch einen glänzenden Kiesel dagelassen. Er liegt jetzt im Gartenbuch.',
+        clover:
+          '{{visitor}} hat euch ein Kleeblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+        acorn:
+          '{{visitor}} hat euch eine Eichel dagelassen. Sie liegt jetzt im Gartenbuch.',
+        pineCone:
+          '{{visitor}} hat euch einen Tannenzapfen dagelassen. Er liegt jetzt im Gartenbuch.',
+        heartLeaf:
+          '{{visitor}} hat euch ein Herzblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+      },
+      rare: {
+        owl: {
+          label: 'Eine Eule im Baum',
+          reaction: 'Die Eule dreht den Kopf und blinzelt euch zu.',
+        },
+        fox: {
+          label: 'Ein Fuchs am Wiesenrand',
+          reaction:
+            'Der Fuchs schwingt den buschigen Schwanz und spitzt die Ohren.',
+        },
+        ducklings: {
+          label: 'Entenküken auf dem Teich',
+          reaction: 'Die Küken paddeln im Gänsemarsch eine kleine Runde.',
+        },
+      },
+      playback: {
+        title: 'Euer Gartenjahr',
+        intro: 'Schaut in ein paar Sekunden zu, wie euer Garten gewachsen ist.',
+        play: 'Euer Gartenjahr abspielen',
+        body: 'Vom ersten Samen bis heute.',
+        stillBody: 'Euer Garten am Anfang und heute.',
+        caption: '{{season}} · {{form}}',
+        start: 'Am Anfang',
+        today: 'Heute',
+        seasons: {
+          spring: 'Frühling',
+          summer: 'Sommer',
+          autumn: 'Herbst',
+          winter: 'Winter',
+        },
+        pause: 'Anhalten',
+        resume: 'Weiter',
+        again: 'Noch einmal',
+        close: 'Schließen',
+      },
+      feedback: {
+        title: 'Auf diesem Gerät',
+        sound: 'Geräusche im Garten',
+        soundHint: 'Leise Töne beim Pflanzen, Gießen und bei den Tieren.',
+        vibration: 'Sanftes Vibrieren',
+        vibrationHint:
+          'Ein leichtes Vibrieren, wenn du im Garten etwas antippst.',
+      },
+    },
   },
 };
 

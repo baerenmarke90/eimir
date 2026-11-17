@@ -116,6 +116,12 @@ async function installMocks(
       version: 0,
     },
     [`${SPACE_PATH}/notifications/unread-count`]: { unreadCount: 0 },
+    // The garden reads the couple's Milestones for its memory corner.
+    [`${SPACE_PATH}/milestones`]: {
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    },
   };
   for (const [id, displayName] of [
     [ACCOUNT_ID, 'Lea'],

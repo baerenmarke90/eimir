@@ -19,6 +19,7 @@ import photoReactions from '../../src/i18n/locales/photoReactions';
 import photoSources from '../../src/i18n/locales/photoSources';
 import planFiles from '../../src/i18n/locales/planFiles';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import sharedNotes from '../../src/i18n/locales/sharedNotes';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
@@ -678,6 +679,7 @@ for (const view of [
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
         edit: true,

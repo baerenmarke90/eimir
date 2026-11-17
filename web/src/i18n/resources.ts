@@ -53,6 +53,7 @@ import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
+import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
@@ -121,6 +122,7 @@ export const germanResources = {
   profiles,
   quietHints,
   serverAdmin,
+  ...sharedNotes,
   spaceOffboarding,
   ...relationshipComponents,
   relationshipReflections,

@@ -9,16 +9,16 @@ bouquet reuses the `GARDEN_SEED_ARRIVED` notice with its own target type
 `GARDEN_BOUQUET`. Nothing stores a location, a distance or free text other than
 the short garden name.
 
-Revision ID: 0150
-Revises: 0149
+Revision ID: 0153
+Revises: 0152
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0150"
-down_revision = "0149"
+revision = "0153"
+down_revision = "0152"
 branch_labels = None
 depends_on = None
 
@@ -27,7 +27,7 @@ _SPECIES = _BASE_SPECIES + ", 'SUNFLOWER', 'TULIP', 'WATER_LILY', 'STRAWBERRY', 
 _TARGETS = (
     "'ONCE_MESSAGE', 'REMINDER', 'TRANSFER_EXPORT', 'TRANSFER_IMPORT', 'WISH_SELECTION', "
     "'MEMORY', 'HEART_MOMENT', 'MILESTONE', 'WISH', 'PLAN', 'PLACE', 'CHAPTER', 'COLLECTION', "
-    "'PICTURE_GAME', "
+    "'PICTURE_GAME', 'SHARED_NOTE', "
     "'GARDEN_SEED'"
 )
 _NEW_TARGET = "'GARDEN_BOUQUET'"

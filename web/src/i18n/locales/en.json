@@ -1243,6 +1243,7 @@
       "CHAPTER": "Chapter",
       "COLLECTION": "List",
       "COLLECTION_ITEM": "List entry",
+      "SHARED_NOTE": "Shared note",
       "PRIVATE_NOTE": "Note for me",
       "GIFT_IDEA": "Gift idea",
       "PRIVATE_COLLECTION": "My list",
@@ -5955,5 +5956,148 @@
     "partnerBirthday": "On {{name}}'s birthday",
     "more_one": "and one more occasion",
     "more_other": "and {{count}} more occasions"
+  },
+  "sharedNotes": {
+    "title": "Notes",
+    "destination": "Shared notes",
+    "destinationSubtitle": "Addresses, thoughts, tips for both of you",
+    "untitled": "Untitled",
+    "audience": "For both of you",
+    "audienceEditing": "Visible to both of you",
+    "create": "Add note",
+    "createFirst": "Add the first note",
+    "back": "Back to notes",
+    "scopeLabel": "Filter notes",
+    "scope": {
+      "ALL": "All",
+      "PINNED": "Pinned"
+    },
+    "search": "Search notes",
+    "searchClear": "Clear search",
+    "sectionPinned": "Pinned",
+    "sectionRecent": "Recently edited",
+    "sectionAll": "All notes",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "loading": "Loading notes",
+    "loadMore": "Load more notes",
+    "loadingMore": "Loading more notes",
+    "cached": "You are seeing the last loaded state.",
+    "empty": {
+      "title": "What you want to remember lives here",
+      "body": "Addresses, thoughts, tips in plain text. You both see and add to them."
+    },
+    "noMatch": {
+      "title": "No results for “{{query}}”",
+      "body": "Try another word or clear the search."
+    },
+    "noPinned": {
+      "title": "Nothing pinned yet",
+      "body": "Pin important notes from a note's menu and they will appear here."
+    },
+    "pinnedBadge": "Pinned",
+    "editedBy": "Last edited by {{name}} · {{when}}",
+    "editedByYou": "Last edited by you · {{when}}",
+    "writtenBy": "Written by {{name}}",
+    "writtenByYou": "Written by you",
+    "changedBy": "Last changed by {{name}} · {{when}}",
+    "changedByYou": "Last changed by you · {{when}}",
+    "read": {
+      "edit": "Edit",
+      "itemLabel": "Shared note",
+      "menu": "Note menu",
+      "noBody": "This note has no text yet.",
+      "updatedByPartner": "{{name}} just updated this note."
+    },
+    "menu": {
+      "title": "Note",
+      "pin": "Pin",
+      "pinHint": "Shown first in the list and on Us",
+      "unpin": "Unpin",
+      "unpinHint": "Returns to the other notes",
+      "wirTitleOnly": "Show only the title on Us",
+      "wirTitleOnlyHint": "Good for door codes and passwords",
+      "wirExcerpt": "Show an excerpt on Us",
+      "wirExcerptHint": "The start of the text appears on Us",
+      "delete": "Delete …",
+      "deleteHint": "For both of you"
+    },
+    "toast": {
+      "saved": "Saved.",
+      "pinned": "Pinned.",
+      "unpinned": "Unpinned.",
+      "titleOnly": "Only the title shows on Us.",
+      "excerpt": "An excerpt shows on Us.",
+      "deleted": "Note deleted.",
+      "linkedPlan": "Saved and linked to the plan.",
+      "takenTheirs": "The other version is applied."
+    },
+    "delete": {
+      "title": "Delete note?",
+      "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
+      "confirm": "Delete",
+      "pending": "Deleting …"
+    },
+    "edit": {
+      "createTitle": "New note",
+      "editTitle": "Edit note",
+      "close": "Close",
+      "save": "Save",
+      "saving": "Saving …",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Title (optional)",
+      "bodyLabel": "Text",
+      "bodyPlaceholder": "What do you want to keep?",
+      "tools": "Add to note",
+      "bullets": "Bullet list",
+      "needsContent": "Write a title or some text.",
+      "offline": "Not saved, you are offline. Your text is kept.",
+      "retry": "Try again",
+      "gone": "This note was deleted. Your text is kept here.",
+      "draftKept": "Your text is kept."
+    },
+    "conflict": {
+      "message": "{{name}} just changed this note. Your text is kept.",
+      "seeChanges": "See changes",
+      "hideChanges": "Hide changes",
+      "keepMine": "Save my version",
+      "takeTheirs": "Take the other version",
+      "takeTheirsWarning": "Your changes are lost when you do.",
+      "theirsLabel": "Current version"
+    },
+    "wir": {
+      "titleOne": "Our note",
+      "titleMany": "Our notes",
+      "allNotes": "All notes",
+      "allNotesAria": "See all shared notes",
+      "open": "Open note “{{title}}”",
+      "hiddenExcerpt": "Excerpt hidden",
+      "add": "Add to it",
+      "moreTile": "More notes",
+      "loadError": "The notes could not be loaded."
+    },
+    "dashboard": {
+      "settingsTitle": "Pinned notes"
+    },
+    "plan": {
+      "heading": "Shared notes",
+      "tool": "Note",
+      "choose": "Link notes",
+      "hint": "Shared notes only. Find private notes under Private.",
+      "link": "Link selection",
+      "createNew": "Create new note",
+      "noChoices": "All existing notes are already linked.",
+      "unlink": "Remove link to “{{title}}”",
+      "unlinked": "Link to “{{title}}” removed.",
+      "linked_one": "Note linked.",
+      "linked_other": "{{count}} notes linked.",
+      "immediate": "Links apply right away, even without saving.",
+      "done": "Done",
+      "openNote": "Open note “{{title}}”"
+    },
+    "notification": {
+      "SHARED_NOTE_CREATED": "{{name}} added a shared note",
+      "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
+    }
   }
 }

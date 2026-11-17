@@ -67,6 +67,9 @@ import {
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  NOTE_CREATE_ROUTE,
+  NOTE_DETAIL_ROUTE_PATTERN,
+  NOTE_EDIT_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_GARDEN_ROUTE,
@@ -87,6 +90,7 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
@@ -155,6 +159,9 @@ import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
+import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
+import { SharedNoteReadPage } from './components/SharedNoteReadPage';
+import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DateIdeasPage } from './components/DateIdeasPage';
@@ -563,6 +570,7 @@ function AuthenticatedApp({
           dailyQuoteApi={dailyQuoteApi}
           entitlementApi={entitlementApi}
           collectionsApi={planningApis.collections}
+          sharedNotesApi={planningApis.sharedNotes}
           loadMemoryImage={loadMemoryImage}
           profilesApi={profilesApi}
           account={account}
@@ -806,6 +814,26 @@ function AuthenticatedApp({
                   dashboardApi={m4Apis.dashboard}
                   accountId={account.id}
                 />
+              }
+            />
+            <Route
+              path={MORE_NOTES_ROUTE}
+              element={<SharedNotesOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_CREATE_ROUTE}
+              element={
+                <SharedNoteEditorPage {...planningProductProps} mode="create" />
+              }
+            />
+            <Route
+              path={NOTE_DETAIL_ROUTE_PATTERN}
+              element={<SharedNoteReadPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_EDIT_ROUTE_PATTERN}
+              element={
+                <SharedNoteEditorPage {...planningProductProps} mode="edit" />
               }
             />
             <Route path={appRoutePath('today')} element={null} />

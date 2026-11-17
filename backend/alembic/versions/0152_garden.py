@@ -6,16 +6,16 @@ codes, dates, stages and slots only (no location, no free text). One
 notification kind (`GARDEN_SEED_ARRIVED`) and one target type (`GARDEN_SEED`)
 join the closed catalog; the notice coalesces per recipient and seed.
 
-Revision ID: 0149
-Revises: 0148
+Revision ID: 0152
+Revises: 0151
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0149"
-down_revision = "0148"
+revision = "0152"
+down_revision = "0151"
 branch_labels = None
 depends_on = None
 
@@ -28,17 +28,18 @@ _KINDS = (
     "'WISH_REMINDER_DUE', 'WISH_DATE_PROPOSED', 'WISH_DATE_COUNTERED', 'WISH_DATE_ACCEPTED', "
     "'WISH_SELECTION_RANDOM_REQUESTED', 'WISH_SELECTION_RANDOM_ACCEPTED', "
     "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT', 'HEART_HUNT_HIDDEN', 'HEART_HUNT_FOUND', "
-    "'PICTURE_PING_PONG_TURN'"
+    "'PICTURE_PING_PONG_TURN', 'SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED'"
 )
 _TARGETS = (
     "'ONCE_MESSAGE', 'REMINDER', 'TRANSFER_EXPORT', 'TRANSFER_IMPORT', 'WISH_SELECTION', "
     "'MEMORY', 'HEART_MOMENT', 'MILESTONE', 'WISH', 'PLAN', 'PLACE', 'CHAPTER', 'COLLECTION', "
-    "'PICTURE_GAME'"
+    "'PICTURE_GAME', 'SHARED_NOTE'"
 )
 _COALESCED = (
     "'PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY', "
     "'WISH_SELECTION_RANDOM_REQUESTED', 'WISH_SELECTION_RANDOM_ACCEPTED', "
-    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT', 'PICTURE_PING_PONG_TURN'"
+    "'WISH_SELECTION_RANDOM_DECLINED', 'COLLECTION_SENT', 'PICTURE_PING_PONG_TURN', "
+    "'SHARED_NOTE_CHANGED'"
 )
 _NEW_KIND = "'GARDEN_SEED_ARRIVED'"
 _NEW_TARGET = "'GARDEN_SEED'"

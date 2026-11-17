@@ -41,6 +41,9 @@ INHERITED_KINDS = {
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
     NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+    # #1969: shared notes are collaborative writing, like comments.
+    NotificationKind.SHARED_NOTE_CREATED: NotificationKind.COMMENT_CREATED,
+    NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
     **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 

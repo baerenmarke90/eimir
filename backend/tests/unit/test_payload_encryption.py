@@ -24,6 +24,7 @@ DIALECT = postgresql.dialect()
 # every stored row of that type unreadable. A rename must pin the old label by
 # overriding ``crypto_context``; then update this table in the same change.
 PINNED_CONTEXTS = {
+    "accounts": "AccountPayload",
     "once_messages": "OnceEnvelope",
     "context_tag_suggestions": "TagSuggestionPayload",
     "attachments": "AttachmentPayload",
@@ -57,6 +58,7 @@ PINNED_CONTEXTS = {
     "private_collection_items": "PrivateCollectionItemPayload",
     "private_collections": "PrivateCollectionPayload",
     "private_notes": "PrivateNotePayload",
+    "shared_notes": "SharedNotePayload",
     "profile_preferences": "ProfilePreferencePayload",
     "related_persons": "RelatedPersonPayload",
     "recap_editions": "RecapPayload",

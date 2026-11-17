@@ -26,15 +26,14 @@ _INSERT_DEFAULTED = text(
 )
 
 
-def _designs(session) -> dict[str, tuple[str, int]]:  # type: ignore[no-untyped-def]
+def _designs(session, accounts) -> dict[str, tuple[str, int]]:  # type: ignore[no-untyped-def]
+    # Keyed by the test's own label for each account: the name of an account is
+    # protected content and no longer readable in SQL (#797).
+    labels = {account.id: label for label, account in accounts.items()}
     rows = session.execute(
-        text(
-            "SELECT accounts.display_name, preferences.wir_design, preferences.version "
-            "FROM app_icon_preferences AS preferences "
-            "JOIN accounts ON accounts.id = preferences.account_id"
-        )
+        text("SELECT account_id, wir_design, version FROM app_icon_preferences")
     ).all()
-    return {name: (design, version) for name, design, version in rows}
+    return {labels[account_id]: (design, version) for account_id, design, version in rows}
 
 
 def _server_default(session) -> str:  # type: ignore[no-untyped-def]
@@ -76,11 +75,11 @@ def test_warm_becomes_connected_and_paid_choices_survive_the_round_trip(session)
             _INSERT_DEFAULTED,
             {"id": uuid4(), "account": accounts["Defaulted"].id, "space": space.id},
         )
-        assert _designs(session)["Defaulted"] == ("warm", 1)
+        assert _designs(session, accounts)["Defaulted"] == ("warm", 1)
 
         migration.upgrade()
         # Versions stay untouched so existing concurrency tokens remain valid.
-        assert _designs(session) == {
+        assert _designs(session, accounts) == {
             "Warm": ("connected", 3),
             "Modern": ("modern", 3),
             "Classic": ("classic", 3),
@@ -89,7 +88,7 @@ def test_warm_becomes_connected_and_paid_choices_survive_the_round_trip(session)
         assert "connected" in _server_default(session)
 
         migration.downgrade()
-        assert _designs(session) == {
+        assert _designs(session, accounts) == {
             "Warm": ("warm", 3),
             "Modern": ("modern", 3),
             "Classic": ("classic", 3),

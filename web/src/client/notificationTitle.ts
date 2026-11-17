@@ -77,6 +77,16 @@ export function getNotificationItemTitle(
     });
   }
 
+  // The notice never carries the note's words: it only says who did what.
+  if (
+    item.kind === 'SHARED_NOTE_CREATED' ||
+    item.kind === 'SHARED_NOTE_CHANGED'
+  ) {
+    return t(`sharedNotes.notification.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+
   if (item.kind === 'COMMENT_CREATED') {
     if (actorName && targetTitle) {
       return t('m5s5.notificationAction.COMMENT_CREATED_WITH_TARGET', {

@@ -82,6 +82,7 @@ import {
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarSheet } from './PlanCalendarSheet';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanNoteLinks } from './PlanNoteLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
 import {
@@ -162,6 +163,9 @@ export function PlanProductPage({
   );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
   const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [noteToolHost, setNoteToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
   const tagEditor = useRef<ContextTagEditorHandle>(null);
@@ -952,6 +956,30 @@ export function PlanProductPage({
                   : null
               }
             />
+            <PlanNoteLinks
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
+              plan={plan}
+              editing
+              disabled={writesPending || !online}
+              onNavigate={(destination) =>
+                editorLifecycle.requestClose(destination)
+              }
+              renderTrigger={(open) =>
+                noteToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="notes"
+                        label={t('sharedNotes.plan.tool')}
+                        disabled={writesPending}
+                        onClick={open}
+                      />,
+                      noteToolHost,
+                    )
+                  : null
+              }
+            />
             <MemoryTagChoices
               presentation="composer"
               parentType="PLAN"
@@ -1141,6 +1169,20 @@ export function PlanProductPage({
               plan={plan}
               disabled={writesPending || !online}
             />
+            <PlanNoteLinks
+              key={JSON.stringify([
+                'notes',
+                apiBaseUrl,
+                accountId,
+                spaceId,
+                plan.id,
+              ])}
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
+              plan={plan}
+              disabled={writesPending || !online}
+            />
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}
@@ -1305,6 +1347,7 @@ export function PlanProductPage({
               onClick={() => setPlaceOpen(true)}
             />
             <span className="composer-tool-slot" ref={setListToolHost} />
+            <span className="composer-tool-slot" ref={setNoteToolHost} />
             <span className="composer-tool-slot" ref={setTagToolHost} />
           </ComposerToolRow>
           <ShortTaskSheet

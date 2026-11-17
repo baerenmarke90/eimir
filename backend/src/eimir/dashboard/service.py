@@ -811,7 +811,7 @@ def _upcoming(
     birthdays = session.execute(
         readable(RelatedPerson, authorization).where(
             RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            RelatedPerson.birthday.is_not(None),
+            RelatedPerson.with_birthday(),
             RelatedPerson.show_birthday_on_dashboard.is_(True),
         )
     ).scalars()

@@ -74,10 +74,19 @@ class ColumnMove:
 def moves() -> tuple[ColumnMove, ...]:
     """Every registered move. Imported lazily: the models import this package."""
     from eimir.daily_checkins.models import DailyCheckInPayload
+    from eimir.identity.models import AccountPayload
+    from eimir.people.models import RelatedPersonPayload
     from eimir.places.models import PlacePayload
     from eimir.profiles.models import ProfilePreferencePayload
 
     return (
+        ColumnMove(
+            "accounts",
+            AccountPayload,
+            ("display_name", "birthday"),
+            # Reads the row as it was: only a row that had a birthday gets the flag.
+            also_set="has_birthday = (has_birthday OR birthday IS NOT NULL)",
+        ),
         ColumnMove("daily_check_ins", DailyCheckInPayload, ("vibe", "energy_level")),
         ColumnMove(
             "places",
@@ -86,6 +95,12 @@ def moves() -> tuple[ColumnMove, ...]:
             also_set="has_coordinates = TRUE",
         ),
         ColumnMove("profile_preferences", ProfilePreferencePayload, ("topic",)),
+        ColumnMove(
+            "related_persons",
+            RelatedPersonPayload,
+            ("birthday",),
+            also_set="has_birthday = TRUE",
+        ),
     )
 
 

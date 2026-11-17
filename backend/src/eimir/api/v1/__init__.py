@@ -50,6 +50,7 @@ from eimir.api.v1 import (
     place_relations,
     places,
     plan_collections,
+    plan_notes,
     plan_story,
     plans,
     private_area,
@@ -64,6 +65,7 @@ from eimir.api.v1 import (
     server_admin,
     server_admin_observability,
     session_context,
+    shared_notes,
     spaces,
     story,
     transfer,
@@ -90,6 +92,8 @@ normal_router.include_router(memory_planning_relations.router)
 normal_router.include_router(memory_planning_relations.story_router)
 normal_router.include_router(plan_story.router)
 normal_router.include_router(plan_collections.router)
+normal_router.include_router(plan_notes.router)
+normal_router.include_router(shared_notes.router)
 normal_router.include_router(context_tags.router)
 normal_router.include_router(appearance.router)
 normal_router.include_router(session_context.router)

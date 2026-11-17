@@ -231,6 +231,12 @@ describe('content deep links', () => {
   });
 
   it('treats Activity as a More destination for its shell Back fallback', () => {
+    expect(subpageParentPath('/more/notes/new')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1/edit')).toBe(
+      '/more/notes/note-1',
+    );
+    expect(subpageParentPath('/more/notes')).toBe('/more');
     expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
     expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
     expect(subpageParentPath('/today/only-you/x')).toBe('/today');

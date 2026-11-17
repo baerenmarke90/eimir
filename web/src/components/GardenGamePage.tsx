@@ -46,6 +46,7 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Messenger, SeedIcon } from './GardenArt';
 import { GardenBook, GardenNewsCard, GardenYearCard } from './GardenBook';
@@ -226,12 +227,14 @@ function prefersReducedMotion(): boolean {
 /** The two partners and the arc the messenger flies along. */
 function FlightBand({
   names,
+  avatars,
   flight,
   flying,
   distanceLabel,
   colour,
 }: {
   names: { own: string; partner: string };
+  avatars: { own: string | null; partner: string | null };
   flight: GardenFlight;
   flying: { direction: 'toPartner' | 'toMe'; key: number } | null;
   distanceLabel: string | null;
@@ -266,6 +269,7 @@ function FlightBand({
       <span className="garden-band-avatar person-role-own">
         <PersonIdentity
           displayName={names.own}
+          imageUrl={avatars.own}
           size="small"
           showName={false}
           imageAlt={names.own}
@@ -303,6 +307,7 @@ function FlightBand({
       <span className="garden-band-avatar person-role-partner">
         <PersonIdentity
           displayName={names.partner}
+          imageUrl={avatars.partner}
           size="small"
           showName={false}
           imageAlt={names.partner}
@@ -379,6 +384,23 @@ export function GardenGamePage({
       partners?.find((entry) => entry.id === currentAccountId)?.displayName ??
       t('games.garden.you'),
     partner: partner?.displayName ?? t('games.garden.partnerFallback'),
+  };
+
+  const avatars = {
+    own: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: currentAccountId,
+      enabled: !services,
+    }),
+    partner: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: partner?.id,
+      enabled: !services,
+    }),
   };
 
   const liveFlight = useGardenFlight({
@@ -988,6 +1010,7 @@ export function GardenGamePage({
       <PageHeader title={title} />
       <FlightBand
         names={names}
+        avatars={avatars}
         flight={flight}
         flying={flying}
         distanceLabel={distanceLabel}

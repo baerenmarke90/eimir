@@ -7782,6 +7782,14 @@
       "OidcConnectionView": {
         "description": "A configured external sign-in provider, as an unauthenticated client may know it.\n\nOnly what a sign-in screen needs to draw a button and start the flow. The\nissuer, client identity and callback addresses stay in configuration.",
         "properties": {
+          "brand": {
+            "enum": [
+              "google",
+              "generic"
+            ],
+            "title": "Brand",
+            "type": "string"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -7795,19 +7803,11 @@
             "description": "Whether the Android app has a registered callback for this provider.",
             "title": "Nativeavailable",
             "type": "boolean"
-          },
-          "provider": {
-            "enum": [
-              "google",
-              "generic"
-            ],
-            "title": "Provider",
-            "type": "string"
           }
         },
         "required": [
           "id",
-          "provider",
+          "brand",
           "label",
           "nativeAvailable"
         ],

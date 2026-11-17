@@ -42,21 +42,21 @@ export interface OidcConnectionView {
     nativeAvailable: boolean;
     /**
      *
-     * @type {OidcConnectionViewProviderEnum}
+     * @type {OidcConnectionViewBrandEnum}
      * @memberof OidcConnectionView
      */
-    provider: OidcConnectionViewProviderEnum;
+    brand: OidcConnectionViewBrandEnum;
 }
 
 
 /**
  * @export
  */
-export const OidcConnectionViewProviderEnum = {
+export const OidcConnectionViewBrandEnum = {
     google: 'google',
     generic: 'generic'
 } as const;
-export type OidcConnectionViewProviderEnum = typeof OidcConnectionViewProviderEnum[keyof typeof OidcConnectionViewProviderEnum];
+export type OidcConnectionViewBrandEnum = typeof OidcConnectionViewBrandEnum[keyof typeof OidcConnectionViewBrandEnum];
 
 
 /**
@@ -66,7 +66,7 @@ export function instanceOfOidcConnectionView(value: object): value is OidcConnec
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('label' in value) || value['label'] === undefined) return false;
     if (!('nativeAvailable' in value) || value['nativeAvailable'] === undefined) return false;
-    if (!('provider' in value) || value['provider'] === undefined) return false;
+    if (!('brand' in value) || value['brand'] === undefined) return false;
     return true;
 }
 
@@ -83,7 +83,7 @@ export function OidcConnectionViewFromJSONTyped(json: any, ignoreDiscriminator: 
         'id': json['id'],
         'label': json['label'],
         'nativeAvailable': json['nativeAvailable'],
-        'provider': json['provider'],
+        'brand': json['brand'],
     };
 }
 
@@ -101,7 +101,7 @@ export function OidcConnectionViewToJSONTyped(value?: OidcConnectionView | null,
         'id': value['id'],
         'label': value['label'],
         'nativeAvailable': value['nativeAvailable'],
-        'provider': value['provider'],
+        'brand': value['brand'],
     };
 }
 

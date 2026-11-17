@@ -159,7 +159,7 @@ class TestDiscovery:
     def test_status_lists_the_provider_without_its_configuration(self, client, provider) -> None:  # type: ignore[no-untyped-def]
         body = client.get("/api/v1/instance/status").json()
         assert body["oidcConnections"] == [
-            {"id": CONNECTION, "provider": "google", "label": "", "nativeAvailable": True}
+            {"id": CONNECTION, "brand": "google", "label": "", "nativeAvailable": True}
         ]
         assert body["oidcSignupAvailable"] is True
         assert ISSUER not in json.dumps(body)

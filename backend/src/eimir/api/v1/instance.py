@@ -36,7 +36,7 @@ class OidcConnectionView(ApiModel):
     """
 
     id: str
-    provider: Literal["google", "generic"]
+    brand: Literal["google", "generic"]
     label: str = Field(description="Button text for a `generic` provider; empty for `google`.")
     native_available: bool = Field(
         description="Whether the Android app has a registered callback for this provider."
@@ -123,7 +123,7 @@ def instance_status(
     connections = [
         OidcConnectionView(
             id=connection.id,
-            provider=connection.provider,
+            brand=connection.provider,
             label=connection.label,
             native_available=connection.android_redirect_uri is not None,
         )

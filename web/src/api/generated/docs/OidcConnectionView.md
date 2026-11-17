@@ -9,7 +9,7 @@ Name | Type
 `id` | string
 `label` | string
 `nativeAvailable` | boolean
-`provider` | string
+`brand` | string
 
 ## Example
 
@@ -21,7 +21,7 @@ const example = {
   "id": null,
   "label": null,
   "nativeAvailable": null,
-  "provider": null,
+  "brand": null,
 } satisfies OidcConnectionView
 
 console.log(example)

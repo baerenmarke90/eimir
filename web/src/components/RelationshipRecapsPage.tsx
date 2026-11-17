@@ -29,6 +29,14 @@ import { Configuration } from '../client/apiConfiguration';
 import { isCapacitorNativePlatform } from '../client/config';
 import { normalizeClientError } from '../client/problemDetails';
 import {
+  type FilmScene,
+  filmSceneLeadMedia,
+  filmSceneSource,
+  filmSerif,
+  recapFilmScenes,
+} from '../client/recapFilm';
+import {
+  type RecapScene,
   recapDate,
   recapHeadline,
   recapPeriodKey,
@@ -62,6 +70,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import type { ProfilePageProps } from './ProfilePage';
 import { ProMark } from './ProMark';
+import { RecapFilmScene } from './RecapFilmScene';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
@@ -545,8 +554,18 @@ function RecapReader({
     capability: 'relationship.passport',
   });
   const value = query.data;
-  const scenes = useMemo(() => (value ? recapScenes(value) : []), [value]);
-  const pageCount = scenes.length || 2;
+  // A monthly film edition plays its timed scenes; every other edition keeps
+  // the established reader unchanged.
+  const filmScenes = useMemo(
+    () => (value ? recapFilmScenes(value) : null),
+    [value],
+  );
+  const scenes = useMemo(
+    () => (value && !filmScenes ? recapScenes(value) : []),
+    [value, filmScenes],
+  );
+  const sceneKeys = (filmScenes ?? scenes).map(({ key: step }) => step);
+  const pageCount = sceneKeys.length || 2;
   const requestedPage = Number(search.get('page'));
   const page = Number.isInteger(requestedPage)
     ? Math.max(0, Math.min(pageCount - 1, requestedPage))
@@ -570,8 +589,26 @@ function RecapReader({
       state: { ...location.state, inPlaceRouteUpdate: automatic },
     });
   };
-  const scene = scenes[page];
-  const source = scene?.type === 'highlight' ? scene.source : undefined;
+  const filmScene: FilmScene | undefined = filmScenes?.[page];
+  // The rhythm scene keeps its established composition inside a film too.
+  const scene: RecapScene | undefined = filmScenes
+    ? filmScene?.type === 'rhythm'
+      ? {
+          type: 'rhythm',
+          key: filmScene.key,
+          buckets: filmScene.buckets,
+          leading: filmScene.leading,
+          total: filmScene.total,
+        }
+      : undefined
+    : scenes[page];
+  const filmOwnsPage = Boolean(filmScene && filmScene.type !== 'rhythm');
+  const source =
+    scene?.type === 'highlight'
+      ? scene.source
+      : filmScene
+        ? (filmSceneSource(filmScene) ?? undefined)
+        : undefined;
   const mosaic = useMemo(
     () =>
       (value?.sources ?? [])
@@ -591,30 +628,39 @@ function RecapReader({
     setSearch(update, { replace: true, state: location.state });
   }, [location.state, ownsRouteEntry, search, setSearch]);
   const pageKey = `${recapId}:${page}:${value?.version ?? 0}`;
-  const pageMedia =
-    scene?.type === 'cover'
+  const filmMedia = filmScene ? filmSceneLeadMedia(filmScene) : null;
+  const pageMedia = filmScene
+    ? undefined
+    : scene?.type === 'cover'
       ? cover
       : source?.available && source.previewAttachmentId
         ? source
         : undefined;
-  const mediaKey = `${pageKey}:${pageMedia?.key ?? ''}:${pageMedia?.previewAttachmentId ?? ''}`;
+  const mediaKey = filmScene
+    ? `${pageKey}:film:${filmMedia?.attachmentId ?? ''}`
+    : `${pageKey}:${pageMedia?.key ?? ''}:${pageMedia?.previewAttachmentId ?? ''}`;
   const [settledMedia, setSettledMedia] = useState<string | null>(null);
   const settleMedia = useCallback(() => setSettledMedia(mediaKey), [mediaKey]);
-  const duration = storyReadingDuration(
-    scene?.type === 'facts'
-      ? 'count label '.repeat(scene.lines.length + 2)
-      : scene?.type === 'rhythm'
-        ? 'count label '.repeat(scene.buckets.length + 2)
-        : !scene || scene.type === 'cover'
-          ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
-          : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
-  );
+  const duration = filmScene
+    ? filmScene.ms
+    : storyReadingDuration(
+        scene?.type === 'facts'
+          ? 'count label '.repeat(scene.lines.length + 2)
+          : scene?.type === 'rhythm'
+            ? 'count label '.repeat(scene.buckets.length + 2)
+            : !scene || scene.type === 'cover'
+              ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+              : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+      );
   const playback = useStoryPlayback({
     pageKey,
     duration,
     autoStart,
     ready:
-      value?.status === 'READY' && (!pageMedia || settledMedia === mediaKey),
+      value?.status === 'READY' &&
+      (filmOwnsPage
+        ? settledMedia === mediaKey
+        : !pageMedia || settledMedia === mediaKey),
     blocked: Boolean(
       task ||
         query.isError ||
@@ -722,7 +768,16 @@ function RecapReader({
   const native = isCapacitorNativePlatform();
   // The toggle sits centred on the stage like a video control. The closing
   // scene keeps it in the control row: its own actions occupy the stage.
-  const overlayPlay = Boolean(scene && scene.type !== 'closing');
+  const overlayPlay = filmScene
+    ? filmScene.type !== 'closing'
+    : Boolean(scene && scene.type !== 'closing');
+  // In a film the toggle sits on the pictures; text-led scenes keep it below.
+  const filmPictured = Boolean(
+    filmScene &&
+      (filmScene.type === 'photo' ||
+        filmScene.type === 'duo' ||
+        (filmScene.type === 'cover' && filmScene.media.length > 0)),
+  );
   const centredOnStage =
     scene?.type === 'facts' ||
     scene?.type === 'rhythm' ||
@@ -755,6 +810,65 @@ function RecapReader({
         {overlay ? <span className="sr-only">{toggleLabel}</span> : toggleLabel}
       </button>
     ) : null;
+  const sourceLink = (item: NonNullable<typeof source>) => (
+    <Link
+      className="recap-text-link"
+      to={recapSourcePath(item)}
+      state={{ taskOriginKey: null }}
+      onClick={(event) => {
+        const origin = captureOrigin();
+        // React Router receives the scoped opaque return key through navigation.
+        if (
+          origin &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          event.button === 0
+        ) {
+          event.preventDefault();
+          void navigate(recapSourcePath(item), {
+            state: { taskOriginKey: origin },
+          });
+        }
+      }}
+    >
+      {t('recaps.source')}
+    </Link>
+  );
+  const closingExtras = value ? (
+    <>
+      {value.reflections.map((note) => (
+        <blockquote className="recap-reflection" key={note.id}>
+          <p>{note.text}</p>
+          <footer>{t('recaps.sharedBy', { name: note.displayName })}</footer>
+        </blockquote>
+      ))}
+      {value.ownDraft ? (
+        <div className="recap-private-draft">
+          <EimirIcon name="nurfuer" />
+          <strong>{t('recaps.privateDraft')}</strong>
+          <p>{value.ownDraft.text}</p>
+        </div>
+      ) : null}
+      {capability.data || value.ownDraft ? (
+        <button type="button" onClick={() => setTask('reflection')}>
+          {t('recaps.ownWords')}
+        </button>
+      ) : null}
+      {value.reflections.some((note) => note.ownerId === props.account.id) ? (
+        <button
+          type="button"
+          className="recap-text-button"
+          onClick={() => setTask('reflection')}
+        >
+          {t('recaps.withdraw')}
+        </button>
+      ) : null}
+      {value.savedAt ? (
+        <p className="recap-period-note">{t('recaps.savedHelp')}</p>
+      ) : null}
+    </>
+  ) : null;
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
@@ -828,7 +942,7 @@ function RecapReader({
           ) : (
             <>
               <div className="recap-progress" aria-hidden="true">
-                {scenes.map(({ key: step }, index) => (
+                {sceneKeys.map((step, index) => (
                   <span
                     key={step}
                     data-complete={index < page}
@@ -842,11 +956,21 @@ function RecapReader({
                 ))}
               </div>
               <article
-                className={`recap-spread recap-scene-${scene?.type ?? 'cover'}${
+                className={`recap-spread recap-scene-${filmScene?.type ?? scene?.type ?? 'cover'}${
                   scene?.type === 'highlight'
                     ? ` recap-layout-${scene.layout}`
                     : ''
-                }`}
+                }${filmScene ? ' recap-film' : ''}`}
+                data-mood={filmScene ? value.film?.mood : undefined}
+                data-serif={
+                  filmScene && value.film
+                    ? filmSerif(value.film.mood)
+                    : undefined
+                }
+                data-transition={filmScene?.transition}
+                data-motion={filmScene?.motion}
+                data-layout={filmScene?.layout || undefined}
+                data-climax={filmScene?.climax || undefined}
                 key={`${recapId}:${page}`}
                 onPointerDownCapture={beginGesture}
                 onPointerUp={endGesture}
@@ -881,7 +1005,24 @@ function RecapReader({
                 })}
               >
                 {centredOnStage ? playbackToggle(true, true) : null}
-                {!scene || scene.type === 'cover' ? (
+                {filmScene && filmOwnsPage ? (
+                  <>
+                    {filmPictured ? playbackToggle(true) : null}
+                    <RecapFilmScene
+                      {...props}
+                      scene={filmScene}
+                      value={value}
+                      playing={playback.running}
+                      reducedMotion={playback.reducedMotion}
+                      onSettled={settleMedia}
+                      sourceLink={sourceLink}
+                      closing={closingExtras}
+                    />
+                    {!filmPictured && filmScene.type !== 'closing'
+                      ? playbackToggle(true, true)
+                      : null}
+                  </>
+                ) : !scene || scene.type === 'cover' ? (
                   <>
                     {mosaic.length ? (
                       <div className="recap-mosaic" data-count={mosaic.length}>
@@ -1120,31 +1261,7 @@ function RecapReader({
                           {t(`recaps.mutualReaction.${source.mutualReaction}`)}
                         </p>
                       ) : null}
-                      {source.available ? (
-                        <Link
-                          className="recap-text-link"
-                          to={recapSourcePath(source)}
-                          state={{ taskOriginKey: null }}
-                          onClick={(event) => {
-                            const origin = captureOrigin();
-                            // React Router receives the scoped opaque return key through navigation.
-                            if (
-                              origin &&
-                              !event.ctrlKey &&
-                              !event.metaKey &&
-                              !event.shiftKey &&
-                              event.button === 0
-                            ) {
-                              event.preventDefault();
-                              void navigate(recapSourcePath(source), {
-                                state: { taskOriginKey: origin },
-                              });
-                            }
-                          }}
-                        >
-                          {t('recaps.source')}
-                        </Link>
-                      ) : null}
+                      {source.available ? sourceLink(source) : null}
                     </div>
                   </>
                 ) : (
@@ -1157,45 +1274,7 @@ function RecapReader({
                     >
                       {t('recaps.finishBody')}
                     </p>
-                    {value.reflections.map((note) => (
-                      <blockquote className="recap-reflection" key={note.id}>
-                        <p>{note.text}</p>
-                        <footer>
-                          {t('recaps.sharedBy', { name: note.displayName })}
-                        </footer>
-                      </blockquote>
-                    ))}
-                    {value.ownDraft ? (
-                      <div className="recap-private-draft">
-                        <EimirIcon name="nurfuer" />
-                        <strong>{t('recaps.privateDraft')}</strong>
-                        <p>{value.ownDraft.text}</p>
-                      </div>
-                    ) : null}
-                    {capability.data || value.ownDraft ? (
-                      <button
-                        type="button"
-                        onClick={() => setTask('reflection')}
-                      >
-                        {t('recaps.ownWords')}
-                      </button>
-                    ) : null}
-                    {value.reflections.some(
-                      (note) => note.ownerId === props.account.id,
-                    ) ? (
-                      <button
-                        type="button"
-                        className="recap-text-button"
-                        onClick={() => setTask('reflection')}
-                      >
-                        {t('recaps.withdraw')}
-                      </button>
-                    ) : null}
-                    {value.savedAt ? (
-                      <p className="recap-period-note">
-                        {t('recaps.savedHelp')}
-                      </p>
-                    ) : null}
+                    {closingExtras}
                   </div>
                 )}
               </article>

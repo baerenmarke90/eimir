@@ -51,6 +51,45 @@ class RecapQuoteView(ApiModel):
     author_name: str
 
 
+class RecapFilmMediaView(ApiModel):
+    """A curated picture of a film scene; a video names the muted clip it plays."""
+
+    attachment_id: UUID
+    parent_id: UUID
+    kind: Literal["IMAGE", "VIDEO"]
+    clip_start_seconds: float | None = None
+    clip_seconds: float | None = None
+
+
+class RecapAnswerView(ApiModel):
+    """One partner's own answer to a guided question, cut at a sentence or word boundary."""
+
+    text: str
+    author_id: UUID
+    author_name: str
+
+
+class RecapTagView(ApiModel):
+    label: str
+    count: int
+
+
+class RecapFilmView(ApiModel):
+    """The frozen look of a monthly film, from a fixed catalogue of design variants.
+
+    Names map to design tokens in the reader. Selection scores and reasons are
+    deliberately not part of the contract.
+    """
+
+    mood: str
+    transitions: list[str]
+    cover: str
+    motions: list[str]
+    layouts: dict[str, list[str]]
+    highlight_key: str | None
+    tags: list[RecapTagView]
+
+
 class RecapSourceView(ApiModel):
     key: str
     kind: RecapSourceKind
@@ -64,6 +103,9 @@ class RecapSourceView(ApiModel):
     available: bool
     quote: RecapQuoteView | None = None
     mutual_reaction: RecapReaction | None = None
+    media: list[RecapFilmMediaView] = Field(default_factory=list)
+    answers: list[RecapAnswerView] = Field(default_factory=list)
+    place_name: str | None = None
 
 
 class RecapReflectionView(ApiModel):
@@ -123,6 +165,7 @@ class RecapView(RecapPeriod):
     sources: list[RecapSourceView]
     facts: RecapFactsView | None = None
     mood: RecapMoodView | None = None
+    film: RecapFilmView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
 

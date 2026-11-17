@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RecapFilmView } from './RecapFilmView';
+import {
+    RecapFilmViewFromJSON,
+    RecapFilmViewFromJSONTyped,
+    RecapFilmViewToJSON,
+    RecapFilmViewToJSONTyped,
+} from './RecapFilmView';
 import type { RecapReflectionView } from './RecapReflectionView';
 import {
     RecapReflectionViewFromJSON,
@@ -68,6 +75,12 @@ export interface RecapView {
      * @memberof RecapView
      */
     facts?: RecapFactsView | null;
+    /**
+     * 
+     * @type {RecapFilmView}
+     * @memberof RecapView
+     */
+    film?: RecapFilmView | null;
     /**
      * 
      * @type {Date}
@@ -228,6 +241,7 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'facts': json['facts'] === undefined ? undefined : json['facts'] === null ? null : RecapFactsViewFromJSON(json['facts']),
+        'film': json['film'] === undefined ? undefined : json['film'] === null ? null : RecapFilmViewFromJSON(json['film']),
         'generatedAt': (json['generatedAt'] == null ? null : new Date(json['generatedAt'])),
         'headline': json['headline'],
         'id': json['id'],
@@ -263,6 +277,7 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
     return {
         
         'facts': RecapFactsViewToJSON(value['facts']),
+        'film': RecapFilmViewToJSON(value['film']),
         'generatedAt': value['generatedAt'] == null ? value['generatedAt'] : value['generatedAt'].toISOString(),
         'headline': value['headline'],
         'id': value['id'],

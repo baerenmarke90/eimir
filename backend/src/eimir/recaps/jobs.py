@@ -17,9 +17,9 @@ from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import local_ai, mood, service
-from eimir.recaps.composition import select_candidates, theme_for
-from eimir.recaps.models import RecapKind, RecapPayload
+from eimir.recaps import local_ai, montage, mood, service
+from eimir.recaps.composition import Candidate, select_candidates, theme_for
+from eimir.recaps.models import RecapEdition, RecapFilm, RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.relationship.service import require_membership
 
@@ -27,6 +27,8 @@ SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
 SCAN_LOCK = 8_150_228
 EVIDENCE_LIMIT = 8
+# Moments per kind a monthly film may weigh; a month rarely has more.
+FILM_POOL = 60
 
 
 def authorized_context(
@@ -78,10 +80,31 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         value.status = "PAUSED"
         return
     kind = RecapKind(value.kind)
-    pool = service.candidates(session, context, value.starts_on, value.through_on, value.variant)
-    selected = select_candidates(
-        pool, kind, f"{space_id}:{kind}:{value.year}:{value.month}", value.variant
-    )
+    # Photo measurements are shared by both passes of this job.
+    quality: montage.QualityCache = {}
+
+    def choose(
+        ctx: AuthorizationContext, current: RecapEdition
+    ) -> tuple[list[Candidate], RecapFilm | None]:
+        if kind == RecapKind.MONTH:
+            # The monthly film: content-led cut, frozen look, no model (#1744).
+            pool = service.candidates(
+                session,
+                ctx,
+                current.starts_on,
+                current.through_on,
+                current.variant,
+                per_month=FILM_POOL,
+                starting_only=True,
+            )
+            return montage.compose(session, ctx, current, pool, quality)
+        pool = service.candidates(
+            session, ctx, current.starts_on, current.through_on, current.variant
+        )
+        seed = f"{space_id}:{kind}:{current.year}:{current.month}"
+        return select_candidates(pool, kind, seed, current.variant), None
+
+    selected, _ = choose(context, value)
     material = [
         current
         for item in selected
@@ -122,12 +145,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if not service.can_compose(session, context):
         value.status = "PAUSED"
         return
-    fresh_pool = service.candidates(
-        session, context, value.starts_on, value.through_on, value.variant
-    )
-    fresh_selected = select_candidates(
-        fresh_pool, kind, f"{space_id}:{kind}:{value.year}:{value.month}", value.variant
-    )
+    fresh_selected, montage_film = choose(context, value)
     # Match source mutation/invalidation lock order: canonical content, then edition.
     # This prevents an in-flight privacy change from missing newly inserted references.
     fresh = [
@@ -148,9 +166,14 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
     )
     value.payload = (
-        RecapPayload(headline=narration.title, introduction=narration.introduction, mood=rhythm)
+        RecapPayload(
+            headline=narration.title,
+            introduction=narration.introduction,
+            mood=rhythm,
+            film=montage_film,
+        )
         if narration
-        else RecapPayload(mood=rhythm)
+        else RecapPayload(mood=rhythm, film=montage_film)
     )
     value.generated_by = "LOCAL_AI" if narration else "RULES"
     value.theme = theme_for(fresh_selected)

@@ -1,0 +1,693 @@
+/* The monthly recap as a short film (#1744, PO 2026-11-17).
+ * Every mood is composed from semantic tokens, so Light/Dark and the active
+ * app design carry through. Pictures stay in their own row above the caption
+ * band; only full-bleed layouts place the caption on a strong scrim. */
+
+.recap-film.recap-spread {
+  --film-bg: var(--color-surface);
+  --film-fg: var(--color-text);
+  --film-muted: var(--color-text-secondary);
+  --film-accent: var(--color-brand);
+  --film-tint: color-mix(in srgb, var(--film-accent) 14%, var(--film-bg));
+  --film-enter: calc(var(--duration-context) * 2.7);
+  /* A calm crossfade is the one movement kept under reduced motion. */
+  --film-calm-fade: var(--duration-transition);
+  /* Pictures keep moving briefly into the next scene's entrance. */
+  --film-motion-tail: var(--duration-gesture-moment);
+  color: var(--film-fg);
+  background: var(--film-bg);
+  min-block-size: min(72dvh, 46rem);
+}
+.recap-film.recap-spread[data-mood="morning"] {
+  --film-bg: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --film-accent: color-mix(
+    in srgb,
+    var(--color-warning) 80%,
+    var(--color-text)
+  );
+}
+.recap-film.recap-spread[data-mood="cobalt"] {
+  --film-bg: var(--color-brand-strong);
+  --film-fg: var(--color-on-accent);
+  --film-muted: color-mix(in srgb, var(--color-on-accent) 78%, transparent);
+  --film-accent: var(--color-brand-surface);
+}
+.recap-film.recap-spread[data-mood="rose"] {
+  --film-bg: var(--color-shared-surface);
+  --film-accent: var(--color-shared);
+}
+.recap-film.recap-spread[data-mood="night"] {
+  --film-bg: var(--color-text);
+  --film-fg: var(--color-background);
+  --film-muted: color-mix(in srgb, var(--color-background) 76%, transparent);
+  --film-accent: color-mix(
+    in srgb,
+    var(--color-warning) 70%,
+    var(--color-background)
+  );
+}
+.recap-film.recap-spread[data-mood="sage"] {
+  --film-bg: var(--color-success-surface);
+  --film-accent: var(--color-success);
+}
+.recap-film.recap-spread[data-mood="sand"] {
+  --film-bg: color-mix(
+    in srgb,
+    var(--color-warning) 8%,
+    var(--color-surface-subtle)
+  );
+  --film-accent: color-mix(
+    in srgb,
+    var(--color-warning) 55%,
+    var(--color-text)
+  );
+}
+.recap-film.recap-spread[data-mood="ink"] {
+  --film-bg: color-mix(in srgb, var(--color-discovery) 70%, var(--color-text));
+  --film-fg: var(--color-surface);
+  --film-muted: color-mix(in srgb, var(--color-surface) 76%, transparent);
+  --film-accent: var(--color-discovery-surface);
+}
+.recap-film.recap-spread[data-mood="paper"] {
+  --film-bg: var(--color-surface);
+  --film-accent: var(--color-brand);
+}
+
+/* Frame: a picture row and a caption band that never overlap. */
+.recap-film-frame {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(12rem, 1fr) auto;
+}
+/* Text-only scenes size their caption to the words and centre it, so a letter
+ * or a band never stretches into an empty block. */
+.recap-film-frame:not(:has(.recap-film-media)) {
+  grid-template-rows: auto;
+  align-content: center;
+}
+.recap-film-media {
+  position: relative;
+  min-block-size: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) 0;
+  overflow: hidden;
+}
+.recap-film-picture {
+  position: relative;
+  min-block-size: 0;
+  overflow: hidden;
+  border-radius: var(--radius-media);
+  background: var(--film-tint);
+}
+.recap-film-picture > *,
+.recap-film-clip {
+  position: absolute;
+  inset: 0;
+}
+.recap-film-picture .story-media-preview,
+.recap-film-picture .story-media-skeleton,
+.recap-film-picture .story-media-placeholder,
+.recap-film-clip {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+.recap-film-caption {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  min-inline-size: 0;
+}
+.recap-film-caption > * {
+  margin: 0;
+}
+.recap-film-eyebrow {
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--film-muted);
+}
+.recap-film-title {
+  font: var(--font-personal-heading);
+  letter-spacing: -0.02em;
+  color: inherit;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-wrap: pretty;
+}
+.recap-film[data-serif="false"] .recap-film-title,
+.recap-film[data-serif="false"] .recap-film-words,
+.recap-film[data-serif="false"] .recap-film-answer {
+  font-family: var(--font-ui);
+}
+.recap-film-words,
+.recap-film-answer,
+.recap-film-question {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 6vw, 1.8rem);
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+.recap-film-quoted {
+  quotes: auto;
+}
+.recap-film-quoted::before {
+  content: open-quote;
+}
+.recap-film-quoted::after {
+  content: close-quote;
+}
+/* Long words are readable prose, never a display heading. */
+.recap-film-prose {
+  font: var(--font-reading-body);
+  font-size: 1.125rem;
+}
+.recap-film-question {
+  font-size: 1.05rem;
+  color: var(--film-accent);
+}
+.recap-film-answers {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recap-film-answers li {
+  display: grid;
+  gap: var(--space-1);
+}
+.recap-film-answers p {
+  margin: 0;
+}
+.recap-film-author {
+  font: var(--font-supporting-copy);
+  color: var(--film-muted);
+}
+.recap-film-inline {
+  gap: var(--space-2);
+}
+.recap-film-inline .recap-film-answer {
+  font: var(--font-supporting-copy);
+  font-size: 1rem;
+  color: inherit;
+}
+.recap-film-inline li {
+  display: block;
+}
+.recap-film-inline .recap-film-author::before {
+  content: " · ";
+}
+.recap-film .recap-text-link {
+  align-self: flex-start;
+  color: inherit;
+}
+
+/* Photo layouts. */
+.recap-film-frame[data-layout="bleed"],
+.recap-film-frame[data-layout="single"] {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.recap-film-frame[data-layout="bleed"] .recap-film-media,
+.recap-film-frame[data-layout="single"] .recap-film-media {
+  grid-row: 1 / -1;
+  grid-column: 1;
+  padding: 0;
+}
+.recap-film-frame[data-layout="bleed"] .recap-film-picture,
+.recap-film-frame[data-layout="single"] .recap-film-picture {
+  border-radius: 0;
+}
+.recap-film-frame[data-layout="bleed"] .recap-film-caption,
+.recap-film-frame[data-layout="single"] .recap-film-caption {
+  grid-row: 2;
+  grid-column: 1;
+  z-index: 1;
+  padding-block-start: var(--space-12);
+  color: var(--color-text-inverse);
+  background: linear-gradient(
+    to top,
+    var(--color-media-scrim-strong) 55%,
+    var(--color-media-scrim-mid) 85%,
+    var(--color-media-scrim-clear)
+  );
+}
+.recap-film-frame[data-layout="bleed"] .recap-film-eyebrow,
+.recap-film-frame[data-layout="single"] .recap-film-eyebrow,
+.recap-film-frame[data-layout="bleed"] .recap-film-author,
+.recap-film-frame[data-layout="single"] .recap-film-author {
+  color: var(--color-text-inverse-muted);
+}
+.recap-film-frame[data-layout="polaroid"] .recap-film-media,
+.recap-film-frame[data-layout="tilted"] .recap-film-media {
+  padding: var(--space-6) var(--space-8) var(--space-2);
+}
+.recap-film-frame[data-layout="polaroid"] .recap-film-picture,
+.recap-film-frame[data-layout="tilted"] .recap-film-picture {
+  border: 0;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+.recap-film-frame[data-layout="polaroid"] .recap-film-picture > *,
+.recap-film-frame[data-layout="tilted"] .recap-film-picture > * {
+  inset: var(--space-2) var(--space-2) var(--space-8);
+  inline-size: auto;
+  block-size: auto;
+}
+.recap-film-frame[data-layout="tilted"] .recap-film-picture {
+  rotate: -2.5deg;
+}
+.recap-film-frame[data-layout="split"] .recap-film-media {
+  padding: 0;
+}
+.recap-film-frame[data-layout="split"] .recap-film-picture {
+  border-radius: 0;
+}
+
+/* Two pictures: stacked, next to each other or overlapping, all above the caption. */
+.recap-film-frame[data-layout="stacked"] .recap-film-media {
+  grid-template-rows: 1fr 1fr;
+}
+.recap-film-frame[data-layout="side"] .recap-film-media {
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+}
+.recap-film-frame[data-layout="side"] .recap-film-picture:nth-child(2) {
+  margin-block-start: var(--space-8);
+}
+.recap-film-frame[data-layout="side"] .recap-film-picture:nth-child(1) {
+  margin-block-end: var(--space-8);
+}
+.recap-film-frame[data-layout="overlap"] .recap-film-media {
+  grid-template-areas: "stage";
+}
+.recap-film-frame[data-layout="overlap"] .recap-film-picture {
+  grid-area: stage;
+}
+.recap-film-frame[data-layout="overlap"] .recap-film-picture:nth-child(1) {
+  inline-size: 68%;
+  block-size: 72%;
+  justify-self: start;
+  align-self: start;
+}
+.recap-film-frame[data-layout="overlap"] .recap-film-picture:nth-child(2) {
+  inline-size: 60%;
+  block-size: 58%;
+  justify-self: end;
+  align-self: end;
+  box-shadow: var(--shadow-raised);
+}
+
+/* Cover. */
+.recap-film-frame[data-layout="mosaic"] .recap-film-media {
+  padding: 0;
+  gap: var(--space-1);
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 2fr 1fr;
+}
+.recap-film-frame[data-layout="mosaic"] .recap-film-picture {
+  border-radius: 0;
+}
+.recap-film-frame[data-layout="mosaic"] .recap-film-picture:first-child {
+  grid-column: 1 / -1;
+}
+.recap-film-frame[data-layout="mosaic"] .recap-film-media[data-count="2"] {
+  grid-template-rows: 1fr;
+}
+.recap-film-frame[data-layout="mosaic"]
+  .recap-film-media[data-count="2"]
+  .recap-film-picture:first-child {
+  grid-column: auto;
+}
+.recap-film-frame[data-layout="strip"] .recap-film-media {
+  display: flex;
+  padding-inline: var(--space-2);
+}
+.recap-film-frame[data-layout="strip"] .recap-film-picture {
+  flex: 0 0 62%;
+}
+.recap-film-frame[data-layout="type"] .recap-film-title,
+.recap-film-frame[data-layout="mosaic"] .recap-film-title,
+.recap-film-frame[data-layout="strip"] .recap-film-title {
+  font-size: clamp(2rem, 9vw, 2.75rem);
+}
+.recap-film-frame[data-layout="type"] .recap-film-eyebrow {
+  color: var(--film-accent);
+}
+
+/* Words. */
+.recap-film-frame[data-layout="centered"],
+.recap-film-frame[data-layout="on-photo"] {
+  text-align: center;
+}
+.recap-film-frame[data-layout="centered"] .recap-text-link,
+.recap-film-frame[data-layout="on-photo"] .recap-text-link,
+.recap-film-frame[data-layout="stacked"] .recap-text-link {
+  align-self: center;
+}
+.recap-film-frame[data-layout="on-photo"] {
+  background: var(--film-tint);
+}
+.recap-film-frame[data-layout="letter"] .recap-film-caption {
+  margin: var(--space-6) var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-small);
+  background: var(--film-tint);
+}
+
+/* Titles of milestones and chapters. */
+.recap-film-frame[data-layout="stamp"] {
+  text-align: center;
+}
+.recap-film-frame[data-layout="stamp"] .recap-film-eyebrow {
+  align-self: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-small);
+  color: var(--film-bg);
+  background: var(--film-accent);
+  rotate: -4deg;
+}
+.recap-film-frame[data-layout="stamp"] .recap-text-link {
+  align-self: center;
+}
+.recap-film-frame[data-layout="band"] .recap-film-caption {
+  margin-inline: 0;
+  padding-block: var(--space-6);
+  color: var(--film-bg);
+  background: var(--film-accent);
+}
+.recap-film-frame[data-layout="band"] .recap-film-eyebrow {
+  color: inherit;
+}
+.recap-film-day {
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 28vw, 8rem);
+  line-height: 0.9;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--film-accent);
+}
+
+/* Answers to a guided question. */
+.recap-film-frame[data-layout="dialog"] .recap-film-answers li:nth-child(even) {
+  margin-inline-start: 14%;
+  text-align: end;
+}
+.recap-film-frame[data-layout="dialog"] .recap-film-answers li:nth-child(odd) {
+  margin-inline-end: 14%;
+}
+.recap-film-frame[data-layout="stacked"]:not(:has(.recap-film-media)) {
+  text-align: center;
+}
+
+/* Places and the counted days. */
+.recap-film-places {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-6);
+  list-style: none;
+}
+.recap-film-places li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 8vw, 2.4rem);
+  line-height: 1.2;
+}
+.recap-film-places li + li {
+  color: var(--film-muted);
+  font-size: clamp(1.3rem, 6vw, 1.8rem);
+}
+.recap-film-places svg {
+  color: var(--film-accent);
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+.recap-film-frame[data-layout="list"] .recap-film-places li + li {
+  font-size: clamp(1.6rem, 8vw, 2.4rem);
+}
+.recap-film-fact {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-6);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 6vw, 1.8rem);
+}
+.recap-film-fact strong {
+  color: var(--film-accent);
+  font-size: clamp(4.5rem, 24vw, 6rem);
+  line-height: 1;
+}
+.recap-film-frame[data-layout="large"] .recap-film-fact {
+  text-align: center;
+}
+.recap-film-frame[data-layout="row"] {
+  align-content: end;
+}
+
+/* The month's tags fly together into one cluster. */
+.recap-film-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.recap-film-tags li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--film-tint);
+  font-family: var(--font-display);
+  font-size: calc(1rem + var(--film-weight, 0) * 0.9rem);
+}
+.recap-film-frame:has(.recap-film-tags) {
+  text-align: center;
+}
+
+/* Closing: the month's pictures as small tiles. */
+.recap-film-frame[data-layout="closing"] .recap-film-media {
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+  padding-inline: var(--space-8);
+}
+.recap-film-frame[data-layout="closing"] .recap-film-caption {
+  text-align: center;
+  align-items: center;
+}
+
+/* The playback toggle on pictures sits in the picture row. */
+.recap-film > .recap-playback-overlay:not(.recap-playback-inline) {
+  inset-block-start: 35%;
+}
+
+/* Scene entrances, picture motion and staggering. */
+@media (prefers-reduced-motion: no-preference) {
+  .recap-film.recap-spread {
+    animation: recap-film-fade var(--film-enter) var(--easing-enter) both;
+  }
+  .recap-film[data-transition="slide"].recap-spread {
+    animation-name: recap-film-slide;
+  }
+  .recap-film[data-transition="rise"].recap-spread {
+    animation-name: recap-film-rise;
+  }
+  .recap-film[data-transition="zoom"].recap-spread {
+    animation-name: recap-film-zoom;
+  }
+  .recap-film[data-transition="iris"].recap-spread {
+    animation-name: recap-film-iris;
+  }
+  .recap-film[data-transition="wipe"].recap-spread {
+    animation-name: recap-film-wipe;
+  }
+  .recap-film[data-transition="shift"].recap-spread {
+    animation-name: recap-film-shift;
+  }
+  .recap-film[data-transition="blur"].recap-spread {
+    animation-name: recap-film-blur;
+  }
+  .recap-film .recap-film-picture .story-media-preview,
+  .recap-film .recap-film-media[data-count] .recap-film-clip {
+    animation: recap-film-zoom-in
+      calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
+      both;
+    animation-play-state: paused;
+  }
+  .recap-film[data-motion="drift-left"]
+    .recap-film-picture
+    .story-media-preview {
+    animation-name: recap-film-drift-left;
+  }
+  .recap-film[data-motion="drift-right"]
+    .recap-film-picture
+    .story-media-preview {
+    animation-name: recap-film-drift-right;
+  }
+  .recap-film[data-motion="zoom-out"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-zoom-out;
+  }
+  .recap-film[data-motion="parallax"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-parallax;
+  }
+  .recap-film-frame[data-layout="strip"] .recap-film-media {
+    animation: recap-film-strip
+      calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
+      both;
+    animation-play-state: paused;
+  }
+  .recap-reader[data-playing="true"]
+    .recap-film
+    .recap-film-picture
+    .story-media-preview,
+  .recap-reader[data-playing="true"]
+    .recap-film-frame[data-layout="strip"]
+    .recap-film-media {
+    animation-play-state: running;
+  }
+  .recap-film .recap-film-media[data-count] > .recap-film-picture,
+  .recap-film-answers li,
+  .recap-film-places li,
+  .recap-film-caption > .recap-film-words {
+    animation: recap-film-stagger var(--film-enter) var(--easing-enter) both;
+    animation-delay: calc(
+      var(--duration-sequence-beat) *
+      (1 + var(--film-i, 0) * 1.3)
+    );
+  }
+  .recap-film-tags li {
+    animation: recap-film-fly calc(var(--film-enter) * 1.4) var(--easing-travel)
+      both;
+    animation-delay: calc(var(--film-i, 0) * var(--duration-sequence-beat) / 2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recap-film.recap-spread {
+    animation: recap-film-fade var(--film-calm-fade) var(--easing-playback) both;
+  }
+}
+@keyframes recap-film-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes recap-film-slide {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes recap-film-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14%);
+  }
+}
+@keyframes recap-film-zoom {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+@keyframes recap-film-iris {
+  from {
+    clip-path: circle(0% at 50% 45%);
+  }
+  to {
+    clip-path: circle(80% at 50% 45%);
+  }
+}
+@keyframes recap-film-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes recap-film-shift {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes recap-film-blur {
+  from {
+    opacity: 0;
+    filter: blur(18px);
+  }
+}
+@keyframes recap-film-zoom-in {
+  to {
+    transform: scale(1.09);
+  }
+}
+@keyframes recap-film-zoom-out {
+  from {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes recap-film-drift-left {
+  from {
+    transform: translateX(2%) scale(1.05);
+  }
+  to {
+    transform: translateX(-2%) scale(1.05);
+  }
+}
+@keyframes recap-film-drift-right {
+  from {
+    transform: translateX(-2%) scale(1.05);
+  }
+  to {
+    transform: translateX(2%) scale(1.05);
+  }
+}
+@keyframes recap-film-parallax {
+  from {
+    transform: translateY(2%) scale(1.07);
+  }
+  to {
+    transform: translateY(-2%) scale(1.07);
+  }
+}
+@keyframes recap-film-strip {
+  from {
+    transform: translateX(4%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes recap-film-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes recap-film-fly {
+  from {
+    opacity: 0;
+    transform: translate(var(--film-x, 0), var(--film-y, 0)) scale(0.6);
+  }
+}

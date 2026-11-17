@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `facts` | [RecapFactsView](RecapFactsView.md)
+`film` | [RecapFilmView](RecapFilmView.md)
 `generatedAt` | Date
 `headline` | string
 `id` | string
@@ -36,6 +37,7 @@ import type { RecapView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "facts": null,
+  "film": null,
   "generatedAt": null,
   "headline": null,
   "id": null,

@@ -12,6 +12,7 @@ dev server against a mocked `/api/v1/instance/status`; the settings captures use
 | [04](04-signin-cloud-390-dark.jpg), [05](05-signin-cloud-360-dark.jpg) | Cloud sign-in, Dark, 390 / 360 px |
 | [06](06-signup-terms-accepted-390-light.jpg) | Start-together tab with the terms accepted: Google enabled |
 | [07](07-settings-sign-in-methods-390-light.jpg), [08](08-settings-sign-in-methods-390-dark.jpg) | Account settings: sign-in methods, Light and Dark |
+| [09](09-signin-cloud-768-expanded-light.jpg) | Cloud sign-in at the Expanded breakpoint (768 px): same card, heading and body visible |
 
 ## What changed for people
 
@@ -47,4 +48,4 @@ dev server against a mocked `/api/v1/instance/status`; the settings captures use
   hidden in the native container by `isCapacitorNative()`.
 - Playwright and axe were not run locally (not installed in this checkout); the existing
   Cloud entry journeys were read against the changes (Expanded keeps heading and body visible).
-- Expanded (desktop) layout was not captured.
+- A wide desktop window and 200 % text scaling were not captured; the Expanded breakpoint is shown at 768 px.

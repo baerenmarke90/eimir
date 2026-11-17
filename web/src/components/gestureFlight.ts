@@ -99,6 +99,12 @@ export function startGestureFlight(input: {
   const ghost: HTMLElement = found;
   source.setAttribute('data-flight-source', 'true');
   const extras: HTMLElement[] = [];
+  // Deferred ripples belong to this flight and end with it, so none can fire
+  // after the flight was cleaned up (or its document went away).
+  const timers: number[] = [];
+  const later = (callback: () => void, delay: number) => {
+    timers.push(window.setTimeout(callback, delay));
+  };
   let cancelled = false;
 
   const lift = ghost.animate(
@@ -112,6 +118,8 @@ export function startGestureFlight(input: {
   const lifted = finished(lift);
 
   const cleanup = () => {
+    for (const timer of timers) window.clearTimeout(timer);
+    timers.length = 0;
     source.removeAttribute('data-flight-source');
     ghost.remove();
     for (const extra of extras) extra.remove();
@@ -143,14 +151,11 @@ export function startGestureFlight(input: {
   async function landThinking(heart: Point, to: Point): Promise<void> {
     const rect = targetRect();
     hop(1.06, roles.context * 2.5);
-    window.setTimeout(
+    later(
       () => !cancelled && pulseRing(layer, rect, roles, 2.4),
       moment * 0.13,
     );
-    window.setTimeout(
-      () => !cancelled && pulseRing(layer, rect, roles, 2),
-      moment * 0.62,
-    );
+    later(() => !cancelled && pulseRing(layer, rect, roles, 2), moment * 0.62);
     const keyframes: Keyframe[] = [
       { transform: translateTo(heart, to, HEART_SCALE), opacity: 1 },
       ...BEAT_SCALES.map((scale, index) => ({

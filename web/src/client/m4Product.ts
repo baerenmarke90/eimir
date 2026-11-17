@@ -26,7 +26,9 @@ import {
   milestoneDetailPath,
   placeDetailPath,
   planDetailPath,
+  recapDetailPath,
   reminderDetailPath,
+  STORY_RECAPS_ROUTE,
   sharedNoteDetailPath,
   wishDetailPath,
 } from './routes';
@@ -160,6 +162,8 @@ export function engagementTargetPath(
     case 'GARDEN_SEED':
     case 'GARDEN_BOUQUET':
       return GAMES_GARDEN_ROUTE;
+    case 'RECAP':
+      return recapDetailPath(targetId);
     case 'WISH_SELECTION':
       return '/plan/choose';
     case 'TRANSFER_EXPORT':
@@ -195,7 +199,10 @@ export function notificationPath(item: {
         ? '/plan'
         : item.kind === 'PARTNER_JOINED'
           ? '/today'
-          : null)
+          : // Several earlier recaps at once open the overview (#1744).
+            item.kind === 'RECAP_READY'
+            ? STORY_RECAPS_ROUTE
+            : null)
   );
 }
 

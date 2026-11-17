@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { authorDisplayName } from './authorPresentation';
+import { recapNoticeTitle } from './recaps';
 
 export function getNotificationItemTitle(
   item: NotificationItem,
@@ -11,6 +12,8 @@ export function getNotificationItemTitle(
     return t('onceMessages.notification');
   if (item.kind === 'WISH_REMINDER_DUE')
     return t('m5s3.wish.reminder.notification');
+  if (item.kind === 'RECAP_READY' || item.kind === 'RECAP_GREW')
+    return recapNoticeTitle(item, t);
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );

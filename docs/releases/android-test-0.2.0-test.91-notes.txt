@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.91
+
+- Zu zweit and Handschrift are now available as personal app designs, with their own names and note layouts.
+- The monthly recap is now cut as a short film from your shared photos, clips and answers, and the year recap plays as a film of month chapters.
+- Each recap film gets its own look and staging, chosen from your photos, so consecutive recaps do not repeat.
+- Finished recaps are now announced, and late entries are recognised and included.
+- The thinking-of-you ripples now end with their flight instead of lingering.
+
+The product changes come from main at 3d57405ea5150f85b7b80ed028a7dd6e644ebf67.
+Install over test.90 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 91.

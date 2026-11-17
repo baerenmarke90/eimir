@@ -450,6 +450,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             )
     if event_type is EventType.PARTNER_JOINED:
         _project_target_notification(session, event, None, None, NotificationKind.PARTNER_JOINED)
+    if event_type in {EventType.RECAP_READY, EventType.RECAP_GREW}:
+        # #1744: one identical notice per partner, naming only the recap period.
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.RECAP,
+            event.subject_id,
+            NotificationKind(event_type.value),
+        )
+    if event_type is EventType.RECAPS_COLLECTED:
+        # Several earlier recaps at once share one notice that opens the overview.
+        _project_target_notification(session, event, None, None, NotificationKind.RECAP_READY)
     if event_type in {
         EventType.TRANSFER_READY,
         EventType.TRANSFER_COMPLETED,
@@ -727,6 +739,8 @@ def _target_is_projectable(
         return current.round is not None and current.round.id == target_id
     if target_type is EngagementTarget.PICTURE_GAME:
         return session.scalar(_picture_turn_exists(context, target_id)) is not None
+    if target_type is EngagementTarget.RECAP:
+        return session.scalar(_recap_is_readable(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(model.id == target_id)
     if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
@@ -734,6 +748,18 @@ def _target_is_projectable(
     if target_type is EngagementTarget.REMINDER:
         statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
     return session.execute(statement.with_only_columns(model.id)).scalar_one_or_none() is not None
+
+
+def _recap_is_readable(context: AuthorizationContext, target_id: Any) -> Any:
+    """A recap notice is current while its retained edition can be read (#1744)."""
+    from eimir.recaps.models import RecapEdition
+
+    return select(RecapEdition.id).where(
+        RecapEdition.id == target_id,
+        RecapEdition.space_id == context.space_id,
+        RecapEdition.status == "READY",
+        RecapEdition.saved_at.is_not(None),
+    )
 
 
 def _picture_turn_exists(context: AuthorizationContext, target_id: Any) -> Any:
@@ -760,6 +786,12 @@ def _projectable_predicate(
         and_(
             target_type_column == EngagementTarget.PICTURE_GAME.value,
             _picture_turn_exists(context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.RECAP.value,
+            _recap_is_readable(context, target_id_column).exists(),
         )
     )
     clauses.append(

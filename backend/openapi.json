@@ -3856,7 +3856,8 @@
           "PICTURE_GAME",
           "SHARED_NOTE",
           "GARDEN_SEED",
-          "GARDEN_BOUQUET"
+          "GARDEN_BOUQUET",
+          "RECAP"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -7631,7 +7632,9 @@
           "PICTURE_PING_PONG_TURN",
           "SHARED_NOTE_CREATED",
           "SHARED_NOTE_CHANGED",
-          "GARDEN_SEED_ARRIVED"
+          "GARDEN_SEED_ARRIVED",
+          "RECAP_READY",
+          "RECAP_GREW"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -11772,6 +11775,31 @@
         "title": "Readiness",
         "type": "object"
       },
+      "RecapAnswerView": {
+        "description": "One partner's own answer to a guided question, cut at a sentence or word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapAnswerView",
+        "type": "object"
+      },
       "RecapDraftView": {
         "properties": {
           "text": {
@@ -11839,6 +11867,201 @@
           "busiestMonth"
         ],
         "title": "RecapFactsView",
+        "type": "object"
+      },
+      "RecapFilmMediaView": {
+        "description": "A curated picture of a film scene; a video names the muted clip it plays.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "clipSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipseconds"
+          },
+          "clipStartSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipstartseconds"
+          },
+          "focusX": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusx"
+          },
+          "focusY": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusy"
+          },
+          "kind": {
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "parentId",
+          "kind"
+        ],
+        "title": "RecapFilmMediaView",
+        "type": "object"
+      },
+      "RecapFilmMonthView": {
+        "description": "The highlight that opens the cover of one month chapter in a year film.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "key"
+        ],
+        "title": "RecapFilmMonthView",
+        "type": "object"
+      },
+      "RecapFilmView": {
+        "description": "The frozen look of a recap film, from a fixed catalogue of design variants.\n\nNames map to design tokens in the reader. Selection scores and reasons are\ndeliberately not part of the contract. A year film lists the highlight of\nevery month chapter; a monthly film lists none.",
+        "properties": {
+          "accents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accents",
+            "type": "array"
+          },
+          "cover": {
+            "title": "Cover",
+            "type": "string"
+          },
+          "highlightKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlightkey"
+          },
+          "layouts": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Layouts",
+            "type": "object"
+          },
+          "monthHighlights": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMonthView"
+            },
+            "title": "Monthhighlights",
+            "type": "array"
+          },
+          "mood": {
+            "title": "Mood",
+            "type": "string"
+          },
+          "motions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motions",
+            "type": "array"
+          },
+          "pace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/RecapTagView"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "transitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Transitions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mood",
+          "transitions",
+          "cover",
+          "motions",
+          "layouts",
+          "highlightKey",
+          "tags"
+        ],
+        "title": "RecapFilmView",
         "type": "object"
       },
       "RecapKind": {
@@ -12143,6 +12366,13 @@
       },
       "RecapSourceView": {
         "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/RecapAnswerView"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
           "available": {
             "title": "Available",
             "type": "boolean"
@@ -12169,6 +12399,13 @@
           },
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMediaView"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "mutualReaction": {
             "anyOf": [
@@ -12197,6 +12434,17 @@
               }
             ],
             "title": "Occurredon"
+          },
+          "placeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placename"
           },
           "previewAttachmentId": {
             "anyOf": [
@@ -12262,12 +12510,40 @@
         "title": "RecapSourceView",
         "type": "object"
       },
+      "RecapTagView": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "RecapTagView",
+        "type": "object"
+      },
       "RecapView": {
         "properties": {
           "facts": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RecapFactsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFilmView"
               },
               {
                 "type": "null"
@@ -12385,6 +12661,32 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "supersededById": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newer version that extends this retained edition (#1744).",
+            "title": "Supersededbyid"
+          },
+          "supersedesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The retained edition this newer version extends with late entries (#1744).",
+            "title": "Supersedesid"
           },
           "theme": {
             "title": "Theme",
@@ -17383,7 +17685,9 @@
           "warm",
           "shared_album",
           "modern",
-          "classic"
+          "classic",
+          "quiet_together",
+          "handwriting"
         ],
         "title": "WirDesignId",
         "type": "string"

@@ -44,7 +44,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
 | one beat of a staged opening sequence (#1861) | `motion.duration.sequenceBeat` | 200 ms | `--duration-sequence-beat` |
-| one item flying across the screen between a sheet or avatar and its badge or target: the own check-in values into the own badge, the partner's shared day into the partner badge, a sent gesture to the partner avatar (#1907) | `motion.duration.sendFlight` | 560 ms | `--duration-send-flight` |
+| one item flying across the screen between a sheet or avatar and its badge or target: the own check-in values into the own badge, the partner's shared day into the partner badge, a sent gesture to the partner avatar | `motion.duration.sendFlight` | 560 ms | `--duration-send-flight` |
 | one expressive beat of a partner gesture, received (#455) or landing after it was sent | `motion.duration.gestureMoment` | 900 ms | `--duration-gesture-moment` |
 | the whole one-shot partner gesture choreography (#455) | `motion.duration.gestureSequence` | 1800 ms | `--duration-gesture-sequence` |
 | the map connection drawing in between the partner avatars (#1907 H1) | `motion.duration.connectionDraw` | 700 ms | `--duration-connection-draw` |

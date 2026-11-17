@@ -137,6 +137,33 @@ causes. Waves were judged restless and removed.
 Reference: [calm notices, Compact](references/partner-gesture-receipt/calm-notices-compact-reference.png)
 (real screens, final state of the five examples; baseline `main` `9b8c4a33e`).
 
+## Sender side: the sent gesture flies (Product Owner, 2026-11-17)
+
+The receipt above is the recipient's moment. The sender's moment is the
+mirror image and uses the same visual language. After a gesture is tapped in
+the quick-action sheet, its symbol lifts out of the sheet and waits for the
+server; the existing pending line stays. Only a **confirmed** send continues:
+the sheet closes, the symbol flies to the partner avatar and lands in a way
+that matches the gesture, and the existing sent confirmation is posted as a
+Snackbar (the in-sheet line closes with the sheet). A failed send does the
+opposite: the symbol sinks back into its place, the sheet stays open and the
+existing inline error and retry apply. Offline, cooldown, entitlement and
+Pro boundaries are exactly as before; nothing is sent or queued differently.
+
+| Gesture | Landing on the partner avatar |
+| --- | --- |
+| Thinking of You | The heart beats twice over the avatar (lub-dub) with two ripples, then fades. |
+| Kiss (extended) | Two hearts, one from the own avatar, meet over the partner avatar, squeeze, bloom and scatter small hearts. |
+| Check-in (extended) | Calm: a question mark floats over, the avatar takes one slow breath, the mark rests briefly and fades. No hearts. |
+
+The flight elements live in the shared top-layer layer, are hidden from
+assistive technology, take no pointer events and never block. Roles:
+`motion.duration.emphasized` (lift), `motion.duration.sendFlight` (the flight)
+and `motion.duration.gestureMoment` (the landing beats), see the
+[Web Motion Guideline](motion-guideline.md). With reduced motion nothing
+flies and the sheet keeps today's calm behavior: the in-sheet confirmation and
+no closing.
+
 ## Arrival and lifecycle
 
 **Foreground arrival.** There is no realtime notification transport. The

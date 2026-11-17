@@ -349,6 +349,7 @@ export function GardenScene({
   label,
   layers,
   growth = NO_GROWTH,
+  story,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -368,6 +369,18 @@ export function GardenScene({
     overlay?: ReactNode;
   };
   growth?: SceneGrowth;
+  /**
+   * The couple's story in the garden (#1907 H3 follow-up): rare visitors on
+   * the back hill and the pond, Milestone plants at the meadow's front edge,
+   * a find in front, and their named tap targets.
+   */
+  story?: {
+    back?: ReactNode;
+    meadow?: ReactNode;
+    pond?: ReactNode;
+    front?: ReactNode;
+    targets?: ReactNode;
+  };
 }) {
   const id = useId().replace(/:/g, '');
   const life = useGardenLife({
@@ -538,6 +551,7 @@ export function GardenScene({
           fresh={growth.fresh}
         />
         {life.layer('back')}
+        {story?.back}
         <Tufts
           ground={groundBack}
           count={Math.round((34 * width) / 340)}
@@ -562,6 +576,7 @@ export function GardenScene({
           <Plant key={plant.id} plant={plant} />
         ))}
         {life.layer('pond')}
+        {story?.pond}
         <Tufts
           ground={groundFront}
           count={Math.round((40 * width) / 340)}
@@ -597,10 +612,12 @@ export function GardenScene({
           width={width}
           fill="var(--garden-grass-front)"
         />
+        {story?.meadow}
         {growth.unlocks.includes('STREAM') && growth.visitors ? (
           <Fireflies width={width} />
         ) : null}
         {life.layer('front')}
+        {story?.front}
         {celebrating ? (
           <g>
             {pollen.map((dot) => (
@@ -652,6 +669,7 @@ export function GardenScene({
       </g>
       {/* Visitors first, so a plant stays on top where they overlap. */}
       {life.tapTargets}
+      {story?.targets}
       {plants.map((plant) => {
         const { x, y } = plantPosition(plant);
         const reach = plant.inPond ? 8 : plantHeight(plant.species);

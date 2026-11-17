@@ -542,7 +542,8 @@ export function useGardenLife({
   /** False while nobody may visit (for example a sleeping garden). */
   visitors: boolean;
   labels: GardenLifeLabels;
-  onReaction?: (kind: GardenAnimal) => void;
+  /** `at` is where the visitor stands, for a find it may leave there. */
+  onReaction?: (kind: GardenAnimal, at: { x: number; y: number }) => void;
 }) {
   const animals = useRef(new Map<number, Animal>());
   const arts = useRef(new Map<number, SVGGElement>());
@@ -932,7 +933,10 @@ export function useGardenLife({
         place(animal);
       }
       animal.reacting = true;
-      onReaction?.(animal.kind);
+      onReaction?.(animal.kind, {
+        x: animal.x,
+        y: animalY(animal.kind, animal.x),
+      });
       showName(animal);
       const alive = () => animals.current.has(animal.id);
       const pose = (next: Pose) => {

@@ -85,6 +85,7 @@ export function GardenBook({
   busy,
   onRename,
   visitors,
+  story,
 }: {
   name: string | null;
   form: GardenForm;
@@ -95,6 +96,11 @@ export function GardenBook({
   onRename: (name: string) => Promise<boolean>;
   /** "Eure Besucher", the visitors the couple has met and named. */
   visitors?: ReactNode;
+  /**
+   * The couple's story in the garden (#1907 H3 follow-up): Milestone plants,
+   * finds, the garden-year replay and this device's sound settings.
+   */
+  story?: ReactNode;
 }) {
   const { t } = useTranslation();
   const inputId = useId();
@@ -204,6 +210,7 @@ export function GardenBook({
           );
         })}
       </ul>
+      {story}
       <p className="garden-hint">{t('games.garden.growth.bookFootnote')}</p>
     </section>
   );

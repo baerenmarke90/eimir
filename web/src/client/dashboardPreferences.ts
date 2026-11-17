@@ -81,6 +81,8 @@ export function orderedDashboardModuleKeys(
         key === 'retrospective' ||
         // #1792: older saved orders predate the partner distance module.
         key === 'partner_distance' ||
+        // #1969: older saved orders predate the pinned notes module.
+        key === 'pinned_note' ||
         keys.includes(key),
     );
   if (

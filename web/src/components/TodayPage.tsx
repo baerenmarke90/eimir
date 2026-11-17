@@ -14,6 +14,7 @@ import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
@@ -30,6 +31,8 @@ import {
   useAttentionReceipt,
   useAttentionReceipts,
 } from '../client/attentionReceipt';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { useConnectedMoment } from '../client/connectedMoment';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
@@ -41,6 +44,7 @@ import {
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { retrospectiveTone } from '../client/entryTone';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
@@ -66,17 +70,17 @@ import {
   calculateRelationshipDuration,
   formatRelationshipDuration as formatSharedTime,
 } from '../client/relationshipPreview';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
   MEMORY_CREATE_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
   SETTINGS_CATEGORY_ROUTES,
   STORY_OURS_ROUTE,
 } from '../client/routes';
-import { useConnectedMoment } from '../client/connectedMoment';
-import { useFirstContentSettle } from '../client/firstContentSettle';
-import { useRootTabIntro } from '../client/rootTabIntro';
+import { WIR_NOTE_LIMIT } from '../client/sharedNotes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
@@ -134,6 +138,7 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirLists } from './WirLists';
+import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
@@ -146,9 +151,9 @@ import {
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
-import { alignWirIntroAnimations } from './wirIntroClock';
 import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
+import { alignWirIntroAnimations } from './wirIntroClock';
 import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
@@ -909,6 +914,7 @@ export function TodayPage({
   dailyQuoteApi,
   entitlementApi,
   collectionsApi,
+  sharedNotesApi,
   account,
   recapMediaApis,
   partnerLocationApi,
@@ -921,6 +927,7 @@ export function TodayPage({
   dailyQuoteApi?: DailyQuoteApi;
   entitlementApi?: EntitlementsApi;
   collectionsApi?: CollectionsApi;
+  sharedNotesApi?: SharedNotesApi;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -1045,6 +1052,32 @@ export function TodayPage({
     dashboardPreferences,
     'pinned_collection',
   );
+
+  // Pinned shared notes (#1969): the note carries the pin, so the module only
+  // needs the visibility choice. More than five stay behind "all notes".
+  const pinnedNoteVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'pinned_note',
+  );
+  const pinnedNotesQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.sharedNoteWir(spaceId),
+    queryFn: ({ signal }) => {
+      if (!sharedNotesApi) throw new Error('Shared notes API is unavailable.');
+      return apiCall(() =>
+        sharedNotesApi.listSharedNotes(
+          { spaceId, pinned: true, limit: WIR_NOTE_LIMIT },
+          { signal },
+        ),
+      );
+    },
+    enabled: Boolean(sharedNotesApi && account?.id && pinnedNoteVisible),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const pinnedNotes =
+    pinnedNoteVisible && pinnedNotesQuery.data
+      ? pinnedNotesQuery.data.items.slice(0, WIR_NOTE_LIMIT)
+      : [];
 
   const activityQuery = useHeldQuery(
     useActivityQuery(apis.activity, spaceId, account?.id),
@@ -1416,7 +1449,8 @@ export function TodayPage({
       !retrospective &&
       !livingModule &&
       !serverKeepsake &&
-      !(pinnedCollectionVisible && pinnedCollectionIds.length > 0),
+      !(pinnedCollectionVisible && pinnedCollectionIds.length > 0) &&
+      pinnedNotes.length === 0,
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
@@ -1944,6 +1978,39 @@ export function TodayPage({
           pinnedCollectionVisible &&
           pinnedCollectionIds.length > 0 ? (
           <TodayModulePlaceholder kind="pinned-collection" />
+        ) : null}
+      </>
+    ),
+    pinned_note: (
+      <>
+        {!dashboardQuery.isCached && pinnedNotes.length > 0 ? (
+          <TodayModuleSection
+            className={
+              revealAfterCache
+                ? 'today-section-pinned-note today-module-reveal'
+                : 'today-section-pinned-note'
+            }
+            title={t(
+              pinnedNotes.length === 1
+                ? 'sharedNotes.wir.titleOne'
+                : 'sharedNotes.wir.titleMany',
+            )}
+            headerAction={
+              <TodayDestinationLink
+                to={MORE_NOTES_ROUTE}
+                className="today-section-link"
+                ariaLabel={t('sharedNotes.wir.allNotesAria')}
+              >
+                {t('sharedNotes.wir.allNotes')}
+              </TodayDestinationLink>
+            }
+          >
+            <WirNotes
+              notes={pinnedNotes}
+              hasMore={pinnedNotesQuery.data?.hasMore === true}
+              accountId={account?.id ?? ''}
+            />
+          </TodayModuleSection>
         ) : null}
       </>
     ),

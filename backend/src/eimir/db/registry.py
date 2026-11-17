@@ -53,6 +53,7 @@ MODEL_MODULES = (
     "eimir.relationship.models",
     "eimir.reminders.models",
     "eimir.reminders.runtime_models",
+    "eimir.shared_notes.models",
     "eimir.story.view_models",
     "eimir.transfer.models",
     "eimir.wishes.models",

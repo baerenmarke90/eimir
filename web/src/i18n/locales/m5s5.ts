@@ -220,6 +220,7 @@ const m5s5 = {
     CHAPTER: 'Kapitel',
     COLLECTION: 'Liste',
     COLLECTION_ITEM: 'Listeneintrag',
+    SHARED_NOTE: 'Gemeinsame Notiz',
     PRIVATE_NOTE: 'Notiz für mich',
     GIFT_IDEA: 'Geschenkidee',
     PRIVATE_COLLECTION: 'Meine Liste',

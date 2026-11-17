@@ -115,6 +115,8 @@ export const PARTNER_NOTICE_ICONS = {
   PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },
   PLAN_CANCELLED: { badge: 'close', center: 'kalender' },
   COMMENT_CREATED: { badge: 'nachrichten', center: 'nachrichten' },
+  SHARED_NOTE_CREATED: { badge: 'notes', center: 'notes' },
+  SHARED_NOTE_CHANGED: { badge: 'notes', center: 'notes' },
   PHOTO_REACTION: { badge: 'foto', center: 'foto' },
   COUPLE_EXPERIENCE_SHARED: { badge: 'momente', center: 'momente' },
   REMINDER_CREATED: {

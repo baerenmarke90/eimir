@@ -144,6 +144,15 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
+        # #1969: a shared note appears in the Notification Center only. Push needs
+        # a native presentation per platform and is a separate, later decision;
+        # later edits of one note update a single coalesced entry.
+        NotificationKind.SHARED_NOTE_CREATED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
+        NotificationKind.SHARED_NOTE_CHANGED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),

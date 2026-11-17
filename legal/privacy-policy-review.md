@@ -45,7 +45,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 9 | Android delivers photo location only with `ACCESS_MEDIA_LOCATION` (asked once) or the system picker's own metadata consent; declined means photos without location | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` |
 | 9 | Photon receives only query or coordinates plus language from the backend; default origin `https://photon.komoot.io` | `backend/src/eimir/providers/photon.py`, `place_search.py`, `docs/PHOTO-PLACE-RESOLUTION.md` |
 | 9 | Map tiles load in the browser from `tile.openstreetmap.org` with `referrerPolicy: origin`; only on opening a map; the CSP allows no other external image, font, frame or script origin | `web/src/components/PlaceMapCanvas.tsx`, `web/nginx.conf` (CSP) |
-| 9 | Partner distance (#1792, Premium, opt-in per person): approximate location by default; precise location only after the person's own choice (2026-11-17), rounded to about 100 m on the device before it is sent; background location only after a second opt-in; no history | `web/src/client/approximateLocation.ts`, `android/app/src/main` (`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` for the opt-in precise choice, `ACCESS_BACKGROUND_LOCATION`); to re-verify against the published policy and Google Play Data safety before release |
+| 9 | Partner distance (#1792, Premium, opt-in per person): approximate location by default; precise location only after the person's own choice (2026-11-17), rounded to about 100 m on the device before it is sent; background location only after a second opt-in; no history | `web/src/client/approximateLocation.ts`, `android/app/src/main` (`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` for the opt-in precise choice, `ACCESS_BACKGROUND_LOCATION`); policy text in § 9 (version `2026-11-17.draft-4`); Google Play Data safety answers in `docs/operations/play-data-safety-location.md`, to be entered by the listing owner before release |
 | 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
@@ -87,7 +87,7 @@ the notice before or with the change (`legal/README.md`).
 ## Operator facts entered (2026-11-14)
 
 The Product Owner supplied the operator facts step by step; they are now in the text (version
-`2026-11-14.draft-3`) and in the public imprint of the main site (#1835). The text stays
+`2026-11-17.draft-4`) and in the public imprint of the main site (#1835). The text stays
 `status: draft` with `legal_review: pending`.
 
 | Fact | Entered value | Check before publication |

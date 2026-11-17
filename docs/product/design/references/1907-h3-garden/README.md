@@ -92,3 +92,83 @@ trees and the plane in PR 3.
 16. **Table/list justification:** none used.
 17. **Visual acceptance:** these captures, runtime captures in the PR and the
     browser journey `garden-game.spec.ts`.
+
+## PR 2: presentation (seasons, lanterns, reunion, sleeping garden)
+
+### Decisions
+
+- Scope from the #1907 H3 sub-bullet: seasons from the calendar, two lanterns
+  ("today in the garden"), the reunion from an existing Plan (a gate with the
+  date; on the day everything blooms) and the sleeping garden after a pause of
+  both (the Product Owner approved the proposal enthusiastically).
+- Reunion signal (Product Owner, 2026-11-16, asked before building because
+  Plans have no dedicated "meeting" marker): the next upcoming Plan with the
+  existing anticipation highlight (#504 countdown, "Vorfreude") is the
+  reunion. No new Plan setting and no new storage.
+- Reviewed baseline: PR 1 branch `claude/1907-h3-garden-core` `0849801db`
+  (on `main` `06af723f2`): `GardenGamePage` with the flight band, the scene,
+  today's card, the plant story, watering and the footnote. PR 2 keeps all of
+  them and adds layers to the same scene and calm cards around today's card.
+
+### Visual reference
+
+Compact 390 px captures of the approved prototype, Light and Dark. The
+prototype's bunting needed a one-line fix to render (`Array.from` passes no
+third argument); nothing else was changed. The prototype also shows PR 3
+content (animals, trees, plane), which is not part of this PR.
+
+| State | Light | Dark |
+| --- | --- | --- |
+| Autumn, lanterns, reunion gate and card | [soon](compact-390-light-4-autumn-reunion-soon.png) | [soon](compact-390-dark-4-autumn-reunion-soon.png) |
+| Reunion day: everything blooms, bunting | [day](compact-390-light-5-reunion-day.png) | [day](compact-390-dark-5-reunion-day.png) |
+| Winter: snow on the hills | [winter](compact-390-light-6-winter.png) | [winter](compact-390-dark-6-winter.png) |
+| Spring blossoms | [spring](compact-390-light-7-spring.png) | [spring](compact-390-dark-7-spring.png) |
+| Sleeping garden | [asleep](compact-390-light-8-sleeping.png) | [asleep](compact-390-dark-8-sleeping.png) |
+| Woken garden | [awake](compact-390-light-9-woke.png) | [awake](compact-390-dark-9-woke.png) |
+
+![Reunion day, 390 px Light](compact-390-light-5-reunion-day.png)
+
+Runtime captures of the implementation from `garden-game.spec.ts` are in
+[`evidence/`](evidence/) (`garden-sleeping-*`, `garden-woke-reunion-soon-*`,
+`garden-reunion-day-*`, `garden-season-*`).
+
+### Contract deltas
+
+- **States.** *Season* from the month of the couple's calendar day: spring
+  (March to May) blossoms on the meadow, summer a richer green, autumn golden
+  greens with a one-shot moment of falling leaves on open, winter snow on the
+  hills and snow-white meadow dots. Nothing withers in any season. *Lanterns*:
+  one per partner at the garden edges (own on the left, partner on the right,
+  like the avatars), outlined in the person colour; a lantern glows when that
+  person sent today's seed, never a time. *Reunion soon*: a small gate at the
+  right edge and a calm card (`games.garden.reunion.eyebrow`,
+  `games.garden.reunion.soonTitle` with the date) above today's card. *Reunion day*: every plant is shown in bloom (the real stages
+  are unchanged), bunting in both person colours, a card
+  (`games.garden.reunion.todayTitle`) instead of the seed card; no seed is needed and watering is hidden;
+  a seed that arrived can still be planted. The save action
+  (`games.garden.reunion.save`) stores a still of the garden as a photo Moment on explicit tap
+  only, through the existing media path, and then links to it. *Sleeping*:
+  after four full days in which neither partner sent a seed or watered, the
+  garden opens under mist with closed blossoms (buds) and dark lanterns and the
+  card `games.garden.sleep.title`; it then wakes: the mist lifts, blossoms open and the
+  welcome (`games.garden.sleep.wokeTitle`, `games.garden.sleep.wokeBody`)
+  appears with a quiet secondary button to close it. Today's seed card stays available throughout.
+  It never sleeps on a reunion day. Visitors added in PR 3 must stay away
+  while it sleeps (the `sleep` phase of `useGardenPresentation`).
+- **Hierarchy.** The scene stays the focal point; the sleep/welcome card sits
+  directly below it, the reunion card above today's card. On the reunion day
+  the save button is the single primary action.
+- **Motion.** Lit lanterns flicker gently while the garden is lively (part of
+  the approved continuous motion); falling leaves, the mist lifting, the
+  blossoms opening on waking and on the reunion day, and the bunting popping in
+  are one-shot. **Reduced motion** shows the same states without movement:
+  no falling leaves, no flicker, and the garden is shown awake at once with the
+  welcome card.
+- **Privacy and relationship state.** The server derives `sleeping`,
+  `reunionOn` (a day) and `reunionToday` from existing seed, watering and Plan
+  data; nothing new is stored. The Plan's title never reaches the garden, so
+  discreet Plans stay concealed. The sleeping garden is only a pause of both,
+  never attributed to one person, and sends no notification. The saved Moment
+  contains the drawn garden only (species, colours, decoration), no location.
+- **Large text / narrow.** Cards wrap; the new layers live inside the scene,
+  which keeps its aspect ratio; no horizontal overflow at 360/390 px.

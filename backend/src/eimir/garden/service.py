@@ -5,6 +5,10 @@ a seed nobody planted is planted automatically on a later day, so a pause never
 loses anything. On the day both partners sent a seed every plant in the ground
 grows one stage, exactly once. Watering is a daily gesture that never changes
 growth. Distance and location never reach this module.
+
+Presentation state is derived, never stored: the garden sleeps after a pause of
+both partners and wakes when one of them returns, and the next anticipated
+shared Plan (#504) is the couple's reunion, shown by its day only.
 """
 
 from __future__ import annotations
@@ -14,20 +18,23 @@ from datetime import date
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, delete, func, select
+from sqlalchemy import Date, Select, cast, delete, func, select
 from sqlalchemy.orm import Session
 
-from eimir.authorization import AuthorizationContext
+from eimir.authorization import AuthorizationContext, readable
 from eimir.core import clock
 from eimir.core.errors import ConflictError, NotFoundError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.garden.models import MAX_STAGE, GardenPlant, GardenSpecies, GardenWatering, GardenWords
 from eimir.outbox import service as outbox_service
+from eimir.plans.models import Plan, PlanStatus
 from eimir.recaps.service import calendar_context
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
 
 OFFER = (GardenSpecies.POPPY, GardenSpecies.BELLFLOWER, GardenSpecies.STARFLOWER)
+SLEEP_AFTER_DAYS = 4
+"""Full calendar days without either partner in the garden before it sleeps."""
 
 
 @dataclass(frozen=True)
@@ -42,6 +49,9 @@ class GardenState:
     watered_today: UUID | None
     partner_watered_today: UUID | None
     offer: tuple[GardenSpecies, ...]
+    sleeping: bool = False
+    reunion_on: date | None = None
+    reunion_today: bool = False
 
 
 def _partner_of(session: Session, context: AuthorizationContext) -> UUID:
@@ -109,9 +119,48 @@ def _settle(session: Session, context: AuthorizationContext, today: date) -> Non
         _plant(session, seed)
 
 
+def _last_visit(session: Session, space_id: UUID) -> date | None:
+    """The latest day either partner sent a seed or watered."""
+    seeds = session.scalar(
+        select(func.max(GardenPlant.sent_on)).where(GardenPlant.space_id == space_id)
+    )
+    waterings = session.scalar(
+        select(func.max(GardenWatering.watered_on)).where(GardenWatering.space_id == space_id)
+    )
+    days = [day for day in (seeds, waterings) if day is not None]
+    return max(days) if days else None
+
+
+def _reunion(
+    session: Session, context: AuthorizationContext, zone: str, today: date
+) -> tuple[date | None, bool]:
+    """The next anticipated shared Plan (#504) marks the reunion; its day only."""
+    starts = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
+    ends = func.coalesce(
+        Plan.planned_until, cast(func.timezone(zone, Plan.planned_end), Date), starts
+    )
+    row = session.execute(
+        readable(Plan, context)
+        .where(
+            Plan.anticipation_enabled.is_(True),
+            Plan.status == PlanStatus.PLANNED.value,
+            starts.is_not(None),
+            ends >= today,
+        )
+        .order_by(starts, Plan.planned_start.asc().nulls_first(), Plan.id)
+        .limit(1)
+        .with_only_columns(starts, ends)
+    ).first()
+    if row is None:
+        return None, False
+    start, end = row
+    return start, start <= today <= max(start, end)
+
+
 def state(session: Session, context: AuthorizationContext) -> GardenState:
     partner = _partner_of(session, context)
-    today = _today(session, context)
+    zone, _ = calendar_context(session, context)
+    today = clock.today_in(zone)
     _settle(session, context, today)
     plants = list(
         session.scalars(
@@ -141,6 +190,8 @@ def state(session: Session, context: AuthorizationContext) -> GardenState:
             )
         )
     }
+    reunion_on, reunion_today = _reunion(session, context, zone, today)
+    last_visit = _last_visit(session, context.space_id)
     return GardenState(
         local_date=today,
         partner_id=partner,
@@ -152,6 +203,14 @@ def state(session: Session, context: AuthorizationContext) -> GardenState:
         watered_today=waterings.get(context.account_id),
         partner_watered_today=waterings.get(partner),
         offer=OFFER,
+        # Only a pause of both lets it sleep; it never sleeps on a reunion day.
+        sleeping=(
+            last_visit is not None
+            and (today - last_visit).days > SLEEP_AFTER_DAYS
+            and not reunion_today
+        ),
+        reunion_on=reunion_on,
+        reunion_today=reunion_today,
     )
 
 

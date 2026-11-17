@@ -4245,6 +4245,24 @@
             "title": "Plants",
             "type": "array"
           },
+          "reunionOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First day of the next anticipated shared Plan, the couple's reunion.",
+            "title": "Reunionon"
+          },
+          "reunionToday": {
+            "description": "Today is a day of that reunion Plan.",
+            "title": "Reuniontoday",
+            "type": "boolean"
+          },
           "sentToday": {
             "anyOf": [
               {
@@ -4259,6 +4277,11 @@
           "sharedToday": {
             "description": "Both partners sent a seed today; the garden grew.",
             "title": "Sharedtoday",
+            "type": "boolean"
+          },
+          "sleeping": {
+            "description": "Neither partner was in the garden for a few days; it wakes for the reader.",
+            "title": "Sleeping",
             "type": "boolean"
           },
           "wateredToday": {
@@ -4280,7 +4303,9 @@
           "plants",
           "partnerSentToday",
           "sharedToday",
-          "offer"
+          "offer",
+          "sleeping",
+          "reunionToday"
         ],
         "title": "GardenView",
         "type": "object"

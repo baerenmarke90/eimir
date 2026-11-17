@@ -71,6 +71,18 @@ export interface GardenView {
      */
     plants: Array<GardenPlantView>;
     /**
+     * First day of the next anticipated shared Plan, the couple's reunion.
+     * @type {Date}
+     * @memberof GardenView
+     */
+    reunionOn?: Date | null;
+    /**
+     * Today is a day of that reunion Plan.
+     * @type {boolean}
+     * @memberof GardenView
+     */
+    reunionToday: boolean;
+    /**
      * The reader's own seed of today, if sent.
      * @type {GardenPlantView}
      * @memberof GardenView
@@ -82,6 +94,12 @@ export interface GardenView {
      * @memberof GardenView
      */
     sharedToday: boolean;
+    /**
+     * Neither partner was in the garden for a few days; it wakes for the reader.
+     * @type {boolean}
+     * @memberof GardenView
+     */
+    sleeping: boolean;
     /**
      * Plant the reader watered today.
      * @type {string}
@@ -98,7 +116,9 @@ export function instanceOfGardenView(value: object): value is GardenView {
     if (!('offer' in value) || value['offer'] === undefined) return false;
     if (!('partnerSentToday' in value) || value['partnerSentToday'] === undefined) return false;
     if (!('plants' in value) || value['plants'] === undefined) return false;
+    if (!('reunionToday' in value) || value['reunionToday'] === undefined) return false;
     if (!('sharedToday' in value) || value['sharedToday'] === undefined) return false;
+    if (!('sleeping' in value) || value['sleeping'] === undefined) return false;
     return true;
 }
 
@@ -118,8 +138,11 @@ export function GardenViewFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'partnerSentToday': json['partnerSentToday'],
         'partnerWateredToday': json['partnerWateredToday'] === undefined ? undefined : json['partnerWateredToday'] === null ? null : json['partnerWateredToday'],
         'plants': ((json['plants'] as Array<any>).map(GardenPlantViewFromJSON)),
+        'reunionOn': json['reunionOn'] === undefined ? undefined : json['reunionOn'] === null ? null : (new Date(json['reunionOn'])),
+        'reunionToday': json['reunionToday'],
         'sentToday': json['sentToday'] === undefined ? undefined : json['sentToday'] === null ? null : GardenPlantViewFromJSON(json['sentToday']),
         'sharedToday': json['sharedToday'],
+        'sleeping': json['sleeping'],
         'wateredToday': json['wateredToday'] === undefined ? undefined : json['wateredToday'] === null ? null : json['wateredToday'],
     };
 }
@@ -141,8 +164,11 @@ export function GardenViewToJSONTyped(value?: GardenView | null, ignoreDiscrimin
         'partnerSentToday': value['partnerSentToday'],
         'partnerWateredToday': value['partnerWateredToday'],
         'plants': ((value['plants'] as Array<any>).map(GardenPlantViewToJSON)),
+        'reunionOn': value['reunionOn'] == null ? value['reunionOn'] : value['reunionOn'].toISOString().substring(0,10),
+        'reunionToday': value['reunionToday'],
         'sentToday': GardenPlantViewToJSON(value['sentToday']),
         'sharedToday': value['sharedToday'],
+        'sleeping': value['sleeping'],
         'wateredToday': value['wateredToday'],
     };
 }

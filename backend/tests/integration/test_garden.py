@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from eimir.authorization import PrivacyClass
 from eimir.core import clock
 from eimir.core.clock import now
 from eimir.engagement import notification_policy
@@ -22,6 +23,7 @@ from eimir.entitlements.models import (
 )
 from eimir.garden.models import GardenPlant
 from eimir.outbox.models import OutboxEvent
+from eimir.plans.models import Plan, PlanPayload, PlanStatus
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -263,3 +265,93 @@ def test_the_garden_leaves_with_the_couple(client, premium, session) -> None:  #
     relationship_service.end_membership(session, membership)
     session.flush()
     assert session.scalars(select(GardenPlant)).first() is None
+
+
+def _special_plan(session: Session, couple, **fields):  # type: ignore[no-untyped-def]
+    values = {
+        "space_id": couple["space"].id,
+        "owner_id": couple["anna"].id,
+        "privacy_class": PrivacyClass.SPACE_SHARED.value,
+        "payload": PlanPayload(title="Finally together"),
+        "status": PlanStatus.PLANNED.value,
+        "anticipation_enabled": True,
+    } | fields
+    plan = Plan(**values)
+    session.add(plan)
+    session.flush()
+    return plan
+
+
+def test_the_garden_sleeps_only_after_a_pause_of_both(client, premium, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    assert client.get(_url(premium), headers=_h(premium)).json()["sleeping"] is False
+    _send(client, premium)
+    _at(monkeypatch, DAY_ONE + timedelta(days=4))
+    # Three full days without either partner: still awake.
+    assert client.get(_url(premium), headers=_h(premium, "b")).json()["sleeping"] is False
+    _at(monkeypatch, DAY_ONE + timedelta(days=5))
+    # Four full days without both: asleep for each of them, nothing lost.
+    for who in ("a", "b"):
+        body = client.get(_url(premium), headers=_h(premium, who)).json()
+        assert body["sleeping"] is True
+        assert [plant["species"] for plant in body["plants"]] == ["POPPY"]
+    # Whoever returns wakes it.
+    assert _send(client, premium, who="b").json()["sleeping"] is False
+    assert client.get(_url(premium), headers=_h(premium)).json()["sleeping"] is False
+
+
+def test_watering_counts_as_being_in_the_garden(client, premium, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    _send(client, premium)
+    seed = client.get(_url(premium), headers=_h(premium, "b")).json()["incoming"]
+    client.post(_url(premium, f"/seeds/{seed['id']}/plant"), headers=_h(premium, "b"))
+    _at(monkeypatch, DAY_ONE + timedelta(days=3))
+    client.post(_url(premium, "/waterings"), headers=_h(premium), json={"plantId": seed["id"]})
+    _at(monkeypatch, DAY_ONE + timedelta(days=6))
+    assert client.get(_url(premium), headers=_h(premium)).json()["sleeping"] is False
+
+
+def test_the_next_anticipated_shared_plan_is_the_reunion(client, premium, session) -> None:  # type: ignore[no-untyped-def]
+    _special_plan(session, premium, planned_on=date(2026, 11, 30))
+    _special_plan(session, premium, planned_on=date(2026, 11, 20))
+    # Neither an ordinary Plan, a completed nor a past Plan counts.
+    _special_plan(session, premium, planned_on=date(2026, 11, 17), anticipation_enabled=False)
+    _special_plan(
+        session,
+        premium,
+        planned_on=date(2026, 11, 17),
+        status=PlanStatus.COMPLETED.value,
+        experienced_on=date(2026, 11, 16),
+    )
+    _special_plan(session, premium, planned_on=date(2026, 11, 10))
+    for who in ("a", "b"):
+        body = client.get(_url(premium), headers=_h(premium, who)).json()
+        assert body["reunionOn"] == "2026-11-20"
+        assert body["reunionToday"] is False
+        assert "Finally together" not in str(body)
+
+
+def test_on_the_reunion_day_the_garden_is_awake(client, premium, session, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    _send(client, premium)
+    _special_plan(session, premium, planned_on=date(2026, 11, 26), planned_until=date(2026, 11, 28))
+    _at(monkeypatch, DAY_ONE + timedelta(days=10))
+    body = client.get(_url(premium), headers=_h(premium, "b")).json()
+    assert body["reunionOn"] == "2026-11-26"
+    assert body["reunionToday"] is True
+    assert body["sleeping"] is False
+    _at(monkeypatch, DAY_ONE + timedelta(days=12))
+    assert client.get(_url(premium), headers=_h(premium)).json()["reunionToday"] is True
+    _at(monkeypatch, DAY_ONE + timedelta(days=13))
+    after = client.get(_url(premium), headers=_h(premium)).json()
+    assert after["reunionOn"] is None
+    assert after["reunionToday"] is False
+
+
+def test_a_timed_reunion_uses_the_couple_calendar_day(client, premium, session) -> None:  # type: ignore[no-untyped-def]
+    _special_plan(
+        session,
+        premium,
+        planned_start=datetime(2026, 11, 16, 18, 0, tzinfo=UTC),
+        planned_end=datetime(2026, 11, 16, 21, 0, tzinfo=UTC),
+    )
+    body = client.get(_url(premium), headers=_h(premium)).json()
+    assert body["reunionOn"] == "2026-11-16"
+    assert body["reunionToday"] is True

@@ -53,6 +53,14 @@ class GardenView(ApiModel):
         default=None, description="Plant the partner watered today."
     )
     offer: list[GardenSpecies] = Field(description="Seeds the reader can choose from today.")
+    sleeping: bool = Field(
+        description="Neither partner was in the garden for a few days; it wakes for the reader."
+    )
+    reunion_on: date | None = Field(
+        default=None,
+        description="First day of the next anticipated shared Plan, the couple's reunion.",
+    )
+    reunion_today: bool = Field(description="Today is a day of that reunion Plan.")
 
 
 class GardenSeedInput(ApiModel):
@@ -93,6 +101,9 @@ def _view(state: service.GardenState) -> GardenView:
         watered_today=state.watered_today,
         partner_watered_today=state.partner_watered_today,
         offer=list(state.offer),
+        sleeping=state.sleeping,
+        reunion_on=state.reunion_on,
+        reunion_today=state.reunion_today,
     )
 
 

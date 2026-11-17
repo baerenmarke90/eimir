@@ -336,7 +336,8 @@ const games = {
     waitingBody:
       'Sobald {{name}} reinschaut, wird er eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
     sharedTitle: 'Ihr wart heute beide im Garten',
-    sharedBody: 'Alles ist ein Stück gewachsen. Morgen gibt es neue Samen.',
+    sharedBody:
+      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neue Samen.',
     sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
     sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
     panHint: 'Wischen, um den ganzen Garten zu sehen',
@@ -351,6 +352,44 @@ const games = {
       'Tipp auf eine Pflanze, um ihre Geschichte zu sehen. Kein Tag geht verloren: wenn ihr mal nicht reinschaut, wartet der Garten einfach.',
     plantLabel: '{{species}} von {{name}}',
     waterPlantLabel: '{{species}} gießen',
+    seasons: {
+      spring: 'Im Garten ist Frühling',
+      summer: 'Im Garten ist Sommer',
+      autumn: 'Im Garten ist Herbst',
+      winter: 'Im Garten ist Winter, Schnee liegt auf den Hügeln',
+    },
+    lanterns: {
+      both: 'Eure beiden Laternen leuchten, ihr wart heute beide im Garten',
+      own: 'Deine Laterne leuchtet, du warst heute im Garten',
+      partner:
+        'Die Laterne von {{name}} leuchtet, {{name}} war heute im Garten',
+    },
+    reunion: {
+      eyebrow: 'Aus Planen',
+      soonTitle: 'Wiedersehen am {{date}}',
+      soonBody:
+        'An dem Tag blüht euer ganzer Garten auf, egal wie weit er ist.',
+      gateLabel: 'Ein Gartentor wartet auf euer Wiedersehen am {{date}}',
+      todayTitle: 'Heute seht ihr euch wieder',
+      todayBody:
+        'Euer ganzer Garten blüht für euch. Heute müsst ihr keine Samen schicken.',
+      buntingLabel: 'Alles blüht, und eine Wimpelkette hängt über dem Garten',
+      save: 'Wiedersehensgarten als Moment speichern',
+      saving: 'Wird gespeichert …',
+      saved: 'In Momente gespeichert.',
+      openMoment: 'Moment ansehen',
+      memoryTitle: 'Unser Garten zum Wiedersehen',
+      memoryBody:
+        'Am Tag unseres Wiedersehens hat unser ganzer Garten geblüht.',
+    },
+    sleep: {
+      title: 'Euer Garten schläft',
+      body: 'Er hat ein paar Tage geruht. Gleich wacht er auf.',
+      sceneLabel: 'Nebel liegt über dem Garten, die Blüten sind geschlossen',
+      wokeTitle: 'Schön, dass du da bist',
+      wokeBody: 'Euer Garten ist wieder wach. Nichts ist verloren gegangen.',
+      wokeClose: 'Schön',
+    },
     stages: {
       '0': 'Gerade: ein Samen in der Erde',
       '1': 'Gerade: ein kleiner Keim',

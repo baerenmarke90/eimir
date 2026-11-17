@@ -3439,7 +3439,7 @@
       "waitingTitle": "Your seed is with {{name}}",
       "waitingBody": "As soon as {{name}} looks in, it gets planted. If you are both here today, the whole garden grows a little.",
       "sharedTitle": "You were both in the garden today",
-      "sharedBody": "Everything grew a little. There are new seeds tomorrow.",
+      "sharedBody": "Everything grew a little, and your lanterns are glowing. There are new seeds tomorrow.",
       "sceneLabel_one": "Your garden with {{count}} plant",
       "sceneLabel_other": "Your garden with {{count}} plants",
       "panHint": "Swipe to see the whole garden",
@@ -3452,6 +3452,40 @@
       "footnote": "Tap a plant to see its story. No day is lost: if you do not look in for a while, the garden simply waits.",
       "plantLabel": "{{species}} from {{name}}",
       "waterPlantLabel": "Water the {{species}}",
+      "seasons": {
+        "spring": "It is spring in the garden",
+        "summer": "It is summer in the garden",
+        "autumn": "It is autumn in the garden",
+        "winter": "It is winter in the garden, snow lies on the hills"
+      },
+      "lanterns": {
+        "both": "Both your lanterns are glowing, you were both in the garden today",
+        "own": "Your lantern is glowing, you were in the garden today",
+        "partner": "{{name}}'s lantern is glowing, {{name}} was in the garden today"
+      },
+      "reunion": {
+        "eyebrow": "From Plans",
+        "soonTitle": "Together again on {{date}}",
+        "soonBody": "On that day your whole garden blooms, however far along it is.",
+        "gateLabel": "A garden gate waits for your reunion on {{date}}",
+        "todayTitle": "You see each other again today",
+        "todayBody": "Your whole garden is in bloom for you. No seeds needed today.",
+        "buntingLabel": "Everything is in bloom, and bunting hangs over the garden",
+        "save": "Save the reunion garden as a Moment",
+        "saving": "Saving …",
+        "saved": "Saved to Moments.",
+        "openMoment": "View the Moment",
+        "memoryTitle": "Our reunion garden",
+        "memoryBody": "On the day we saw each other again, our whole garden was in bloom."
+      },
+      "sleep": {
+        "title": "Your garden is asleep",
+        "body": "It has rested for a few days. It is waking up in a moment.",
+        "sceneLabel": "Mist lies over the garden, the blossoms are closed",
+        "wokeTitle": "Lovely to see you",
+        "wokeBody": "Your garden is awake again. Nothing was lost.",
+        "wokeClose": "Lovely"
+      },
       "stages": {
         "0": "Right now: a seed in the ground",
         "1": "Right now: a little sprout",

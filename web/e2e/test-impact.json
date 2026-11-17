@@ -464,6 +464,9 @@
         "web/src/components/GardenScene.tsx",
         "web/src/components/GardenArt.tsx",
         "web/src/client/garden.ts",
+        "web/src/client/gardenPresentation.ts",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/components/GardenSeasonArt.tsx",
         "web/src/components/GamesProductArea.tsx"
       ]
     },

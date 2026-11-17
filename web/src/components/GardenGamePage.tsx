@@ -36,6 +36,15 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Messenger, SeedIcon } from './GardenArt';
+import {
+  GardenReunionSoonCard,
+  GardenReunionTodayCard,
+  GardenSleepCard,
+  gardenSceneSentences,
+  type SaveGardenMoment,
+  useGardenMomentSaver,
+  useGardenPresentation,
+} from './GardenPresentation';
 import { GardenScene, type ScenePlant } from './GardenScene';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
@@ -54,6 +63,8 @@ export interface GardenServices {
   ) => Promise<GardenView>;
   plant: (seedId: string) => Promise<GardenView>;
   water: (plantId: string) => Promise<GardenView>;
+  /** Saves the reunion garden as a Moment; defaults to the media path. */
+  saveMoment?: SaveGardenMoment;
 }
 
 function useDefaultServices({
@@ -326,8 +337,16 @@ export function GardenGamePage({
     key: number;
   } | null>(null);
   const greeted = useRef<string | null>(null);
+  const frame = useRef<HTMLDivElement | null>(null);
+  const defaultSaveMoment = useGardenMomentSaver({
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+  });
 
   const garden = gardenQuery.data;
+  const presentation = useGardenPresentation(garden, prefersReducedMotion());
   // A gentle gust when the garden opens.
   const opened = garden !== undefined;
   useEffect(() => {
@@ -462,10 +481,11 @@ export function GardenGamePage({
   const scenePlants: ScenePlant[] = garden.plants.map((entry) => ({
     id: entry.id,
     species: entry.species,
-    stage: entry.stage,
     slot: entry.slot ?? 0,
     role: roleOf(entry),
-    grewFrom: changes.get(entry.id),
+    stage: presentation.stageOf(entry.stage).stage,
+    grewFrom:
+      changes.get(entry.id) ?? presentation.stageOf(entry.stage).grewFrom,
     watered:
       garden.wateredToday === entry.id ||
       garden.partnerWateredToday === entry.id,
@@ -491,8 +511,16 @@ export function GardenGamePage({
   const ownColour = 'var(--person-own-accent)';
   const partnerColour = 'var(--person-partner-accent)';
   const incoming = garden.incoming ?? null;
+  const reunionToday = presentation.reunion === 'today';
+  const reunionDate = garden.reunionOn
+    ? dayFormat.format(garden.reunionOn)
+    : null;
+  const sceneSentences = gardenSceneSentences(t, presentation, {
+    partnerName: names.partner,
+    reunionDate,
+  });
 
-  let card: ReactElement;
+  let card: ReactElement | null;
   if (watering) {
     card = (
       <section className="garden-card" aria-labelledby="garden-card-title">
@@ -551,6 +579,8 @@ export function GardenGamePage({
         </button>
       </section>
     );
+  } else if (reunionToday) {
+    card = null;
   } else if (!garden.sentToday) {
     card = (
       <section className="garden-card" aria-labelledby="garden-card-title">
@@ -666,8 +696,11 @@ export function GardenGamePage({
         colour={ownColour}
       />
       <div
+        ref={frame}
         className={`garden-frame${width > 340 ? ' is-wide' : ''}`}
         data-testid="garden-frame"
+        data-season={presentation.season}
+        data-sleep={presentation.sleep}
       >
         <GardenScene
           plants={scenePlants}
@@ -679,12 +712,17 @@ export function GardenGamePage({
           celebrationKey={celebrationKey}
           wateredPlantId={wateredNow}
           lively
-          label={t('games.garden.sceneLabel', { count: garden.plants.length })}
+          label={[
+            t('games.garden.sceneLabel', { count: garden.plants.length }),
+            ...sceneSentences,
+          ].join('. ')}
+          layers={presentation.layers(width)}
         />
       </div>
       {width > 340 ? (
         <p className="garden-pan-hint">{t('games.garden.panHint')}</p>
       ) : null}
+      <GardenSleepCard presentation={presentation} />
       {selectedPlant ? (
         <section className="garden-card garden-story" aria-live="polite">
           <div className="garden-story-head">
@@ -732,8 +770,25 @@ export function GardenGamePage({
       {problem ? (
         <ProblemState error={problem} onRetry={() => setProblem(null)} />
       ) : null}
+      {presentation.reunion === 'soon' && reunionDate ? (
+        <GardenReunionSoonCard date={reunionDate} />
+      ) : null}
+      {reunionToday ? (
+        <GardenReunionTodayCard
+          canSave={garden.plants.length > 0}
+          localDate={garden.localDate}
+          scene={() =>
+            frame.current?.querySelector<SVGSVGElement>('svg.garden-scene') ??
+            null
+          }
+          save={api.saveMoment ?? defaultSaveMoment}
+        />
+      ) : null}
       {card}
-      {!watering && garden.wateredToday == null && garden.plants.length > 0 ? (
+      {!watering &&
+      !reunionToday &&
+      garden.wateredToday == null &&
+      garden.plants.length > 0 ? (
         <button
           type="button"
           className="secondary garden-water"

@@ -101,6 +101,10 @@ class EventType(StrEnum):
     COLLECTION_DELETED = "COLLECTION_DELETED"
     # A deliberate "send this list to my partner" gesture (#1907 E2).
     COLLECTION_SENT = "COLLECTION_SENT"
+    # A partner sent today's garden seed (#1907 H3).
+    GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
+    # A partner gave a garden bouquet; it reuses the seed notice kind (#1907 H3).
+    GARDEN_BOUQUET_GIVEN = "GARDEN_BOUQUET_GIVEN"
     COLLECTION_ITEM_CREATED = "COLLECTION_ITEM_CREATED"
     COLLECTION_ITEM_UPDATED = "COLLECTION_ITEM_UPDATED"
     COLLECTION_ITEM_DELETED = "COLLECTION_ITEM_DELETED"

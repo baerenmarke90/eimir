@@ -1,0 +1,306 @@
+/*
+ * Growth and life of the shared garden (#1907 H3, PR 3). Like the core garden
+ * palette, these illustration roles only mean something inside the scene, so
+ * they live here at the token boundary as local `--garden-*` roles with Light
+ * and Dark values (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ */
+.garden-game-page {
+  --garden-path: #e6d3ad;
+  --garden-stone: #cdbd9f;
+  --garden-water: #9fcbe8;
+  --garden-water-highlight: #e8f5ff;
+  --garden-tree: #6f9f5f;
+  --garden-shade: #1f3524;
+  --garden-house: #f2dcc2;
+  --garden-fur: #b99b80;
+  --garden-tail: #f6efe6;
+  --garden-squirrel: #c4703a;
+  --garden-deer: #b27a48;
+  --garden-hedgehog: #8f735c;
+  --garden-spike: #5f4a3a;
+  --garden-face: #d9c1a6;
+  --garden-snail: #dccaa8;
+  --garden-shell: #c98d5e;
+  --garden-duck: #fbf8ef;
+  --garden-plane: #ffffff;
+  --garden-banner: #fffdf5;
+  --garden-contrail: #ffffffcc;
+  --garden-moon-petal: #fbf8ff;
+  --garden-moon-glow: #fff6c433;
+  --garden-petal-shade: #d98b3a;
+  --garden-berry: #d8473c;
+  --garden-berry-blossom: #fffaf0;
+  --garden-firefly-opacity: 0;
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-path: #6b5c48;
+  --garden-stone: #7d725f;
+  --garden-water: #3f5f86;
+  --garden-water-highlight: #9fbfe6;
+  --garden-tree: #3f6a47;
+  --garden-shade: #0b120d;
+  --garden-house: #8a7460;
+  --garden-fur: #a28a74;
+  --garden-tail: #e6ddd2;
+  --garden-squirrel: #b0663a;
+  --garden-deer: #9c6d45;
+  --garden-hedgehog: #7d6550;
+  --garden-spike: #4b3b2f;
+  --garden-face: #bba48c;
+  --garden-snail: #c4b494;
+  --garden-shell: #a8764f;
+  --garden-duck: #e9e5da;
+  --garden-plane: #e9ecf8;
+  --garden-banner: #f2efe2;
+  --garden-contrail: #ffffff33;
+  --garden-moon-petal: #f4f1ff;
+  --garden-moon-glow: #fff6c466;
+  --garden-petal-shade: #b8742f;
+  --garden-berry: #c0443a;
+  --garden-berry-blossom: #ede8d8;
+  --garden-firefly-opacity: 1;
+}
+
+/* Cards ---------------------------------------------------------------------- */
+
+.garden-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.garden-card h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.garden-card-actions,
+.garden-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.garden-card-actions > button,
+.garden-tools > button {
+  flex: 1 1 9rem;
+  min-height: 2.75rem;
+}
+
+.garden-hint {
+  font-size: 0.875rem;
+}
+
+/* Finds: tinted fill only, never an outline (chips carry no borders). */
+.garden-finds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.garden-find {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.garden-find.is-unknown {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.garden-news .garden-find-new {
+  animation: garden-pop var(--duration-context) var(--easing-enter) both;
+}
+
+.garden-herbarium {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.garden-herbarium li {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.garden-herbarium li.is-unknown {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.garden-herbarium-unknown {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  font-weight: 700;
+}
+
+.garden-book-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-book-head h2 {
+  flex: 1;
+}
+
+.garden-rename {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-rename label {
+  font-weight: 600;
+}
+
+.garden-rename input {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.garden-bouquet-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-bouquet-card .garden-arrival > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.garden-bouquet-art {
+  flex: none;
+  overflow: visible;
+}
+
+.garden-plane-note .garden-folded-action {
+  white-space: nowrap;
+}
+
+/* Scene ---------------------------------------------------------------------- */
+
+.garden-animal-target {
+  cursor: pointer;
+  outline: none;
+}
+
+.garden-animal-target:focus-visible rect {
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+.garden-banner-text,
+.garden-quack-text {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 7.2px;
+  font-weight: 600;
+}
+
+.garden-quack-text {
+  font-family: var(--font-ui, inherit);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.garden-quack {
+  animation: garden-pop var(--duration-feedback) var(--easing-enter) both;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-moon-halo {
+  opacity: var(--garden-moon-opacity);
+}
+
+.garden-firefly {
+  opacity: calc(var(--garden-firefly-opacity) * 0.6);
+  transform-box: fill-box;
+}
+
+.garden-scene.is-lively .garden-firefly {
+  animation: garden-firefly calc(var(--duration-connection-travel) * 0.8)
+    var(--easing-travel) infinite alternate;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-ripple {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.garden-scene.is-lively .garden-ripple {
+  animation: garden-ripple var(--duration-connection-travel)
+    var(--easing-travel) infinite;
+}
+
+.garden-scene.is-lively .garden-stream-flow {
+  animation: garden-stream calc(var(--duration-connection-travel) * 0.7)
+    var(--easing-playback) infinite;
+}
+
+@keyframes garden-firefly {
+  from {
+    opacity: calc(var(--garden-firefly-opacity) * 0.1);
+    transform: none;
+  }
+  to {
+    opacity: var(--garden-firefly-opacity);
+    transform: translate(5px, -8px);
+  }
+}
+
+@keyframes garden-ripple {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scaleX(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.1);
+  }
+}
+
+@keyframes garden-stream {
+  to {
+    stroke-dashoffset: -28;
+  }
+}

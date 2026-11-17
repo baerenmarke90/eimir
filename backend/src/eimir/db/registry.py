@@ -37,6 +37,7 @@ MODEL_MODULES = (
     "eimir.milestones.models",
     "eimir.once_messages.models",
     "eimir.outbox.models",
+    "eimir.garden.models",
     "eimir.people.models",
     "eimir.photo_sources.models",
     "eimir.picture_ping_pong.models",

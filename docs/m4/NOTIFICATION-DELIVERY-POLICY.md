@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v14)
+## Current module workflow (v15)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -19,6 +19,14 @@ A shared list a partner deliberately sends (#1907 E2, `COLLECTION_SENT`) uses
 neutral immediate delivery without the list title, its own recipient switch,
 Quiet Hours and no email choice; see the
 [module workflow](../product/notification-workflow.md).
+
+A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
+immediate delivery without the attached words, its own recipient switch,
+Quiet Hours and no email choice; the notice is current only while the seed
+waits to be planted. A bouquet from the partner reuses the same kind with the
+target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
+while its card waits; a person gets at most one garden notice per local day,
+so a later seed or bouquet on that day stays silent and waits in the garden.
 
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.

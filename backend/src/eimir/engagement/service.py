@@ -42,6 +42,7 @@ from eimir.engagement.models import (
     Notification,
     NotificationKind,
 )
+from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
@@ -314,6 +315,27 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         _project_target_notification(
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
         )
+
+    if event_type in {EventType.GARDEN_SEED_ARRIVED, EventType.GARDEN_BOUQUET_GIVEN}:
+        recipient = event.payload.recipient_id
+        # A bouquet reuses the seed notice with its own target and text; the
+        # couple gets at most one garden notice per person and local day.
+        if recipient is None or not garden.notice_taken_today(
+            session,
+            event.space_id,
+            recipient,
+            event.created_at,
+            NotificationKind.GARDEN_SEED_ARRIVED.value,
+        ):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.GARDEN_SEED
+                if event_type is EventType.GARDEN_SEED_ARRIVED
+                else EngagementTarget.GARDEN_BOUQUET,
+                event.subject_id,
+                NotificationKind.GARDEN_SEED_ARRIVED,
+            )
 
     if event_type is EventType.COLLECTION_SENT:
         _project_target_notification(
@@ -652,6 +674,12 @@ def _target_is_projectable(
             )
             is not None
         )
+    if target_type is EngagementTarget.GARDEN_SEED:
+        # A seed notice is current only while the seed waits for the reader.
+        return session.scalar(garden.seed_is_waiting(session, context, target_id)) is not None
+    if target_type is EngagementTarget.GARDEN_BOUQUET:
+        # A bouquet notice is current only while its card waits for the reader.
+        return session.scalar(garden.bouquet_is_open(session, context, target_id)) is not None
     if target_type is EngagementTarget.WISH_SELECTION:
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
@@ -690,6 +718,18 @@ def _projectable_predicate(
         and_(
             target_type_column == EngagementTarget.PICTURE_GAME.value,
             _picture_turn_exists(context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.GARDEN_SEED.value,
+            garden.seed_is_waiting(session, context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.GARDEN_BOUQUET.value,
+            garden.bouquet_is_open(session, context, target_id_column).exists(),
         )
     )
     for target_type, model in _TARGET_MODELS.items():

@@ -570,8 +570,20 @@
 }
 
 .wir-checkin-slot {
+  position: relative;
   display: inline-flex;
   align-items: center;
+}
+
+/* The old feeling stays visible in its slot while the new one rises, then
+ * shrinks away; the slot itself is invisible until the new one lands. */
+.wir-checkin-farewell {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  visibility: visible;
+  pointer-events: none;
 }
 
 /* Own note on the badge: a small bubble on its corner. */

@@ -894,7 +894,11 @@ test('only what changed since the last visit arrives again', async ({
   await expect(arrivalGhosts(page)).toHaveCount(1);
   const badge = page.getByTestId('wir-checkin-partner-badge');
   await expect(badge.locator('.daily-energy-battery-icon')).toBeVisible();
+  // The old feeling waits in its place and shrinks away while the new one rises.
+  await expect(badge.locator('[data-flight-farewell]')).toHaveCount(1);
   await expect(arrivalGhosts(page)).toHaveCount(0, { timeout: 15_000 });
+  await expect(badge.locator('[data-flight-farewell]')).toHaveCount(0);
+  await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
 });
 
 test('a hidden partner value never arrives, reduced motion shows values at once', async ({

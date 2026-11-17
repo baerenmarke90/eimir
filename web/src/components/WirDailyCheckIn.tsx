@@ -315,6 +315,11 @@ export function useWirDailyCheckIn({
     useState<ReadonlySet<FlightKind>>(NO_KINDS);
   const [arrivalLanding, setArrivalLanding] =
     useState<ReadonlySet<FlightKind>>(NO_KINDS);
+  // The feeling this device saw before the partner changed it; it stays in
+  // its place until the new one lands.
+  const [arrivalOldVibe, setArrivalOldVibe] = useState<DailyVibeValue | null>(
+    null,
+  );
   const arrivalRef = useRef<PartnerArrival | null>(null);
   const partnerBadgeRef = useRef<HTMLSpanElement | null>(null);
   const pageVisible = useSyncExternalStore(
@@ -463,6 +468,7 @@ export function useWirDailyCheckIn({
       },
       {
         onLand: (kind) => {
+          if (kind === 'vibe') setArrivalOldVibe(null);
           setArrivalHidden((current) => withoutKind(current, kind));
           setArrivalLanding((current) => withKind(current, kind));
         },
@@ -471,9 +477,12 @@ export function useWirDailyCheckIn({
     if (!arrival) return;
     arrivalRef.current = arrival;
     if (arrivalMode(kinds) === 'travel') setArrivalHidden(new Set(kinds));
+    if (kinds.includes('vibe') && base.vibe && base.vibe !== current.vibe)
+      setArrivalOldVibe(base.vibe);
     void arrival.done.finally(() => {
       if (arrivalRef.current === arrival) arrivalRef.current = null;
       setArrivalHidden(NO_KINDS);
+      setArrivalOldVibe(null);
     });
   }, [
     arrivalKey,
@@ -493,6 +502,7 @@ export function useWirDailyCheckIn({
     arrivalRef.current?.cancel();
     arrivalRef.current = null;
     setArrivalHidden(NO_KINDS);
+    setArrivalOldVibe(null);
   }, [partnerState]);
   useEffect(
     () => () => {
@@ -1025,6 +1035,17 @@ export function useWirDailyCheckIn({
                       value={partnerVibeValue}
                       className="wir-checkin-glyph"
                     />
+                    {arrivalOldVibe && arrivalHidden.has('vibe') ? (
+                      <span
+                        className="wir-checkin-farewell"
+                        data-flight-farewell="true"
+                      >
+                        <DailyVibeIcon
+                          value={arrivalOldVibe}
+                          className="wir-checkin-glyph"
+                        />
+                      </span>
+                    ) : null}
                   </FlightSlot>
                 ) : null}
                 {partnerEnergyValue !== null ? (

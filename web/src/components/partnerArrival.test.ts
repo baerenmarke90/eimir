@@ -143,6 +143,31 @@ describe('startPartnerArrival', () => {
     expect(document.querySelector('[popover]')).toBeNull();
   });
 
+  it('shrinks the old feeling away and never copies its glyph', async () => {
+    const { avatar, badge, slotOf } = badgeWith('vibe');
+    const slot = slotOf('vibe') as HTMLElement;
+    const farewell = document.createElement('span');
+    farewell.setAttribute('data-flight-farewell', 'true');
+    farewell.innerHTML = '<svg data-old></svg>';
+    slot.append(farewell);
+    const farewellAnimate = vi.fn(() => ({
+      finished: Promise.resolve(),
+      cancel: vi.fn(),
+    }));
+    farewell.animate = farewellAnimate as never;
+    const arrival = startPartnerArrival(
+      { avatar, badge, items: [{ kind: 'vibe', slot: () => slot }] },
+      { onLand: vi.fn() },
+    );
+    const ghost = document.querySelector('.is-arrival');
+    // The travelling glyph is the slot's own, not the farewelling one.
+    expect(ghost?.querySelector('[data-old]')).toBeNull();
+    expect(ghost?.querySelector('svg')).not.toBeNull();
+    await Promise.resolve();
+    expect(farewellAnimate).toHaveBeenCalledTimes(1);
+    await arrival?.done;
+  });
+
   it('only settles a single battery in place, without flying elements', async () => {
     const { avatar, badge, slotOf } = badgeWith('energy');
     const landed: string[] = [];

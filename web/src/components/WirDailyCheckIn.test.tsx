@@ -1440,6 +1440,47 @@ describe('WirDailyCheckIn partner arrival', () => {
     await waitFor(() => expect(ghosts()).toHaveLength(0));
   });
 
+  it('keeps the old feeling in its place until the changed one has landed', async () => {
+    window.localStorage.setItem(
+      SEEN_ARRIVAL_KEY,
+      JSON.stringify({
+        day: '2026-09-21:Europe/Berlin',
+        vibe: 'SAD',
+        energy: 80,
+        note: null,
+      }),
+    );
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    // The new feeling rises; the old one waits in the slot and shrinks away.
+    await waitFor(() => expect(ghosts().length).toBe(1));
+    const farewell = partnerSlot('vibe')?.querySelector(
+      '[data-flight-farewell]',
+    );
+    expect(farewell).not.toBeNull();
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBe(
+      'true',
+    );
+    act(() => releaseAnimations());
+    await waitFor(() =>
+      expect(
+        partnerSlot('vibe')?.querySelector('[data-flight-farewell]'),
+      ).toBeNull(),
+    );
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBeNull();
+  });
+
+  it('shows no farewell when the feeling is new rather than changed', async () => {
+    const { api } = apiFor(visiblePartner);
+    renderCheckIn({ api });
+    await screen.findByTestId('wir-checkin-partner-badge');
+    await waitFor(() => expect(ghosts().length).toBe(2));
+    expect(document.querySelector('[data-flight-farewell]')).toBeNull();
+    act(() => releaseAnimations());
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
+  });
+
   it('stays quiet while the partner values are still hidden', async () => {
     const { api } = apiFor(projection());
     renderCheckIn({ api });

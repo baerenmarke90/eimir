@@ -67,9 +67,15 @@ export function holdPositions(
 
 const SCALE_AT_START = 0.2;
 
+/** The glyph of the slot itself, never the one of a farewelling old value. */
 function cloneGlyph(slot: Element): Node | null {
-  const glyph =
-    slot instanceof SVGSVGElement ? slot : slot.querySelector('svg');
+  const own =
+    slot instanceof SVGSVGElement
+      ? slot
+      : Array.from(slot.children).find(
+          (child): child is SVGSVGElement => child instanceof SVGSVGElement,
+        );
+  const glyph = own ?? slot.querySelector('svg');
   return glyph ? glyph.cloneNode(true) : null;
 }
 
@@ -244,6 +250,24 @@ export function startPartnerArrival(
     disposeLayer();
     return null;
   }
+  // A changed feeling: the old face, kept in its place by the caller, shrinks
+  // away while the new one rises. Looked up after the caller rendered it.
+  queueMicrotask(() => {
+    if (cancelled) return;
+    const slot = items.find((item) => item.kind === 'vibe')?.slot();
+    const farewell = slot?.querySelector('[data-flight-farewell]');
+    farewell?.animate(
+      [
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'scale(0)', opacity: 0 },
+      ],
+      {
+        duration: roles.context / 2,
+        easing: roles.standard,
+        fill: 'forwards',
+      },
+    );
+  });
   const done = Promise.all(flights).then(() => {
     if (!cancelled) disposeLayer();
   });

@@ -361,8 +361,9 @@ as the visual reference; the baseline was this stack's base
 Unchanged from the monthly film: watch in one sitting, a real photo or the
 couple's own words as focal point, play/pause as the single dominant action,
 tap left/right and hold to pause. Captions never sit under an image area. Reduced
-motion replaces every transition by the calm crossfade and removes the month
-marker zoom and the staggered firsts and covers; state and focus are unchanged.
+motion follows the app's motion tokens like the monthly film: scenes change
+without transition, and the month-marker zoom and the staggered firsts and
+covers stop; state and focus are unchanged.
 Browser-only arrows stay hidden in the native runtime. Expanded keeps the same
 order inside the reading column. Pending, empty, error, offline and downgrade
 behavior is unchanged; a year without material keeps the empty state.

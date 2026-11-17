@@ -1,6 +1,7 @@
 package de.eimir.app;
 
 import android.os.Build;
+import androidx.core.content.ContextCompat;
 import androidx.credentials.CreateCredentialResponse;
 import androidx.credentials.CreatePublicKeyCredentialRequest;
 import androidx.credentials.CreatePublicKeyCredentialResponse;
@@ -55,7 +56,7 @@ public class PasskeysPlugin extends Plugin {
                 getActivity(),
                 new CreatePublicKeyCredentialRequest(requestJson),
                 null,
-                getContext().getMainExecutor(),
+                ContextCompat.getMainExecutor(getContext()),
                 new CredentialManagerCallback<CreateCredentialResponse, CreateCredentialException>() {
                     @Override
                     public void onResult(CreateCredentialResponse result) {
@@ -94,7 +95,7 @@ public class PasskeysPlugin extends Plugin {
                 getActivity(),
                 request,
                 null,
-                getContext().getMainExecutor(),
+                ContextCompat.getMainExecutor(getContext()),
                 new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
                     @Override
                     public void onResult(GetCredentialResponse result) {

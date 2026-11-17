@@ -15,7 +15,7 @@ describe('arrival planning', () => {
     expect(arrivalMode(['note'])).toBe('settle');
   });
 
-  it('puts the feeling on top and the others below, side by side', () => {
+  it('puts the feeling on top and the others below, next to each other', () => {
     const all = holdPositions(['vibe', 'energy', 'note']);
     expect(all.vibe.y).toBeLessThan(all.energy.y);
     expect(all.energy.x).toBeLessThan(0);

@@ -81,6 +81,7 @@ class NotificationKind(StrEnum):
     # #1969: a partner wrote or changed a shared note. Content-free references only.
     SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
     SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
+    GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
 
 
 WISH_DATE_NOTICE_KINDS = frozenset(
@@ -112,6 +113,7 @@ COALESCED_NOTIFICATION_KINDS = (
     "PICTURE_PING_PONG_TURN",
     # Several edits of one note leave one current notice, not a stack of them.
     "SHARED_NOTE_CHANGED",
+    "GARDEN_SEED_ARRIVED",
 )
 
 
@@ -142,6 +144,8 @@ class EngagementTarget(StrEnum):
     COLLECTION = "COLLECTION"
     PICTURE_GAME = "PICTURE_GAME"
     SHARED_NOTE = "SHARED_NOTE"
+    GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
 
 
 class PushDeliveryStatus(StrEnum):

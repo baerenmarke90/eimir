@@ -40,6 +40,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.COMMENT_CREATED,
         NotificationKind.PHOTO_REACTION,
         NotificationKind.COLLECTION_SENT,
+        NotificationKind.GARDEN_SEED_ARRIVED,
         *WISH_DATE_NOTICE_KINDS,
     }
 )

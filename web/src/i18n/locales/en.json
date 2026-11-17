@@ -2290,7 +2290,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2307,6 +2307,7 @@
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
     "collectionSent": "Sent lists",
+    "gardenSeed": "Seeds from your garden",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -3172,6 +3173,11 @@
         "role": "Be close",
         "title": "Heart hunt",
         "description": "Hide a heart in a photo. Who finds it?"
+      },
+      "garden": {
+        "role": "Being close",
+        "title": "Our garden",
+        "description": "Send each other a seed every day, wherever you are."
       }
     },
     "heartHunt": {
@@ -3412,6 +3418,217 @@
       },
       "finishDifferent_one": "You saw yourselves differently on {{count}} question.",
       "finishDifferent_other": "You saw yourselves differently on {{count}} questions."
+    },
+    "garden": {
+      "title": "Our garden",
+      "you": "You",
+      "partnerFallback": "Your partner",
+      "loading": "Opening the garden …",
+      "changedMeanwhile": "Something just changed in the garden. We reloaded it.",
+      "sentStatus": "{{messenger}} brought your seed to {{name}}.",
+      "plantedStatus": "Planted.",
+      "wateredStatus": "Watered. {{name}} will see the drops.",
+      "waterTitle": "Which plant are you watering?",
+      "waterBody": "Tap a plant in the garden. {{name}} will see the drops.",
+      "cancel": "Cancel",
+      "arrivedTitle": "{{name}} sent you a seed",
+      "quoted": "“{{words}}”",
+      "foldedCard": "A little card with kind words",
+      "unfold": "Open",
+      "plant": "Plant it",
+      "todayTitle": "Today for {{name}}",
+      "todayBody": "Pick a seed. {{messenger}} will bring it to {{name}}.",
+      "chooseSeed": "Choose a seed",
+      "wordsQuestion": "Add some kind words?",
+      "yourWords": "Your words: “{{words}}”",
+      "change": "Change",
+      "send": "Send the seed",
+      "waitingTitle": "Your seed is with {{name}}",
+      "waitingBody": "As soon as {{name}} looks in, it gets planted. If you are both here today, the whole garden grows a little.",
+      "sharedTitle": "You were both in the garden today",
+      "sharedBody": "Everything grew a little, and your lanterns are glowing. There are new seeds tomorrow.",
+      "sceneLabel_one": "Your garden with {{count}} plant",
+      "sceneLabel_other": "Your garden with {{count}} plants",
+      "panHint": "Swipe to see the whole garden",
+      "close": "Close",
+      "storySent": "Sent by {{name}}, {{date}}",
+      "youDative": "you",
+      "water": "Water a plant",
+      "partnerWatered": "{{name}} watered your {{species}} today.",
+      "partnerWateredYours": "{{name}} watered the {{species}} you sent today.",
+      "footnote": "Tap a plant to see its story. No day is lost: if you do not look in for a while, the garden simply waits.",
+      "plantLabel": "{{species}} from {{name}}",
+      "waterPlantLabel": "Water the {{species}}",
+      "seasons": {
+        "spring": "It is spring in the garden",
+        "summer": "It is summer in the garden",
+        "autumn": "It is autumn in the garden",
+        "winter": "It is winter in the garden, snow lies on the hills"
+      },
+      "lanterns": {
+        "both": "Both your lanterns are glowing, you were both in the garden today",
+        "own": "Your lantern is glowing, you were in the garden today",
+        "partner": "{{name}}'s lantern is glowing, {{name}} was in the garden today"
+      },
+      "reunion": {
+        "eyebrow": "From Plans",
+        "soonTitle": "Together again on {{date}}",
+        "soonBody": "On that day your whole garden blooms, however far along it is.",
+        "gateLabel": "A garden gate waits for your reunion on {{date}}",
+        "todayTitle": "You see each other again today",
+        "todayBody": "Your whole garden is in bloom for you. No seeds needed today.",
+        "buntingLabel": "Everything is in bloom, and bunting hangs over the garden",
+        "save": "Save the reunion garden as a Moment",
+        "saving": "Saving …",
+        "saved": "Saved to Moments.",
+        "openMoment": "View the Moment",
+        "memoryTitle": "Our reunion garden",
+        "memoryBody": "On the day we saw each other again, our whole garden was in bloom."
+      },
+      "sleep": {
+        "title": "Your garden is asleep",
+        "body": "It has rested for a few days. It is waking up in a moment.",
+        "sceneLabel": "Mist lies over the garden, the blossoms are closed",
+        "wokeTitle": "Lovely to see you",
+        "wokeBody": "Your garden is awake again. Nothing was lost.",
+        "wokeClose": "Lovely"
+      },
+      "stages": {
+        "0": "Right now: a seed in the ground",
+        "1": "Right now: a little sprout",
+        "2": "Right now: a bud",
+        "3": "Right now: in full bloom"
+      },
+      "messengers": {
+        "ladybug": "A ladybird",
+        "bee": "A bee",
+        "bird": "A bird",
+        "balloon": "A little balloon"
+      },
+      "species": {
+        "POPPY": {
+          "name": "Poppy",
+          "arrived": "A poppy. {{messenger}} brought it."
+        },
+        "BELLFLOWER": {
+          "name": "Bellflower",
+          "arrived": "A bellflower. {{messenger}} brought it."
+        },
+        "STARFLOWER": {
+          "name": "Star flower",
+          "arrived": "A star flower. {{messenger}} brought it."
+        },
+        "SUNFLOWER": {
+          "name": "Sunflower",
+          "arrived": "A sunflower. {{messenger}} brought it."
+        },
+        "TULIP": {
+          "name": "Tulip bulb",
+          "arrived": "A tulip bulb. {{messenger}} brought it. It blooms in spring."
+        },
+        "WATER_LILY": {
+          "name": "Water lily",
+          "arrived": "A water lily for your pond. {{messenger}} brought it."
+        },
+        "STRAWBERRY": {
+          "name": "Strawberry",
+          "arrived": "A strawberry. {{messenger}} brought it."
+        },
+        "MOONFLOWER": {
+          "name": "Moonflower",
+          "arrived": "A moonflower. {{messenger}} brought it."
+        },
+        "SURPRISE": {
+          "name": "Surprise",
+          "arrived": "A surprise. {{messenger}} brought it. You will both see what it becomes when it blooms."
+        }
+      },
+      "growth": {
+        "forms": {
+          "BED": "A flower bed",
+          "MEADOW": "A meadow",
+          "GARDEN": "A garden",
+          "PARADISE": "Your little paradise"
+        },
+        "finds": {
+          "PATH": "A path",
+          "POND": "A pond with water lilies",
+          "BENCH": "A bench for the two of you",
+          "TREE": "Your tree",
+          "MORE_ROOM": "More room to plant",
+          "BIRDHOUSE": "A birdhouse",
+          "ROSE_ARCH": "A rose arch",
+          "SWING": "A swing on the tree",
+          "STREAM": "A little stream",
+          "EVEN_MORE_ROOM": "Even more room"
+        },
+        "newSeeds": "New seeds: {{species}}",
+        "newsEyebrow": "New in the garden",
+        "newsBody": "Because you took care of it together. None of it will ever be lost.",
+        "newsDone": "Lovely",
+        "book": "Garden book",
+        "bookPlants": "Your plants",
+        "bookFinds": "Found in the garden",
+        "undiscovered": "Not discovered yet",
+        "secret": "Still a secret",
+        "bookFootnote": "New things appear on their own as you keep caring together. There is no counter, and nothing is ever lost, not even after a break.",
+        "rename": "Rename",
+        "nameLabel": "What is your garden called?",
+        "nameHint": "Up to 40 characters. Leave it empty for “Our garden”.",
+        "save": "Save",
+        "renamedStatus": "Your garden is now called “{{name}}”.",
+        "bind": "Make a bouquet",
+        "bindTitle": "Make a bouquet",
+        "bindBody": "Tap up to three blooming flowers. A seed stays in the soil for each one and grows again.",
+        "bindCount_one": "{{count}} of 3 in the bouquet",
+        "bindCount_other": "{{count}} of 3 in the bouquet",
+        "bindSend": "Give to {{name}}",
+        "bindPlantLabel": "{{species}} for the bouquet",
+        "bouquetSentStatus": "The bouquet is with {{name}}. New seeds are in the soil.",
+        "bouquetTitle": "{{name}} gave you a bouquet",
+        "bouquetBody": "{{messenger}} brought it.",
+        "bouquetLabel": "A bouquet of {{flowers}}",
+        "bouquetThanks": "Thank you",
+        "bouquetKeep": "Put into Moments",
+        "bouquetKept": "The bouquet is now in Moments.",
+        "bouquetMemoryTitle": "A bouquet from {{name}}",
+        "bouquetMemoryBody": "From our garden.",
+        "planeNote": "Loving words are coming by air mail",
+        "planeOpen": "Look",
+        "restingTulip": "Right now: sleeping until spring",
+        "moonGlow": "It glows at night.",
+        "moonRevealed": "A moonflower! It glows at night.",
+        "yearTitle": "Your garden year {{year}}",
+        "yearBody": "Keep your garden as a picture in Moments. It then also appears in your annual recap. Only if you want to.",
+        "yearSave": "Save as a moment",
+        "yearSaved": "Your garden is now in Moments.",
+        "yearMemoryTitle": "Our garden {{year}}",
+        "animalLabel": "Tap the {{animal}}",
+        "quack": "Quack!",
+        "animals": {
+          "snail": "snail",
+          "rabbit": "rabbit",
+          "hedgehog": "hedgehog",
+          "ducks": "duck pair",
+          "squirrel": "squirrel",
+          "deer": "deer"
+        },
+        "reactions": {
+          "snail": "The snail hides in its shell.",
+          "rabbit": "The rabbit hops away.",
+          "hedgehog": "The hedgehog curls up.",
+          "ducks": "Quack! The ducks paddle a little.",
+          "squirrel": "The squirrel dashed up your tree.",
+          "deer": "Oh! The deer got startled."
+        }
+      },
+      "words": {
+        "THINKING_OF_YOU": "Thinking of you",
+        "MISS_YOU": "Miss you",
+        "LOOKING_FORWARD": "Can’t wait to see you",
+        "GOOD_NIGHT": "Good night",
+        "FOR_YOU": "For you"
+      }
     }
   },
   "coupleExperiences": {
@@ -3436,6 +3653,8 @@
       "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
+      "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
+      "GARDEN_BOUQUET": "{{name}} gave you a bouquet.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",

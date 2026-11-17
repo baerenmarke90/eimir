@@ -72,6 +72,7 @@ import {
   NOTE_EDIT_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
+  GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_PICTURE_PING_PONG_ROUTE,
@@ -167,6 +168,7 @@ import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { GardenGamePage } from './components/GardenGamePage';
 import { HeartHuntGamePage } from './components/HeartHuntGamePage';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
@@ -885,6 +887,17 @@ function AuthenticatedApp({
               path={GAMES_PICTURE_PING_PONG_ROUTE}
               element={
                 <PicturePingPongPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_GARDEN_ROUTE}
+              element={
+                <GardenGamePage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
                   spaceId={spaceId}

@@ -458,7 +458,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('five Pro games retain their existing independent home', async ({
+test('six Pro games retain their existing independent home', async ({
   page,
 }, info) => {
   await installMocks(page);
@@ -488,7 +488,7 @@ test('five Pro games retain their existing independent home', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(5).fill(gameCopy.status.playNow),
+    Array(6).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {

@@ -17,6 +17,7 @@ import {
   appRoutePath,
   chapterDetailPath,
   collectionDetailPath,
+  GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_PICTURE_PING_PONG_ROUTE,
   heartMomentDetailPath,
@@ -156,6 +157,9 @@ export function engagementTargetPath(
       return GAMES_PICTURE_PING_PONG_ROUTE;
     case 'SHARED_NOTE':
       return sharedNoteDetailPath(targetId);
+    case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
+      return GAMES_GARDEN_ROUTE;
     case 'WISH_SELECTION':
       return '/plan/choose';
     case 'TRANSFER_EXPORT':

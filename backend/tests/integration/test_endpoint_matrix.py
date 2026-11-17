@@ -495,6 +495,26 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
         body={"memoryId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/waterings",
+        body={"plantId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
+    Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets",
+        body={"plantIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close",
+        body={"kept": False},
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
@@ -1812,6 +1832,9 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "experienceKind": "HAPPINESS",
             # A catalog image ID, not a database row; tenant checks come first.
             "imageId": "category-nature",
+            # No seed exists in the matrix; tenant and entitlement checks come first.
+            "seedId": str(uuid4()),
+            "bouquetId": str(uuid4()),
             "attachmentId": attachment["attachment"]["id"],
         },
     }

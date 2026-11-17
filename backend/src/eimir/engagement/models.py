@@ -40,6 +40,10 @@ class ActivityKind(StrEnum):
     CHAPTER_CREATED = "CHAPTER_CREATED"
     COLLECTION_CREATED = "COLLECTION_CREATED"
     COMMENT_CREATED = "COMMENT_CREATED"
+    # #1969: a shared note was written or changed. A feed entry names the note
+    # and its author; it never carries or exposes the note's text.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
 
 
 class NotificationKind(StrEnum):
@@ -78,6 +82,10 @@ class NotificationKind(StrEnum):
     SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
     SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
     GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
+    # #1744: a retained recap is ready, or a retained recap got a newer version.
+    # Both partners get the identical notice; it names only the period.
+    RECAP_READY = "RECAP_READY"
+    RECAP_GREW = "RECAP_GREW"
 
 
 WISH_DATE_NOTICE_KINDS = frozenset(
@@ -142,6 +150,7 @@ class EngagementTarget(StrEnum):
     SHARED_NOTE = "SHARED_NOTE"
     GARDEN_SEED = "GARDEN_SEED"
     GARDEN_BOUQUET = "GARDEN_BOUQUET"
+    RECAP = "RECAP"
 
 
 class PushDeliveryStatus(StrEnum):
@@ -286,6 +295,19 @@ class Activity(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
+        ),
+        # One feed entry per note and kind: repeated edits move the single
+        # "changed" entry forward instead of stacking one entry per save.
+        Index(
+            "uq_activities_shared_note_target_kind",
+            "space_id",
+            "target_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') "
+                "AND target_type = 'SHARED_NOTE'"
+            ),
         ),
     )
 

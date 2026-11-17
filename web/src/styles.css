@@ -165,7 +165,8 @@ button,
   text-decoration: none;
 }
 
-/* Canonical blue actions retain their meaning inside contextual color worlds. */
+/* Primary actions use the design's action colour (Verbunden: the canonical blue)
+   and keep it inside contextual colour worlds. */
 .button-link.button-link-primary {
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
@@ -673,7 +674,6 @@ code {
   height: 1.25rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   flex-shrink: 0;

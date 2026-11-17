@@ -513,6 +513,15 @@ class OidcAuthRequest(IdMixin, Base):
     # OIDC via an invitation. Like all bearer proofs, stored only as a hash.
     invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
 
+    # Set when the person asked to create a new Account without an invitation
+    # (Cloud self-service). Only then may the callback create one.
+    allow_signup: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    # The terms-of-use version the person accepted before leaving for the
+    # provider. A callback never invents an acceptance.
+    accepted_terms_version: Mapped[str | None] = mapped_column(String(64))
+
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

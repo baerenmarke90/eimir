@@ -142,6 +142,11 @@ class EventType(StrEnum):
     REMINDER_DUE = "REMINDER_DUE"
     PROFILE_PREFERENCE_CHANGED = "PROFILE_PREFERENCE_CHANGED"
     PARTNER_JOINED = "PARTNER_JOINED"
+    # #1744: a retained recap is ready, a retained recap got a newer version, or
+    # several earlier recaps arrived at once and are announced together.
+    RECAP_READY = "RECAP_READY"
+    RECAP_GREW = "RECAP_GREW"
+    RECAPS_COLLECTED = "RECAPS_COLLECTED"
 
 
 class PublicEventPayload(BaseModel):

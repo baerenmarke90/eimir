@@ -254,7 +254,9 @@
           "PLACE_CREATED",
           "CHAPTER_CREATED",
           "COLLECTION_CREATED",
-          "COMMENT_CREATED"
+          "COMMENT_CREATED",
+          "SHARED_NOTE_CREATED",
+          "SHARED_NOTE_CHANGED"
         ],
         "title": "ActivityKind",
         "type": "string"
@@ -3754,6 +3756,7 @@
           "kind": {
             "enum": [
               "NEARBY",
+              "CLOSE",
               "RANGE",
               "APPROXIMATE"
             ],
@@ -3771,6 +3774,18 @@
             ],
             "title": "Maxkm"
           },
+          "maxMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Maxmeters"
+          },
           "minKm": {
             "anyOf": [
               {
@@ -3781,6 +3796,18 @@
               }
             ],
             "title": "Minkm"
+          },
+          "minMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Minmeters"
           }
         },
         "required": [
@@ -3829,7 +3856,8 @@
           "PICTURE_GAME",
           "SHARED_NOTE",
           "GARDEN_SEED",
-          "GARDEN_BOUQUET"
+          "GARDEN_BOUQUET",
+          "RECAP"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -5953,6 +5981,20 @@
             "title": "Maintenancemode",
             "type": "boolean"
           },
+          "oidcConnections": {
+            "description": "External sign-in providers configured here. Empty unless `auth.oidc` is true. Whether a provider may also create a new Account is `oidcSignupAvailable`.",
+            "items": {
+              "$ref": "#/components/schemas/OidcConnectionView"
+            },
+            "title": "Oidcconnections",
+            "type": "array"
+          },
+          "oidcSignupAvailable": {
+            "default": false,
+            "description": "Whether a person may create a new Account through an external provider, without an invitation, right now: Cloud, a provider is configured, and the administrator admits new Accounts.",
+            "title": "Oidcsignupavailable",
+            "type": "boolean"
+          },
           "registrationAvailable": {
             "description": "Whether the administrator currently admits new Accounts. It does not say how an Account is created and does not affect sign-in of existing Accounts.",
             "title": "Registrationavailable",
@@ -6154,6 +6196,25 @@
           "available"
         ],
         "title": "LinkPreviewResult",
+        "type": "object"
+      },
+      "LinkedProviderView": {
+        "properties": {
+          "connectionId": {
+            "title": "Connectionid",
+            "type": "string"
+          },
+          "linkedAt": {
+            "format": "date-time",
+            "title": "Linkedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "linkedAt"
+        ],
+        "title": "LinkedProviderView",
         "type": "object"
       },
       "MagicLinkConsumeRequest": {
@@ -7571,7 +7632,9 @@
           "PICTURE_PING_PONG_TURN",
           "SHARED_NOTE_CREATED",
           "SHARED_NOTE_CHANGED",
-          "GARDEN_SEED_ARRIVED"
+          "GARDEN_SEED_ARRIVED",
+          "RECAP_READY",
+          "RECAP_GREW"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -7746,8 +7809,80 @@
         "title": "ObservationKind",
         "type": "string"
       },
+      "OidcConnectionView": {
+        "description": "A configured external sign-in provider, as an unauthenticated client may know it.\n\nOnly what a sign-in screen needs to draw a button and start the flow. The\nissuer, client identity and callback addresses stay in configuration.",
+        "properties": {
+          "brand": {
+            "enum": [
+              "google",
+              "generic"
+            ],
+            "title": "Brand",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Button text for a `generic` provider; empty for `google`.",
+            "title": "Label",
+            "type": "string"
+          },
+          "nativeAvailable": {
+            "description": "Whether the Android app has a registered callback for this provider.",
+            "title": "Nativeavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "brand",
+          "label",
+          "nativeAvailable"
+        ],
+        "title": "OidcConnectionView",
+        "type": "object"
+      },
+      "OidcLinkRequest": {
+        "properties": {
+          "client": {
+            "default": "web",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          }
+        },
+        "title": "OidcLinkRequest",
+        "type": "object"
+      },
       "OidcStartRequest": {
         "properties": {
+          "acceptedTermsVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms-of-use version the person accepted before leaving for the provider.",
+            "title": "Acceptedtermsversion"
+          },
+          "client": {
+            "default": "web",
+            "description": "Which registered callback to use: the web page or the native Android app.",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          },
           "invitationToken": {
             "anyOf": [
               {
@@ -7758,6 +7893,12 @@
               }
             ],
             "title": "Invitationtoken"
+          },
+          "signup": {
+            "default": false,
+            "description": "Create a new Account if this identity has none and no invitation applies. Only Cloud offers this, and it requires `acceptedTermsVersion`.",
+            "title": "Signup",
+            "type": "boolean"
           }
         },
         "title": "OidcStartRequest",
@@ -8327,6 +8468,17 @@
           },
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SharingPrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Omit to keep the stored choice (approximate for a new decision). Choosing precise needs the Premium capability; approximate and OFF never do."
           }
         },
         "required": [
@@ -8378,6 +8530,10 @@
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
           },
+          "precision": {
+            "$ref": "#/components/schemas/SharingPrecision",
+            "description": "How finely the caller shares (own choice). Precise stays inactive when the device only grants an approximate position."
+          },
           "state": {
             "$ref": "#/components/schemas/SharingState"
           }
@@ -8385,6 +8541,7 @@
         "required": [
           "available",
           "level",
+          "precision",
           "state",
           "indefinite",
           "expiresAt",
@@ -10717,6 +10874,20 @@
       "PresencePosition": {
         "additionalProperties": false,
         "properties": {
+          "accuracyMeters": {
+            "anyOf": [
+              {
+                "maximum": 50000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reported accuracy of the position. Required to publish; for a distance read it only lets a precise choice count when the fix itself is precise.",
+            "title": "Accuracymeters"
+          },
           "capturedAt": {
             "format": "date-time",
             "title": "Capturedat",
@@ -11604,6 +11775,31 @@
         "title": "Readiness",
         "type": "object"
       },
+      "RecapAnswerView": {
+        "description": "One partner's own answer to a guided question, cut at a sentence or word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapAnswerView",
+        "type": "object"
+      },
       "RecapDraftView": {
         "properties": {
           "text": {
@@ -11671,6 +11867,201 @@
           "busiestMonth"
         ],
         "title": "RecapFactsView",
+        "type": "object"
+      },
+      "RecapFilmMediaView": {
+        "description": "A curated picture of a film scene; a video names the muted clip it plays.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "clipSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipseconds"
+          },
+          "clipStartSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipstartseconds"
+          },
+          "focusX": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusx"
+          },
+          "focusY": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusy"
+          },
+          "kind": {
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "parentId",
+          "kind"
+        ],
+        "title": "RecapFilmMediaView",
+        "type": "object"
+      },
+      "RecapFilmMonthView": {
+        "description": "The highlight that opens the cover of one month chapter in a year film.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "key"
+        ],
+        "title": "RecapFilmMonthView",
+        "type": "object"
+      },
+      "RecapFilmView": {
+        "description": "The frozen look of a recap film, from a fixed catalogue of design variants.\n\nNames map to design tokens in the reader. Selection scores and reasons are\ndeliberately not part of the contract. A year film lists the highlight of\nevery month chapter; a monthly film lists none.",
+        "properties": {
+          "accents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accents",
+            "type": "array"
+          },
+          "cover": {
+            "title": "Cover",
+            "type": "string"
+          },
+          "highlightKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlightkey"
+          },
+          "layouts": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Layouts",
+            "type": "object"
+          },
+          "monthHighlights": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMonthView"
+            },
+            "title": "Monthhighlights",
+            "type": "array"
+          },
+          "mood": {
+            "title": "Mood",
+            "type": "string"
+          },
+          "motions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motions",
+            "type": "array"
+          },
+          "pace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/RecapTagView"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "transitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Transitions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mood",
+          "transitions",
+          "cover",
+          "motions",
+          "layouts",
+          "highlightKey",
+          "tags"
+        ],
+        "title": "RecapFilmView",
         "type": "object"
       },
       "RecapKind": {
@@ -11975,6 +12366,13 @@
       },
       "RecapSourceView": {
         "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/RecapAnswerView"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
           "available": {
             "title": "Available",
             "type": "boolean"
@@ -12001,6 +12399,13 @@
           },
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMediaView"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "mutualReaction": {
             "anyOf": [
@@ -12029,6 +12434,17 @@
               }
             ],
             "title": "Occurredon"
+          },
+          "placeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placename"
           },
           "previewAttachmentId": {
             "anyOf": [
@@ -12094,12 +12510,40 @@
         "title": "RecapSourceView",
         "type": "object"
       },
+      "RecapTagView": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "RecapTagView",
+        "type": "object"
+      },
       "RecapView": {
         "properties": {
           "facts": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RecapFactsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFilmView"
               },
               {
                 "type": "null"
@@ -12217,6 +12661,32 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "supersededById": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newer version that extends this retained edition (#1744).",
+            "title": "Supersededbyid"
+          },
+          "supersedesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The retained edition this newer version extends with late entries (#1744).",
+            "title": "Supersedesid"
           },
           "theme": {
             "title": "Theme",
@@ -15442,6 +15912,15 @@
         "title": "SharingLevel",
         "type": "string"
       },
+      "SharingPrecision": {
+        "description": "How finely the owner agrees to share (PO 2026-11-17); a person-level choice.",
+        "enum": [
+          "APPROXIMATE",
+          "PRECISE"
+        ],
+        "title": "SharingPrecision",
+        "type": "string"
+      },
       "SharingState": {
         "enum": [
           "OFF",
@@ -15452,6 +15931,42 @@
         ],
         "title": "SharingState",
         "type": "string"
+      },
+      "SignInMethodsView": {
+        "description": "The ways this Account can currently sign in, beyond what it signed in with.",
+        "properties": {
+          "emailLink": {
+            "description": "A mailed link can sign this Account in: a verified address and mail here.",
+            "title": "Emaillink",
+            "type": "boolean"
+          },
+          "localPassword": {
+            "title": "Localpassword",
+            "type": "boolean"
+          },
+          "oidc": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedProviderView"
+            },
+            "title": "Oidc",
+            "type": "array"
+          },
+          "passkeys": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyView"
+            },
+            "title": "Passkeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passkeys",
+          "oidc",
+          "emailLink",
+          "localPassword"
+        ],
+        "title": "SignInMethodsView",
+        "type": "object"
       },
       "SignInRequest": {
         "properties": {
@@ -17170,7 +17685,9 @@
           "warm",
           "shared_album",
           "modern",
-          "classic"
+          "classic",
+          "quiet_together",
+          "handwriting"
         ],
         "title": "WirDesignId",
         "type": "string"
@@ -18785,6 +19302,62 @@
         ]
       }
     },
+    "/api/v1/auth/oidc/{connectionId}": {
+      "delete": {
+        "description": "Unlink an external provider, unless it is the account's only way to sign in.",
+        "operationId": "unlink_oidc_api_v1_auth_oidc__connectionId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "title": "Connectionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Unlink Oidc",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/oidc/{connectionId}/callback": {
       "post": {
         "description": "Complete the callback from the external identity provider.",
@@ -18873,6 +19446,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OidcLinkRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {
@@ -19166,6 +19756,63 @@
           }
         },
         "summary": "Start Passkey Registration",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/{passkeyId}": {
+      "delete": {
+        "description": "Remove one passkey, unless it is the account's only way to sign in.",
+        "operationId": "remove_passkey_api_v1_auth_passkeys__passkeyId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "passkeyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Passkeyid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Remove Passkey",
         "tags": [
           "auth"
         ]
@@ -20374,6 +21021,38 @@
           }
         },
         "summary": "Sign In",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sign-in-methods": {
+      "get": {
+        "description": "List the passkeys and linked providers of the authenticated account.",
+        "operationId": "list_sign_in_methods_api_v1_auth_sign_in_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInMethodsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "List Sign In Methods",
         "tags": [
           "auth"
         ]

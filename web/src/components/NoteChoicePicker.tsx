@@ -35,7 +35,8 @@ export function NoteChoicePicker({
   excludedIds?: string[];
   disabled: boolean;
   onChoose: (notes: SharedNoteDetail[]) => void | Promise<void>;
-  onCreateNew: () => void;
+  /** Omitted while the Plan is still a draft: leaving would lose the draft. */
+  onCreateNew?: () => void;
   renderTrigger?: (open: () => void) => ReactNode;
 }) {
   const { t } = useTranslation();
@@ -196,15 +197,17 @@ export function NoteChoicePicker({
           >
             {linking ? t('m5s3.common.saving') : t('sharedNotes.plan.link')}
           </button>
-          <AddActionButton
-            label={t('sharedNotes.plan.createNew')}
-            icon="notes"
-            disabled={linking || disabled}
-            onClick={() => {
-              setOpen(false);
-              onCreateNew();
-            }}
-          />
+          {onCreateNew ? (
+            <AddActionButton
+              label={t('sharedNotes.plan.createNew')}
+              icon="notes"
+              disabled={linking || disabled}
+              onClick={() => {
+                setOpen(false);
+                onCreateNew();
+              }}
+            />
+          ) : null}
         </div>
       </ShortTaskSheet>
     </>

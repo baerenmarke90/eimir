@@ -275,6 +275,34 @@
 .wir-design-preview-classic .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
+/* Names: no portraits, the two names as heavy lines. */
+.wir-design-preview-names .wir-design-preview-portraits {
+  display: none;
+}
+.wir-design-preview-names .wir-design-preview-hero {
+  justify-items: start;
+}
+.wir-design-preview-names .wir-design-preview-names {
+  width: 80%;
+  height: 5px;
+  background: var(--color-text);
+  box-shadow: 6px 7px 0 -1px var(--color-text);
+  margin-block-end: 7px;
+}
+.wir-design-preview-names .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+/* Note: a compact header and a tinted note card. */
+.wir-design-preview-note .wir-design-preview-portraits {
+  display: none;
+}
+.wir-design-preview-note .wir-design-preview-quote {
+  min-height: 18px;
+  background: var(--color-brand-surface);
+}
+.wir-design-preview-note .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
 @media (max-width: 359px) {
   .wir-design-option {
     gap: var(--space-2);

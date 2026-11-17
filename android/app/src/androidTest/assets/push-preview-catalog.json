@@ -1897,6 +1897,314 @@
       }
     },
     {
+      "id": "RECAP_READY-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a703c",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..J8WV3DmWSLKciiaz.tFVeckXzZK0s8Aye_t0kIze45i4AXq4aGV5-ftE8FcoeAWYftyYvc1y4oXuzeZlUbwY_lp5sje3S01SxoLTPK_MgotvBSDMCgCeIS9rtwGn-OBgQDZ-L28aImuduZB6M1YWwEtVrf3PdMLnhsP3vW7WTccpYsMXqkVxxf6sQ-KoEMp9CyxSms7xuCRNTw1uXAAuK0fzFmHHU6E7wtjXxwicgCqLgI4CTsBNJoCUX.saS7SN1cEqtDQYeXfnYJhQ",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a703d",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..uTmgBqAqmyiZe6En.vfbaeLf0HnkcOvEUy9XBotZfj_gUVpzDNTBLYTag9i2MHxCdvGShLDGwggtJNXnLbUacFVBON42uIaMAzW6PVKZiHPmpuIiHZu4u0Ww9Z7uobgzdjQMUw2HZqjcP1U9UC85krzubPLJ8bvAk2F_3l2NdoudsVByN4evpzFcsqDtijBVYbYfzBVk6Ziv7Gr_pxFv5WYnnBy3PuvvOT8sLLluz2K9mHWs2q4YtGfUNG2AZPUoTW1DadHY7m7jaTo8.z1c8dnP9qznbzxqPL6S8MA",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a703e",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..JjM3G0lQVkckQILp.CikXXu4DKvn1FYaQK0kuXzcHa0OyMlsfHHbxmLje5xJAuNnfTxSP4MZVFtXI4nR7CwanqbLYfaDoU7HZTFoKNhHujB_8o7jJb3gUvpGOnbHrUw5OXj3XmP0Rjq7TTEg1qoxvPa2yhug6eXJK3ImPa0Hx7xJqccm3zna3-t2_tBhRszkHPB6cFAsN-Vb0JmBGpPeiyfWTDKaS9SW7SHQOtAqLfAOfZmrB57jvQkWnS5ySiKAIIZE03Q.LZtHNxGzbnSecsWDNGHbEg",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a703f",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..RDDKXjwYBMykzD_v.aygUnRk5PazcnNrGpiKf-33CVRo4XW2vjSUt4MA6dWkC8tXfLcuodbhVSy_fgCrzzL66W1DM_ukxTcEvMPges6krBgr6miVwrUgTH4QZEMbFvOV4TPPGpLA_iSib3yrtglgRp95CJqvgRTVyIsjETrRkbagMJKjDQqxWJELJSh68IeBuXLO-fSQyEoJQQRh68-bt1sRvOsglYejii3Udnoe2ZkeO42Q3UJ2IKx4KZujFg0NgVyWbZVxyuNyMebry6iA2uJOZHLIP.KkpgbtHKOMLX5d9PauhgYg",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_GREW-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7040",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..uqZaxgbcjXOL2Vyc.QgS9hsWQTtlIEIv6Vl1M4V3vbB8j332saKoczhNAlnAIHwNTxXLJNNi0TITHfxcu7RUbSieaE3OUdeLB-NGPSGn1a1acB267DgfwFoGglvGeyCV5HB2smG15Kr8GkVN3cCsLlP4hUWbYWbcd8Vdq-ANq7ApIaVoWpgN1rsPKaqmAOra29AwqZeK37JgQVrc9KOWU8wXC1MO1VutSciDJNIaBRv8gO-VIEr3fKLA.y47rPXuXXOkWMV8LiVxt_Q",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_GREW-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7041",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Vy5iBHgr8rq6whmU.TVYGy2PQn3Kb1lGPJLRTq3Ojqb8gC6roaXHH78OIh41GJaD_MZGsXKEo1ktTts0ZPjwqLtYPHQNjSPCmK8FxBxEnnqw2XID9yWTaImmsZ4tz-R39sJMch2tEPSbUj0mFw_k-Bl0-njnKxLSJESadSry6qS9NdSDeBDAbAujI2D1bZ6MwN8qM3uwvEqWLOZujkEilh4mscKuVtM6U2ogl-sXV8IcF0b5w4EiL1mNWgBjYHA-i2sFOO0T4ZawQ8Q.tAAP6W5fl4Hc7jz6aZo68Q",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_GREW-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7042",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..GkTIK8LuEy4fy4D7.sMHlMsAxgVxqV3A1sXnSMwHK_ExC5recgeQ9pa26sb2L8DZyGyh404yvv6Ar1XvoaysgLE59-JPOBOS6tjrSlXIXMFguerjN-sDJrXp8pRr-R_eH35tKDeoJzzZMkeO2NP3Ja-6rzPIPsHRQEun0fkVHT5pXlqVz8O51egCdnq9eVvOTuV5gdGuafVoLQz5lhegXqJyBXg7waMno3z4csCrhfMzA_FFEFBztQhqPK9Z83MgoVvZ0.x9eFgdGj4j9Rmcmb5BhTCA",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_GREW-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7043",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VZbVPmOI5D79UYd3.aVtX7ENo7y2n_OIgFyez0RiW6xg5dOYbV_TdCFDh3WQ5Qz-uitUUGKuOCPlAEKqJWIb_QkSier5mFAqRTSb_0YZNomm3WXAsjwMtxiPpzjQEd_lo9il4SXPCCWs0Hab29K44AgfFs2wwfQR0o3IJrlOYe9dJfA0sawjdipUhAxqX4yKu1f15yzCVS7-DGW8Njcs0QfNHL1qYSVyh5WIe4skZyJPR1QudzAZQaF7fCOdiwZ4453K_FLYWisE4-M9lmwrj3aGlBnw.hRzZryZJsKqpCnIia3Z1Yg",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-v2-month",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7044",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "2026-10",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9.._iKWrRGzN99u10mG.sA1DLdXLVPMgWCU4da0zOG-v5PJNrd8WzOC_ymUL_w0Ymq5iS-Lk2yIZYUNd17uwjUPeh518xDWJzHNkyicdFuDGT6E9Gh01kDkw7gqE4Pr6jfbxc4-8KgV77Ms6LY2FwSU7fiPc_UwUz9dJ6L1Q9EVvuq4RgZwMNQVKn3KX6AtZQxwZPmTVadUKA5mVoPxUUC65s0LuELoLGaYP_p1MJMW9EayIGgwWy1XjFSghQQt0oULVElSL89YpcQUROyU.C-QNGeRvxwhGLTLq9PPkxA",
+      "expectedBody": {
+        "de": "Euer Rückblick auf Oktober 2026 ist fertig.",
+        "en": "Your October 2026 recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-v2-year",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7045",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "2026",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..s7cOqn4-mwh5U6aK.8CcpMLBKDmvxxbUjBBvdSxxPfJGUbYFRUrE1mVENT0KA-BIHNWJecoC2RFv79ErGp0XDCXCtz4LlWcyJX1Lt_3JPVCIZ6vHlIyt5TfDmUuoKspiAl0QuuLBnmyiV7l7A-svzciF0WiURV6ZYXihHaZxH9EIb-20UDUnLzouC3f_TdgzDKAql1TUCHO9IQ4opyct8_aUBk_IQUZacCfBLUhyK_pvw150KPuYb9Eq64OZTmwGzZOhHjzwi-iY.DMxeJbjKwTziraRxCxV6Xw",
+      "expectedBody": {
+        "de": "Euer Jahr 2026 ist fertig.",
+        "en": "Your year 2026 is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_READY-v2-collected",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7046",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..D4eOIBmplWoLsJaq.WOZXRmvxs66Vu0rSv41wZ2l_ObYrNuNUhfvDoP5JeRv35lTdjJA0KUvfg0uX9EQm7B-CFQ3L6y1YbY0yMQt1MicSLC75BjGmxEBV3kEONcO-nw0Tle7VEnAhu8S-Gehha2x-LIqQuL79kRClTUZ7aflOrpWSb7C1xE3sa-h2bk0wuljgjxmIcnqS06NBSUq10Vh9piQLFxqyGXHD59sD1sQtTVaD8O0jfFRHnIuz8b0kGx0.JzDKDMUI10gaKJEChuHVOQ",
+      "expectedBody": {
+        "de": "In euren Rückblicken gibt es Neues.",
+        "en": "There is something new in your recaps."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "RECAP_GREW-v2-month",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7047",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "2026-03",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..LUBgm1_V7H0var-b.wICTyutaM9yIVISHCYAkpvwVaYXMVL7wNLtiy7SEdZqMELzqLIxZuTvdNuRXU_Ghi8LltOTU3QFMcrtUjSfQNumEin5pUW0m5KsgjWVd1teqBkDsBjUf0cfj52MgIc-MaI96cXNpUtRWCKP7XK4CZFiGp5TiAQK_tT6RucyYwvjC3elhTfZWoAI-qNmtXkq77NAgb7mz94xZwEfyHXzMo5rzx6Sb2aWm98mx930xWmWqpSbXZrA0O3GmMLFbiA.hGefo8Zco7xI3_h-fix6CA",
+      "expectedBody": {
+        "de": "Euer März 2026 hat Zuwachs bekommen.",
+        "en": "Your March 2026 recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "RECAP_GREW-v2-year",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7048",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "2025",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..UAmAKOshw8Tkjgm6.wcdc8GUNb6eURZctVnU6Kl8C4FsCiiW7YLz4SY1VihYxv9Z-413xvDVnO16FQW6m6vio0gmS_fj6zQzDucf7RdAsk8I1gki5oJZIxVDYwTkE1tyQTMz4m7RBg_V9KuV4F0Llw4lxKQfL3k2BIXqKdhQZtRCVaY89sO7XggX79otUvkFZX04GIP9XxOWKCP1FH6r0KkzMiI-iFDd0T2DToz7ecB5KZpdKVyIW71Uxt76Te9fQEvCWfjG6Nw.Ld9744TmszLorgf7NFHjuw",
+      "expectedBody": {
+        "de": "Euer Jahr 2025 hat Zuwachs bekommen.",
+        "en": "Your year 2025 has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
       "id": "SHARED_NOTE_CREATED-empty",
       "payload": {
         "v": 1,

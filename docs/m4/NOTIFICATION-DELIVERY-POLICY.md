@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v15)
+## Current module workflow (v16)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -33,6 +33,14 @@ waits to be planted. A bouquet from the partner reuses the same kind with the
 target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
 while its card waits; a person gets at most one garden notice per local day,
 so a later seed or bouquet on that day stays silent and waits in the garden.
+
+A retained recap (#1744, `RECAP_READY`, target `RECAP`) and a newer version of
+a retained recap after late entries (`RECAP_GREW`) use neutral immediate
+delivery to both partners: the device preview names only the period (a machine
+key such as `2026-10` that the device localizes), never a title or photo. Both
+follow the recipient's own recap switch (`RECAP_GREW` inherits it), Quiet Hours
+and the Space's 09:00 to 21:00 window, and are never offered by email. Several
+earlier recaps at once share one `RECAP_READY` notice without a target.
 
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.

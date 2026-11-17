@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 15
+POLICY_VERSION = 16
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -172,6 +172,10 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        # A retained recap is ready or got a newer version (#1744); the device
+        # preview names only the period, never a title or a photo.
+        NotificationKind.RECAP_READY: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.RECAP_GREW: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
@@ -258,6 +262,8 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.SHARED_NOTE_CREATED.value,
         NotificationKind.SHARED_NOTE_CHANGED.value,
         NotificationKind.GARDEN_SEED_ARRIVED.value,
+        NotificationKind.RECAP_READY.value,
+        NotificationKind.RECAP_GREW.value,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

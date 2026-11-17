@@ -578,6 +578,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (method === 'GET' && pathname === '/api/v1/auth/sign-in-methods') {
+      await fulfillJson({
+        passkeys: [],
+        oidc: [],
+        emailLink: true,
+        localPassword: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
       await fulfillJson({ serverAdmin: false });
       return;

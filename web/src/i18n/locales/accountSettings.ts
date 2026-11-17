@@ -1,4 +1,43 @@
 export default {
+  signInMethodsTitle: 'Anmeldemethoden',
+  signInMethodsIntro:
+    'So kommst du in dein Konto. Du brauchst immer mindestens eine.',
+  signInMethodsLoadFailed: 'Die Anmeldemethoden konnten nicht geladen werden.',
+  signInMethodsRetry: 'Erneut versuchen',
+  emailLinkTitle: 'E-Mail-Link',
+  emailLinkVerified: 'Bestätigt',
+  emailLinkNote: 'Link per E-Mail',
+  passwordTitle: 'Passwort',
+  passwordNote: 'Du meldest dich mit E-Mail und Passwort an.',
+  googleTitle: 'Google',
+  providerLinked: 'Verknüpft',
+  providerNotLinked: 'Nicht verknüpft',
+  providerLink: 'Verknüpfen',
+  providerUnlink: 'Trennen',
+  providerUnlinkConfirm: 'Wirklich trennen',
+  providerUnlinked: 'Verknüpfung getrennt.',
+  passkeysTitle: 'Passkeys',
+  passkeysIntro: 'Mit Fingerabdruck oder Display-Sperre, ohne Passwort.',
+  passkeysNone: 'Noch kein Passkey eingerichtet.',
+  passkeyAddedOn: 'Hinzugefügt am {{date}}',
+  passkeyRemove: 'Entfernen',
+  passkeyRemoveConfirm: 'Wirklich entfernen',
+  passkeyRemoveCancel: 'Abbrechen',
+  passkeyAdd: 'Passkey hinzufügen',
+  passkeyAdding: 'Passkey wird eingerichtet …',
+  passkeyDefaultName: 'Dieses Gerät',
+  passkeyAddedMessage: 'Passkey hinzugefügt.',
+  passkeyRemovedMessage: 'Passkey entfernt.',
+  passkeyNotOnThisDevice: 'Auf diesem Gerät sind Passkeys nicht verfügbar.',
+  passkeyAppNotLinked:
+    'Passkeys sind für diese App noch nicht freigeschaltet. Nutze vorerst den E-Mail-Link.',
+  passkeyAlreadyOnDevice:
+    'Auf diesem Gerät ist für dein Konto schon ein Passkey gespeichert.',
+  passkeyServerRejected:
+    'Der Server hat den Passkey von dieser App nicht angenommen. Nutze vorerst den E-Mail-Link.',
+  lastMethod:
+    'Das ist deine einzige Anmeldemethode. Richte zuerst eine andere ein.',
+  methodFailed: 'Das hat nicht geklappt. Bitte versuche es noch einmal.',
   title: 'Account',
   intro:
     'Hier verwaltest du Aktionen, die dein persönliches eimir.-Konto betreffen. Beziehung und gemeinsamer Bereich bleiben davon getrennt.',

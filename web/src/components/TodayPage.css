@@ -19,7 +19,12 @@
 /* Keep the full-bleed backdrop on the page so a pager preview and the active
    tab paint the same glow, at the same reading position. The other palettes
    already paint a backdrop on the page. */
-.today-page:not([data-wir-layout="open"], [data-wir-layout="rows"])::before {
+.today-page:not(
+  [data-wir-layout="open"],
+  [data-wir-layout="rows"],
+  [data-wir-layout="names"],
+  [data-wir-layout="note"]
+)::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -546,7 +551,6 @@
   height: 1rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

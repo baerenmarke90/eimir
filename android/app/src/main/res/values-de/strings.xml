@@ -62,6 +62,14 @@
     <string name="push_garden_seed">%1$s hat dir einen Samen geschickt.</string>
     <string name="push_garden_bouquet">%1$s hat dir einen Strauß geschenkt.</string>
     <string name="push_view_garden">Garten ansehen</string>
+    <string name="push_recap_ready">Euer Rückblick ist fertig.</string>
+    <string name="push_recap_month">Euer Rückblick auf %2$s ist fertig.</string>
+    <string name="push_recap_year">Euer Jahr %2$s ist fertig.</string>
+    <string name="push_recap_grew">Euer Rückblick hat Zuwachs bekommen.</string>
+    <string name="push_recap_month_grew">Euer %2$s hat Zuwachs bekommen.</string>
+    <string name="push_recap_year_grew">Euer Jahr %2$s hat Zuwachs bekommen.</string>
+    <string name="push_recap_earlier">In euren Rückblicken gibt es Neues.</string>
+    <string name="push_view_recap">Rückblick ansehen</string>
     <string name="push_transfer_ready">Dein Datentransfer ist bereit.</string>
     <string name="push_transfer_completed">Dein Datentransfer ist abgeschlossen.</string>
     <string name="push_transfer_failed">Dein Datentransfer konnte nicht abgeschlossen werden.</string>

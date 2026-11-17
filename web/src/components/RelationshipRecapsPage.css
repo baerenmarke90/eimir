@@ -131,6 +131,12 @@
   color: var(--color-text-secondary);
   margin-block: var(--space-3);
 }
+/* The link to a newer version uses the shared link colour in both themes (#1744). */
+.recap-version-note a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .recap-open {
   display: flex;
   justify-content: center;
@@ -285,6 +291,14 @@ a.recap-status-row:hover strong {
 }
 .recap-reader[data-playing="true"] .recap-step-fill {
   animation-play-state: running;
+}
+/* A year film: one segment per chapter whose scenes fill it without gaps. */
+.recap-progress-chapter {
+  display: flex;
+}
+.recap-progress-chapter > .recap-progress-step {
+  flex: 1;
+  overflow: hidden;
 }
 .recap-playback-center {
   display: grid;

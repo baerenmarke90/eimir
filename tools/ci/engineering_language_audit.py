@@ -392,6 +392,12 @@ ALLOWED_LOCALIZED_TEXTS = (
     # Exact #1907 H3 native push copy for a garden bouquet and its encrypted fixtures.
     "%1$s hat dir einen Strauß geschenkt.",
     "Alex hat dir einen Strauß geschenkt.",
+    # Exact #1744 native push copy for a ready recap and its encrypted fixtures.
+    "Euer Rückblick ist fertig.",
+    "Euer Rückblick auf %2$s ist fertig.",
+    "Euer Rückblick auf Oktober 2026 ist fertig.",
+    "Euer Jahr %2$s ist fertig.",
+    "Euer Jahr 2026 ist fertig.",
     # Exact #1910 native localized push copy.
     "%1$s schlägt einen Termin vor",
     "%1$s schlägt einen anderen Termin vor",

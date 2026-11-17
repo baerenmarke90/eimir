@@ -23,6 +23,7 @@ public final class PushPreview {
     final String text;
     final String targetType;
     final boolean digest;
+    final long issuedAt;
     private static final Set<String> FIELDS = new HashSet<>(Arrays.asList(
         "v", "notificationId", "kind", "name", "title", "targetType", "digest", "issuedAt", "expiresAt"));
 
@@ -35,6 +36,7 @@ public final class PushPreview {
         text = value.getInt("v") == 2 ? label(value.getString("body"), 180) : "";
         targetType = value.getString("targetType");
         digest = value.getBoolean("digest");
+        issuedAt = value.getLong("issuedAt");
     }
 
     static String label(String value, int maximum) {
@@ -122,6 +124,13 @@ public final class PushPreview {
             // seed notice with its own text (#1907 H3).
             case "GARDEN_SEED_ARRIVED": return "GARDEN_BOUQUET".equals(targetType)
                 ? R.string.push_garden_bouquet : R.string.push_garden_seed;
+            // A recap notice names only its period, never a title or a photo (#1744).
+            case "RECAP_READY": return !"RECAP".equals(targetType) ? R.string.push_recap_earlier
+                : recapYear() > 0 ? (recapMonth() > 0 ? R.string.push_recap_month : R.string.push_recap_year)
+                : R.string.push_recap_ready;
+            case "RECAP_GREW": return recapYear() > 0
+                ? (recapMonth() > 0 ? R.string.push_recap_month_grew : R.string.push_recap_year_grew)
+                : R.string.push_recap_grew;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
@@ -145,10 +154,33 @@ public final class PushPreview {
             return context.getResources().getQuantityString(R.plurals.push_wish_selection_shared_count, ideas, sender, ideas);
         }
         String summary = context.getString(resource == 0 ? R.string.push_notification_body : resource,
-            sender, title);
+            sender, kind.startsWith("RECAP_") ? recapPeriod(context) : title);
         return !digest && !text.isEmpty()
             && ("COMMENT_CREATED".equals(kind) || "COUPLE_EXPERIENCE_SHARED".equals(kind))
             ? summary + "\n" + text : summary;
+    }
+
+    /** The period key a recap notice carries: "2026" or "2026-10"; 0 when absent. */
+    private int recapYear() {
+        return "RECAP".equals(targetType) && title.matches("[0-9]{4}(-(0[1-9]|1[0-2]))?")
+            ? Integer.parseInt(title.substring(0, 4)) : 0;
+    }
+
+    private int recapMonth() {
+        return recapYear() > 0 && title.length() == 7 ? Integer.parseInt(title.substring(5)) : 0;
+    }
+
+    /** "Oktober" within the year the notice was issued, "Oktober 2025" otherwise; "2026" for a year. */
+    private String recapPeriod(Context context) {
+        int year = recapYear();
+        if (year == 0) return "";
+        int month = recapMonth();
+        if (month == 0) return Integer.toString(year);
+        java.util.Locale locale = context.getResources().getConfiguration().getLocales().get(0);
+        String name = java.text.DateFormatSymbols.getInstance(locale).getMonths()[month - 1];
+        java.util.Calendar issued = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        issued.setTimeInMillis(issuedAt * 1000);
+        return issued.get(java.util.Calendar.YEAR) == year ? name : name + " " + year;
     }
 
     private int ideaCount() {
@@ -177,6 +209,7 @@ public final class PushPreview {
             "PICTURE_GAME".equals(targetType) ? R.string.push_view_picture :
             "SHARED_NOTE".equals(targetType) ? R.string.push_view_note :
             "GARDEN_SEED".equals(targetType) || "GARDEN_BOUQUET".equals(targetType) ? R.string.push_view_garden :
+            "RECAP".equals(targetType) ? R.string.push_view_recap :
             "WISH".equals(targetType) ? R.string.push_view_wish :
             "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
             R.string.push_view);

@@ -33,7 +33,10 @@ import {
 } from '../client/attentionReceipt';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { useConnectedMoment } from '../client/connectedMoment';
-import type { DashboardModuleKey } from '../client/dashboardModules';
+import {
+  DASHBOARD_MODULE_KEYS,
+  type DashboardModuleKey,
+} from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
@@ -157,6 +160,7 @@ import { alignWirIntroAnimations } from './wirIntroClock';
 import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
+import './WirCompactLayouts.css';
 
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
@@ -378,11 +382,16 @@ function RecentSharedItemCard({
 
 function WirSharedAlbumArrow() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path
         d="M3.5 12h16m-6-6 6 6-6 6"
         stroke="currentColor"
-        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -947,6 +956,11 @@ export function TodayPage({
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const wirLayout = wirDesignLayout(wirDesignId);
+  // Names (Zu zweit) and note (Handschrift): a compact hero with the details
+  // first and small portraits; note then leads with the latest Heart Moment.
+  const namesLayout = wirLayout === 'names';
+  const noteLayout = wirLayout === 'note';
+  const compactPresence = namesLayout || noteLayout;
   // "Seite an Seite": the two people as rows and agenda date stamps.
   const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
@@ -1670,7 +1684,12 @@ export function TodayPage({
                 className="wir-stage-gesture wir-stage-gesture-own"
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <svg
+                  className="inline-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
                   {dailyCheckIn.ownHasValue ? (
                     <path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4L16.5 4.5z" />
                   ) : (
@@ -1690,7 +1709,12 @@ export function TodayPage({
               {dailyCheckIn?.partnerBadge}
               {avatarAction ? (
                 <span className="wir-stage-gesture" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <svg
+                    className="inline-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
                     <path d="M20.5 3.5 10.5 13.5M20.5 3.5l-6 17-4-7-7-4 17-6z" />
                   </svg>
                 </span>
@@ -1702,21 +1726,91 @@ export function TodayPage({
     </WirIntroStage>
   );
 
+  // The note layout opens with the latest shared Heart Moment that has words
+  // and nothing to conceal; otherwise it shows the usual moment feature.
+  const leadNote =
+    noteLayout && keepsakeVisible && !dashboardQuery.isCached
+      ? ordinaryShared.find(
+          (item) =>
+            item.type === 'HEART_MOMENT' &&
+            !item.concealed &&
+            !item.previewIsSensitive &&
+            item.id !== retrospectiveId &&
+            item.titleOrText?.trim(),
+        )
+      : undefined;
+  const leadNotePath = leadNote
+    ? dashboardItemPath(leadNote.type, leadNote.id)
+    : null;
+  const leadNoteDate = leadNote?.occurredOn ?? leadNote?.createdAt;
+  const showNoteKeepsake = noteLayout && showMomentSection && keepsakeVisible;
+  const noteReplacesKeepsake =
+    noteLayout &&
+    relationshipPresenceVisible &&
+    ((!leadNotePath && showNoteKeepsake) ||
+      leadNote?.id === focalItem?.item.id);
+  const noteFeature =
+    leadNote && leadNotePath ? (
+      <TodayDestinationLink to={leadNotePath} className="wir-note-card">
+        <span className="wir-note-kind">
+          <EimirIcon name="momente" variant="filled" />
+          {t('story.kind.heartMoment')}
+          {leadNoteDate ? (
+            <time
+              className="wir-note-date"
+              dateTime={leadNoteDate.toISOString()}
+            >
+              {formatCalendarDate(leadNoteDate)}
+            </time>
+          ) : null}
+        </span>
+        <p className="wir-note-text">{leadNote.titleOrText}</p>
+        <span className="wir-note-open">
+          {t('wirDesign.note.open')}
+          <EimirIcon name="chevron-right" />
+        </span>
+      </TodayDestinationLink>
+    ) : showNoteKeepsake && focalItem ? (
+      <div className="wir-note-moment">
+        <TodayMomentFeature
+          item={focalItem.item}
+          loadMemoryImage={loadMemoryImage}
+          isKeepsake={focalItem.kind === 'keepsake'}
+        />
+      </div>
+    ) : undefined;
+
   const renderClassicHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
     <CouplePresence
-      className={sharedAlbum ? 'today-hero shared-album-hero' : 'today-hero'}
-      detailsFirst={sharedAlbum}
+      className={
+        compactPresence
+          ? 'today-hero wir-compact-hero'
+          : sharedAlbum
+            ? 'today-hero shared-album-hero'
+            : 'today-hero'
+      }
+      detailsFirst={compactPresence || sharedAlbum}
+      stackNames={namesLayout}
+      feature={noteFeature}
       titleAction={
-        sharedAlbum ? (
+        (compactPresence && partner) || sharedAlbum ? (
           <TodayDestinationLink
             to={STORY_OURS_ROUTE}
-            className="shared-album-story-link"
+            className={
+              compactPresence
+                ? 'wir-compact-story-link'
+                : 'shared-album-story-link'
+            }
           >
             <span>{t('m5s5.dashboard.storySummaryTitle')}</span>
-            <WirSharedAlbumArrow />
+            {compactPresence ? (
+              <EimirIcon name="chevron-right" />
+            ) : (
+              <WirSharedAlbumArrow />
+            )}
           </TodayDestinationLink>
         ) : undefined
       }
@@ -1759,7 +1853,7 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      avatarSize={sharedAlbum ? 'medium' : 'hero'}
+      avatarSize={compactPresence ? 'small' : sharedAlbum ? 'medium' : 'hero'}
       avatarAction={
         avatarAction && dailyCheckIn?.partnerAriaLabel
           ? {
@@ -1771,9 +1865,17 @@ export function TodayPage({
       avatarOverlay={avatarOverlay}
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={
-        sharedAlbum ? (
-          <span className="shared-album-person">
-            <strong>{heroOwnName}</strong>
+        compactPresence || sharedAlbum ? (
+          <span
+            className={
+              compactPresence ? 'wir-compact-person' : 'shared-album-person'
+            }
+          >
+            <strong>
+              {compactPresence && dailyCheckIn
+                ? t('wirDesign.compact.own')
+                : heroOwnName}
+            </strong>
             {dailyCheckIn?.ownBadge}
           </span>
         ) : (
@@ -1781,9 +1883,17 @@ export function TodayPage({
         )
       }
       secondaryAvatarAdornment={
-        sharedAlbum ? (
-          <span className="shared-album-person">
-            <strong>{partnerName}</strong>
+        compactPresence || sharedAlbum ? (
+          <span
+            className={
+              compactPresence ? 'wir-compact-person' : 'shared-album-person'
+            }
+          >
+            <strong>
+              {compactPresence && avatarAction
+                ? t('wirDesign.compact.partner', { name: partnerName })
+                : partnerName}
+            </strong>
             {dailyCheckIn?.partnerBadge}
           </span>
         ) : (
@@ -1888,7 +1998,10 @@ export function TodayPage({
         {/* Personal shared content comes before the practical horizon:
                   Today should show the relationship itself before another
                   stack of planning utilities. */}
-        {showMomentSection && keepsakeVisible && focalItem ? (
+        {showMomentSection &&
+        keepsakeVisible &&
+        focalItem &&
+        !noteReplacesKeepsake ? (
           <TodayModuleSection
             className={
               firstMomentSettle
@@ -1896,6 +2009,7 @@ export function TodayPage({
                 : 'today-section-moment'
             }
             title={t('m5s5.today.keepsake.title')}
+            headerAction={namesLayout ? <MomentCreateMenu /> : undefined}
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -2187,6 +2301,20 @@ export function TodayPage({
     ),
   };
   const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
+  // The names layout keeps custom orders intact. With the catalog order, the
+  // moment sits directly below the people; every other module keeps its place.
+  const namesDefaultOrder =
+    namesLayout &&
+    orderedModuleKeys.every(
+      (key, index) => key === DASHBOARD_MODULE_KEYS[index],
+    );
+  const visibleOrder: DashboardModuleKey[] = namesDefaultOrder
+    ? [
+        'relationship_presence',
+        'keepsake',
+        ...orderedModuleKeys.slice(1).filter((key) => key !== 'keepsake'),
+      ]
+    : orderedModuleKeys;
 
   return (
     <div
@@ -2235,11 +2363,25 @@ export function TodayPage({
             variant="root"
             className="content-overview-heading"
             title={t('navigation.today')}
-            action={<MomentCreateMenu floating={!sharedAlbum} />}
+            action={
+              noteLayout ||
+              (namesLayout &&
+                showMomentSection &&
+                keepsakeVisible) ? undefined : (
+                <MomentCreateMenu floating={!sharedAlbum} />
+              )
+            }
           />
 
-          {orderedModuleKeys.map((key) => (
-            <Fragment key={key}>{moduleContent[key]}</Fragment>
+          {visibleOrder.map((key) => (
+            <Fragment key={key}>
+              {moduleContent[key]}
+              {noteLayout && key === 'relationship_presence' ? (
+                <div className="wir-note-add">
+                  <MomentCreateMenu />
+                </div>
+              ) : null}
+            </Fragment>
           ))}
           {isSparse ? (
             <div className="new-space-experience">

@@ -863,7 +863,7 @@ No authorization required
 
 ## linkOidcApiV1AuthOidcConnectionIdLinkPost
 
-> OidcStartView linkOidcApiV1AuthOidcConnectionIdLinkPost(connectionId)
+> OidcStartView linkOidcApiV1AuthOidcConnectionIdLinkPost(connectionId, oidcLinkRequest)
 
 Link Oidc
 
@@ -885,6 +885,8 @@ async function example() {
   const body = {
     // string
     connectionId: connectionId_example,
+    // OidcLinkRequest (optional)
+    oidcLinkRequest: ...,
   } satisfies LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest;
 
   try {
@@ -905,6 +907,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **connectionId** | `string` |  | [Defaults to `undefined`] |
+| **oidcLinkRequest** | [OidcLinkRequest](OidcLinkRequest.md) |  | [Optional] |
 
 ### Return type
 
@@ -916,7 +919,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 

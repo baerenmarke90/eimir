@@ -1580,6 +1580,11 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     # registered from an authenticated session.
     ("POST", "/api/v1/auth/passkeys/registration/start"),
     ("POST", "/api/v1/auth/passkeys/registration/finish"),
+    # The account's own passkeys and linked providers: listed and removed only by
+    # the signed-in owner, and always scoped by the caller's account id.
+    ("GET", "/api/v1/auth/sign-in-methods"),
+    ("DELETE", "/api/v1/auth/passkeys/{passkeyId}"),
+    ("DELETE", "/api/v1/auth/oidc/{connectionId}"),
     # Founding a Space has no Space yet to be scoped by; the founder is always
     # the authenticated Account.
     ("POST", "/api/v1/spaces"),

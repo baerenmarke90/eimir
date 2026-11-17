@@ -5953,6 +5953,20 @@
             "title": "Maintenancemode",
             "type": "boolean"
           },
+          "oidcConnections": {
+            "description": "External sign-in providers configured here. Empty unless `auth.oidc` is true. Whether a provider may also create a new Account is `oidcSignupAvailable`.",
+            "items": {
+              "$ref": "#/components/schemas/OidcConnectionView"
+            },
+            "title": "Oidcconnections",
+            "type": "array"
+          },
+          "oidcSignupAvailable": {
+            "default": false,
+            "description": "Whether a person may create a new Account through an external provider, without an invitation, right now: Cloud, a provider is configured, and the administrator admits new Accounts.",
+            "title": "Oidcsignupavailable",
+            "type": "boolean"
+          },
           "registrationAvailable": {
             "description": "Whether the administrator currently admits new Accounts. It does not say how an Account is created and does not affect sign-in of existing Accounts.",
             "title": "Registrationavailable",
@@ -6154,6 +6168,25 @@
           "available"
         ],
         "title": "LinkPreviewResult",
+        "type": "object"
+      },
+      "LinkedProviderView": {
+        "properties": {
+          "connectionId": {
+            "title": "Connectionid",
+            "type": "string"
+          },
+          "linkedAt": {
+            "format": "date-time",
+            "title": "Linkedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "linkedAt"
+        ],
+        "title": "LinkedProviderView",
         "type": "object"
       },
       "MagicLinkConsumeRequest": {
@@ -7746,8 +7779,80 @@
         "title": "ObservationKind",
         "type": "string"
       },
+      "OidcConnectionView": {
+        "description": "A configured external sign-in provider, as an unauthenticated client may know it.\n\nOnly what a sign-in screen needs to draw a button and start the flow. The\nissuer, client identity and callback addresses stay in configuration.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Button text for a `generic` provider; empty for `google`.",
+            "title": "Label",
+            "type": "string"
+          },
+          "nativeAvailable": {
+            "description": "Whether the Android app has a registered callback for this provider.",
+            "title": "Nativeavailable",
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "google",
+              "generic"
+            ],
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "label",
+          "nativeAvailable"
+        ],
+        "title": "OidcConnectionView",
+        "type": "object"
+      },
+      "OidcLinkRequest": {
+        "properties": {
+          "client": {
+            "default": "web",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          }
+        },
+        "title": "OidcLinkRequest",
+        "type": "object"
+      },
       "OidcStartRequest": {
         "properties": {
+          "acceptedTermsVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms-of-use version the person accepted before leaving for the provider.",
+            "title": "Acceptedtermsversion"
+          },
+          "client": {
+            "default": "web",
+            "description": "Which registered callback to use: the web page or the native Android app.",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          },
           "invitationToken": {
             "anyOf": [
               {
@@ -7758,6 +7863,12 @@
               }
             ],
             "title": "Invitationtoken"
+          },
+          "signup": {
+            "default": false,
+            "description": "Create a new Account if this identity has none and no invitation applies. Only Cloud offers this, and it requires `acceptedTermsVersion`.",
+            "title": "Signup",
+            "type": "boolean"
           }
         },
         "title": "OidcStartRequest",
@@ -15453,6 +15564,42 @@
         "title": "SharingState",
         "type": "string"
       },
+      "SignInMethodsView": {
+        "description": "The ways this Account can currently sign in, beyond what it signed in with.",
+        "properties": {
+          "emailLink": {
+            "description": "A mailed link can sign this Account in: a verified address and mail here.",
+            "title": "Emaillink",
+            "type": "boolean"
+          },
+          "localPassword": {
+            "title": "Localpassword",
+            "type": "boolean"
+          },
+          "oidc": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedProviderView"
+            },
+            "title": "Oidc",
+            "type": "array"
+          },
+          "passkeys": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyView"
+            },
+            "title": "Passkeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passkeys",
+          "oidc",
+          "emailLink",
+          "localPassword"
+        ],
+        "title": "SignInMethodsView",
+        "type": "object"
+      },
       "SignInRequest": {
         "properties": {
           "deviceName": {
@@ -18785,6 +18932,62 @@
         ]
       }
     },
+    "/api/v1/auth/oidc/{connectionId}": {
+      "delete": {
+        "description": "Unlink an external provider, unless it is the account's only way to sign in.",
+        "operationId": "unlink_oidc_api_v1_auth_oidc__connectionId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "title": "Connectionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Unlink Oidc",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/oidc/{connectionId}/callback": {
       "post": {
         "description": "Complete the callback from the external identity provider.",
@@ -18873,6 +19076,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OidcLinkRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {
@@ -19166,6 +19386,63 @@
           }
         },
         "summary": "Start Passkey Registration",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/{passkeyId}": {
+      "delete": {
+        "description": "Remove one passkey, unless it is the account's only way to sign in.",
+        "operationId": "remove_passkey_api_v1_auth_passkeys__passkeyId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "passkeyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Passkeyid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Remove Passkey",
         "tags": [
           "auth"
         ]
@@ -20374,6 +20651,38 @@
           }
         },
         "summary": "Sign In",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sign-in-methods": {
+      "get": {
+        "description": "List the passkeys and linked providers of the authenticated account.",
+        "operationId": "list_sign_in_methods_api_v1_auth_sign_in_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInMethodsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "List Sign In Methods",
         "tags": [
           "auth"
         ]

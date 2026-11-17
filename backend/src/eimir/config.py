@@ -103,6 +103,11 @@ class OidcConnection(BaseModel):
     # select only this preconfigured URI; it can never supply an arbitrary redirect.
     android_redirect_uri: str | None = Field(default=None, min_length=1, max_length=512)
     scopes: str = "openid email profile"
+    # Presentation hint for the public sign-in screen. ``google`` lets clients
+    # show the provider's own button; ``generic`` uses ``label`` instead. It has
+    # no protocol meaning, and Google is otherwise an ordinary OIDC connection.
+    provider: Literal["google", "generic"] = "generic"
+    label: str = Field(default="", max_length=64)
 
     @field_validator("issuer")
     @classmethod

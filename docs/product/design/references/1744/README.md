@@ -199,6 +199,13 @@ video file). The Product Owner reviewed an animated prototype on the live app
 with the couple's real data (read-only, nothing stored) and approved its cut,
 layouts and timing ("exactly like this"). The baseline was `main@43fabb129`.
 
+**Visual reference (Product Owner decision 2026-11-17):** the Product Owner
+accepted screenshots of this animated prototype as the visual product reference
+instead of a generated image. Because the prototype ran on the couple's real
+photos and words, those screenshots stay out of the repository and the issue;
+the committed evidence is captured from synthetic fixtures in the implemented
+reader.
+
 ### Selection and cut (server, `recaps/film.py`, `recaps/montage.py`)
 
 - **Pool:** every shared moment that starts in the month (Memory, HeartMoment,

@@ -135,6 +135,17 @@ def test_every_gameplay_seam_requires_the_games_capability(client, session, coup
         assert response.status_code == 403
 
 
+def numbers_in(payload: object) -> set[float]:
+    """Every number anywhere in a parsed JSON payload (booleans excluded)."""
+    if isinstance(payload, dict):
+        return set().union(*(numbers_in(value) for value in payload.values()))
+    if isinstance(payload, list):
+        return set().union(*(numbers_in(value) for value in payload))
+    if isinstance(payload, int | float) and not isinstance(payload, bool):
+        return {payload}
+    return set()
+
+
 def test_seeker_never_receives_the_heart_before_it_is_found(client, session, couple) -> None:  # type: ignore[no-untyped-def]
     grant_games(session, couple)
     created = hide(client, session, couple, x=321, y=654)
@@ -146,7 +157,8 @@ def test_seeker_never_receives_the_heart_before_it_is_found(client, session, cou
     only = seen.json()["rounds"][0]
     assert only["role"] == "SEEKER" and only["state"] == "HIDDEN"
     assert only["heart"] is None
-    assert "321" not in seen.text and "654" not in seen.text
+    # Structural, not a text search: random UUIDs may contain "321" or "654".
+    assert not numbers_in(seen.json()) & {321, 654}
 
     cold = client.post(
         base(couple) + f"/rounds/{only['id']}/taps",
@@ -157,7 +169,7 @@ def test_seeker_never_receives_the_heart_before_it_is_found(client, session, cou
     body = cold.json()
     assert body["found"] is False and body["level"] == 0
     assert body["round"]["heart"] is None
-    assert "321" not in cold.text and "654" not in cold.text
+    assert not numbers_in(body) & {321, 654}
     assert body["round"]["taps"] == [{"x": 900, "y": 50}]
 
 

@@ -38,13 +38,13 @@ export default {
   lastMethod:
     'Das ist deine einzige Anmeldemethode. Richte zuerst eine andere ein.',
   methodFailed: 'Das hat nicht geklappt. Bitte versuche es noch einmal.',
-  title: 'Account',
+  title: 'Konto',
   intro:
     'Hier verwaltest du Aktionen, die dein persönliches eimir.-Konto betreffen. Beziehung und gemeinsamer Bereich bleiben davon getrennt.',
   dangerEyebrow: 'Sensible Aktion',
   dangerTitle: 'Konto löschen',
   dangerIntro:
-    'Die Kontolöschung betrifft dein persönliches Konto. Sie ist nicht dasselbe wie den gemeinsamen Bereich zu verlassen oder eine Beziehung zu beenden.',
+    'Löscht dein persönliches eimir.-Konto. Das ist nicht dasselbe wie den gemeinsamen Bereich zu verlassen.',
   deleteAction: 'Konto löschen',
   demoTitle: 'Kontolöschung in der Demo nicht verfügbar',
   demoBody:

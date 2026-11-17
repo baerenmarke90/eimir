@@ -1,0 +1,60 @@
+/*
+ * Decorative flights (own send flight, partner arrival, gesture send): the
+ * top-layer layer and the elements that fly in it. Decoration only: no pointer
+ * events. Durations and easings come from the motion roles in the scripts, so
+ * reduced motion (zero durations) never creates the layer.
+ */
+
+.wir-checkin-flight-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.wir-checkin-flight-ghost {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--elevation-overlay);
+  pointer-events: none;
+}
+
+.wir-checkin-flight-ring {
+  position: absolute;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  pointer-events: none;
+}
+
+.wir-checkin-flight-ring.is-halo {
+  background: var(--color-action-primary);
+}
+
+.wir-checkin-flight-dot {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  pointer-events: none;
+}
+
+.wir-checkin-flight-dot.is-1 {
+  background: var(--color-action-primary);
+}
+
+.wir-checkin-flight-dot.is-2 {
+  background: var(--color-brand-text);
+}
+
+.wir-checkin-flight-dot.is-3 {
+  background: var(--color-link-text);
+}

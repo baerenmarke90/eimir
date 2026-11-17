@@ -119,6 +119,7 @@
   --duration-map-stack: 600ms;
   --duration-controls-return: 480ms;
   --duration-sequence-beat: 200ms;
+  --duration-send-flight: 560ms;
   --duration-gesture-moment: 900ms;
   --duration-gesture-sequence: 1800ms;
   --duration-connection-draw: 700ms;
@@ -197,6 +198,7 @@
     --duration-map-stack: 0ms;
     --duration-controls-return: 0ms;
     --duration-sequence-beat: 0ms;
+    --duration-send-flight: 0ms;
     --duration-gesture-moment: 0ms;
     --duration-gesture-sequence: 0ms;
     --duration-connection-draw: 0ms;

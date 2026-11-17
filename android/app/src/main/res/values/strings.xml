@@ -59,6 +59,14 @@
     <string name="push_garden_seed">%1$s sent you a seed.</string>
     <string name="push_garden_bouquet">%1$s gave you a bouquet.</string>
     <string name="push_view_garden">View garden</string>
+    <string name="push_recap_ready">Your recap is ready.</string>
+    <string name="push_recap_month">Your %2$s recap is ready.</string>
+    <string name="push_recap_year">Your year %2$s is ready.</string>
+    <string name="push_recap_grew">Your recap has new moments.</string>
+    <string name="push_recap_month_grew">Your %2$s recap has new moments.</string>
+    <string name="push_recap_year_grew">Your year %2$s has new moments.</string>
+    <string name="push_recap_earlier">There is something new in your recaps.</string>
+    <string name="push_view_recap">View recap</string>
     <string name="push_transfer_ready">Your data transfer is ready.</string>
     <string name="push_transfer_completed">Your data transfer is complete.</string>
     <string name="push_transfer_failed">Your data transfer could not be completed.</string>

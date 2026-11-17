@@ -131,6 +131,12 @@
   color: var(--color-text-secondary);
   margin-block: var(--space-3);
 }
+/* The link to a newer version uses the shared link colour in both themes (#1744). */
+.recap-version-note a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .recap-open {
   display: flex;
   justify-content: center;

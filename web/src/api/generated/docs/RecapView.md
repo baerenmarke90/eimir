@@ -23,6 +23,8 @@ Name | Type
 `sources` | [Array&lt;RecapSourceView&gt;](RecapSourceView.md)
 `startsOn` | Date
 `status` | string
+`supersededById` | string
+`supersedesId` | string
 `theme` | string
 `throughOn` | Date
 `variant` | number
@@ -53,6 +55,8 @@ const example = {
   "sources": null,
   "startsOn": null,
   "status": null,
+  "supersededById": null,
+  "supersedesId": null,
   "theme": null,
   "throughOn": null,
   "variant": null,

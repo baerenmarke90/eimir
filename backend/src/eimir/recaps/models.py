@@ -137,9 +137,33 @@ class RecapEdition(IdMixin, TimestampMixin, VersionMixin, Base):
     payload: Mapped[RecapPayload] = mapped_column(
         ProtectedPayloadJSON(RecapPayload), nullable=False, default=RecapPayload
     )
+    # Late-entry tracking (#1744): the material fingerprint this composition
+    # accounted for, the database time it was taken, and a change the scan has
+    # seen but not yet acted on because the period was not quiet yet.
+    material_digest: Mapped[str | None] = mapped_column(String(32))
+    material_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    observed_digest: Mapped[str | None] = mapped_column(String(32))
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The one readiness notice a retained edition earns, and when it was handled.
+    announcement: Mapped[str | None] = mapped_column(String(8))
+    announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A newer version of a retained edition points back to the edition it extends.
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("recap_editions.id", ondelete="SET NULL")
+    )
 
     __table_args__ = (
         UniqueConstraint("id", "space_id", name="uq_recap_editions_id_space"),
+        CheckConstraint(
+            "announcement IS NULL OR announcement IN ('READY', 'GREW', 'EARLIER')",
+            name="announcement_is_known",
+        ),
+        Index(
+            "ix_recap_editions_unannounced",
+            "space_id",
+            postgresql_where=text("announcement IS NOT NULL AND announced_at IS NULL"),
+        ),
+        Index("ix_recap_editions_supersedes", "supersedes_id"),
         CheckConstraint("kind IN ('MONTH', 'YEAR')", name="kind_is_known"),
         CheckConstraint(
             "(kind = 'MONTH' AND month BETWEEN 1 AND 12) OR (kind = 'YEAR' AND month = 0)",

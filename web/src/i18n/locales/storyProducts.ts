@@ -24,12 +24,29 @@ const storyProducts = {
       hint: 'Kleine Vorschaubilder auf einer ruhigen Zeitleiste.',
     },
   },
-  // Momente > Erinnerungen keepsakes in the Album design.
-  discoverKeepsakes: {
+  // Momente > Erinnerungen Fotostory (direction C).
+  discoverStory: {
+    label: 'Eure Fotostory',
+    roleDescription: 'Fotostory',
+    themesLabel: 'Themen der Fotostory',
+    theme: {
+      photos: 'Fotos',
+      heartMoments: 'Herzmomente',
+      milestones: 'Meilensteine',
+      words: 'In Worten',
+    },
+    themeCount_one: '{{count}} Moment',
+    themeCount_other: '{{count}} Momente',
+    themeSeen: 'angesehen',
+    slideRoleDescription: 'Moment',
+    slidePosition: '{{position}} von {{count}}',
+    previous: 'Vorheriger Moment',
+    next: 'Nächster Moment',
+    pause: 'Fotostory anhalten',
+    play: 'Fotostory abspielen',
+    open: 'Öffnen',
+    openName: 'Öffnen: {{kind}} „{{title}}“',
     from: 'Von {{name}}',
-    openInFull: 'Ganz ansehen',
-    envelopeName: '{{kind}} von {{name}}, {{emotion}}, {{date}}',
-    itemName: '{{kind}}: {{title}}, {{date}}',
   },
   storyFilters: {
     title: 'Filter',

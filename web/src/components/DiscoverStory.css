@@ -1,0 +1,599 @@
+/* Momente > Erinnerungen Fotostory (DiscoverStory.tsx, direction C). Deliberately
+ * unlike the Tagebuch cards: round theme bubbles above one large, full-bleed
+ * story viewer. Tokens only. The progress segment's CSS animation is the
+ * autoplay timer; reduced motion removes autoplay, Ken Burns and transitions. */
+
+.momente-story {
+  --story-play-state: running;
+  --story-chrome: var(--color-text);
+  --story-track: color-mix(in srgb, var(--color-text) 22%, transparent);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  inline-size: 100%;
+  max-inline-size: 32rem;
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+/* ---------- Expanded renew (Compact keeps pull-to-refresh only) ---------- */
+.momente-discover-renew {
+  display: none;
+}
+
+@media (min-width: 840px) {
+  .momente-discover-renew {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.momente-discover-renew > button {
+  min-block-size: var(--touch-target-web);
+}
+
+/* ---------- theme bubbles ---------- */
+/* At most four themes share one row; enlarged text wraps instead of
+ * pushing anything past the column. */
+.momente-story-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  list-style: none;
+}
+
+.momente-story-themes > li {
+  display: flex;
+  flex: 1 1 0;
+  min-inline-size: 3.5rem;
+  max-inline-size: 5.5rem;
+}
+
+.momente-story-bubble {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-web);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.momente-story-bubble:focus-visible,
+.momente-story-viewer:focus-visible,
+.momente-story-playback:focus-visible,
+.momente-story-open:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.momente-story-bubble-ring {
+  display: block;
+  box-sizing: border-box;
+  inline-size: min(100%, 3.75rem);
+  aspect-ratio: 1;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--color-story-memory),
+    var(--color-story-heart-moment),
+    var(--color-story-milestone),
+    var(--color-story-memory)
+  );
+  transition: scale var(--duration-context) var(--easing-settle);
+}
+
+.momente-story-bubble[data-seen="true"] .momente-story-bubble-ring {
+  background: var(--color-border);
+}
+
+.momente-story-bubble[aria-current="true"] .momente-story-bubble-ring {
+  scale: 1.08;
+}
+
+.momente-story-bubble-face {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  border: 2px solid var(--color-background);
+  border-radius: 50%;
+  background: var(--color-story-paper);
+}
+
+.momente-story-bubble[data-story-theme="heartMoments"]
+  .momente-story-bubble-face {
+  background: var(--heart-emotion-surface, var(--color-story-paper));
+  color: var(--heart-emotion-accent, var(--color-story-heart-moment));
+}
+
+.momente-story-bubble[data-story-theme="milestones"]
+  .momente-story-bubble-face {
+  background: color-mix(
+    in srgb,
+    var(--color-story-milestone) 14%,
+    var(--color-surface-raised)
+  );
+}
+
+.momente-story-bubble[data-story-theme="words"] .momente-story-bubble-face {
+  background: repeating-linear-gradient(
+    var(--color-story-paper) 0 calc(var(--space-2) - 1px),
+    var(--color-story-paper-line) calc(var(--space-2) - 1px) var(--space-2)
+  );
+}
+
+.momente-story-bubble-face > svg {
+  inline-size: 55%;
+  block-size: 55%;
+  fill: currentcolor;
+}
+
+.momente-story-bubble-face
+  :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  margin: 0;
+  border-radius: 0;
+  aspect-ratio: auto;
+  object-fit: cover;
+  font-size: 0;
+}
+
+.momente-story-bubble-label {
+  max-inline-size: 100%;
+  font: var(--font-supporting-copy);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.momente-story-bubble[aria-current="true"] .momente-story-bubble-label {
+  font-weight: 800;
+}
+
+/* ---------- viewer ---------- */
+.momente-story-viewer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+  box-shadow: 0 var(--space-5) var(--space-10) calc(var(--space-6) * -1)
+    var(--color-shadow-card);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.momente-story-viewer:has(
+  .momente-story-slide[data-state="current"][data-story-slide="photo"]
+) {
+  --story-chrome: var(--color-text-inverse);
+  --story-track: color-mix(in srgb, var(--color-text-inverse) 38%, transparent);
+}
+
+/* `minmax(0, 1fr)` keeps a 4:5 slide whose text grows taller from widening
+ * its column through the aspect ratio. */
+.momente-story-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+}
+
+/* Both mounted slides share one cell, so the viewer keeps its 4:5 shape and
+ * still grows when enlarged text needs more room. */
+.momente-story-slide {
+  position: relative;
+  display: grid;
+  grid-area: 1 / 1;
+  /* Fill the shared cell even when the hidden neighbour is taller; both axes
+   * stretch so a tall cell never widens the slide through its ratio. */
+  place-self: stretch;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  aspect-ratio: 4 / 5;
+  padding: calc(var(--space-6) + var(--touch-target-web)) var(--space-5)
+    calc(var(--space-8) + var(--touch-target-web));
+  /* Overflow stays visible so enlarged text can grow the 4:5 box; the
+   * viewer clips the zooming photo instead. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  color: var(--color-text);
+}
+
+.momente-story-slide[data-state="upcoming"] {
+  visibility: hidden;
+}
+
+.momente-story-title {
+  margin: 0;
+  color: inherit;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.momente-story-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
+/* photo */
+.momente-story-slide-photo {
+  align-content: end;
+  padding-block-end: calc(var(--space-6) + var(--touch-target-web));
+  background: var(--color-brand-ocean);
+  color: var(--color-text-inverse);
+}
+
+.momente-story-photo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.momente-story-photo > * {
+  transform-origin: 60% 40%;
+}
+
+.momente-story-photo
+  :is(
+    .story-media-preview,
+    .story-media-skeleton,
+    .story-media-placeholder,
+    .sensitive-media-cover
+  ) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  border-radius: 0;
+  aspect-ratio: auto;
+  object-fit: cover;
+}
+
+.momente-story-slide-photo::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    var(--color-media-scrim-mid) 0,
+    var(--color-media-scrim-clear) 22%,
+    var(--color-media-scrim-clear) 42%,
+    var(--color-media-scrim-strong) 100%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.momente-story-caption {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-1);
+  padding-inline-end: var(--space-2);
+}
+
+.momente-story-kind {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-inverse-muted);
+}
+
+.momente-story-slide-photo .momente-story-meta {
+  color: var(--color-text-inverse-muted);
+}
+
+/* Heart Moment: the feeling's own colour carries the whole slide. */
+.momente-story-slide-heart {
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  background: var(--heart-emotion-surface, var(--color-story-paper));
+}
+
+.momente-story-decor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.momente-story-heart-mark {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-end: var(--space-2);
+  inline-size: 45%;
+  aspect-ratio: 1;
+  fill: color-mix(
+    in srgb,
+    var(--heart-emotion-accent, var(--color-story-heart-moment)) 18%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.momente-story-quote {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+.momente-story-quote::before {
+  content: open-quote;
+}
+
+.momente-story-quote::after {
+  content: close-quote;
+}
+
+.momente-story-quote[data-length="long"] {
+  font-size: 1.1875rem;
+  line-height: 1.45;
+}
+
+.momente-story-slide-heart .momente-story-meta {
+  position: relative;
+  justify-content: center;
+}
+
+.momente-story-meta .heart-emotion-badge {
+  color: inherit;
+  font-size: inherit;
+}
+
+.momente-story-meta .heart-emotion-label {
+  overflow-wrap: anywhere;
+}
+
+/* Milestone: the stamp on the milestone tint. */
+.momente-story-slide-milestone {
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  background: color-mix(
+    in srgb,
+    var(--color-story-milestone) 14%,
+    var(--color-surface-raised)
+  );
+}
+
+.momente-story-stamp {
+  inline-size: 9rem;
+  block-size: 9rem;
+}
+
+/* Memory told in words: a lined note slip. */
+.momente-story-slide-words {
+  --paper-line: 2.125rem;
+  align-content: center;
+  gap: var(--space-2);
+}
+
+.momente-story-slide-words .momente-story-title {
+  line-height: var(--paper-line);
+}
+
+/* ---------- progress ---------- */
+.momente-story-progress {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: var(--space-3);
+  inset-inline: var(--space-4);
+  display: flex;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.momente-story-segment {
+  flex: 1;
+  block-size: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--story-track);
+}
+
+.momente-story-segment-fill {
+  display: block;
+  block-size: 100%;
+  background: var(--story-chrome);
+  scale: 0 1;
+  transform-origin: left center;
+}
+
+.momente-story-segment-fill:dir(rtl) {
+  transform-origin: right center;
+}
+
+.momente-story-segment:is([data-state="done"], [data-state="current"])
+  .momente-story-segment-fill {
+  scale: 1 1;
+}
+
+/* ---------- tap zones, playback and open ---------- */
+.momente-story-tap {
+  position: absolute;
+  z-index: 2;
+  inset-block: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.momente-story-tap-previous {
+  inset-inline-start: 0;
+  inline-size: 35%;
+}
+
+.momente-story-tap-next {
+  inset-inline-end: 0;
+  inline-size: 65%;
+}
+
+.momente-story-tap:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -6px;
+  border-radius: var(--radius-card);
+}
+
+.momente-story-playback,
+.momente-story-open {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px var(--color-shadow-soft);
+  cursor: pointer;
+}
+
+.momente-story-playback {
+  inset-block-start: calc(var(--space-3) + var(--space-3));
+  inset-inline-end: var(--space-3);
+  padding: 0;
+}
+
+.momente-story-playback svg {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  fill: currentcolor;
+}
+
+.momente-story-open {
+  inset-block-end: var(--space-4);
+  inset-inline-end: var(--space-4);
+  padding: 0 var(--space-4);
+  font: var(--font-action-label);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ---------- motion ---------- */
+.momente-story[data-autoplay="true"]
+  .momente-story-segment[data-state="current"]
+  .momente-story-segment-fill {
+  animation: momente-story-progress var(--duration-story-slide)
+    var(--easing-playback) forwards var(--story-play-state);
+}
+
+.momente-story-slide[data-state="current"] {
+  animation: momente-story-slide-in var(--duration-context) var(--easing-enter);
+}
+
+.momente-story-slide[data-state="current"] .momente-story-photo > * {
+  animation: momente-story-ken-burns var(--duration-story-ken-burns)
+    var(--easing-playback) forwards var(--story-play-state);
+}
+
+.momente-story[data-playing="false"] {
+  --story-play-state: paused;
+}
+
+.momente-story-bubble:active .momente-story-bubble-ring,
+.momente-story-open:active {
+  scale: var(--control-pressed-scale);
+}
+
+@keyframes momente-story-progress {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes momente-story-slide-in {
+  from {
+    opacity: 0;
+    scale: 1.02;
+  }
+}
+
+@keyframes momente-story-ken-burns {
+  from {
+    scale: 1;
+    translate: 0 0;
+  }
+  to {
+    scale: 1.12;
+    translate: -3% -2%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .momente-story-bubble-ring {
+    transition: none;
+  }
+  .momente-story .momente-story-slide[data-state="current"],
+  .momente-story
+    .momente-story-slide[data-state="current"]
+    .momente-story-photo
+    > *,
+  .momente-story
+    .momente-story-segment[data-state="current"]
+    .momente-story-segment-fill {
+    animation: none;
+  }
+  .momente-story-bubble:active .momente-story-bubble-ring,
+  .momente-story-open:active {
+    scale: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .momente-story-segment-fill {
+    background: CanvasText;
+  }
+  .momente-story-viewer {
+    border: 1px solid CanvasText;
+  }
+}

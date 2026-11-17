@@ -28,7 +28,6 @@
   --color-story-surface: #f3f5fc;
   --color-story-paper: #fffdf9;
   --color-story-paper-line: #e4dce6;
-  --color-story-tape: #e2cda8b3;
   --font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif;
   --tracking-page-heading: -0.015em;
   --font-personal-heading: 600 1.75rem / 1.2 "Literata", "Georgia", serif;
@@ -129,6 +128,8 @@
   --duration-connection-beat: 450ms;
   --duration-connection-travel: 3200ms;
   --duration-connection-travel-far: 6000ms;
+  --duration-story-slide: 5000ms;
+  --duration-story-ken-burns: 9000ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -151,7 +152,6 @@
   --color-story-surface: #303751;
   --color-story-paper: #35303d;
   --color-story-paper-line: #4d4757;
-  --color-story-tape: #c9b48f59;
   --color-link-text: #b7c8ff;
   --color-action-primary: #354778;
   --color-on-action-primary: #ffffff;
@@ -168,7 +168,6 @@
     --color-story-surface: #303751;
     --color-story-paper: #35303d;
     --color-story-paper-line: #4d4757;
-    --color-story-tape: #c9b48f59;
     --color-link-text: #b7c8ff;
     --color-action-primary: #354778;
     --color-on-action-primary: #ffffff;
@@ -215,6 +214,7 @@
     --duration-connection-beat: 0ms;
     --duration-connection-travel: 0ms;
     --duration-connection-travel-far: 0ms;
+    --duration-story-ken-burns: 0ms;
   }
 }
 

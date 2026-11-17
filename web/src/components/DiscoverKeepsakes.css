@@ -1,172 +1,20 @@
-/* Momente > Erinnerungen keepsakes (DiscoverKeepsakes.tsx). Each piece styles
- * only its own box, so any surrounding layout can place it. Tokens only; all
- * motion collapses under reduced motion. */
+/* Momente > Erinnerungen keepsake visuals (DiscoverKeepsakes.tsx). Each piece
+ * styles only itself, so any surrounding layout can place it. Tokens only; the
+ * stamp press collapses under reduced motion. */
 
-.momente-keepsake {
-  --keepsake-tilt: 0deg;
-  position: relative;
-  display: block;
-  box-sizing: border-box;
-  min-inline-size: 0;
-  min-block-size: var(--touch-target-web);
+/* ---------- lined note paper ---------- */
+.momente-keepsake-paper {
+  --paper-line: 1.625rem;
   color: var(--color-text);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-  rotate: var(--keepsake-tilt);
-  transition:
-    rotate var(--duration-context) var(--easing-settle),
-    scale var(--duration-context) var(--easing-settle),
-    translate var(--duration-context) var(--easing-settle);
-}
-
-.momente-keepsake:focus-visible,
-.momente-keepsake-envelope-toggle:focus-visible,
-.momente-keepsake-envelope-link:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 4px;
-}
-
-/* Pressing a piece lifts it off the table. */
-a.momente-keepsake:active,
-.momente-keepsake-envelope:has(.momente-keepsake-envelope-link:active) {
-  z-index: 2;
-  rotate: 0deg;
-  scale: 1.04;
-  translate: 0 calc(var(--space-1) * -1);
-}
-
-.momente-keepsake-title {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.momente-keepsake-date {
-  display: block;
-  font: var(--font-supporting-copy);
-  color: var(--color-text-secondary);
-}
-
-/* ---------- photo print ---------- */
-.momente-keepsake-print {
-  padding: var(--space-2) var(--space-2) 0;
-  border-radius: var(--radius-small);
-  background: var(--color-story-paper);
-  box-shadow:
-    0 var(--space-3) var(--space-6) calc(var(--space-3) * -1)
-    var(--color-shadow-card),
-    0 1px 2px var(--color-shadow-soft);
-}
-
-.momente-keepsake-tape {
-  position: absolute;
-  z-index: 1;
-  inset-block-start: calc(var(--space-2) * -1);
-  inset-inline-start: 50%;
-  inline-size: 3.6rem;
-  block-size: 1.1rem;
-  margin-inline-start: -1.8rem;
-  border-radius: 2px;
-  background: var(--color-story-tape);
-  rotate: -3deg;
-}
-
-.momente-keepsake-print-photo {
-  display: block;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--color-surface-subtle);
-}
-
-.momente-keepsake-print[data-keepsake-shape="portrait"]
-  .momente-keepsake-print-photo {
-  aspect-ratio: 2 / 3;
-}
-
-.momente-keepsake-print[data-keepsake-shape="square"]
-  .momente-keepsake-print-photo {
-  aspect-ratio: 1 / 1;
-}
-
-.momente-keepsake-print[data-keepsake-shape="wide"]
-  .momente-keepsake-print-photo {
-  aspect-ratio: 16 / 10;
-}
-
-.momente-keepsake-print-photo
-  :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  margin: 0;
-  border-radius: 0;
-  aspect-ratio: auto;
-  object-fit: cover;
-}
-
-/* The thicker bottom border carries the caption. */
-.momente-keepsake-caption {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-1) var(--space-3);
-}
-
-/* ---------- note slip ---------- */
-.momente-keepsake-slip {
-  --slip-line: 1.625rem;
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-3) var(--space-6);
-  line-height: var(--slip-line);
+  line-height: var(--paper-line);
   background: repeating-linear-gradient(
-    var(--color-story-paper) 0 calc(var(--slip-line) - 1px),
-    var(--color-story-paper-line) calc(var(--slip-line) - 1px) var(--slip-line)
+    var(--color-story-paper) 0 calc(var(--paper-line) - 1px),
+    var(--color-story-paper-line) calc(var(--paper-line) - 1px)
+      var(--paper-line)
   );
-  filter: drop-shadow(0 var(--space-2) var(--space-2) var(--color-shadow-soft));
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - var(--space-2)),
-    90% 100%,
-    80% calc(100% - var(--space-2)),
-    70% 100%,
-    60% calc(100% - var(--space-2)),
-    50% 100%,
-    40% calc(100% - var(--space-2)),
-    30% 100%,
-    20% calc(100% - var(--space-2)),
-    10% 100%,
-    0 calc(100% - var(--space-2))
-  );
-}
-
-.momente-keepsake-slip .momente-keepsake-title {
-  line-height: var(--slip-line);
-}
-
-.momente-keepsake-excerpt {
-  display: block;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.95rem;
-  line-height: var(--slip-line);
-  white-space: pre-line;
 }
 
 /* ---------- milestone stamp ---------- */
-.momente-keepsake-stamp {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-1);
-  text-align: center;
-  animation: momente-keepsake-stamp-press var(--duration-context)
-    var(--easing-settle) backwards;
-}
-
 .momente-keepsake-stamp-mark {
   inline-size: 6.5rem;
   block-size: 6.5rem;
@@ -195,6 +43,12 @@ a.momente-keepsake:active,
   fill: var(--color-story-milestone);
 }
 
+/* Opt-in press, e.g. when a stamp slide becomes visible. */
+.momente-keepsake-stamp-mark[data-pressed="true"] {
+  animation: momente-keepsake-stamp-press var(--duration-gesture-moment)
+    var(--easing-settle) backwards;
+}
+
 @keyframes momente-keepsake-stamp-press {
   0% {
     opacity: 0;
@@ -208,147 +62,12 @@ a.momente-keepsake:active,
   100% {
     opacity: 1;
     scale: 1;
-    rotate: var(--keepsake-tilt);
-  }
-}
-
-/* ---------- Heart Moment envelope ---------- */
-.momente-keepsake-envelope {
-  overflow: hidden;
-  border-radius: var(--radius-medium);
-  background: var(--heart-emotion-surface, var(--color-brand-surface));
-  box-shadow: 0 var(--space-3) var(--space-6) calc(var(--space-4) * -1)
-    var(--color-shadow-card);
-}
-
-.momente-keepsake-envelope-toggle {
-  all: unset;
-  position: relative;
-  display: block;
-  box-sizing: border-box;
-  inline-size: 100%;
-  min-block-size: var(--touch-target-web);
-  color: var(--color-text);
-  cursor: pointer;
-  perspective: 600px;
-}
-
-.momente-keepsake-envelope-flap {
-  display: block;
-  block-size: 3.6rem;
-  background: color-mix(
-    in srgb,
-    var(--heart-emotion-accent, var(--color-story-heart-moment)) 22%,
-    var(--heart-emotion-surface, var(--color-brand-surface))
-  );
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-  transform-origin: top;
-  transition: transform var(--duration-context) var(--easing-standard);
-}
-
-.momente-keepsake-envelope-seal {
-  position: absolute;
-  z-index: 1;
-  inset-block-start: 2.5rem;
-  inset-inline-start: 50%;
-  display: grid;
-  place-items: center;
-  inline-size: 1.9rem;
-  block-size: 1.9rem;
-  margin-inline-start: -0.95rem;
-  border-radius: 50%;
-  background: var(--heart-emotion-accent, var(--color-story-heart-moment));
-  color: var(--heart-emotion-surface, var(--color-brand-surface));
-  transition:
-    translate var(--duration-context) var(--easing-settle),
-    scale var(--duration-context) var(--easing-settle),
-    opacity var(--duration-transition) var(--easing-standard);
-}
-
-.momente-keepsake-envelope-seal svg {
-  inline-size: 0.9rem;
-  block-size: 0.9rem;
-  fill: currentcolor;
-}
-
-.momente-keepsake-envelope-front {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-5) var(--space-3) var(--space-3);
-}
-
-.momente-keepsake-envelope-from {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-}
-
-.momente-keepsake-envelope[data-open="true"] .momente-keepsake-envelope-flap {
-  transform: rotateX(180deg);
-}
-
-.momente-keepsake-envelope[data-open="true"] .momente-keepsake-envelope-seal {
-  translate: 0 calc(var(--space-8) * -1);
-  scale: 0.4;
-  opacity: 0;
-}
-
-.momente-keepsake-envelope-letter {
-  display: grid;
-  gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
-  animation: momente-keepsake-letter-in var(--duration-context)
-    var(--easing-enter) both;
-}
-
-.momente-keepsake-envelope-letter[hidden] {
-  display: none;
-}
-
-.momente-keepsake-envelope-text {
-  margin: 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1rem;
-  line-height: 1.4;
-  white-space: pre-line;
-}
-
-.momente-keepsake-envelope-link {
-  display: inline-flex;
-  align-items: center;
-  inline-size: fit-content;
-  min-block-size: var(--touch-target-web);
-  font-weight: 700;
-  color: var(--color-link-text);
-}
-
-@keyframes momente-keepsake-letter-in {
-  from {
-    opacity: 0;
-    translate: 0 calc(var(--space-3) * -1);
-  }
-  to {
-    opacity: 1;
-    translate: 0 0;
+    rotate: 0deg;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .momente-keepsake,
-  .momente-keepsake-envelope-flap,
-  .momente-keepsake-envelope-seal {
-    transition: none;
-  }
-  .momente-keepsake-stamp,
-  .momente-keepsake-envelope-letter {
+  .momente-keepsake-stamp-mark[data-pressed="true"] {
     animation: none;
-  }
-  a.momente-keepsake:active,
-  .momente-keepsake-envelope:has(.momente-keepsake-envelope-link:active) {
-    scale: 1;
-    translate: 0 0;
   }
 }

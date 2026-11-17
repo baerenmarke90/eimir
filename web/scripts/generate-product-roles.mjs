@@ -82,10 +82,9 @@ const storyColors = [
   ['heart-moment', 'storyHeartMoment'],
   ['milestone', 'storyMilestone'],
   ['surface', 'storySurface'],
-  // Discover keepsakes (photo prints, note slips, tape) sit on paper.
+  // Discover Fotostory: note slides and stamp keepsakes sit on paper.
   ['paper', 'storyPaper'],
   ['paper-line', 'storyPaperLine'],
-  ['tape', 'storyTape'],
 ];
 function storyColorDeclarations(scheme, indent = '  ') {
   return storyColors
@@ -221,6 +220,9 @@ declare(
   'duration-connection-travel-far',
   value('motion.duration.connectionTravelFar'),
 );
+// Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
+declare('duration-story-slide', value('motion.duration.storySlide'));
+declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
 for (const role of [
   'standard',
   'enter',
@@ -333,6 +335,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-connection-beat: ${value('motion.duration.instant')};
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};
+    --duration-story-ken-burns: ${value('motion.duration.instant')};
   }
 }
 

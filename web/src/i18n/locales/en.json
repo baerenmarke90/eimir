@@ -4891,11 +4891,28 @@
       "hint": "Small previews on a calm timeline."
     }
   },
-  "discoverKeepsakes": {
-    "from": "From {{name}}",
-    "openInFull": "View in full",
-    "envelopeName": "{{kind}} from {{name}}, {{emotion}}, {{date}}",
-    "itemName": "{{kind}}: {{title}}, {{date}}"
+  "discoverStory": {
+    "label": "Your photo story",
+    "roleDescription": "Photo story",
+    "themesLabel": "Photo story themes",
+    "theme": {
+      "photos": "Photos",
+      "heartMoments": "Heart moments",
+      "milestones": "Milestones",
+      "words": "In words"
+    },
+    "themeCount_one": "{{count}} moment",
+    "themeCount_other": "{{count}} moments",
+    "themeSeen": "seen",
+    "slideRoleDescription": "Moment",
+    "slidePosition": "{{position}} of {{count}}",
+    "previous": "Previous moment",
+    "next": "Next moment",
+    "pause": "Pause photo story",
+    "play": "Play photo story",
+    "open": "Open",
+    "openName": "Open: {{kind}} “{{title}}”",
+    "from": "From {{name}}"
   },
   "storyFilters": {
     "title": "Filters",

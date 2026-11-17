@@ -133,6 +133,8 @@ def for_notification(
             and notification.kind != NotificationKind.COLLECTION_SENT.value
             # A shared note's title is its own words: only who did what (#1969).
             and notification.kind not in SHARED_NOTE_KINDS
+            # A garden seed never shows its attached words (#1907 H3).
+            and notification.kind != NotificationKind.GARDEN_SEED_ARRIVED.value
             and not (
                 notification.kind == NotificationKind.REMINDER_DUE.value
                 and target_type is EngagementTarget.PLAN

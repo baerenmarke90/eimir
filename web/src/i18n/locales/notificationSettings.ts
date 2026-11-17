@@ -3,7 +3,7 @@ const notificationSettings = {
   sharedActivityDescription:
     'Kommentare, Fotoreaktionen, gemeinsame Notizen, neue und fällige Erinnerungen.',
   closenessDescription:
-    'Gedanken aneinander, Küsse, Check-ins und geschickte Listen.',
+    'Gedanken aneinander, Küsse, Check-ins, geschickte Listen und Samen aus eurem Garten.',
   individual: 'Einzeln anpassen',
   dates: 'Wichtige Tage',
   mixed:
@@ -23,6 +23,7 @@ const notificationSettings = {
   reminderCreated: 'Neue Erinnerungen',
   experience: 'Geteilte Momente',
   collectionSent: 'Geschickte Listen',
+  gardenSeed: 'Samen aus eurem Garten',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
   checkIn: 'Check-in',

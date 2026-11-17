@@ -25,6 +25,8 @@ export default {
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
     COLLECTION_SENT: '{{name}} hat dir eine Liste geschickt.',
+    GARDEN_SEED_ARRIVED: '{{name}} hat dir einen Samen geschickt.',
+    GARDEN_BOUQUET: '{{name}} hat dir einen Strauß geschenkt.',
     TRANSFER_READY:
       'Dein Datenauftrag ist bereit. Du kannst ihn jetzt ansehen.',
     TRANSFER_COMPLETED: 'Dein Datenimport ist abgeschlossen.',

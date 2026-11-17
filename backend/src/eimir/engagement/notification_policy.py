@@ -168,6 +168,10 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.COLLECTION_SENT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        # A garden seed from the partner (#1907 H3); never the attached words.
+        NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
@@ -253,6 +257,7 @@ def email_choice_allowed(kind: str) -> bool:
         # A shared note is a push-only signal; it never becomes an email (#1969).
         NotificationKind.SHARED_NOTE_CREATED.value,
         NotificationKind.SHARED_NOTE_CHANGED.value,
+        NotificationKind.GARDEN_SEED_ARRIVED.value,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

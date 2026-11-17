@@ -17,6 +17,9 @@ import {
   appRoutePath,
   chapterDetailPath,
   collectionDetailPath,
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   memoryDetailPath,
@@ -24,6 +27,7 @@ import {
   placeDetailPath,
   planDetailPath,
   reminderDetailPath,
+  sharedNoteDetailPath,
   wishDetailPath,
 } from './routes';
 
@@ -77,6 +81,8 @@ export function searchResultPath(
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
       return appRoutePath('more');
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(id);
     case 'PRIVATE_NOTE':
       return privateNotePath(id);
     case 'GIFT_IDEA':
@@ -147,6 +153,13 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'PICTURE_GAME':
+      return GAMES_PICTURE_PING_PONG_ROUTE;
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(targetId);
+    case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
+      return GAMES_GARDEN_ROUTE;
     case 'WISH_SELECTION':
       return '/plan/choose';
     case 'TRANSFER_EXPORT':
@@ -170,6 +183,9 @@ export function notificationPath(item: {
     item.targetId
   )
     return `${wishDetailPath(item.targetId)}#terminvorschlag`;
+
+  if (item.kind === 'HEART_HUNT_HIDDEN' || item.kind === 'HEART_HUNT_FOUND')
+    return GAMES_HEART_HUNT_ROUTE;
 
   return (
     engagementTargetPath(item.targetType, item.targetId) ??

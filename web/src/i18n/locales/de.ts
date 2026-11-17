@@ -39,6 +39,11 @@ const de = {
     visibility: {
       onlyYou: 'Nur du siehst das',
     },
+    accountId: {
+      copy: 'Konto-ID kopieren',
+      copied: 'Konto-ID kopiert',
+      failed: 'Kopieren hat nicht geklappt. Deine Konto-ID:',
+    },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
@@ -155,6 +160,34 @@ const de = {
     createFirstSpacePending: 'Gemeinsamer Ort wird erstellt …',
   },
   identity: {
+    dividerEmailLink: 'oder mit E-Mail-Link',
+    dividerOr: 'oder',
+    passkeyNoneOnDevice:
+      'Auf diesem Gerät ist kein Passkey für eimir. gespeichert.',
+    googleContinue: 'Weiter mit Google',
+    googleSignUp: 'Mit Google registrieren',
+    providerContinue: 'Weiter mit {{name}}',
+    providerContinueDefault: 'Mit einem anderen Konto anmelden',
+    passkeySignIn: 'Weiter mit Passkey',
+    passkeyLaterHint:
+      'Einen Passkey richtest du nach der Anmeldung in den Einstellungen ein.',
+    providerTermsFirst: 'Setze zuerst das Häkchen, dann geht es weiter.',
+    magicLinkHint: 'Wir schicken dir einen Link, mit dem du dich anmeldest.',
+    oidcOpening: 'Du wirst angemeldet …',
+    oidcNoAccountTitle: 'Zu dieser Anmeldung gibt es noch kein Konto.',
+    oidcNoAccountBody:
+      'Melde dich auf einem anderen Weg an und verknüpfe Google danach in den Einstellungen. Ein neues Konto startest du mit „Gemeinsam starten“ oder mit einer Einladung.',
+    oidcAddressTakenTitle: 'Für diese Adresse gibt es schon ein Konto.',
+    oidcAddressTakenBody:
+      'Melde dich mit dem E-Mail-Link an. In den Einstellungen kannst du Google danach mit deinem Konto verknüpfen.',
+    oidcEmailUnverifiedTitle: 'Deine E-Mail-Adresse ist nicht bestätigt.',
+    oidcEmailUnverifiedBody:
+      'Bestätige die Adresse bei deinem Anbieter oder starte mit dem E-Mail-Link.',
+    oidcExpiredTitle: 'Der Anmeldeversuch ist abgelaufen.',
+    oidcExpiredBody: 'Bitte starte die Anmeldung noch einmal.',
+    oidcFailedTitle: 'Die Anmeldung hat nicht geklappt.',
+    oidcFailedBody:
+      'Bitte versuche es noch einmal oder wähle einen anderen Weg.',
     entryAria: 'Zugang zu eimir.',
     invitationEyebrow: 'Einladung zu eimir.',
     invitationTitle:

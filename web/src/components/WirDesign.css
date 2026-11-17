@@ -1,6 +1,8 @@
-/* Personal compositions share one content/interaction tree. Classic keeps the
-   baseline; Geborgen uses the existing contextual warm palette and open rhythm. */
-.today-page[data-wir-design="warm"] {
+/* Personal compositions share one content/interaction tree. Colours, heading
+   family and backdrop come from the design's token file (design/designs/);
+   the open layout (Geborgen) only arranges: larger portraits, open rhythm and
+   a full-bleed keepsake. Classic keeps the baseline. */
+.today-page[data-wir-layout="open"] {
   position: relative;
   /* Paint the full-bleed ground on the page itself. An isolated backdrop
      traps the hero's Energy/gesture overlays beneath the fixed navigation. */
@@ -12,12 +14,12 @@
   background:
     radial-gradient(
       ellipse at 50% 0%,
-      var(--color-brand-glow),
+      var(--design-backdrop-glow),
       transparent 32rem
     ),
     var(--color-background);
 }
-.today-page[data-wir-design="warm"] .today-hero.couple-presence-card {
+.today-page[data-wir-layout="open"] .today-hero.couple-presence-card {
   padding-block: var(--space-5) var(--space-3);
   gap: var(--space-2);
   margin-bottom: var(--space-5);
@@ -31,7 +33,7 @@
   background-position: top center;
   background-repeat: no-repeat;
 }
-.today-page[data-wir-design="warm"]
+.today-page[data-wir-layout="open"]
   .today-hero
   .partner-avatar-pair-hero
   .partner-avatar {
@@ -42,7 +44,7 @@
     0 0 0 var(--space-1) var(--color-surface),
     var(--shadow-soft);
 }
-.today-page[data-wir-design="warm"]
+.today-page[data-wir-layout="open"]
   .today-hero.couple-presence-card
   .couple-presence-main {
   gap: var(--space-4);
@@ -53,13 +55,10 @@
   font: var(--font-supporting-copy);
   letter-spacing: 0.06em;
 }
-.today-page[data-wir-design="warm"] .today-hero .couple-presence-title {
+.today-page[data-wir-layout="open"] .today-hero .couple-presence-title {
   font-size: clamp(1.9rem, 7vw, 2.75rem);
 }
-.today-page[data-wir-design="warm"] .today-section-title {
-  font-family: var(--font-display);
-}
-.today-page[data-wir-design="warm"] .today-moment-figure {
+.today-page[data-wir-layout="open"] .today-moment-figure {
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);
 }
@@ -207,19 +206,19 @@
   background: var(--color-brand-surface);
   border-radius: var(--radius-small);
 }
-.wir-design-preview-warm {
+.wir-design-preview-open {
   background: var(--color-background);
 }
-.wir-design-preview-warm .wir-design-preview-hero {
+.wir-design-preview-open .wir-design-preview-hero {
   border-radius: var(--radius-pill) var(--radius-pill) var(--radius-medium)
     var(--radius-medium);
   background: var(--color-brand-glow);
 }
-.wir-design-preview-warm .wir-design-preview-vibes {
+.wir-design-preview-open .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-warm .wir-design-preview-vibes i,
-.wir-design-preview-warm .wir-design-preview-quote {
+.wir-design-preview-open .wir-design-preview-vibes i,
+.wir-design-preview-open .wir-design-preview-quote {
   background: transparent;
   box-shadow: inset 0 -1px var(--color-border-subtle);
 }
@@ -259,14 +258,14 @@
   background: transparent;
   box-shadow: inset 0 -1px var(--color-border-subtle);
 }
-.wir-design-preview-modern .wir-design-preview-hero {
+.wir-design-preview-compact .wir-design-preview-hero {
   display: flex;
   align-items: center;
 }
-.wir-design-preview-modern .wir-design-preview-vibes {
+.wir-design-preview-compact .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-modern .wir-design-preview-quote {
+.wir-design-preview-compact .wir-design-preview-quote {
   background: var(--color-shared-surface);
 }
 .wir-design-preview-classic .wir-design-preview-portraits i {
@@ -297,39 +296,40 @@
 }
 
 /* Editorial: a compact couple introduction followed by a full-width keepsake. */
-.today-page[data-wir-design="warm"] .today-section-moment {
+.today-page[data-wir-layout="open"] .today-section-moment {
   margin-inline: calc(-1 * var(--page-gutter));
 }
-.today-page[data-wir-design="warm"]
+.today-page[data-wir-layout="open"]
   .today-section-moment
   .today-section-header {
   padding-inline: var(--page-gutter);
 }
-.today-page[data-wir-design="warm"] .today-moment-figure {
+.today-page[data-wir-layout="open"] .today-moment-figure {
   border-radius: 0;
   box-shadow: none;
 }
-.today-page[data-wir-design="warm"] .today-moment-media .story-media-preview,
-.today-page[data-wir-design="warm"] .today-moment-media .story-media-skeleton,
-.today-page[data-wir-design="warm"]
+.today-page[data-wir-layout="open"] .today-moment-media .story-media-preview,
+.today-page[data-wir-layout="open"] .today-moment-media .story-media-skeleton,
+.today-page[data-wir-layout="open"]
   .today-moment-media
   .story-media-placeholder {
   aspect-ratio: 4 / 3;
   max-height: none;
 }
-.today-page[data-wir-design="warm"] .today-moment-caption {
+.today-page[data-wir-layout="open"] .today-moment-caption {
   padding-inline: var(--page-gutter);
   padding-block: var(--space-4);
   background: transparent;
 }
 
-/* Modern: horizontal identity, concise supporting content and a panoramic photo. */
-.today-page[data-wir-design="modern"] .today-hero.couple-presence-card {
+/* Compact layout (Klar & modern): horizontal identity, concise supporting
+   content and a panoramic photo. */
+.today-page[data-wir-layout="compact"] .today-hero.couple-presence-card {
   padding-block: var(--space-3);
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-main {
   flex-direction: row;
@@ -338,20 +338,20 @@
   gap: var(--space-4);
   text-align: start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-details {
   flex: 1 1 10rem;
   width: auto;
   align-items: flex-start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero.couple-presence-card
   .couple-presence-meta {
   justify-content: flex-start;
   text-align: start;
 }
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"]
   .today-hero
   .partner-avatar-pair-hero
   .partner-avatar {
@@ -360,41 +360,40 @@
   font-size: var(--space-5);
   box-shadow: none;
 }
-.today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
+.today-page[data-wir-layout="compact"] .today-hero .couple-presence-title {
   font: var(--font-content-heading);
   font-family: var(--font-ui);
   text-align: start;
 }
-.today-page[data-wir-design="modern"] .today-hero-action-container {
+.today-page[data-wir-layout="compact"] .today-hero-action-container {
   justify-content: flex-start;
 }
-.today-page[data-wir-design="modern"] .today-section-title {
-  font-family: var(--font-ui);
-}
-.today-page[data-wir-design="modern"] .today-moment-media .story-media-preview,
-.today-page[data-wir-design="modern"] .today-moment-media .story-media-skeleton,
-.today-page[data-wir-design="modern"]
+.today-page[data-wir-layout="compact"] .today-moment-media .story-media-preview,
+.today-page[data-wir-layout="compact"]
+  .today-moment-media
+  .story-media-skeleton,
+.today-page[data-wir-layout="compact"]
   .today-moment-media
   .story-media-placeholder {
   aspect-ratio: 16 / 9;
 }
-.today-page[data-wir-design="modern"] .today-stream-recent {
+.today-page[data-wir-layout="compact"] .today-stream-recent {
   gap: var(--space-2);
 }
-.wir-design-preview-modern .wir-design-preview-hero {
+.wir-design-preview-compact .wir-design-preview-hero {
   display: flex;
 }
 @media (min-width: 840px) {
-  .today-page[data-wir-design="warm"] .today-moment-media .story-media-preview {
+  .today-page[data-wir-layout="open"] .today-moment-media .story-media-preview {
     aspect-ratio: 16 / 9;
   }
 }
 
-.wir-design-preview-shared_album {
-  background: #f2efe4;
+.wir-design-preview-rows {
+  background: var(--color-background);
   grid-template-rows: 25px 1fr 6px 19px;
 }
-.wir-design-preview-shared_album .wir-design-preview-hero {
+.wir-design-preview-rows .wir-design-preview-hero {
   justify-items: stretch;
   gap: 1px;
 }
@@ -404,29 +403,32 @@
   align-items: center;
   gap: 4px;
   padding-inline: 3px;
-  border-block-end: 1px solid #d9d4c5;
+  border-block-end: 1px solid var(--color-border-subtle);
 }
 .wir-design-preview-person i {
   height: 9px;
   border-radius: 50%;
-  background: #afa693;
+  background: var(--color-border);
 }
 .wir-design-preview-person + .wir-design-preview-person i {
-  background: #8b9c82;
+  background: var(--design-decoration-icon, var(--color-brand-text));
 }
 .wir-design-preview-person b {
   width: 70%;
   height: 2px;
   border-radius: var(--radius-pill);
-  background: #596f57;
+  background: var(--color-text-secondary);
 }
-.wir-design-preview-shared_album .wir-design-preview-vibes {
+.wir-design-preview-rows .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-shared_album .wir-design-preview-quote {
+.wir-design-preview-rows .wir-design-preview-quote {
   min-height: 0;
-  background: #e1ddcf;
+  background: var(--color-surface-subtle);
 }
-.wir-design-preview-shared_album .wir-design-preview-moment {
-  background: linear-gradient(#92a287 72%, #3d543c 72%);
+.wir-design-preview-rows .wir-design-preview-moment {
+  background: linear-gradient(
+    var(--color-border) 72%,
+    var(--design-decoration, var(--color-text)) 72%
+  );
 }

@@ -31,6 +31,7 @@ import {
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
+import { SignInMethodsPanel } from './SignInMethodsPanel';
 import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
@@ -318,6 +319,14 @@ export function SettingsPage(props: SettingsPageProps) {
     categoryContent = (
       <div className="settings-category-content">
         <ProSettingsRow />
+        {demoMode ? null : (
+          <SignInMethodsPanel
+            apiBaseUrl={props.apiBaseUrl}
+            accessToken={props.accessToken}
+            accountId={props.account.id}
+            spaceId={props.spaceId}
+          />
+        )}
         <section
           id="settings-account"
           className="settings-sensitive-zone"

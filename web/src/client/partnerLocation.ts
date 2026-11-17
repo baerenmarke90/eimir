@@ -5,6 +5,7 @@ import { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { SharingLevel } from '../api/generated/models/SharingLevel';
+import type { SharingPrecision } from '../api/generated/models/SharingPrecision';
 import { Configuration } from './apiConfiguration';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
 import {
@@ -202,13 +203,22 @@ export function usePartnerLocationWrites({
       level: SharingLevel;
       indefinite?: boolean;
       expiresAt?: Date | null;
+      /** Omit to keep the stored choice. */
+      precision?: SharingPrecision;
     }) => {
       try {
         return store(
           await api.updatePartnerLocationSettings({
             spaceId,
             partnerLocationSettingsUpdate:
-              update.level === 'OFF' ? { level: 'OFF' } : update,
+              update.level === 'OFF'
+                ? {
+                    level: 'OFF',
+                    ...(update.precision
+                      ? { precision: update.precision }
+                      : {}),
+                  }
+                : update,
           }),
         );
       } catch (error) {
@@ -228,8 +238,11 @@ export function usePartnerLocationWrites({
   );
   return {
     store,
-    share: (level: SharedLevel, duration: SharingDuration) =>
-      write({ level, ...sharingDurationRequest(duration) }),
+    share: (
+      level: SharedLevel,
+      duration: SharingDuration,
+      precision?: SharingPrecision,
+    ) => write({ level, ...sharingDurationRequest(duration), precision }),
     /** Narrowing keeps the existing end; it never extends the share. */
     narrow: (level: SharedLevel, settings: PartnerLocationSettingsView) =>
       write({
@@ -238,6 +251,23 @@ export function usePartnerLocationWrites({
         expiresAt: settings.indefinite ? null : settings.expiresAt,
       }),
     stop: () => write({ level: 'OFF' }),
+    /**
+     * Changes how precisely the owner shares. An active share keeps its level
+     * and end; anything else stores the choice for the next share. Either way
+     * the server starts a new generation, so the next measurement is published.
+     */
+    changePrecision: (
+      precision: SharingPrecision,
+      settings: PartnerLocationSettingsView,
+    ) =>
+      settings.state === 'ACTIVE'
+        ? write({
+            level: settings.level,
+            indefinite: settings.indefinite,
+            expiresAt: settings.indefinite ? null : settings.expiresAt,
+            precision,
+          })
+        : write({ level: 'OFF', precision }),
   };
 }
 

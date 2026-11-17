@@ -9,6 +9,7 @@ import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import privateArea from '../../src/i18n/locales/privateArea';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import quietHints from '../../src/i18n/locales/quietHints';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -574,6 +575,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       pathname === `/api/v1/spaces/${SPACE_ID}/invitations`
     ) {
       await fulfillJson([]);
+      return;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/auth/sign-in-methods') {
+      await fulfillJson({
+        passkeys: [],
+        oidc: [],
+        emailLink: true,
+        localPassword: false,
+      });
       return;
     }
 
@@ -1267,7 +1278,8 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
       level: 2,
     }),
   ).toBeVisible();
-  await expect(page.getByText(m5s5.dashboard.newSpaceIntro)).toBeVisible();
+  // #1907 I1: without a partner the move-in invites the first picture.
+  await expect(page.getByText(quietHints.moveIn.solo)).toBeVisible();
 
   const skipLink = page.getByRole('link', {
     name: de.navigation.skipToContent,

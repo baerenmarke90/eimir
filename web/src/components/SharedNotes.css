@@ -1,0 +1,324 @@
+/* Shared Notes (#1969): overview, reading page, editor notices and menu. */
+
+/* ---------- overview ---------- */
+.shared-notes-page .shared-note-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target-comfortable);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+.shared-note-search:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.shared-note-search .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.shared-note-search input {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-comfortable);
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  outline: none;
+  font: var(--font-reading-body);
+  color: var(--color-text);
+}
+.shared-note-search-clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-inline-size: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+.shared-notes-results {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+.shared-note-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  font: var(--font-section-heading);
+}
+.shared-note-section .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  color: var(--color-shared);
+}
+.shared-note-count {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-note-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shared-note-card {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+.shared-note-card[data-pinned] {
+  background: var(--color-shared-surface);
+}
+.shared-note-card:active {
+  transform: scale(0.98);
+}
+.shared-note-card:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.shared-note-card h3 {
+  margin: 0;
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+.shared-note-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  margin: 0;
+  overflow: hidden;
+  font: var(--font-reading-body);
+  overflow-wrap: anywhere;
+}
+.shared-note-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-note-skeletons {
+  display: grid;
+  gap: var(--space-3);
+}
+/* The shared skeleton shimmer (story-media.css) supplies colour and motion,
+   including its reduced-motion rule; only the card proportions are set here. */
+.shared-note-skeletons .shared-note-skeleton {
+  aspect-ratio: auto;
+  margin: 0;
+  block-size: calc(var(--space-16) + var(--space-12));
+  border-radius: var(--radius-large);
+}
+
+/* ---------- reading ---------- */
+.shared-note-read {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: var(--reading-max);
+  min-inline-size: 0;
+  padding-block-end: var(--space-12);
+}
+.shared-note-read h1 {
+  margin: 0;
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+.shared-note-body {
+  display: grid;
+  gap: var(--space-3);
+  max-inline-size: 70ch;
+  font: var(--font-reading-body);
+}
+.shared-note-body p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.shared-note-body ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+.shared-note-body a {
+  color: var(--color-link-text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+.shared-note-authors {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+.shared-note-menu-trigger {
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-comfortable);
+  block-size: var(--touch-target-comfortable);
+  min-inline-size: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+.shared-note-live {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-success-surface);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
+/* ---------- menu sheet ---------- */
+.shared-note-menu {
+  display: grid;
+  gap: var(--space-1);
+}
+.shared-note-menu-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: none;
+  color: var(--color-text);
+  text-align: start;
+}
+.shared-note-menu-option:active {
+  background: var(--color-surface);
+}
+.shared-note-menu-option .eimir-icon {
+  flex: none;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+.shared-note-menu-copy {
+  display: grid;
+  min-inline-size: 0;
+}
+.shared-note-menu-copy strong {
+  font: var(--font-action-label);
+}
+.shared-note-menu-copy span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-note-menu-option[data-danger] strong,
+.shared-note-menu-option[data-danger] .eimir-icon {
+  color: var(--color-error);
+}
+
+/* ---------- editor ---------- */
+/* At 320 px with 200% text the shared composer header grid (auto columns) is
+   wider than the screen. Let the columns shrink below their content instead,
+   so the save action wraps its label and nothing overflows; at normal sizes the
+   columns resolve exactly as before. */
+.shared-note-editor.quiet-composer .composer-header.page-heading {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+}
+.shared-note-editor.quiet-composer
+  .composer-header
+  .page-heading-action
+  > button {
+  min-inline-size: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.shared-note-editor .shared-note-audience {
+  max-inline-size: 100%;
+}
+.shared-note-editor .shared-note-audience .visibility-badge-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.shared-note-editor .shared-note-audience {
+  margin-block-end: var(--space-3);
+}
+.shared-note-notice {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-discovery-surface);
+  font: var(--font-reading-body);
+}
+.shared-note-notice[data-kind="error"] {
+  background: var(--color-error-surface);
+}
+.shared-note-notice p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.shared-note-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.shared-note-theirs {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  font: var(--font-supporting-copy);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.shared-note-theirs-label {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+.shared-note-editor textarea.page-composer-prose {
+  min-block-size: 12rem;
+  resize: none;
+}
+.shared-note-editor .page-composer-writing {
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+}
+
+.shared-note-choice-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+/* ---------- plan preview sheet ---------- */
+.shared-note-preview {
+  display: grid;
+  gap: var(--space-4);
+}
+.shared-note-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: space-between;
+  align-items: center;
+}

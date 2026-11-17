@@ -220,6 +220,7 @@ const m5s5 = {
     CHAPTER: 'Kapitel',
     COLLECTION: 'Liste',
     COLLECTION_ITEM: 'Listeneintrag',
+    SHARED_NOTE: 'Gemeinsame Notiz',
     PRIVATE_NOTE: 'Notiz für mich',
     GIFT_IDEA: 'Geschenkidee',
     PRIVATE_COLLECTION: 'Meine Liste',
@@ -239,6 +240,8 @@ const m5s5 = {
     CHAPTER_CREATED: 'Neues Kapitel begonnen',
     COLLECTION_CREATED: 'Liste hinzugefügt',
     COMMENT_CREATED: 'Neuer Kommentar hinterlassen',
+    SHARED_NOTE_CREATED: 'Neue gemeinsame Notiz',
+    SHARED_NOTE_CHANGED: 'Gemeinsame Notiz überarbeitet',
   },
   activityAction: {
     MEMORY_CREATED: 'hat eine Erinnerung festgehalten',
@@ -251,6 +254,8 @@ const m5s5 = {
     CHAPTER_CREATED: 'hat ein Kapitel begonnen',
     COLLECTION_CREATED: 'hat eine Liste angelegt',
     COMMENT_CREATED: 'hat einen Kommentar hinterlassen',
+    SHARED_NOTE_CREATED: 'hat eine gemeinsame Notiz angelegt',
+    SHARED_NOTE_CHANGED: 'hat eine gemeinsame Notiz überarbeitet',
   },
   activityActionOwn: {
     MEMORY_CREATED: 'hast eine Erinnerung festgehalten',
@@ -263,6 +268,8 @@ const m5s5 = {
     CHAPTER_CREATED: 'hast ein Kapitel begonnen',
     COLLECTION_CREATED: 'hast eine Liste angelegt',
     COMMENT_CREATED: 'hast einen Kommentar hinterlassen',
+    SHARED_NOTE_CREATED: 'hast eine gemeinsame Notiz angelegt',
+    SHARED_NOTE_CHANGED: 'hast eine gemeinsame Notiz überarbeitet',
   },
   notificationKind: {
     REMINDER_CREATED: 'Neue Erinnerung',

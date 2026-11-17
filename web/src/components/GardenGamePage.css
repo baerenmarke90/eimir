@@ -1,0 +1,715 @@
+/*
+ * The shared garden (#1907 H3). The illustration palette is local to this
+ * scene: it has no meaning outside the garden, so it lives here at the token
+ * boundary as `--garden-*` roles with Light and Dark values instead of in the
+ * global token set (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ */
+.garden-game-page {
+  --garden-sky-top: #eaf0ff;
+  --garden-sky-bottom: #fbeff6;
+  --garden-hill: #b9d3a4;
+  --garden-hill-back: #9fc28c;
+  --garden-grass-front: #5f9f52;
+  --garden-grass-mid: #7fb56b;
+  --garden-grass-back: #93c181;
+  --garden-meadow-dot: #fffaf0;
+  --garden-soil: #8a6a52;
+  --garden-stem: #4f8a4a;
+  --garden-leaf: #6aa760;
+  --garden-sun: #ffd76a;
+  --garden-star: transparent;
+  --garden-cloud: #ffffffd9;
+  --garden-cloud-highlight: #ffffff99;
+  --garden-highlight: #ffffff;
+  --garden-ink: #2b2f45;
+  --garden-dark: #2b2024;
+  --garden-card: var(--color-surface-raised);
+  --garden-bug: #d8473c;
+  --garden-bee: #f2c14e;
+  --garden-wing: #ffffffcc;
+  --garden-bird: #5b6fa6;
+  --garden-bird-wing: #7d90c4;
+  --garden-trunk: #8a6446;
+  --garden-dew: #7fb8ea;
+  --garden-can: var(--color-person-blue);
+  --garden-sun-opacity: 1;
+  --garden-moon-opacity: 0;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  width: min(100%, 40rem);
+  margin-inline: auto;
+}
+
+.garden-game-page h1,
+.garden-card h2 {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-sky-top: #141a35;
+  --garden-sky-bottom: #2a2a4d;
+  --garden-hill: #2f4a3a;
+  --garden-hill-back: #26402f;
+  --garden-grass-front: #3d7449;
+  --garden-grass-mid: #33603f;
+  --garden-grass-back: #2b4d37;
+  --garden-meadow-dot: #e9e4c6;
+  --garden-soil: #5d4636;
+  --garden-stem: #7fb27a;
+  --garden-leaf: #5f9a5a;
+  --garden-sun: #f6e7a8;
+  --garden-star: #f6f2d6;
+  --garden-cloud: #ffffff14;
+  --garden-cloud-highlight: #ffffff00;
+  --garden-ink: #eef0ff;
+  --garden-bird: #8ea2d8;
+  --garden-bird-wing: #b3c3ee;
+  --garden-trunk: #6e5038;
+  --garden-dew: #a9d4f7;
+  --garden-wing: #ffffff99;
+  --garden-sun-opacity: 0;
+  --garden-moon-opacity: 1;
+}
+
+.garden-band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.garden-band-arc {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.garden-band-label {
+  fill: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.garden-frame {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  background: var(--garden-sky-top);
+}
+
+.garden-frame.is-wide {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.garden-frame.is-wide::-webkit-scrollbar {
+  display: none;
+}
+
+.garden-scene {
+  display: block;
+  height: auto;
+  max-width: none;
+}
+
+.garden-frame:not(.is-wide) .garden-scene {
+  width: 100% !important;
+}
+
+.garden-pan-hint,
+.garden-footnote,
+.garden-note,
+.garden-status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.garden-pan-hint,
+.garden-footnote {
+  text-align: center;
+}
+
+.garden-status:empty {
+  display: none;
+}
+
+.garden-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.garden-card h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  text-wrap: balance;
+}
+
+.garden-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.garden-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.garden-choice {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-height: 5.5rem;
+  padding: var(--space-2) var(--space-1);
+  border: 2px solid transparent;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  transition:
+    border-color var(--duration-feedback) var(--easing-enter),
+    background var(--duration-feedback) var(--easing-enter);
+}
+
+.garden-choice[aria-pressed="true"] {
+  border-color: var(--color-brand-text);
+  background: var(--color-surface-subtle);
+}
+
+.garden-words {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-words-toggle,
+.garden-folded-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.garden-folded-card {
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px dashed var(--color-border);
+  border-radius: 0.25rem 1rem 1rem;
+  transform: rotate(-1.2deg);
+}
+
+.garden-words-change,
+.garden-folded-action {
+  color: var(--color-brand-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.garden-words-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  transform-origin: 50% 0;
+}
+
+.garden-word {
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.garden-word[aria-pressed="true"] {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.garden-words-quote {
+  width: fit-content;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  background: var(--color-surface);
+  box-shadow: inset 3px 0 0 var(--person-accent);
+  color: var(--color-text) !important;
+  font-family: var(--font-display);
+  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  transform-origin: 50% 0;
+}
+
+.garden-arrival > p,
+.garden-story-head h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.garden-arrival,
+.garden-story-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-story-head h2 {
+  flex: 1;
+}
+
+.garden-story-close {
+  min-height: 2.75rem;
+}
+
+.garden-water {
+  justify-self: stretch;
+}
+
+.garden-plant-target {
+  cursor: pointer;
+  outline: none;
+}
+
+.garden-plant-target:focus-visible rect {
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+/* Motion. The garden stays lively while it is open (Product Owner,
+   2026-11-16); events add one-shot moments. Reduced motion stops all of it. */
+.garden-sun {
+  opacity: var(--garden-sun-opacity);
+}
+
+.garden-moon {
+  opacity: var(--garden-moon-opacity);
+}
+
+.garden-rays {
+  opacity: 0;
+}
+
+.garden-tuft,
+.garden-sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-tuft {
+  animation: garden-breeze calc(var(--duration-connection-travel) * 1.5)
+    var(--easing-travel) infinite;
+  animation-delay: var(--garden-breeze);
+}
+
+.garden-scene.is-lively .garden-sway {
+  animation: garden-breeze-plant calc(var(--duration-connection-travel) * 2)
+    var(--easing-travel) infinite;
+  animation-delay: var(--garden-breeze);
+}
+
+.garden-scene.is-lively .garden-drift {
+  animation: garden-drift var(--garden-drift-duration) var(--easing-travel)
+    infinite alternate;
+  animation-delay: var(--garden-drift-delay);
+}
+
+.garden-scene.is-lively .garden-star {
+  animation: garden-twinkle var(--duration-connection-travel)
+    var(--easing-travel) infinite alternate;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-scene.is-gusting .garden-tuft {
+  animation: garden-gust var(--duration-gesture-sequence) var(--easing-travel)
+    both;
+  animation-delay: var(--garden-wave);
+}
+
+.garden-scene.is-gusting .garden-sway {
+  animation: garden-gust-plant calc(var(--duration-gesture-sequence) * 1.05)
+    var(--easing-travel) both;
+  animation-delay: calc(var(--garden-wave) + var(--duration-feedback));
+}
+
+.garden-scene.is-celebrating .garden-rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: garden-rays calc(var(--duration-gesture-sequence) * 1.45)
+    var(--easing-enter) both;
+}
+
+.garden-pop {
+  transform-box: fill-box;
+  transform-origin: var(--garden-origin, 50% 50%);
+  animation: garden-pop calc(var(--duration-gesture-moment) * 0.58)
+    var(--easing-standard) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-open {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: garden-open var(--duration-connection-draw) var(--easing-standard)
+    var(--duration-context) both;
+}
+
+.garden-stretch {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: garden-stretch var(--duration-gesture-moment)
+    var(--easing-standard) both;
+}
+
+.garden-draw {
+  stroke-dasharray: 1;
+  animation: garden-draw var(--duration-connection-draw) var(--easing-enter)
+    both;
+}
+
+.garden-drop {
+  animation: garden-drop calc(var(--duration-gesture-moment) * 0.62)
+    var(--easing-exit) both;
+}
+
+.garden-puff {
+  transform-box: fill-box;
+  animation: garden-puff calc(var(--duration-gesture-moment) * 0.7)
+    var(--easing-enter) calc(var(--duration-gesture-moment) * 0.6) both;
+}
+
+.garden-pollen {
+  transform-box: fill-box;
+  animation: garden-pollen calc(var(--duration-gesture-sequence) * 1.33)
+    var(--easing-enter) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-butterfly {
+  animation: garden-butterfly var(--duration-connection-travel-far)
+    var(--easing-playback) var(--duration-connection-draw) both;
+}
+
+.garden-butterfly-wobble {
+  animation: garden-wobble calc(var(--duration-gesture-moment) * 1.33)
+    var(--easing-travel) infinite alternate;
+}
+
+.garden-flap,
+.garden-flap-y {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.garden-flap {
+  animation: garden-flap calc(var(--duration-sequence-beat) * 1.1)
+    var(--easing-travel) infinite alternate;
+}
+
+.garden-flap-y {
+  transform-origin: 50% 100%;
+  animation: garden-flap-y calc(var(--duration-feedback) * 1.4)
+    var(--easing-travel) infinite alternate;
+}
+
+.garden-rain {
+  animation: garden-rain var(--duration-connection-draw) var(--easing-exit) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-watering {
+  animation: garden-fade calc(var(--duration-gesture-sequence) * 1.33)
+    var(--easing-enter) both;
+}
+
+@keyframes garden-breeze {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes garden-breeze-plant {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1.6deg);
+  }
+}
+
+@keyframes garden-gust {
+  0% {
+    transform: none;
+  }
+  24% {
+    transform: rotate(9deg) skewX(-4deg);
+  }
+  50% {
+    transform: rotate(-3deg);
+  }
+  74% {
+    transform: rotate(1.4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes garden-gust-plant {
+  0% {
+    transform: none;
+  }
+  26% {
+    transform: rotate(6deg);
+  }
+  54% {
+    transform: rotate(-2.2deg);
+  }
+  78% {
+    transform: rotate(1deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes garden-drift {
+  from {
+    transform: translateX(-14px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes garden-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes garden-rays {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(35deg) scale(1);
+  }
+}
+
+@keyframes garden-pop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes garden-open {
+  from {
+    transform: scale(0.25) rotate(-30deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes garden-stretch {
+  from {
+    transform: scaleY(var(--garden-from, 0.7));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes garden-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes garden-drop {
+  0% {
+    transform: translateY(-80px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes garden-puff {
+  0% {
+    transform: none;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--garden-dx), -7px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes garden-pollen {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), -76px);
+  }
+}
+
+@keyframes garden-butterfly {
+  0% {
+    transform: translate(-16px, 112px);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--garden-width) / 2), 80px);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--garden-width), 108px);
+    opacity: 0;
+  }
+}
+
+@keyframes garden-wobble {
+  from {
+    transform: translateY(-5px) rotate(-10deg);
+  }
+  to {
+    transform: translateY(5px) rotate(10deg);
+  }
+}
+
+@keyframes garden-flap {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.35);
+  }
+}
+
+@keyframes garden-flap-y {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.3);
+  }
+}
+
+@keyframes garden-rain {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(26px);
+    opacity: 0;
+  }
+}
+
+@keyframes garden-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes garden-unfold {
+  from {
+    transform: scaleY(0.2) rotate(-2deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garden-game-page *,
+  .garden-game-page *::before,
+  .garden-game-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .garden-butterfly,
+  .garden-pollen,
+  .garden-watering {
+    display: none;
+  }
+}

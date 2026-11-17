@@ -514,6 +514,41 @@ class TestCollectionItemReplay:
         assert "Geheimer Titel" not in stored
         assert "geheim" not in stored.replace("Geheimer", "")
 
+    def test_the_fingerprint_is_keyed_and_an_older_unkeyed_receipt_still_replays(
+        self, client, session, couple, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.core import request_fingerprint
+
+        seen: list[request_fingerprint.RequestFingerprint] = []
+        original = request_fingerprint.digest
+
+        def recording(canonical: str) -> request_fingerprint.RequestFingerprint:
+            seen.append(original(canonical))
+            return seen[-1]
+
+        monkeypatch.setattr(request_fingerprint, "digest", recording)
+        collection = self._collection(client, couple)
+        headers = with_key(couple["token_a"], uuid4())
+        path = self._path(couple, collection["id"])
+        created = client.post(path, json={"title": "Oat milk"}, headers=headers)
+        assert created.status_code == 201
+
+        receipt = session.execute(select(CreateReceipt)).scalar_one()
+        # The stored value is the keyed digest, not the plain hash of the request.
+        assert receipt.request_fingerprint == seen[0]
+        assert receipt.request_fingerprint != seen[0].legacy
+
+        # A receipt written before the fingerprint was keyed holds the plain hash.
+        receipt.request_fingerprint = seen[0].legacy
+        session.flush()
+        replayed = client.post(path, json={"title": "Oat milk"}, headers=headers)
+
+        assert replayed.status_code in (200, 201)
+        assert replayed.json()["id"] == created.json()["id"]
+        different = client.post(path, json={"title": "Bread"}, headers=headers)
+        assert different.status_code == 409
+        assert different.json()["code"] == "IDEMPOTENCY_KEY_REUSED"
+
     def test_the_same_key_for_an_item_and_a_wish_does_not_collide(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         collection = self._collection(client, couple)
         key = uuid4()

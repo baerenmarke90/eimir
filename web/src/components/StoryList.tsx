@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -156,12 +157,12 @@ function StoryCommentPresence({
           title={t('comments.timelinePresence')}
         >
           <svg
+            className="inline-icon"
             viewBox="0 0 24 24"
             width="14"
             height="14"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -201,6 +202,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         aria-hidden="true"
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="14"
           height="14"
@@ -219,6 +221,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         aria-hidden="true"
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="12"
           height="12"
@@ -240,13 +243,16 @@ export function StoryList({
   spaceId,
   currentAccountId,
   onOpenItem,
+  renderItemActions,
   progressiveReveal = false,
+  imageLoadingMode = progressiveReveal ? 'near-viewport' : 'immediate',
 }: {
   items: StoryItem[];
   loadMemoryImage: (
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
   ) => Promise<ObjectUrlSource>;
   loadHeartMomentImage: (
     heartMomentId: string,
@@ -264,7 +270,9 @@ export function StoryList({
     item: StoryItem,
     to: string,
   ) => void;
+  renderItemActions?: (item: StoryItem) => ReactNode;
   progressiveReveal?: boolean;
+  imageLoadingMode?: 'immediate' | 'near-viewport';
 }) {
   const { t } = useTranslation();
   const [diaryLayout] = useDiaryLayout();
@@ -442,9 +450,7 @@ export function StoryList({
                       isSensitive={imageAttachment.isSensitive}
                       resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
-                      loadingMode={
-                        progressiveReveal ? 'near-viewport' : 'immediate'
-                      }
+                      loadingMode={imageLoadingMode}
                     />
                   ) : null}
 
@@ -512,12 +518,12 @@ export function StoryList({
                           title={presentation.mediaLabel}
                         >
                           <svg
+                            className="inline-icon"
                             viewBox="0 0 24 24"
                             width="14"
                             height="14"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             aria-hidden="true"
@@ -540,6 +546,11 @@ export function StoryList({
                   </div>
                 </article>
               </Link>
+              {renderItemActions ? (
+                <div className="story-card-actions">
+                  {renderItemActions(item)}
+                </div>
+              ) : null}
             </li>
           );
         })}

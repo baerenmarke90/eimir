@@ -93,6 +93,51 @@
   text-align: center;
 }
 
+.more-account-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Deliberately quiet: a support aid, not a destination or an action to notice. */
+.more-account-id {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.more-account-id-action {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  cursor: pointer;
+}
+
+.more-account-id-action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.more-account-id-fallback {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+}
+
+.more-account-id-fallback code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
 .more-group {
   display: grid;
   gap: var(--space-2);
@@ -151,15 +196,6 @@
     background var(--duration-feedback) var(--easing-standard);
 }
 
-.more-destination-button {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
 .more-destination:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
@@ -195,7 +231,6 @@
   height: 1.35rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

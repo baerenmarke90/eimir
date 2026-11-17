@@ -79,6 +79,18 @@ def classify_owner_attachment(
         return OwnerAttachmentBinding.UNBOUND
 
     parent_type, parent_id = parent
+    if parent_type == "HEART_HUNT_ROUND":
+        # The hider's round photo is deleted with the hider's account.
+        from eimir.heart_hunt.models import HeartHuntRound
+
+        hider_id = session.scalar(
+            select(HeartHuntRound.hider_id).where(HeartHuntRound.id == parent_id)
+        )
+        return (
+            OwnerAttachmentBinding.OWNER_PRIVATE
+            if hider_id == account_id
+            else OwnerAttachmentBinding.INCONSISTENT
+        )
     if parent_type == "ACCOUNT_PROFILE":
         return (
             OwnerAttachmentBinding.ACCOUNT_PROFILE

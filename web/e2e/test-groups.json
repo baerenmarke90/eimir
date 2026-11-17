@@ -2,9 +2,9 @@
   "version": 1,
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
-    "specFiles": 48,
-    "tests": 329,
-    "prCriticalTests": 165
+    "specFiles": 49,
+    "tests": 332,
+    "prCriticalTests": 168
   },
   "dispositions": {
     "PR_CRITICAL": "Eligible for the four PR shards: always-run core plus affected product dependencies. Always included in full regression.",
@@ -157,9 +157,10 @@
       "baselineTests": 20,
       "reason": "Feature-owned Moments Album design (#1960): Album default, Compact and Expanded, Light and Dark, 320px and 200% text reflow, reduced motion, axe, and the setting that restores the compact list."
     },
-    "optional-product-tour.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 2
+    "quiet-hints.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 3,
+      "reason": "Feature-owned #1907 I1 acceptance: Wir move-in with its one action and invitation link, the one-time connected moment and its same-day line after reload, one action in empty Momente, plans and wishes, and the personal wish-to-plan tip that retires after Got it across reload, with focus, axe, reflow and Compact/Expanded Light/Dark captures."
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -367,6 +368,10 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
     },
+    "picture-ping-pong.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
@@ -385,6 +390,16 @@
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
+    },
+    "heart-hunt.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Herzversteck (#1907 H3): the seeker clears fog and reads warmth without the heart ever being in the page before the server reports it found, the hider uploads a photo, moves and sends the heart, roles swap, in Compact Light/Dark and reduced motion."
+    },
+    "garden-game.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser."
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -423,7 +438,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 22,
+      "baselineTests": 23,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
@@ -598,6 +613,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Feature-owned Plan-list disclosure and safe navigation, bidirectional persisted Plan/Story context, source capture, private HeartMoment isolation, scopes and responsive accessibility evidence."
+    },
+    "shared-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column, the pinned Wir tile that opens the note, and creating a Plan with notes chosen in the draft, linked after the save and retried after a failed link. Linking to an existing Plan, conflict and offline paths stay in component tests. No always-run expansion."
     },
     "map-place-stacks.spec.ts": {
       "disposition": "PR_CRITICAL",

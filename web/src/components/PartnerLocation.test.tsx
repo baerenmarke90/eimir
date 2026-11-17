@@ -25,12 +25,14 @@ const env = vi.hoisted(() => ({
   capabilities: ['presence.location'] as string[],
   settings: null as unknown as PartnerLocationSettingsView,
   permission: 'prompt' as string,
+  preciseAccess: 'unknown' as string,
   background: { permission: 'unsupported', enabled: false },
 }));
 
 const location = vi.hoisted(() => ({
   locationPermission: vi.fn(async () => env.permission),
-  requestLocationPermission: vi.fn(async () => 'granted'),
+  requestLocationPermission: vi.fn(async (_precision?: string) => 'granted'),
+  devicePreciseAccess: vi.fn(async () => env.preciseAccess),
   publishOwnPositionIfDue: vi.fn(async () => null),
   backgroundLocationStatus: vi.fn(async () => env.background),
   requestBackgroundLocationPermission: vi.fn(async () => 'granted'),
@@ -50,11 +52,14 @@ const api = vi.hoisted(() => ({
         level: string;
         indefinite?: boolean;
         expiresAt?: Date | null;
+        precision?: string;
       };
     }) => {
       const update = request.partnerLocationSettingsUpdate;
       env.settings = {
         ...env.settings,
+        precision: (update.precision ??
+          env.settings.precision) as PartnerLocationSettingsView['precision'],
         level: update.level as PartnerLocationSettingsView['level'],
         state: update.level === 'OFF' ? 'OFF' : 'ACTIVE',
         indefinite: Boolean(update.indefinite),
@@ -129,6 +134,7 @@ function view(
   return {
     available: true,
     level: 'OFF',
+    precision: 'APPROXIMATE',
     state: 'OFF',
     indefinite: false,
     expiresAt: null,
@@ -156,6 +162,7 @@ beforeEach(() => {
   env.capabilities = ['presence.location'];
   env.settings = view();
   env.permission = 'prompt';
+  env.preciseAccess = 'unknown';
   env.background = { permission: 'unsupported', enabled: false };
   storage = new Map();
   resetPartnerLocationOnboardingMemory();
@@ -392,6 +399,167 @@ function renderOnboarding(ready = true) {
     ),
   );
 }
+
+describe('precise sharing choice', () => {
+  it('saves the choice without sharing and without asking the OS', async () => {
+    renderSettings();
+    expect(
+      await screen.findByRole('heading', { name: copy.precisionTitle }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('radio', {
+        name: startsWith(copy.precisionApproximate),
+      }),
+    ).toHaveProperty('checked', true);
+    fireEvent.click(
+      screen.getByRole('radio', { name: startsWith(copy.precisionPrecise) }),
+    );
+    await waitFor(() =>
+      expect(api.updatePartnerLocationSettings).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        partnerLocationSettingsUpdate: { level: 'OFF', precision: 'PRECISE' },
+      }),
+    );
+    expect(location.requestLocationPermission).not.toHaveBeenCalled();
+    expect(postSnackbar).toHaveBeenCalledWith('partnerLocation.precisionSaved');
+    expect(
+      await screen.findByRole('radio', {
+        name: startsWith(copy.precisionPrecise),
+      }),
+    ).toHaveProperty('checked', true);
+  });
+
+  it('asks Android for the precise grant first while sharing and keeps level and end', async () => {
+    env.settings = view({
+      level: 'DISTANCE',
+      state: 'ACTIVE',
+      indefinite: true,
+      generation: 2,
+    });
+    renderSettings();
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: startsWith(copy.precisionPrecise),
+      }),
+    );
+    await waitFor(() =>
+      expect(api.updatePartnerLocationSettings).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        partnerLocationSettingsUpdate: {
+          level: 'DISTANCE',
+          indefinite: true,
+          expiresAt: null,
+          precision: 'PRECISE',
+        },
+      }),
+    );
+    expect(location.requestLocationPermission).toHaveBeenCalledWith('PRECISE');
+    expect(
+      location.requestLocationPermission.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      api.updatePartnerLocationSettings.mock.invocationCallOrder[0],
+    );
+    expect(location.publishOwnPositionIfDue).toHaveBeenCalled();
+    expect(location.syncBackgroundSharing).toHaveBeenCalled();
+  });
+
+  it('stores nothing when the precise permission is refused', async () => {
+    env.settings = view({
+      level: 'DISTANCE',
+      state: 'ACTIVE',
+      indefinite: true,
+      generation: 2,
+    });
+    location.requestLocationPermission.mockResolvedValueOnce('denied');
+    renderSettings();
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: startsWith(copy.precisionPrecise),
+      }),
+    );
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      copy.permissionNeeded,
+    );
+    expect(api.updatePartnerLocationSettings).not.toHaveBeenCalled();
+  });
+
+  it('tells only the owner when Android kept the grant approximate', async () => {
+    env.native = true;
+    env.permission = 'granted';
+    env.preciseAccess = 'approximate-only';
+    env.settings = view({
+      level: 'DISTANCE',
+      precision: 'PRECISE',
+      state: 'ACTIVE',
+      indefinite: true,
+      generation: 2,
+    });
+    renderSettings();
+    expect(await screen.findByText(copy.precisionApproximateOnly)).toBeTruthy();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: copy.permissionChangeApp })[0],
+    );
+    expect(location.openLocationSettings).toHaveBeenCalled();
+  });
+
+  it('is not offered without the Pro capability', async () => {
+    env.capabilities = [];
+    env.settings = view({ available: false });
+    renderSettings();
+    expect(await screen.findByText(copy.proTitle)).toBeTruthy();
+    expect(
+      screen.queryByRole('heading', { name: copy.precisionTitle }),
+    ).toBeNull();
+  });
+
+  it('is part of the start sheet and asks for the precise grant only then', async () => {
+    renderOnboarding();
+    const sheet = await screen.findByRole('dialog', {
+      name: copy.onboardingTitle,
+    });
+    expect(
+      within(sheet).getByRole('radio', { name: copy.precisionApproximate }),
+    ).toHaveProperty('checked', true);
+    expect(within(sheet).getByText(copy.onboardingCoarse)).toBeTruthy();
+    fireEvent.click(
+      within(sheet).getByRole('radio', { name: copy.precisionPrecise }),
+    );
+    expect(within(sheet).getByText(copy.onboardingPrecise)).toBeTruthy();
+    expect(location.requestLocationPermission).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: copy.onboardingShare }),
+    );
+    await waitFor(() =>
+      expect(api.updatePartnerLocationSettings).toHaveBeenCalled(),
+    );
+    expect(location.requestLocationPermission).toHaveBeenCalledWith('PRECISE');
+    expect(
+      api.updatePartnerLocationSettings.mock.calls[0][0]
+        .partnerLocationSettingsUpdate.precision,
+    ).toBe('PRECISE');
+    expect(postSnackbar).toHaveBeenCalledWith('partnerLocation.shared');
+  });
+
+  it('says so when Android only granted the approximate location', async () => {
+    env.preciseAccess = 'approximate-only';
+    renderOnboarding();
+    const sheet = await screen.findByRole('dialog', {
+      name: copy.onboardingTitle,
+    });
+    fireEvent.click(
+      within(sheet).getByRole('radio', { name: copy.precisionPrecise }),
+    );
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: copy.onboardingShare }),
+    );
+    await waitFor(() =>
+      expect(postSnackbar).toHaveBeenCalledWith(
+        'partnerLocation.precisionApproximateOnlyShort',
+      ),
+    );
+  });
+});
 
 describe('PartnerLocationOnboarding', () => {
   it('waits for the push prompt before reading anything', async () => {

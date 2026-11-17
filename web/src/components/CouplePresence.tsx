@@ -1,5 +1,7 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { type ReactNode, type Ref, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
   type PartnerAvatarAction,
   PartnerAvatarPair,
@@ -7,8 +9,6 @@ import {
   type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
-import { firstNameFromDisplayName } from '../client/personalName';
-import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
 
 export interface CouplePresenceAvatarAction {
@@ -192,6 +192,7 @@ export function CouplePresence({
               >
                 <span className="today-hero-pill-icon" aria-hidden="true">
                   <svg
+                    className="inline-icon"
                     viewBox="0 0 24 24"
                     width="12"
                     height="12"

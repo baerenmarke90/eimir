@@ -107,6 +107,10 @@ month positioning, distinct shared answers and authorized media reuse after rest
 local Moments capture entry and the one-time-message entry in partner-avatar
 actions, including generated references and return/gesture ownership acceptance.
 
+[Precise or approximate partner location (#1792)](references/precise-location-choice/README.md)
+records the per-person precision choice in the start sheet and Settings, the finer Wir
+values and the evidence.
+
 [Quiet mobile composers (#1717)](references/quiet-composer/README.md) records the
 approved compact native-submit header, grouped writing surface, date/schedule
 tasks, empty-tag disclosure and full HeartMoment feeling surfaces. It refines
@@ -129,3 +133,7 @@ result for several common favourites; the consent-based random pick follows.
 [Send a shared list to the partner (#1907 E2)](references/1907-e2-send-list/README.md)
 records the deliberate send from the list menu, the neutral lock-screen notice and the
 list arriving on the partner's Wir.
+
+[Our garden (#1907 H3)](references/1907-h3-garden/README.md) records the approved
+seed exchange between partners who are apart, its Mobile Interaction Contract, the
+continuous garden motion decision and the three-PR delivery.

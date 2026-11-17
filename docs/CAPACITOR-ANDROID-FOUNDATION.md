@@ -94,6 +94,17 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     1. `@capacitor/app` `appUrlOpen` listener (for warm starts / in-background resume).
     2. `App.getLaunchUrl()` (for cold-boot starts when the activity is created by the intent).
   - The handler verifies matching session `state`, extracts `code`, invokes the backend completion endpoint (`completeRecentAuthentication`), and closes the browser view (`Browser.close()`).
+- **Sign-in with an external provider (#58):**
+  - The sign-in and settings screens start Google (or another configured provider) with `client: android`; the
+    server answers with the connection's `android_redirect_uri` and `nativeAvailable` in the public instance
+    status decides whether the app offers it. The authorization page opens in the system browser tab
+    (`Browser.open`).
+  - The registered callback is the connection's verified HTTPS address `/auth/oidc/<id>`. The manifest claims
+    the prefix `/auth/oidc/` on the verified hosts, so Android returns the provider to the app, which reads it
+    through the same `appUrlOpen`/launch-URL intake as mailed links. Only the parameters a provider adds
+    (`code`, `state`, `error`, `scope`, `authuser`, `prompt`, `iss`, `hd`) are accepted, each once, on the
+    configured origin.
+  - Setting-up steps for operators: `docs/operations/google-and-passkey-sign-in.md`.
 - **Client Capabilities Filter**:
   - `loadRecentAuthenticationCapabilities()` automatically passes `client: RecentAuthenticationClient.android` when running natively.
   - The backend returns only OIDC connections that have an `android_redirect_uri` configured, preventing users from selecting unsupported web-only flows in the Android container.
@@ -106,7 +117,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
-- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
+- The bounded native passkey bridge (#630) is the `Passkeys` Capacitor plugin (`PasskeysPlugin.java`): Android Credential Manager with the Play services provider for Android 13 and older. The server's WebAuthn options go to the platform as JSON and its JSON response goes back unchanged, so the Web layer never interprets credential material. The sign-in screen and Settings offer passkeys only after the plugin reports itself available; recent-authentication (account deletion, ServerAdmin) still reports `passkey: false` natively. The relying party must trust the app through Digital Asset Links (`get_login_creds`) and the server must accept the app's `android:apk-key-hash:` origin (`docs/operations/google-and-passkey-sign-in.md`). A real device check is required before the bridge counts as accepted. OIDC needs no bridge.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---
@@ -236,7 +247,7 @@ Mobile Web is the normative product reference. React product work reaches the An
 |---|---|---|
 | `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
 | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` | NATIVE_CAPABILITY_REQUIRED | Selected-photo original-file handoff (#1471): optional photo-metadata permission, read-only document grants, original MediaStore access, cancellation and Activity ownership. No independent upload or location-tracking pipeline. |
-| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS. |
+| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS. Only after a person's own precise choice (PO 2026-11-17) and with `ACCESS_FINE_LOCATION` actually granted does a single measurement use fused, GPS or network (`PresencePrecision` rounds to about 100 m on the device). |
 | `android/app/src/main/java/de/eimir/app/PresenceBackground.java`, `PresencePublishRule.java`, `PresenceLocationReceiver.java`, `PresenceUploadJob.java` | NATIVE_CAPABILITY_REQUIRED | Opt-in background partner location (#1792): passive-provider fixes only, network-bound job uploads with a scoped presence device credential, 6-hour heartbeat without measuring, re-registration after boot/update. No foreground service and no Web-session refresh; cleared on sign-out. |
 | `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
 | `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
@@ -244,6 +255,8 @@ Mobile Web is the normative product reference. React product work reaches the An
 ## 9. Reuse-Before-Build Assessment
 
 ### Approximate location for partner distance (#1792)
+
+**Precise choice (PO 2026-11-17).** The same plugin serves a person's opt-in precise choice. `ACCESS_FINE_LOCATION` is declared next to the coarse permission and requested together with it (`requestPermissions` with the `location` and `preciseLocation` aliases), so Android 12+ shows its Precise/Approximate switch; the app never assumes the grant and continues approximately when the person keeps "approximate". A precise `current` call tries the fused provider, then GPS, then the network provider (12 s each when a fallback remains, 20 s for the last), accepts a cached fix only if it is younger than 3 minutes and reports at most 500 m, and the background passive registration uses a 200 m minimum distance instead of 1 km. Nothing in the background starts a measurement, so the energy contract in [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) section 6 still holds. Play's Data safety form and location permission declaration must list precise location with this purpose.
 
 Alternatives considered: the Web Geolocation API inside the WebView, `@capacitor/geolocation`, Google Play services `FusedLocationProviderClient` and the platform `LocationManager` with AndroidX `LocationManagerCompat`.
 
@@ -372,7 +385,10 @@ The same plugin keeps one per-login media key (`mediaKey`, `clearMediaKey`):
 data in a separate no-backup file. The WebView imports it as a non-extractable
 Web Crypto key and seals every stored image row with AES-GCM; image bytes never
 cross into native storage. `clear` (logout) deletes the media key together with
-the session envelope, which makes every sealed row unreadable.
+the session envelope, which makes every sealed row unreadable. The read cache
+seals the payload of every row under the same key (`sealJson`), so cached text
+and the list outbox are stored as ciphertext as well, and Memory diary drafts
+seal their text and the bytes of their photos the same way.
 
 Before React mounts, the current instance's snapshot is restored into the
 existing Web session facade, with a five-second native-read budget. An existing

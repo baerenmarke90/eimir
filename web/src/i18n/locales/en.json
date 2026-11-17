@@ -97,6 +97,11 @@
     "visibility": {
       "onlyYou": "Only you can see this"
     },
+    "accountId": {
+      "copy": "Copy account ID",
+      "copied": "Account ID copied",
+      "failed": "Copying did not work. Your account ID:"
+    },
     "eyebrow": "More",
     "title": "Everything else",
     "intro": "Personal details, shared lists and settings.",
@@ -196,6 +201,28 @@
     "createFirstSpacePending": "Creating your shared home …"
   },
   "identity": {
+    "dividerEmailLink": "or with an e-mail link",
+    "dividerOr": "or",
+    "passkeyNoneOnDevice": "No passkey for eimir. is stored on this device.",
+    "googleContinue": "Continue with Google",
+    "googleSignUp": "Sign up with Google",
+    "providerContinue": "Continue with {{name}}",
+    "providerContinueDefault": "Sign in with another account",
+    "passkeySignIn": "Continue with a passkey",
+    "passkeyLaterHint": "You can set up a passkey in Settings after you have signed in.",
+    "providerTermsFirst": "Tick the box first, then you can continue.",
+    "magicLinkHint": "We will send you a link that signs you in.",
+    "oidcOpening": "Signing you in …",
+    "oidcNoAccountTitle": "There is no account for this sign-in yet.",
+    "oidcNoAccountBody": "Sign in another way and link Google afterwards in Settings. Start a new account with “Start together” or with an invitation.",
+    "oidcAddressTakenTitle": "This address already has an account.",
+    "oidcAddressTakenBody": "Sign in with the e-mail link. You can link Google to your account in Settings afterwards.",
+    "oidcEmailUnverifiedTitle": "Your e-mail address is not verified.",
+    "oidcEmailUnverifiedBody": "Verify the address with your provider or start with the e-mail link.",
+    "oidcExpiredTitle": "The sign-in attempt has expired.",
+    "oidcExpiredBody": "Please start signing in again.",
+    "oidcFailedTitle": "Signing in did not work.",
+    "oidcFailedBody": "Please try again or choose another way.",
     "entryAria": "Access to eimir.",
     "invitationEyebrow": "Invitation to eimir.",
     "invitationTitle": "Your partner has prepared a shared home for you.",
@@ -563,7 +590,7 @@
       "experiencedPlans": "Experienced",
       "experiencedPlansEmpty": "No plans experienced together yet.",
       "experiencedOn": "Experienced on {{date}}",
-      "openPlansEmpty": "No open plans right now.",
+      "openPlansEmpty": "What are you looking forward to next?",
       "pastOpenPlans": "Date has passed",
       "wishScope": "Show wishes",
       "fulfilledWishes": "Fulfilled",
@@ -1238,6 +1265,7 @@
       "CHAPTER": "Chapter",
       "COLLECTION": "List",
       "COLLECTION_ITEM": "List entry",
+      "SHARED_NOTE": "Shared note",
       "PRIVATE_NOTE": "Note for me",
       "GIFT_IDEA": "Gift idea",
       "PRIVATE_COLLECTION": "My list",
@@ -1256,7 +1284,9 @@
       "PLACE_CREATED": "Place added",
       "CHAPTER_CREATED": "A new chapter begun",
       "COLLECTION_CREATED": "List added",
-      "COMMENT_CREATED": "A new comment left"
+      "COMMENT_CREATED": "A new comment left",
+      "SHARED_NOTE_CREATED": "New shared note",
+      "SHARED_NOTE_CHANGED": "Shared note revised"
     },
     "activityAction": {
       "MEMORY_CREATED": "captured a memory",
@@ -1268,7 +1298,9 @@
       "PLACE_CREATED": "added a place",
       "CHAPTER_CREATED": "started a chapter",
       "COLLECTION_CREATED": "created a list",
-      "COMMENT_CREATED": "left a comment"
+      "COMMENT_CREATED": "left a comment",
+      "SHARED_NOTE_CREATED": "created a shared note",
+      "SHARED_NOTE_CHANGED": "revised a shared note"
     },
     "activityActionOwn": {
       "MEMORY_CREATED": "captured a memory",
@@ -1280,7 +1312,9 @@
       "PLACE_CREATED": "added a place",
       "CHAPTER_CREATED": "started a chapter",
       "COLLECTION_CREATED": "created a list",
-      "COMMENT_CREATED": "left a comment"
+      "COMMENT_CREATED": "left a comment",
+      "SHARED_NOTE_CREATED": "created a shared note",
+      "SHARED_NOTE_CHANGED": "revised a shared note"
     },
     "notificationKind": {
       "REMINDER_CREATED": "New reminder",
@@ -1319,6 +1353,37 @@
     }
   },
   "accountSettings": {
+    "signInMethodsTitle": "Sign-in methods",
+    "signInMethodsIntro": "This is how you get into your account. You always need at least one.",
+    "signInMethodsLoadFailed": "The sign-in methods could not be loaded.",
+    "signInMethodsRetry": "Try again",
+    "emailLinkTitle": "E-mail link",
+    "emailLinkVerified": "Verified",
+    "emailLinkNote": "Link by e-mail",
+    "passwordTitle": "Password",
+    "passwordNote": "You sign in with e-mail and password.",
+    "googleTitle": "Google",
+    "providerLinked": "Linked",
+    "providerNotLinked": "Not linked",
+    "providerLink": "Link",
+    "providerUnlink": "Unlink",
+    "providerUnlinkConfirm": "Unlink for real",
+    "providerUnlinked": "Link removed.",
+    "passkeysTitle": "Passkeys",
+    "passkeysIntro": "With your fingerprint or screen lock, without a password.",
+    "passkeysNone": "No passkey set up yet.",
+    "passkeyAddedOn": "Added on {{date}}",
+    "passkeyRemove": "Remove",
+    "passkeyRemoveConfirm": "Remove for real",
+    "passkeyRemoveCancel": "Cancel",
+    "passkeyAdd": "Add a passkey",
+    "passkeyAdding": "Setting up the passkey …",
+    "passkeyDefaultName": "This device",
+    "passkeyAddedMessage": "Passkey added.",
+    "passkeyRemovedMessage": "Passkey removed.",
+    "passkeyNotOnThisDevice": "Passkeys are not available on this device.",
+    "lastMethod": "This is your only sign-in method. Set up another one first.",
+    "methodFailed": "That did not work. Please try again.",
     "title": "Account",
     "intro": "Manage actions for your personal eimir. account here. Your relationship and shared space are separate.",
     "dangerEyebrow": "Sensitive action",
@@ -1571,9 +1636,9 @@
     }
   },
   "wirDesign": {
-    "title": "Us design",
-    "intro": "How your Us page feels. Only your view changes.",
-    "choices": "Your Us design",
+    "title": "App design",
+    "intro": "How eimir. feels for you. Only your view changes.",
+    "choices": "Your app design",
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
@@ -1603,7 +1668,7 @@
     "save": "Save choice",
     "saving": "Saving …",
     "selected": "Already selected",
-    "saved": "Your Us design is saved.",
+    "saved": "Your app design is saved.",
     "close": "Close",
     "conflict": "Your appearance has changed in the meantime. Load the latest version, then confirm your choice again.",
     "reload": "Load latest version",
@@ -2278,7 +2343,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2295,6 +2360,7 @@
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
     "collectionSent": "Sent lists",
+    "gardenSeed": "Seeds from your garden",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -2600,12 +2666,13 @@
     "removed": "Link removed"
   },
   "dailyInsights": {
+    "title": "Insights",
     "pro": "Pro",
     "proBrand": "eimir. Pro",
     "nav": {
       "label": "Switch view",
       "week": "Week",
-      "patterns": "Patterns",
+      "patterns": "Month",
       "recap": "Recap"
     },
     "loading": "Loading your history …",
@@ -2654,12 +2721,12 @@
     },
     "lanes": {
       "VERY_GOOD": "Very good",
-      "GOOD": "Good",
-      "OKAY": "Okay",
+      "GOOD": "Relaxed",
+      "OKAY": "So-so",
       "NEEDS_CONNECTION": "Closeness",
       "NEEDS_SPACE": "Quiet",
-      "STRESSED": "Demanding",
-      "SAD": "Not so good"
+      "STRESSED": "Stressed",
+      "SAD": "Sad"
     },
     "bands": {
       "veryHigh": "Very high",
@@ -2670,7 +2737,7 @@
     },
     "week": {
       "title": "Your week",
-      "subtitle": "Feeling & energy at a glance",
+      "subtitle": "Feeling & energy",
       "accent": "Small details. Meaningful moments.",
       "handwriting": "Shared insights. Closer together.",
       "range": "{{start}} – {{end}}",
@@ -2678,6 +2745,8 @@
       "next": "Next week",
       "current": "This week",
       "picker": "Choose week",
+      "summary": "Weekly recap",
+      "noHighlights": "There is no shared highlight from the visible check-ins for this week.",
       "vibeTitle": "Your feeling",
       "vibeSubtitle": "How you felt.",
       "energyTitle": "Your energy",
@@ -2737,7 +2806,7 @@
       "highlightsSubtitle": "Special moments from your week.",
       "highlightsAll": "View all days",
       "highlightsEmpty": "There is no standout shared day this week – a quiet history is perfectly fine too.",
-      "highlightBothGood": "Both felt good",
+      "highlightBothGood": "Both shared a good feeling",
       "highlightBothGoodBody": "You both shared a good feeling.",
       "highlightBothEnergy": "Both with plenty of energy",
       "highlightBothEnergyBody": "You both had plenty of energy.",
@@ -2899,10 +2968,12 @@
     "years": "Years",
     "tabs": "Recaps by period",
     "current": "Your current recap",
-    "archive": "To rediscover",
+    "archive": "Existing recaps",
+    "otherPeriods": "Other periods",
     "periodMonth": "{{month}} {{year}}",
     "periodYear": "Your year {{year}}",
     "partial": "Until {{date}} · growing with you",
+    "partialThrough": "As of {{date}}",
     "complete": "Completed period",
     "saved": "Kept",
     "automatic": "Compiled for you",
@@ -2916,6 +2987,7 @@
     "aiDraft": "AI draft · from your shared content",
     "more": "More recaps",
     "preparing": "Being put together for you.",
+    "generationPaused": "Compilation paused",
     "back": "All recaps",
     "backMore": "Back to More",
     "pendingTitle": "Your story is taking shape.",
@@ -3144,6 +3216,142 @@
         "role": "Discover",
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
+      },
+      "pingPong": {
+        "role": "Feel close",
+        "title": "Picture ping-pong",
+        "description": "Take turns adding to one picture until it is finished."
+      },
+      "heartHunt": {
+        "role": "Be close",
+        "title": "Heart hunt",
+        "description": "Hide a heart in a photo. Who finds it?"
+      },
+      "garden": {
+        "role": "Being close",
+        "title": "Our garden",
+        "description": "Send each other a seed every day, wherever you are."
+      }
+    },
+    "heartHunt": {
+      "intro": "Hide a heart in a photo from your day. The one who searches feels their way through the fog.",
+      "loadingTitle": "Opening the hiding place",
+      "loadingBody": "We only load photos meant for the two of you.",
+      "coupleRequiredTitle": "This game belongs to the two of you",
+      "coupleRequiredBody": "Heart hunt is meant for a shared space with exactly two partners.",
+      "keyboardHint": "Aim with the arrow keys, tap with Enter or Space.",
+      "memoryTitle": "Heart hunt",
+      "band": {
+        "between": "Between you: {{label}}",
+        "plain": "You and {{name}}"
+      },
+      "hide": {
+        "title": "Hide a heart for {{name}}",
+        "body": "Take a photo of where you are right now, then tap the spot for the heart.",
+        "pickPhoto": "Take or choose a photo",
+        "changePhoto": "Choose another photo",
+        "pickHint": "Camera or gallery",
+        "photoLabel": "Your photo. Tap to place the heart.",
+        "uploading": "Preparing the photo …",
+        "placeHint": "Tap the photo to hide the heart.",
+        "placed": "Good hiding place. You can still move it.",
+        "send": "Hide it and send it to {{name}}",
+        "uploadFailed": "The photo could not be prepared. Please try again.",
+        "sendFailed": "The heart could not be sent. Please try again.",
+        "roundOpen": "Your last heart is still hidden. Wait until it has been found."
+      },
+      "waiting": {
+        "title": "{{name}} is searching now",
+        "body": "You will hear when the heart has been found.",
+        "photoLabel": "Your photo with the hidden heart"
+      },
+      "seek": {
+        "title": "{{name}} hid a heart",
+        "tapHint": "Tap anywhere in the picture",
+        "meterLabel": "Warmth",
+        "photoLabel": "Photo under fog. Tap to search.",
+        "quiet": "No time limit, no points. Every tap wipes away a little fog.",
+        "tapFailed": "That tap did not arrive. Tap again."
+      },
+      "warmth": {
+        "cold": "Still cold",
+        "lukewarm": "Lukewarm",
+        "warm": "Warm",
+        "hot": "Very hot!"
+      },
+      "found": {
+        "title": "Found!",
+        "bodySeeker": "{{name}} had hidden the heart {{place}}. {{name}} will learn that you found it.",
+        "bodyHider": "{{name}} found your heart. It was {{place}}.",
+        "photoLabel": "The photo with the found heart",
+        "swap": "Hide one yourself",
+        "keep": "Keep photo as a moment",
+        "keeping": "Saving …",
+        "kept": "Saved in Moments",
+        "keepFailed": "The photo could not be saved as a moment. Please try again.",
+        "deleteNote": "The photo is deleted on {{date}} unless you keep it as a moment.",
+        "keptNote": "The photo with the heart is now in your moments."
+      },
+      "places": {
+        "topLeft": "at the top left",
+        "top": "at the top",
+        "topRight": "at the top right",
+        "left": "on the left",
+        "center": "in the middle",
+        "right": "on the right",
+        "bottomLeft": "at the bottom left",
+        "bottom": "at the bottom",
+        "bottomRight": "at the bottom right"
+      }
+    },
+    "pingPong": {
+      "intro": "One picture, two hands: each of you draws up to three strokes and passes it on.",
+      "loadingTitle": "Fetching your picture",
+      "loadingBody": "You will see whose turn it is in a moment.",
+      "emptyEyebrow": "No picture yet",
+      "emptyTitle": "Start a picture.",
+      "emptyBody": "You begin with a small squiggle. After that you draw in turns, six turns long.",
+      "newPicture": "Start a new picture",
+      "canvasLabel": "Your shared picture",
+      "you": "You",
+      "partnerFallback": "Partner",
+      "turnYou": "Your turn",
+      "turnPartner": "{{name}} is up",
+      "strokesUsed": "{{count}} of {{max}} strokes",
+      "turnsLabel": "Turns",
+      "turnDone": "drawn",
+      "turnCurrent": "current",
+      "turnOpen": "still open",
+      "turnDot": "Turn {{turn}} of {{total}}, {{name}}, {{state}}",
+      "colourLegend": "Choose a colour",
+      "colourOwn": "Your colour",
+      "colourInk": "Ink",
+      "colourSun": "Sun yellow",
+      "undo": "Undo stroke",
+      "send": "Send to {{name}}",
+      "sentNote": "Sent. {{name}} is up now; you will be told when it continues.",
+      "waitingNote": "The picture is waiting for {{name}}. You will be told when it is your turn again.",
+      "changedMeanwhile": "Something changed in the meantime. The picture was reloaded.",
+      "finishEarly": "Finish the picture now",
+      "finishConfirm": "The picture will be complete and you can put it into Moments.",
+      "finishConfirmAction": "Yes, finish",
+      "finishKeep": "Keep drawing",
+      "doneTitle": "Your picture is finished",
+      "doneBody": "Give it a name and keep it, if you like.",
+      "titleLegend": "What should it be called?",
+      "saveToMoments": "Put into Moments",
+      "saving": "Saving …",
+      "saved": "Put into Moments.",
+      "openMoment": "View moment",
+      "memoryBody": "Drawn together with {{name}}.",
+      "backToGames": "Back to Games",
+      "titles": {
+        "one": "Our artwork",
+        "two": "Drawn between us",
+        "three": "Little scribble",
+        "four": "Two hands, one picture",
+        "five": "From here to there",
+        "six": "Our doodle"
       }
     },
     "momentsGame": {
@@ -3263,6 +3471,217 @@
       },
       "finishDifferent_one": "You saw yourselves differently on {{count}} question.",
       "finishDifferent_other": "You saw yourselves differently on {{count}} questions."
+    },
+    "garden": {
+      "title": "Our garden",
+      "you": "You",
+      "partnerFallback": "Your partner",
+      "loading": "Opening the garden …",
+      "changedMeanwhile": "Something just changed in the garden. We reloaded it.",
+      "sentStatus": "{{messenger}} brought your seed to {{name}}.",
+      "plantedStatus": "Planted.",
+      "wateredStatus": "Watered. {{name}} will see the drops.",
+      "waterTitle": "Which plant are you watering?",
+      "waterBody": "Tap a plant in the garden. {{name}} will see the drops.",
+      "cancel": "Cancel",
+      "arrivedTitle": "{{name}} sent you a seed",
+      "quoted": "“{{words}}”",
+      "foldedCard": "A little card with kind words",
+      "unfold": "Open",
+      "plant": "Plant it",
+      "todayTitle": "Today for {{name}}",
+      "todayBody": "Pick a seed. {{messenger}} will bring it to {{name}}.",
+      "chooseSeed": "Choose a seed",
+      "wordsQuestion": "Add some kind words?",
+      "yourWords": "Your words: “{{words}}”",
+      "change": "Change",
+      "send": "Send the seed",
+      "waitingTitle": "Your seed is with {{name}}",
+      "waitingBody": "As soon as {{name}} looks in, it gets planted. If you are both here today, the whole garden grows a little.",
+      "sharedTitle": "You were both in the garden today",
+      "sharedBody": "Everything grew a little, and your lanterns are glowing. There are new seeds tomorrow.",
+      "sceneLabel_one": "Your garden with {{count}} plant",
+      "sceneLabel_other": "Your garden with {{count}} plants",
+      "panHint": "Swipe to see the whole garden",
+      "close": "Close",
+      "storySent": "Sent by {{name}}, {{date}}",
+      "youDative": "you",
+      "water": "Water a plant",
+      "partnerWatered": "{{name}} watered your {{species}} today.",
+      "partnerWateredYours": "{{name}} watered the {{species}} you sent today.",
+      "footnote": "Tap a plant to see its story. No day is lost: if you do not look in for a while, the garden simply waits.",
+      "plantLabel": "{{species}} from {{name}}",
+      "waterPlantLabel": "Water the {{species}}",
+      "seasons": {
+        "spring": "It is spring in the garden",
+        "summer": "It is summer in the garden",
+        "autumn": "It is autumn in the garden",
+        "winter": "It is winter in the garden, snow lies on the hills"
+      },
+      "lanterns": {
+        "both": "Both your lanterns are glowing, you were both in the garden today",
+        "own": "Your lantern is glowing, you were in the garden today",
+        "partner": "{{name}}'s lantern is glowing, {{name}} was in the garden today"
+      },
+      "reunion": {
+        "eyebrow": "From Plans",
+        "soonTitle": "Together again on {{date}}",
+        "soonBody": "On that day your whole garden blooms, however far along it is.",
+        "gateLabel": "A garden gate waits for your reunion on {{date}}",
+        "todayTitle": "You see each other again today",
+        "todayBody": "Your whole garden is in bloom for you. No seeds needed today.",
+        "buntingLabel": "Everything is in bloom, and bunting hangs over the garden",
+        "save": "Save the reunion garden as a Moment",
+        "saving": "Saving …",
+        "saved": "Saved to Moments.",
+        "openMoment": "View the Moment",
+        "memoryTitle": "Our reunion garden",
+        "memoryBody": "On the day we saw each other again, our whole garden was in bloom."
+      },
+      "sleep": {
+        "title": "Your garden is asleep",
+        "body": "It has rested for a few days. It is waking up in a moment.",
+        "sceneLabel": "Mist lies over the garden, the blossoms are closed",
+        "wokeTitle": "Lovely to see you",
+        "wokeBody": "Your garden is awake again. Nothing was lost.",
+        "wokeClose": "Lovely"
+      },
+      "stages": {
+        "0": "Right now: a seed in the ground",
+        "1": "Right now: a little sprout",
+        "2": "Right now: a bud",
+        "3": "Right now: in full bloom"
+      },
+      "messengers": {
+        "ladybug": "A ladybird",
+        "bee": "A bee",
+        "bird": "A bird",
+        "balloon": "A little balloon"
+      },
+      "species": {
+        "POPPY": {
+          "name": "Poppy",
+          "arrived": "A poppy. {{messenger}} brought it."
+        },
+        "BELLFLOWER": {
+          "name": "Bellflower",
+          "arrived": "A bellflower. {{messenger}} brought it."
+        },
+        "STARFLOWER": {
+          "name": "Star flower",
+          "arrived": "A star flower. {{messenger}} brought it."
+        },
+        "SUNFLOWER": {
+          "name": "Sunflower",
+          "arrived": "A sunflower. {{messenger}} brought it."
+        },
+        "TULIP": {
+          "name": "Tulip bulb",
+          "arrived": "A tulip bulb. {{messenger}} brought it. It blooms in spring."
+        },
+        "WATER_LILY": {
+          "name": "Water lily",
+          "arrived": "A water lily for your pond. {{messenger}} brought it."
+        },
+        "STRAWBERRY": {
+          "name": "Strawberry",
+          "arrived": "A strawberry. {{messenger}} brought it."
+        },
+        "MOONFLOWER": {
+          "name": "Moonflower",
+          "arrived": "A moonflower. {{messenger}} brought it."
+        },
+        "SURPRISE": {
+          "name": "Surprise",
+          "arrived": "A surprise. {{messenger}} brought it. You will both see what it becomes when it blooms."
+        }
+      },
+      "growth": {
+        "forms": {
+          "BED": "A flower bed",
+          "MEADOW": "A meadow",
+          "GARDEN": "A garden",
+          "PARADISE": "Your little paradise"
+        },
+        "finds": {
+          "PATH": "A path",
+          "POND": "A pond with water lilies",
+          "BENCH": "A bench for the two of you",
+          "TREE": "Your tree",
+          "MORE_ROOM": "More room to plant",
+          "BIRDHOUSE": "A birdhouse",
+          "ROSE_ARCH": "A rose arch",
+          "SWING": "A swing on the tree",
+          "STREAM": "A little stream",
+          "EVEN_MORE_ROOM": "Even more room"
+        },
+        "newSeeds": "New seeds: {{species}}",
+        "newsEyebrow": "New in the garden",
+        "newsBody": "Because you took care of it together. None of it will ever be lost.",
+        "newsDone": "Lovely",
+        "book": "Garden book",
+        "bookPlants": "Your plants",
+        "bookFinds": "Found in the garden",
+        "undiscovered": "Not discovered yet",
+        "secret": "Still a secret",
+        "bookFootnote": "New things appear on their own as you keep caring together. There is no counter, and nothing is ever lost, not even after a break.",
+        "rename": "Rename",
+        "nameLabel": "What is your garden called?",
+        "nameHint": "Up to 40 characters. Leave it empty for “Our garden”.",
+        "save": "Save",
+        "renamedStatus": "Your garden is now called “{{name}}”.",
+        "bind": "Make a bouquet",
+        "bindTitle": "Make a bouquet",
+        "bindBody": "Tap up to three blooming flowers. A seed stays in the soil for each one and grows again.",
+        "bindCount_one": "{{count}} of 3 in the bouquet",
+        "bindCount_other": "{{count}} of 3 in the bouquet",
+        "bindSend": "Give to {{name}}",
+        "bindPlantLabel": "{{species}} for the bouquet",
+        "bouquetSentStatus": "The bouquet is with {{name}}. New seeds are in the soil.",
+        "bouquetTitle": "{{name}} gave you a bouquet",
+        "bouquetBody": "{{messenger}} brought it.",
+        "bouquetLabel": "A bouquet of {{flowers}}",
+        "bouquetThanks": "Thank you",
+        "bouquetKeep": "Put into Moments",
+        "bouquetKept": "The bouquet is now in Moments.",
+        "bouquetMemoryTitle": "A bouquet from {{name}}",
+        "bouquetMemoryBody": "From our garden.",
+        "planeNote": "Loving words are coming by air mail",
+        "planeOpen": "Look",
+        "restingTulip": "Right now: sleeping until spring",
+        "moonGlow": "It glows at night.",
+        "moonRevealed": "A moonflower! It glows at night.",
+        "yearTitle": "Your garden year {{year}}",
+        "yearBody": "Keep your garden as a picture in Moments. It then also appears in your annual recap. Only if you want to.",
+        "yearSave": "Save as a moment",
+        "yearSaved": "Your garden is now in Moments.",
+        "yearMemoryTitle": "Our garden {{year}}",
+        "animalLabel": "Tap the {{animal}}",
+        "quack": "Quack!",
+        "animals": {
+          "snail": "snail",
+          "rabbit": "rabbit",
+          "hedgehog": "hedgehog",
+          "ducks": "duck pair",
+          "squirrel": "squirrel",
+          "deer": "deer"
+        },
+        "reactions": {
+          "snail": "The snail hides in its shell.",
+          "rabbit": "The rabbit hops away.",
+          "hedgehog": "The hedgehog curls up.",
+          "ducks": "Quack! The ducks paddle a little.",
+          "squirrel": "The squirrel dashed up your tree.",
+          "deer": "Oh! The deer got startled."
+        }
+      },
+      "words": {
+        "THINKING_OF_YOU": "Thinking of you",
+        "MISS_YOU": "Miss you",
+        "LOOKING_FORWARD": "Can’t wait to see you",
+        "GOOD_NIGHT": "Good night",
+        "FOR_YOU": "For you"
+      }
     }
   },
   "coupleExperiences": {
@@ -3283,7 +3702,12 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "PICTURE_PING_PONG_TURN": "{{name}} added to your picture. It is your turn.",
+      "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
+      "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
+      "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
+      "GARDEN_BOUQUET": "{{name}} gave you a bouquet.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",
@@ -4054,7 +4478,7 @@
       "body": "Manage account and sign-in status without accessing private relationship content.",
       "totalSuffix": "accounts",
       "search": "Search",
-      "searchPlaceholder": "Name, email or account ID",
+      "searchPlaceholder": "Email or account ID",
       "loading": "Loading accounts …",
       "error": "The account list could not be loaded.",
       "empty": "No matching accounts found.",
@@ -4390,7 +4814,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "How your memories look, in the diary and on Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."
@@ -4491,32 +4915,29 @@
     "offline": "You are offline",
     "offlineBody": "Connect to the internet to load media."
   },
-  "productTour": {
-    "eyebrow": "Quick introduction",
-    "replay": "Get to know eimir.",
-    "later": "Later",
-    "start": "View",
-    "next": "Next",
-    "openCreate": "Open plus",
-    "invite": {
-      "title": "A quick look at eimir.",
-      "body": "If you like, we will show you the main places in four little steps."
+  "quietHints": {
+    "tipLabel": "Tip",
+    "newLabel": "New in eimir.",
+    "newTag": "New",
+    "gotIt": "Got it",
+    "hide": "Hide",
+    "firstPlan": "Create your first plan",
+    "firstWish": "Capture your first wish",
+    "moveIn": {
+      "solo": "Nothing is on the wall yet. Let's hang the first picture.",
+      "invite": "Invite your person"
     },
-    "today": {
-      "title": "Your shared home",
-      "body": "On Us, see what connects you right now and what is coming up next."
+    "connected": {
+      "title": "You are connected now.",
+      "since": "Here together since today"
     },
-    "story": {
-      "title": "Find moments again",
-      "body": "Discover brings familiar things back. Find your story in order in the timeline."
+    "tips": {
+      "planFromWish": "Is a wish getting concrete? Open it and turn it into a plan.",
+      "planFromWishAction": "Open wish"
     },
-    "plan": {
-      "title": "Wishes become plans",
-      "body": "Planning brings together ideas and concrete plans for your time together."
-    },
-    "create": {
-      "title": "Capture something",
-      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
+    "news": {
+      "waymarks": "Your waymarks: “Your story” now shows the special days behind you.",
+      "waymarksAction": "View"
     }
   },
   "photoReactions": {
@@ -4928,10 +5349,22 @@
     "durationIndefinite": "Until I stop",
     "durationIndefiniteHint": "Runs until you stop it here.",
     "levelLegend": "What is shared",
+    "precisionTitle": "How precise",
+    "precisionIntro": "Applies to distance and map. The distance is only as precise as the coarser choice of the two of you.",
+    "precisionLegend": "How precisely you share",
+    "precisionApproximate": "Approximate",
+    "precisionApproximateHint": "As before: a rough distance, never closer than 2 km.",
+    "precisionPrecise": "Precise",
+    "precisionPreciseHint": "A finer distance below 2 km and a smaller map area. Your phone rounds to about 100 m before anything is sent – never your address.",
+    "precisionSaved": "Precision saved.",
+    "precisionApproximateOnly": "Android only gives eimir. your approximate location, so sharing stays approximate. For “Precise”, allow precise location in the Android settings.",
+    "precisionApproximateOnlyShort": "You share approximately because Android did not allow precise location.",
     "confirmDistanceTitle": "Share distance?",
     "confirmDistanceBody": "{{partner}} then sees on “Us” how many kilometres lie between you – rounded, never your location.",
+    "confirmDistanceBodyPrecise": "{{partner}} then sees a finer distance on “Us” – never your location.",
     "confirmMapTitle": "Also show on the map?",
     "confirmMapBody": "Newly visible: an approximate area of at least 1.5 km on your map – no exact point and no history.",
+    "confirmMapBodyPrecise": "Newly visible: an area of about 200 m on your map – no exact point and no history.",
     "confirmShare": "Share distance",
     "confirmShareMap": "Show area",
     "durationTitle": "Share for how long?",
@@ -4951,6 +5384,8 @@
     "backgroundOn": "Stays current while eimir. is closed.",
     "backgroundOff": "Now only updated when you open eimir.",
     "permissionGranted": "Approximate location allowed",
+    "permissionGrantedPrecise": "Precise location allowed",
+    "permissionGrantedAny": "Location allowed",
     "permissionDenied": "Location not allowed",
     "permissionPrompt": "Location not allowed yet",
     "permissionUnsupported": "Not available on this device",
@@ -4960,7 +5395,9 @@
     "onboardingTitle": "How many kilometres lie between you right now?",
     "onboardingIntro": "If you like, {{partner}} sees on “Us” how many kilometres lie between you.",
     "onboardingCoarse": "Only a rough distance, never a place.",
+    "onboardingPrecise": "A finer distance, never your address.",
     "onboardingEnergy": "No history, battery-friendly, no GPS.",
+    "onboardingEnergyPrecise": "No history. A precise reading is taken only when you open eimir.",
     "onboardingStop": "Only shared once you agree. Stop any time in Settings.",
     "onboardingShare": "Share distance",
     "onboardingLater": "Not now",
@@ -4968,6 +5405,9 @@
     "disclosureTitle": "Keep it current while eimir. is closed?",
     "disclosureBody": "eimir. then collects your approximate location in the background, even when the app is closed or not in use, so {{partner}} sees your current distance.",
     "disclosureBodyMap": "eimir. then collects your approximate location in the background, even when the app is closed or not in use, so {{partner}} sees your current distance and approximate area.",
+    "disclosureBodyPrecise": "eimir. then collects your location – rounded to about 100 m – in the background, even when the app is closed or not in use, so {{partner}} sees your current distance.",
+    "disclosureBodyMapPrecise": "eimir. then collects your location – rounded to about 100 m – in the background, even when the app is closed or not in use, so {{partner}} sees your current distance and area.",
+    "disclosurePassivePrecise": "Only locations your phone or other apps determine anyway. eimir. starts no GPS in the background.",
     "disclosurePassive": "Only locations your phone already knows. No GPS, hardly any battery.",
     "disclosurePurpose": "Only for the distance to {{partner}}, never for ads, no history.",
     "disclosureStop": "Turn it off here any time.",
@@ -4976,6 +5416,8 @@
     "disclosureForegroundOnly": "Only while open",
     "distanceNear": "You're really close to each other right now",
     "distanceBetween": "{{distance}} between you",
+    "distanceCloseUnder": "Less than {{distance}} between you",
+    "distanceCloseUnderShort": "Under {{distance}}",
     "distanceAsOfToday": "today, {{time}}",
     "distanceAsOfYesterday": "yesterday, {{time}}",
     "distanceAsOfDate": "{{date}}, {{time}}",
@@ -5401,8 +5843,8 @@
           "body": "Choose to share how far apart you are or show your location on the map. You can stop sharing anytime."
         },
         "wirDesigns": {
-          "title": "More designs for Us",
-          "body": "Make your Us page your own with Our Album, Clear & modern or Classic."
+          "title": "More app designs",
+          "body": "Make eimir. your own with Our Album, Clear & modern or Classic."
         },
         "appIcons": {
           "title": "Alternative app icons",
@@ -5632,5 +6074,148 @@
     "partnerBirthday": "On {{name}}'s birthday",
     "more_one": "and one more occasion",
     "more_other": "and {{count}} more occasions"
+  },
+  "sharedNotes": {
+    "title": "Notes",
+    "destination": "Shared notes",
+    "destinationSubtitle": "Addresses, thoughts, tips for both of you",
+    "untitled": "Untitled",
+    "audience": "For both of you",
+    "audienceEditing": "Visible to both of you",
+    "create": "Add note",
+    "createFirst": "Add the first note",
+    "back": "Back to notes",
+    "scopeLabel": "Filter notes",
+    "scope": {
+      "ALL": "All",
+      "PINNED": "Pinned"
+    },
+    "search": "Search notes",
+    "searchClear": "Clear search",
+    "sectionPinned": "Pinned",
+    "sectionRecent": "Recently edited",
+    "sectionAll": "All notes",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "loading": "Loading notes",
+    "loadMore": "Load more notes",
+    "loadingMore": "Loading more notes",
+    "cached": "You are seeing the last loaded state.",
+    "empty": {
+      "title": "What you want to remember lives here",
+      "body": "Addresses, thoughts, tips in plain text. You both see and add to them."
+    },
+    "noMatch": {
+      "title": "No results for “{{query}}”",
+      "body": "Try another word or clear the search."
+    },
+    "noPinned": {
+      "title": "Nothing pinned yet",
+      "body": "Pin important notes from a note's menu and they will appear here."
+    },
+    "pinnedBadge": "Pinned",
+    "editedBy": "Last edited by {{name}} · {{when}}",
+    "editedByYou": "Last edited by you · {{when}}",
+    "writtenBy": "Written by {{name}}",
+    "writtenByYou": "Written by you",
+    "changedBy": "Last changed by {{name}} · {{when}}",
+    "changedByYou": "Last changed by you · {{when}}",
+    "read": {
+      "edit": "Edit",
+      "itemLabel": "Shared note",
+      "menu": "Note menu",
+      "noBody": "This note has no text yet.",
+      "updatedByPartner": "{{name}} just updated this note."
+    },
+    "menu": {
+      "title": "Note",
+      "pin": "Pin",
+      "pinHint": "Shown first in the list and on Us",
+      "unpin": "Unpin",
+      "unpinHint": "Returns to the other notes",
+      "wirTitleOnly": "Show only the title on Us",
+      "wirTitleOnlyHint": "Good for door codes and passwords",
+      "wirExcerpt": "Show an excerpt on Us",
+      "wirExcerptHint": "The start of the text appears on Us",
+      "delete": "Delete …",
+      "deleteHint": "For both of you"
+    },
+    "toast": {
+      "saved": "Saved.",
+      "pinned": "Pinned.",
+      "unpinned": "Unpinned.",
+      "titleOnly": "Only the title shows on Us.",
+      "excerpt": "An excerpt shows on Us.",
+      "deleted": "Note deleted.",
+      "linkedPlan": "Saved and linked to the plan.",
+      "takenTheirs": "The other version is applied."
+    },
+    "delete": {
+      "title": "Delete note?",
+      "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
+      "confirm": "Delete",
+      "pending": "Deleting …"
+    },
+    "edit": {
+      "createTitle": "New note",
+      "editTitle": "Edit note",
+      "close": "Close",
+      "save": "Save",
+      "saving": "Saving …",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Title (optional)",
+      "bodyLabel": "Text",
+      "bodyPlaceholder": "What do you want to keep?",
+      "tools": "Add to note",
+      "bullets": "Bullet list",
+      "needsContent": "Write a title or some text.",
+      "offline": "Not saved, you are offline. Your text is kept.",
+      "retry": "Try again",
+      "gone": "This note was deleted. Your text is kept here.",
+      "draftKept": "Your text is kept."
+    },
+    "conflict": {
+      "message": "{{name}} just changed this note. Your text is kept.",
+      "seeChanges": "See changes",
+      "hideChanges": "Hide changes",
+      "keepMine": "Save my version",
+      "takeTheirs": "Take the other version",
+      "takeTheirsWarning": "Your changes are lost when you do.",
+      "theirsLabel": "Current version"
+    },
+    "wir": {
+      "titleOne": "Our note",
+      "titleMany": "Our notes",
+      "allNotes": "All notes",
+      "allNotesAria": "See all shared notes",
+      "open": "Open note “{{title}}”",
+      "hiddenExcerpt": "Excerpt hidden",
+      "add": "Add to it",
+      "moreTile": "More notes",
+      "loadError": "The notes could not be loaded."
+    },
+    "dashboard": {
+      "settingsTitle": "Pinned notes"
+    },
+    "plan": {
+      "heading": "Shared notes",
+      "tool": "Note",
+      "choose": "Link notes",
+      "hint": "Shared notes only. Find private notes under Private.",
+      "link": "Link selection",
+      "createNew": "Create new note",
+      "noChoices": "All existing notes are already linked.",
+      "unlink": "Remove link to “{{title}}”",
+      "unlinked": "Link to “{{title}}” removed.",
+      "linked_one": "Note linked.",
+      "linked_other": "{{count}} notes linked.",
+      "immediate": "Links apply right away, even without saving.",
+      "done": "Done",
+      "openNote": "Open note “{{title}}”"
+    },
+    "notification": {
+      "SHARED_NOTE_CREATED": "{{name}} added a shared note",
+      "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
+    }
   }
 }

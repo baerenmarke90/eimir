@@ -424,6 +424,11 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials | 1.5.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials-play-services-auth (passkeys on Android 13 and older) | 1.5.0 | Google Maven | Apache-2.0 |
+| com.google.android.gms:play-services-auth, -auth-base, -auth-api-phone, -auth-blockstore, -fido, -identity-credentials (via credentials-play-services-auth) | 21.1.1 / 18.0.10 / 18.0.2 / 16.4.0 / 21.0.0 / 16.0.0-alpha02 | Google Maven | Android Software Development Kit License |
+| com.google.android.libraries.identity.googleid:googleid (via credentials-play-services-auth) | 1.1.0 | Google Maven | Apache-2.0 |
+| androidx.biometric:biometric (via credentials) | 1.1.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
 The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It

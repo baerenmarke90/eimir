@@ -44,7 +44,7 @@ import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
 import planFiles from './locales/planFiles';
 import privateArea from './locales/privateArea';
-import productTour from './locales/productTour';
+import quietHints from './locales/quietHints';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import proPaywall from './locales/proPaywall';
@@ -54,6 +54,7 @@ import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
+import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
@@ -121,8 +122,9 @@ export const germanResources = {
   personColours,
   profileIdentity,
   profiles,
-  productTour,
+  quietHints,
   serverAdmin,
+  ...sharedNotes,
   spaceOffboarding,
   ...relationshipComponents,
   relationshipReflections,

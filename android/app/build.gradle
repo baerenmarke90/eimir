@@ -123,6 +123,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'com.google.firebase:firebase-installations'
     implementation 'com.nimbusds:nimbus-jose-jwt:10.10'
+    // Passkeys through Credential Manager; the Play services provider serves Android 13 and older.
+    implementation 'androidx.credentials:credentials:1.5.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.5.0'
     implementation 'androidx.media3:media3-transformer:1.11.1'
     implementation 'androidx.media3:media3-effect:1.11.1'
     implementation project(':capacitor-android')

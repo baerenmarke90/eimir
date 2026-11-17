@@ -125,6 +125,12 @@ Optional partner distance remains off until deliberately enabled and does not
 create a persistent history. Its runtime contract — sharing levels, recipient
 binding, snapped precision, 24-hour snapshot expiry, energy rules and the
 Premium boundary — is [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) (#1792).
+Sharing is approximate by default. Each person may instead choose **precise**
+sharing (Product Owner, 2026-11-17): the device then rounds its position to
+about 100 m before anything is sent, the Android precise-location permission is
+requested only after that choice, and the choice is stored with the person's own
+consent and never revealed to the partner. Precise location is never requested
+in the background and never for any other feature.
 
 ### Selected-photo places and readable addresses (#1459 / #1478)
 

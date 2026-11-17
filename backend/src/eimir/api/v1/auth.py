@@ -8,7 +8,7 @@ trying to enumerate accounts.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
@@ -17,7 +17,7 @@ from pydantic import Field
 from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.auth import cloud, local, oidc, passkey_abuse, passkeys, sessions
+from eimir.auth import cloud, local, oidc, passkey_abuse, passkeys, sessions, sign_in_methods
 from eimir.auth.local import SignedIn
 from eimir.auth.policy import AuthPolicy
 from eimir.config import get_settings
@@ -130,8 +130,43 @@ class PasskeyView(ApiModel):
     created_at: datetime
 
 
+class LinkedProviderView(ApiModel):
+    connection_id: str
+    linked_at: datetime
+
+
+class SignInMethodsView(ApiModel):
+    """The ways this Account can currently sign in, beyond what it signed in with."""
+
+    passkeys: list[PasskeyView]
+    oidc: list[LinkedProviderView]
+    email_link: bool = Field(
+        description="A mailed link can sign this Account in: a verified address and mail here."
+    )
+    local_password: bool
+
+
 class OidcStartRequest(ApiModel):
     invitation_token: str | None = None
+    signup: bool = Field(
+        default=False,
+        description=(
+            "Create a new Account if this identity has none and no invitation applies. Only "
+            "Cloud offers this, and it requires `acceptedTermsVersion`."
+        ),
+    )
+    accepted_terms_version: str | None = Field(
+        default=None,
+        description="Terms-of-use version the person accepted before leaving for the provider.",
+    )
+    client: Literal["web", "android"] = Field(
+        default="web",
+        description="Which registered callback to use: the web page or the native Android app.",
+    )
+
+
+class OidcLinkRequest(ApiModel):
+    client: Literal["web", "android"] = "web"
 
 
 class OidcCallbackRequest(ApiModel):
@@ -538,10 +573,14 @@ def start_oidc(
     receives only the authorization URL and state. Any invitation remains
     bound server-side and is never forwarded to the provider.
     """
+    request = body if body is not None else OidcStartRequest()
     started = oidc.start(
         session,
         connection_id,
-        invitation_token=body.invitation_token if body is not None else None,
+        invitation_token=request.invitation_token,
+        allow_signup=request.signup,
+        accepted_terms_version=request.accepted_terms_version,
+        native=request.client == "android",
     )
     return OidcStartView(authorization_url=started.authorization_url, state=started.state)
 
@@ -556,9 +595,11 @@ def link_oidc(
     account: CurrentAccount,
     session: DbSession,
     connection_id: Annotated[str, Path(alias="connectionId")],
+    body: OidcLinkRequest | None = None,
 ) -> OidcStartView:
     """Link an external identity to the authenticated account."""
-    started = oidc.start(session, connection_id, account_id=account.id)
+    native = body is not None and body.client == "android"
+    started = oidc.start(session, connection_id, account_id=account.id, native=native)
     return OidcStartView(authorization_url=started.authorization_url, state=started.state)
 
 
@@ -584,6 +625,58 @@ def complete_oidc(
             platform=body.platform,
         )
     )
+
+
+@router.get(
+    "/auth/sign-in-methods",
+    response_model=SignInMethodsView,
+    responses=problem_responses(401),
+)
+def list_sign_in_methods(account: CurrentAccount, session: DbSession) -> SignInMethodsView:
+    """List the passkeys and linked providers of the authenticated account."""
+    current = sign_in_methods.methods(session, account)
+    return SignInMethodsView(
+        passkeys=[
+            PasskeyView(id=item.id, name=item.name, created_at=item.created_at)
+            for item in current.passkeys
+        ],
+        oidc=[
+            LinkedProviderView(connection_id=item.connection_id or "", linked_at=item.created_at)
+            for item in current.oidc
+        ],
+        email_link=current.email_link,
+        local_password=current.local_password,
+    )
+
+
+@router.delete(
+    "/auth/passkeys/{passkeyId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses=problem_responses(401, 404, 409),
+)
+def remove_passkey(
+    account: CurrentAccount,
+    session: DbSession,
+    passkey_id: Annotated[UUID, Path(alias="passkeyId")],
+) -> None:
+    """Remove one passkey, unless it is the account's only way to sign in."""
+    sign_in_methods.remove_passkey(session, account, passkey_id)
+
+
+@router.delete(
+    "/auth/oidc/{connectionId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses=problem_responses(401, 404, 409),
+)
+def unlink_oidc(
+    account: CurrentAccount,
+    session: DbSession,
+    connection_id: Annotated[str, Path(alias="connectionId")],
+) -> None:
+    """Unlink an external provider, unless it is the account's only way to sign in."""
+    sign_in_methods.remove_oidc(session, account, connection_id)
 
 
 @router.post(

@@ -14,6 +14,7 @@ import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
@@ -30,6 +31,8 @@ import {
   useAttentionReceipt,
   useAttentionReceipts,
 } from '../client/attentionReceipt';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { useConnectedMoment } from '../client/connectedMoment';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
@@ -41,6 +44,7 @@ import {
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { retrospectiveTone } from '../client/entryTone';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
@@ -66,12 +70,17 @@ import {
   calculateRelationshipDuration,
   formatRelationshipDuration as formatSharedTime,
 } from '../client/relationshipPreview';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
+  MEMORY_CREATE_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
   STORY_OURS_ROUTE,
 } from '../client/routes';
+import { WIR_NOTE_LIMIT } from '../client/sharedNotes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
@@ -129,16 +138,23 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirLists } from './WirLists';
+import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
-import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
+import {
+  DEFAULT_WIR_DESIGN,
+  useWirDesign,
+  wirDesignLayout,
+} from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
+import { ConnectedMoment } from './ConnectedMoment';
+import { FirstStepAction } from './FirstStepAction';
 import { alignWirIntroAnimations } from './wirIntroClock';
+import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 
@@ -362,11 +378,16 @@ function RecentSharedItemCard({
 
 function WirSharedAlbumArrow() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path
         d="M3.5 12h16m-6-6 6 6-6 6"
         stroke="currentColor"
-        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -898,6 +919,7 @@ export function TodayPage({
   dailyQuoteApi,
   entitlementApi,
   collectionsApi,
+  sharedNotesApi,
   account,
   recapMediaApis,
   partnerLocationApi,
@@ -910,6 +932,7 @@ export function TodayPage({
   dailyQuoteApi?: DailyQuoteApi;
   entitlementApi?: EntitlementsApi;
   collectionsApi?: CollectionsApi;
+  sharedNotesApi?: SharedNotesApi;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -928,9 +951,11 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
-  const sharedAlbum = wirDesignId === WirDesignId.shared_album;
+  const wirLayout = wirDesignLayout(wirDesignId);
+  // "Seite an Seite": the two people as rows and agenda date stamps.
+  const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
-  const connectedDesign = wirDesignId === WirDesignId.connected;
+  const connectedDesign = wirLayout === 'connected';
   const queryClient = useQueryClient();
   // After the app regains focus, refreshed reads land together instead of one
   // module at a time (see useResumeSettling).
@@ -1032,6 +1057,32 @@ export function TodayPage({
     dashboardPreferences,
     'pinned_collection',
   );
+
+  // Pinned shared notes (#1969): the note carries the pin, so the module only
+  // needs the visibility choice. More than five stay behind "all notes".
+  const pinnedNoteVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'pinned_note',
+  );
+  const pinnedNotesQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.sharedNoteWir(spaceId),
+    queryFn: ({ signal }) => {
+      if (!sharedNotesApi) throw new Error('Shared notes API is unavailable.');
+      return apiCall(() =>
+        sharedNotesApi.listSharedNotes(
+          { spaceId, pinned: true, limit: WIR_NOTE_LIMIT },
+          { signal },
+        ),
+      );
+    },
+    enabled: Boolean(sharedNotesApi && account?.id && pinnedNoteVisible),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const pinnedNotes =
+    pinnedNoteVisible && pinnedNotesQuery.data
+      ? pinnedNotesQuery.data.items.slice(0, WIR_NOTE_LIMIT)
+      : [];
 
   const activityQuery = useHeldQuery(
     useActivityQuery(apis.activity, spaceId, account?.id),
@@ -1403,10 +1454,22 @@ export function TodayPage({
       !retrospective &&
       !livingModule &&
       !serverKeepsake &&
-      !(pinnedCollectionVisible && pinnedCollectionIds.length > 0),
+      !(pinnedCollectionVisible && pinnedCollectionIds.length > 0) &&
+      pinnedNotes.length === 0,
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
+  // #1907 I1: the first moment settles in where the move-in stood.
+  const firstMomentSettle = useFirstContentSettle(
+    dashboardQuery.data && !dashboardQuery.isCached ? isSparse : undefined,
+  );
+  const connectedMoment = useConnectedMoment(
+    account?.id,
+    spaceId,
+    partner?.id ?? null,
+    Boolean(dashboardQuery.data && !dashboardQuery.isCached),
+  );
+  const rootIntro = useRootTabIntro('today');
 
   // #1792: the distance is a normal Wir module. Directly below the couple
   // hero it stays inside the hero; moved elsewhere it renders in its place.
@@ -1612,7 +1675,12 @@ export function TodayPage({
                 className="wir-stage-gesture wir-stage-gesture-own"
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <svg
+                  className="inline-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
                   {dailyCheckIn.ownHasValue ? (
                     <path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4L16.5 4.5z" />
                   ) : (
@@ -1632,7 +1700,12 @@ export function TodayPage({
               {dailyCheckIn?.partnerBadge}
               {avatarAction ? (
                 <span className="wir-stage-gesture" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <svg
+                    className="inline-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
                     <path d="M20.5 3.5 10.5 13.5M20.5 3.5l-6 17-4-7-7-4 17-6z" />
                   </svg>
                 </span>
@@ -1662,9 +1735,7 @@ export function TodayPage({
           </TodayDestinationLink>
         ) : undefined
       }
-      eyebrow={
-        wirDesignId === WirDesignId.warm ? t('wirDesign.welcome') : undefined
-      }
+      eyebrow={wirLayout === 'open' ? t('wirDesign.welcome') : undefined}
       headingLevel="h2"
       spaceTitle={
         partner
@@ -1819,6 +1890,9 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {connectedMoment.visible ? (
+          <ConnectedMoment playing={connectedMoment.playing} />
+        ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
@@ -1831,7 +1905,11 @@ export function TodayPage({
                   stack of planning utilities. */}
         {showMomentSection && keepsakeVisible && focalItem ? (
           <TodayModuleSection
-            className="today-section-moment"
+            className={
+              firstMomentSettle
+                ? 'today-section-moment first-content-settle'
+                : 'today-section-moment'
+            }
             title={t('m5s5.today.keepsake.title')}
           >
             <TodayMomentFeature
@@ -1915,6 +1993,39 @@ export function TodayPage({
           pinnedCollectionVisible &&
           pinnedCollectionIds.length > 0 ? (
           <TodayModulePlaceholder kind="pinned-collection" />
+        ) : null}
+      </>
+    ),
+    pinned_note: (
+      <>
+        {!dashboardQuery.isCached && pinnedNotes.length > 0 ? (
+          <TodayModuleSection
+            className={
+              revealAfterCache
+                ? 'today-section-pinned-note today-module-reveal'
+                : 'today-section-pinned-note'
+            }
+            title={t(
+              pinnedNotes.length === 1
+                ? 'sharedNotes.wir.titleOne'
+                : 'sharedNotes.wir.titleMany',
+            )}
+            headerAction={
+              <TodayDestinationLink
+                to={MORE_NOTES_ROUTE}
+                className="today-section-link"
+                ariaLabel={t('sharedNotes.wir.allNotesAria')}
+              >
+                {t('sharedNotes.wir.allNotes')}
+              </TodayDestinationLink>
+            }
+          >
+            <WirNotes
+              notes={pinnedNotes}
+              hasMore={pinnedNotesQuery.data?.hasMore === true}
+              accountId={account?.id ?? ''}
+            />
+          </TodayModuleSection>
         ) : null}
       </>
     ),
@@ -2098,11 +2209,8 @@ export function TodayPage({
       data-wir-design={
         wirDesign?.presentationReady === false ? undefined : wirDesignId
       }
-      data-color-world={
-        wirDesign?.presentationReady !== false &&
-        wirDesignId === WirDesignId.warm
-          ? 'warm'
-          : undefined
+      data-wir-layout={
+        wirDesign?.presentationReady === false ? undefined : wirLayout
       }
     >
       {(dashboardQuery.isLoading ||
@@ -2134,7 +2242,10 @@ export function TodayPage({
       ) : null}
 
       {contentReady && dashboardQuery.data ? (
-        <div className="today-content">
+        <div
+          className="today-content"
+          data-root-intro={rootIntro ? 'true' : undefined}
+        >
           <PageHeader
             variant="root"
             className="content-overview-heading"
@@ -2155,8 +2266,30 @@ export function TodayPage({
                   : t('m5s5.dashboard.newSpaceEmpty')}
               </h2>
               <p className="new-space-body">
-                {t('m5s5.dashboard.newSpaceIntro')}
+                {t(
+                  partner
+                    ? 'm5s5.dashboard.newSpaceIntro'
+                    : 'quietHints.moveIn.solo',
+                )}
               </p>
+              <span className="new-space-wall" aria-hidden="true">
+                <span />
+              </span>
+              <FirstStepAction
+                to={MEMORY_CREATE_ROUTE}
+                label={t('m5s5.dashboard.newSpaceAction')}
+                icon="foto"
+                selectedKey="wir-move-in"
+              />
+              {partner ? null : (
+                <TodayDestinationLink
+                  to={`${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`}
+                  className="new-space-invite"
+                >
+                  <EimirIcon name="profil" />
+                  <span>{t('quietHints.moveIn.invite')}</span>
+                </TodayDestinationLink>
+              )}
             </div>
           ) : null}
         </div>

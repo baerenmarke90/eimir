@@ -19,6 +19,7 @@ import {
 type Settings = {
   available: boolean;
   level: 'OFF' | 'DISTANCE' | 'DISTANCE_AND_MAP';
+  precision: 'APPROXIMATE' | 'PRECISE';
   state: 'OFF' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'PARTNER_CHANGED';
   indefinite: boolean;
   expiresAt: string | null;
@@ -55,6 +56,7 @@ async function partnerLocationMocks(
     settings: {
       available: pro,
       level: 'OFF',
+      precision: 'APPROXIMATE',
       state: 'OFF',
       indefinite: false,
       expiresAt: null,
@@ -91,11 +93,13 @@ async function partnerLocationMocks(
         level: Settings['level'];
         indefinite?: boolean;
         expiresAt?: string | null;
+        precision?: Settings['precision'];
       };
       server.writes.push(body);
       server.settings = {
         ...server.settings,
         level: body.level,
+        precision: body.precision ?? server.settings.precision,
         state: body.level === 'OFF' ? 'OFF' : 'ACTIVE',
         indefinite: Boolean(body.indefinite),
         expiresAt: body.level === 'OFF' ? null : (body.expiresAt ?? null),
@@ -121,7 +125,7 @@ async function partnerLocationMocks(
   return server;
 }
 
-async function grantBrowserLocation(page: Page) {
+async function grantBrowserLocation(page: Page, accuracy = 1500) {
   await page
     .context()
     .grantPermissions(['geolocation'], { origin: 'http://127.0.0.1' });
@@ -129,7 +133,7 @@ async function grantBrowserLocation(page: Page) {
   await page.context().setGeolocation({
     latitude: 53.5511,
     longitude: 9.9937,
-    accuracy: 1500,
+    accuracy,
   });
 }
 
@@ -285,8 +289,11 @@ test('without Pro: calm explanation, no start sheet, Stop for a stored share', a
   expect(server.writes).toEqual([{ level: 'OFF' }]);
 });
 
-async function nativeLocation(page: Page) {
-  await page.addInitScript(() => {
+async function nativeLocation(
+  page: Page,
+  options: { preciseLocation?: 'granted' | 'denied' } = {},
+) {
+  await page.addInitScript((deviceOptions) => {
     const host = window as unknown as {
       CapacitorCustomPlatform: unknown;
       Capacitor: unknown;
@@ -347,7 +354,10 @@ async function nativeLocation(page: Page) {
         if (plugin !== 'ApproximateLocation') return {};
         host.locationCalls.push(method);
         if (method === 'checkPermissions' || method === 'requestPermissions')
-          return { location: 'granted' };
+          return {
+            location: 'granted',
+            preciseLocation: deviceOptions.preciseLocation,
+          };
         if (method === 'current')
           return {
             latitude: 53.5511,
@@ -368,8 +378,114 @@ async function nativeLocation(page: Page) {
         return {};
       },
     };
-  });
+  }, options);
 }
+
+test('precise choice: start sheet, rounding on the device and Settings change (browser)', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await grantBrowserLocation(page, 20);
+  const server = await partnerLocationMocks(page);
+  await signIn(page);
+
+  const sheet = page.getByRole('dialog', { name: copy.onboardingTitle });
+  await expect(sheet).toBeVisible();
+  await expect(
+    sheet.getByRole('radio', { name: copy.precisionApproximate }),
+  ).toBeChecked();
+  await expect(sheet.getByText(copy.onboardingCoarse)).toBeVisible();
+  await sheet.getByText(copy.precisionPrecise, { exact: true }).click();
+  await expect(sheet.getByText(copy.onboardingPrecise)).toBeVisible();
+  await expect(sheet.getByText(copy.precisionPreciseHint)).toBeVisible();
+  await expectAxeClean(page, '.short-task-sheet');
+  await captureScreenshot(
+    page,
+    info,
+    'partner-location-start-sheet-precise-390.png',
+  );
+
+  await sheet.getByRole('button', { name: copy.onboardingShare }).click();
+  await expect(sheet).toBeHidden();
+  expect(server.writes.at(-1)).toMatchObject({
+    level: 'DISTANCE',
+    precision: 'PRECISE',
+  });
+  await expect.poll(() => server.snapshots.length).toBe(1);
+  // The device rounds a precise fix to 0.001 degrees before it is sent.
+  expect(server.snapshots[0]).toMatchObject({
+    latitude: 53.551,
+    longitude: 9.994,
+    accuracyMeters: 20,
+  });
+  expect(server.urls.join(' ')).not.toMatch(/53.55|9.99/);
+
+  await page.goto('/more/settings/relationship/location');
+  await expect(
+    page.getByRole('heading', { name: copy.precisionTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('radio', { name: startsWith(copy.precisionPrecise) }),
+  ).toBeChecked();
+  await expectNoHorizontalOverflow(page);
+  await expectAxeClean(page);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-location-settings-precise-390.png',
+    { fullPage: true },
+  );
+
+  // Opening Settings reloads the app, which publishes once more (precise).
+  await expect.poll(() => server.snapshots.length).toBe(2);
+  await page
+    .getByRole('radio', { name: startsWith(copy.precisionApproximate) })
+    .click();
+  await expect(
+    page.getByRole('radio', { name: startsWith(copy.precisionApproximate) }),
+  ).toBeChecked();
+  expect(server.writes.at(-1)).toMatchObject({
+    level: 'DISTANCE',
+    precision: 'APPROXIMATE',
+  });
+  // A new generation: the next measurement is published on the coarse grid.
+  await expect.poll(() => server.snapshots.length).toBe(3);
+  expect(server.snapshots[2]).toMatchObject({
+    latitude: 53.55,
+    longitude: 9.99,
+    consentGeneration: server.settings.generation,
+  });
+});
+
+test('Android: a precise choice that Android only partly granted says so to its owner', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await nativeLocation(page, { preciseLocation: 'denied' });
+  await partnerLocationMocks(page, {
+    initial: {
+      level: 'DISTANCE',
+      precision: 'PRECISE',
+      state: 'ACTIVE',
+      indefinite: true,
+    },
+  });
+  await signIn(page);
+  await page.goto('/more/settings/relationship/location');
+  await expect(page.getByText(copy.precisionApproximateOnly)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.permissionChangeApp }).first(),
+  ).toBeVisible();
+  await expectAxeClean(page);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-location-precision-approximate-only-390.png',
+    { fullPage: true },
+  );
+});
 
 test('Android: prominent disclosure precedes the background permission', async ({
   page,

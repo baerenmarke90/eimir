@@ -1,0 +1,12 @@
+{
+  "$description": "Klar & modern: a Pro design. The original palette with UI-font headings; on Wir a compact horizontal hero, a panoramic keepsake photo and a tighter stream.",
+  "id": "modern",
+  "tier": "pro",
+  "layout": "compact",
+  "color": { "world": "original" },
+  "shape": "standard",
+  "type": { "display": "literata", "headings": "ui" },
+  "icon": { "stroke": "standard", "accent": "duotone" },
+  "motion": "standard",
+  "surface": { "backdrop": "glow", "elevation": "standard", "edges": "none" }
+}

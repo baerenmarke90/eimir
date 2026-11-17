@@ -38,11 +38,23 @@ export interface DistanceBandView {
      */
     maxKm?: number | null;
     /**
+     * Only for CLOSE.
+     * @type {number}
+     * @memberof DistanceBandView
+     */
+    maxMeters?: number | null;
+    /**
      * 
      * @type {number}
      * @memberof DistanceBandView
      */
     minKm?: number | null;
+    /**
+     * Only for CLOSE.
+     * @type {number}
+     * @memberof DistanceBandView
+     */
+    minMeters?: number | null;
 }
 
 
@@ -51,6 +63,7 @@ export interface DistanceBandView {
  */
 export const DistanceBandViewKindEnum = {
     NEARBY: 'NEARBY',
+    CLOSE: 'CLOSE',
     RANGE: 'RANGE',
     APPROXIMATE: 'APPROXIMATE'
 } as const;
@@ -78,7 +91,9 @@ export function DistanceBandViewFromJSONTyped(json: any, ignoreDiscriminator: bo
         'approximateKm': json['approximateKm'] === undefined ? undefined : json['approximateKm'] === null ? null : json['approximateKm'],
         'kind': json['kind'],
         'maxKm': json['maxKm'] === undefined ? undefined : json['maxKm'] === null ? null : json['maxKm'],
+        'maxMeters': json['maxMeters'] === undefined ? undefined : json['maxMeters'] === null ? null : json['maxMeters'],
         'minKm': json['minKm'] === undefined ? undefined : json['minKm'] === null ? null : json['minKm'],
+        'minMeters': json['minMeters'] === undefined ? undefined : json['minMeters'] === null ? null : json['minMeters'],
     };
 }
 
@@ -96,7 +111,9 @@ export function DistanceBandViewToJSONTyped(value?: DistanceBandView | null, ign
         'approximateKm': value['approximateKm'],
         'kind': value['kind'],
         'maxKm': value['maxKm'],
+        'maxMeters': value['maxMeters'],
         'minKm': value['minKm'],
+        'minMeters': value['minMeters'],
     };
 }
 

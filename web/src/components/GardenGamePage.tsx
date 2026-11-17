@@ -665,7 +665,8 @@ export function GardenGamePage({
     unlocks,
     sharedDays,
     fresh: new Set(news),
-    visitors: true,
+    // Visitors stay away while the garden sleeps (PR 2 sleep phase).
+    visitors: presentation.sleep !== 'asleep',
     reduced,
     labels: {
       animal: (kind) =>

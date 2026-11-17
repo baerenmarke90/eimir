@@ -217,8 +217,8 @@ with motion, 360 px Dark with reduced motion) are in [`evidence/`](evidence/):
   surprise that is shown as a parcel until it first blooms as a moonflower
   (it glows at night). A water lily is planted into one of six pond places and
   leaves the offer while the pond is full. A tulip bulb sprouts and then rests
-  until spring; seasons follow the calendar month (March to May) until the
-  PR 2 season helper exists.
+  until spring; spring comes from the shared season helper of the presentation (March to
+  May). Visitors stay away while the garden sleeps.
 - **Places:** the pond and rose-arch places are kept free of plants from the
   first day, so nothing moves when they appear. The garden is as wide as its
   unlocks allow (340, 520, 700) and still widens further when plants need room.

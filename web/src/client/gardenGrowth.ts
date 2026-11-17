@@ -11,6 +11,7 @@ import type { GardenForm } from '../api/generated/models/GardenForm';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
 import { GARDEN_MIN_WIDTH } from './garden';
+import { gardenSeason } from './gardenPresentation';
 
 /** Fixed places of the unlockable things; plants never stand on them. */
 export const POND = { cx: 250, cy: 192, rx: 40, ry: 10 } as const;
@@ -47,11 +48,9 @@ export function pondSlotPosition(slot: number): { x: number; y: number } {
   return { x: POND.cx + dx + ring * 3, y: POND.cy + dy };
 }
 
-/** Months the tulip blooms in; seasons follow the calendar month. */
-const SPRING = new Set([3, 4, 5]);
-
+/** The tulip blooms in spring, from the shared season helper of the garden presentation. */
 export function isSpring(localDate: Date): boolean {
-  return SPRING.has(localDate.getUTCMonth() + 1);
+  return gardenSeason(localDate) === 'spring';
 }
 
 /** A tulip bulb rests (shown as a sprout) outside spring. */

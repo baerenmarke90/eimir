@@ -4,6 +4,7 @@ import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { Configuration } from '../client/apiConfiguration';
 import {
+  GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_PICTURE_PING_PONG_ROUTE,
@@ -31,6 +32,7 @@ const GAME_ENTRIES = [
   'perspective',
   'heartHunt',
   'pingPong',
+  'garden',
 ] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
@@ -40,6 +42,7 @@ function gameRoute(entry: GameEntry): string | null {
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
   if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
   if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
+  if (entry === 'garden') return GAMES_GARDEN_ROUTE;
   return null;
 }
 
@@ -154,6 +157,7 @@ export function GamesProductArea({
                           'wuensche',
                           'gemeinsam',
                           'momente',
+                          'spiele',
                           'spiele',
                         ] satisfies EimirIconName[]
                       )[index]

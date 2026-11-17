@@ -3827,7 +3827,9 @@
           "CHAPTER",
           "COLLECTION",
           "PICTURE_GAME",
-          "SHARED_NOTE"
+          "SHARED_NOTE",
+          "GARDEN_SEED",
+          "GARDEN_BOUQUET"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -4099,6 +4101,460 @@
         ],
         "title": "GameWishCandidateSet",
         "type": "object"
+      },
+      "GardenBouquetCloseInput": {
+        "additionalProperties": false,
+        "properties": {
+          "kept": {
+            "default": false,
+            "description": "The bouquet was put into Momente.",
+            "title": "Kept",
+            "type": "boolean"
+          }
+        },
+        "title": "GardenBouquetCloseInput",
+        "type": "object"
+      },
+      "GardenBouquetFlower": {
+        "properties": {
+          "senderId": {
+            "description": "Who once sent this flower's seed (its colour).",
+            "format": "uuid",
+            "title": "Senderid",
+            "type": "string"
+          },
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          }
+        },
+        "required": [
+          "species",
+          "senderId"
+        ],
+        "title": "GardenBouquetFlower",
+        "type": "object"
+      },
+      "GardenBouquetInput": {
+        "additionalProperties": false,
+        "properties": {
+          "plantIds": {
+            "description": "Blooming flowers to pick.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Plantids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plantIds"
+        ],
+        "title": "GardenBouquetInput",
+        "type": "object"
+      },
+      "GardenBouquetView": {
+        "properties": {
+          "flowers": {
+            "description": "One to three flowers.",
+            "items": {
+              "$ref": "#/components/schemas/GardenBouquetFlower"
+            },
+            "title": "Flowers",
+            "type": "array"
+          },
+          "givenOn": {
+            "format": "date",
+            "title": "Givenon",
+            "type": "string"
+          },
+          "giverId": {
+            "format": "uuid",
+            "title": "Giverid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "giverId",
+          "givenOn",
+          "flowers"
+        ],
+        "title": "GardenBouquetView",
+        "type": "object"
+      },
+      "GardenForm": {
+        "description": "The garden's overall form, named in the garden book.",
+        "enum": [
+          "BED",
+          "MEADOW",
+          "GARDEN",
+          "PARADISE"
+        ],
+        "title": "GardenForm",
+        "type": "string"
+      },
+      "GardenNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 40 characters after trimming; empty restores the default title.",
+            "title": "Name"
+          }
+        },
+        "title": "GardenNameInput",
+        "type": "object"
+      },
+      "GardenPlantView": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inPond": {
+            "default": false,
+            "description": "A water lily: the slot is a place in the pond.",
+            "title": "Inpond",
+            "type": "boolean"
+          },
+          "senderId": {
+            "format": "uuid",
+            "title": "Senderid",
+            "type": "string"
+          },
+          "sentOn": {
+            "format": "date",
+            "title": "Senton",
+            "type": "string"
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Position in the garden; absent while not planted.",
+            "title": "Slot"
+          },
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          },
+          "stage": {
+            "description": "`0` seed, `1` sprout, `2` bud, `3` bloom.",
+            "title": "Stage",
+            "type": "integer"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fixed phrase the sender attached, if any."
+          }
+        },
+        "required": [
+          "id",
+          "species",
+          "words",
+          "senderId",
+          "sentOn",
+          "stage",
+          "slot"
+        ],
+        "title": "GardenPlantView",
+        "type": "object"
+      },
+      "GardenSeedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "species"
+        ],
+        "title": "GardenSeedInput",
+        "type": "object"
+      },
+      "GardenSpecies": {
+        "description": "What a seed becomes; a surprise is shown until its moonflower first blooms.",
+        "enum": [
+          "POPPY",
+          "BELLFLOWER",
+          "STARFLOWER",
+          "SUNFLOWER",
+          "TULIP",
+          "WATER_LILY",
+          "STRAWBERRY",
+          "MOONFLOWER",
+          "SURPRISE"
+        ],
+        "title": "GardenSpecies",
+        "type": "string"
+      },
+      "GardenUnlock": {
+        "description": "What appears in the garden after cumulative shared days (never reset).",
+        "enum": [
+          "PATH",
+          "POND",
+          "SUNFLOWER",
+          "TULIP",
+          "WATER_LILY",
+          "BENCH",
+          "TREE",
+          "MORE_ROOM",
+          "STRAWBERRY",
+          "BIRDHOUSE",
+          "ROSE_ARCH",
+          "SWING",
+          "STREAM",
+          "EVEN_MORE_ROOM"
+        ],
+        "title": "GardenUnlock",
+        "type": "string"
+      },
+      "GardenView": {
+        "properties": {
+          "bouquet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenBouquetView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A bouquet from the partner that waits on its card."
+          },
+          "discovered": {
+            "description": "Species in the garden book.",
+            "items": {
+              "$ref": "#/components/schemas/GardenSpecies"
+            },
+            "title": "Discovered",
+            "type": "array"
+          },
+          "form": {
+            "$ref": "#/components/schemas/GardenForm",
+            "default": "BED",
+            "description": "The garden's overall form."
+          },
+          "gaveBouquetToday": {
+            "default": false,
+            "description": "The reader already gave a bouquet today.",
+            "title": "Gavebouquettoday",
+            "type": "boolean"
+          },
+          "incoming": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenPlantView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A seed that arrived for the reader and waits to be planted."
+          },
+          "localDate": {
+            "description": "The couple's shared calendar day.",
+            "format": "date",
+            "title": "Localdate",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The couple's name for the garden.",
+            "title": "Name"
+          },
+          "news": {
+            "description": "Unlocks the reader has not been shown yet.",
+            "items": {
+              "$ref": "#/components/schemas/GardenUnlock"
+            },
+            "title": "News",
+            "type": "array"
+          },
+          "offer": {
+            "description": "Seeds the reader can choose from today.",
+            "items": {
+              "$ref": "#/components/schemas/GardenSpecies"
+            },
+            "title": "Offer",
+            "type": "array"
+          },
+          "partnerSentToday": {
+            "title": "Partnersenttoday",
+            "type": "boolean"
+          },
+          "partnerWateredToday": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plant the partner watered today.",
+            "title": "Partnerwateredtoday"
+          },
+          "plants": {
+            "description": "Planted plants in slot order.",
+            "items": {
+              "$ref": "#/components/schemas/GardenPlantView"
+            },
+            "title": "Plants",
+            "type": "array"
+          },
+          "reunionOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First day of the next anticipated shared Plan, the couple's reunion.",
+            "title": "Reunionon"
+          },
+          "reunionToday": {
+            "description": "Today is a day of that reunion Plan.",
+            "title": "Reuniontoday",
+            "type": "boolean"
+          },
+          "sentToday": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenPlantView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The reader's own seed of today, if sent."
+          },
+          "sharedDays": {
+            "default": 0,
+            "description": "Days both partners sent a seed; drives growth, never shown as a number.",
+            "title": "Shareddays",
+            "type": "integer"
+          },
+          "sharedToday": {
+            "description": "Both partners sent a seed today; the garden grew.",
+            "title": "Sharedtoday",
+            "type": "boolean"
+          },
+          "sleeping": {
+            "description": "Neither partner was in the garden for a few days; it wakes for the reader.",
+            "title": "Sleeping",
+            "type": "boolean"
+          },
+          "unlocks": {
+            "description": "Everything the couple's care has unlocked.",
+            "items": {
+              "$ref": "#/components/schemas/GardenUnlock"
+            },
+            "title": "Unlocks",
+            "type": "array"
+          },
+          "wateredToday": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plant the reader watered today.",
+            "title": "Wateredtoday"
+          }
+        },
+        "required": [
+          "localDate",
+          "plants",
+          "partnerSentToday",
+          "sharedToday",
+          "offer",
+          "sleeping",
+          "reunionToday"
+        ],
+        "title": "GardenView",
+        "type": "object"
+      },
+      "GardenWateringInput": {
+        "additionalProperties": false,
+        "properties": {
+          "plantId": {
+            "format": "uuid",
+            "title": "Plantid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plantId"
+        ],
+        "title": "GardenWateringInput",
+        "type": "object"
+      },
+      "GardenWords": {
+        "description": "Fixed phrases a partner may attach to a seed; clients localize them.",
+        "enum": [
+          "THINKING_OF_YOU",
+          "MISS_YOU",
+          "LOOKING_FORWARD",
+          "GOOD_NIGHT",
+          "FOR_YOU"
+        ],
+        "title": "GardenWords",
+        "type": "string"
       },
       "GentleSuggestion": {
         "properties": {
@@ -7114,7 +7570,8 @@
           "COLLECTION_SENT",
           "PICTURE_PING_PONG_TURN",
           "SHARED_NOTE_CREATED",
-          "SHARED_NOTE_CHANGED"
+          "SHARED_NOTE_CHANGED",
+          "GARDEN_SEED_ARRIVED"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -30032,6 +30489,708 @@
           }
         },
         "summary": "Get Couple Experience Questions",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden": {
+      "get": {
+        "description": "The shared garden and today's step for the reader.",
+        "operationId": "getGarden",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Get Garden",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/bouquets": {
+      "post": {
+        "description": "Give up to three blooming flowers to the partner; a seed stays in each place.",
+        "operationId": "giveGardenBouquet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenBouquetInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Give Garden Bouquet",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close": {
+      "post": {
+        "description": "Close a received bouquet's card, optionally noting it went into Momente.",
+        "operationId": "closeGardenBouquet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bouquetId",
+            "required": true,
+            "schema": {
+              "title": "Bouquetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenBouquetCloseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Close Garden Bouquet",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/name": {
+      "put": {
+        "description": "Name the shared garden; it becomes the page title for both partners.",
+        "operationId": "renameGarden",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Rename Garden",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/news/seen": {
+      "post": {
+        "description": "The reader saw what is new in the garden; each unlock is shown once.",
+        "operationId": "acknowledgeGardenNews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Acknowledge Garden News",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/seeds": {
+      "post": {
+        "description": "Send today's seed to the partner; one per partner and day.",
+        "operationId": "sendGardenSeed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenSeedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Send Garden Seed",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant": {
+      "post": {
+        "description": "Plant a seed that arrived for the reader.",
+        "operationId": "plantGardenSeed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "seedId",
+            "required": true,
+            "schema": {
+              "title": "Seedid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Plant Garden Seed",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/waterings": {
+      "post": {
+        "description": "Water one plant; a daily gesture that never changes growth.",
+        "operationId": "waterGardenPlant",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenWateringInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Water Garden Plant",
         "tags": [
           "games"
         ]

@@ -458,6 +458,26 @@
         "web/src/client/heartHunt.ts"
       ]
     },
+    "garden-game.spec.ts": {
+      "roots": [
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenArt.tsx",
+        "web/src/client/garden.ts",
+        "web/src/client/gardenPresentation.ts",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/components/GardenSeasonArt.tsx",
+        "web/src/client/gardenGrowth.ts",
+        "web/src/client/gardenImage.ts",
+        "web/src/components/GardenBook.tsx",
+        "web/src/components/GardenBouquet.tsx",
+        "web/src/components/GardenFeatures.tsx",
+        "web/src/components/GardenFlora.tsx",
+        "web/src/components/GardenLife.tsx",
+        "web/src/components/GardenGrowth.css",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",

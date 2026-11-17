@@ -40,6 +40,10 @@ class ActivityKind(StrEnum):
     CHAPTER_CREATED = "CHAPTER_CREATED"
     COLLECTION_CREATED = "COLLECTION_CREATED"
     COMMENT_CREATED = "COMMENT_CREATED"
+    # #1969: a shared note was written or changed. A feed entry names the note
+    # and its author; it never carries or exposes the note's text.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
 
 
 class NotificationKind(StrEnum):
@@ -282,6 +286,19 @@ class Activity(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
+        ),
+        # One feed entry per note and kind: repeated edits move the single
+        # "changed" entry forward instead of stacking one entry per save.
+        Index(
+            "uq_activities_shared_note_target_kind",
+            "space_id",
+            "target_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') "
+                "AND target_type = 'SHARED_NOTE'"
+            ),
         ),
     )
 

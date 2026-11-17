@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select
@@ -405,6 +405,110 @@ class TestNotifications:
         )
         self._project(session, couple["space"].id)
         assert self._notices(session, couple["ben"]) == []
+
+
+class TestActivityFeed:
+    """The feed names a note and who wrote or changed it, and never carries its text."""
+
+    def _project(self, session: Session, space_id) -> None:  # type: ignore[no-untyped-def]
+        from eimir.engagement import service as engagement
+
+        for event in session.scalars(
+            select(OutboxEvent)
+            .where(OutboxEvent.space_id == space_id)
+            .order_by(OutboxEvent.created_at, OutboxEvent.id)
+        ).all():
+            engagement.project_event(session, event)
+        session.flush()
+
+    def _feed(self, client, couple, token_key: str, scope: str = "shared") -> list[dict]:  # type: ignore[no-untyped-def,type-arg]
+        response = client.get(
+            f"/api/v1/spaces/{couple['space'].id}/activity",
+            params={"scope": scope},
+            headers=auth(couple[token_key]),
+        )
+        assert response.status_code == 200, response.text
+        return [
+            item
+            for item in response.json()["items"]
+            if item["kind"] in {"SHARED_NOTE_CREATED", "SHARED_NOTE_CHANGED"}
+        ]
+
+    def test_a_new_note_reaches_the_partner_feed_with_its_title_only(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        note = create_note(client, couple, title="Weekend plan", body=SECRET_BODY).json()
+        self._project(session, couple["space"].id)
+
+        items = self._feed(client, couple, "token_b")
+        assert [(i["kind"], i["targetType"], i["targetId"]) for i in items] == [
+            ("SHARED_NOTE_CREATED", "SHARED_NOTE", note["id"])
+        ]
+        assert items[0]["actorId"] == str(couple["anna"].id)
+        assert items[0]["target"]["title"] == "Weekend plan"
+        assert SECRET_BODY not in str(items)
+        # The author's own writing is quiet in the shared feed and kept in the own one.
+        assert self._feed(client, couple, "token_a") == []
+        assert len(self._feed(client, couple, "token_a", scope="own")) == 1
+
+    def test_a_note_without_a_title_and_a_title_only_wir_note_never_expose_text(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        untitled = create_note(client, couple, title=None, body=SECRET_BODY).json()
+        hidden = create_note(client, couple, title="Guest wifi", body=SECRET_BODY).json()
+        client.put(
+            f"{path(couple['space'].id)}/{hidden['id']}/presentation",
+            json={"pinned": True, "wirTitleOnly": True},
+            headers=auth(couple["token_a"]),
+        )
+        self._project(session, couple["space"].id)
+
+        by_target = {i["targetId"]: i for i in self._feed(client, couple, "token_b")}
+        assert by_target[untitled["id"]]["target"]["title"] is None
+        assert by_target[hidden["id"]]["target"]["title"] == "Guest wifi"
+        assert SECRET_BODY not in str(by_target)
+
+    def test_edits_keep_one_changed_entry_that_moves_forward_and_pinning_adds_none(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        note = create_note(client, couple).json()
+        client.put(
+            f"{path(couple['space'].id)}/{note['id']}/presentation",
+            json={"pinned": True},
+            headers=auth(couple["token_a"]),
+        )
+        for version, token_key, text in ((2, "token_a", "one"), (3, "token_b", "two")):
+            changed = client.patch(
+                f"{path(couple['space'].id)}/{note['id']}",
+                json={"body": text},
+                headers=if_match(couple[token_key], version),
+            )
+            assert changed.status_code == 200, changed.text
+        self._project(session, couple["space"].id)
+        # Projecting the same events again must not add entries.
+        self._project(session, couple["space"].id)
+
+        items = self._feed(client, couple, "token_a")
+        # Ben made the latest change, so Anna sees one changed entry by him; her
+        # own creation is quiet in the shared feed.
+        assert [(i["kind"], i["actorId"]) for i in items] == [
+            ("SHARED_NOTE_CHANGED", str(couple["ben"].id))
+        ]
+        from eimir.engagement.models import Activity
+
+        rows = session.scalars(
+            select(Activity).where(Activity.target_id == UUID(note["id"])).order_by(Activity.kind)
+        ).all()
+        assert [row.kind for row in rows] == ["SHARED_NOTE_CHANGED", "SHARED_NOTE_CREATED"]
+
+    def test_a_deleted_note_leaves_the_feed(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        note = create_note(client, couple).json()
+        self._project(session, couple["space"].id)
+        assert len(self._feed(client, couple, "token_b")) == 1
+        client.delete(
+            f"{path(couple['space'].id)}/{note['id']}", headers=if_match(couple["token_a"], 1)
+        )
+        assert self._feed(client, couple, "token_b") == []
 
 
 class TestPlanLinks:

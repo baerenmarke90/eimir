@@ -254,7 +254,9 @@
           "PLACE_CREATED",
           "CHAPTER_CREATED",
           "COLLECTION_CREATED",
-          "COMMENT_CREATED"
+          "COMMENT_CREATED",
+          "SHARED_NOTE_CREATED",
+          "SHARED_NOTE_CHANGED"
         ],
         "title": "ActivityKind",
         "type": "string"

@@ -607,8 +607,8 @@
     },
     "shared-notes.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6,
-      "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column and the pinned Wir tile that opens the note. Plan linking, conflict and offline paths stay in component tests. No always-run expansion."
+      "baselineTests": 7,
+      "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column, the pinned Wir tile that opens the note, and creating a Plan with notes chosen in the draft, linked after the save and retried after a failed link. Linking to an existing Plan, conflict and offline paths stay in component tests. No always-run expansion."
     },
     "map-place-stacks.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -174,6 +174,14 @@ def test_concrete_relationship_upgrade_and_rollback_preserve_protected_content(
     person = create_person(
         client, couple, relationship="DAUGHTER", note="A remembered detail."
     ).json()
+    # Put the row into the shape it had at revision 0117: the relationship in its
+    # column. It lives in the protected payload now (#797), where a migration,
+    # which runs without the encryption keys, cannot reach it.
+    row = session.get(RelatedPerson, person["id"])
+    row.payload = row.payload.model_copy(update={"relationship": None})
+    row.legacy_relationship = "DAUGHTER"
+    session.flush()
+    version = row.version
     connection = session.connection()
     context = MigrationContext.configure(connection, opts={"target_metadata": Base.metadata})
     migration = run_path(
@@ -184,7 +192,7 @@ def test_concrete_relationship_upgrade_and_rollback_preserve_protected_content(
     session.expire_all()
     row = session.get(RelatedPerson, person["id"])
     assert row.relationship == "CHILD"
-    assert row.version == person["version"] + 1
+    assert row.version == version + 1
     assert row.payload.note == person["note"]
     with Operations.context(context):
         migration["upgrade"]()

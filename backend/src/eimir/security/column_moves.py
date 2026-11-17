@@ -98,8 +98,9 @@ def moves() -> tuple[ColumnMove, ...]:
         ColumnMove(
             "related_persons",
             RelatedPersonPayload,
-            ("birthday",),
-            also_set="has_birthday = TRUE",
+            ("birthday", "relationship"),
+            # Reads the row as it was: only a row that had a birthday gets the flag.
+            also_set="has_birthday = (has_birthday OR birthday IS NOT NULL)",
         ),
     )
 

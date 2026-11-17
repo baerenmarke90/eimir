@@ -115,6 +115,18 @@
 .page-plan-detail a.planen-schedule-place {
   text-decoration: underline;
 }
+/* Date and place share one line whenever the whole place fits next to the
+   date; otherwise the place drops to its own row and wraps there. The place
+   carries no extra inline padding, so it never costs the date its line. */
+.page-plan-detail .planen-detail-when-where .planen-detail-schedule {
+  max-inline-size: 100%;
+}
+.page-plan-detail .planen-detail-when-where .planen-schedule-place {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding-inline: 0;
+  overflow-wrap: anywhere;
+}
 .page-plan-detail .plan-calendar-action {
   margin-block-start: var(--space-2);
 }

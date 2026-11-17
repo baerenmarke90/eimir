@@ -76,12 +76,11 @@ export function SharedContentSheet({
 export function ContentChevron() {
   return (
     <svg
-      className="content-chevron"
+      className="content-chevron inline-icon"
       aria-hidden="true"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
     >
       <path d="m9 5 7 7-7 7" />
     </svg>

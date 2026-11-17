@@ -1297,11 +1297,15 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
-for (const theme of ['light', 'dark'] as const) {
-  test(`a newer version after late entries sits beside the earlier one at 390 ${theme}`, async ({
+for (const [width, theme] of [
+  [390, 'light'],
+  [390, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`a newer version after late entries sits beside the earlier one at ${width} ${theme}`, async ({
     page,
   }, info) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width, height: width > 600 ? 900 : 844 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await page.addInitScript(
       (value) => localStorage.setItem('eimir-theme', value),
@@ -1319,7 +1323,7 @@ for (const theme of ['light', 'dark'] as const) {
     await captureScreenshot(
       page,
       info,
-      `recaps-version-library-390-${theme}.png`,
+      `recaps-version-library-${width}-${theme}.png`,
     );
     expect(
       await page.evaluate(
@@ -1345,7 +1349,7 @@ for (const theme of ['light', 'dark'] as const) {
     await captureScreenshot(
       page,
       info,
-      `recaps-version-closing-390-${theme}.png`,
+      `recaps-version-closing-${width}-${theme}.png`,
     );
     expect(
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())

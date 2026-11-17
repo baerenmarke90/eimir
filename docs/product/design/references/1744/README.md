@@ -666,15 +666,15 @@ the visual reference, as for the film variety.
 ### Runtime evidence: versions in the archive and reader
 
 Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("a newer version after
-late entries sits beside the earlier one at 390 …") from the synthetic retained
+late entries sits beside the earlier one at …") from the synthetic retained
 September with a newer version. Each run asserts both rows, no horizontal
 overflow, no axe violation on the library and the reader, and that the closing
 link opens the newer version.
 
-| State | Compact 390 Light | Compact 390 Dark |
-| --- | --- | --- |
-| Archive with both versions | [library](evidence/recaps-version-library-390-light.png) | [library](evidence/recaps-version-library-390-dark.png) |
-| Earlier version, closing scene | [closing](evidence/recaps-version-closing-390-light.png) | [closing](evidence/recaps-version-closing-390-dark.png) |
+| State | Compact 390 Light | Compact 390 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Archive with both versions | [library](evidence/recaps-version-library-390-light.png) | [library](evidence/recaps-version-library-390-dark.png) | [library](evidence/recaps-version-library-1280-dark.png) |
+| Earlier version, closing scene | [closing](evidence/recaps-version-closing-390-light.png) | [closing](evidence/recaps-version-closing-390-dark.png) | [closing](evidence/recaps-version-closing-1280-dark.png) |
 
 Backend evidence: `backend/tests/unit/test_recap_notices.py` (decisions) and
 `backend/tests/integration/test_recap_notices.py` (PostgreSQL: grace week and
@@ -682,6 +682,9 @@ Backend evidence: `backend/tests/unit/test_recap_notices.py` (decisions) and
 a retained month, collected earlier notices once a day, the turn of the year,
 Quiet Hours, the switch and the end of the capability).
 
+The first dark run failed axe: the inline link kept the browser's default
+colour on the dark card. It now uses the shared link colour token.
+
 Not performed: captures of the Notification Center item and the settings group,
-Expanded captures, large-text captures and Android device acceptance on the
-Pixel (push presentation is covered by the native catalog fixtures only).
+large-text captures and Android device acceptance on the Pixel (push
+presentation is covered by the native catalog fixtures only).

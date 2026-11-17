@@ -14,6 +14,10 @@ const notificationSettings = {
     'Nicht alles wurde gespeichert. Bestätigte Änderungen bleiben erhalten. Prüfe die Auswahl und versuche es erneut.',
   sharedActivity: 'Gemeinsame Aktivität',
   closeness: 'Nähe',
+  recaps: 'Rückblicke',
+  recapsDescription:
+    'Wenn euer Monats- oder Jahresrückblick fertig ist oder Zuwachs bekommt.',
+  recapReady: 'Fertige Rückblicke',
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription:

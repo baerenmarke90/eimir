@@ -562,3 +562,126 @@ Not performed: captures of the blinds, flip and diagonal or
 breathing camera paths in flight (unit tests cover their selection), large-text
 captures of the new forms, a video clip in the new layouts, and Android device
 acceptance on the Pixel.
+
+
+## Readiness notices and late entries (#1744, Product Owner 2026-11-17)
+
+Product Owner request of 2026-11-17: notify the couple when a recap is ready;
+recaps collect in the background, and a sound algorithm must recognise entries
+added later for the previous month or months further back. The Product Owner
+approved the plan in chat and decided the open questions:
+
+1. **Timing:** a recap is announced once it is final, after its grace week
+   (when the edition is retained), not on the first day of the next month.
+2. **Turn of the year:** one notice that opens the year film; December has no
+   notice of its own.
+3. **Retained editions:** late entries may produce a newer version when they are
+   significant; the earlier version stays readable.
+4. **Wording:** "Euer Rückblick auf Oktober ist fertig", "Euer Jahr 2026 ist
+   fertig", and for a newer version "Euer März hat Zuwachs bekommen".
+
+The baseline was this stack's base `claude/recap-film-variety-18ddaa@111f6a74a`
+(PR #2020). The Product Owner accepted the synthetic browser captures below as
+the visual reference, as for the film variety.
+
+### Late-entry detection (server `recaps/freshness.py`, `recaps/service.py`)
+
+- **Fingerprint:** every composition stores a digest of the shared material it
+  accounted for: all shared, readable sources that start in the period with
+  their versions (`material_digest`), and the database time of the composition
+  (`material_at`). One grouped query per Space computes the current digest of
+  every month (and, from the months, every year), so any create, edit, date
+  move, withdrawal, deletion or import is noticed however far back it lies.
+- **Quiet period:** a changed period is acted on only after two hours without a
+  further change (`observed_digest`, `observed_at`; a new change restarts the
+  wait). A follow-up scan of the Space is queued for that moment, so a burst of
+  back-filled entries costs one recomposition, not one per entry.
+- **Open proposal** (not yet retained): recomposed silently; it is not retained
+  while its material is still settling.
+- **Retained edition:** never changed. A candidate version is composed with the
+  retained edition's frozen look and kept only when the late material is
+  significant: a late moment (selected, not in the retained film, created or
+  changed after its composition) becomes the highlight, or at least three late
+  moments join the film. Otherwise the candidate is discarded and the retained
+  edition records that it has weighed this material. The earlier version stays
+  readable; the archive marks "Frühere Fassung" and "Mit Nachträgen", and the
+  earlier film's closing scene links to the newer one.
+- **Untouched:** curated selections (`customized`), manual variants and the
+  running period's daily refresh. A year waits while one of its months is still
+  settling, so it picks up the month's final highlight. Editions composed before
+  this change are adopted as they are, without retroactive versions or notices.
+
+### Notices (server `recaps/notices.py`, catalog `RECAP_READY`, `RECAP_GREW`)
+
+- **Ready:** a completed month or year retained within 21 days of its end gets
+  its own notice. December is announced by the year film.
+- **Grew:** a kept newer version gets one notice.
+- **Earlier:** a period that only appears now (late entries for an empty month,
+  a first Pro month, an import) is earlier news. Earlier and grew notices are
+  sent at most once a day per Space; several at once become one notice ("In
+  euren Rückblicken gibt es Neues.") that opens the overview.
+- **Delivery:** never for the running period; not before 09:00 or after 21:00
+  in the Space's time zone; recipient Quiet Hours, the own "Rückblicke" switch
+  (`RECAP_GREW` follows it) and the in-app/Push channel choices apply; never by
+  email. Both active partners receive the identical notice (one outbox event
+  each, no actor). The device preview names only the period as a machine key
+  (`2026-10`, `2026`) that Android and the Web localize; never a title or photo.
+- **Free:** without `relationship.passport` nothing is composed, so nothing is
+  announced; a notice still pending when the capability ends is dropped.
+
+### Mobile Interaction Contract (notices and versions)
+
+- **Notice:** one line in the Notification Center with the recap icon and a
+  gentle bloom (the existing prompt motion, off under reduced motion); a tap
+  opens the recap (or the overview for a collected notice).
+- **Settings:** a "Rückblicke" group beside "Gemeinsame Aktivität" and "Nähe"
+  with the same per-channel switches; no new pattern.
+- **Archive:** both versions of a period stay in the list; the period note says
+  "Mit Nachträgen" or "Frühere Fassung" in place of the period status. The
+  earlier film's closing scene carries one quiet sentence and a text link to
+  the newer version; no dialog, no extra primary action.
+- Compact and Expanded share the layout of the existing archive and reader.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** the existing PostgreSQL job queue, outbox projection,
+  notification catalog, channel preferences, Quiet Hours and encrypted device
+  preview; PostgreSQL `md5`/`string_agg` for the fingerprint; the existing film
+  composition with its frozen look. No new dependency, provider or model.
+- **Business/freemium impact reviewed:** part of the Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)" and the Free/Core
+  Notification Policy row; matrix revision 1.35 records that retained editions
+  may gain a newer version and that notices need the capability. Self-Hosted
+  equals Cloud. Managed cost: one grouped query per Space and scan, at most one
+  model-free composition per settled change, one Push per partner and period.
+- **Privacy:** events and push previews carry references and the period key
+  only; the fingerprint is a hash of identifiers and versions, not content.
+- **Concurrency:** the Space advisory lock serializes scan, retention and
+  announcement; `announced_at` makes each notice once-only; a candidate version
+  that cannot finish is discarded and weighed again.
+- **i18n and accessibility:** German and English copy in `recaps.notice.*` and
+  `notificationSettings.recaps*`; month names come from the locale; the notice
+  reads as plain text.
+
+### Runtime evidence: versions in the archive and reader
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("a newer version after
+late entries sits beside the earlier one at 390 …") from the synthetic retained
+September with a newer version. Each run asserts both rows, no horizontal
+overflow, no axe violation on the library and the reader, and that the closing
+link opens the newer version.
+
+| State | Compact 390 Light | Compact 390 Dark |
+| --- | --- | --- |
+| Archive with both versions | [library](evidence/recaps-version-library-390-light.png) | [library](evidence/recaps-version-library-390-dark.png) |
+| Earlier version, closing scene | [closing](evidence/recaps-version-closing-390-light.png) | [closing](evidence/recaps-version-closing-390-dark.png) |
+
+Backend evidence: `backend/tests/unit/test_recap_notices.py` (decisions) and
+`backend/tests/integration/test_recap_notices.py` (PostgreSQL: grace week and
+09:00 window, both partners, burst debouncing, settling proposals, versions of
+a retained month, collected earlier notices once a day, the turn of the year,
+Quiet Hours, the switch and the end of the capability).
+
+Not performed: captures of the Notification Center item and the settings group,
+Expanded captures, large-text captures and Android device acceptance on the
+Pixel (push presentation is covered by the native catalog fixtures only).

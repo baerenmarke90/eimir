@@ -420,6 +420,7 @@ async function setup(
     film?: boolean;
     yearFilm?: boolean;
     variety?: boolean;
+    versions?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -514,6 +515,17 @@ async function setup(
     month.headline = '';
   }
   if (options.pending) month.status = 'PENDING';
+  // Late entries produced a newer version of the retained September (#1744).
+  const newer = {
+    ...september,
+    id: 'september-newer',
+    savedAt: '2026-10-29T08:00:00Z',
+    generatedAt: '2026-10-29T08:00:00Z',
+    supersedesId: 'september',
+    supersededById: null as string | null,
+  };
+  if (options.versions)
+    Object.assign(september, { supersededById: newer.id, supersedesId: null });
   let fail = options.fail === true;
   let writes = 0;
   let prepares = 0;
@@ -535,7 +547,13 @@ async function setup(
       return route.fulfill({
         json: {
           canCompose: options.pro !== false,
-          editions: [month, september, ...(earlierReady ? [august] : []), year],
+          editions: [
+            month,
+            ...(options.versions ? [newer] : []),
+            september,
+            ...(earlierReady ? [august] : []),
+            year,
+          ],
           periods: options.earlier
             ? [
                 ...(earlierReady
@@ -660,7 +678,7 @@ async function setup(
             selectedKeys: month.sources.map((item) => item.key),
           },
         });
-      const edition = [month, september, august, year].find(
+      const edition = [month, september, newer, august, year].find(
         ({ id }) => path === `${BASE}/${id}`,
       );
       if (edition) return route.fulfill({ json: edition });
@@ -1274,6 +1292,67 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(augustEntry).toBeVisible();
     await expect(augustEntry.locator('.recap-archive-art')).toHaveCount(0);
     expect(state.prepares()).toBe(1);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`a newer version after late entries sits beside the earlier one at 390 ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { versions: true });
+    const archive = page.getByRole('region', { name: copy.archive });
+    const rows = archive.getByRole('link', { name: /^September 2026/ });
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first()).toContainText(copy.versionGrown);
+    await expect(rows.last()).toContainText(copy.versionEarlier);
+    await archive
+      .getByRole('heading')
+      .evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-version-library-390-${theme}.png`,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-library').analyze())
+        .violations,
+    ).toEqual([]);
+
+    // The earlier version stays readable and points to the newer one at its end.
+    await rows.last().click();
+    await expect(page).toHaveURL(/\/story\/recaps\/september$/);
+    const heading = page.locator('.recap-spread h1');
+    for (let step = 0; step < 8; step++) {
+      if ((await heading.textContent()) === copy.finishTitle) break;
+      await page.keyboard.press('ArrowRight');
+    }
+    await expect(heading).toHaveText(copy.finishTitle);
+    const note = page.locator('.recap-version-note');
+    await expect(note).toContainText(copy.versionNewer);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-version-closing-390-${theme}.png`,
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    await note.getByRole('link', { name: copy.versionOpen }).click();
+    await expect(page).toHaveURL(/\/story\/recaps\/september-newer$/);
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
   });

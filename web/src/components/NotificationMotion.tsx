@@ -29,6 +29,9 @@ const motions: Record<
   VIDEO_PROCESSING_FAILED: { icon: 'video', motion: 'video-stop' },
   REMINDER_DUE: { icon: 'benachrichtigungen', motion: 'reminder-ring' },
   WISH_REMINDER_DUE: { icon: 'wuensche', motion: 'wish-reminder' },
+  // A finished recap blooms in like a gentle prompt (#1744).
+  RECAP_READY: { icon: 'momente', motion: 'prompt-bloom' },
+  RECAP_GREW: { icon: 'momente', motion: 'prompt-bloom' },
 };
 
 type MotionStyle = CSSProperties & { '--notification-animation'?: string };

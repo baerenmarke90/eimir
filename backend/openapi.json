@@ -3856,7 +3856,8 @@
           "PICTURE_GAME",
           "SHARED_NOTE",
           "GARDEN_SEED",
-          "GARDEN_BOUQUET"
+          "GARDEN_BOUQUET",
+          "RECAP"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -7631,7 +7632,9 @@
           "PICTURE_PING_PONG_TURN",
           "SHARED_NOTE_CREATED",
           "SHARED_NOTE_CHANGED",
-          "GARDEN_SEED_ARRIVED"
+          "GARDEN_SEED_ARRIVED",
+          "RECAP_READY",
+          "RECAP_GREW"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -12658,6 +12661,32 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "supersededById": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newer version that extends this retained edition (#1744).",
+            "title": "Supersededbyid"
+          },
+          "supersedesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The retained edition this newer version extends with late entries (#1744).",
+            "title": "Supersedesid"
           },
           "theme": {
             "title": "Theme",

@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Response
 from pydantic import ConfigDict, Field
-from sqlalchemy import select, true
+from sqlalchemy import or_, select, true
 
 from eimir.api.concurrency import IfMatchVersion
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -183,6 +183,14 @@ class RecapView(RecapPeriod):
     film: RecapFilmView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
+    supersedes_id: UUID | None = Field(
+        default=None,
+        description="The retained edition this newer version extends with late entries (#1744).",
+    )
+    superseded_by_id: UUID | None = Field(
+        default=None,
+        description="The newer version that extends this retained edition (#1744).",
+    )
 
 
 class RecapOverview(ApiModel):
@@ -234,6 +242,8 @@ def overview(
             .where(
                 RecapEdition.space_id == authorization.space_id,
                 true() if kind is None else RecapEdition.kind == kind.value,
+                # A candidate newer version stays out of sight until it is kept.
+                or_(RecapEdition.saved_at.is_not(None), RecapEdition.supersedes_id.is_(None)),
             )
             .order_by(
                 RecapEdition.year.desc(), RecapEdition.month.desc(), RecapEdition.created_at.desc()

@@ -103,11 +103,15 @@ function PeriodNote({
   const locale = resolvedLocale();
   return (
     <span className="recap-period-note">
-      {!canCompose && value.isPartial && !value.savedAt
-        ? t('recaps.partialThrough', {
-            date: recapDate(value.throughOn, locale),
-          })
-        : recapPeriodStatus(value, locale, t)}
+      {value.supersededById
+        ? t('recaps.versionEarlier')
+        : value.supersedesId
+          ? t('recaps.versionGrown')
+          : !canCompose && value.isPartial && !value.savedAt
+            ? t('recaps.partialThrough', {
+                date: recapDate(value.throughOn, locale),
+              })
+            : recapPeriodStatus(value, locale, t)}
     </span>
   );
 }
@@ -865,6 +869,15 @@ function RecapReader({
         >
           {t('recaps.withdraw')}
         </button>
+      ) : null}
+      {value.supersededById ? (
+        // Late entries produced a newer version; this one stays readable (#1744).
+        <p className="recap-period-note recap-version-note">
+          {t('recaps.versionNewer')}{' '}
+          <Link to={recapDetailPath(value.supersededById)}>
+            {t('recaps.versionOpen')}
+          </Link>
+        </p>
       ) : null}
       {value.savedAt ? (
         <p className="recap-period-note">{t('recaps.savedHelp')}</p>

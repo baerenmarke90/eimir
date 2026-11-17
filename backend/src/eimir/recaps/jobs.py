@@ -17,7 +17,7 @@ from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import local_ai, montage, mood, service
+from eimir.recaps import freshness, local_ai, montage, mood, notices, service
 from eimir.recaps.composition import Candidate, theme_for
 from eimir.recaps.models import RecapEdition, RecapFilm, RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
@@ -175,6 +175,15 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     value.theme = theme_for(fresh_selected)
     value.status = "READY" if fresh else "EMPTY"
     value.generated_at = clock.now()
+    # The material this composition accounts for; late entries change it (#1744).
+    value.material_digest = freshness.period_digest(
+        session, context, value.kind, value.year, value.month
+    )
+    value.material_at = func.now()
+    value.observed_digest = value.observed_at = None
+    if value.supersedes_id is not None:
+        zone, _ = service.calendar_context(session, context)
+        service.settle_version(session, context, value, clock.today_in(zone))
 
 
 def ensure_scheduled(
@@ -222,4 +231,6 @@ def backfill(session: Session, payload: dict[str, Any]) -> None:
 def register_handlers() -> None:
     registry.register(service.GENERATE_JOB, generate)
     registry.register(service.BACKFILL_JOB, backfill)
+    registry.register(service.REFRESH_JOB, backfill)
+    registry.register(notices.ANNOUNCE_JOB, notices.announce)
     registry.register(SCAN_JOB, scan)

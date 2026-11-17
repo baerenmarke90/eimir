@@ -47,6 +47,10 @@ const GROUPS = [
       NotificationKind.PARTNER_CHECK_IN,
     ],
   },
+  {
+    key: 'recaps',
+    kinds: [NotificationKind.RECAP_READY],
+  },
 ] as const;
 
 const KIND_KEYS = {
@@ -57,6 +61,7 @@ const KIND_KEYS = {
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
   [NotificationKind.COLLECTION_SENT]: 'collectionSent',
   [NotificationKind.GARDEN_SEED_ARRIVED]: 'gardenSeed',
+  [NotificationKind.RECAP_READY]: 'recapReady',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;

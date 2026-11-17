@@ -51,7 +51,9 @@ export const NotificationKind = {
     PICTURE_PING_PONG_TURN: 'PICTURE_PING_PONG_TURN',
     SHARED_NOTE_CREATED: 'SHARED_NOTE_CREATED',
     SHARED_NOTE_CHANGED: 'SHARED_NOTE_CHANGED',
-    GARDEN_SEED_ARRIVED: 'GARDEN_SEED_ARRIVED'
+    GARDEN_SEED_ARRIVED: 'GARDEN_SEED_ARRIVED',
+    RECAP_READY: 'RECAP_READY',
+    RECAP_GREW: 'RECAP_GREW'
 } as const;
 export type NotificationKind = typeof NotificationKind[keyof typeof NotificationKind];
 

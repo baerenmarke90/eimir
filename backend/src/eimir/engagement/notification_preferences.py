@@ -44,6 +44,8 @@ INHERITED_KINDS = {
     # #1969: shared notes are collaborative writing, like comments.
     NotificationKind.SHARED_NOTE_CREATED: NotificationKind.COMMENT_CREATED,
     NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
+    # #1744: a newer version of a recap follows the recap switch.
+    NotificationKind.RECAP_GREW: NotificationKind.RECAP_READY,
     **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 

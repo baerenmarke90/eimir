@@ -1273,7 +1273,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  /* Without motion, both crossfade pictures stay visible side by side. */
+  /* Without motion, both crossfade pictures stay visible next to each other. */
   .recap-film-frame[data-layout="crossfade"] .recap-film-media {
     grid-template-areas: none;
     grid-template-columns: 1fr 1fr;

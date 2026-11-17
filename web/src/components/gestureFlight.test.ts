@@ -114,6 +114,25 @@ describe('startGestureFlight', () => {
     }
   });
 
+  it('leaves no deferred ripple behind once a thinking-of-you flight has landed', async () => {
+    vi.useFakeTimers();
+    try {
+      const { source, target, own } = elements();
+      const flight = startGestureFlight({
+        kind: 'THINKING',
+        source,
+        target,
+        own,
+      });
+      await flight?.settle(true);
+      // The animations resolve at once here, so the ripples would still be
+      // pending and fire after the flight (and, in tests, the document) ended.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('sends the second heart of a kiss from the own avatar', async () => {
     const waiting: Array<() => void> = [];
     animate.mockImplementation(() => ({

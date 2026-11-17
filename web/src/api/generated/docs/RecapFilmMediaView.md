@@ -10,8 +10,11 @@ Name | Type
 `attachmentId` | string
 `clipSeconds` | number
 `clipStartSeconds` | number
+`focusX` | number
+`focusY` | number
 `kind` | string
 `parentId` | string
+`shape` | string
 
 ## Example
 
@@ -23,8 +26,11 @@ const example = {
   "attachmentId": null,
   "clipSeconds": null,
   "clipStartSeconds": null,
+  "focusX": null,
+  "focusY": null,
   "kind": null,
   "parentId": null,
+  "shape": null,
 } satisfies RecapFilmMediaView
 
 console.log(example)

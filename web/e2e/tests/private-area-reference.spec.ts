@@ -125,7 +125,18 @@ async function expectPrivateFloatingColor(action: Locator) {
   });
   expect(colors.primary).toBe(colors.private);
   expect(colors.primary).not.toBe(colors.shared);
-  await expect(action).toHaveCSS('color', 'rgb(255, 255, 255)');
+  // The label uses the design's on-action colour (white in Verbunden).
+  const label = await action.evaluate((element) => {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(element)
+      .getPropertyValue('--color-on-action-primary')
+      .trim();
+    element.append(probe);
+    const expected = getComputedStyle(probe).color;
+    probe.remove();
+    return { actual: getComputedStyle(element).color, expected };
+  });
+  expect(label.actual).toBe(label.expected);
 }
 
 async function installAuthorizedApiMocks(page: Page): Promise<string[]> {

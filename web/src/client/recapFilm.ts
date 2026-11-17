@@ -459,7 +459,14 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
       : sources
           .filter((source) => source !== highlight)
           .flatMap((source) => images(source))),
-  ].slice(0, 4);
+  ]
+    // One picture can belong to several moments; the cover shows it once.
+    .filter(
+      (item, index, all) =>
+        all.findIndex((other) => other.attachmentId === item.attachmentId) ===
+        index,
+    )
+    .slice(0, 4);
   const coverTitle = highlight
     ? (filmSourceTitle(highlight) ??
       (sourceWords(highlight) ? filmExcerpt(sourceWords(highlight), 60) : null))

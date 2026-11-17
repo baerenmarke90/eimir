@@ -1827,6 +1827,16 @@ for (const [width, height, scheme, all] of [
           : (type ?? 'scene');
       if (captured.has(name) || (wanted && !wanted.has(name))) continue;
       captured.add(name);
+      // Every picture of the scene is loaded before it is captured.
+      await page.waitForFunction(() => {
+        const pictures = document.querySelectorAll('.recap-film-picture');
+        const loaded = [
+          ...document.querySelectorAll<HTMLImageElement>(
+            '.recap-film-picture img',
+          ),
+        ].filter((image) => image.complete && image.naturalWidth > 0);
+        return loaded.length >= pictures.length;
+      });
       await page.waitForTimeout(500);
       // A caption band never sits under a picture.
       const overlap = await page.evaluate(() => {

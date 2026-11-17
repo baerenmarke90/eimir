@@ -393,4 +393,22 @@ Reduced motion is on, so every capture shows a settled scene; each run asserts
 twelve progress chapters, that no caption band sits under a picture, no
 horizontal overflow and no axe violation in the reader.
 
-EVIDENCE_TABLE
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (mosaic of month highlights) | [390](evidence/recaps-year-film-cover-390-light.png) | [430](evidence/recaps-year-film-cover-430-dark.png) | [1280](evidence/recaps-year-film-cover-1280-dark.png) |
+| Places opener | [390](evidence/recaps-year-film-place-390-light.png) |  |  |
+| Month marker | [390](evidence/recaps-year-film-month-390-light.png) | [430](evidence/recaps-year-film-month-430-dark.png) | [1280](evidence/recaps-year-film-month-1280-dark.png) |
+| Photo in a month chapter | [390](evidence/recaps-year-film-photo-390-light.png) |  |  |
+| Title in a month chapter | [390](evidence/recaps-year-film-title-390-light.png) |  |  |
+| Words in a month chapter | [390](evidence/recaps-year-film-words-390-light.png) |  |  |
+| Firsts | [390](evidence/recaps-year-film-firsts-390-light.png) | [430](evidence/recaps-year-film-firsts-430-dark.png) | [1280](evidence/recaps-year-film-firsts-1280-dark.png) |
+| Tags of the year | [390](evidence/recaps-year-film-tags-390-light.png) |  |  |
+| Year highlight (climax) | [390](evidence/recaps-year-film-climax-390-light.png) | [430](evidence/recaps-year-film-climax-430-dark.png) | [1280](evidence/recaps-year-film-climax-1280-dark.png) |
+| Month covers | [390](evidence/recaps-year-film-covers-390-light.png) | [430](evidence/recaps-year-film-covers-430-dark.png) | [1280](evidence/recaps-year-film-covers-1280-dark.png) |
+| Closing | [390](evidence/recaps-year-film-closing-390-light.png) |  |  |
+| Native container, month marker | [390](evidence/recaps-year-film-native-390-light.png) | | |
+
+Not performed: captures of transitions and motions in flight, a large-text
+capture of the year scenes, a full twelve-month browser fixture (the
+PostgreSQL integration test covers twelve months), and Android device
+acceptance.

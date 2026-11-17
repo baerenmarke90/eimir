@@ -797,6 +797,9 @@ for (const scenario of [
       page.getByText(fill(copy.quoted, { words: copy.words.MISS_YOU })),
     ).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: copy.plant }).click();
+    // Let the planting finish first: its confirmation would otherwise replace
+    // the visitor's reaction (and the name question next to it).
+    await expect(page.locator('.garden-status')).toHaveText(copy.plantedStatus);
 
     // A visitor reacts to a tap and the reaction is announced.
     const visitor = page

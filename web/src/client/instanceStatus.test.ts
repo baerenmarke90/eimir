@@ -106,6 +106,53 @@ describe('instance registration availability', () => {
     expect(isInvitationOnly(status)).toBe(true);
   });
 
+  it('exposes the configured external providers and whether they may create accounts', async () => {
+    const status = await loadInstanceAccessStatus(
+      'https://cloud.invalid',
+      async () => ({
+        maintenanceMode: false,
+        registrationAvailable: true,
+        registrationUnavailableReason: null,
+        accountCreation: 'self_service',
+        selfServiceSignupAvailable: true,
+        auth: {
+          magicLink: true,
+          localPassword: false,
+          oidc: true,
+          passkey: true,
+        },
+        oidcConnections: [
+          {
+            id: 'google',
+            provider: 'google',
+            label: '',
+            nativeAvailable: true,
+          },
+        ],
+        oidcSignupAvailable: true,
+      }),
+    );
+
+    expect(status.oidcConnections).toEqual([
+      { id: 'google', provider: 'google', label: '', nativeAvailable: true },
+    ]);
+    expect(status.oidcSignupAvailable).toBe(true);
+  });
+
+  it('treats an older server without providers as having none', async () => {
+    const status = await loadInstanceAccessStatus(
+      'https://selfhosted.invalid',
+      async () => ({
+        maintenanceMode: false,
+        registrationAvailable: true,
+        registrationUnavailableReason: null,
+      }),
+    );
+
+    expect(status.oidcConnections).toEqual([]);
+    expect(status.oidcSignupAvailable).toBe(false);
+  });
+
   it('keeps connectivity failure distinct and fails closed for registration UI', async () => {
     await expect(
       loadRegistrationAvailability('https://eimir.invalid', async () => {

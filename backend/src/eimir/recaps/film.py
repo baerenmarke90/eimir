@@ -568,6 +568,9 @@ def estimated_ms(item: Scored) -> int:
     clip = max((media.clip_seconds or 0.0 for media in item.media if media.video), default=0.0)
     if item.moment.kind == "HEART_MOMENT" and not item.media:
         base = max(4_500, 2_800 + min(item.moment.words * 6, WORDS_LIMIT) * 11)
+    elif item.moment.kind != "HEART_MOMENT" and len(item.media) >= 3:
+        # Three pictures play as a collage and need a little more viewing time.
+        base = 5_200
     elif len(item.media) >= 2:
         base = 4_600
     elif still or clip:

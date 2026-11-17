@@ -56,6 +56,7 @@ const timing = {
   layout: 'dialog',
   climax: false,
   chapter: null,
+  beat: null,
 };
 
 function show(scene: FilmScene) {

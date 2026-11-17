@@ -27,7 +27,12 @@ const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
  * data and account). A group is one surface with hairline separators and every
  * row carries one short line instead of a paragraph.
  */
-export function SettingsIndex() {
+export function SettingsIndex({
+  statuses = {},
+}: {
+  /** Live one-line statuses by category; a row without one shows its summary. */
+  statuses?: Partial<Record<SettingsCategoryId, string>>;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -67,7 +72,9 @@ export function SettingsIndex() {
                           </>
                         ) : null}
                       </strong>
-                      <span>{t(category.summaryKey)}</span>
+                      <span>
+                        {statuses[category.id] ?? t(category.summaryKey)}
+                      </span>
                     </span>
                   </Link>
                 </li>

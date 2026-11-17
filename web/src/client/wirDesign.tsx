@@ -46,6 +46,8 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.warm,
   WirDesignId.modern,
   WirDesignId.classic,
+  WirDesignId.quiet_together,
+  WirDesignId.handwriting,
 ];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;

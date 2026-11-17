@@ -563,6 +563,17 @@ async function installGrowthMocks(page: Page) {
         ...garden,
         name: (request.postDataJSON() as { name: string | null }).name,
       };
+    } else if (method === 'PUT' && /^\/visitors\/[A-Z]+\/name$/.test(suffix)) {
+      // One shared name per visitor (#1907 H3 follow-up).
+      const animal = suffix.split('/')[2];
+      const name = (request.postDataJSON() as { name: string | null }).name;
+      const rest = (
+        (garden.visitorNames as Array<{ animal: string }> | undefined) ?? []
+      ).filter((entry) => entry.animal !== animal);
+      garden = {
+        ...garden,
+        visitorNames: name ? [...rest, { animal, name }] : rest,
+      };
     } else if (method !== 'GET') {
       network.unexpected.push(`${method} ${pathname}`);
     }
@@ -779,6 +790,73 @@ for (const scenario of [
       anyOf(Object.values(growth.reactions)),
     );
 
+    // An unnamed visitor asks for a name; the book opens at its editor.
+    const kind = (await visitor.getAttribute('data-testid'))?.replace(
+      'garden-animal-',
+      '',
+    ) as keyof typeof growth.askName;
+    await page.getByRole('button', { name: growth.askName[kind] }).click();
+    const editor = page.getByTestId(`garden-visitor-editor-${kind}`);
+    await expect(
+      editor.getByLabel(growth.visitors.question[kind]),
+    ).toBeFocused();
+    const chosen = growth.visitors.suggestions[kind].a;
+    await editor.getByRole('button', { name: chosen }).click();
+    await expect(editor.getByText(`${chosen.length} / 40`)).toBeVisible();
+    await expectReflow(page);
+    await captureGrowth(
+      page,
+      info,
+      `garden-visitor-editor-${scenario.width}-${scenario.theme}.png`,
+    );
+    await editor.getByRole('button', { name: growth.save }).click();
+    await expect(page.locator('.garden-status')).toHaveText(
+      fill(growth.visitors.namedStatus, {
+        visitor: growth.visitors.own[kind],
+        name: chosen,
+      }),
+    );
+    const row = page.getByTestId(`garden-visitor-${kind}`);
+    await expect(row.getByText(chosen, { exact: true })).toBeVisible();
+    await expect(
+      row.getByText(
+        fill(growth.visitors.namedSub, {
+          animal: growth.animals[kind],
+          where: growth.visitors.where[kind],
+        }),
+      ),
+    ).toBeVisible();
+    await expect(page.getByTestId('garden-visitors')).not.toContainText(
+      growth.animals.deer,
+    );
+    await captureGrowth(
+      page,
+      info,
+      `garden-visitors-${scenario.width}-${scenario.theme}.png`,
+    );
+
+    // The named visitor reacts with its name, which floats above it.
+    const named = page.getByTestId(`garden-animal-${kind}`);
+    await expect(named).toHaveAttribute(
+      'aria-label',
+      fill(growth.animalLabelNamed, {
+        name: chosen,
+        animal: growth.animals[kind],
+      }),
+    );
+    await expect(async () => {
+      await named.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.locator('.garden-status')).toHaveText(
+        fill(growth.reactionsNamed[kind], { name: chosen }),
+        { timeout: 1000 },
+      );
+    }).toPass({ timeout: 20_000 });
+    await expect(page.getByTestId('garden-name-tag')).toHaveText(chosen);
+    await expect(
+      page.getByRole('button', { name: growth.askName[kind] }),
+    ).toHaveCount(0);
+
     // Bind a bouquet from two blooms for the partner.
     await page.getByRole('button', { name: growth.bind }).click();
     await page
@@ -820,7 +898,9 @@ for (const scenario of [
     const book = page.getByTestId('garden-book');
     await expect(book.getByText(growth.secret).first()).toBeVisible();
     await expect(book).not.toContainText(/\d/);
-    await book.getByRole('button', { name: growth.rename }).click();
+    await book
+      .getByRole('button', { name: growth.rename, exact: true })
+      .click();
     await book.getByLabel(growth.nameLabel).fill('Unser Eck');
     await book.getByRole('button', { name: growth.save }).click();
     await expect(
@@ -842,6 +922,7 @@ for (const scenario of [
       'POST /news/seen',
       `POST /bouquets/${BOUQUET_ID}/close`,
       `POST /seeds/${PLANE_SEED_ID}/plant`,
+      `PUT /visitors/${kind.toUpperCase()}/name`,
       'POST /bouquets',
       'PUT /name',
     ]);

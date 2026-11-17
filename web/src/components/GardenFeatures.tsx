@@ -160,9 +160,12 @@ function CoupleTree({ big, swingNew }: { big: boolean; swingNew: boolean }) {
           d="M-1 -26 C-6 -30 -12 -34 -17 -40 C-16.4 -41 -10 -35.6 -.6 -30Z"
           fill="var(--garden-trunk)"
         />
-        <Crown cx={-14} cy={-54} r={16} seed={0.3} />
-        <Crown cx={22} cy={-50} r={15} seed={1.1} />
-        <Crown cx={4} cy={-64} r={22} seed={2.2} />
+        {/* The squirrel rustles the crown when it climbs in (GardenLife). */}
+        <g className="garden-tree-crown">
+          <Crown cx={-14} cy={-54} r={16} seed={0.3} />
+          <Crown cx={22} cy={-50} r={15} seed={1.1} />
+          <Crown cx={4} cy={-64} r={22} seed={2.2} />
+        </g>
         {big ? (
           <PopIn on={swingNew} origin="50% 0%">
             <path

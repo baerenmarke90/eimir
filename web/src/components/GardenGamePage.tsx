@@ -13,6 +13,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { GardenPlantView } from '../api/generated/models/GardenPlantView';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenView } from '../api/generated/models/GardenView';
+import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
 import { liveGameQueryOptions } from '../client/liveGameSync';
@@ -25,9 +26,15 @@ import {
   stageChanges,
 } from '../client/garden';
 import {
+  availableAnimals,
+  cleanVisitorName,
+  type GardenAnimal,
   isBlooming,
   shownStage,
   unlockedWidth,
+  VISITOR_CODE,
+  visitorNames,
+  withVisitorName,
   wordsArriveByPlane,
 } from '../client/gardenGrowth';
 import { renderSvgPng } from '../client/gardenImage';
@@ -66,6 +73,7 @@ import {
   useGardenPresentation,
 } from './GardenPresentation';
 import { GardenScene, type SceneGrowth, type ScenePlant } from './GardenScene';
+import { GardenVisitors } from './GardenVisitors';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
@@ -89,6 +97,11 @@ export interface GardenServices {
   /* Growth and life (#1907 H3, PR 3). */
   acknowledgeNews?: () => Promise<GardenView>;
   rename?: (name: string | null) => Promise<GardenView>;
+  /** Names one visitor for both partners; `null` removes the name. */
+  nameVisitor?: (
+    animal: GardenVisitor,
+    name: string | null,
+  ) => Promise<GardenView>;
   giveBouquet?: (plantIds: string[]) => Promise<GardenView>;
   closeBouquet?: (bouquetId: string, kept: boolean) => Promise<GardenView>;
   saveToMoments?: (input: {
@@ -132,6 +145,12 @@ function useDefaultServices({
       acknowledgeNews: () => api.acknowledgeGardenNews({ spaceId }),
       rename: (name) =>
         api.renameGarden({ spaceId, gardenNameInput: { name } }),
+      nameVisitor: (animal, name) =>
+        api.nameGardenVisitor({
+          spaceId,
+          animal,
+          gardenVisitorNameInput: { name },
+        }),
       giveBouquet: (plantIds) =>
         api.giveGardenBouquet({ spaceId, gardenBouquetInput: { plantIds } }),
       closeBouquet: (bouquetId, kept) =>
@@ -451,6 +470,18 @@ export function GardenGamePage({
   const [binding, setBinding] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [bookOpen, setBookOpen] = useState(false);
+  // Visitor names (#1907 H3 follow-up): the open editor, a failed save to
+  // offer again, and the reaction that asks for a name.
+  const [visitorEditing, setVisitorEditing] = useState<GardenAnimal | null>(
+    null,
+  );
+  const [visitorFailed, setVisitorFailed] = useState<{
+    kind: GardenAnimal;
+    draft: string;
+  } | null>(null);
+  const [ask, setAsk] = useState<{ kind: GardenAnimal; text: string } | null>(
+    null,
+  );
   const [banner, setBanner] = useState<SceneGrowth['banner']>(null);
   const [yearSaved, setYearSaved] = useState(false);
   const bouquetSvg = useRef<SVGSVGElement | null>(null);
@@ -712,6 +743,12 @@ export function GardenGamePage({
       colour: colourOf(flower.senderId),
     }),
   );
+  const named = visitorNames(garden.visitorNames);
+  const metVisitors = availableAnimals(sharedDays, unlocks);
+  const animalName = (kind: GardenAnimal) =>
+    t(`games.garden.growth.animals.${kind}`);
+  const ownVisitor = (kind: GardenAnimal) =>
+    t(`games.garden.growth.visitors.own.${kind}`);
   const growth: SceneGrowth = {
     unlocks,
     sharedDays,
@@ -721,12 +758,24 @@ export function GardenGamePage({
     reduced,
     labels: {
       animal: (kind) =>
-        t('games.garden.growth.animalLabel', {
-          animal: t(`games.garden.growth.animals.${kind}`),
-        }),
+        named[kind]
+          ? t('games.garden.growth.animalLabelNamed', {
+              name: named[kind],
+              animal: animalName(kind),
+            })
+          : t('games.garden.growth.animalLabel', { animal: animalName(kind) }),
       quack: t('games.garden.growth.quack'),
+      name: (kind) => named[kind] ?? null,
     },
-    onReaction: (kind) => setStatus(t(`games.garden.growth.reactions.${kind}`)),
+    onReaction: (kind) => {
+      const name = named[kind];
+      const text = name
+        ? t(`games.garden.growth.reactionsNamed.${kind}`, { name })
+        : t(`games.garden.growth.reactions.${kind}`);
+      setStatus(text);
+      // An unnamed visitor asks for a name, right next to its reaction.
+      setAsk(name ? null : { kind, text });
+    },
     banner,
   };
   const planeWords =
@@ -754,6 +803,57 @@ export function GardenGamePage({
       }),
     );
     return true;
+  };
+  const nameVisitor = async (kind: GardenAnimal, name: string) => {
+    if (!api.nameVisitor) return;
+    const previous = garden;
+    const cleaned = cleanVisitorName(name);
+    // Optimistic: the row shows the new name at once and rolls back on error.
+    setVisitorFailed(null);
+    setVisitorEditing(null);
+    queryClient.setQueryData<GardenView>(queryKey, (current) =>
+      current
+        ? {
+            ...current,
+            visitorNames: withVisitorName(current.visitorNames, kind, cleaned),
+          }
+        : current,
+    );
+    const next = await run(
+      () =>
+        api.nameVisitor?.(
+          VISITOR_CODE[kind],
+          cleaned || null,
+        ) as Promise<GardenView>,
+    );
+    if (!next) {
+      queryClient.setQueryData<GardenView>(queryKey, (current) =>
+        current
+          ? { ...current, visitorNames: previous.visitorNames ?? [] }
+          : current,
+      );
+      setVisitorFailed({ kind, draft: name });
+      setVisitorEditing(kind);
+      return;
+    }
+    apply(next, previous);
+    const saved = visitorNames(next.visitorNames)[kind];
+    setStatus(
+      saved
+        ? t('games.garden.growth.visitors.namedStatus', {
+            visitor: ownVisitor(kind),
+            name: saved,
+          })
+        : t('games.garden.growth.visitors.clearedStatus', {
+            visitor: ownVisitor(kind),
+          }),
+    );
+  };
+  const askForName = (kind: GardenAnimal) => {
+    setSelected(null);
+    setVisitorFailed(null);
+    setBookOpen(true);
+    setVisitorEditing(kind);
   };
   const giveBouquet = async () => {
     if (!api.giveBouquet || picked.length === 0) return;
@@ -1215,6 +1315,20 @@ export function GardenGamePage({
             colour={ownColour}
             busy={busy}
             onRename={rename}
+            visitors={
+              <GardenVisitors
+                met={metVisitors}
+                names={named}
+                editing={visitorEditing}
+                busy={busy}
+                failed={visitorFailed}
+                onEdit={(kind) => {
+                  setVisitorFailed(null);
+                  setVisitorEditing(kind);
+                }}
+                onName={(kind, name) => void nameVisitor(kind, name)}
+              />
+            }
           />
         </div>
       ) : null}
@@ -1239,9 +1353,21 @@ export function GardenGamePage({
               })}
         </p>
       ) : null}
-      <p className="garden-status" role="status" aria-live="polite">
-        {status}
-      </p>
+      <div className="garden-status-line">
+        <p className="garden-status" role="status" aria-live="polite">
+          {status}
+        </p>
+        {ask && ask.text === status && !named[ask.kind] ? (
+          <button
+            type="button"
+            className="tertiary garden-status-ask"
+            aria-controls="garden-book"
+            onClick={() => askForName(ask.kind)}
+          >
+            {t(`games.garden.growth.askName.${ask.kind}`)}
+          </button>
+        ) : null}
+      </div>
       <p className="garden-footnote">{t('games.garden.footnote')}</p>
     </div>
   );

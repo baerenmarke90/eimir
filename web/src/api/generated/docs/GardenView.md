@@ -25,6 +25,7 @@ Name | Type
 `sharedToday` | boolean
 `sleeping` | boolean
 `unlocks` | [Array&lt;GardenUnlock&gt;](GardenUnlock.md)
+`visitorNames` | [Array&lt;GardenVisitorNameView&gt;](GardenVisitorNameView.md)
 `wateredToday` | string
 
 ## Example
@@ -53,6 +54,7 @@ const example = {
   "sharedToday": null,
   "sleeping": null,
   "unlocks": null,
+  "visitorNames": null,
   "wateredToday": null,
 } satisfies GardenView
 

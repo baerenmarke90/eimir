@@ -4,7 +4,14 @@
  * no hint of how far away the rest is (Product Owner 2026-11-16, #866).
  */
 
-import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import type { GardenForm } from '../api/generated/models/GardenForm';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
@@ -77,6 +84,7 @@ export function GardenBook({
   colour,
   busy,
   onRename,
+  visitors,
 }: {
   name: string | null;
   form: GardenForm;
@@ -85,6 +93,8 @@ export function GardenBook({
   colour: string;
   busy: boolean;
   onRename: (name: string) => Promise<boolean>;
+  /** "Eure Besucher", the visitors the couple has met and named. */
+  visitors?: ReactNode;
 }) {
   const { t } = useTranslation();
   const inputId = useId();
@@ -177,6 +187,7 @@ export function GardenBook({
           );
         })}
       </ul>
+      {visitors}
       <h3>{t('games.garden.growth.bookFinds')}</h3>
       <ul className="garden-finds">
         {FINDS.map((find) => {

@@ -4531,6 +4531,14 @@
             "title": "Unlocks",
             "type": "array"
           },
+          "visitorNames": {
+            "description": "Names the couple gave to visiting animals; unnamed visitors are absent.",
+            "items": {
+              "$ref": "#/components/schemas/GardenVisitorNameView"
+            },
+            "title": "Visitornames",
+            "type": "array"
+          },
           "wateredToday": {
             "anyOf": [
               {
@@ -4555,6 +4563,57 @@
           "reunionToday"
         ],
         "title": "GardenView",
+        "type": "object"
+      },
+      "GardenVisitor": {
+        "description": "Animals that visit the garden; the couple may give each one a name.",
+        "enum": [
+          "SNAIL",
+          "RABBIT",
+          "HEDGEHOG",
+          "DUCKS",
+          "SQUIRREL",
+          "DEER"
+        ],
+        "title": "GardenVisitor",
+        "type": "string"
+      },
+      "GardenVisitorNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 40 characters after trimming; empty removes the name.",
+            "title": "Name"
+          }
+        },
+        "title": "GardenVisitorNameInput",
+        "type": "object"
+      },
+      "GardenVisitorNameView": {
+        "properties": {
+          "animal": {
+            "$ref": "#/components/schemas/GardenVisitor"
+          },
+          "name": {
+            "description": "The couple's shared name for this visitor.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "animal",
+          "name"
+        ],
+        "title": "GardenVisitorNameView",
         "type": "object"
       },
       "GardenWateringInput": {
@@ -31798,6 +31857,107 @@
           }
         },
         "summary": "Plant Garden Seed",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name": {
+      "put": {
+        "description": "Name a visiting animal; both partners see the same name (the duck pair shares one).",
+        "operationId": "nameGardenVisitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "animal",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GardenVisitor"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenVisitorNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Name Garden Visitor",
         "tags": [
           "games"
         ]

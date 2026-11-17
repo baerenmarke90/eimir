@@ -59,6 +59,16 @@ import {
     GardenViewToJSON,
 } from '../models/GardenView';
 import {
+    type GardenVisitor,
+    GardenVisitorFromJSON,
+    GardenVisitorToJSON,
+} from '../models/GardenVisitor';
+import {
+    type GardenVisitorNameInput,
+    GardenVisitorNameInputFromJSON,
+    GardenVisitorNameInputToJSON,
+} from '../models/GardenVisitorNameInput';
+import {
     type GardenWateringInput,
     GardenWateringInputFromJSON,
     GardenWateringInputToJSON,
@@ -188,6 +198,12 @@ export interface KeepHeartHuntRoundRequest {
 export interface MarkPicturePingPongSavedRequest {
     spaceId: string;
     pictureSavedInput: PictureSavedInput;
+}
+
+export interface NameGardenVisitorRequest {
+    animal: GardenVisitor;
+    spaceId: string;
+    gardenVisitorNameInput: GardenVisitorNameInput;
 }
 
 export interface PlantGardenSeedRequest {
@@ -975,6 +991,71 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async markPicturePingPongSaved(requestParameters: MarkPicturePingPongSavedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
         const response = await this.markPicturePingPongSavedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for nameGardenVisitor without sending the request
+     */
+    async nameGardenVisitorRequestOpts(requestParameters: NameGardenVisitorRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['animal'] == null) {
+            throw new runtime.RequiredError(
+                'animal',
+                'Required parameter "animal" was null or undefined when calling nameGardenVisitor().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling nameGardenVisitor().'
+            );
+        }
+
+        if (requestParameters['gardenVisitorNameInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenVisitorNameInput',
+                'Required parameter "gardenVisitorNameInput" was null or undefined when calling nameGardenVisitor().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name`;
+        urlPath = urlPath.replace('{animal}', encodeURIComponent(String(requestParameters['animal'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenVisitorNameInputToJSON(requestParameters['gardenVisitorNameInput']),
+        };
+    }
+
+    /**
+     * Name a visiting animal; both partners see the same name (the duck pair shares one).
+     * Name Garden Visitor
+     */
+    async nameGardenVisitorRaw(requestParameters: NameGardenVisitorRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.nameGardenVisitorRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Name a visiting animal; both partners see the same name (the duck pair shares one).
+     * Name Garden Visitor
+     */
+    async nameGardenVisitor(requestParameters: NameGardenVisitorRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.nameGardenVisitorRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

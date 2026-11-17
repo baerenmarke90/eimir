@@ -497,7 +497,7 @@ the couple's own words as focal point, play/pause as the single dominant action,
 captions never under a picture (full-bleed captions keep the strong scrim). All
 timings derive from motion tokens; under reduced motion entrances, accents, the
 breath, camera paths, the word-by-word reveal, the counter and the covers strip
-stop, a crossfade shows both pictures side by side and the covers strip keeps
+stop, a crossfade shows both pictures next to each other and the covers strip keeps
 the calm grid. Decorative marks (the large quote mark, the month numeral, the
 corner day and the counting digits) are hidden from assistive technology, which
 reads the real text once. Browser-only arrows stay hidden in the native runtime.

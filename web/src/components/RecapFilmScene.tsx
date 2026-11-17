@@ -227,11 +227,22 @@ function Picture(
   },
 ) {
   const { quality = 'original', index = 0, className, ...rest } = props;
+  // The crop and the camera follow the photo's most detailed part.
+  const focus = {
+    '--film-i': index,
+    ...(props.media.focusX != null
+      ? { '--film-focus-x': `${Math.round(props.media.focusX * 100)}%` }
+      : {}),
+    ...(props.media.focusY != null
+      ? { '--film-focus-y': `${Math.round(props.media.focusY * 100)}%` }
+      : {}),
+  } as CSSProperties;
   return (
     <div
       className={`recap-film-picture${className ? ` ${className}` : ''}`}
       data-kind={props.media.kind}
-      style={{ '--film-i': index } as CSSProperties}
+      data-shape={props.media.shape ?? undefined}
+      style={focus}
     >
       {props.media.kind === 'VIDEO' ? (
         <FilmClip {...rest} />
@@ -329,6 +340,7 @@ export function RecapFilmScene({
   const hasMedia =
     (scene.type === 'cover' ||
       scene.type === 'duo' ||
+      scene.type === 'collage' ||
       scene.type === 'closing') &&
     scene.media.length > 0
       ? true
@@ -347,13 +359,15 @@ export function RecapFilmScene({
           : t('recaps.film.coverFallback', { month }));
       const layout = scene.media.length ? scene.layout : 'type';
       const shown =
-        layout === 'mosaic'
+        layout === 'mosaic' || layout === 'stack'
           ? scene.media.slice(0, 3)
-          : layout === 'strip'
-            ? scene.media
-            : layout === 'single'
-              ? scene.media.slice(0, 1)
-              : [];
+          : layout === 'split'
+            ? scene.media.slice(0, 2)
+            : layout === 'strip'
+              ? scene.media
+              : layout === 'single' || layout === 'frame'
+                ? scene.media.slice(0, 1)
+                : [];
       return (
         <div className="recap-film-frame" data-layout={layout}>
           {shown.length ? (
@@ -407,7 +421,8 @@ export function RecapFilmScene({
           >
             {scene.places.map((place, index) => (
               <li key={place} style={{ '--film-i': index } as CSSProperties}>
-                {scene.layout === 'marker' && index === 0 ? (
+                {(scene.layout === 'marker' || scene.layout === 'postcard') &&
+                index === 0 ? (
                   <EimirIcon name="orte" />
                 ) : null}
                 <span>{place}</span>
@@ -416,21 +431,44 @@ export function RecapFilmScene({
           </ul>
         </div>
       );
-    case 'fact':
+    case 'fact': {
+      const days = new Intl.NumberFormat(locale).format(scene.days);
       return (
         <div className="recap-film-frame" data-layout={scene.layout}>
           <p className="recap-film-fact">
-            <strong>{new Intl.NumberFormat(locale).format(scene.days)}</strong>
+            {scene.layout === 'counter' ? (
+              // The number counts up in the picture; assistive technology
+              // reads the final number once.
+              <strong className="recap-film-counter">
+                <span
+                  className="recap-film-count"
+                  aria-hidden="true"
+                  style={{ '--film-days': scene.days } as CSSProperties}
+                />
+                <span className="sr-only">{days}</span>
+              </strong>
+            ) : (
+              <strong>{days}</strong>
+            )}
             <span>{t('recaps.film.days', { count: scene.days })}</span>
           </p>
         </div>
       );
+    }
     case 'photo': {
       const title = filmSourceTitle(scene.source);
       const long = (scene.words?.length ?? 0) >= FILM_LONG_WORDS;
       return (
         <div className="recap-film-frame" data-layout={scene.layout}>
           <div className="recap-film-media" data-count={1}>
+            {scene.layout === 'corner' && scene.source.occurredOn ? (
+              <span className="recap-film-corner-day" aria-hidden="true">
+                {new Intl.DateTimeFormat(locale, {
+                  day: 'numeric',
+                  timeZone: 'UTC',
+                }).format(scene.source.occurredOn)}
+              </span>
+            ) : null}
             <Picture
               {...pictureProps}
               source={scene.source}
@@ -460,12 +498,18 @@ export function RecapFilmScene({
         </div>
       );
     }
-    case 'duo': {
+    case 'duo':
+    case 'collage': {
       const title = filmSourceTitle(scene.source);
+      const shown = scene.media.slice(0, scene.type === 'collage' ? 3 : 2);
       return (
         <div className="recap-film-frame" data-layout={scene.layout}>
-          <div className="recap-film-media" data-count={scene.media.length}>
-            {scene.media.slice(0, 2).map((item, index) => (
+          <div
+            className="recap-film-media"
+            data-count={shown.length}
+            data-scene={scene.type}
+          >
+            {shown.map((item, index) => (
               <Picture
                 key={item.attachmentId}
                 {...pictureProps}
@@ -490,10 +534,32 @@ export function RecapFilmScene({
     case 'words': {
       const long = scene.words.length >= FILM_LONG_WORDS;
       return (
-        <div className="recap-film-frame" data-layout={scene.layout}>
+        <div
+          className="recap-film-frame"
+          data-layout={
+            long && scene.layout === 'reveal' ? 'centered' : scene.layout
+          }
+        >
           <div className="recap-film-caption">
             <Eyebrow source={scene.source} />
-            {scene.layout === 'lines' && !long ? (
+            {scene.layout === 'margin' ? (
+              // A large opening quote mark in the locale's own form.
+              <span className="recap-film-mark" aria-hidden="true" />
+            ) : null}
+            {scene.layout === 'reveal' && !long ? (
+              // The couple's words appear word by word, never reworded.
+              <p className="recap-film-words recap-film-quoted recap-film-reveal">
+                {scene.words.split(' ').map((word, index, all) => (
+                  <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; their order is the identity.
+                    key={index}
+                    style={{ '--film-i': index } as CSSProperties}
+                  >
+                    {index < all.length - 1 ? `${word} ` : word}
+                  </span>
+                ))}
+              </p>
+            ) : scene.layout === 'lines' && !long ? (
               scene.words.split(/(?<=[.!?…])\s+/u).map((line, index) => (
                 <p
                   key={line}
@@ -589,8 +655,19 @@ export function RecapFilmScene({
     case 'month':
       // A chapter marker: only the localized month name, no invented text.
       return (
-        <div className="recap-film-frame" data-layout="month">
+        <div
+          className="recap-film-frame"
+          data-layout="month"
+          data-variant={scene.layout || undefined}
+        >
           <div className="recap-film-caption">
+            {scene.layout === 'numeral' ? (
+              <p className="recap-film-numeral" aria-hidden="true">
+                {new Intl.NumberFormat(locale, {
+                  minimumIntegerDigits: 2,
+                }).format(scene.month)}
+              </p>
+            ) : null}
             <p className="recap-film-eyebrow">{month}</p>
             <h1 className="recap-film-month">
               {monthName(value.year, scene.month, locale)}
@@ -600,7 +677,11 @@ export function RecapFilmScene({
       );
     case 'firsts':
       return (
-        <div className="recap-film-frame" data-layout="firsts">
+        <div
+          className="recap-film-frame"
+          data-layout="firsts"
+          data-variant={scene.layout || undefined}
+        >
           <div className="recap-film-caption">
             <p className="recap-film-eyebrow">{t('recaps.film.firsts')}</p>
             <ol className="recap-film-firsts">
@@ -625,10 +706,15 @@ export function RecapFilmScene({
       );
     case 'covers':
       return (
-        <div className="recap-film-frame" data-layout="covers">
+        <div
+          className="recap-film-frame"
+          data-layout="covers"
+          data-variant={scene.layout || undefined}
+        >
           <ol
             className="recap-film-media recap-film-covers"
             data-count={scene.covers.length}
+            style={{ '--film-covers': scene.covers.length } as CSSProperties}
             aria-label={t('recaps.film.covers', { year: month })}
           >
             {scene.covers.map((cover, index) => (
@@ -660,7 +746,11 @@ export function RecapFilmScene({
       );
     case 'closing':
       return (
-        <div className="recap-film-frame" data-layout="closing">
+        <div
+          className="recap-film-frame"
+          data-layout="closing"
+          data-variant={scene.layout || undefined}
+        >
           {scene.media.length ? (
             <div className="recap-film-media" data-count={scene.media.length}>
               {scene.media.map((item, index) => (

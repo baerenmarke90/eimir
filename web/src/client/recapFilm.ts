@@ -341,9 +341,7 @@ function withAnswers(source: RecapSourceView): Draft[] {
   const chars = answers.reduce((sum, answer) => sum + answer.text.length, 0);
   if (
     chars <= FILM_INLINE_ANSWER_CHARS &&
-    (first.type === 'photo' ||
-      first.type === 'duo' ||
-      first.type === 'collage')
+    (first.type === 'photo' || first.type === 'duo' || first.type === 'collage')
   )
     return [{ ...first, answers }];
   return [
@@ -837,8 +835,7 @@ function arrange(
       const avoid = new Set([previous?.layout, reserved[index + 1]]);
       const at = (step: number) => order[(seen + step) % order.length];
       let step = order.findIndex(
-        (_, offset) =>
-          layoutFits(at(offset), media) && !avoid.has(at(offset)),
+        (_, offset) => layoutFits(at(offset), media) && !avoid.has(at(offset)),
       );
       if (step < 0)
         step = order.findIndex((_, offset) => !avoid.has(at(offset)));

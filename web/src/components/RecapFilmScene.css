@@ -809,3 +809,602 @@
     transform: translate(var(--film-x, 0), var(--film-y, 0)) scale(0.6);
   }
 }
+
+/* Film variety (#1744, Product Owner 2026-11-17): more transitions, accents,
+ * format-aware camera motion and layouts, chosen and frozen per edition.
+ * Every timing derives from motion tokens, so reduced motion stays still. */
+
+/* The crop and the camera follow the photo's most detailed part. */
+.recap-film-picture .story-media-preview,
+.recap-film-picture .recap-film-clip {
+  object-position: var(--film-focus-x, 50%) var(--film-focus-y, 50%);
+  transform-origin: var(--film-focus-x, 50%) var(--film-focus-y, 50%);
+}
+
+/* Pace follows the period's density; a short beat enters faster. */
+.recap-film.recap-spread[data-pace="calm"] {
+  --film-enter: calc(var(--duration-context) * 3.2);
+}
+.recap-film.recap-spread[data-pace="lively"] {
+  --film-enter: calc(var(--duration-context) * 2.2);
+}
+.recap-film.recap-spread[data-beat="short"] {
+  --film-enter: calc(var(--duration-context) * 1.8);
+}
+.recap-film.recap-spread {
+  --film-light: color-mix(in srgb, var(--color-warning) 38%, transparent);
+  --film-depth: 70rem;
+}
+
+/* Photo: a mat, a panorama band and a corner with the day. */
+.recap-film-frame:is([data-layout="mat"], [data-layout="frame"])
+.recap-film-media {
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+.recap-film-frame:is([data-layout="mat"], [data-layout="frame"])
+  .recap-film-picture {
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+.recap-film-frame:is([data-layout="mat"], [data-layout="frame"])
+  .recap-film-picture
+  > * {
+  inset: var(--space-5);
+  inline-size: auto;
+  block-size: auto;
+}
+.recap-film-frame[data-layout="pano"] .recap-film-media {
+  padding: 0;
+  grid-auto-rows: auto;
+  align-content: center;
+}
+.recap-film-frame[data-layout="pano"] .recap-film-picture {
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+}
+.recap-film-frame[data-layout="corner"]
+  .recap-film-media:has(.recap-film-corner-day) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.recap-film-corner-day {
+  align-self: start;
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 18vw, 5.5rem);
+  line-height: 0.9;
+  color: var(--film-accent);
+}
+
+/* Two pictures: a diptych, a crossfade and two scattered prints. */
+.recap-film-frame[data-layout="diptych"] .recap-film-media {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  padding: 0;
+}
+.recap-film-frame[data-layout="diptych"] .recap-film-picture {
+  border-radius: 0;
+}
+.recap-film-frame[data-layout="crossfade"] .recap-film-media {
+  grid-template-areas: "stage";
+}
+.recap-film-frame[data-layout="crossfade"] .recap-film-picture {
+  grid-area: stage;
+}
+.recap-film-frame:is([data-layout="scatter"], [data-layout="stack"])
+  .recap-film-media,
+.recap-film-frame[data-variant="stack"] .recap-film-media {
+  grid-template-areas: "stage";
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+.recap-film-frame:is([data-layout="scatter"], [data-layout="stack"])
+  .recap-film-picture,
+.recap-film-frame[data-variant="stack"] .recap-film-picture {
+  grid-area: stage;
+  inline-size: 66%;
+  block-size: 70%;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+.recap-film-frame:is([data-layout="scatter"], [data-layout="stack"])
+  .recap-film-picture
+  > *,
+.recap-film-frame[data-variant="stack"] .recap-film-picture > * {
+  inset: var(--space-2) var(--space-2) var(--space-6);
+  inline-size: auto;
+  block-size: auto;
+}
+.recap-film-frame[data-layout="scatter"] .recap-film-picture:nth-child(1) {
+  justify-self: start;
+  align-self: start;
+  rotate: -4deg;
+}
+.recap-film-frame[data-layout="scatter"] .recap-film-picture:nth-child(2) {
+  justify-self: end;
+  align-self: end;
+  rotate: 3deg;
+}
+.recap-film-frame[data-layout="scatter"]
+  .recap-film-media[data-count="3"]
+  .recap-film-picture {
+  inline-size: 58%;
+  block-size: 56%;
+}
+.recap-film-frame[data-layout="scatter"]
+  .recap-film-media[data-count="3"]
+  .recap-film-picture:nth-child(2) {
+  align-self: center;
+}
+.recap-film-frame[data-layout="scatter"] .recap-film-picture:nth-child(3) {
+  justify-self: center;
+  align-self: end;
+  rotate: -1.5deg;
+}
+/* A stack lies on itself, the first picture on top. */
+.recap-film-frame:is([data-layout="stack"], [data-variant="stack"])
+.recap-film-picture {
+  place-self: center;
+  inline-size: 72%;
+  block-size: 78%;
+}
+.recap-film-frame:is([data-layout="stack"], [data-variant="stack"])
+  .recap-film-picture:nth-child(1) {
+  z-index: 3;
+  rotate: -2deg;
+}
+.recap-film-frame:is([data-layout="stack"], [data-variant="stack"])
+  .recap-film-picture:nth-child(2) {
+  z-index: 2;
+  rotate: 5deg;
+}
+.recap-film-frame:is([data-layout="stack"], [data-variant="stack"])
+  .recap-film-picture:nth-child(n + 3) {
+  z-index: 1;
+  rotate: -7deg;
+}
+
+/* Three pictures: one large above two small ones. A collage strip reuses the
+ * cover strip's travelling row. */
+.recap-film-frame[data-layout="grid"] .recap-film-media {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 3fr 2fr;
+  gap: var(--space-1);
+  padding: 0;
+}
+.recap-film-frame[data-layout="grid"] .recap-film-picture {
+  border-radius: 0;
+}
+.recap-film-frame[data-layout="grid"] .recap-film-picture:first-child {
+  grid-column: 1 / -1;
+}
+.recap-film-frame[data-layout="strip"]:has([data-scene]) .recap-film-title {
+  font: var(--font-personal-heading);
+}
+
+/* Cover: a split of two pictures; framed and stacked covers share the forms above. */
+.recap-scene-cover .recap-film-frame[data-layout="split"] .recap-film-media {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+}
+.recap-scene-cover
+  .recap-film-frame:is(
+    [data-layout="frame"],
+    [data-layout="stack"],
+    [data-layout="split"]
+  )
+  .recap-film-title {
+  font-size: clamp(2rem, 9vw, 2.75rem);
+}
+
+/* Words: word by word, or under a large opening quote mark. */
+.recap-film-frame[data-layout="reveal"] {
+  text-align: center;
+}
+.recap-film-frame[data-layout="reveal"] .recap-text-link {
+  align-self: center;
+}
+.recap-film-mark {
+  quotes: auto;
+  block-size: 0.55em;
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 26vw, 8rem);
+  line-height: 0.9;
+  color: var(--film-accent);
+}
+.recap-film-mark::before {
+  content: open-quote;
+}
+.recap-film-frame[data-layout="margin"] .recap-film-quoted::before {
+  content: none;
+}
+
+/* Titles between two short rules. */
+.recap-film-frame[data-layout="rule"] {
+  text-align: center;
+}
+.recap-film-frame[data-layout="rule"] .recap-film-caption {
+  align-items: center;
+}
+.recap-film-frame[data-layout="rule"] .recap-film-caption::before,
+.recap-film-frame[data-layout="rule"] .recap-film-caption::after {
+  content: "";
+  inline-size: var(--space-12);
+  block-size: calc(var(--space-1) / 2);
+  border-radius: var(--radius-pill);
+  background: var(--film-accent);
+}
+
+/* Answers on two soft cards. */
+.recap-film-frame[data-layout="cards"] .recap-film-answers li {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--film-tint);
+}
+.recap-film-frame[data-layout="cards"] .recap-film-answers li:nth-child(odd) {
+  margin-inline-end: 10%;
+}
+.recap-film-frame[data-layout="cards"] .recap-film-answers li:nth-child(even) {
+  margin-inline-start: 10%;
+}
+
+/* Places on a postcard, or as a route in the order they were visited. */
+.recap-film-frame[data-layout="postcard"] .recap-film-places {
+  margin: var(--space-6) var(--space-4);
+  border-radius: var(--radius-small);
+  background: var(--film-tint);
+  box-shadow: var(--shadow-raised);
+  rotate: -1.5deg;
+}
+.recap-film-frame[data-layout="route"] .recap-film-places {
+  gap: var(--space-5);
+}
+.recap-film-frame[data-layout="route"] .recap-film-places li {
+  position: relative;
+  padding-inline-start: var(--space-6);
+  font-size: clamp(1.4rem, 7vw, 2rem);
+}
+.recap-film-frame[data-layout="route"] .recap-film-places li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.45em;
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--film-accent);
+}
+.recap-film-frame[data-layout="route"] .recap-film-places li + li::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--space-3) / 2 - var(--space-1) / 4);
+  inset-block-end: calc(100% - 0.45em);
+  block-size: calc(var(--space-5) + 0.6em);
+  border-inline-start: calc(var(--space-1) / 2) dotted var(--film-accent);
+}
+
+/* The counted days count up; assistive technology reads the number once. */
+@property --film-count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+.recap-film-count {
+  --film-count: var(--film-days);
+  counter-reset: film-days var(--film-count);
+}
+.recap-film-count::after {
+  content: counter(film-days);
+}
+.recap-film-frame[data-layout="counter"] .recap-film-fact {
+  text-align: center;
+}
+
+/* Year: the month as a numeral or a stamp; firsts on cards; covers in a
+ * calendar or a travelling strip. */
+.recap-film-numeral {
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 30vw, 9rem);
+  line-height: 0.85;
+  color: transparent;
+  -webkit-text-stroke: calc(var(--space-1) / 2) var(--film-accent);
+}
+.recap-film-frame[data-variant="stamp"] .recap-film-month {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-small);
+  font-size: clamp(2.4rem, 12vw, 3.6rem);
+  color: var(--film-bg);
+  background: var(--film-accent);
+  rotate: -3deg;
+}
+.recap-film-frame[data-variant="stamp"] .recap-film-caption::after {
+  content: none;
+}
+.recap-film-frame[data-variant="cards"] .recap-film-firsts li {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 0;
+  border-radius: var(--radius-card);
+  background: var(--film-tint);
+}
+.recap-film-frame[data-variant="calendar"] .recap-film-cover-month {
+  order: -1;
+  color: var(--film-accent);
+}
+.recap-film-frame[data-variant="calendar"] .recap-film-picture {
+  border-radius: var(--radius-small);
+}
+.recap-film-frame[data-variant="strip"] {
+  container-type: inline-size;
+  overflow: hidden;
+}
+.recap-film-frame[data-variant="strip"] .recap-film-covers {
+  display: flex;
+  inline-size: max-content;
+  max-inline-size: none;
+  overflow: visible;
+}
+.recap-film-frame[data-variant="strip"] .recap-film-cover-tile {
+  flex: 0 0 clamp(6.5rem, 32cqi, 9rem);
+}
+
+/* A fading closing: the highlight lets go, the closing line stays. */
+.recap-film-frame[data-variant="fade"] .recap-film-media {
+  padding-inline: var(--space-8);
+}
+
+/* Variety motion: entrances, accents, camera, beats and the climax. */
+@media (prefers-reduced-motion: no-preference) {
+  .recap-film[data-transition="blinds"].recap-spread {
+    animation-name: recap-film-blinds;
+    -webkit-mask-image: repeating-linear-gradient(
+      to bottom,
+      black 0 var(--film-blind),
+      transparent var(--film-blind) 12.5%
+    );
+    mask-image: repeating-linear-gradient(
+      to bottom,
+      black 0 var(--film-blind),
+      transparent var(--film-blind) 12.5%
+    );
+  }
+  .recap-film[data-transition="split"].recap-spread {
+    animation-name: recap-film-split;
+  }
+  .recap-film[data-transition="flip"].recap-spread {
+    animation-name: recap-film-flip;
+  }
+  .recap-film[data-transition="focus"].recap-spread {
+    animation-name: recap-film-focus;
+  }
+  .recap-film[data-transition="match"].recap-spread {
+    animation-name: recap-film-match;
+  }
+  /* A warm light leak sweeps over the scene as it fades in. */
+  .recap-film[data-transition="light"].recap-spread::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 70% 120% at 30% 40%,
+      var(--film-light),
+      transparent 70%
+    );
+    animation: recap-film-light calc(var(--film-enter) * 1.6)
+      var(--easing-playback) both;
+  }
+  /* A breath before the highlight: the mood colour holds, then opens. */
+  .recap-film[data-climax="true"].recap-spread::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: var(--film-bg);
+    animation: recap-film-breath calc(var(--film-enter) * 1.5)
+      var(--easing-playback) both;
+  }
+  .recap-film[data-motion="pan-up"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-pan-up;
+  }
+  .recap-film[data-motion="pan-down"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-pan-down;
+  }
+  .recap-film[data-motion="diagonal"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-diagonal;
+  }
+  .recap-film[data-motion="breathe"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-breathe;
+  }
+  /* The highlight's camera moves slower and deeper. */
+  .recap-film[data-climax="true"] .recap-film-picture .story-media-preview {
+    animation-name: recap-film-climax;
+  }
+  .recap-film
+    .recap-film-frame[data-layout="crossfade"]
+    .recap-film-media[data-count]
+    > .recap-film-picture:nth-child(2) {
+    animation: recap-film-fade var(--film-enter) var(--easing-playback) both;
+    animation-delay: calc(var(--recap-dwell) / 2);
+  }
+  .recap-film-caption > .recap-film-reveal {
+    animation: none;
+  }
+  .recap-film-reveal > span {
+    animation: recap-film-word var(--film-enter) var(--easing-enter) both;
+    animation-delay: calc(
+      var(--duration-sequence-beat) *
+      (1 + var(--film-i, 0) * 0.45)
+    );
+  }
+  .recap-film-count {
+    animation: recap-film-count calc(var(--film-enter) * 1.6)
+      var(--easing-enter) both;
+  }
+  .recap-film-numeral {
+    animation: recap-film-rise var(--film-enter) var(--easing-enter) both;
+  }
+  .recap-film-frame[data-variant="strip"] .recap-film-covers {
+    animation: recap-film-covers-travel
+      calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
+      both;
+    animation-play-state: paused;
+  }
+  .recap-reader[data-playing="true"]
+    .recap-film-frame[data-variant="strip"]
+    .recap-film-covers {
+    animation-play-state: running;
+  }
+  .recap-film
+    .recap-film-frame[data-variant="fade"]
+    .recap-film-media[data-count]
+    > .recap-film-picture {
+    animation: recap-film-let-go var(--recap-dwell) var(--easing-playback) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Without motion, both crossfade pictures stay visible side by side. */
+  .recap-film-frame[data-layout="crossfade"] .recap-film-media {
+    grid-template-areas: none;
+    grid-template-columns: 1fr 1fr;
+  }
+  .recap-film-frame[data-layout="crossfade"] .recap-film-picture {
+    grid-area: auto;
+  }
+  /* Without travel, the covers strip keeps the calm grid. */
+  .recap-film-frame[data-variant="strip"] .recap-film-covers {
+    display: grid;
+    inline-size: 100%;
+    max-inline-size: 34rem;
+  }
+}
+@property --film-blind {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 12.5%;
+}
+@keyframes recap-film-blinds {
+  from {
+    --film-blind: 0%;
+  }
+}
+@keyframes recap-film-split {
+  from {
+    clip-path: inset(0 50%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes recap-film-flip {
+  from {
+    opacity: 0;
+    transform: perspective(var(--film-depth)) rotateY(-70deg);
+  }
+}
+@keyframes recap-film-focus {
+  from {
+    filter: blur(12px);
+    transform: scale(1.04);
+  }
+}
+@keyframes recap-film-match {
+  from {
+    clip-path: inset(18% 14% round var(--radius-media));
+    transform: scale(0.96);
+  }
+  to {
+    clip-path: inset(0 round 0);
+  }
+}
+@keyframes recap-film-light {
+  from {
+    opacity: 0;
+    transform: translateX(-40%);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(45%);
+  }
+}
+@keyframes recap-film-breath {
+  from,
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes recap-film-pan-up {
+  from {
+    transform: translateY(3%) scale(1.08);
+  }
+  to {
+    transform: translateY(-3%) scale(1.08);
+  }
+}
+@keyframes recap-film-pan-down {
+  from {
+    transform: translateY(-3%) scale(1.08);
+  }
+  to {
+    transform: translateY(3%) scale(1.08);
+  }
+}
+@keyframes recap-film-diagonal {
+  from {
+    transform: translate(-2%, 2%) scale(1.06);
+  }
+  to {
+    transform: translate(2%, -2%) scale(1.1);
+  }
+}
+@keyframes recap-film-breathe {
+  50% {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.025);
+  }
+}
+@keyframes recap-film-climax {
+  from {
+    transform: scale(1.01);
+  }
+  to {
+    transform: scale(1.14);
+  }
+}
+@keyframes recap-film-word {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+@keyframes recap-film-count {
+  from {
+    --film-count: 0;
+  }
+}
+@keyframes recap-film-covers-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(min(0px, calc(100cqi - 100%)));
+  }
+}
+@keyframes recap-film-let-go {
+  from,
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}

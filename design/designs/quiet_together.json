@@ -1,8 +1,8 @@
 {
-  "$description": "Zu zweit: a Pro design. Calm mauve-grey colours across the app; on Wir your two names joined by a line.",
+  "$description": "Zu zweit: a Pro design. Calm mauve-grey colours across the app; on Wir your names set large without portraits, the latest moment as a small row and the add action beside it.",
   "id": "quiet_together",
   "tier": "pro",
-  "layout": "connected",
+  "layout": "names",
   "color": {
     "light": {
       "page": "#F8F6F7",

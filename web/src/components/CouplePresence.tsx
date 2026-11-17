@@ -48,6 +48,10 @@ export interface CouplePresenceProps {
   eyebrow?: string;
   detailsFirst?: boolean;
   titleAction?: ReactNode;
+  /** Content between the people and the details (the note layout). */
+  feature?: ReactNode;
+  /** Set the two first names on their own lines (the names layout). */
+  stackNames?: boolean;
   className?: string;
 }
 
@@ -77,6 +81,8 @@ export function CouplePresence({
   eyebrow,
   detailsFirst = false,
   titleAction,
+  feature,
+  stackNames = false,
   className = '',
 }: CouplePresenceProps) {
   const { t } = useTranslation();
@@ -160,7 +166,19 @@ export function CouplePresence({
     <div className="couple-presence-details">
       {eyebrow ? <p className="couple-presence-eyebrow">{eyebrow}</p> : null}
       <HeadingTag id={titleId} className="couple-presence-title">
-        {presenceTitle}
+        {stackNames && secondaryFirstName ? (
+          <>
+            <span>{primaryFirstName}</span>{' '}
+            <span>
+              <span className="couple-presence-joiner">
+                {t('wirDesign.nameJoiner')}
+              </span>{' '}
+              {secondaryFirstName}
+            </span>
+          </>
+        ) : (
+          presenceTitle
+        )}
       </HeadingTag>
 
       {titleAction}
@@ -240,6 +258,7 @@ export function CouplePresence({
     >
       <div className="couple-presence-main">
         {detailsFirst ? details : avatars}
+        {feature}
         {detailsFirst ? avatars : details}
       </div>
     </section>

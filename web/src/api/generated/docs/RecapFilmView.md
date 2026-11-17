@@ -1,11 +1,7 @@
 
 # RecapFilmView
 
-The frozen look of a recap film, from a fixed catalogue of design variants.
- *
- * Names map to design tokens in the reader. Selection scores and reasons are
- * deliberately not part of the contract. A year film lists the highlight of
- * every month chapter; a monthly film lists none.
+The frozen look of a recap film, from a fixed catalogue of design variants.  Names map to design tokens in the reader. Selection scores and reasons are deliberately not part of the contract. A year film lists the highlight of every month chapter; a monthly film lists none.
 
 ## Properties
 

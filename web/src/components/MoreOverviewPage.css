@@ -366,6 +366,28 @@
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
 }
+/* On the settings overview a group is one raised surface; its rows are
+   separated by hairlines instead of each being its own card. */
+.product-main[data-area="more"] .settings-index .settings-category-list {
+  display: grid;
+  overflow: hidden;
+  gap: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+.product-main[data-area="more"]
+  .settings-index
+  .settings-category-list
+  > li
+  + li {
+  border-top: 1px solid var(--color-border-subtle);
+}
+.product-main[data-area="more"] .settings-index .settings-category-link {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0;
+  background: transparent;
+}
 .product-main[data-area="more"] .settings-category-content > .settings-section,
 .product-main[data-area="more"] .settings-category-content > .form-card {
   padding: var(--space-4);

@@ -6,7 +6,7 @@
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;StoryLifelineEntry&gt;](StoryLifelineEntry.md)
+`items` | [Array&lt;DashboardItem&gt;](DashboardItem.md)
 `total` | number
 
 ## Example

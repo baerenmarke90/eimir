@@ -239,7 +239,7 @@ def test_lifeline_entries_list_only_shared_past_entries_of_the_range_in_order(
     milestone = Milestone(
         **shared(context),
         happened_on=date(2026, 10, 6),
-        payload=MilestonePayload(title="Moved in together", body="  The keys,\n finally. "),
+        payload=MilestonePayload(title="Moved in together"),
     )
     first_memory = Memory(
         **shared(context),
@@ -282,16 +282,13 @@ def test_lifeline_entries_list_only_shared_past_entries_of_the_range_in_order(
         assert result.headers["Cache-Control"] == "private, no-store"
         value = result.json()
         assert value["total"] == 3
-        assert [
-            (entry["item"]["type"], entry["item"]["titleOrText"], entry["excerpt"])
-            for entry in value["items"]
-        ] == [
-            ("MEMORY", "Monday walk", "Along the river"),
-            ("MILESTONE", "Moved in together", "The keys, finally."),
-            ("HEART_MOMENT", "A shared feeling", None),
+        assert [(item["type"], item["titleOrText"]) for item in value["items"]] == [
+            ("MEMORY", "Monday walk"),
+            ("MILESTONE", "Moved in together"),
+            ("HEART_MOMENT", "A shared feeling"),
         ]
-        assert value["items"][0]["item"]["id"] == str(first_memory.id)
-        assert value["items"][0]["item"]["previewAttachmentId"] is None
+        assert value["items"][0]["id"] == str(first_memory.id)
+        assert value["items"][0]["previewAttachmentId"] is None
         assert "Only mine" not in result.text
         assert "Another couple" not in result.text
 
@@ -324,7 +321,7 @@ def test_lifeline_entries_stop_at_today_and_are_bounded(client, session, context
     session.flush()
     value = lifeline_entries(client, context, start="2026-10-19", end="2026-11-02").json()
     assert value["total"] == 4
-    assert [entry["item"]["titleOrText"] for entry in value["items"]] == ["Day 0", "Day 1"]
+    assert [item["titleOrText"] for item in value["items"]] == ["Day 0", "Day 1"]
 
     empty = lifeline_entries(client, context, start="2026-11-02", end="2026-11-09")
     assert empty.status_code == 200

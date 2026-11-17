@@ -77,16 +77,10 @@ class StoryLifelineView(ApiModel):
     weeks: list[StoryLifelineWeek]
 
 
-class StoryLifelineEntry(ApiModel):
-    item: DashboardItem
-    excerpt: str | None = None
-    """A short plain-text excerpt of the entry's own text, when it has one."""
-
-
 class StoryLifelineEntriesView(ApiModel):
     total: int
     """How many shared entries the range holds; ``items`` holds at most a bounded part."""
-    items: list[StoryLifelineEntry]
+    items: list[DashboardItem]
 
 
 class DashboardAnticipation(ApiModel):
@@ -491,10 +485,7 @@ def get_story_lifeline_entries(
     response.headers["Cache-Control"] = "private, no-store"
     return StoryLifelineEntriesView(
         total=entries.total,
-        items=[
-            StoryLifelineEntry(item=_project_item(entry.item), excerpt=entry.excerpt)
-            for entry in entries.items
-        ],
+        items=[_project_item(item) for item in entries.items],
     )
 
 

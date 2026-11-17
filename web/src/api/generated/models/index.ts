@@ -459,7 +459,6 @@ export * from './StoryHeartMomentItem';
 export * from './StoryItem';
 export * from './StoryKind';
 export * from './StoryLifelineEntriesView';
-export * from './StoryLifelineEntry';
 export * from './StoryLifelineView';
 export * from './StoryLifelineWeek';
 export * from './StoryMemoryItem';

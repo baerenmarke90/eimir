@@ -210,19 +210,11 @@ class StoryLifeline:
 
 
 @dataclass(frozen=True)
-class LifelineEntry:
-    """One shared Story entry of a lifeline period, with a short excerpt."""
-
-    item: DashboardItem
-    excerpt: str | None = None
-
-
-@dataclass(frozen=True)
 class StoryLifelineEntries:
     """The entries behind one lifeline column, oldest first."""
 
     total: int
-    items: list[LifelineEntry]
+    items: list[DashboardItem]
 
 
 _LIFELINE_HIGHLIGHT_PREFERENCE: dict[story_service.StoryKind, int] = {
@@ -287,13 +279,7 @@ def read_story_lifeline(
                 memories=sum(row.kind == story_service.StoryKind.MEMORY for row in rows),
                 heart_moments=sum(row.kind == story_service.StoryKind.HEART_MOMENT for row in rows),
                 milestones=sum(row.kind == story_service.StoryKind.MILESTONE for row in rows),
-                highlight=highlights.get(representative.id)
-                or DashboardItem(
-                    type=DashboardItemType(representative.kind.value),
-                    id=representative.id,
-                    occurred_on=representative.effective_date,
-                    created_at=representative.created_at,
-                ),
+                highlight=highlights.get(representative.id) or _lifeline_fallback(representative),
             )
         )
     return StoryLifeline(starts_on=starts_on, today=today, weeks=weeks)
@@ -336,10 +322,10 @@ def read_story_lifeline_entries(
         session, authorization, through=through, since=starts_on
     )
     shown = rows[:LIFELINE_ENTRIES_LIMIT]
-    entries = _lifeline_entries(session, authorization, shown)
+    loaded = _lifeline_highlights(session, authorization, shown)
     return StoryLifelineEntries(
         total=len(rows),
-        items=[entries.get(row.id) or LifelineEntry(item=_lifeline_fallback(row)) for row in shown],
+        items=[loaded.get(row.id) or _lifeline_fallback(row) for row in shown],
     )
 
 
@@ -358,22 +344,10 @@ def _lifeline_highlights(
     rows: list[story_service.StoryRow],
 ) -> dict[UUID, DashboardItem]:
     """Load the displayed entries in one batch per Story type."""
-    return {
-        entry_id: entry.item
-        for entry_id, entry in _lifeline_entries(session, authorization, rows).items()
-    }
-
-
-def _lifeline_entries(
-    session: Session,
-    authorization: AuthorizationContext,
-    rows: list[story_service.StoryRow],
-) -> dict[UUID, LifelineEntry]:
-    """Load lifeline entries in one batch per Story type, with an excerpt."""
     ids: dict[story_service.StoryKind, list[UUID]] = defaultdict(list)
     for row in rows:
         ids[row.kind].append(row.id)
-    entries: dict[UUID, LifelineEntry] = {}
+    highlights: dict[UUID, DashboardItem] = {}
 
     memory_ids = ids[story_service.StoryKind.MEMORY]
     if memory_ids:
@@ -388,22 +362,17 @@ def _lifeline_entries(
                 galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
             )
             ready = preview is not None and preview.status == AttachmentStatus.READY
-            entries[memory.id] = LifelineEntry(
-                item=DashboardItem(
-                    type=DashboardItemType.MEMORY,
-                    id=memory.id,
-                    title_or_text=_bounded(memory.payload.title),
-                    occurred_on=memory.happened_on,
-                    created_at=memory.created_at,
-                    preview_attachment_id=preview.id if ready and preview is not None else None,
-                    preview_is_sensitive=bool(
-                        ready and preview is not None and preview.payload.is_sensitive
-                    ),
-                    preview_has_thumbnail=bool(
-                        ready and preview is not None and preview.has_thumbnail
-                    ),
+            highlights[memory.id] = DashboardItem(
+                type=DashboardItemType.MEMORY,
+                id=memory.id,
+                title_or_text=_bounded(memory.payload.title),
+                occurred_on=memory.happened_on,
+                created_at=memory.created_at,
+                preview_attachment_id=preview.id if ready and preview is not None else None,
+                preview_is_sensitive=bool(
+                    ready and preview is not None and preview.payload.is_sensitive
                 ),
-                excerpt=_excerpt(memory.payload.body),
+                preview_has_thumbnail=bool(ready and preview is not None and preview.has_thumbnail),
             )
 
     heart_moment_ids = ids[story_service.StoryKind.HEART_MOMENT]
@@ -414,15 +383,12 @@ def _lifeline_entries(
                 HeartMoment.id.in_(heart_moment_ids),
             )
         ).scalars():
-            # The text is the Heart Moment itself and already its title.
-            entries[heart_moment.id] = LifelineEntry(
-                item=DashboardItem(
-                    type=DashboardItemType.HEART_MOMENT,
-                    id=heart_moment.id,
-                    title_or_text=_bounded(heart_moment.payload.text),
-                    occurred_on=heart_moment.happened_on,
-                    created_at=heart_moment.created_at,
-                )
+            highlights[heart_moment.id] = DashboardItem(
+                type=DashboardItemType.HEART_MOMENT,
+                id=heart_moment.id,
+                title_or_text=_bounded(heart_moment.payload.text),
+                occurred_on=heart_moment.happened_on,
+                created_at=heart_moment.created_at,
             )
 
     milestone_ids = ids[story_service.StoryKind.MILESTONE]
@@ -430,17 +396,14 @@ def _lifeline_entries(
         for milestone in session.execute(
             readable(Milestone, authorization).where(Milestone.id.in_(milestone_ids))
         ).scalars():
-            entries[milestone.id] = LifelineEntry(
-                item=DashboardItem(
-                    type=DashboardItemType.MILESTONE,
-                    id=milestone.id,
-                    title_or_text=_bounded(milestone.payload.title),
-                    occurred_on=milestone.happened_on,
-                    created_at=milestone.created_at,
-                ),
-                excerpt=_excerpt(milestone.payload.body),
+            highlights[milestone.id] = DashboardItem(
+                type=DashboardItemType.MILESTONE,
+                id=milestone.id,
+                title_or_text=_bounded(milestone.payload.title),
+                occurred_on=milestone.happened_on,
+                created_at=milestone.created_at,
             )
-    return entries
+    return highlights
 
 
 def read_anticipation(
@@ -1171,11 +1134,3 @@ def _bounded(value: str | None) -> str | None:
     if value is None:
         return None
     return value[:MAX_RECOGNITION_TEXT]
-
-
-def _excerpt(value: str | None) -> str | None:
-    """A short, whitespace-normalized excerpt, or nothing for an empty text."""
-    if value is None:
-        return None
-    text = " ".join(value.split())
-    return text[:MAX_RECOGNITION_TEXT] or None

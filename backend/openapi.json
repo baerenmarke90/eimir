@@ -16846,7 +16846,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/StoryLifelineEntry"
+              "$ref": "#/components/schemas/DashboardItem"
             },
             "title": "Items",
             "type": "array"
@@ -16861,29 +16861,6 @@
           "items"
         ],
         "title": "StoryLifelineEntriesView",
-        "type": "object"
-      },
-      "StoryLifelineEntry": {
-        "properties": {
-          "excerpt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Excerpt"
-          },
-          "item": {
-            "$ref": "#/components/schemas/DashboardItem"
-          }
-        },
-        "required": [
-          "item"
-        ],
-        "title": "StoryLifelineEntry",
         "type": "object"
       },
       "StoryLifelineView": {

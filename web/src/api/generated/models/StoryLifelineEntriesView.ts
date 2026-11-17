@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { StoryLifelineEntry } from './StoryLifelineEntry';
+import type { DashboardItem } from './DashboardItem';
 import {
-    StoryLifelineEntryFromJSON,
-    StoryLifelineEntryFromJSONTyped,
-    StoryLifelineEntryToJSON,
-    StoryLifelineEntryToJSONTyped,
-} from './StoryLifelineEntry';
+    DashboardItemFromJSON,
+    DashboardItemFromJSONTyped,
+    DashboardItemToJSON,
+    DashboardItemToJSONTyped,
+} from './DashboardItem';
 
 /**
  * 
@@ -29,10 +29,10 @@ import {
 export interface StoryLifelineEntriesView {
     /**
      * 
-     * @type {Array<StoryLifelineEntry>}
+     * @type {Array<DashboardItem>}
      * @memberof StoryLifelineEntriesView
      */
-    items: Array<StoryLifelineEntry>;
+    items: Array<DashboardItem>;
     /**
      * 
      * @type {number}
@@ -60,7 +60,7 @@ export function StoryLifelineEntriesViewFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
-        'items': ((json['items'] as Array<any>).map(StoryLifelineEntryFromJSON)),
+        'items': ((json['items'] as Array<any>).map(DashboardItemFromJSON)),
         'total': json['total'],
     };
 }
@@ -76,7 +76,7 @@ export function StoryLifelineEntriesViewToJSONTyped(value?: StoryLifelineEntries
 
     return {
         
-        'items': ((value['items'] as Array<any>).map(StoryLifelineEntryToJSON)),
+        'items': ((value['items'] as Array<any>).map(DashboardItemToJSON)),
         'total': value['total'],
     };
 }

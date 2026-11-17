@@ -93,7 +93,7 @@ describe('IdentityEntry providers and passkeys', () => {
           GOOGLE,
           {
             id: 'pocket',
-            provider: 'generic',
+            brand: 'generic',
             label: 'Pocket ID',
             nativeAvailable: false,
           },

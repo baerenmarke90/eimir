@@ -24,6 +24,13 @@ const storyProducts = {
       hint: 'Kleine Vorschaubilder auf einer ruhigen Zeitleiste.',
     },
   },
+  // Momente > Erinnerungen keepsakes in the Album design.
+  discoverKeepsakes: {
+    from: 'Von {{name}}',
+    openInFull: 'Ganz ansehen',
+    envelopeName: '{{kind}} von {{name}}, {{emotion}}, {{date}}',
+    itemName: '{{kind}}: {{title}}, {{date}}',
+  },
   storyFilters: {
     title: 'Filter',
     aria: 'Story filtern und sortieren',

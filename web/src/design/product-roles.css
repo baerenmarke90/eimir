@@ -26,6 +26,9 @@
   --color-story-heart-moment: #9b2f6a;
   --color-story-milestone: #2e7d45;
   --color-story-surface: #f3f5fc;
+  --color-story-paper: #fffdf9;
+  --color-story-paper-line: #e4dce6;
+  --color-story-tape: #e2cda8b3;
   --font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif;
   --tracking-page-heading: -0.015em;
   --font-personal-heading: 600 1.75rem / 1.2 "Literata", "Georgia", serif;
@@ -131,6 +134,7 @@
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --easing-playback: cubic-bezier(0, 0, 1, 1);
   --easing-travel: cubic-bezier(0.45, 0, 0.55, 1);
+  --easing-settle: cubic-bezier(0.34, 1.4, 0.64, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
   --color-action-primary: #3055b8;
@@ -145,6 +149,9 @@
   --color-story-heart-moment: #f6c9e1;
   --color-story-milestone: #86db9c;
   --color-story-surface: #303751;
+  --color-story-paper: #35303d;
+  --color-story-paper-line: #4d4757;
+  --color-story-tape: #c9b48f59;
   --color-link-text: #b7c8ff;
   --color-action-primary: #354778;
   --color-on-action-primary: #ffffff;
@@ -159,6 +166,9 @@
     --color-story-heart-moment: #f6c9e1;
     --color-story-milestone: #86db9c;
     --color-story-surface: #303751;
+    --color-story-paper: #35303d;
+    --color-story-paper-line: #4d4757;
+    --color-story-tape: #c9b48f59;
     --color-link-text: #b7c8ff;
     --color-action-primary: #354778;
     --color-on-action-primary: #ffffff;

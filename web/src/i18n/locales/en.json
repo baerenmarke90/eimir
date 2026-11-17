@@ -4891,6 +4891,12 @@
       "hint": "Small previews on a calm timeline."
     }
   },
+  "discoverKeepsakes": {
+    "from": "From {{name}}",
+    "openInFull": "View in full",
+    "envelopeName": "{{kind}} from {{name}}, {{emotion}}, {{date}}",
+    "itemName": "{{kind}}: {{title}}, {{date}}"
+  },
   "storyFilters": {
     "title": "Filters",
     "aria": "Filter and sort story",

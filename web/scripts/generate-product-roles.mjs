@@ -82,6 +82,10 @@ const storyColors = [
   ['heart-moment', 'storyHeartMoment'],
   ['milestone', 'storyMilestone'],
   ['surface', 'storySurface'],
+  // Discover keepsakes (photo prints, note slips, tape) sit on paper.
+  ['paper', 'storyPaper'],
+  ['paper-line', 'storyPaperLine'],
+  ['tape', 'storyTape'],
 ];
 function storyColorDeclarations(scheme, indent = '  ') {
   return storyColors
@@ -217,7 +221,14 @@ declare(
   'duration-connection-travel-far',
   value('motion.duration.connectionTravelFar'),
 );
-for (const role of ['standard', 'enter', 'exit', 'playback', 'travel']) {
+for (const role of [
+  'standard',
+  'enter',
+  'exit',
+  'playback',
+  'travel',
+  'settle',
+]) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,

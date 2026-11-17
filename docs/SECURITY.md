@@ -243,10 +243,37 @@ never causes an account merge: it is adopted only if the provider explicitly
 confirms `email_verified=true` and the address does not already belong to
 another account.
 
+On eimir. Cloud a person may also create a new Account through a provider
+without an invitation (#58). The start request must say so (`signup`) and carry
+the accepted terms-of-use version, which is stored with the short-lived
+authentication request; the callback never invents an acceptance. The provider
+must mark the address as verified, the administrator must admit new Accounts,
+and an address that already has an Account is refused with
+`OIDC_ADDRESS_ALREADY_REGISTERED` instead of being merged. A callback without
+the signup intent never creates an Account. The public instance status lists
+only the connection `id`, a presentation hint and whether a native callback is
+registered; issuer, client identity and addresses stay in configuration.
+
+An Account lists its passkeys and linked providers (`GET /auth/sign-in-methods`)
+and may remove any of them. A removal that would leave no way to sign in is
+refused with `SIGN_IN_METHOD_LAST`; the remaining ways are a verified primary
+address where mail exists, a local password where it is allowed, another
+passkey, or another provider that is still configured. Removals for one Account
+serialize on a lock so two simultaneous removals cannot both pass the check.
+
 Provider error text never leaves the adapter because it may contain internal
 addresses or the client secret. Externally, errors remain the stable codes
 `OIDC_TOKEN_INVALID`, `OIDC_STATE_INVALID`, `OIDC_PROVIDER_UNREACHABLE`,
-`OIDC_NO_ACCOUNT`, and `OIDC_IDENTITY_ALREADY_LINKED`.
+`OIDC_NO_ACCOUNT`, `OIDC_IDENTITY_ALREADY_LINKED`, `OIDC_EMAIL_NOT_VERIFIED`, and
+`OIDC_ADDRESS_ALREADY_REGISTERED`.
+
+In the Android app a provider returns through a verified App Link on the
+configured origin and the passkey ceremony runs through Credential Manager. A
+ceremony started by the native app carries the origin
+`android:apk-key-hash:<signing certificate hash>`; the server accepts it only
+when the operator lists it in `EIMIR_WEBAUTHN_ORIGINS`, and the relying party
+trusts the app only through Digital Asset Links (`get_login_creds`). The app
+forwards the platform's WebAuthn JSON unchanged and never interprets it.
 
 Passkeys are stored as independent WebAuthn credentials with globally unique
 credential ID, public key, signature counter, AAGUID, transports, and

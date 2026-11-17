@@ -1,7 +1,7 @@
 """Add the owner's sharing precision to partner location consents (#1792, PO 2026-11-17).
 
-Revision ID: 0154
-Revises: 0153
+Revision ID: 0157
+Revises: 0156
 """
 
 from __future__ import annotations
@@ -9,8 +9,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0154"
-down_revision = "0153"
+revision = "0157"
+down_revision = "0156"
 branch_labels = None
 depends_on = None
 

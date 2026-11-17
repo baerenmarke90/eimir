@@ -851,8 +851,9 @@
   .recap-film-picture
   > * {
   inset: var(--space-5);
-  inline-size: auto;
-  block-size: auto;
+  /* A picture keeps its natural size under insets; size it explicitly. */
+  inline-size: calc(100% - 2 * var(--space-5));
+  block-size: calc(100% - 2 * var(--space-5));
 }
 .recap-film-frame[data-layout="pano"] .recap-film-media {
   padding: 0;
@@ -912,8 +913,8 @@
   > *,
 .recap-film-frame[data-variant="stack"] .recap-film-picture > * {
   inset: var(--space-2) var(--space-2) var(--space-6);
-  inline-size: auto;
-  block-size: auto;
+  inline-size: calc(100% - 2 * var(--space-2));
+  block-size: calc(100% - var(--space-2) - var(--space-6));
 }
 .recap-film-frame[data-layout="scatter"] .recap-film-picture:nth-child(1) {
   justify-self: start;
@@ -1005,11 +1006,14 @@
   align-self: center;
 }
 .recap-film-mark {
+  /* The mark keeps its own line, so a low or high quote never touches the words. */
+  display: block;
   quotes: auto;
-  block-size: 0.55em;
+  block-size: 1em;
+  overflow: hidden;
   font-family: var(--font-display);
-  font-size: clamp(5rem, 26vw, 8rem);
-  line-height: 0.9;
+  font-size: clamp(4rem, 20vw, 6rem);
+  line-height: 1;
   color: var(--film-accent);
 }
 .recap-film-mark::before {
@@ -1109,6 +1113,9 @@
   color: transparent;
   -webkit-text-stroke: calc(var(--space-1) / 2) var(--film-accent);
 }
+.recap-film-caption > .recap-film-numeral {
+  margin-block-end: var(--space-3);
+}
 .recap-film-frame[data-variant="stamp"] .recap-film-month {
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-small);
@@ -1127,7 +1134,8 @@
   background: var(--film-tint);
 }
 .recap-film-frame[data-variant="calendar"] .recap-film-cover-month {
-  order: -1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--film-accent);
 }
 .recap-film-frame[data-variant="calendar"] .recap-film-picture {
@@ -1149,6 +1157,7 @@
 
 /* A fading closing: the highlight lets go, the closing line stays. */
 .recap-film-frame[data-variant="fade"] .recap-film-media {
+  grid-template-columns: minmax(0, 1fr);
   padding-inline: var(--space-8);
 }
 

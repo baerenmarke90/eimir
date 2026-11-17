@@ -479,8 +479,8 @@
     },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18,
-      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, the Momente entry with its redirects from the former More addresses, the monthly film's scene layouts with caption/picture separation, reflow and axe at 390 Light, 430 Dark and 1280 Dark, and the year film's month chapters, firsts, climax, cover montage and chapter progress in the browser and the native container for #1744."
+      "baselineTests": 23,
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, the Momente entry with its redirects from the former More addresses, the monthly film's scene layouts with caption/picture separation, reflow and axe at 390 Light, 430 Dark and 1280 Dark, and the year film's month chapters, firsts, climax, cover montage and chapter progress in the browser and the native container, and the film variety's frozen forms, accents caught mid-flight and year forms with caption/picture separation, reflow and axe for #1744."
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",

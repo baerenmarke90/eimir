@@ -86,6 +86,7 @@
         "web/src/client/recaps.ts",
         "web/src/client/recapFilm.ts",
         "web/src/components/RecapFilmScene.tsx",
+        "web/src/components/RecapFilmScene.css",
         "web/src/client/useStoryPlayback.ts",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",

@@ -297,7 +297,7 @@ the scrim), no horizontal overflow and no axe violation in the reader.
 | Photo (full-bleed caption) | [04](evidence/recaps-film-04-390-light.png) | [04](evidence/recaps-film-04-430-dark.png) | [04](evidence/recaps-film-04-1280-dark.png) |
 | Photo with both answers | [05](evidence/recaps-film-05-390-light.png) | | |
 | Milestone (stamp) | [06](evidence/recaps-film-06-390-light.png) | | |
-| Highlight (overlapping duo) | [07](evidence/recaps-film-07-390-light.png) | | |
+| Highlight (collage of three pictures, since the film variety) | [07](evidence/recaps-film-07-390-light.png) | | |
 | Words (centered) | [08](evidence/recaps-film-08-390-light.png) | | |
 | Chapter (band) | [09](evidence/recaps-film-09-390-light.png) | | |
 | Tags of the month | [10](evidence/recaps-film-10-390-light.png) | [10](evidence/recaps-film-10-430-dark.png) | [10](evidence/recaps-film-10-1280-dark.png) |
@@ -412,3 +412,153 @@ Not performed: captures of transitions and motions in flight, a large-text
 capture of the year scenes, a full twelve-month browser fixture (the
 PostgreSQL integration test covers twelve months), and Android device
 acceptance.
+
+## The film variety (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: the monthly and yearly films need far
+more animations, transitions and presentation logic, and must feel clean and
+well made throughout. "Choices" means **automatisms, not settings**: the app
+itself picks the most beautiful moments and stages them attractively. No option
+or setting reaches the couple. The Product Owner approved the plan below in chat
+without a preview; the synthetic browser captures below are the
+review evidence. The baseline was this stack's base
+`claude/recap-year-film-6b7fbd@94608eb42` (PR #2019).
+
+### Catalogue (server `recaps/film.py`, reader `recapFilm.ts`)
+
+- **Transitions:** twelve pair transitions (fade, slide, rise, zoom, iris, wipe,
+  shift, blur, and new: blinds, split, flip, focus pull), 132 ordered pairs.
+  Each look also freezes three **accents**: the first opens the highlight (a
+  warm light leak is reserved for it), the others join photo runs, including a
+  **match cut** that grows the next picture out of the previous frame. A real
+  shared-element morph across scenes was ruled out: scenes remount, so it would
+  stutter.
+- **Camera motion:** nine paths in three families. Portraits move vertically
+  (pan up, pan down, parallax), landscapes horizontally (drift left/right,
+  diagonal), and neutral paths fit both (zoom in/out, breathe). Each look
+  freezes two of each orientation and one neutral path.
+- **Layouts:** photo (+ mat, panorama band, corner with the day), two pictures
+  (+ diptych, crossfade, scattered prints), **collage** for three pictures of a
+  moment (grid, scattered prints, travelling strip), words (+ word by word,
+  large quote mark), titles (+ between two rules), answers (+ soft cards),
+  Places (+ postcard, route in visiting order without a map), counted days (+
+  counting up), year forms (month as numeral or stamp, firsts as cards, covers
+  as calendar or travelling strip) and three closings (tiles, polaroid stack,
+  fade). Covers: + frame, stack and split.
+
+### Staging from the material (deterministic, no model)
+
+- **Format and crop:** the stored thumbnail gives each curated picture a format
+  (portrait, landscape, square) and a crop centre: the centre of its edge energy
+  (where the photo has the most detail), damped and bounded to 30-70 % so a
+  subject is never pushed to the edge. Layouts and camera paths follow the
+  format; the crop and the camera's origin follow the centre.
+- **Mood from the photos:** the mean light and colour of the film's photos (the
+  highlight counts twice) gives a tone (dark, warm, cool, green, bright). The
+  mood leans towards it (for example dark photos towards night or ink), but only
+  among the moods the five-edition rule leaves free.
+- **Cover:** the highlight's best photo first, then one picture per day with
+  alternating formats; the cover form fits the pictures there are (a strip needs
+  three, a split two; a film without pictures uses the type cover).
+- **Pace:** frozen from the number of chosen moments: calm up to four (month)
+  or fourteen (year), lively from nine or twenty-eight. Picture time scales by
+  1.15 or 0.85; the couple's words keep their full reading time.
+- **Beat:** a run of three or more plain picture scenes plays long-short-short-
+  long, with quicker entrances on the short beats.
+- **Climax:** a held breath in the mood colour, then the highlight's accent, the
+  most generous form that suits its pictures (full bleed, overlap or collage
+  grid) and a slower, deeper camera move.
+- **No repetition:** within a film no neighbouring scenes share a layout or a
+  camera path, no transition plays three times in a row, and two collages in a
+  row become a collage and a pair. Across editions the existing rules stay, and
+  the highlight's accent and the closing form do not return within three
+  consecutive editions.
+- **Calm finish:** a fading closing lets the highlight go into the mood colour
+  above the closing line.
+
+### Contract and compatibility
+
+- Additive and optional: `film.accents`, `film.pace`, and per curated picture
+  `shape`, `focusX`, `focusY`. Nothing else is served: tone, light, sharpness,
+  hashes, scores and selection reasons stay on the server and are never stored.
+- Frozen editions stay readable: a look without accents or pace plays its pair
+  and an even pace, layouts and scene types it lacks use the established first
+  form (line marker, timeline, grid covers, tiles), and every unknown name falls
+  back to fade, the type's first known layout, zoom-in or the mosaic cover.
+- The arrangement is reader logic, so an existing edition now also benefits:
+  three pictures of one moment play as a collage and its highlight takes the
+  most generous form. The frozen names themselves never change.
+
+### Mobile Interaction Contract (film variety)
+
+Unchanged from the monthly and year film: watch in one sitting, a real photo or
+the couple's own words as focal point, play/pause as the single dominant action,
+captions never under a picture (full-bleed captions keep the strong scrim). All
+timings derive from motion tokens; under reduced motion entrances, accents, the
+breath, camera paths, the word-by-word reveal, the counter and the covers strip
+stop, a crossfade shows both pictures side by side and the covers strip keeps
+the calm grid. Decorative marks (the large quote mark, the month numeral, the
+corner day and the counting digits) are hidden from assistive technology, which
+reads the real text once. Browser-only arrows stay hidden in the native runtime.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** Pillow statistics on the existing thumbnails (no new dependency),
+  CSS registered custom properties for the blinds and the counter, container
+  query units for the covers strip, and the existing reader, playback and
+  motion tokens. Colour and saliency libraries (ColorThief, OpenCV saliency)
+  were considered and are not needed for a mean colour and an edge centroid.
+- **Business/freemium impact reviewed:** the same Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)"; no tier, quota or
+  entitlement change; identical on Cloud and Self-Hosted. Colour and focus come
+  from the same thumbnail read as the quality measures, so worker cost stays
+  bounded; no inference.
+- **Privacy:** format and crop centre are presentation hints of already curated,
+  authorized pictures and live in the protected edition payload; derived
+  colour and detail measures are not stored.
+- **Accessibility and i18n:** no new text; the quote mark uses the locale's own
+  quotes, and month numerals use the locale's number format.
+
+### Runtime evidence: the film variety
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the film variety stages
+its scenes …", "… catches its accents and the breath before the highlight
+mid-flight" and "the year film variety shows …") from the synthetic month and
+year with a frozen variety look (mood `ink`, cover `stack`, accents `light`,
+`match`, `blinds`) and formats and crop centres on the pictures. Each run
+asserts that no caption band sits under a picture, no horizontal overflow and
+no axe violation, and that the cover stack, the Places route, the collage
+climax and the fading closing come from the look. The mid-flight captures stop
+every running animation at 40 % with the Web Animations API.
+
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (stack) | [00](evidence/recaps-film-variety-00-cover-390-light.png) | [00](evidence/recaps-film-variety-00-cover-430-dark.png) | [00](evidence/recaps-film-variety-00-cover-1280-dark.png) |
+| Places (route) | [01](evidence/recaps-film-variety-01-place-390-light.png) | | |
+| Photo (panorama, landscape) | [02](evidence/recaps-film-variety-02-photo-390-light.png) | | |
+| Words (large quote mark) | [03](evidence/recaps-film-variety-03-words-390-light.png) | | |
+| Photo (corner with the day, portrait) | [04](evidence/recaps-film-variety-04-photo-390-light.png) | | |
+| Photo with answers (mat) | [05](evidence/recaps-film-variety-05-photo-390-light.png) | | |
+| Milestone (between rules) | [06](evidence/recaps-film-variety-06-title-390-light.png) | | |
+| Highlight (collage grid) | [07](evidence/recaps-film-variety-07-climax-390-light.png) | [07](evidence/recaps-film-variety-07-climax-430-dark.png) | [07](evidence/recaps-film-variety-07-climax-1280-dark.png) |
+| Words (word by word) | [08](evidence/recaps-film-variety-08-words-390-light.png) | | |
+| Chapter (stamp) | [09](evidence/recaps-film-variety-09-title-390-light.png) | | |
+| Tags of the month | [10](evidence/recaps-film-variety-10-tags-390-light.png) | | |
+| Closing (fade) | [11](evidence/recaps-film-variety-11-closing-390-light.png) | [11](evidence/recaps-film-variety-11-closing-430-dark.png) | [11](evidence/recaps-film-variety-11-closing-1280-dark.png) |
+| In flight: split entrance | [split](evidence/recaps-film-variety-motion-split-390-light.png) | | |
+| In flight: focus pull | [focus](evidence/recaps-film-variety-motion-focus-390-light.png) | | |
+| In flight: breath and light leak before the highlight | [light](evidence/recaps-film-variety-motion-light-390-light.png) | | |
+| In flight: match cut | [match](evidence/recaps-film-variety-motion-match-390-light.png) | | |
+| Year: month numeral | [390](evidence/recaps-year-film-variety-month-390-light.png) | | |
+| Year: firsts as cards | [390](evidence/recaps-year-film-variety-firsts-390-light.png) | | |
+| Year: covers calendar | [390](evidence/recaps-year-film-variety-covers-390-light.png) | | |
+
+The monthly and year film captures above were renewed with this change: the
+monthly highlight now plays its three pictures as a collage, and the year
+climax, closing and tag captures follow the new arrangement.
+
+Not performed: a generated visual reference image (the Product Owner approved
+the textual plan directly), captures of the blinds, flip and diagonal or
+breathing camera paths in flight (unit tests cover their selection), large-text
+captures of the new forms, a video clip in the new layouts, and Android device
+acceptance on the Pixel.

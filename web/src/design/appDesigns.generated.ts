@@ -5,7 +5,9 @@ export type AppDesignLayout =
   | 'classic'
   | 'open'
   | 'compact'
-  | 'rows';
+  | 'rows'
+  | 'names'
+  | 'note';
 
 export type AppDesignTier = 'free' | 'pro';
 
@@ -19,9 +21,9 @@ export const APP_DESIGNS: Readonly<
 > = {
   classic: { tier: 'pro', layout: 'classic' },
   connected: { tier: 'free', layout: 'connected' },
-  handwriting: { tier: 'pro', layout: 'open' },
+  handwriting: { tier: 'pro', layout: 'note' },
   modern: { tier: 'pro', layout: 'compact' },
-  quiet_together: { tier: 'pro', layout: 'connected' },
+  quiet_together: { tier: 'pro', layout: 'names' },
   shared_album: { tier: 'pro', layout: 'rows' },
   warm: { tier: 'free', layout: 'open' },
 };

@@ -7,12 +7,14 @@ The frozen look of a recap film, from a fixed catalogue of design variants.  Nam
 
 Name | Type
 ------------ | -------------
+`accents` | Array&lt;string&gt;
 `cover` | string
 `highlightKey` | string
 `layouts` | { [key: string]: Array&lt;string&gt;; }
 `monthHighlights` | [Array&lt;RecapFilmMonthView&gt;](RecapFilmMonthView.md)
 `mood` | string
 `motions` | Array&lt;string&gt;
+`pace` | string
 `tags` | [Array&lt;RecapTagView&gt;](RecapTagView.md)
 `transitions` | Array&lt;string&gt;
 
@@ -23,12 +25,14 @@ import type { RecapFilmView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "accents": null,
   "cover": null,
   "highlightKey": null,
   "layouts": null,
   "monthHighlights": null,
   "mood": null,
   "motions": null,
+  "pace": null,
   "tags": null,
   "transitions": null,
 } satisfies RecapFilmView

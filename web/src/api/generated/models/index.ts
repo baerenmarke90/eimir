@@ -276,6 +276,8 @@ export * from './PictureFinishInput';
 export * from './PicturePingPongState';
 export * from './PicturePingPongView';
 export * from './PictureSavedInput';
+export * from './PictureStartInput';
+export * from './PictureStarter';
 export * from './PictureStrokeInput';
 export * from './PictureStrokeView';
 export * from './PictureTurnInput';

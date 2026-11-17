@@ -109,6 +109,11 @@ import {
     PictureSavedInputToJSON,
 } from '../models/PictureSavedInput';
 import {
+    type PictureStartInput,
+    PictureStartInputFromJSON,
+    PictureStartInputToJSON,
+} from '../models/PictureStartInput';
+import {
     type PictureTurnInput,
     PictureTurnInputFromJSON,
     PictureTurnInputToJSON,
@@ -202,6 +207,7 @@ export interface SendGardenSeedRequest {
 
 export interface StartPicturePingPongRequest {
     spaceId: string;
+    pictureStartInput?: PictureStartInput | null;
 }
 
 export interface TapHeartHuntRoundRequest {
@@ -1156,6 +1162,8 @@ export class GamesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        headerParameters['Content-Type'] = 'application/json';
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/games/picture-ping-pong`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
@@ -1165,11 +1173,12 @@ export class GamesApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: PictureStartInputToJSON(requestParameters['pictureStartInput']),
         };
     }
 
     /**
-     * Open a new picture; the partner who opens it draws first.
+     * Open a new picture; the partner who opens it draws first.  Without a body the picture begins with the seed squiggle.
      * Start Picture Ping Pong
      */
     async startPicturePingPongRaw(requestParameters: StartPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PicturePingPongState>> {
@@ -1180,7 +1189,7 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Open a new picture; the partner who opens it draws first.
+     * Open a new picture; the partner who opens it draws first.  Without a body the picture begins with the seed squiggle.
      * Start Picture Ping Pong
      */
     async startPicturePingPong(requestParameters: StartPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {

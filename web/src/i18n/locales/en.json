@@ -3325,11 +3325,14 @@
         "send": "Hide it and send it to {{name}}",
         "uploadFailed": "The photo could not be prepared. Please try again.",
         "sendFailed": "The heart could not be sent. Please try again.",
-        "roundOpen": "Your last heart is still hidden. Wait until it has been found."
+        "roundOpen": "Your last heart is still hidden. Wait until it has been found.",
+        "partnerHidToo": "{{name}} has hidden a heart for you in the meantime. You can search for it right after."
       },
       "waiting": {
         "title": "{{name}} is searching now",
         "body": "You will hear when the heart has been found.",
+        "searching_one": "{{name}} has tapped once so far.",
+        "searching_other": "{{name}} has tapped {{count}} times so far.",
         "photoLabel": "Your photo with the hidden heart"
       },
       "seek": {
@@ -3377,8 +3380,17 @@
       "loadingBody": "You will see whose turn it is in a moment.",
       "emptyEyebrow": "No picture yet",
       "emptyTitle": "Start a picture.",
-      "emptyBody": "You begin with a small squiggle. After that you draw in turns, six turns long.",
+      "emptyBody": "Begin with a small squiggle or a blank page. After that you draw in turns, six turns long.",
       "newPicture": "Start a new picture",
+      "starterLegend": "How do you want to begin?",
+      "starterSquiggle": "With a starter",
+      "starterSquiggleHint": "A small squiggle to begin with",
+      "starterBlank": "Blank page",
+      "starterBlankHint": "You draw everything yourselves",
+      "startAction": "Start the picture",
+      "starterCancel": "Not now",
+      "partnerStarted": "{{name}} has just started a new picture.",
+      "partnerFinished": "{{name}} has just finished the picture.",
       "canvasLabel": "Your shared picture",
       "you": "You",
       "partnerFallback": "Partner",

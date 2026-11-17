@@ -35,7 +35,8 @@ composition at 1280 px is [runtime-draw-1280-light.png](runtime-draw-1280-light.
    suggestions appear only for a finished picture.
 7. **Pattern:** one page under Games (like the other games); no sheet.
 8. **Loading / Empty / Error / Offline:** loading state with copy; empty state
-   (`games.pingPong.emptyTitle`) with one start button; failures use the shared problem
+   (`games.pingPong.emptyTitle`) with the starting choice (squiggle or blank
+   page, see [live sync](../1907-h3-live-sync/README.md)) and one start button; failures use the shared problem
    state with retry; a stale turn (409) reloads the picture and says so; the
    draft survives a reload per picture and turn (session storage), nothing is
    sent offline.
@@ -59,6 +60,11 @@ composition at 1280 px is [runtime-draw-1280-light.png](runtime-draw-1280-light.
 16. **Table/list justification:** none used.
 17. **Visual acceptance:** runtime captures (Compact Light/Dark, Expanded
     column) and the browser journey `picture-ping-pong.spec.ts`.
+
+**Update 2026-11-17:** the picture is read live while the page is open, so a
+partner's hand-over, early finish or new picture appears without leaving the
+page, and the opener chooses between the squiggle and a blank page. Contract,
+reuse and business review: [live partner sync](../1907-h3-live-sync/README.md).
 
 ## Reuse, business and quality
 

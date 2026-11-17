@@ -2,8 +2,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import type { HeartHuntRoundView } from '../api/generated/models/HeartHuntRoundView';
+import { LIVE_GAME_REFRESH_MS } from '../client/liveGameSync';
 import games from '../i18n/locales/games';
 import partnerLocation from '../i18n/locales/partnerLocation';
 import { type HeartHuntApi, HeartHuntGamePage } from './HeartHuntGamePage';
@@ -14,6 +15,21 @@ vi.mock('../client/storyMediaLoader', () => ({
     dispose: () => undefined,
   })),
 }));
+
+vi.mock('../client/memoryAttachmentDraft', () => ({
+  uploadMemoryDraftAttachment: vi.fn(async () => ({
+    attachmentId: '55555555-5555-4555-8555-555555555555',
+  })),
+  createMemoryWithReadyAttachments: vi.fn(),
+}));
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+async function nextLiveRead() {
+  await vi.advanceTimersByTimeAsync(LIVE_GAME_REFRESH_MS + 100);
+}
 
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PEOPLE = {
@@ -214,6 +230,79 @@ describe('HeartHuntGamePage', () => {
     await screen.findByRole('heading', {
       name: games.heartHunt.hide.title.replace('{{name}}', 'Alex'),
     });
+  });
+
+  it('shows the hider the partner’s search and the find live', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const hidden = round({ role: 'HIDER', heart: { x: 300, y: 600 } });
+    const api = fakeApi([hidden]);
+    renderPage(api, null);
+    await screen.findByRole('heading', {
+      name: games.heartHunt.waiting.title.replace('{{name}}', 'Alex'),
+    });
+    (api.getHeartHunt as ReturnType<typeof vi.fn>).mockResolvedValue({
+      rounds: [{ ...hidden, tapCount: 3, taps: [{ x: 10, y: 10 }] }],
+    });
+    await nextLiveRead();
+    expect(
+      await screen.findByText(
+        games.heartHunt.waiting.searching_other
+          .replace('{{name}}', 'Alex')
+          .replace('{{count}}', '3'),
+      ),
+    ).toBeTruthy();
+    (api.getHeartHunt as ReturnType<typeof vi.fn>).mockResolvedValue({
+      rounds: [
+        {
+          ...hidden,
+          state: 'FOUND',
+          tapCount: 4,
+          foundAt: new Date('2026-11-16T10:05:00Z'),
+        },
+      ],
+    });
+    await nextLiveRead();
+    expect(
+      await screen.findByRole('heading', { name: games.heartHunt.found.title }),
+    ).toBeTruthy();
+  });
+
+  it('keeps a started hiding place when the partner’s heart arrives live', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: vi.fn(() => 'blob:hiding-place'),
+      revokeObjectURL: vi.fn(),
+    });
+    try {
+      const api = fakeApi([]);
+      const { container } = renderPage(api, null);
+      await screen.findByRole('heading', {
+        name: games.heartHunt.hide.title.replace('{{name}}', 'Alex'),
+      });
+      const input = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(input, {
+        target: {
+          files: [new File(['x'], 'place.jpg', { type: 'image/jpeg' })],
+        },
+      });
+      await screen.findByText(games.heartHunt.hide.placeHint);
+      (api.getHeartHunt as ReturnType<typeof vi.fn>).mockResolvedValue({
+        rounds: [round()],
+      });
+      await nextLiveRead();
+      expect(
+        await screen.findByText(
+          games.heartHunt.hide.partnerHidToo.replace('{{name}}', 'Alex'),
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText(games.heartHunt.hide.placeHint)).toBeTruthy();
+      expect(screen.queryByText(games.heartHunt.seek.tapHint)).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('labels the flight with the H4 word only when a band is shared', async () => {

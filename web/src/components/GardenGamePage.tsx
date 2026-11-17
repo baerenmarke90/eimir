@@ -15,6 +15,7 @@ import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenView } from '../api/generated/models/GardenView';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   GARDEN_WORDS,
   type GardenFlight,
@@ -346,6 +347,12 @@ export function GardenGamePage({
     () => gardenQueryKey(currentAccountId, spaceId),
     [currentAccountId, spaceId],
   );
+  const [busy, setBusy] = useState(false);
+  const [landing, setLanding] = useState(false);
+  const [flying, setFlying] = useState<{
+    direction: 'toPartner' | 'toMe';
+    key: number;
+  } | null>(null);
   const gardenQuery = useQuery({
     queryKey,
     queryFn: async () => {
@@ -356,7 +363,13 @@ export function GardenGamePage({
       }
     },
     retry: false,
-    refetchOnWindowFocus: true,
+    // Live while open: a seed the partner sends, a planting or watering and
+    // a bouquet arrive while both are in the garden (see liveGameSync).
+    // Held while a local write or the seed flight runs, so an older live
+    // read cannot land in between.
+    ...liveGameQueryOptions({
+      paused: busy || landing,
+    }),
   });
   const partnersQuery = useQuery({
     queryKey: ['games', 'garden', 'partners', spaceId],
@@ -399,17 +412,12 @@ export function GardenGamePage({
   const [cardOpen, setCardOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [watering, setWatering] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [changes, setChanges] = useState<Map<string, number>>(new Map());
   const [gustKey, setGustKey] = useState(0);
   const [celebrationKey, setCelebrationKey] = useState(0);
   const [wateredNow, setWateredNow] = useState<string | null>(null);
-  const [flying, setFlying] = useState<{
-    direction: 'toPartner' | 'toMe';
-    key: number;
-  } | null>(null);
   const greeted = useRef<string | null>(null);
   const frame = useRef<HTMLDivElement | null>(null);
   const defaultSaveMoment = useGardenMomentSaver({
@@ -442,7 +450,7 @@ export function GardenGamePage({
       setFlying({ direction: 'toMe', key: Date.now() });
   }, [incomingId]);
 
-  const apply = useCallback(
+  const stage = useCallback(
     (next: GardenView, previous: GardenView | undefined) => {
       const changed = stageChanges(previous?.plants, next.plants);
       setChanges(changed);
@@ -459,9 +467,28 @@ export function GardenGamePage({
       } else if (changed.size > 0) {
         setGustKey((key) => key + 1);
       }
+    },
+    [t],
+  );
+
+  // Every new answer is staged against the last one shown, so growth the
+  // partner caused (a planting, a watering, the shared day) moves the same
+  // way as the own action while both have the garden open.
+  const shown = useRef<GardenView | undefined>(undefined);
+  useEffect(() => {
+    if (!garden) return;
+    const before = shown.current;
+    shown.current = garden;
+    if (before && before !== garden) stage(garden, before);
+  }, [garden, stage]);
+
+  const apply = useCallback(
+    async (next: GardenView) => {
+      // A live read that started before this write must not land after it.
+      await queryClient.cancelQueries({ queryKey });
       queryClient.setQueryData(queryKey, next);
     },
-    [queryClient, queryKey, t],
+    [queryClient, queryKey],
   );
 
   const run = useCallback(
@@ -488,13 +515,13 @@ export function GardenGamePage({
 
   const send = async () => {
     if (!pick || !garden) return;
-    const previous = garden;
     const next = await run(() =>
       api.send(pick, flight.wordsOffered ? words : null),
     );
     if (!next) return;
     const done = () => {
-      apply(next, previous);
+      setLanding(false);
+      void apply(next);
       setPick(null);
       setWords(null);
       setWordsOpen(false);
@@ -509,6 +536,7 @@ export function GardenGamePage({
       done();
       return;
     }
+    setLanding(true);
     setFlying({ direction: 'toPartner', key: Date.now() });
     window.setTimeout(done, FLIGHT_BASE_MS * flight.durationScale);
   };
@@ -518,7 +546,7 @@ export function GardenGamePage({
     const previous = garden;
     const next = await run(() => api.plant(previous.incoming?.id ?? ''));
     if (!next) return;
-    apply(next, previous);
+    void apply(next);
     setCardOpen(false);
     setStatus(t('games.garden.plantedStatus'));
   };
@@ -545,11 +573,10 @@ export function GardenGamePage({
       setSelected((current) => (current === plantId ? null : plantId));
       return;
     }
-    const previous = garden;
     const next = await run(() => api.water(plantId));
     setWatering(false);
     if (!next) return;
-    apply(next, previous);
+    void apply(next);
     setWateredNow(plantId);
     setStatus(t('games.garden.wateredStatus', { name: names.partner }));
   };
@@ -562,7 +589,9 @@ export function GardenGamePage({
       </div>
     );
   }
-  if (gardenQuery.error || !garden) {
+  // A failed live read keeps the garden on screen; only a first read that
+  // never arrived shows the problem state.
+  if (!garden) {
     return (
       <div className="page garden-game-page">
         <PageHeader title={t('games.garden.title')} />
@@ -688,7 +717,7 @@ export function GardenGamePage({
     const next = await run(
       () => api.acknowledgeNews?.() as Promise<GardenView>,
     );
-    if (next) apply(next, garden);
+    if (next) void apply(next);
   };
   const rename = async (name: string) => {
     if (!api.rename) return false;
@@ -696,7 +725,7 @@ export function GardenGamePage({
       () => api.rename?.(name || null) as Promise<GardenView>,
     );
     if (!next) return false;
-    apply(next, garden);
+    void apply(next);
     setStatus(
       t('games.garden.growth.renamedStatus', {
         name: next.name ?? t('games.garden.title'),
@@ -706,13 +735,13 @@ export function GardenGamePage({
   };
   const giveBouquet = async () => {
     if (!api.giveBouquet || picked.length === 0) return;
-    const previous = garden;
     const next = await run(
       () => api.giveBouquet?.(picked) as Promise<GardenView>,
     );
     if (!next) return;
     const done = () => {
-      apply(next, previous);
+      setLanding(false);
+      void apply(next);
       setBinding(false);
       setPicked([]);
       setStatus(
@@ -723,6 +752,7 @@ export function GardenGamePage({
       done();
       return;
     }
+    setLanding(true);
     setFlying({ direction: 'toPartner', key: Date.now() });
     window.setTimeout(done, FLIGHT_BASE_MS * flight.durationScale);
   };
@@ -731,7 +761,7 @@ export function GardenGamePage({
     const next = await run(
       () => api.closeBouquet?.(bouquet.id, kept) as Promise<GardenView>,
     );
-    if (next) apply(next, garden);
+    if (next) void apply(next);
     return next;
   };
   const keepBouquet = async () => {

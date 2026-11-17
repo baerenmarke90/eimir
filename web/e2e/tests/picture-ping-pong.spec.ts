@@ -18,6 +18,7 @@ const turnRequests: Array<{
   turnsDone: number;
   strokes: Array<{ colour: string; points: number[] }>;
 }> = [];
+const startRequests: Array<{ starter?: string } | null> = [];
 
 function localized(
   template: string,
@@ -42,6 +43,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 async function installApiMocks(page: Page): Promise<void> {
   picture = null;
   turnRequests.length = 0;
+  startRequests.length = 0;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
@@ -183,6 +185,8 @@ async function installApiMocks(page: Page): Promise<void> {
     }
     if (pathname === `/api/v1/spaces/${SPACE_ID}/games/picture-ping-pong`) {
       if (method === 'POST') {
+        const body = request.postDataJSON() as { starter?: string } | null;
+        startRequests.push(body);
         picture = {
           id: '70000000-0000-4000-8000-000000000001',
           status: 'DRAWING',
@@ -192,14 +196,17 @@ async function installApiMocks(page: Page): Promise<void> {
           maxTurns: 6,
           finishedEarly: false,
           savedMemoryId: null,
-          strokes: [
-            {
-              turn: 0,
-              authorId: null,
-              colour: 'INK',
-              points: [140, 500, 300, 380, 500, 520, 700, 400, 860, 500],
-            },
-          ],
+          strokes:
+            body?.starter === 'BLANK'
+              ? []
+              : [
+                  {
+                    turn: 0,
+                    authorId: null,
+                    colour: 'INK',
+                    points: [140, 500, 300, 380, 500, 520, 700, 400, 860, 500],
+                  },
+                ],
           updatedAt: TEST_NOW,
         };
       }
@@ -393,6 +400,81 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
     });
     await page.screenshot({
       path: testInfo.outputPath('picture-ping-pong-done-390-dark.png'),
+      fullPage: true,
+    });
+  });
+
+  test('a blank start and the partner’s turn arriving live at 390 px', async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.goto('/games/picture-ping-pong');
+
+    // The squiggle stays the default; the blank page is one tap away.
+    const squiggle = page.getByRole('radio', {
+      name: new RegExp(games.pingPong.starterSquiggle),
+    });
+    await expect(squiggle).toBeChecked();
+    await page
+      .getByRole('radio', { name: new RegExp(games.pingPong.starterBlank) })
+      .check();
+    await expectNoHorizontalOverflow(page);
+    const axe = await new AxeBuilder({ page })
+      .include('.pingpong-page')
+      .analyze();
+    expect(axe.violations).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath('picture-ping-pong-starter-390-light.png'),
+      fullPage: true,
+    });
+    await page.getByRole('button', { name: games.pingPong.newPicture }).click();
+    await expect(
+      page.getByRole('heading', { name: games.pingPong.turnYou }),
+    ).toBeVisible();
+    expect(startRequests).toEqual([{ starter: 'BLANK' }]);
+    await expect(page.locator('.pingpong-stroke')).toHaveCount(0);
+
+    await drawStroke(page, 0.4);
+    await page
+      .getByRole('button', {
+        name: localized(games.pingPong.send, { name: 'Alex' }),
+      })
+      .click();
+    await expect(
+      page.getByRole('heading', {
+        name: localized(games.pingPong.turnPartner, { name: 'Alex' }),
+      }),
+    ).toBeVisible();
+
+    // Alex draws and hands back while this page stays open: no reload.
+    picture = {
+      ...picture,
+      turnsDone: picture.turnsDone + 1,
+      drawerId: ACCOUNT_ID,
+      strokes: [
+        ...picture.strokes,
+        {
+          turn: picture.turnsDone + 1,
+          authorId: PARTNER_ID,
+          colour: 'PERSON',
+          points: [200, 800, 500, 700, 800, 800],
+        },
+      ],
+    };
+    await expect(
+      page.getByRole('heading', { name: games.pingPong.turnYou }),
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('.pingpong-stroke')).toHaveCount(2);
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.style.colorScheme = 'dark';
+    });
+    await page.screenshot({
+      path: testInfo.outputPath('picture-ping-pong-live-390-dark.png'),
       fullPage: true,
     });
   });

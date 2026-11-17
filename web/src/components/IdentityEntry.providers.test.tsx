@@ -19,7 +19,7 @@ import { BUNDLED_TERMS_VERSION } from './TermsAcceptanceField';
 const apiBaseUrl = 'https://eimir.invalid';
 const GOOGLE = {
   id: 'google',
-  provider: 'google' as const,
+  brand: 'google' as const,
   label: '',
   nativeAvailable: true,
 };

@@ -70,7 +70,7 @@ describe('SignInMethodsPanel', () => {
       registrationAvailable: true,
       termsOfUseVersion: null,
       oidcConnections: [
-        { id: 'google', provider: 'google', label: '', nativeAvailable: true },
+        { id: 'google', brand: 'google', label: '', nativeAvailable: true },
       ],
       oidcSignupAvailable: true,
     });

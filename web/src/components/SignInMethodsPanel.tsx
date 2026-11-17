@@ -219,13 +219,13 @@ export function SignInMethodsPanel({
           const linked = linkedIds.has(connection.id);
           const key = `provider:${connection.id}`;
           const name =
-            connection.provider === 'google'
+            connection.brand === 'google'
               ? t('accountSettings.googleTitle')
               : connection.label || connection.id;
           return (
             <li className="sign-in-method" key={connection.id}>
               <span className="sign-in-method-icon">
-                {connection.provider === 'google' ? (
+                {connection.brand === 'google' ? (
                   <GoogleMark />
                 ) : (
                   <IdentityMark />

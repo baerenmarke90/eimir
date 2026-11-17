@@ -116,7 +116,7 @@ export function ProviderChoices({
   return (
     <div className="provider-choices">
       {connections.map((connection) => {
-        const google = connection.provider === 'google';
+        const google = connection.brand === 'google';
         const label = google
           ? t(signup ? 'identity.googleSignUp' : 'identity.googleContinue')
           : connection.label

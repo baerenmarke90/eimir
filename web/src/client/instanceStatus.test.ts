@@ -124,7 +124,7 @@ describe('instance registration availability', () => {
         oidcConnections: [
           {
             id: 'google',
-            provider: 'google',
+            brand: 'google',
             label: '',
             nativeAvailable: true,
           },
@@ -134,7 +134,7 @@ describe('instance registration availability', () => {
     );
 
     expect(status.oidcConnections).toEqual([
-      { id: 'google', provider: 'google', label: '', nativeAvailable: true },
+      { id: 'google', brand: 'google', label: '', nativeAvailable: true },
     ]);
     expect(status.oidcSignupAvailable).toBe(true);
   });

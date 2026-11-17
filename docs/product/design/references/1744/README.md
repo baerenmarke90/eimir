@@ -277,3 +277,31 @@ in the native runtime. Expanded keeps the same order inside the reading column.
   payload and follow the edition lifecycle. No faces, no biometrics.
 - **Not part of this change:** removing the local wording model and its texts
   (separate step), music, a per-entry "not in recaps" control.
+
+### Runtime evidence: the monthly film
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the monthly film presents
+its scenes …") from a synthetic month with curated media, two Places, both
+answers to a guided question, five tags and a frozen look (mood `rose`, cover
+`mosaic`). Reduced motion is on so every capture shows a settled scene; each run
+also asserts that no caption band sits under a picture (full-bleed captions use
+the scrim), no horizontal overflow and no axe violation in the reader.
+
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (mosaic) | [00](evidence/recaps-film-00-390-light.png) | [00](evidence/recaps-film-00-430-dark.png) | [00](evidence/recaps-film-00-1280-dark.png) |
+| Places opener | [01](evidence/recaps-film-01-390-light.png) | | |
+| Photo (polaroid) | [02](evidence/recaps-film-02-390-light.png) | | |
+| Words (letter) | [03](evidence/recaps-film-03-390-light.png) | | |
+| Photo (full-bleed caption) | [04](evidence/recaps-film-04-390-light.png) | [04](evidence/recaps-film-04-430-dark.png) | [04](evidence/recaps-film-04-1280-dark.png) |
+| Photo with both answers | [05](evidence/recaps-film-05-390-light.png) | | |
+| Milestone (stamp) | [06](evidence/recaps-film-06-390-light.png) | | |
+| Highlight (overlapping duo) | [07](evidence/recaps-film-07-390-light.png) | | |
+| Words (centered) | [08](evidence/recaps-film-08-390-light.png) | | |
+| Chapter (band) | [09](evidence/recaps-film-09-390-light.png) | | |
+| Tags of the month | [10](evidence/recaps-film-10-390-light.png) | [10](evidence/recaps-film-10-430-dark.png) | [10](evidence/recaps-film-10-1280-dark.png) |
+| Closing | [11](evidence/recaps-film-11-390-light.png) | | |
+
+Not performed: captures of the transitions and motions in flight, a video clip
+(the fixture has no video; the clip path is covered by unit tests), large-text
+capture of the film scenes, and Android device acceptance.

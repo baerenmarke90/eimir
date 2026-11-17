@@ -157,6 +157,14 @@ const de = {
       wordsQuote: 'Das war der schönste Abend der Woche.',
       reaction: 'Dieses Foto habt ihr beide geliebt',
     },
+    film: {
+      lake: 'Am Schlachtensee',
+      oldTown: 'Altstadt',
+      question: 'Was hat euren heutigen Tag schön gemacht?',
+      answerA: 'Der Kaffee in der Sonne.',
+      answerB: 'Dein Lachen beim Frühstück, mit Decke und Zeitung bis mittags.',
+      tags: ['Herbst', 'See', 'Frühstück', 'Markt', 'Abendlicht'],
+    },
   },
   placesAndLists: {
     placeDescription: 'Unser Platz im Grünen.',

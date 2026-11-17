@@ -160,6 +160,62 @@ function denseSources() {
     ),
   ];
 }
+/** A monthly film (#1744): curated media, Places, answers, tags and a frozen look. */
+function filmMonth() {
+  const words = fixtureCopy.film;
+  const picture = (attachmentId: string, parentId: string) => ({
+    attachmentId,
+    parentId,
+    kind: 'IMAGE',
+  });
+  const sources = denseSources().map((entry) => {
+    const extra: Record<string, unknown> = {
+      media: entry.previewAttachmentId
+        ? [picture(entry.previewAttachmentId, entry.id)]
+        : [],
+      answers: [],
+      placeName: null,
+    };
+    if (entry.id === 'mem-canal') extra.placeName = words.lake;
+    if (entry.id === 'plan-market') extra.placeName = words.oldTown;
+    if (entry.id === 'mem-jetty')
+      extra.media = [
+        picture('recap-photo-dusk', entry.id),
+        picture('recap-photo-mono', entry.id),
+        picture('recap-photo', entry.id),
+      ];
+    if (entry.id === 'mem-breakfast')
+      Object.assign(extra, {
+        title: words.question,
+        answers: [
+          { text: words.answerA, authorId: ACCOUNT_ID, authorName: 'Anna' },
+          { text: words.answerB, authorId: 'partner', authorName: 'Ben' },
+        ],
+      });
+    return { ...entry, ...extra };
+  });
+  return {
+    sources,
+    facts: DENSE_FACTS,
+    film: {
+      mood: 'rose',
+      transitions: ['iris', 'slide'],
+      cover: 'mosaic',
+      motions: ['drift-left', 'zoom-in', 'parallax'],
+      layouts: {
+        photo: ['polaroid', 'bleed', 'split', 'inset', 'tilted'],
+        duo: ['overlap', 'stacked', 'side'],
+        words: ['letter', 'centered', 'lines', 'on-photo'],
+        title: ['stamp', 'band', 'outline'],
+        answers: ['dialog', 'stacked'],
+        place: ['marker', 'list'],
+        fact: ['large', 'row'],
+      },
+      highlightKey: 'MEMORY:mem-jetty',
+      tags: words.tags.map((label, index) => ({ label, count: 5 - index })),
+    },
+  };
+}
 const DENSE_FACTS = {
   memories: 11,
   heartMoments: 6,
@@ -183,6 +239,7 @@ async function setup(
     rhythm?: boolean;
     native?: boolean;
     earlier?: boolean;
+    film?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -267,6 +324,7 @@ async function setup(
         leading: 3,
       },
     });
+  if (options.film) Object.assign(month, filmMonth());
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
@@ -1614,3 +1672,61 @@ test('the former More addresses of the recap library and reader redirect with th
   await open('/more/passport/october?page=2');
   await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
 });
+
+// #1744 monthly film: every scene type of a curated month, captions never under a picture.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the monthly film presents its scenes at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { film: true });
+    await page.goto(recapDetailPath('october'));
+    const reader = page.locator('.recap-reader');
+    await expect(reader).toBeVisible();
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    const total = await page.locator('.recap-progress > *').count();
+    expect(total).toBeGreaterThan(8);
+    for (let index = 0; index < total; index++) {
+      if (!all && index !== 0 && index !== 4 && index !== total - 2) continue;
+      await page.goto(`${recapDetailPath('october')}?page=${index}`);
+      await expect(page.locator('.recap-spread').first()).toBeVisible();
+      await page.waitForTimeout(500);
+      // A caption band never sits under a picture.
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const frame = picture.closest('[data-layout]');
+            if (frame?.getAttribute('data-layout') === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-film-${String(index).padStart(2, '0')}-${width}-${scheme}.png`,
+      );
+    }
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}

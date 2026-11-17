@@ -86,6 +86,17 @@ export default {
     days_other: '{{count}} gute Tage',
     note: 'Gezählt werden nur Tage, an denen ihr beide euren Tag festgehalten habt.',
   },
+  film: {
+    coverFallback: 'Euer {{month}}',
+    days_one: 'Tag, den ihr festgehalten habt',
+    days_other: 'Tage, die ihr festgehalten habt',
+    closing_one: '{{month}}. {{count}} Tag, den ihr festgehalten habt.',
+    closing_other: '{{month}}. {{count}} Tage, die ihr festgehalten habt.',
+    places: 'Eure Orte in diesem Monat',
+    tags: 'Eure Tags im {{month}}',
+    answer: '„{{text}}“',
+    video: 'Videoausschnitt ohne Ton',
+  },
   quote: '{{name}}: „{{text}}“',
   quoteAnonymous: '„{{text}}“',
   mutualReaction: {

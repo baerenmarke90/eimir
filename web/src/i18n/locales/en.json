@@ -3037,6 +3037,17 @@
       "days_other": "{{count}} good days",
       "note": "Only days you both checked in are counted."
     },
+    "film": {
+      "coverFallback": "Your {{month}}",
+      "days_one": "day you captured",
+      "days_other": "days you captured",
+      "closing_one": "{{month}}. {{count}} day you captured.",
+      "closing_other": "{{month}}. {{count}} days you captured.",
+      "places": "Your places this month",
+      "tags": "Your tags in {{month}}",
+      "answer": "“{{text}}”",
+      "video": "Video clip without sound"
+    },
     "quote": "{{name}}: “{{text}}”",
     "quoteAnonymous": "“{{text}}”",
     "mutualReaction": {

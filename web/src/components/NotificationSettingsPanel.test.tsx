@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
@@ -355,6 +361,16 @@ describe('NotificationSettingsPanel', () => {
       expect(update).not.toHaveBeenCalled();
     },
   );
+
+  it('explains once, next to the device switch, why chosen push waits', () => {
+    const off = deviceController({ state: 'off', registered: false });
+    setup(view(), undefined, off);
+    expect(screen.getByText(notificationSettings.deviceHintOff)).toBeDefined();
+    cleanup();
+    const on = deviceController({ state: 'on', registered: true });
+    setup(view(), undefined, on);
+    expect(screen.queryByText(notificationSettings.deviceHintOff)).toBeNull();
+  });
 
   it('keeps activation pending until confirmation and allows cancellation', () => {
     const device = deviceController({ state: 'connecting', registered: true });

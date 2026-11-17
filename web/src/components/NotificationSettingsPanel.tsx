@@ -16,6 +16,7 @@ import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { settingsCategoryPath } from '../client/routes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { QuietHoursSettings } from './QuietHoursSettings';
@@ -164,19 +165,29 @@ function DevicePushSetting({
 
   return (
     <div className="notification-device-push">
-      <PreferenceSwitch
-        label={t(
-          devicePush.browser
-            ? 'notificationSettings.browserToggle'
-            : 'notificationSettings.deviceToggle',
-        )}
-        checked={checked}
-        disabled={disabled}
-        onCheckedChange={(enabled) => {
-          if (enabled) void devicePush.enable();
-          else void devicePush.disable();
-        }}
-      />
+      <div className="notification-device-push-head">
+        <span className="notification-device-push-icon" aria-hidden="true">
+          <EimirIcon name="benachrichtigungen" />
+        </span>
+        <PreferenceSwitch
+          label={t(
+            devicePush.browser
+              ? 'notificationSettings.browserToggle'
+              : 'notificationSettings.deviceToggle',
+          )}
+          description={
+            !checked && action === 'enable'
+              ? t('notificationSettings.deviceHintOff')
+              : undefined
+          }
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={(enabled) => {
+            if (enabled) void devicePush.enable();
+            else void devicePush.disable();
+          }}
+        />
+      </div>
       <p
         className={status ? undefined : 'sr-only'}
         role="status"

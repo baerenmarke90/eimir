@@ -27,3 +27,21 @@ the fixed bottom navigation appears over the middle of the page.
 
 - `notifications-dark-390.webp`, `notifications-light-390.webp`: Compact.
 - `notifications-dark-1280.webp`: Expanded.
+
+## Follow-up captures (same pull request)
+
+The notification captures above were refreshed after the device switch moved
+into a card with its own icon and one hint line. Additional captures:
+
+- `settings-index-live-dark-390.webp`, `settings-index-live-light-390.webp`,
+  `settings-index-live-dark-1280.webp`: the Settings overview with live row
+  statuses (for example "1 von 4 aktiv", "System · Deutsch"). Rows whose data is
+  not available keep their static line (the calendar row in this fixture).
+- `settings-wir-grip-dark-390.webp`: the Wir settings list with the dotted
+  drag handle.
+
+The device push banner of the approved reference is realised as a card around
+the existing device switch (icon, switch, one hint line) instead of a separate
+"set up" button: a second control for the same action would duplicate the
+switch and break its on/off/connecting identity that the push onboarding flows
+rely on.

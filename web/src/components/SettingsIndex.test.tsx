@@ -68,4 +68,22 @@ describe('SettingsIndex', () => {
     expect(html).not.toContain(profileIdentity.settingsNotificationsIntro);
     expect(html).toContain('pro-mark');
   });
+
+  it('shows a live status instead of the static summary only where one exists', () => {
+    const live = renderToStaticMarkup(
+      <MemoryRouter>
+        <SettingsIndex
+          statuses={{
+            notifications: 'In-App · E-Mail',
+            shared: '3 von 4 aktiv',
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(live).toContain('In-App · E-Mail');
+    expect(live).toContain('3 von 4 aktiv');
+    expect(live).not.toContain(profileIdentity.settingsNotificationsSummary);
+    // A row without live data keeps its summary.
+    expect(live).toContain(profileIdentity.settingsTodaySummary);
+  });
 });

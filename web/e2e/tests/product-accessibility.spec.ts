@@ -234,6 +234,22 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    // The Settings overview reads the calendar connection for its row status.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/calendar-sync`
+    ) {
+      await fulfillJson({
+        available: false,
+        canSync: false,
+        connections: [],
+        services: [],
+        target: null,
+        targetToken: 'calendar-target-token',
+      });
+      return;
+    }
+
     // Partner distance (#1792): an unpaired Free Space shares nothing.
     if (
       method === 'GET' &&

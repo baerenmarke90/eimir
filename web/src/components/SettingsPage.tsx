@@ -46,7 +46,7 @@ import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { ProSettingsRow } from './ProSettingsRow';
-import { SettingsIndex } from './SettingsIndex';
+import { SettingsIndexLive } from './SettingsIndexLive';
 import { SettingsScopeNote } from './SettingsScopeNote';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -372,7 +372,17 @@ export function SettingsPage(props: SettingsPageProps) {
         }
       />
 
-      {category ? categoryContent : <SettingsIndex />}
+      {category ? (
+        categoryContent
+      ) : (
+        <SettingsIndexLive
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          demoMode={demoMode}
+        />
+      )}
     </div>
   );
 }

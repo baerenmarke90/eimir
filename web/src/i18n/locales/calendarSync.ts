@@ -1,7 +1,7 @@
 export default {
   settingsTitle: 'Kalender verbinden',
   settingsIntro:
-    'Verbinde deinen Kalender, um gemeinsame Pläne automatisch zu synchronisieren und freie Zeit füreinander zu finden.',
+    'Verbinde einen Kalender, damit eure gemeinsamen Pläne dort automatisch erscheinen.',
   sharedHeading: 'Gemeinsamer Kalender',
   pro: 'Pro',
   sharedIntro:

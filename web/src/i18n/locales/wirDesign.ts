@@ -11,6 +11,8 @@ export default {
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
+    quiet_together: 'Zu zweit',
+    handwriting: 'Handschrift',
   },
   descriptions: {
     connected:
@@ -22,6 +24,10 @@ export default {
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',
     classic:
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
+    quiet_together:
+      'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen, durch eine Linie verbunden.',
+    handwriting:
+      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir ein großes Erinnerungsfoto.',
   },
   standard: 'Standard',
   free: 'Kostenlos',

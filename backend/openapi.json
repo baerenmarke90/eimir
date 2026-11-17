@@ -17383,7 +17383,9 @@
           "warm",
           "shared_album",
           "modern",
-          "classic"
+          "classic",
+          "quiet_together",
+          "handwriting"
         ],
         "title": "WirDesignId",
         "type": "string"

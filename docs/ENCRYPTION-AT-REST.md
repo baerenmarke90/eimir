@@ -179,7 +179,7 @@ they were derived from. An important date (`important_dates.date`) is also still
 column; its label is protected.
 
 Who a related person is to the couple (`related_persons.relationship`: mother, friend,
-colleague and so on) moved with migration 0154, by Product Owner decision of 2026-11-17.
+colleague and so on) moved with migration 0155, by Product Owner decision of 2026-11-17.
 No flag replaces it: the only SQL use was the order of the people list, which the
 application now sorts after loading the few people of one Space.
 
@@ -278,7 +278,7 @@ one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload unt
 move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
 a row through `legacy_plain_columns`, not as a malformed envelope. `accounts.display_name`
 (migration 0149), the two birthday columns (migration 0150) and
-`related_persons.relationship` (migration 0154) are registered the same way:
+`related_persons.relationship` (migration 0155) are registered the same way:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered
   column still holds a value and repeats it until none does. It needs no operator

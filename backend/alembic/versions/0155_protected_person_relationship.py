@@ -14,15 +14,15 @@ no installation can still hold values in it.
 - ``related_persons.relationship`` becomes nullable. ``relationship_is_known``
   stays and keeps guarding a value that is still in the column.
 
-Revision ID: 0154
-Revises: 0153
+Revision ID: 0155
+Revises: 0154
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0154"
-down_revision = "0153"
+revision = "0155"
+down_revision = "0154"
 branch_labels = None
 depends_on = None
 

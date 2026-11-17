@@ -1,3 +1,4 @@
+
 # OidcConnectionView
 
 A configured external sign-in provider, as an unauthenticated client may know it.  Only what a sign-in screen needs to draw a button and start the flow. The issuer, client identity and callback addresses stay in configuration.
@@ -6,10 +7,10 @@ A configured external sign-in provider, as an unauthenticated client may know it
 
 Name | Type
 ------------ | -------------
+`brand` | string
 `id` | string
 `label` | string
 `nativeAvailable` | boolean
-`brand` | string
 
 ## Example
 
@@ -18,10 +19,10 @@ import type { OidcConnectionView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "brand": null,
   "id": null,
   "label": null,
   "nativeAvailable": null,
-  "brand": null,
 } satisfies OidcConnectionView
 
 console.log(example)

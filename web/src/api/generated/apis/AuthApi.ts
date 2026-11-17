@@ -59,11 +59,6 @@ import {
     MagicLinkConsumeRequestToJSON,
 } from '../models/MagicLinkConsumeRequest';
 import {
-    type SignInMethodsView,
-    SignInMethodsViewFromJSON,
-    SignInMethodsViewToJSON,
-} from '../models/SignInMethodsView';
-import {
     type OidcLinkRequest,
     OidcLinkRequestFromJSON,
     OidcLinkRequestToJSON,
@@ -138,6 +133,11 @@ import {
     SessionViewFromJSON,
     SessionViewToJSON,
 } from '../models/SessionView';
+import {
+    type SignInMethodsView,
+    SignInMethodsViewFromJSON,
+    SignInMethodsViewToJSON,
+} from '../models/SignInMethodsView';
 import {
     type SignInRequest,
     SignInRequestFromJSON,
@@ -278,10 +278,6 @@ export interface SignInApiV1AuthSignInPostRequest {
     signInRequest: SignInRequest;
 }
 
-export interface UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest {
-    connectionId: string;
-}
-
 export interface StartOidcApiV1AuthOidcConnectionIdStartPostRequest {
     connectionId: string;
     oidcStartRequest?: OidcStartRequest | null;
@@ -290,6 +286,10 @@ export interface StartOidcApiV1AuthOidcConnectionIdStartPostRequest {
 export interface StartOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequest {
     connectionId: string;
     client?: RecentAuthenticationClient;
+}
+
+export interface UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest {
+    connectionId: string;
 }
 
 /**
@@ -1810,52 +1810,6 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for unlinkOidcApiV1AuthOidcConnectionIdDelete without sending the request
-     */
-    async unlinkOidcApiV1AuthOidcConnectionIdDeleteRequestOpts(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['connectionId'] == null) {
-            throw new runtime.RequiredError(
-                'connectionId',
-                'Required parameter "connectionId" was null or undefined when calling unlinkOidcApiV1AuthOidcConnectionIdDelete().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/v1/auth/oidc/{connectionId}`;
-        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
-
-        return {
-            path: urlPath,
-            method: 'DELETE',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Unlink an external provider, unless it is the account\'s only way to sign in.
-     * Unlink Oidc
-     */
-    async unlinkOidcApiV1AuthOidcConnectionIdDeleteRaw(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
-        const requestOptions = await this.unlinkOidcApiV1AuthOidcConnectionIdDeleteRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.VoidApiResponse(response);
-    }
-
-    /**
-     * Unlink an external provider, unless it is the account\'s only way to sign in.
-     * Unlink Oidc
-     */
-    async unlinkOidcApiV1AuthOidcConnectionIdDelete(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.unlinkOidcApiV1AuthOidcConnectionIdDeleteRaw(requestParameters, initOverrides);
-    }
-
-    /**
      * Creates request options for startOidcApiV1AuthOidcConnectionIdStartPost without sending the request
      */
     async startOidcApiV1AuthOidcConnectionIdStartPostRequestOpts(requestParameters: StartOidcApiV1AuthOidcConnectionIdStartPostRequest): Promise<runtime.RequestOpts> {
@@ -2067,6 +2021,52 @@ export class AuthApi extends runtime.BaseAPI {
     async startPasskeyRegistrationApiV1AuthPasskeysRegistrationStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {
         const response = await this.startPasskeyRegistrationApiV1AuthPasskeysRegistrationStartPostRaw(initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for unlinkOidcApiV1AuthOidcConnectionIdDelete without sending the request
+     */
+    async unlinkOidcApiV1AuthOidcConnectionIdDeleteRequestOpts(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling unlinkOidcApiV1AuthOidcConnectionIdDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/oidc/{connectionId}`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Unlink an external provider, unless it is the account\'s only way to sign in.
+     * Unlink Oidc
+     */
+    async unlinkOidcApiV1AuthOidcConnectionIdDeleteRaw(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.unlinkOidcApiV1AuthOidcConnectionIdDeleteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Unlink an external provider, unless it is the account\'s only way to sign in.
+     * Unlink Oidc
+     */
+    async unlinkOidcApiV1AuthOidcConnectionIdDelete(requestParameters: UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.unlinkOidcApiV1AuthOidcConnectionIdDeleteRaw(requestParameters, initOverrides);
     }
 
 }

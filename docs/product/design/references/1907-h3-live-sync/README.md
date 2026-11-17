@@ -72,7 +72,7 @@ Mobile Interaction Contract delta for
   `{"starter": "SQUIGGLE" | "BLANK"}` body. Without a body the picture starts
   with the squiggle as before, so older clients keep their behaviour. A blank
   picture has no turn-0 stroke; turn order, limits and finishing are unchanged.
-- **Compact/Expanded:** the two tiles sit side by side from about 20 rem and
+- **Compact/Expanded:** the two tiles share one row from about 20 rem and
   stack below that or at large text sizes; the page keeps the bounded column.
 
 | State | Image |

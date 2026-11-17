@@ -8,11 +8,15 @@ less is stored here than would technically be possible: display name,
 relationship type, a birthday and an optional bounded note. No structured
 address, school, or phone-number collection.
 
-The display name, note, birthday and label of an important date are the
-protected parts and are stored as `ProtectedPayload`, separate from metadata.
-Everything needed for sorting, linking, and later reminders - relationship,
-the date of an important date, recurrence, and visibility - remains queryable
-as columns.
+The display name, note, birthday, relationship and label of an important date
+are the protected parts and are stored as `ProtectedPayload`, separate from
+metadata. Everything needed for linking and later reminders - the date of an
+important date, recurrence, and visibility - remains queryable as columns.
+
+Who a person is to the couple (mother, friend, colleague) was such a column
+until the Product Owner decision of 2026-11-17 (#797): together with a reminder
+it told a dump that a Space has a mother whose birthday is on a given day. The
+list of people is small per Space and is ordered in the application instead.
 
 A person's birthday was such a column until the Product Owner decision of
 2026-11-16 (#797). What stays visible outside the payload is that a birthday
@@ -27,7 +31,7 @@ from enum import StrEnum
 from typing import Any, ClassVar
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -120,6 +124,16 @@ class RelatedPersonPayload(ProtectedPayload):
     display_name: str = Field(min_length=1, max_length=120)
     note: str = Field(default="", max_length=2000)
     birthday: date | None = None
+    # None only on a row whose relationship is still in its legacy column.
+    relationship: str | None = None
+
+    @field_validator("relationship")
+    @classmethod
+    def relationship_is_known(cls, value: str | None) -> str | None:
+        # The database check of the same name can only see the legacy column.
+        if value is not None and value not in {item.value for item in PersonRelationship}:
+            raise ValueError("Unknown relationship.")
+        return value
 
 
 class ImportantDatePayload(ProtectedPayload):
@@ -139,11 +153,12 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
         "Related person not found.", "RELATED_PERSON_NOT_FOUND"
     )
 
-    relationship: Mapped[str] = mapped_column(String(16), nullable=False)
-    # Legacy plaintext home of the birthday. New writes keep it NULL and store
-    # the date in ``payload``; a row written before that still carries it here
-    # until the column backfill (``eimir.security.column_moves``) has visited it.
-    # Read and assign ``birthday`` below, never this.
+    # Legacy plaintext homes of the relationship and the birthday. New writes
+    # keep them NULL and store both in ``payload``; a row written before that
+    # still carries them here until the column backfill
+    # (``eimir.security.column_moves``) has visited it. Read and assign
+    # ``relationship`` and ``birthday`` below, never these.
+    legacy_relationship: Mapped[str | None] = mapped_column("relationship", String(16))
     legacy_birthday: Mapped[date | None] = mapped_column("birthday", Date)
     # The one fact queries and constraints still need in SQL: whether a birthday
     # is recorded. It says nothing about when.
@@ -216,12 +231,24 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
     )
 
-    def __init__(self, *, birthday: date | None = None, **values: Any) -> None:
-        """Accept the birthday by its own keyword and store it in the payload."""
+    def __init__(
+        self,
+        *,
+        birthday: date | None = None,
+        relationship: str | None = None,
+        **values: Any,
+    ) -> None:
+        """Accept birthday and relationship by their own keywords and store them in the payload."""
         payload = values.get("payload")
-        if birthday is not None and payload is not None:
-            payload = values["payload"] = payload.model_copy(update={"birthday": birthday})
         if payload is not None:
+            update: dict[str, Any] = {}
+            if birthday is not None:
+                update["birthday"] = birthday
+            if relationship is not None:
+                update["relationship"] = relationship
+            if update:
+                # Validated, unlike ``model_copy``: an unknown relationship is refused.
+                payload = values["payload"] = type(payload)(**{**payload.seal(), **update})
             values.setdefault("has_birthday", payload.birthday is not None)
         super().__init__(**values)
 
@@ -246,6 +273,19 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
         self.payload = self.payload.model_copy(update={"birthday": value})
         self.legacy_birthday = None
         self.has_birthday = value is not None
+
+    @property
+    def relationship(self) -> str:
+        """The relationship, from the protected payload or, for a legacy row, its column."""
+        stored = self.payload.relationship
+        if stored is not None:
+            return stored
+        return self.legacy_relationship or PersonRelationship.OTHER.value
+
+    @relationship.setter
+    def relationship(self, value: str) -> None:
+        self.payload = RelatedPersonPayload(**{**self.payload.seal(), "relationship": value})
+        self.legacy_relationship = None
 
 
 class ImportantDate(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base):

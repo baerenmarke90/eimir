@@ -30,6 +30,7 @@ export type DashboardModuleKey =
   | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
+  | 'pinned_note'
   | 'keepsake'
   | 'retrospective'
   | 'relationship_signal'
@@ -61,6 +62,10 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     {
       key: 'pinned_collection',
       labelKey: 'm5s5.dashboard.pinnedCollectionSettingsTitle',
+    },
+    {
+      key: 'pinned_note',
+      labelKey: 'sharedNotes.dashboard.settingsTitle',
     },
     { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },

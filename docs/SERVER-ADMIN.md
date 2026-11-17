@@ -111,6 +111,12 @@ coarse lifecycle metadata required for instance operation, for example:
 
 Private relationship content is deliberately not queried by these read models.
 
+The directory finds an Account by e-mail address or by its complete Account ID. It
+does not search by display name: the name is protected content stored encrypted at
+rest (#797, `docs/ENCRYPTION-AT-REST.md`) and is only shown for an Account that was
+found. A person can copy their Account ID from the More page of the app, from a
+quiet line below sign-out, and pass it to whoever supports them.
+
 The corresponding ServerAdmin API supports:
 
 - `GET /api/v1/server-admin/accounts`;

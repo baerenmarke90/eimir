@@ -22,6 +22,7 @@ export type AppRouteIcon =
   | 'people'
   | 'places'
   | 'collections'
+  | 'notes'
   | 'media'
   | 'chapter'
   | 'birthday'
@@ -142,6 +143,11 @@ export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
 export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
+/** Shared Notes (#1969): free text both partners read and edit. */
+export const MORE_NOTES_ROUTE = '/more/notes';
+export const NOTE_CREATE_ROUTE = '/more/notes/new';
+export const NOTE_DETAIL_ROUTE_PATTERN = '/more/notes/:noteId';
+export const NOTE_EDIT_ROUTE_PATTERN = '/more/notes/:noteId/edit';
 /** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Named profile destination in the More account group. */
@@ -250,7 +256,9 @@ export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
 export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
+export const GAMES_GARDEN_ROUTE = '/games/garden';
 export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
+export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
 
 /* Story content ---------------------------------------------------------- */
 
@@ -449,6 +457,14 @@ export function chapterDetailPath(chapterId: string): string {
 
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
+}
+
+export function sharedNoteDetailPath(noteId: string): string {
+  return `${MORE_NOTES_ROUTE}/${encodeURIComponent(noteId)}`;
+}
+
+export function sharedNoteEditPath(noteId: string): string {
+  return `${sharedNoteDetailPath(noteId)}/edit`;
 }
 
 /**

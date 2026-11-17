@@ -30,7 +30,8 @@ semantics of decision 0012.
 
 - **Fingerprint:** SHA-256 of the normalized request: Collection ID, trimmed title, `completed` and, when
   present, the trimmed quantity. Including the Collection ID means the same key cannot silently create an Item in
-  a different list. No content is stored, only the fingerprint.
+  a different list. No content is stored, only the fingerprint. Since 2026-11-16 the digest is keyed with
+  an installation secret (decision 0012, update of that date).
 - **Replay:** the same identity and fingerprint returns `200 OK` with the *current* representation of the
   original Item and its `ETag`; nothing is written.
 - **Different request, same identity:** `409 IDEMPOTENCY_KEY_REUSED`.

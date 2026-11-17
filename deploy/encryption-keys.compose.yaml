@@ -1,0 +1,32 @@
+# Explicit opt-in: read the encryption-at-rest key set from a private host file
+# instead of the EIMIR_ENCRYPTION_KEYS environment value, for every role that
+# receives the keys today (API, worker, video worker and demo initialization)
+# in either canonical Compose profile. No services, networks or stores are added.
+# With this fragment EIMIR_ENCRYPTION_KEYS must stay unset; the mode and the
+# active key id are still set as usual.
+x-encryption-keys-runtime: &encryption-keys-runtime
+  environment:
+    EIMIR_ENCRYPTION_KEYS_FILE: /run/secrets/eimir-encryption-keys.json
+  volumes:
+    - type: bind
+      source: "${EIMIR_ENCRYPTION_KEYS_HOST_FILE:?Set the absolute private key-set file on the Docker host}"
+      target: /run/secrets/eimir-encryption-keys.json
+      read_only: true
+      bind:
+        create_host_path: false
+
+services:
+  api:
+    <<: *encryption-keys-runtime
+  worker:
+    <<: *encryption-keys-runtime
+  cloud-api:
+    <<: *encryption-keys-runtime
+  cloud-worker:
+    <<: *encryption-keys-runtime
+  video-worker:
+    <<: *encryption-keys-runtime
+  cloud-video-worker:
+    <<: *encryption-keys-runtime
+  demo-init:
+    <<: *encryption-keys-runtime

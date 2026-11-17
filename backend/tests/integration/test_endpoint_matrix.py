@@ -131,6 +131,7 @@ CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
 STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
+SHARED_NOTE = {"title": "Matrix Shared Note", "body": "Shared body"}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -476,6 +477,43 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept",
         body={"memoryId": str(uuid4())},
         fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns",
+        body={"turnsDone": 0, "strokes": [{"colour": "PERSON", "points": [10, 10, 500, 500]}]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish",
+        body={"turnsDone": 1},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
+        body={"memoryId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/waterings",
+        body={"plantId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
+    Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets",
+        body={"plantIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close",
+        body={"kept": False},
     ),
     Endpoint(
         "GET",
@@ -1125,6 +1163,36 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/chapters/{chapterId}/milestones/{targetId}",
         resource_absence="CHAPTER_NOT_FOUND",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/shared-notes"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/shared-notes", body=SHARED_NOTE),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        body={"body": "Matrix Shared Note updated"},
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}/presentation",
+        body={"pinned": True},
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/collections"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/collections", body=COLLECTION),
     Endpoint(
@@ -1327,6 +1395,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
         resource_absence="PLAN_NOT_FOUND",
     ),
     Endpoint(
@@ -1637,6 +1720,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
         json=COLLECTION_ITEM,
         headers=headers,
     ).json()
+    shared_note = client.post(f"{base_path}/shared-notes", json=SHARED_NOTE, headers=headers).json()
     private_collection = client.post(
         f"{base_path}/private/collections",
         json=PRIVATE_COLLECTION,
@@ -1737,6 +1821,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "privateCollectionId": private_collection["id"],
             "privateCollectionItemId": private_collection_item["id"],
             "noteId": private_note["id"],
+            "sharedNoteId": shared_note["id"],
             "giftIdeaId": gift_idea["id"],
             "exportId": str(uuid4()),
             "importId": str(uuid4()),
@@ -1747,6 +1832,9 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "experienceKind": "HAPPINESS",
             # A catalog image ID, not a database row; tenant checks come first.
             "imageId": "category-nature",
+            # No seed exists in the matrix; tenant and entitlement checks come first.
+            "seedId": str(uuid4()),
+            "bouquetId": str(uuid4()),
             "attachmentId": attachment["attachment"]["id"],
         },
     }

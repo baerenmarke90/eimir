@@ -458,6 +458,26 @@
         "web/src/client/heartHunt.ts"
       ]
     },
+    "garden-game.spec.ts": {
+      "roots": [
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenArt.tsx",
+        "web/src/client/garden.ts",
+        "web/src/client/gardenPresentation.ts",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/components/GardenSeasonArt.tsx",
+        "web/src/client/gardenGrowth.ts",
+        "web/src/client/gardenImage.ts",
+        "web/src/components/GardenBook.tsx",
+        "web/src/components/GardenBouquet.tsx",
+        "web/src/components/GardenFeatures.tsx",
+        "web/src/components/GardenFlora.tsx",
+        "web/src/components/GardenLife.tsx",
+        "web/src/components/GardenGrowth.css",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",
@@ -994,6 +1014,13 @@
         "web/src/components/GamesProductArea.tsx"
       ]
     },
+    "picture-ping-pong.spec.ts": {
+      "roots": [
+        "web/src/components/PicturePingPongPage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/client/picturePingPong.ts"
+      ]
+    },
     "chapter-experience.spec.ts": {
       "roots": [
         "web/src/components/ChaptersOverviewPage.tsx",
@@ -1207,6 +1234,20 @@
         "web/src/components/PlanStoryLinks.tsx",
         "web/src/components/StoryPlanningLinks.tsx",
         "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "shared-notes.spec.ts": {
+      "roots": [
+        "web/src/components/SharedNotesOverviewPage.tsx",
+        "web/src/components/SharedNoteReadPage.tsx",
+        "web/src/components/SharedNoteEditorPage.tsx",
+        "web/src/components/SharedNoteParts.tsx",
+        "web/src/components/WirNotes.tsx",
+        "web/src/components/PlanNoteLinks.tsx",
+        "web/src/components/NoteChoicePicker.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
       ]
     },
     "map-place-stacks.spec.ts": {

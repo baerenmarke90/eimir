@@ -17,6 +17,7 @@ const DESTINATION_MARKS: Record<AppRouteIcon, EimirIconName> = {
   people: 'gemeinsam',
   places: 'orte',
   collections: 'listen',
+  notes: 'notes',
   media: 'photo-library',
   chapter: 'kapitel',
   birthday: 'geburtstag',

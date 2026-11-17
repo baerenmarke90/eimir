@@ -42,6 +42,7 @@ from eimir.engagement.models import (
     Notification,
     NotificationKind,
 )
+from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
@@ -51,11 +52,13 @@ from eimir.once_messages import service as once_messages
 from eimir.once_messages.models import OnceMessage
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
+from eimir.picture_ping_pong.models import PicturePingPong, PictureStatus
 from eimir.places.models import Place
 from eimir.plans.models import Plan
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import delivery as reminder_delivery
 from eimir.reminders.models import Reminder, ReminderSource
+from eimir.shared_notes.models import SharedNote
 from eimir.transfer.models import TransferExport, TransferImport
 from eimir.wish_selections import service as wish_selections
 from eimir.wish_selections.models import WishSelectionRound
@@ -96,6 +99,7 @@ _TARGET_MODELS: dict[EngagementTarget, Any] = {
     EngagementTarget.PLACE: Place,
     EngagementTarget.CHAPTER: Chapter,
     EngagementTarget.COLLECTION: Collection,
+    EngagementTarget.SHARED_NOTE: SharedNote,
 }
 
 _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
@@ -312,6 +316,27 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
         )
 
+    if event_type in {EventType.GARDEN_SEED_ARRIVED, EventType.GARDEN_BOUQUET_GIVEN}:
+        recipient = event.payload.recipient_id
+        # A bouquet reuses the seed notice with its own target and text; the
+        # couple gets at most one garden notice per person and local day.
+        if recipient is None or not garden.notice_taken_today(
+            session,
+            event.space_id,
+            recipient,
+            event.created_at,
+            NotificationKind.GARDEN_SEED_ARRIVED.value,
+        ):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.GARDEN_SEED
+                if event_type is EventType.GARDEN_SEED_ARRIVED
+                else EngagementTarget.GARDEN_BOUQUET,
+                event.subject_id,
+                NotificationKind.GARDEN_SEED_ARRIVED,
+            )
+
     if event_type is EventType.COLLECTION_SENT:
         _project_target_notification(
             session,
@@ -319,6 +344,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             EngagementTarget.COLLECTION,
             event.subject_id,
             NotificationKind.COLLECTION_SENT,
+        )
+
+    if event_type in {EventType.SHARED_NOTE_CREATED, EventType.SHARED_NOTE_UPDATED}:
+        # #1969: the partner learns that a shared note exists or changed. The
+        # event carries the recipient and references only; no text is copied.
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.SHARED_NOTE,
+            event.subject_id,
+            NotificationKind.SHARED_NOTE_CREATED
+            if event_type is EventType.SHARED_NOTE_CREATED
+            else NotificationKind.SHARED_NOTE_CHANGED,
         )
 
     if event_type is EventType.MEMORY_CREATED and event.payload.experience_kind is not None:
@@ -368,6 +406,14 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             EngagementTarget.WISH_SELECTION,
             event.subject_id,
             NotificationKind(event_type.value),
+        )
+    if event_type is EventType.PICTURE_PING_PONG_TURN:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.PICTURE_GAME,
+            event.subject_id,
+            NotificationKind.PICTURE_PING_PONG_TURN,
         )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
         if _has_photo_reaction(session, event.subject_id, event.actor_id):
@@ -628,9 +674,17 @@ def _target_is_projectable(
             )
             is not None
         )
+    if target_type is EngagementTarget.GARDEN_SEED:
+        # A seed notice is current only while the seed waits for the reader.
+        return session.scalar(garden.seed_is_waiting(session, context, target_id)) is not None
+    if target_type is EngagementTarget.GARDEN_BOUQUET:
+        # A bouquet notice is current only while its card waits for the reader.
+        return session.scalar(garden.bouquet_is_open(session, context, target_id)) is not None
     if target_type is EngagementTarget.WISH_SELECTION:
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
+    if target_type is EngagementTarget.PICTURE_GAME:
+        return session.scalar(_picture_turn_exists(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(model.id == target_id)
     if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
@@ -638,6 +692,15 @@ def _target_is_projectable(
     if target_type is EngagementTarget.REMINDER:
         statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
     return session.execute(statement.with_only_columns(model.id)).scalar_one_or_none() is not None
+
+
+def _picture_turn_exists(context: AuthorizationContext, target_id: Any) -> Any:
+    return select(PicturePingPong.id).where(
+        PicturePingPong.id == target_id,
+        PicturePingPong.space_id == context.space_id,
+        PicturePingPong.status == PictureStatus.DRAWING.value,
+        PicturePingPong.drawer_id == context.account_id,
+    )
 
 
 def _projectable_predicate(
@@ -650,6 +713,25 @@ def _projectable_predicate(
     notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
+    # A turn notice is current only while it is still the recipient's turn.
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.PICTURE_GAME.value,
+            _picture_turn_exists(context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.GARDEN_SEED.value,
+            garden.seed_is_waiting(session, context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.GARDEN_BOUQUET.value,
+            garden.bouquet_is_open(session, context, target_id_column).exists(),
+        )
+    )
     for target_type, model in _TARGET_MODELS.items():
         if target_type is EngagementTarget.ONCE_MESSAGE:
             exists = (

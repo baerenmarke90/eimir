@@ -254,13 +254,15 @@ def update_person(
     _rebind_avatar(session, context, person, avatar_attachment_id)
     person.privacy_class = PrivacyClass.SPACE_SHARED.value
     person.relationship = relationship.value
-    person.birthday = normalized_birthday
-    person.birthday_year_known = birthday_year_known
-    person.show_birthday_on_dashboard = show_birthday_on_dashboard
     person.payload = RelatedPersonPayload(
         display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
         note=person.payload.note if note is None else note.strip(),
     )
+    # After the payload: the birthday is part of it, and assigning it also
+    # retires the legacy column and keeps ``has_birthday`` in step.
+    person.birthday = normalized_birthday
+    person.birthday_year_known = birthday_year_known
+    person.show_birthday_on_dashboard = show_birthday_on_dashboard
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return person

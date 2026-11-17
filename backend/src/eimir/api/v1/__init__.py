@@ -30,6 +30,7 @@ from eimir.api.v1 import (
     engagement,
     entitlements,
     games,
+    garden,
     gentle_prompts,
     health,
     heart_hunt,
@@ -45,9 +46,11 @@ from eimir.api.v1 import (
     partner_location,
     people,
     photo_sources,
+    picture_ping_pong,
     place_relations,
     places,
     plan_collections,
+    plan_notes,
     plan_story,
     plans,
     private_area,
@@ -62,6 +65,7 @@ from eimir.api.v1 import (
     server_admin,
     server_admin_observability,
     session_context,
+    shared_notes,
     spaces,
     story,
     transfer,
@@ -88,6 +92,8 @@ normal_router.include_router(memory_planning_relations.router)
 normal_router.include_router(memory_planning_relations.story_router)
 normal_router.include_router(plan_story.router)
 normal_router.include_router(plan_collections.router)
+normal_router.include_router(plan_notes.router)
+normal_router.include_router(shared_notes.router)
 normal_router.include_router(context_tags.router)
 normal_router.include_router(appearance.router)
 normal_router.include_router(session_context.router)
@@ -121,7 +127,9 @@ normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(billing.router)
 normal_router.include_router(games.router)
+normal_router.include_router(garden.router)
 normal_router.include_router(heart_hunt.router)
+normal_router.include_router(picture_ping_pong.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)

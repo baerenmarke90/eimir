@@ -1,9 +1,55 @@
 name: Media Video
 
 on:
+  # Pull requests run the restricted-codec acceptance only when the code it
+  # exercises changes. Ordinary Backend changes are covered by the regular
+  # Backend Integration suite, whose codec-dependent cases skip without the
+  # pinned binaries. Every push to main still runs this workflow completely
+  # and the immutable release publisher waits for that result.
   pull_request:
     paths:
-      - "backend/**"
+      # Media storage, attachment, processing-job and API surfaces, plus the
+      # exact security/database modules the media path imports. The model
+      # registry and field-encryption tooling stay out: every feature edits them.
+      - "backend/src/eimir/media/**"
+      - "backend/src/eimir/attachments/**"
+      - "backend/src/eimir/jobs/**"
+      - "backend/src/eimir/heart_moments/**"
+      - "backend/src/eimir/memories/models.py"
+      - "backend/src/eimir/memories/service.py"
+      - "backend/src/eimir/security/errors.py"
+      - "backend/src/eimir/security/keyring.py"
+      - "backend/src/eimir/security/runtime.py"
+      - "backend/src/eimir/security/lifecycle.py"
+      - "backend/src/eimir/db/base.py"
+      - "backend/src/eimir/db/locks.py"
+      - "backend/src/eimir/db/mixins.py"
+      - "backend/src/eimir/db/protected_payload.py"
+      - "backend/src/eimir/db/session.py"
+      - "backend/src/eimir/api/v1/attachments.py"
+      - "backend/src/eimir/api/v1/memories.py"
+      - "backend/src/eimir/api/v1/heart_moments.py"
+      - "backend/src/eimir/api/v1/video.py"
+      - "backend/src/eimir/config.py"
+      - "backend/src/eimir/main.py"
+      # Build inputs of the backend and optional media images.
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "backend/.python-version"
+      - "backend/Dockerfile"
+      - "backend/Dockerfile.media"
+      # The acceptance tests, their fixtures and the test support they import.
+      - "backend/tests/support/video.py"
+      - "backend/tests/support/s3_reads.py"
+      - "backend/tests/fixtures/media/**"
+      - "backend/tests/media/**"
+      - "backend/tests/unit/test_video_*.py"
+      - "backend/tests/unit/test_audio_*.py"
+      - "backend/tests/unit/test_media_*.py"
+      - "backend/tests/unit/test_codec_*.py"
+      - "backend/tests/integration/test_video_*.py"
+      - "backend/tests/integration/test_heart_voice_notes.py"
+      - "backend/tests/integration/test_heart_moments.py"
       - "tools/media/**"
       - "compose.yaml"
       - "web/e2e/tests/video-attachments.spec.ts"

@@ -97,6 +97,11 @@
     "visibility": {
       "onlyYou": "Only you can see this"
     },
+    "accountId": {
+      "copy": "Copy account ID",
+      "copied": "Account ID copied",
+      "failed": "Copying did not work. Your account ID:"
+    },
     "eyebrow": "More",
     "title": "Everything else",
     "intro": "Personal details, shared lists and settings.",
@@ -1238,6 +1243,7 @@
       "CHAPTER": "Chapter",
       "COLLECTION": "List",
       "COLLECTION_ITEM": "List entry",
+      "SHARED_NOTE": "Shared note",
       "PRIVATE_NOTE": "Note for me",
       "GIFT_IDEA": "Gift idea",
       "PRIVATE_COLLECTION": "My list",
@@ -1571,9 +1577,9 @@
     }
   },
   "wirDesign": {
-    "title": "Us design",
-    "intro": "How your Us page feels. Only your view changes.",
-    "choices": "Your Us design",
+    "title": "App design",
+    "intro": "How eimir. feels for you. Only your view changes.",
+    "choices": "Your app design",
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
@@ -1603,7 +1609,7 @@
     "save": "Save choice",
     "saving": "Saving …",
     "selected": "Already selected",
-    "saved": "Your Us design is saved.",
+    "saved": "Your app design is saved.",
     "close": "Close",
     "conflict": "Your appearance has changed in the meantime. Load the latest version, then confirm your choice again.",
     "reload": "Load latest version",
@@ -2278,7 +2284,7 @@
   "notificationSettings": {
     "title": "Which messages you receive",
     "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
-    "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
+    "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
     "mixed": "Set differently. See your choices under “Adjust individually”.",
@@ -2295,6 +2301,7 @@
     "reminderCreated": "New reminders",
     "experience": "Shared moments",
     "collectionSent": "Sent lists",
+    "gardenSeed": "Seeds from your garden",
     "thinking": "Thinking of you",
     "kiss": "A kiss",
     "checkIn": "Check-in",
@@ -3151,10 +3158,20 @@
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
       },
+      "pingPong": {
+        "role": "Feel close",
+        "title": "Picture ping-pong",
+        "description": "Take turns adding to one picture until it is finished."
+      },
       "heartHunt": {
         "role": "Be close",
         "title": "Heart hunt",
         "description": "Hide a heart in a photo. Who finds it?"
+      },
+      "garden": {
+        "role": "Being close",
+        "title": "Our garden",
+        "description": "Send each other a seed every day, wherever you are."
       }
     },
     "heartHunt": {
@@ -3226,6 +3243,56 @@
         "bottomLeft": "at the bottom left",
         "bottom": "at the bottom",
         "bottomRight": "at the bottom right"
+      }
+    },
+    "pingPong": {
+      "intro": "One picture, two hands: each of you draws up to three strokes and passes it on.",
+      "loadingTitle": "Fetching your picture",
+      "loadingBody": "You will see whose turn it is in a moment.",
+      "emptyEyebrow": "No picture yet",
+      "emptyTitle": "Start a picture.",
+      "emptyBody": "You begin with a small squiggle. After that you draw in turns, six turns long.",
+      "newPicture": "Start a new picture",
+      "canvasLabel": "Your shared picture",
+      "you": "You",
+      "partnerFallback": "Partner",
+      "turnYou": "Your turn",
+      "turnPartner": "{{name}} is up",
+      "strokesUsed": "{{count}} of {{max}} strokes",
+      "turnsLabel": "Turns",
+      "turnDone": "drawn",
+      "turnCurrent": "current",
+      "turnOpen": "still open",
+      "turnDot": "Turn {{turn}} of {{total}}, {{name}}, {{state}}",
+      "colourLegend": "Choose a colour",
+      "colourOwn": "Your colour",
+      "colourInk": "Ink",
+      "colourSun": "Sun yellow",
+      "undo": "Undo stroke",
+      "send": "Send to {{name}}",
+      "sentNote": "Sent. {{name}} is up now; you will be told when it continues.",
+      "waitingNote": "The picture is waiting for {{name}}. You will be told when it is your turn again.",
+      "changedMeanwhile": "Something changed in the meantime. The picture was reloaded.",
+      "finishEarly": "Finish the picture now",
+      "finishConfirm": "The picture will be complete and you can put it into Moments.",
+      "finishConfirmAction": "Yes, finish",
+      "finishKeep": "Keep drawing",
+      "doneTitle": "Your picture is finished",
+      "doneBody": "Give it a name and keep it, if you like.",
+      "titleLegend": "What should it be called?",
+      "saveToMoments": "Put into Moments",
+      "saving": "Saving …",
+      "saved": "Put into Moments.",
+      "openMoment": "View moment",
+      "memoryBody": "Drawn together with {{name}}.",
+      "backToGames": "Back to Games",
+      "titles": {
+        "one": "Our artwork",
+        "two": "Drawn between us",
+        "three": "Little scribble",
+        "four": "Two hands, one picture",
+        "five": "From here to there",
+        "six": "Our doodle"
       }
     },
     "momentsGame": {
@@ -3345,6 +3412,217 @@
       },
       "finishDifferent_one": "You saw yourselves differently on {{count}} question.",
       "finishDifferent_other": "You saw yourselves differently on {{count}} questions."
+    },
+    "garden": {
+      "title": "Our garden",
+      "you": "You",
+      "partnerFallback": "Your partner",
+      "loading": "Opening the garden …",
+      "changedMeanwhile": "Something just changed in the garden. We reloaded it.",
+      "sentStatus": "{{messenger}} brought your seed to {{name}}.",
+      "plantedStatus": "Planted.",
+      "wateredStatus": "Watered. {{name}} will see the drops.",
+      "waterTitle": "Which plant are you watering?",
+      "waterBody": "Tap a plant in the garden. {{name}} will see the drops.",
+      "cancel": "Cancel",
+      "arrivedTitle": "{{name}} sent you a seed",
+      "quoted": "“{{words}}”",
+      "foldedCard": "A little card with kind words",
+      "unfold": "Open",
+      "plant": "Plant it",
+      "todayTitle": "Today for {{name}}",
+      "todayBody": "Pick a seed. {{messenger}} will bring it to {{name}}.",
+      "chooseSeed": "Choose a seed",
+      "wordsQuestion": "Add some kind words?",
+      "yourWords": "Your words: “{{words}}”",
+      "change": "Change",
+      "send": "Send the seed",
+      "waitingTitle": "Your seed is with {{name}}",
+      "waitingBody": "As soon as {{name}} looks in, it gets planted. If you are both here today, the whole garden grows a little.",
+      "sharedTitle": "You were both in the garden today",
+      "sharedBody": "Everything grew a little, and your lanterns are glowing. There are new seeds tomorrow.",
+      "sceneLabel_one": "Your garden with {{count}} plant",
+      "sceneLabel_other": "Your garden with {{count}} plants",
+      "panHint": "Swipe to see the whole garden",
+      "close": "Close",
+      "storySent": "Sent by {{name}}, {{date}}",
+      "youDative": "you",
+      "water": "Water a plant",
+      "partnerWatered": "{{name}} watered your {{species}} today.",
+      "partnerWateredYours": "{{name}} watered the {{species}} you sent today.",
+      "footnote": "Tap a plant to see its story. No day is lost: if you do not look in for a while, the garden simply waits.",
+      "plantLabel": "{{species}} from {{name}}",
+      "waterPlantLabel": "Water the {{species}}",
+      "seasons": {
+        "spring": "It is spring in the garden",
+        "summer": "It is summer in the garden",
+        "autumn": "It is autumn in the garden",
+        "winter": "It is winter in the garden, snow lies on the hills"
+      },
+      "lanterns": {
+        "both": "Both your lanterns are glowing, you were both in the garden today",
+        "own": "Your lantern is glowing, you were in the garden today",
+        "partner": "{{name}}'s lantern is glowing, {{name}} was in the garden today"
+      },
+      "reunion": {
+        "eyebrow": "From Plans",
+        "soonTitle": "Together again on {{date}}",
+        "soonBody": "On that day your whole garden blooms, however far along it is.",
+        "gateLabel": "A garden gate waits for your reunion on {{date}}",
+        "todayTitle": "You see each other again today",
+        "todayBody": "Your whole garden is in bloom for you. No seeds needed today.",
+        "buntingLabel": "Everything is in bloom, and bunting hangs over the garden",
+        "save": "Save the reunion garden as a Moment",
+        "saving": "Saving …",
+        "saved": "Saved to Moments.",
+        "openMoment": "View the Moment",
+        "memoryTitle": "Our reunion garden",
+        "memoryBody": "On the day we saw each other again, our whole garden was in bloom."
+      },
+      "sleep": {
+        "title": "Your garden is asleep",
+        "body": "It has rested for a few days. It is waking up in a moment.",
+        "sceneLabel": "Mist lies over the garden, the blossoms are closed",
+        "wokeTitle": "Lovely to see you",
+        "wokeBody": "Your garden is awake again. Nothing was lost.",
+        "wokeClose": "Lovely"
+      },
+      "stages": {
+        "0": "Right now: a seed in the ground",
+        "1": "Right now: a little sprout",
+        "2": "Right now: a bud",
+        "3": "Right now: in full bloom"
+      },
+      "messengers": {
+        "ladybug": "A ladybird",
+        "bee": "A bee",
+        "bird": "A bird",
+        "balloon": "A little balloon"
+      },
+      "species": {
+        "POPPY": {
+          "name": "Poppy",
+          "arrived": "A poppy. {{messenger}} brought it."
+        },
+        "BELLFLOWER": {
+          "name": "Bellflower",
+          "arrived": "A bellflower. {{messenger}} brought it."
+        },
+        "STARFLOWER": {
+          "name": "Star flower",
+          "arrived": "A star flower. {{messenger}} brought it."
+        },
+        "SUNFLOWER": {
+          "name": "Sunflower",
+          "arrived": "A sunflower. {{messenger}} brought it."
+        },
+        "TULIP": {
+          "name": "Tulip bulb",
+          "arrived": "A tulip bulb. {{messenger}} brought it. It blooms in spring."
+        },
+        "WATER_LILY": {
+          "name": "Water lily",
+          "arrived": "A water lily for your pond. {{messenger}} brought it."
+        },
+        "STRAWBERRY": {
+          "name": "Strawberry",
+          "arrived": "A strawberry. {{messenger}} brought it."
+        },
+        "MOONFLOWER": {
+          "name": "Moonflower",
+          "arrived": "A moonflower. {{messenger}} brought it."
+        },
+        "SURPRISE": {
+          "name": "Surprise",
+          "arrived": "A surprise. {{messenger}} brought it. You will both see what it becomes when it blooms."
+        }
+      },
+      "growth": {
+        "forms": {
+          "BED": "A flower bed",
+          "MEADOW": "A meadow",
+          "GARDEN": "A garden",
+          "PARADISE": "Your little paradise"
+        },
+        "finds": {
+          "PATH": "A path",
+          "POND": "A pond with water lilies",
+          "BENCH": "A bench for the two of you",
+          "TREE": "Your tree",
+          "MORE_ROOM": "More room to plant",
+          "BIRDHOUSE": "A birdhouse",
+          "ROSE_ARCH": "A rose arch",
+          "SWING": "A swing on the tree",
+          "STREAM": "A little stream",
+          "EVEN_MORE_ROOM": "Even more room"
+        },
+        "newSeeds": "New seeds: {{species}}",
+        "newsEyebrow": "New in the garden",
+        "newsBody": "Because you took care of it together. None of it will ever be lost.",
+        "newsDone": "Lovely",
+        "book": "Garden book",
+        "bookPlants": "Your plants",
+        "bookFinds": "Found in the garden",
+        "undiscovered": "Not discovered yet",
+        "secret": "Still a secret",
+        "bookFootnote": "New things appear on their own as you keep caring together. There is no counter, and nothing is ever lost, not even after a break.",
+        "rename": "Rename",
+        "nameLabel": "What is your garden called?",
+        "nameHint": "Up to 40 characters. Leave it empty for “Our garden”.",
+        "save": "Save",
+        "renamedStatus": "Your garden is now called “{{name}}”.",
+        "bind": "Make a bouquet",
+        "bindTitle": "Make a bouquet",
+        "bindBody": "Tap up to three blooming flowers. A seed stays in the soil for each one and grows again.",
+        "bindCount_one": "{{count}} of 3 in the bouquet",
+        "bindCount_other": "{{count}} of 3 in the bouquet",
+        "bindSend": "Give to {{name}}",
+        "bindPlantLabel": "{{species}} for the bouquet",
+        "bouquetSentStatus": "The bouquet is with {{name}}. New seeds are in the soil.",
+        "bouquetTitle": "{{name}} gave you a bouquet",
+        "bouquetBody": "{{messenger}} brought it.",
+        "bouquetLabel": "A bouquet of {{flowers}}",
+        "bouquetThanks": "Thank you",
+        "bouquetKeep": "Put into Moments",
+        "bouquetKept": "The bouquet is now in Moments.",
+        "bouquetMemoryTitle": "A bouquet from {{name}}",
+        "bouquetMemoryBody": "From our garden.",
+        "planeNote": "Loving words are coming by air mail",
+        "planeOpen": "Look",
+        "restingTulip": "Right now: sleeping until spring",
+        "moonGlow": "It glows at night.",
+        "moonRevealed": "A moonflower! It glows at night.",
+        "yearTitle": "Your garden year {{year}}",
+        "yearBody": "Keep your garden as a picture in Moments. It then also appears in your annual recap. Only if you want to.",
+        "yearSave": "Save as a moment",
+        "yearSaved": "Your garden is now in Moments.",
+        "yearMemoryTitle": "Our garden {{year}}",
+        "animalLabel": "Tap the {{animal}}",
+        "quack": "Quack!",
+        "animals": {
+          "snail": "snail",
+          "rabbit": "rabbit",
+          "hedgehog": "hedgehog",
+          "ducks": "duck pair",
+          "squirrel": "squirrel",
+          "deer": "deer"
+        },
+        "reactions": {
+          "snail": "The snail hides in its shell.",
+          "rabbit": "The rabbit hops away.",
+          "hedgehog": "The hedgehog curls up.",
+          "ducks": "Quack! The ducks paddle a little.",
+          "squirrel": "The squirrel dashed up your tree.",
+          "deer": "Oh! The deer got startled."
+        }
+      },
+      "words": {
+        "THINKING_OF_YOU": "Thinking of you",
+        "MISS_YOU": "Miss you",
+        "LOOKING_FORWARD": "Can’t wait to see you",
+        "GOOD_NIGHT": "Good night",
+        "FOR_YOU": "For you"
+      }
     }
   },
   "coupleExperiences": {
@@ -3365,9 +3643,12 @@
       "WISH_SELECTION_RANDOM_REQUESTED": "{{name}} would like chance to decide.",
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
+      "PICTURE_PING_PONG_TURN": "{{name}} added to your picture. It is your turn.",
       "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
+      "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
+      "GARDEN_BOUQUET": "{{name}} gave you a bouquet.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",
@@ -4138,7 +4419,7 @@
       "body": "Manage account and sign-in status without accessing private relationship content.",
       "totalSuffix": "accounts",
       "search": "Search",
-      "searchPlaceholder": "Name, email or account ID",
+      "searchPlaceholder": "Email or account ID",
       "loading": "Loading accounts …",
       "error": "The account list could not be loaded.",
       "empty": "No matching accounts found.",
@@ -5444,8 +5725,8 @@
           "body": "Choose to share how far apart you are or show your location on the map. You can stop sharing anytime."
         },
         "wirDesigns": {
-          "title": "More designs for Us",
-          "body": "Make your Us page your own with Our Album, Clear & modern or Classic."
+          "title": "More app designs",
+          "body": "Make eimir. your own with Our Album, Clear & modern or Classic."
         },
         "appIcons": {
           "title": "Alternative app icons",
@@ -5675,5 +5956,148 @@
     "partnerBirthday": "On {{name}}'s birthday",
     "more_one": "and one more occasion",
     "more_other": "and {{count}} more occasions"
+  },
+  "sharedNotes": {
+    "title": "Notes",
+    "destination": "Shared notes",
+    "destinationSubtitle": "Addresses, thoughts, tips for both of you",
+    "untitled": "Untitled",
+    "audience": "For both of you",
+    "audienceEditing": "Visible to both of you",
+    "create": "Add note",
+    "createFirst": "Add the first note",
+    "back": "Back to notes",
+    "scopeLabel": "Filter notes",
+    "scope": {
+      "ALL": "All",
+      "PINNED": "Pinned"
+    },
+    "search": "Search notes",
+    "searchClear": "Clear search",
+    "sectionPinned": "Pinned",
+    "sectionRecent": "Recently edited",
+    "sectionAll": "All notes",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "loading": "Loading notes",
+    "loadMore": "Load more notes",
+    "loadingMore": "Loading more notes",
+    "cached": "You are seeing the last loaded state.",
+    "empty": {
+      "title": "What you want to remember lives here",
+      "body": "Addresses, thoughts, tips in plain text. You both see and add to them."
+    },
+    "noMatch": {
+      "title": "No results for “{{query}}”",
+      "body": "Try another word or clear the search."
+    },
+    "noPinned": {
+      "title": "Nothing pinned yet",
+      "body": "Pin important notes from a note's menu and they will appear here."
+    },
+    "pinnedBadge": "Pinned",
+    "editedBy": "Last edited by {{name}} · {{when}}",
+    "editedByYou": "Last edited by you · {{when}}",
+    "writtenBy": "Written by {{name}}",
+    "writtenByYou": "Written by you",
+    "changedBy": "Last changed by {{name}} · {{when}}",
+    "changedByYou": "Last changed by you · {{when}}",
+    "read": {
+      "edit": "Edit",
+      "itemLabel": "Shared note",
+      "menu": "Note menu",
+      "noBody": "This note has no text yet.",
+      "updatedByPartner": "{{name}} just updated this note."
+    },
+    "menu": {
+      "title": "Note",
+      "pin": "Pin",
+      "pinHint": "Shown first in the list and on Us",
+      "unpin": "Unpin",
+      "unpinHint": "Returns to the other notes",
+      "wirTitleOnly": "Show only the title on Us",
+      "wirTitleOnlyHint": "Good for door codes and passwords",
+      "wirExcerpt": "Show an excerpt on Us",
+      "wirExcerptHint": "The start of the text appears on Us",
+      "delete": "Delete …",
+      "deleteHint": "For both of you"
+    },
+    "toast": {
+      "saved": "Saved.",
+      "pinned": "Pinned.",
+      "unpinned": "Unpinned.",
+      "titleOnly": "Only the title shows on Us.",
+      "excerpt": "An excerpt shows on Us.",
+      "deleted": "Note deleted.",
+      "linkedPlan": "Saved and linked to the plan.",
+      "takenTheirs": "The other version is applied."
+    },
+    "delete": {
+      "title": "Delete note?",
+      "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
+      "confirm": "Delete",
+      "pending": "Deleting …"
+    },
+    "edit": {
+      "createTitle": "New note",
+      "editTitle": "Edit note",
+      "close": "Close",
+      "save": "Save",
+      "saving": "Saving …",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Title (optional)",
+      "bodyLabel": "Text",
+      "bodyPlaceholder": "What do you want to keep?",
+      "tools": "Add to note",
+      "bullets": "Bullet list",
+      "needsContent": "Write a title or some text.",
+      "offline": "Not saved, you are offline. Your text is kept.",
+      "retry": "Try again",
+      "gone": "This note was deleted. Your text is kept here.",
+      "draftKept": "Your text is kept."
+    },
+    "conflict": {
+      "message": "{{name}} just changed this note. Your text is kept.",
+      "seeChanges": "See changes",
+      "hideChanges": "Hide changes",
+      "keepMine": "Save my version",
+      "takeTheirs": "Take the other version",
+      "takeTheirsWarning": "Your changes are lost when you do.",
+      "theirsLabel": "Current version"
+    },
+    "wir": {
+      "titleOne": "Our note",
+      "titleMany": "Our notes",
+      "allNotes": "All notes",
+      "allNotesAria": "See all shared notes",
+      "open": "Open note “{{title}}”",
+      "hiddenExcerpt": "Excerpt hidden",
+      "add": "Add to it",
+      "moreTile": "More notes",
+      "loadError": "The notes could not be loaded."
+    },
+    "dashboard": {
+      "settingsTitle": "Pinned notes"
+    },
+    "plan": {
+      "heading": "Shared notes",
+      "tool": "Note",
+      "choose": "Link notes",
+      "hint": "Shared notes only. Find private notes under Private.",
+      "link": "Link selection",
+      "createNew": "Create new note",
+      "noChoices": "All existing notes are already linked.",
+      "unlink": "Remove link to “{{title}}”",
+      "unlinked": "Link to “{{title}}” removed.",
+      "linked_one": "Note linked.",
+      "linked_other": "{{count}} notes linked.",
+      "immediate": "Links apply right away, even without saving.",
+      "done": "Done",
+      "openNote": "Open note “{{title}}”"
+    },
+    "notification": {
+      "SHARED_NOTE_CREATED": "{{name}} added a shared note",
+      "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
+    }
   }
 }

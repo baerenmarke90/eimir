@@ -35,11 +35,15 @@ INHERITED_KINDS = {
     NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.HEART_HUNT_HIDDEN: NotificationKind.THINKING_OF_YOU,
     NotificationKind.HEART_HUNT_FOUND: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PICTURE_PING_PONG_TURN: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
     NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+    # #1969: shared notes are collaborative writing, like comments.
+    NotificationKind.SHARED_NOTE_CREATED: NotificationKind.COMMENT_CREATED,
+    NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
     **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 

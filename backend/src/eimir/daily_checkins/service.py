@@ -209,19 +209,22 @@ def _partner_dimension(
         DailyCheckIn.account_id == partner_account_id,
         DailyCheckIn.checked_on == checked_on,
     )
-    selected_dimension = (
-        DailyCheckIn.vibe if dimension is DailyCheckInDimension.VIBE else DailyCheckIn.energy_level
-    )
-    partner_row = session.execute(
-        select(DailyCheckIn.id, selected_dimension).where(*filters)
-    ).one_or_none()
+    # The values are protected content, so the row is loaded and read in Python.
+    partner_row = session.execute(select(DailyCheckIn).where(*filters)).scalar_one_or_none()
+    value: str | int | None = None
+    if partner_row is not None:
+        value = (
+            partner_row.vibe
+            if dimension is DailyCheckInDimension.VIBE
+            else partner_row.energy_level
+        )
 
-    if partner_row is None or partner_row[1] is None:
+    if partner_row is None or value is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
     return PartnerDimensionProjection(
         state=PartnerRevealState.VISIBLE,
-        value=partner_row[1],
-        check_in_id=partner_row[0],
+        value=value,
+        check_in_id=partner_row.id,
     )
 
 
@@ -469,8 +472,7 @@ def update_today(
         _flush(session)
         own = None
     else:
-        own.energy_level = next_energy
-        own.vibe = next_vibe
+        own.set_values(vibe=next_vibe, energy_level=next_energy)
 
     if own is not None:
         note_changed = next_vibe_note != current_vibe_note

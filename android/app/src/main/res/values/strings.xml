@@ -54,6 +54,11 @@
     <string name="push_partner_joined">%1$s is now connected with you.</string>
     <string name="push_collection_sent">%1$s sent you a list.</string>
     <string name="push_view_list">View list</string>
+    <string name="push_picture_turn">%1$s added to your picture. It is your turn.</string>
+    <string name="push_view_picture">Keep drawing</string>
+    <string name="push_garden_seed">%1$s sent you a seed.</string>
+    <string name="push_garden_bouquet">%1$s gave you a bouquet.</string>
+    <string name="push_view_garden">View garden</string>
     <string name="push_transfer_ready">Your data transfer is ready.</string>
     <string name="push_transfer_completed">Your data transfer is complete.</string>
     <string name="push_transfer_failed">Your data transfer could not be completed.</string>

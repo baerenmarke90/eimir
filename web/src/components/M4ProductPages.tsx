@@ -77,6 +77,7 @@ const SEARCH_KINDS: readonly SearchKind[] = [
   'CHAPTER',
   'COLLECTION',
   'COLLECTION_ITEM',
+  'SHARED_NOTE',
   'PRIVATE_NOTE',
   'GIFT_IDEA',
   'PRIVATE_COLLECTION',

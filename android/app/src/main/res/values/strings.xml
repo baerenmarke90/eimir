@@ -57,6 +57,7 @@
     <string name="push_picture_turn">%1$s added to your picture. It is your turn.</string>
     <string name="push_view_picture">Keep drawing</string>
     <string name="push_garden_seed">%1$s sent you a seed.</string>
+    <string name="push_garden_bouquet">%1$s gave you a bouquet.</string>
     <string name="push_view_garden">View garden</string>
     <string name="push_transfer_ready">Your data transfer is ready.</string>
     <string name="push_transfer_completed">Your data transfer is complete.</string>

@@ -442,6 +442,149 @@ async function prepare(
   return errors;
 }
 
+/* Growth and life (#1907 H3, PR 3) ------------------------------------------- */
+
+const growth = copy.growth;
+const PLANE_SEED_ID = '88888888-8888-4888-8888-888888888888';
+const BOUQUET_ID = '99999999-9999-4999-8999-999999999999';
+const UNLOCKS = [
+  'PATH',
+  'POND',
+  'SUNFLOWER',
+  'TULIP',
+  'WATER_LILY',
+  'BENCH',
+  'TREE',
+  'MORE_ROOM',
+  'STRAWBERRY',
+];
+
+function grownPlant(index: number, overrides: Record<string, unknown> = {}) {
+  const species = ['POPPY', 'SUNFLOWER', 'BELLFLOWER', 'STRAWBERRY'][index % 4];
+  return {
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    species,
+    words: null,
+    senderId: index % 2 ? ACCOUNT_ID : PARTNER_ID,
+    sentOn: '2026-10-20',
+    stage: index % 5 === 4 ? 1 : 3,
+    slot: index,
+    inPond: false,
+    ...overrides,
+  };
+}
+
+function grownGarden(overrides: Record<string, unknown> = {}) {
+  return gardenView({
+    plants: [
+      ...Array.from({ length: 14 }, (_, index) => grownPlant(index)),
+      grownPlant(20, { species: 'WATER_LILY', slot: 0, inPond: true }),
+      grownPlant(21, { species: 'MOONFLOWER', slot: 14 }),
+    ],
+    incoming: {
+      id: PLANE_SEED_ID,
+      species: 'SURPRISE',
+      words: 'MISS_YOU',
+      senderId: PARTNER_ID,
+      sentOn: '2026-11-16',
+      stage: 0,
+      slot: null,
+      inPond: false,
+    },
+    offer: ['POPPY', 'SUNFLOWER', 'SURPRISE'],
+    sharedDays: 30,
+    form: 'GARDEN',
+    unlocks: UNLOCKS,
+    news: ['TREE', 'MORE_ROOM', 'STRAWBERRY'],
+    discovered: [
+      'POPPY',
+      'BELLFLOWER',
+      'STARFLOWER',
+      'SUNFLOWER',
+      'MOONFLOWER',
+    ],
+    name: null,
+    bouquet: {
+      id: BOUQUET_ID,
+      giverId: PARTNER_ID,
+      givenOn: '2026-11-16',
+      flowers: [
+        { species: 'SUNFLOWER', senderId: ACCOUNT_ID },
+        { species: 'POPPY', senderId: PARTNER_ID },
+      ],
+    },
+    gaveBouquetToday: false,
+    ...overrides,
+  });
+}
+
+type GrownGarden = ReturnType<typeof grownGarden>;
+
+async function installGrowthMocks(page: Page) {
+  const network = await installMocks(page);
+  let garden: GrownGarden = grownGarden();
+  await page.route(`**${GARDEN_PATH}**`, async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const method = request.method();
+    const suffix = pathname.slice(GARDEN_PATH.length);
+    if (method !== 'GET') network.writes.push(`${method} ${suffix}`);
+    if (method === 'POST' && suffix === '/news/seen') {
+      garden = { ...garden, news: [] };
+    } else if (
+      method === 'POST' &&
+      suffix === `/bouquets/${BOUQUET_ID}/close`
+    ) {
+      garden = { ...garden, bouquet: null };
+    } else if (
+      method === 'POST' &&
+      suffix === `/seeds/${PLANE_SEED_ID}/plant`
+    ) {
+      garden = {
+        ...garden,
+        plants: [
+          ...(garden.plants as Array<Record<string, unknown>>),
+          { ...(garden.incoming as Record<string, unknown>), slot: 15 },
+        ],
+        incoming: null,
+      } as GrownGarden;
+    } else if (method === 'POST' && suffix === '/bouquets') {
+      const picked = (request.postDataJSON() as { plantIds: string[] })
+        .plantIds;
+      garden = {
+        ...garden,
+        gaveBouquetToday: true,
+        plants: (garden.plants as Array<{ id: string }>).map((entry) =>
+          picked.includes(entry.id) ? { ...entry, stage: 0 } : entry,
+        ),
+      } as GrownGarden;
+    } else if (method === 'PUT' && suffix === '/name') {
+      garden = {
+        ...garden,
+        name: (request.postDataJSON() as { name: string | null }).name,
+      };
+    } else if (method !== 'GET') {
+      network.unexpected.push(`${method} ${pathname}`);
+    }
+    await route.fulfill({ json: garden });
+  });
+  return network;
+}
+
+async function captureGrowth(page: Page, info: TestInfo, name: string) {
+  // Captures show the garden, not a keyboard focus ring left by the journey.
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
+  await capture(page, info, name);
+}
+
+function anyOf(texts: string[]) {
+  return new RegExp(
+    texts.map((text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  );
+}
+
 for (const scenario of [
   { width: 390, theme: 'light', reduce: false },
   { width: 360, theme: 'dark', reduce: true },
@@ -559,6 +702,148 @@ for (const scenario of [
       'POST /attachments',
       'POST /memories',
       'PUT /memories/attachments',
+    ]);
+    expect(network.unexpected).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test(`garden grows with news, bouquets, the book and visitors at ${scenario.width}px ${scenario.theme}`, async ({
+    page,
+  }, info) => {
+    test.setTimeout(90_000);
+    const network = await installGrowthMocks(page);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: scenario.theme,
+      reducedMotion: scenario.reduce ? 'reduce' : 'no-preference',
+    });
+    await openGarden(page);
+
+    // Something new is announced once, without any number.
+    const news = page.getByTestId('garden-news');
+    await expect(news).toBeVisible();
+    await expect(news.getByText(growth.finds.TREE)).toBeVisible();
+    await expect(news).not.toContainText(/\d/);
+    await expect(page.getByTestId('garden-frame')).toHaveClass(/is-wide/);
+    await expectReflow(page);
+    await captureGrowth(
+      page,
+      info,
+      `garden-growth-news-${scenario.width}-${scenario.theme}.png`,
+    );
+    await news.getByRole('button', { name: growth.newsDone }).click();
+    await expect(news).toHaveCount(0);
+
+    // A bouquet from the partner; thanks closes it without saving anything.
+    const bouquet = page.getByTestId('garden-bouquet-card');
+    await expect(
+      bouquet.getByText(fill(growth.bouquetTitle, { name: 'Alex' })),
+    ).toBeVisible();
+    await expect(
+      bouquet.getByRole('button', { name: growth.bouquetKeep }),
+    ).toBeVisible();
+    await captureGrowth(
+      page,
+      info,
+      `garden-growth-bouquet-${scenario.width}-${scenario.theme}.png`,
+    );
+    await bouquet.getByRole('button', { name: growth.bouquetThanks }).click();
+    await expect(bouquet).toHaveCount(0);
+
+    // Kind words by plane banner, or the folded card with reduced motion.
+    if (scenario.reduce) {
+      await page
+        .getByRole('button', { name: new RegExp(copy.foldedCard) })
+        .click();
+    } else {
+      await page
+        .getByRole('button', { name: new RegExp(growth.planeNote) })
+        .click();
+      await expect(page.getByTestId('garden-plane')).toHaveCount(1);
+    }
+    await expect(
+      page.getByText(fill(copy.quoted, { words: copy.words.MISS_YOU })),
+    ).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('button', { name: copy.plant }).click();
+
+    // A visitor reacts to a tap and the reaction is announced.
+    const visitor = page
+      .locator('[data-testid^="garden-animal-"][role="button"]')
+      .first();
+    await expect(visitor).toBeAttached({ timeout: 6000 });
+    await visitor.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.garden-status')).toHaveText(
+      anyOf(Object.values(growth.reactions)),
+    );
+
+    // Bind a bouquet from two blooms for the partner.
+    await page.getByRole('button', { name: growth.bind }).click();
+    await page
+      .getByRole('button', {
+        name: fill(growth.bindPlantLabel, {
+          species: copy.species.POPPY.name,
+        }),
+      })
+      .first()
+      .click();
+    await page
+      .getByRole('button', {
+        name: fill(growth.bindPlantLabel, {
+          species: copy.species.SUNFLOWER.name,
+        }),
+      })
+      .first()
+      .click();
+    await expect(
+      page.getByText(fill(growth.bindCount_other, { count: 2 })),
+    ).toBeVisible();
+    await captureGrowth(
+      page,
+      info,
+      `garden-growth-bind-${scenario.width}-${scenario.theme}.png`,
+    );
+    await page
+      .getByRole('button', { name: fill(growth.bindSend, { name: 'Alex' }) })
+      .click();
+    await expect(
+      page.getByText(fill(growth.bouquetSentStatus, { name: 'Alex' })),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: growth.bind })).toHaveCount(
+      0,
+    );
+
+    // The garden book with placeholders and the garden's name.
+    await page.getByRole('button', { name: growth.book }).click();
+    const book = page.getByTestId('garden-book');
+    await expect(book.getByText(growth.secret).first()).toBeVisible();
+    await expect(book).not.toContainText(/\d/);
+    await book.getByRole('button', { name: growth.rename }).click();
+    await book.getByLabel(growth.nameLabel).fill('Unser Eck');
+    await book.getByRole('button', { name: growth.save }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Unser Eck' }),
+    ).toBeVisible();
+    await expectReflow(page);
+    await captureGrowth(
+      page,
+      info,
+      `garden-growth-book-${scenario.width}-${scenario.theme}.png`,
+    );
+
+    const axe = await new AxeBuilder({ page })
+      .include('.garden-game-page')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(axe.violations).toEqual([]);
+    expect(network.writes).toEqual([
+      'POST /news/seen',
+      `POST /bouquets/${BOUQUET_ID}/close`,
+      `POST /seeds/${PLANE_SEED_ID}/plant`,
+      'POST /bouquets',
+      'PUT /name',
     ]);
     expect(network.unexpected).toEqual([]);
     expect(errors).toEqual([]);

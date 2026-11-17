@@ -32,7 +32,8 @@ export const EngagementTarget = {
     CHAPTER: 'CHAPTER',
     COLLECTION: 'COLLECTION',
     PICTURE_GAME: 'PICTURE_GAME',
-    GARDEN_SEED: 'GARDEN_SEED'
+    GARDEN_SEED: 'GARDEN_SEED',
+    GARDEN_BOUQUET: 'GARDEN_BOUQUET'
 } as const;
 export type EngagementTarget = typeof EngagementTarget[keyof typeof EngagementTarget];
 

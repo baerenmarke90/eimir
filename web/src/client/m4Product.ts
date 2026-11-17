@@ -153,6 +153,7 @@ export function engagementTargetPath(
     case 'PICTURE_GAME':
       return GAMES_PICTURE_PING_PONG_ROUTE;
     case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
       return GAMES_GARDEN_ROUTE;
     case 'WISH_SELECTION':
       return '/plan/choose';

@@ -135,6 +135,7 @@ class EngagementTarget(StrEnum):
     COLLECTION = "COLLECTION"
     PICTURE_GAME = "PICTURE_GAME"
     GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
 
 
 class PushDeliveryStatus(StrEnum):

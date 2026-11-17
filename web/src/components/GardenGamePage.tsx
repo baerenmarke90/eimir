@@ -23,6 +23,17 @@ import {
   gardenWidth,
   stageChanges,
 } from '../client/garden';
+import {
+  isBlooming,
+  shownStage,
+  unlockedWidth,
+  wordsArriveByPlane,
+} from '../client/gardenGrowth';
+import { renderSvgPng } from '../client/gardenImage';
+import {
+  createMemoryWithReadyAttachments,
+  uploadMemoryDraftAttachment,
+} from '../client/memoryAttachmentDraft';
 import { usePartnerDistanceLine } from '../client/partnerDistance';
 import {
   createPartnerLocationApi,
@@ -30,12 +41,19 @@ import {
   partnerLocationSettingsQueryKey,
 } from '../client/partnerLocation';
 import { normalizeClientError } from '../client/problemDetails';
+import { createReferenceApis } from '../client/referenceFlow';
 import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Messenger, SeedIcon } from './GardenArt';
+import { GardenBook, GardenNewsCard, GardenYearCard } from './GardenBook';
+import {
+  BouquetBindCard,
+  type BouquetFlower,
+  BouquetReceivedCard,
+} from './GardenBouquet';
 import {
   GardenReunionSoonCard,
   GardenReunionTodayCard,
@@ -45,13 +63,14 @@ import {
   useGardenMomentSaver,
   useGardenPresentation,
 } from './GardenPresentation';
-import { GardenScene, type ScenePlant } from './GardenScene';
+import { GardenScene, type SceneGrowth, type ScenePlant } from './GardenScene';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './GardenGamePage.css';
+import './GardenGrowth.css';
 
 const FLIGHT_BASE_MS = 1400;
 
@@ -65,16 +84,34 @@ export interface GardenServices {
   water: (plantId: string) => Promise<GardenView>;
   /** Saves the reunion garden as a Moment; defaults to the media path. */
   saveMoment?: SaveGardenMoment;
+  /* Growth and life (#1907 H3, PR 3). */
+  acknowledgeNews?: () => Promise<GardenView>;
+  rename?: (name: string | null) => Promise<GardenView>;
+  giveBouquet?: (plantIds: string[]) => Promise<GardenView>;
+  closeBouquet?: (bouquetId: string, kept: boolean) => Promise<GardenView>;
+  saveToMoments?: (input: {
+    title: string;
+    body: string;
+    image: Blob;
+    fileName: string;
+  }) => Promise<{ memoryId: string }>;
+}
+
+function localDay(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 }
 
 function useDefaultServices({
   apiBaseUrl,
   accessToken,
   spaceId,
+  accountId,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
+  accountId: string;
 }): GardenServices {
   return useMemo(() => {
     const api = new GamesApi(
@@ -90,8 +127,40 @@ function useDefaultServices({
       plant: (seedId) => api.plantGardenSeed({ spaceId, seedId }),
       water: (plantId) =>
         api.waterGardenPlant({ spaceId, gardenWateringInput: { plantId } }),
+      acknowledgeNews: () => api.acknowledgeGardenNews({ spaceId }),
+      rename: (name) =>
+        api.renameGarden({ spaceId, gardenNameInput: { name } }),
+      giveBouquet: (plantIds) =>
+        api.giveGardenBouquet({ spaceId, gardenBouquetInput: { plantIds } }),
+      closeBouquet: (bouquetId, kept) =>
+        api.closeGardenBouquet({
+          spaceId,
+          bouquetId,
+          gardenBouquetCloseInput: { kept },
+        }),
+      // The existing Memory/media path; only on an explicit tap.
+      saveToMoments: async ({ title, body, image, fileName }) => {
+        const apis = createReferenceApis(apiBaseUrl, accessToken);
+        const ready = await uploadMemoryDraftAttachment(
+          apis,
+          apiBaseUrl,
+          accessToken,
+          spaceId,
+          new File([image], fileName, { type: 'image/png' }),
+          undefined,
+          fetch,
+          { accountId },
+        );
+        const { memory } = await createMemoryWithReadyAttachments(
+          apis,
+          spaceId,
+          { title, body, happenedOn: localDay() },
+          [ready.attachmentId],
+        );
+        return { memoryId: memory.id };
+      },
     };
-  }, [accessToken, apiBaseUrl, spaceId]);
+  }, [accessToken, accountId, apiBaseUrl, spaceId]);
 }
 
 /** The messenger reads the existing server distance band and stores nothing. */
@@ -266,7 +335,12 @@ export function GardenGamePage({
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const defaults = useDefaultServices({ apiBaseUrl, accessToken, spaceId });
+  const defaults = useDefaultServices({
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+  });
   const api = services ?? defaults;
   const queryKey = useMemo(
     () => gardenQueryKey(currentAccountId, spaceId),
@@ -344,6 +418,13 @@ export function GardenGamePage({
     spaceId,
     accountId: currentAccountId,
   });
+  const [binding, setBinding] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [banner, setBanner] = useState<SceneGrowth['banner']>(null);
+  const [yearSaved, setYearSaved] = useState(false);
+  const bouquetSvg = useRef<SVGSVGElement | null>(null);
+  const reduced = prefersReducedMotion();
 
   const garden = gardenQuery.data;
   const presentation = useGardenPresentation(garden, prefersReducedMotion());
@@ -365,6 +446,13 @@ export function GardenGamePage({
     (next: GardenView, previous: GardenView | undefined) => {
       const changed = stageChanges(previous?.plants, next.plants);
       setChanges(changed);
+      const revealed = next.plants.some(
+        (entry) =>
+          entry.species === 'MOONFLOWER' &&
+          previous?.plants.find((before) => before.id === entry.id)?.species ===
+            'SURPRISE',
+      );
+      if (revealed) setStatus(t('games.garden.growth.moonRevealed'));
       if (next.sharedToday && previous && !previous.sharedToday) {
         setCelebrationKey((key) => key + 1);
         setGustKey((key) => key + 1);
@@ -373,7 +461,7 @@ export function GardenGamePage({
       }
       queryClient.setQueryData(queryKey, next);
     },
-    [queryClient, queryKey],
+    [queryClient, queryKey, t],
   );
 
   const run = useCallback(
@@ -436,6 +524,23 @@ export function GardenGamePage({
   };
 
   const choosePlant = async (plantId: string) => {
+    if (binding) {
+      const entry = garden?.plants.find((plant) => plant.id === plantId);
+      if (
+        !entry ||
+        entry.inPond ||
+        !isBlooming(entry.species, entry.stage, garden?.localDate ?? new Date())
+      )
+        return;
+      setPicked((current) =>
+        current.includes(plantId)
+          ? current.filter((id) => id !== plantId)
+          : current.length < 3
+            ? [...current, plantId]
+            : current,
+      );
+      return;
+    }
     if (!watering) {
       setSelected((current) => (current === plantId ? null : plantId));
       return;
@@ -470,10 +575,19 @@ export function GardenGamePage({
   }
 
   const highest = garden.plants.reduce(
-    (max, entry) => Math.max(max, entry.slot ?? 0),
+    (max, entry) => (entry.inPond ? max : Math.max(max, entry.slot ?? 0)),
     0,
   );
-  const width = gardenWidth(highest);
+  const unlocks = garden.unlocks ?? [];
+  const sharedDays = garden.sharedDays ?? 0;
+  const width = gardenWidth(highest, unlockedWidth(unlocks));
+  const title = garden.name ?? t('games.garden.title');
+  const news = garden.news ?? [];
+  const form = garden.form ?? 'BED';
+  const blooming = garden.plants.filter(
+    (entry) =>
+      !entry.inPond && isBlooming(entry.species, entry.stage, garden.localDate),
+  );
   const roleOf = (entry: GardenPlantView) =>
     entry.senderId === currentAccountId ? 'own' : 'partner';
   const speciesName = (species: GardenSpecies) =>
@@ -481,7 +595,10 @@ export function GardenGamePage({
   const scenePlants: ScenePlant[] = garden.plants.map((entry) => ({
     id: entry.id,
     species: entry.species,
+    stage: shownStage(entry.species, entry.stage, garden.localDate),
     slot: entry.slot ?? 0,
+    inPond: entry.inPond === true,
+    picked: binding && picked.includes(entry.id),
     role: roleOf(entry),
     stage: presentation.stageOf(entry.stage).stage,
     grewFrom:
@@ -493,10 +610,14 @@ export function GardenGamePage({
       ? t('games.garden.waterPlantLabel', {
           species: speciesName(entry.species),
         })
-      : t('games.garden.plantLabel', {
-          species: speciesName(entry.species),
-          name: roleOf(entry) === 'own' ? names.own : names.partner,
-        }),
+      : binding
+        ? t('games.garden.growth.bindPlantLabel', {
+            species: speciesName(entry.species),
+          })
+        : t('games.garden.plantLabel', {
+            species: speciesName(entry.species),
+            name: roleOf(entry) === 'own' ? names.own : names.partner,
+          }),
   }));
   const selectedPlant = garden.plants.find((entry) => entry.id === selected);
   const dayFormat = new Intl.DateTimeFormat(resolvedLocale(), {
@@ -520,8 +641,154 @@ export function GardenGamePage({
     reunionDate,
   });
 
+  const colourOf = (senderId: string) =>
+    senderId === currentAccountId ? ownColour : partnerColour;
+  const pickedFlowers: BouquetFlower[] = picked
+    .map((id) => garden.plants.find((entry) => entry.id === id))
+    .filter((entry): entry is GardenPlantView => entry !== undefined)
+    .map((entry) => ({
+      species: entry.species,
+      colour: colourOf(entry.senderId),
+    }));
+  const bouquet = garden.bouquet ?? null;
+  const bouquetFlowers: BouquetFlower[] = (bouquet?.flowers ?? []).map(
+    (flower) => ({
+      species: flower.species,
+      colour: colourOf(flower.senderId),
+    }),
+  );
+  const growth: SceneGrowth = {
+    unlocks,
+    sharedDays,
+    fresh: new Set(news),
+    visitors: true,
+    reduced,
+    labels: {
+      animal: (kind) =>
+        t('games.garden.growth.animalLabel', {
+          animal: t(`games.garden.growth.animals.${kind}`),
+        }),
+      quack: t('games.garden.growth.quack'),
+    },
+    onReaction: (kind) => setStatus(t(`games.garden.growth.reactions.${kind}`)),
+    banner,
+  };
+  const planeWords =
+    incoming?.words != null && !reduced && wordsArriveByPlane(incoming.id);
+  const now = new Date();
+  const showYear = now.getMonth() === 11 && blooming.length >= 3;
+
+  const acknowledge = async () => {
+    if (!api.acknowledgeNews) return;
+    const next = await run(
+      () => api.acknowledgeNews?.() as Promise<GardenView>,
+    );
+    if (next) apply(next, garden);
+  };
+  const rename = async (name: string) => {
+    if (!api.rename) return false;
+    const next = await run(
+      () => api.rename?.(name || null) as Promise<GardenView>,
+    );
+    if (!next) return false;
+    apply(next, garden);
+    setStatus(
+      t('games.garden.growth.renamedStatus', {
+        name: next.name ?? t('games.garden.title'),
+      }),
+    );
+    return true;
+  };
+  const giveBouquet = async () => {
+    if (!api.giveBouquet || picked.length === 0) return;
+    const previous = garden;
+    const next = await run(
+      () => api.giveBouquet?.(picked) as Promise<GardenView>,
+    );
+    if (!next) return;
+    const done = () => {
+      apply(next, previous);
+      setBinding(false);
+      setPicked([]);
+      setStatus(
+        t('games.garden.growth.bouquetSentStatus', { name: names.partner }),
+      );
+    };
+    if (reduced) {
+      done();
+      return;
+    }
+    setFlying({ direction: 'toPartner', key: Date.now() });
+    window.setTimeout(done, FLIGHT_BASE_MS * flight.durationScale);
+  };
+  const closeBouquet = async (kept: boolean) => {
+    if (!bouquet || !api.closeBouquet) return;
+    const next = await run(
+      () => api.closeBouquet?.(bouquet.id, kept) as Promise<GardenView>,
+    );
+    if (next) apply(next, garden);
+    return next;
+  };
+  const keepBouquet = async () => {
+    const svg = bouquetSvg.current;
+    if (!bouquet || !svg || !api.saveToMoments) return;
+    const saved = await run(async () => {
+      const image = await renderSvgPng(svg, 640, 704, '#fffdf8');
+      await api.saveToMoments?.({
+        title: t('games.garden.growth.bouquetMemoryTitle', {
+          name: names.partner,
+        }),
+        body: t('games.garden.growth.bouquetMemoryBody'),
+        image,
+        fileName: 'strauss.png',
+      });
+      return garden;
+    });
+    if (!saved) return;
+    await closeBouquet(true);
+    setStatus(t('games.garden.growth.bouquetKept'));
+  };
+  const keepYear = async () => {
+    const svg = document.querySelector<SVGSVGElement>(
+      '[data-testid="garden-scene"]',
+    );
+    if (!svg || !api.saveToMoments) return;
+    const year = now.getFullYear();
+    const saved = await run(async () => {
+      const image = await renderSvgPng(
+        svg,
+        Math.round(width * 3),
+        Math.round(210 * 3),
+        '#eaf0ff',
+      );
+      await api.saveToMoments?.({
+        title: t('games.garden.growth.yearMemoryTitle', { year }),
+        body: title,
+        image,
+        fileName: 'garten.png',
+      });
+      return garden;
+    });
+    if (!saved) return;
+    setYearSaved(true);
+    setStatus(t('games.garden.growth.yearSaved'));
+  };
+
   let card: ReactElement | null;
-  if (watering) {
+  if (binding) {
+    card = (
+      <BouquetBindCard
+        flowers={pickedFlowers}
+        partnerName={names.partner}
+        busy={busy}
+        onCancel={() => {
+          setBinding(false);
+          setPicked([]);
+        }}
+        onGive={() => void giveBouquet()}
+      />
+    );
+  } else if (watering) {
     card = (
       <section className="garden-card" aria-labelledby="garden-card-title">
         <h2 id="garden-card-title">{t('games.garden.waterTitle')}</h2>
@@ -553,7 +820,33 @@ export function GardenGamePage({
             })}
           </p>
         </div>
-        {incoming.words ? (
+        {incoming.words && planeWords && !cardOpen ? (
+          <button
+            type="button"
+            className="garden-folded-card garden-plane-note"
+            aria-expanded="false"
+            disabled={banner !== null}
+            onClick={() => {
+              const words = incoming.words
+                ? t(`games.garden.words.${incoming.words}`)
+                : '';
+              window.scrollTo?.({ top: 0, behavior: 'smooth' });
+              setBanner({
+                key: Date.now(),
+                text: words,
+                onDone: () => {
+                  setBanner(null);
+                  setCardOpen(true);
+                },
+              });
+            }}
+          >
+            <span>{t('games.garden.growth.planeNote')}</span>
+            <span className="garden-folded-action">
+              {t('games.garden.growth.planeOpen')}
+            </span>
+          </button>
+        ) : incoming.words ? (
           cardOpen ? (
             <p className="garden-words-quote person-role-partner">
               {t('games.garden.quoted', {
@@ -687,7 +980,7 @@ export function GardenGamePage({
 
   return (
     <div className="page garden-game-page">
-      <PageHeader title={t('games.garden.title')} />
+      <PageHeader title={title} />
       <FlightBand
         names={names}
         flight={flight}
@@ -713,10 +1006,11 @@ export function GardenGamePage({
           wateredPlantId={wateredNow}
           lively
           label={[
-            t('games.garden.sceneLabel', { count: garden.plants.length }),
+            `${title}, ${t(`games.garden.growth.forms.${form}`)}: ${t('games.garden.sceneLabel', { count: garden.plants.length })}`,
             ...sceneSentences,
           ].join('. ')}
           layers={presentation.layers(width)}
+          growth={growth}
         />
       </div>
       {width > 340 ? (
@@ -752,9 +1046,17 @@ export function GardenGamePage({
             })}
           </p>
           <p>
-            {t(
-              `games.garden.stages.${selectedPlant.stage}` as 'games.garden.stages.0',
-            )}
+            {selectedPlant.species === 'TULIP' &&
+            selectedPlant.stage >= 1 &&
+            shownStage('TULIP', selectedPlant.stage, garden.localDate) <
+              Math.max(selectedPlant.stage, 2)
+              ? t('games.garden.growth.restingTulip')
+              : t(
+                  `games.garden.stages.${selectedPlant.stage}` as 'games.garden.stages.0',
+                )}
+            {selectedPlant.species === 'MOONFLOWER' && selectedPlant.stage === 3
+              ? ` ${t('games.garden.growth.moonGlow')}`
+              : null}
           </p>
           {selectedPlant.words ? (
             <p
@@ -784,21 +1086,87 @@ export function GardenGamePage({
           save={api.saveMoment ?? defaultSaveMoment}
         />
       ) : null}
+      {news.length > 0 ? (
+        <GardenNewsCard
+          news={news}
+          form={form}
+          busy={busy}
+          onDone={() => void acknowledge()}
+        />
+      ) : null}
+      {bouquet ? (
+        <BouquetReceivedCard
+          flowers={bouquetFlowers}
+          partnerName={names.partner}
+          messengerName={messengerName}
+          busy={busy}
+          svgRef={bouquetSvg}
+          onThanks={() => void closeBouquet(false)}
+          onKeep={() => void keepBouquet()}
+        />
+      ) : null}
       {card}
-      {!watering &&
-      !reunionToday &&
-      garden.wateredToday == null &&
-      garden.plants.length > 0 ? (
-        <button
-          type="button"
-          className="secondary garden-water"
-          onClick={() => {
-            setSelected(null);
-            setWatering(true);
-          }}
-        >
-          {t('games.garden.water')}
-        </button>
+      {!watering && !binding ? (
+        <div className="garden-tools">
+          {!reunionToday &&
+          garden.wateredToday == null &&
+          garden.plants.length > 0 ? (
+            <button
+              type="button"
+              className="secondary garden-water"
+              onClick={() => {
+                setSelected(null);
+                setWatering(true);
+              }}
+            >
+              {t('games.garden.water')}
+            </button>
+          ) : null}
+          {blooming.length >= 2 && !garden.gaveBouquetToday ? (
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setSelected(null);
+                setBookOpen(false);
+                setPicked([]);
+                setBinding(true);
+              }}
+            >
+              {t('games.garden.growth.bind')}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="secondary"
+            aria-expanded={bookOpen}
+            aria-controls="garden-book"
+            onClick={() => setBookOpen((open) => !open)}
+          >
+            {t('games.garden.growth.book')}
+          </button>
+        </div>
+      ) : null}
+      {bookOpen ? (
+        <div id="garden-book">
+          <GardenBook
+            name={garden.name ?? null}
+            form={form}
+            discovered={garden.discovered ?? []}
+            unlocks={unlocks}
+            colour={ownColour}
+            busy={busy}
+            onRename={rename}
+          />
+        </div>
+      ) : null}
+      {showYear ? (
+        <GardenYearCard
+          year={now.getFullYear()}
+          busy={busy}
+          saved={yearSaved}
+          onSave={() => void keepYear()}
+        />
       ) : null}
       {partnerWatered ? (
         <p className="garden-note">

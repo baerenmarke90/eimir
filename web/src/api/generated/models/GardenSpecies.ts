@@ -14,13 +14,19 @@
 
 
 /**
- * 
+ * What a seed becomes; a surprise is shown until its moonflower first blooms.
  * @export
  */
 export const GardenSpecies = {
     POPPY: 'POPPY',
     BELLFLOWER: 'BELLFLOWER',
-    STARFLOWER: 'STARFLOWER'
+    STARFLOWER: 'STARFLOWER',
+    SUNFLOWER: 'SUNFLOWER',
+    TULIP: 'TULIP',
+    WATER_LILY: 'WATER_LILY',
+    STRAWBERRY: 'STRAWBERRY',
+    MOONFLOWER: 'MOONFLOWER',
+    SURPRISE: 'SURPRISE'
 } as const;
 export type GardenSpecies = typeof GardenSpecies[keyof typeof GardenSpecies];
 

@@ -57,6 +57,7 @@
     <string name="push_picture_turn">%1$s hat am Bild weitergemalt. Du bist dran.</string>
     <string name="push_view_picture">Weitermalen</string>
     <string name="push_garden_seed">%1$s hat dir einen Samen geschickt.</string>
+    <string name="push_garden_bouquet">%1$s hat dir einen Strauß geschenkt.</string>
     <string name="push_view_garden">Garten ansehen</string>
     <string name="push_transfer_ready">Dein Datentransfer ist bereit.</string>
     <string name="push_transfer_completed">Dein Datentransfer ist abgeschlossen.</string>

@@ -3510,6 +3510,109 @@
         "STARFLOWER": {
           "name": "Star flower",
           "arrived": "A star flower. {{messenger}} brought it."
+        },
+        "SUNFLOWER": {
+          "name": "Sunflower",
+          "arrived": "A sunflower. {{messenger}} brought it."
+        },
+        "TULIP": {
+          "name": "Tulip bulb",
+          "arrived": "A tulip bulb. {{messenger}} brought it. It blooms in spring."
+        },
+        "WATER_LILY": {
+          "name": "Water lily",
+          "arrived": "A water lily for your pond. {{messenger}} brought it."
+        },
+        "STRAWBERRY": {
+          "name": "Strawberry",
+          "arrived": "A strawberry. {{messenger}} brought it."
+        },
+        "MOONFLOWER": {
+          "name": "Moonflower",
+          "arrived": "A moonflower. {{messenger}} brought it."
+        },
+        "SURPRISE": {
+          "name": "Surprise",
+          "arrived": "A surprise. {{messenger}} brought it. You will both see what it becomes when it blooms."
+        }
+      },
+      "growth": {
+        "forms": {
+          "BED": "A flower bed",
+          "MEADOW": "A meadow",
+          "GARDEN": "A garden",
+          "PARADISE": "Your little paradise"
+        },
+        "finds": {
+          "PATH": "A path",
+          "POND": "A pond with water lilies",
+          "BENCH": "A bench for the two of you",
+          "TREE": "Your tree",
+          "MORE_ROOM": "More room to plant",
+          "BIRDHOUSE": "A birdhouse",
+          "ROSE_ARCH": "A rose arch",
+          "SWING": "A swing on the tree",
+          "STREAM": "A little stream",
+          "EVEN_MORE_ROOM": "Even more room"
+        },
+        "newSeeds": "New seeds: {{species}}",
+        "newsEyebrow": "New in the garden",
+        "newsBody": "Because you took care of it together. None of it will ever be lost.",
+        "newsDone": "Lovely",
+        "book": "Garden book",
+        "bookPlants": "Your plants",
+        "bookFinds": "Found in the garden",
+        "undiscovered": "Not discovered yet",
+        "secret": "Still a secret",
+        "bookFootnote": "New things appear on their own as you keep caring together. There is no counter, and nothing is ever lost, not even after a break.",
+        "rename": "Rename",
+        "nameLabel": "What is your garden called?",
+        "nameHint": "Up to 40 characters. Leave it empty for “Our garden”.",
+        "save": "Save",
+        "renamedStatus": "Your garden is now called “{{name}}”.",
+        "bind": "Make a bouquet",
+        "bindTitle": "Make a bouquet",
+        "bindBody": "Tap up to three blooming flowers. A seed stays in the soil for each one and grows again.",
+        "bindCount_one": "{{count}} of 3 in the bouquet",
+        "bindCount_other": "{{count}} of 3 in the bouquet",
+        "bindSend": "Give to {{name}}",
+        "bindPlantLabel": "{{species}} for the bouquet",
+        "bouquetSentStatus": "The bouquet is with {{name}}. New seeds are in the soil.",
+        "bouquetTitle": "{{name}} gave you a bouquet",
+        "bouquetBody": "{{messenger}} brought it.",
+        "bouquetLabel": "A bouquet of {{flowers}}",
+        "bouquetThanks": "Thank you",
+        "bouquetKeep": "Put into Moments",
+        "bouquetKept": "The bouquet is now in Moments.",
+        "bouquetMemoryTitle": "A bouquet from {{name}}",
+        "bouquetMemoryBody": "From our garden.",
+        "planeNote": "Loving words are coming by air mail",
+        "planeOpen": "Look",
+        "restingTulip": "Right now: sleeping until spring",
+        "moonGlow": "It glows at night.",
+        "moonRevealed": "A moonflower! It glows at night.",
+        "yearTitle": "Your garden year {{year}}",
+        "yearBody": "Keep your garden as a picture in Moments. It then also appears in your annual recap. Only if you want to.",
+        "yearSave": "Save as a moment",
+        "yearSaved": "Your garden is now in Moments.",
+        "yearMemoryTitle": "Our garden {{year}}",
+        "animalLabel": "Tap the {{animal}}",
+        "quack": "Quack!",
+        "animals": {
+          "snail": "snail",
+          "rabbit": "rabbit",
+          "hedgehog": "hedgehog",
+          "ducks": "duck pair",
+          "squirrel": "squirrel",
+          "deer": "deer"
+        },
+        "reactions": {
+          "snail": "The snail hides in its shell.",
+          "rabbit": "The rabbit hops away.",
+          "hedgehog": "The hedgehog curls up.",
+          "ducks": "Quack! The ducks paddle a little.",
+          "squirrel": "The squirrel dashed up your tree.",
+          "deer": "Oh! The deer got startled."
         }
       },
       "words": {
@@ -3544,6 +3647,7 @@
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
       "GARDEN_SEED_ARRIVED": "{{name}} sent you a seed.",
+      "GARDEN_BOUQUET": "{{name}} gave you a bouquet.",
       "PHOTO_REACTION": "{{name}} reacted to photos in your moment.",
       "PARTNER_JOINED": "{{name}} joined your shared space.",
       "TRANSFER_READY": "Your data request is ready. You can view it now.",

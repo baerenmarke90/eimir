@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
+import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
 import {
   GARDEN_HEIGHT,
   grassTufts,
@@ -22,12 +23,20 @@ import {
   slotPosition,
 } from '../client/garden';
 import {
+  backgroundTrees,
+  pondSlotPosition,
+  SPECIES_HEIGHT,
+} from '../client/gardenGrowth';
+import {
   Butterfly,
   Cloud,
   FlowerHead,
   SunAndMoon,
   WateringCan,
 } from './GardenArt';
+import { BackgroundTrees, Fireflies, GardenFeatures } from './GardenFeatures';
+import { Bulb, PondLily, StrawberryPlant } from './GardenFlora';
+import { type GardenLifeLabels, useGardenLife } from './GardenLife';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 
@@ -41,6 +50,43 @@ export interface ScenePlant {
   grewFrom?: number;
   watered: boolean;
   label: string;
+  /** A water lily lives in the pond (#1907 H3, PR 3). */
+  inPond?: boolean;
+  /** Marked while the couple picks flowers for a bouquet. */
+  picked?: boolean;
+}
+
+/** Growth and life of the garden (#1907 H3, PR 3). */
+export interface SceneGrowth {
+  unlocks: ReadonlyArray<GardenUnlock>;
+  sharedDays: number;
+  /** Unlocks announced right now; they pop in once. */
+  fresh: ReadonlySet<GardenUnlock>;
+  /** False while nobody may visit. */
+  visitors: boolean;
+  reduced: boolean;
+  labels: GardenLifeLabels;
+  onReaction?: Parameters<typeof useGardenLife>[0]['onReaction'];
+  /** `liebe Worte` towed by the plane; a new key starts a flight. */
+  banner?: { key: number; text: string; onDone: () => void } | null;
+}
+
+const NO_GROWTH: SceneGrowth = {
+  unlocks: [],
+  sharedDays: 0,
+  fresh: new Set(),
+  visitors: false,
+  reduced: true,
+  labels: { animal: () => '', quack: '' },
+};
+
+/** Where a plant stands: a land slot or a place in the pond. */
+export function plantPosition(plant: Pick<ScenePlant, 'slot' | 'inPond'>) {
+  return plant.inPond ? pondSlotPosition(plant.slot) : slotPosition(plant.slot);
+}
+
+function plantHeight(species: GardenSpecies): number {
+  return SPECIES_HEIGHT[species] ?? PLANT_HEIGHT;
 }
 
 const COLOUR = {
@@ -95,8 +141,19 @@ function Tufts({
 }
 
 function Plant({ plant }: { plant: ScenePlant }) {
-  const { x, y } = slotPosition(plant.slot);
+  const { x, y } = plantPosition(plant);
   const colour = COLOUR[plant.role];
+  if (plant.inPond) {
+    return (
+      <g transform={`translate(${x} ${y})`}>
+        <PondLily
+          stage={plant.stage}
+          grewFrom={plant.grewFrom}
+          colour={colour}
+        />
+      </g>
+    );
+  }
   const soil = (
     <path
       d="M-11 2.6 C-9 -1 9 -1 11 2.6 C6 4.2 -6 4.2 -11 2.6Z"
@@ -106,12 +163,15 @@ function Plant({ plant }: { plant: ScenePlant }) {
   );
   if (plant.stage === 0) {
     const dropped = plant.grewFrom === -1;
-    const seed = (
-      <path
-        d="M-3.2 -1 C-3.2 -3.4 3.2 -3.6 3.4 -1 C3.4 1.2 -3.2 1.4 -3.2 -1Z"
-        fill={colour}
-      />
-    );
+    const seed =
+      plant.species === 'TULIP' ? (
+        <Bulb colour={colour} />
+      ) : (
+        <path
+          d="M-3.2 -1 C-3.2 -3.4 3.2 -3.6 3.4 -1 C3.4 1.2 -3.2 1.4 -3.2 -1Z"
+          fill={colour}
+        />
+      );
     return (
       <g transform={`translate(${x} ${y})`}>
         {soil}
@@ -130,7 +190,30 @@ function Plant({ plant }: { plant: ScenePlant }) {
       </g>
     );
   }
-  const h = STAGE_HEIGHT_SHARE[plant.stage] * PLANT_HEIGHT;
+  if (plant.species === 'STRAWBERRY') {
+    return (
+      <g transform={`translate(${x} ${y})`}>
+        {soil}
+        <g
+          className="garden-sway"
+          style={
+            {
+              '--garden-wave': `${Math.round(x * 3.2)}ms`,
+              '--garden-breeze': `${Math.round(-x * 13)}ms`,
+            } as Style
+          }
+        >
+          <StrawberryPlant
+            stage={plant.stage}
+            grewFrom={plant.grewFrom}
+            colour={colour}
+          />
+        </g>
+      </g>
+    );
+  }
+  const fullHeight = plantHeight(plant.species);
+  const h = STAGE_HEIGHT_SHARE[plant.stage] * fullHeight;
   const from = plant.grewFrom;
   const grew = from !== undefined && from < plant.stage;
   const sprouting = grew && (from ?? 0) <= 0;
@@ -153,9 +236,7 @@ function Plant({ plant }: { plant: ScenePlant }) {
       child
     );
   const previousHeight =
-    from !== undefined && from >= 1
-      ? STAGE_HEIGHT_SHARE[from] * PLANT_HEIGHT
-      : 0;
+    from !== undefined && from >= 1 ? STAGE_HEIGHT_SHARE[from] * fullHeight : 0;
   const stretch = grew && (from ?? 0) >= 1;
   return (
     <g transform={`translate(${x} ${y})`}>
@@ -184,7 +265,7 @@ function Plant({ plant }: { plant: ScenePlant }) {
             pathLength={1}
             d={`M0 0 C 2 ${-h / 3} -2 ${(-h * 2) / 3} 0 ${-h}`}
             stroke="var(--garden-stem)"
-            strokeWidth={2.6}
+            strokeWidth={plant.species === 'SUNFLOWER' ? 3.4 : 2.6}
             fill="none"
             strokeLinecap="round"
           />
@@ -267,6 +348,7 @@ export function GardenScene({
   lively,
   label,
   layers,
+  growth = NO_GROWTH,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -285,8 +367,30 @@ export function GardenScene({
     meadow?: ReactNode;
     overlay?: ReactNode;
   };
+  growth?: SceneGrowth;
 }) {
   const id = useId().replace(/:/g, '');
+  const life = useGardenLife({
+    width,
+    sharedDays: growth.sharedDays,
+    unlocks: growth.unlocks,
+    lively,
+    reduced: growth.reduced,
+    visitors: growth.visitors,
+    labels: growth.labels,
+    onReaction: growth.onReaction,
+  });
+  const fly = life.fly;
+  const banner = growth.banner;
+  useEffect(() => {
+    if (banner) fly(banner.text, banner.onDone);
+  }, [banner, fly]);
+  const trees = useMemo(
+    () => backgroundTrees(growth.sharedDays, width),
+    [growth.sharedDays, width],
+  );
+  const landPlants = plants.filter((plant) => !plant.inPond);
+  const pondPlants = plants.filter((plant) => plant.inPond);
   const skyId = `garden-sky-${id}`;
   const hillBackId = `garden-hill-back-${id}`;
   const hillFrontId = `garden-hill-front-${id}`;
@@ -352,7 +456,7 @@ export function GardenScene({
   }, [width]);
 
   const watered = plants.find((plant) => plant.id === wateredPlantId);
-  const wateredAt = watered ? slotPosition(watered.slot) : null;
+  const wateredAt = watered ? plantPosition(watered) : null;
   const rays = Array.from({ length: 8 }, (_, k) => {
     const a = ((k * 45 + 22.5) * Math.PI) / 180;
     return `M0 0 L${(Math.cos(a) * 240).toFixed(1)} ${(Math.sin(a) * 240).toFixed(1)}`;
@@ -424,7 +528,16 @@ export function GardenScene({
           <SunAndMoon haloId={haloId} />
         </g>
         {layers?.sky}
+        <g data-testid="garden-sky-life">{life.sky}</g>
         <path d={groundPath(groundBack, width)} fill={`url(#${hillBackId})`} />
+        <BackgroundTrees trees={trees} />
+        <GardenFeatures
+          layer="back"
+          unlocks={growth.unlocks}
+          width={width}
+          fresh={growth.fresh}
+        />
+        {life.layer('back')}
         <Tufts
           ground={groundBack}
           count={Math.round((34 * width) / 340)}
@@ -439,6 +552,16 @@ export function GardenScene({
           fill={`url(#${hillFrontId})`}
         />
         {layers?.ground}
+        <GardenFeatures
+          layer="ground"
+          unlocks={growth.unlocks}
+          width={width}
+          fresh={growth.fresh}
+        />
+        {pondPlants.map((plant) => (
+          <Plant key={plant.id} plant={plant} />
+        ))}
+        {life.layer('pond')}
         <Tufts
           ground={groundFront}
           count={Math.round((40 * width) / 340)}
@@ -456,7 +579,13 @@ export function GardenScene({
           />
         ))}
         {layers?.meadow}
-        {plants.map((plant) => (
+        <GardenFeatures
+          layer="arch"
+          unlocks={growth.unlocks}
+          width={width}
+          fresh={growth.fresh}
+        />
+        {landPlants.map((plant) => (
           <Plant key={plant.id} plant={plant} />
         ))}
         <Tufts
@@ -468,6 +597,10 @@ export function GardenScene({
           width={width}
           fill="var(--garden-grass-front)"
         />
+        {growth.unlocks.includes('STREAM') && growth.visitors ? (
+          <Fireflies width={width} />
+        ) : null}
+        {life.layer('front')}
         {celebrating ? (
           <g>
             {pollen.map((dot) => (
@@ -517,9 +650,12 @@ export function GardenScene({
         ) : null}
         {layers?.overlay}
       </g>
+      {/* Visitors first, so a plant stays on top where they overlap. */}
+      {life.tapTargets}
       {plants.map((plant) => {
-        const { x, y } = slotPosition(plant.slot);
-        const selected = plant.id === selectedId;
+        const { x, y } = plantPosition(plant);
+        const reach = plant.inPond ? 8 : plantHeight(plant.species);
+        const selected = plant.id === selectedId || plant.picked === true;
         return (
           // biome-ignore lint/a11y/useSemanticElements: an SVG plant cannot be a native button
           <g
@@ -528,6 +664,7 @@ export function GardenScene({
             role="button"
             tabIndex={0}
             aria-pressed={watering ? undefined : selected}
+            data-in-pond={plant.inPond ? 'true' : undefined}
             aria-label={plant.label}
             onClick={() => onSelect(plant.id)}
             onKeyDown={(event) => onKey(event, plant.id)}
@@ -535,9 +672,9 @@ export function GardenScene({
           >
             <rect
               x={x - 12}
-              y={y - (14 + PLANT_HEIGHT)}
+              y={y - (14 + reach)}
               width={24}
-              height={20 + PLANT_HEIGHT}
+              height={20 + reach}
               rx={8}
               fill="transparent"
             />

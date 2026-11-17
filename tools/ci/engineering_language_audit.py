@@ -384,6 +384,9 @@ ALLOWED_LOCALIZED_TEXTS = (
     # Exact #1907 H3 native push copy for a garden seed and its encrypted fixtures.
     "%1$s hat dir einen Samen geschickt.",
     "Alex hat dir einen Samen geschickt.",
+    # Exact #1907 H3 native push copy for a garden bouquet and its encrypted fixtures.
+    "%1$s hat dir einen Strauß geschenkt.",
+    "Alex hat dir einen Strauß geschenkt.",
     # Exact #1910 native localized push copy.
     "%1$s schlägt einen Termin vor",
     "%1$s schlägt einen anderen Termin vor",

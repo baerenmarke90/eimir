@@ -90,7 +90,8 @@ describe('garden flight', () => {
 describe('garden geometry', () => {
   it('keeps the base width until the slots need more room', () => {
     expect(gardenWidth(0)).toBe(GARDEN_MIN_WIDTH);
-    expect(gardenWidth(14)).toBe(GARDEN_MIN_WIDTH);
+    expect(gardenWidth(9)).toBe(GARDEN_MIN_WIDTH);
+    expect(gardenWidth(9, 520)).toBe(520);
     expect(gardenWidth(30)).toBeGreaterThan(GARDEN_MIN_WIDTH);
     expect(slotPosition(1).y).toBeGreaterThan(slotPosition(0).y - 8);
   });

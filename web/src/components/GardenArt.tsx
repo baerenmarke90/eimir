@@ -8,6 +8,11 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import { blob, type GardenMessenger, petalPath } from '../client/garden';
+import {
+  GrowthFlowerHead,
+  isGrowthSpecies,
+  SurpriseParcel,
+} from './GardenFlora';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 
@@ -68,6 +73,17 @@ export function FlowerHead({
   opening?: boolean;
   delay?: number;
 }) {
+  // Species that join as the garden grows are drawn in GardenFlora (PR 3).
+  if (isGrowthSpecies(species)) {
+    return (
+      <GrowthFlowerHead
+        species={species}
+        colour={colour}
+        opening={opening}
+        delay={delay}
+      />
+    );
+  }
   if (species === 'POPPY') {
     return (
       <g>
@@ -158,9 +174,15 @@ export function SeedIcon({
       aria-hidden="true"
       focusable="false"
     >
-      <g transform="translate(0 4) scale(1.25)">
-        <FlowerHead species={species} colour={colour} />
-      </g>
+      {species === 'SURPRISE' ? (
+        <SurpriseParcel colour={colour} />
+      ) : (
+        <g
+          transform={`translate(0 4) scale(${species === 'SUNFLOWER' ? 0.9 : 1.25})`}
+        >
+          <FlowerHead species={species} colour={colour} />
+        </g>
+      )}
     </svg>
   );
 }

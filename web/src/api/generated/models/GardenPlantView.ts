@@ -41,6 +41,12 @@ export interface GardenPlantView {
      */
     id: string;
     /**
+     * A water lily: the slot is a place in the pond.
+     * @type {boolean}
+     * @memberof GardenPlantView
+     */
+    inPond?: boolean;
+    /**
      * 
      * @type {string}
      * @memberof GardenPlantView
@@ -105,6 +111,7 @@ export function GardenPlantViewFromJSONTyped(json: any, ignoreDiscriminator: boo
     return {
         
         'id': json['id'],
+        'inPond': json['inPond'] == null ? undefined : json['inPond'],
         'senderId': json['senderId'],
         'sentOn': (new Date(json['sentOn'])),
         'slot': json['slot'],
@@ -126,6 +133,7 @@ export function GardenPlantViewToJSONTyped(value?: GardenPlantView | null, ignor
     return {
         
         'id': value['id'],
+        'inPond': value['inPond'],
         'senderId': value['senderId'],
         'sentOn': value['sentOn'].toISOString().substring(0,10),
         'slot': value['slot'],

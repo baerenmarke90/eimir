@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `id` | string
+`inPond` | boolean
 `senderId` | string
 `sentOn` | Date
 `slot` | number
@@ -22,6 +23,7 @@ import type { GardenPlantView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
+  "inPond": null,
   "senderId": null,
   "sentOn": null,
   "slot": null,

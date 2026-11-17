@@ -34,6 +34,21 @@ import {
     GameWishCandidateSetToJSON,
 } from '../models/GameWishCandidateSet';
 import {
+    type GardenBouquetCloseInput,
+    GardenBouquetCloseInputFromJSON,
+    GardenBouquetCloseInputToJSON,
+} from '../models/GardenBouquetCloseInput';
+import {
+    type GardenBouquetInput,
+    GardenBouquetInputFromJSON,
+    GardenBouquetInputToJSON,
+} from '../models/GardenBouquetInput';
+import {
+    type GardenNameInput,
+    GardenNameInputFromJSON,
+    GardenNameInputToJSON,
+} from '../models/GardenNameInput';
+import {
     type GardenSeedInput,
     GardenSeedInputFromJSON,
     GardenSeedInputToJSON,
@@ -104,6 +119,16 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 
+export interface AcknowledgeGardenNewsRequest {
+    spaceId: string;
+}
+
+export interface CloseGardenBouquetRequest {
+    bouquetId: string;
+    spaceId: string;
+    gardenBouquetCloseInput: GardenBouquetCloseInput;
+}
+
 export interface CreateHeartHuntRoundRequest {
     spaceId: string;
     heartHuntRoundCreate: HeartHuntRoundCreate;
@@ -139,6 +164,11 @@ export interface GetPicturePingPongRequest {
     spaceId: string;
 }
 
+export interface GiveGardenBouquetRequest {
+    spaceId: string;
+    gardenBouquetInput: GardenBouquetInput;
+}
+
 export interface HandOverPicturePingPongTurnRequest {
     spaceId: string;
     pictureTurnInput: PictureTurnInput;
@@ -158,6 +188,11 @@ export interface MarkPicturePingPongSavedRequest {
 export interface PlantGardenSeedRequest {
     seedId: string;
     spaceId: string;
+}
+
+export interface RenameGardenRequest {
+    spaceId: string;
+    gardenNameInput: GardenNameInput;
 }
 
 export interface SendGardenSeedRequest {
@@ -184,6 +219,118 @@ export interface WaterGardenPlantRequest {
  * 
  */
 export class GamesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for acknowledgeGardenNews without sending the request
+     */
+    async acknowledgeGardenNewsRequestOpts(requestParameters: AcknowledgeGardenNewsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling acknowledgeGardenNews().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/news/seen`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The reader saw what is new in the garden; each unlock is shown once.
+     * Acknowledge Garden News
+     */
+    async acknowledgeGardenNewsRaw(requestParameters: AcknowledgeGardenNewsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.acknowledgeGardenNewsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * The reader saw what is new in the garden; each unlock is shown once.
+     * Acknowledge Garden News
+     */
+    async acknowledgeGardenNews(requestParameters: AcknowledgeGardenNewsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.acknowledgeGardenNewsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for closeGardenBouquet without sending the request
+     */
+    async closeGardenBouquetRequestOpts(requestParameters: CloseGardenBouquetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['bouquetId'] == null) {
+            throw new runtime.RequiredError(
+                'bouquetId',
+                'Required parameter "bouquetId" was null or undefined when calling closeGardenBouquet().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling closeGardenBouquet().'
+            );
+        }
+
+        if (requestParameters['gardenBouquetCloseInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenBouquetCloseInput',
+                'Required parameter "gardenBouquetCloseInput" was null or undefined when calling closeGardenBouquet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close`;
+        urlPath = urlPath.replace('{bouquetId}', encodeURIComponent(String(requestParameters['bouquetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenBouquetCloseInputToJSON(requestParameters['gardenBouquetCloseInput']),
+        };
+    }
+
+    /**
+     * Close a received bouquet\'s card, optionally noting it went into Momente.
+     * Close Garden Bouquet
+     */
+    async closeGardenBouquetRaw(requestParameters: CloseGardenBouquetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.closeGardenBouquetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Close a received bouquet\'s card, optionally noting it went into Momente.
+     * Close Garden Bouquet
+     */
+    async closeGardenBouquet(requestParameters: CloseGardenBouquetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.closeGardenBouquetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for createHeartHuntRound without sending the request
@@ -590,6 +737,63 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for giveGardenBouquet without sending the request
+     */
+    async giveGardenBouquetRequestOpts(requestParameters: GiveGardenBouquetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling giveGardenBouquet().'
+            );
+        }
+
+        if (requestParameters['gardenBouquetInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenBouquetInput',
+                'Required parameter "gardenBouquetInput" was null or undefined when calling giveGardenBouquet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/bouquets`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenBouquetInputToJSON(requestParameters['gardenBouquetInput']),
+        };
+    }
+
+    /**
+     * Give up to three blooming flowers to the partner; a seed stays in each place.
+     * Give Garden Bouquet
+     */
+    async giveGardenBouquetRaw(requestParameters: GiveGardenBouquetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.giveGardenBouquetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Give up to three blooming flowers to the partner; a seed stays in each place.
+     * Give Garden Bouquet
+     */
+    async giveGardenBouquet(requestParameters: GiveGardenBouquetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.giveGardenBouquetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for handOverPicturePingPongTurn without sending the request
      */
     async handOverPicturePingPongTurnRequestOpts(requestParameters: HandOverPicturePingPongTurnRequest): Promise<runtime.RequestOpts> {
@@ -820,6 +1024,63 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async plantGardenSeed(requestParameters: PlantGardenSeedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
         const response = await this.plantGardenSeedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for renameGarden without sending the request
+     */
+    async renameGardenRequestOpts(requestParameters: RenameGardenRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling renameGarden().'
+            );
+        }
+
+        if (requestParameters['gardenNameInput'] == null) {
+            throw new runtime.RequiredError(
+                'gardenNameInput',
+                'Required parameter "gardenNameInput" was null or undefined when calling renameGarden().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/name`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GardenNameInputToJSON(requestParameters['gardenNameInput']),
+        };
+    }
+
+    /**
+     * Name the shared garden; it becomes the page title for both partners.
+     * Rename Garden
+     */
+    async renameGardenRaw(requestParameters: RenameGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenView>> {
+        const requestOptions = await this.renameGardenRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Name the shared garden; it becomes the page title for both partners.
+     * Rename Garden
+     */
+    async renameGarden(requestParameters: RenameGardenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenView> {
+        const response = await this.renameGardenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

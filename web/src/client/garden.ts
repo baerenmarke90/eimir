@@ -92,16 +92,41 @@ export const groundBack = (x: number) =>
 export const groundFront = (x: number) =>
   170 - 8 * Math.sin(((x + 90) / 340) * Math.PI * 1.3);
 
-/** Where a planted slot stands; alternate slots sit a little further front. */
-export function slotPosition(slot: number): { x: number; y: number } {
-  const x = SLOT_START + slot * SLOT_STEP;
-  return { x, y: groundFront(x) + 9 + (slot % 2) * 7 };
+/**
+ * Places where the pond and the rose arch appear once the couple's shared days
+ * unlock them (#1907 H3, PR 3). Plants never stand there, from the first day
+ * on, so nothing has to move when something new appears.
+ */
+const RESERVED: ReadonlyArray<{ x: number; half: number }> = [
+  { x: 250, half: 48 },
+  { x: 600, half: 24 },
+];
+
+function isReserved(x: number): boolean {
+  return RESERVED.some((zone) => Math.abs(x - zone.x) < zone.half);
 }
 
-/** The garden widens (and pans) once the slots no longer fit the base width. */
-export function gardenWidth(highestSlot: number): number {
-  const needed = SLOT_START + (highestSlot + 1) * SLOT_STEP + SLOT_START;
-  return Math.max(GARDEN_MIN_WIDTH, Math.ceil(needed / 10) * 10);
+/** Where a planted slot stands; alternate places sit a little further front. */
+export function slotPosition(slot: number): { x: number; y: number } {
+  let place = 0;
+  let free = -1;
+  let x = SLOT_START;
+  for (;;) {
+    x = SLOT_START + place * SLOT_STEP;
+    if (!isReserved(x)) free += 1;
+    if (free === slot) break;
+    place += 1;
+  }
+  return { x, y: groundFront(x) + 9 + (place % 2) * 7 };
+}
+
+/** The garden widens (and pans) once the slots no longer fit its width. */
+export function gardenWidth(
+  highestSlot: number,
+  minWidth: number = GARDEN_MIN_WIDTH,
+): number {
+  const needed = slotPosition(highestSlot).x + SLOT_STEP + SLOT_START;
+  return Math.max(minWidth, Math.ceil(needed / 10) * 10);
 }
 
 export const STAGE_HEIGHT_SHARE = [0, 0.36, 0.72, 1] as const;

@@ -2,7 +2,8 @@
 
 Every route resolves authentication and Space membership first and then asks
 the central entitlement authority for ``games.couple``. The garden holds closed
-codes, dates, stages and slots only: no location, no distance, no free text.
+codes, dates, stages and slots only: no location, no distance and no free text
+apart from the garden's own short name.
 """
 
 from __future__ import annotations
@@ -19,8 +20,15 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import NotFoundError
 from eimir.entitlements.models import Capability
-from eimir.garden import service
-from eimir.garden.models import GardenPlant, GardenSpecies, GardenWords
+from eimir.garden import growth, service
+from eimir.garden.models import (
+    GardenBouquet,
+    GardenForm,
+    GardenPlant,
+    GardenSpecies,
+    GardenUnlock,
+    GardenWords,
+)
 
 router = APIRouter(tags=["games"])
 
@@ -35,6 +43,21 @@ class GardenPlantView(ApiModel):
     sent_on: date
     stage: int = Field(description="`0` seed, `1` sprout, `2` bud, `3` bloom.")
     slot: int | None = Field(description="Position in the garden; absent while not planted.")
+    in_pond: bool = Field(
+        default=False, description="A water lily: the slot is a place in the pond."
+    )
+
+
+class GardenBouquetFlower(ApiModel):
+    species: GardenSpecies
+    sender_id: UUID = Field(description="Who once sent this flower's seed (its colour).")
+
+
+class GardenBouquetView(ApiModel):
+    id: UUID
+    giver_id: UUID
+    given_on: date
+    flowers: list[GardenBouquetFlower] = Field(description="One to three flowers.")
 
 
 class GardenView(ApiModel):
@@ -61,6 +84,27 @@ class GardenView(ApiModel):
         description="First day of the next anticipated shared Plan, the couple's reunion.",
     )
     reunion_today: bool = Field(description="Today is a day of that reunion Plan.")
+    shared_days: int = Field(
+        default=0,
+        description="Days both partners sent a seed; drives growth, never shown as a number.",
+    )
+    form: GardenForm = Field(default=GardenForm.BED, description="The garden's overall form.")
+    unlocks: list[GardenUnlock] = Field(
+        default_factory=list, description="Everything the couple's care has unlocked."
+    )
+    news: list[GardenUnlock] = Field(
+        default_factory=list, description="Unlocks the reader has not been shown yet."
+    )
+    discovered: list[GardenSpecies] = Field(
+        default_factory=list, description="Species in the garden book."
+    )
+    name: str | None = Field(default=None, description="The couple's name for the garden.")
+    bouquet: GardenBouquetView | None = Field(
+        default=None, description="A bouquet from the partner that waits on its card."
+    )
+    gave_bouquet_today: bool = Field(
+        default=False, description="The reader already gave a bouquet today."
+    )
 
 
 class GardenSeedInput(ApiModel):
@@ -76,17 +120,56 @@ class GardenWateringInput(ApiModel):
     plant_id: UUID
 
 
+class GardenNameInput(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Up to 40 characters after trimming; empty restores the default title.",
+    )
+
+
+class GardenBouquetInput(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    plant_ids: list[UUID] = Field(
+        min_length=1, max_length=growth.MAX_BOUQUET, description="Blooming flowers to pick."
+    )
+
+
+class GardenBouquetCloseInput(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kept: bool = Field(default=False, description="The bouquet was put into Momente.")
+
+
 def _plant_view(plant: GardenPlant | None) -> GardenPlantView | None:
     if plant is None:
         return None
     return GardenPlantView(
         id=plant.id,
-        species=GardenSpecies(plant.species),
+        species=growth.shown_species(plant.species, plant.bloomed),
         words=GardenWords(plant.words) if plant.words else None,
         sender_id=plant.sender_id,
         sent_on=plant.sent_on,
         stage=plant.stage,
         slot=plant.slot,
+        in_pond=plant.in_pond,
+    )
+
+
+def _bouquet_view(bouquet: GardenBouquet | None) -> GardenBouquetView | None:
+    if bouquet is None:
+        return None
+    return GardenBouquetView(
+        id=bouquet.id,
+        giver_id=bouquet.giver_id,
+        given_on=bouquet.given_on,
+        flowers=[
+            GardenBouquetFlower(species=GardenSpecies(species), sender_id=sender)
+            for species, sender in zip(bouquet.flowers, bouquet.flower_senders, strict=True)
+        ],
     )
 
 
@@ -104,6 +187,14 @@ def _view(state: service.GardenState) -> GardenView:
         sleeping=state.sleeping,
         reunion_on=state.reunion_on,
         reunion_today=state.reunion_today,
+        shared_days=state.shared_days,
+        form=state.form,
+        unlocks=state.unlocks,
+        news=state.news,
+        discovered=state.discovered,
+        name=state.name,
+        bouquet=_bouquet_view(state.bouquet),
+        gave_bouquet_today=state.gave_bouquet_today,
     )
 
 
@@ -185,3 +276,77 @@ def water_garden_plant(
     _ensure_games(session, authorization, write=True)
     response.headers["Cache-Control"] = "private, no-store"
     return _view(service.water(session, authorization, body.plant_id))
+
+
+@router.post(
+    f"{_BASE}/news/seen",
+    response_model=GardenView,
+    operation_id="acknowledgeGardenNews",
+    responses=problem_responses(401, 403, 404, 409),
+)
+def acknowledge_garden_news(
+    authorization: Authorization, session: DbSession, response: Response
+) -> GardenView:
+    """The reader saw what is new in the garden; each unlock is shown once."""
+    _ensure_games(session, authorization, write=True)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _view(service.acknowledge_news(session, authorization))
+
+
+@router.put(
+    f"{_BASE}/name",
+    response_model=GardenView,
+    operation_id="renameGarden",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def rename_garden(
+    body: GardenNameInput,
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> GardenView:
+    """Name the shared garden; it becomes the page title for both partners."""
+    _ensure_games(session, authorization, write=True)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _view(service.rename(session, authorization, body.name))
+
+
+@router.post(
+    f"{_BASE}/bouquets",
+    response_model=GardenView,
+    operation_id="giveGardenBouquet",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def give_garden_bouquet(
+    body: GardenBouquetInput,
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> GardenView:
+    """Give up to three blooming flowers to the partner; a seed stays in each place."""
+    _ensure_games(session, authorization, write=True)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _view(service.give_bouquet(session, authorization, body.plant_ids))
+
+
+@router.post(
+    f"{_BASE}/bouquets/{{bouquetId}}/close",
+    response_model=GardenView,
+    operation_id="closeGardenBouquet",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def close_garden_bouquet(
+    body: GardenBouquetCloseInput,
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    bouquet_id: Annotated[str, Path(alias="bouquetId")],
+) -> GardenView:
+    """Close a received bouquet's card, optionally noting it went into Momente."""
+    _ensure_games(session, authorization, write=True)
+    try:
+        bouquet = UUID(bouquet_id)
+    except ValueError as error:
+        raise NotFoundError("Bouquet not found.", "GARDEN_BOUQUET_NOT_FOUND") from error
+    response.headers["Cache-Control"] = "private, no-store"
+    return _view(service.close_bouquet(session, authorization, bouquet, kept=body.kept))

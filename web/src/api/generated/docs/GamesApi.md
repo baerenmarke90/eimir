@@ -4,6 +4,8 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**acknowledgeGardenNews**](GamesApi.md#acknowledgegardennews) | **POST** /api/v1/spaces/{spaceId}/games/garden/news/seen | Acknowledge Garden News |
+| [**closeGardenBouquet**](GamesApi.md#closegardenbouquet) | **POST** /api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close | Close Garden Bouquet |
 | [**createHeartHuntRound**](GamesApi.md#createhearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds | Create Round |
 | [**finishPicturePingPong**](GamesApi.md#finishpicturepingpong) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/finish | Finish Picture Ping Pong |
 | [**getCoupleExperienceQuestions**](GamesApi.md#getcoupleexperiencequestions) | **GET** /api/v1/spaces/{spaceId}/experiences/{kind}/questions | Get Couple Experience Questions |
@@ -12,15 +14,166 @@ All URIs are relative to *http://localhost*
 | [**getGarden**](GamesApi.md#getgarden) | **GET** /api/v1/spaces/{spaceId}/games/garden | Get Garden |
 | [**getHeartHunt**](GamesApi.md#gethearthunt) | **GET** /api/v1/spaces/{spaceId}/games/heart-hunt | Get Heart Hunt |
 | [**getPicturePingPong**](GamesApi.md#getpicturepingpong) | **GET** /api/v1/spaces/{spaceId}/games/picture-ping-pong | Get Picture Ping Pong |
+| [**giveGardenBouquet**](GamesApi.md#givegardenbouquet) | **POST** /api/v1/spaces/{spaceId}/games/garden/bouquets | Give Garden Bouquet |
 | [**handOverPicturePingPongTurn**](GamesApi.md#handoverpicturepingpongturn) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/turns | Hand Over Picture Ping Pong Turn |
 | [**keepHeartHuntRound**](GamesApi.md#keephearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept | Keep Round |
 | [**markPicturePingPongSaved**](GamesApi.md#markpicturepingpongsaved) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/saved | Mark Picture Ping Pong Saved |
 | [**plantGardenSeed**](GamesApi.md#plantgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant | Plant Garden Seed |
+| [**renameGarden**](GamesApi.md#renamegarden) | **PUT** /api/v1/spaces/{spaceId}/games/garden/name | Rename Garden |
 | [**sendGardenSeed**](GamesApi.md#sendgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds | Send Garden Seed |
 | [**startPicturePingPong**](GamesApi.md#startpicturepingpong) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong | Start Picture Ping Pong |
 | [**tapHeartHuntRound**](GamesApi.md#taphearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps | Tap Round |
 | [**waterGardenPlant**](GamesApi.md#watergardenplant) | **POST** /api/v1/spaces/{spaceId}/games/garden/waterings | Water Garden Plant |
 
+
+
+## acknowledgeGardenNews
+
+> GardenView acknowledgeGardenNews(spaceId)
+
+Acknowledge Garden News
+
+The reader saw what is new in the garden; each unlock is shown once.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { AcknowledgeGardenNewsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies AcknowledgeGardenNewsRequest;
+
+  try {
+    const data = await api.acknowledgeGardenNews(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## closeGardenBouquet
+
+> GardenView closeGardenBouquet(bouquetId, spaceId, gardenBouquetCloseInput)
+
+Close Garden Bouquet
+
+Close a received bouquet\&#39;s card, optionally noting it went into Momente.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { CloseGardenBouquetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    bouquetId: bouquetId_example,
+    // string
+    spaceId: spaceId_example,
+    // GardenBouquetCloseInput
+    gardenBouquetCloseInput: ...,
+  } satisfies CloseGardenBouquetRequest;
+
+  try {
+    const data = await api.closeGardenBouquet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **bouquetId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **gardenBouquetCloseInput** | [GardenBouquetCloseInput](GardenBouquetCloseInput.md) |  | |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## createHeartHuntRound
@@ -596,6 +749,81 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## giveGardenBouquet
+
+> GardenView giveGardenBouquet(spaceId, gardenBouquetInput)
+
+Give Garden Bouquet
+
+Give up to three blooming flowers to the partner; a seed stays in each place.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GiveGardenBouquetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // GardenBouquetInput
+    gardenBouquetInput: ...,
+  } satisfies GiveGardenBouquetRequest;
+
+  try {
+    const data = await api.giveGardenBouquet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **gardenBouquetInput** | [GardenBouquetInput](GardenBouquetInput.md) |  | |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## handOverPicturePingPongTurn
 
 > PicturePingPongState handOverPicturePingPongTurn(spaceId, pictureTurnInput)
@@ -893,6 +1121,81 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## renameGarden
+
+> GardenView renameGarden(spaceId, gardenNameInput)
+
+Rename Garden
+
+Name the shared garden; it becomes the page title for both partners.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { RenameGardenRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // GardenNameInput
+    gardenNameInput: ...,
+  } satisfies RenameGardenRequest;
+
+  try {
+    const data = await api.renameGarden(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **gardenNameInput** | [GardenNameInput](GardenNameInput.md) |  | |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

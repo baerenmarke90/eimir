@@ -1825,6 +1825,76 @@
         "de": "Garten ansehen",
         "en": "View garden"
       }
+    },
+    {
+      "id": "GARDEN_BOUQUET-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7050",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VdP7C6Feo02msT-Y.Rb6TBL0beTSVxpqcPzb_AJCwUerKb0l1AG4VL-uA2O4tqQxsnDP11bPMcVPIlO2djZadz9U7y2Ux53YFOaNC9eS8VW7wYfJVBK3Ik9AYADD1CUuM87KC68K7d3Znn5kq8m1APJMQr8DOKO9doqT_xUOw5jEe97DIlCiK2Pk435KREXxwp61ybXCvVhPJg2OuJ1_tuzGjcgH1Lu-fWQ9mrTGedgKTyYuyIclYt5THHS3ClRi4y3XWjP6IlYNCtq4E4_TS.H1XARWilb0cM3z-OQOJDwg",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt.",
+        "en": "Alex gave you a bouquet."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "GARDEN_BOUQUET-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7051",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..57eLDwOkzSBxbUez.hnxGc47B5o88d_Udq3Vr6Njoag9-vYEMgw-_XlUh0qpAW1Y9q6cz535YbLTfRdPOzDK7cX9AdH0DsXkB6vDm6Zq5j-_w5dNakxTXcvzRoDLXeQc5hkSEPGmJIUSu1wuwO89tZe2gax39JBxvxT0lrOlmbdi2W4NJ9Ql2W6TsesmDUzgJJ_p12Z5g85npIpWooOEZtvjPuSjNqe5t_CTmSACS-3aiYAojmeRgBpi4m_D_Dg4rvC0Q2Xwcu_gZB4oLtpjla6yloW0dBwVVak7nUn-vlN4.wrDatw2DDlk2sWETvidbzA",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt.",
+        "en": "Alex gave you a bouquet."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "GARDEN_BOUQUET-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7052",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..vd7FfX_vq92RQoMl.FDLAsaU50hEeNA42_vvcnWaW5T_cvZsd4hXdaNVhNPPYRPhKE9p1uCL5aKBz0oLbvoblMv-9FcpfbTul5rp5r0HwxfmwYKuEj8Uz8mgharLYvyxjqaMy8Kw9LZ9O1y37NHLxK33WKY75KDLWQGRFoSLFteF3ZpLwd9WKyEepC7A0__UTjanAWdLVKnLD96RKLJVLVDZ0mr5JMXtywGSRNNTNfQZTdt6H9SLL4g47oa_imY1ksly4_GJ86D9s7__uluhbP3vL9fUQFUgx2w.ubBIof_0bmkLSNewjheKiw",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt.",
+        "en": "Alex gave you a bouquet."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
     }
   ]
 }

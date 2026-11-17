@@ -76,7 +76,7 @@ export interface FlightPlan {
  */
 export function flightPlan(band: DistanceBandView | null): FlightPlan {
   if (!band) return { height: 40, durationShare: 0.45, far: false };
-  if (band.kind === 'NEARBY')
+  if (band.kind === 'NEARBY' || band.kind === 'CLOSE')
     return { height: 16, durationShare: 0.28, far: false };
   if (band.kind === 'RANGE') {
     const max = band.maxKm ?? 50;

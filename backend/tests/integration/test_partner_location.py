@@ -112,6 +112,7 @@ def test_defaults_are_off_and_only_stopping_is_free(client, session: Session, co
     assert settings.json() | {"generation": 0} == {
         "available": False,
         "level": "OFF",
+        "precision": "APPROXIMATE",
         "state": "OFF",
         "indefinite": False,
         "expiresAt": None,
@@ -160,6 +161,8 @@ def test_distance_only_never_exposes_coordinates_and_map_needs_its_own_level(  #
         "minKm": None,
         "maxKm": None,
         "approximateKm": 350,
+        "minMeters": None,
+        "maxMeters": None,
     }
     assert "53.55" not in distance.text and "9.99" not in distance.text
     assert _map(client, couple).json()["available"] is False

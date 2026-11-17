@@ -14,6 +14,13 @@
 
 import { mapValues } from '../runtime';
 import type { SharingLevel } from './SharingLevel';
+import type { SharingPrecision } from './SharingPrecision';
+import {
+    SharingPrecisionFromJSON,
+    SharingPrecisionFromJSONTyped,
+    SharingPrecisionToJSON,
+    SharingPrecisionToJSONTyped,
+} from './SharingPrecision';
 import {
     SharingLevelFromJSON,
     SharingLevelFromJSONTyped,
@@ -45,6 +52,12 @@ export interface PartnerLocationSettingsUpdate {
      * @memberof PartnerLocationSettingsUpdate
      */
     level: SharingLevel;
+    /**
+     * Omit to keep the stored choice (approximate for a new decision). Choosing precise needs the Premium capability; approximate and OFF never do.
+     * @type {SharingPrecision}
+     * @memberof PartnerLocationSettingsUpdate
+     */
+    precision?: SharingPrecision | null;
 }
 
 
@@ -70,6 +83,7 @@ export function PartnerLocationSettingsUpdateFromJSONTyped(json: any, ignoreDisc
         'expiresAt': json['expiresAt'] === undefined ? undefined : json['expiresAt'] === null ? null : (new Date(json['expiresAt'])),
         'indefinite': json['indefinite'] == null ? undefined : json['indefinite'],
         'level': SharingLevelFromJSON(json['level']),
+        'precision': json['precision'] == null ? undefined : SharingPrecisionFromJSON(json['precision']),
     };
 }
 
@@ -87,6 +101,7 @@ export function PartnerLocationSettingsUpdateToJSONTyped(value?: PartnerLocation
         'expiresAt': value['expiresAt'] == null ? value['expiresAt'] : value['expiresAt'].toISOString(),
         'indefinite': value['indefinite'],
         'level': SharingLevelToJSON(value['level']),
+        'precision': SharingPrecisionToJSON(value['precision']),
     };
 }
 

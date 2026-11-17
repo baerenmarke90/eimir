@@ -277,8 +277,11 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
-    <!-- Approximate only (#1792): never fine location. Background is requested separately, only after opt-in. -->
+    <!-- Approximate by default (#1792). Fine location is declared only for the opt-in precise sharing choice
+         (PO 2026-11-17): it is requested together with coarse so Android 12+ shows its Precise/Approximate
+         choice, and only after the person chose "precise". Background is requested separately, only after opt-in. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-feature android:name="android.hardware.location" android:required="false" />

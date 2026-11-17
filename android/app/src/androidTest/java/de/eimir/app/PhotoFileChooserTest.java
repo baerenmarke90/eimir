@@ -255,12 +255,13 @@ public class PhotoFileChooserTest {
         List<String> permissions = Arrays.asList(context.getPackageManager()
             .getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS).requestedPermissions);
         assertTrue(permissions.contains("android.permission.ACCESS_MEDIA_LOCATION"));
-        // Approximate and background location belong to partner distance (#1792,
-        // ApproximateLocationPlugin), not to the selected-file contract; precise
-        // location stays forbidden for the whole app.
+        // Approximate, precise and background location belong to partner distance (#1792,
+        // ApproximateLocationPlugin; the precise grant is the opt-in sharing choice of
+        // 2026-11-17), not to the selected-file contract.
         assertTrue(permissions.contains("android.permission.ACCESS_COARSE_LOCATION"));
+        assertTrue(permissions.contains("android.permission.ACCESS_FINE_LOCATION"));
         assertTrue(permissions.contains("android.permission.ACCESS_BACKGROUND_LOCATION"));
-        for (String forbidden : new String[] {"android.permission.ACCESS_FINE_LOCATION",
+        for (String forbidden : new String[] {
                 "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
                 "android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.MANAGE_EXTERNAL_STORAGE"}) {

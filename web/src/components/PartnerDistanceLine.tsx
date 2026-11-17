@@ -9,6 +9,7 @@ import {
   deviceLanguages,
   distanceBandWords,
   distanceUnitFor,
+  formatCloseBand,
   formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine as PartnerDistanceLineState,
@@ -86,6 +87,16 @@ export function useDistanceText() {
     const words = distanceBandWords(band);
     if (words) return t(WORDS[words].sentence);
     const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnder', { distance: close.value })
+        : t('partnerLocation.distanceBetween', { distance: close.value });
+    }
     const distance = formatDistanceBand(
       band,
       locale,
@@ -161,13 +172,24 @@ export function PartnerDistanceLine({
     }
     const locale = resolvedLocale();
     const words = distanceBandWords(line.band);
+    const close = formatCloseBand(
+      line.band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
     const value = words
       ? t(WORDS[words].short)
-      : (formatDistanceBand(
-          line.band,
-          locale,
-          distanceUnitFor(locale, deviceLanguages()),
-        ) ?? t('partnerLocation.distanceNearShort'));
+      : close
+        ? close.under
+          ? t('partnerLocation.distanceCloseUnderShort', {
+              distance: close.value,
+            })
+          : close.value
+        : (formatDistanceBand(
+            line.band,
+            locale,
+            distanceUnitFor(locale, deviceLanguages()),
+          ) ?? t('partnerLocation.distanceNearShort'));
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)
@@ -350,6 +372,18 @@ export function useDistanceShortText() {
     const words = distanceBandWords(band);
     if (words) return t(WORDS[words].short);
     const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnderShort', {
+            distance: close.value,
+          })
+        : close.value;
+    }
     const distance = formatDistanceBand(
       band,
       locale,

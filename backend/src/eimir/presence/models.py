@@ -34,12 +34,20 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import ProtectedPayload
+from eimir.presence.geo import MIN_PRECISE_STORED_ACCURACY_METERS
 
 
 class SharingLevel(StrEnum):
     OFF = "OFF"
     DISTANCE = "DISTANCE"
     DISTANCE_AND_MAP = "DISTANCE_AND_MAP"
+
+
+class SharingPrecision(StrEnum):
+    """How finely the owner agrees to share (PO 2026-11-17); a person-level choice."""
+
+    APPROXIMATE = "APPROXIMATE"
+    PRECISE = "PRECISE"
 
 
 class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
@@ -69,11 +77,18 @@ class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
         Integer, nullable=False, default=1, server_default=text("1")
     )
     suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    precision: Mapped[str] = mapped_column(
+        String(12),
+        nullable=False,
+        default=SharingPrecision.APPROXIMATE.value,
+        server_default=SharingPrecision.APPROXIMATE.value,
+    )
 
     __table_args__ = (
         UniqueConstraint(
             "space_id", "account_id", name="uq_partner_location_consents_space_account"
         ),
+        CheckConstraint("precision IN ('APPROXIMATE', 'PRECISE')", name="precision_is_known"),
         CheckConstraint("level IN ('OFF', 'DISTANCE', 'DISTANCE_AND_MAP')", name="level_is_known"),
         CheckConstraint(
             "level = 'OFF' OR recipient_account_id IS NOT NULL", name="active_has_recipient"
@@ -88,11 +103,15 @@ class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
 
 
 class PresencePositionPayload(ProtectedPayload):
-    """The snapped position of a snapshot; the bounds the columns used to check."""
+    """The snapped position of a snapshot; the bounds the columns used to check.
+
+    Approximate positions are stored with at least 1,000 m accuracy; only a
+    precise position (PO 2026-11-17) is stored with a smaller value.
+    """
 
     latitude: Decimal = Field(ge=-90, le=90)
     longitude: Decimal = Field(ge=-180, le=180)
-    accuracy_meters: int = Field(ge=1000)
+    accuracy_meters: int = Field(ge=MIN_PRECISE_STORED_ACCURACY_METERS)
 
 
 class PresenceSnapshot(IdMixin, TimestampMixin, Base):

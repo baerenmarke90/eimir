@@ -14,6 +14,13 @@
 
 import { mapValues } from '../runtime';
 import type { SharingLevel } from './SharingLevel';
+import type { SharingPrecision } from './SharingPrecision';
+import {
+    SharingPrecisionFromJSON,
+    SharingPrecisionFromJSONTyped,
+    SharingPrecisionToJSON,
+    SharingPrecisionToJSONTyped,
+} from './SharingPrecision';
 import {
     SharingLevelFromJSON,
     SharingLevelFromJSONTyped,
@@ -71,6 +78,12 @@ export interface PartnerLocationSettingsView {
      */
     level: SharingLevel;
     /**
+     * How finely the caller shares (own choice). Precise stays inactive when the device only grants an approximate position.
+     * @type {SharingPrecision}
+     * @memberof PartnerLocationSettingsView
+     */
+    precision: SharingPrecision;
+    /**
      * 
      * @type {SharingState}
      * @memberof PartnerLocationSettingsView
@@ -90,6 +103,7 @@ export function instanceOfPartnerLocationSettingsView(value: object): value is P
     if (!('indefinite' in value) || value['indefinite'] === undefined) return false;
     if (!('lastPublishedAt' in value) || value['lastPublishedAt'] === undefined) return false;
     if (!('level' in value) || value['level'] === undefined) return false;
+    if (!('precision' in value) || value['precision'] === undefined) return false;
     if (!('state' in value) || value['state'] === undefined) return false;
     return true;
 }
@@ -110,6 +124,7 @@ export function PartnerLocationSettingsViewFromJSONTyped(json: any, ignoreDiscri
         'indefinite': json['indefinite'],
         'lastPublishedAt': (json['lastPublishedAt'] == null ? null : new Date(json['lastPublishedAt'])),
         'level': SharingLevelFromJSON(json['level']),
+        'precision': SharingPrecisionFromJSON(json['precision']),
         'state': SharingStateFromJSON(json['state']),
     };
 }
@@ -131,6 +146,7 @@ export function PartnerLocationSettingsViewToJSONTyped(value?: PartnerLocationSe
         'indefinite': value['indefinite'],
         'lastPublishedAt': value['lastPublishedAt'] == null ? value['lastPublishedAt'] : value['lastPublishedAt'].toISOString(),
         'level': SharingLevelToJSON(value['level']),
+        'precision': SharingPrecisionToJSON(value['precision']),
         'state': SharingStateToJSON(value['state']),
     };
 }

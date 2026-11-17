@@ -2283,7 +2283,7 @@
   },
   "notificationSettings": {
     "title": "Which messages you receive",
-    "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
+    "sharedActivityDescription": "Comments, photo reactions, shared notes, new reminders and due reminders.",
     "closenessDescription": "Thoughts of each other, kisses, check-ins and sent lists.",
     "individual": "Adjust individually",
     "dates": "Important days",
@@ -2295,7 +2295,7 @@
     "closeness": "Closeness",
     "comment": "Comments",
     "commentDescription": "New comments are collected in your inbox.",
-    "commentPushDescription": "Push notifications for new comments and photo reactions from your partner. Quiet hours apply to both.",
+    "commentPushDescription": "Push notifications for new comments, photo reactions and shared notes from your partner. Quiet hours apply to both.",
     "commentEmailDescription": "At most one neutral email per hour.",
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",

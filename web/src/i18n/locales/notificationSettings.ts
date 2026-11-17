@@ -1,7 +1,7 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
   sharedActivityDescription:
-    'Kommentare, Fotoreaktionen, neue und fällige Erinnerungen.',
+    'Kommentare, Fotoreaktionen, gemeinsame Notizen, neue und fällige Erinnerungen.',
   closenessDescription:
     'Gedanken aneinander, Küsse, Check-ins und geschickte Listen.',
   individual: 'Einzeln anpassen',
@@ -17,7 +17,7 @@ const notificationSettings = {
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription:
-    'Push für neue Kommentare und Fotoreaktionen deines Partners. Ruhezeiten gelten für beide.',
+    'Push für neue Kommentare, Fotoreaktionen und gemeinsame Notizen deines Partners. Ruhezeiten gelten für beide.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',

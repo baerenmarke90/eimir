@@ -115,6 +115,9 @@ public final class PushPreview {
             case "COLLECTION_SENT": return R.string.push_collection_sent;
             // The picture never appears in a preview; only whose turn it is (#1907 H3).
             case "PICTURE_PING_PONG_TURN": return R.string.push_picture_turn;
+            // A shared note's title and words never reach a lock screen; only who did what (#1969).
+            case "SHARED_NOTE_CREATED": return R.string.push_shared_note_created;
+            case "SHARED_NOTE_CHANGED": return R.string.push_shared_note_changed;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
@@ -168,6 +171,7 @@ public final class PushPreview {
             "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
             "COLLECTION".equals(targetType) ? R.string.push_view_list :
             "PICTURE_GAME".equals(targetType) ? R.string.push_view_picture :
+            "SHARED_NOTE".equals(targetType) ? R.string.push_view_note :
             "WISH".equals(targetType) ? R.string.push_view_wish :
             "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
             R.string.push_view);

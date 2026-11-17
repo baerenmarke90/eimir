@@ -49,6 +49,9 @@ Wir tile opening the note.
 - The plan section, the plan choice sheet, the conflict notice, the offline
   error and the notification entries have component tests but no screenshots.
 - No native device or Capacitor wrapper check; the same web UI ships there.
+  Partner push for notes (Product Owner decision 2026-11-17) is covered by
+  backend and Android fixture tests only; it stays unverified on a device until
+  the Product Owner has tested it.
 - No Product Owner review of the generated visual reference required by
   `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 9A: the clickable prototype
   that guided this work lives outside the repository (`prototypes/`).

@@ -403,6 +403,8 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
             continue
         if not _target_available(session, notification):
             continue
+        if _note_change_is_redundant(session, notification):
+            continue
         allowed = (
             notification_preferences.digest_push_enabled(
                 session, account_id=notification.recipient_account_id, kind=notification.kind
@@ -462,6 +464,25 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
                     delay=delay,
                     max_attempts=MAX_PUSH_ATTEMPTS,
                 )
+
+
+def _note_change_is_redundant(session: Session, notification: Notification) -> bool:
+    """A change adds nothing while the partner has not yet seen the new note."""
+    if notification.kind != NotificationKind.SHARED_NOTE_CHANGED.value:
+        return False
+    return (
+        session.scalar(
+            select(Notification.id).where(
+                Notification.space_id == notification.space_id,
+                Notification.recipient_account_id == notification.recipient_account_id,
+                Notification.kind == NotificationKind.SHARED_NOTE_CREATED.value,
+                Notification.target_type == notification.target_type,
+                Notification.target_id == notification.target_id,
+                Notification.read_at.is_(None),
+            )
+        )
+        is not None
+    )
 
 
 def _digest_superseded(

@@ -26,6 +26,10 @@ from eimir.outbox.models import OutboxEvent
 
 # These kinds deliberately never enter native content presentation.
 NEUTRAL_ONLY_KINDS = frozenset({NotificationKind.ONCE_MESSAGE_RECEIVED.value})
+# These kinds name the actor but never the target's title or text on a device.
+SHARED_NOTE_KINDS = frozenset(
+    {NotificationKind.SHARED_NOTE_CREATED.value, NotificationKind.SHARED_NOTE_CHANGED.value}
+)
 
 
 def _label(value: str, limit: int) -> str:
@@ -127,6 +131,8 @@ def for_notification(
             and notification.kind != NotificationKind.WISH_REMINDER_DUE.value
             # A sent list may be a surprise (a gift list): never its title (#1907 E2).
             and notification.kind != NotificationKind.COLLECTION_SENT.value
+            # A shared note's title is its own words: only who did what (#1969).
+            and notification.kind not in SHARED_NOTE_KINDS
             and not (
                 notification.kind == NotificationKind.REMINDER_DUE.value
                 and target_type is EngagementTarget.PLAN

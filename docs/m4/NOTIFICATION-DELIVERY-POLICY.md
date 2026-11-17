@@ -20,6 +20,13 @@ neutral immediate delivery without the list title, its own recipient switch,
 Quiet Hours and no email choice; see the
 [module workflow](../product/notification-workflow.md).
 
+A shared note a partner creates or changes (#1969, `SHARED_NOTE_CREATED` and
+`SHARED_NOTE_CHANGED`) uses neutral immediate delivery that names only the
+partner and the action, never the note's title or text. It inherits the
+comment Push choice and Quiet Hours and offers no email. Edits of one note share
+a coalesced notice; a change adds no Push while the partner has not yet read
+the note's earlier notice, and notifies again once it was read.
+
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.
 This is the scoped exception to neutral system copy. Source authorization

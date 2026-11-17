@@ -1731,6 +1731,194 @@
         "de": "Weitermalen",
         "en": "Keep drawing"
       }
+    },
+    {
+      "id": "SHARED_NOTE_CREATED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7080",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9.._ay07eSM4wKUBrXV.SZlp6-y15AGUK5FZ2tMuqEQb7xa4AcuVYDz2taXi8siSV9Hpycw9V0Eku-91Ix55JjT104LyDsgU8um9yXYPdLGz9a-E_DjlafyKKbECxRlcqNST35vGXkyukLLIIZrpG_SLpAyDzcnmAPkPwaAfP9X-1W9TnqeMUu5pRns_c7nPJzXacS5whFA0em1qPpJ0EmQLzc_l8g_1HL5ltVJU6IuG6_OaLfMQjFKXM0-vDQyP9mu6XLdJYUTYX2de0Qs2.epX2Kbe-QO8XygtqRjetvQ",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz angelegt.",
+        "en": "Alex created a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CREATED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7081",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..7UrTD_TjHuY-vIEi.mFNTy3FQ8XGNG8En6UmMAxafBvX98zC4vKoeF-emFJqTKbi2uksHnNtFI-eOIbMFo6JaWsO9vfYc0JS3a8-HL7bTEoU1YhBzCmi8Lb9Nh-mbAJXh-cXXihaHyDWVFIOTfF3_e-NMRzqU2FmghIcD8P-vJ-7Qljo-REhZ4pK2rCd8py40VYcjVWPGhy6cOTGu3iZ-Lj1KWY5bQKmorqow7Q1Q1CwPTPcR87dhaj8Q_VaovwbD8W3H3kUGmr5Qq3FigNQYvDAF9V0gUASMVItpbMQ.dSJMMK0Gf59ydU8Lq30SWQ",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz angelegt.",
+        "en": "Alex created a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CREATED-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7082",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fOyDegCjfoomWbFU.0gVAQcgXQ6lHntdfYZEUXLQlV52M1iQ8JEtDEf0prW1wAmYOzpNfEOY9YYsHfZMwc4Km0UAt_ruyOGPDjf0SapjnhX5jz31QH0VJVKVCT-0CY_811bsGLY6hyjIefrc9p57FH1J85sosNR17Gqr_dZ4E0l9KzWJDQtDNMpg_IhsB9aC28tDj1gGCoPqePQcDOHe36T08Gjdyki0N0HrWg2e-EiWp25aWtiR4E0_ya56rogWQSg_hqfmvKbL6RxHKQJtIOa1UoJoFHg.6Dvu5f-tCR5VixnWkgZaHw",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz angelegt.",
+        "en": "Alex created a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CREATED-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7083",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..P1Ln0at-42jOrtzD.sg9uSEZhtOEdxg9ibX09Q1Y7SPWIfvNtM8gi72il9K3ToViug2bDdrYPqHzcGFKvYmsn5LC5UWKPBg6rNgRP6xSBZBC0MuXEq94ShMvhvZeyxamMdv8dXyAxYgoAYfen7R_Logjech7Vt7vyk9cxa6AuglKnuOTDx4NtIreN-it_CwHH6sBfz0FoHPaC9hCmZL6JyLLYomqEUia3WdpLYvlSaZi7hY9e70KkJ9ncIsXspVgdDfXmvui36Enq-H5HRi2jNiXG087IEfZqOMF-E35uyKivOxmHio0g.y3IKVgjMbsY_TeUch_rqeA",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz angelegt.",
+        "en": "Alex created a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CHANGED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7084",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YxE3pGYsF1rNdUGW.ufY1t_sLyPOIGfDwqtsvQn1_uyIOTCyVfhbAVu8dERRg329NbxrXY1otytw1cvkgDjGbRN24_nN1DyNFgHpEIZOdsO28_T0pJzKT6aNXYqBEOLwWHFinquvuOmUPFdmTHjRhrSolWiNzio1rw3n0187trdmyewFMvif7FhGM9jhkYvJJGS-pNGKpl-DVCEKQqo0M-vdTDlfoUpV08DThdVZsDGwhh3Cw6jSotFkQaBd6BTGp2Bgxh6HqX9WthkHn.OBVPbWxGrSti_gDe44PrGQ",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.",
+        "en": "Alex changed a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CHANGED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7085",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..RN9rPIhicbj4SXbx.zFJ3OFeikENN8RlV66ytFtmG5_fXqjp8a2xu3e49A5-W_tIbJn9UiefbTxlzPlzLksT94UrNG9cHUDNSUla8zEH7IKbxpIuJZMJYNYGUSgKKuYocbjWWEVHmNHXYRygepixMckeBcWk85egtKo67u1pWtb0i-sDEMvw_DpFnjvmomHEL2TiATC9FCWtw4ioud7npeZlsNKCKRKIdx1keeouG9kpjuFvjkkcGj3didhcULI6bsAY8BcvGf1O2lwxKHAc402zwnSAJnFy41kXhhQ4.BJYtEzqXVFyuPcjudBS_AA",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.",
+        "en": "Alex changed a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CHANGED-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7086",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..8R2PFC35hUizjY3G.9XFDBFm15wzs73TYMdRMYe_Jzbxw19EX8cGPLeW83yAaWVo-6UhkMhM7e1DcjqgmrwaRN9FJy6FuWEUJrXbS8FmEUoAYawac0hC0qpFW7ej7kdcVHLmMfODWz3nEBBSgZ6CS3hgLz350Xf47HN_A70l7x-Isi6E2ky4I6FZbFzqODkaEWEfnfsXM8X0Kw0Lf-FN3GCFZhyDA4aDgDA8jhMPk9vQJUKHMDlpOyTB00x_ZJ4aoUM7X8TsCVW_HM7Jgzj_C8lTWGNR6Pg.CD--Ag3fUimcrA2TwfjKqA",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.",
+        "en": "Alex changed a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "SHARED_NOTE_CHANGED-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7087",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..iUOk7fgURPOMkDWC.UyR4DSv_ouaO4pd3M5mQtgmu7Ox-9gcVA86_h9T6UIHoai57uAwg4WJXNULzftYGmRYu7OQg8Q8P2gr4a5auujgHzG0SKCRV4zBM3zcwf27K87yJ41NFKVp2uglczTX_k5eCulK_JpwKXsjUa1tj35bJbJT80JTqKL9PUfJF9iquQbX7D2XIOhRsRijGj-4-R7HTAugepomCsNSZuQSaHMKvEv0aHRvUXo4WXL-7QvbVNTCpb-b-0GzIIuPRwZZDF3UdoyHMCpvT6Hq0jaNfrOKVVmq3aLYpUr3C.Lv9DPFA9kxvq1u-SjZ8x0w",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.",
+        "en": "Alex changed a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
     }
   ]
 }

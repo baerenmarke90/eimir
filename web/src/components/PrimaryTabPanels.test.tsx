@@ -110,6 +110,50 @@ it('starts Wir at the top when the tab is explicitly reopened', async () => {
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
 });
 
+/** A carousel inside the panel that remembers how far it was swiped. */
+function addCarousel(path: string, scrollLeft: number) {
+  const carousel = document.createElement('div');
+  let offset = scrollLeft;
+  Object.defineProperty(carousel, 'scrollLeft', {
+    configurable: true,
+    get: () => offset,
+    set: (value: number) => {
+      offset = value;
+    },
+  });
+  panel(path)?.appendChild(carousel);
+  return carousel;
+}
+
+it('puts the Wir carousels back to their first item when the tab is reopened', async () => {
+  render(<Harness />);
+  const lists = addCarousel('/today', 320);
+  const upcoming = addCarousel('/today', 180);
+  await act(() => navigate('/story'));
+  // Leaving keeps the offsets while the panel is hidden ...
+  expect(lists.scrollLeft).toBe(320);
+  await act(() => navigate('/today'));
+  // ... and reopening from the tab bar starts them over.
+  expect(lists.scrollLeft).toBe(0);
+  expect(upcoming.scrollLeft).toBe(0);
+});
+
+it('keeps the Wir carousels where they were on Back', async () => {
+  render(<Harness />);
+  const lists = addCarousel('/today', 320);
+  await act(() => navigate('/story'));
+  await act(() => navigate(-1));
+  expect(lists.scrollLeft).toBe(320);
+});
+
+it('shows Wir from its first carousel item while it is peeked', async () => {
+  render(<Harness />);
+  await act(() => navigate('/story'));
+  const lists = addCarousel('/today', 240);
+  await act(() => setPrimaryTabPeek('/today'));
+  expect(lists.scrollLeft).toBe(0);
+});
+
 it('restores the Wir reading position on Back after a fast navigation', async () => {
   render(<Harness />);
   const scrollTo = vi.mocked(window.scrollTo);

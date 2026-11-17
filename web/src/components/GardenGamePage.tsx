@@ -592,33 +592,37 @@ export function GardenGamePage({
     entry.senderId === currentAccountId ? 'own' : 'partner';
   const speciesName = (species: GardenSpecies) =>
     t(`games.garden.species.${species}.name`);
-  const scenePlants: ScenePlant[] = garden.plants.map((entry) => ({
-    id: entry.id,
-    species: entry.species,
-    stage: shownStage(entry.species, entry.stage, garden.localDate),
-    slot: entry.slot ?? 0,
-    inPond: entry.inPond === true,
-    picked: binding && picked.includes(entry.id),
-    role: roleOf(entry),
-    stage: presentation.stageOf(entry.stage).stage,
-    grewFrom:
-      changes.get(entry.id) ?? presentation.stageOf(entry.stage).grewFrom,
-    watered:
-      garden.wateredToday === entry.id ||
-      garden.partnerWateredToday === entry.id,
-    label: watering
-      ? t('games.garden.waterPlantLabel', {
-          species: speciesName(entry.species),
-        })
-      : binding
-        ? t('games.garden.growth.bindPlantLabel', {
+  const scenePlants: ScenePlant[] = garden.plants.map((entry) => {
+    // A resting tulip stays a bud (growth); the reunion and the sleep phase then decide what shows.
+    const shown = presentation.stageOf(
+      shownStage(entry.species, entry.stage, garden.localDate),
+    );
+    return {
+      id: entry.id,
+      species: entry.species,
+      slot: entry.slot ?? 0,
+      inPond: entry.inPond === true,
+      picked: binding && picked.includes(entry.id),
+      role: roleOf(entry),
+      stage: shown.stage,
+      grewFrom: changes.get(entry.id) ?? shown.grewFrom,
+      watered:
+        garden.wateredToday === entry.id ||
+        garden.partnerWateredToday === entry.id,
+      label: watering
+        ? t('games.garden.waterPlantLabel', {
             species: speciesName(entry.species),
           })
-        : t('games.garden.plantLabel', {
-            species: speciesName(entry.species),
-            name: roleOf(entry) === 'own' ? names.own : names.partner,
-          }),
-  }));
+        : binding
+          ? t('games.garden.growth.bindPlantLabel', {
+              species: speciesName(entry.species),
+            })
+          : t('games.garden.plantLabel', {
+              species: speciesName(entry.species),
+              name: roleOf(entry) === 'own' ? names.own : names.partner,
+            }),
+    };
+  });
   const selectedPlant = garden.plants.find((entry) => entry.id === selected);
   const dayFormat = new Intl.DateTimeFormat(resolvedLocale(), {
     weekday: 'short',

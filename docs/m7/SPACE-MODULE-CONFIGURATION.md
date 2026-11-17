@@ -152,6 +152,7 @@ Some optional product capabilities are **not** added to the V1 Space-module cata
 | Surprise Mode (#514) | Entitlement/owning interaction controlled, not in v1 catalog | Specialized reveal action; underlying Privacy remains non-paywallable. |
 | Premium themes/covers | PERSONAL_CONFIGURABLE subject to Entitlement | Presentation choice should not let the creator style/control the partner's client. |
 | Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Category preferences are private to each partner. |
+| Shared garden on Wir (Product Owner 2026-11-17) | PERSONAL_CONFIGURABLE Dashboard module `shared_garden` subject to Entitlement (`games.couple`) | The only Wir module that is off by default: each person opts in through the #817 Account+Space Dashboard preference (a missing row, including preferences saved before the module existed, means hidden). It shows the shared garden read-only and leads into the game; without the capability nothing renders or is read, and the saved choice returns with Pro. It is not a Space module and does not change who may play. |
 | External integrations (M8) | Deferred to owning integration decision | Provider authorization, data flow and operator/user ownership need integration-specific semantics rather than a speculative generic Space switch. |
 
 ## 7. Disable / re-enable semantics

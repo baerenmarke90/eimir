@@ -667,6 +667,24 @@ const games = {
           'Der Name konnte nicht gespeichert werden. Versucht es gleich noch einmal.',
       },
     },
+    // The optional Wir module (Product Owner 2026-11-17).
+    wir: {
+      openAria: '{{title}} öffnen',
+      resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
+      bothWatered: 'Heute habt ihr beide gegossen.',
+      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+    },
+    // A one-time offer inside the game to show the garden on Wir.
+    wirHint: {
+      text: 'Euren Garten auch auf Wir sehen?',
+      accept: 'Auf Wir anzeigen',
+      saving: 'Wird angezeigt …',
+      later: 'Nicht jetzt',
+      done: 'Euer Garten ist jetzt auf Wir.',
+      toWir: 'Zu Wir',
+      failed:
+        'Das hat gerade nicht geklappt. Du kannst es gleich noch einmal versuchen.',
+    },
     words: {
       THINKING_OF_YOU: 'Denk an dich',
       MISS_YOU: 'Vermiss dich',

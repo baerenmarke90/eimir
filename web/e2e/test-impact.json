@@ -1366,6 +1366,24 @@
     },
     "webview-update-notice.spec.ts": {
       "roots": ["web/src/i18n/locales/webViewNotice.ts"]
+    },
+    "wir-garden.spec.ts": {
+      "roots": [
+        "web/src/components/WirGardenModule.tsx",
+        "web/src/components/WirGardenModule.css",
+        "web/src/components/GardenWirHint.tsx",
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/QuietHint.tsx",
+        "web/src/client/quietHints.ts",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/DashboardSettingsPanel.tsx",
+        "web/src/components/PartnerDistanceWirSetting.tsx",
+        "web/src/client/dashboardModules.ts",
+        "web/src/client/dashboardPreferences.ts",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/client/garden.ts"
+      ]
     }
   }
 }

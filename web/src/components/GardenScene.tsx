@@ -369,6 +369,7 @@ export function GardenScene({
   growth = NO_GROWTH,
   ambience,
   story,
+  variant = 'game',
 }: {
   plants: ScenePlant[];
   width: number;
@@ -401,7 +402,14 @@ export function GardenScene({
     front?: ReactNode;
     targets?: ReactNode;
   };
+  /**
+   * `preview` draws the same garden as a decorative, read-only picture (the
+   * Wir module): no plant or visitor targets, hidden from assistive
+   * technology because the surrounding link names it.
+   */
+  variant?: 'game' | 'preview';
 }) {
+  const preview = variant === 'preview';
   const id = useId().replace(/:/g, '');
   const svg = useRef<SVGSVGElement | null>(null);
   const life = useGardenLife({
@@ -522,11 +530,16 @@ export function GardenScene({
   return (
     <svg
       ref={svg}
-      className={`garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}`}
+      className={`garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}${preview ? ' is-preview' : ''}`}
       viewBox={`0 0 ${width} ${GARDEN_HEIGHT}`}
-      style={{ width: `${((width / 340) * 100).toFixed(1)}%` }}
-      aria-label={label}
-      data-testid="garden-scene"
+      preserveAspectRatio={preview ? 'xMidYMax slice' : undefined}
+      style={
+        preview ? undefined : { width: `${((width / 340) * 100).toFixed(1)}%` }
+      }
+      aria-label={preview ? undefined : label}
+      aria-hidden={preview ? true : undefined}
+      focusable={preview ? 'false' : undefined}
+      data-testid={preview ? 'garden-scene-preview' : 'garden-scene'}
     >
       <defs>
         <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
@@ -702,10 +715,10 @@ export function GardenScene({
         {layers?.overlay}
       </g>
       {/* Tree, pond and clouds, then visitors, so a plant stays on top. */}
-      {scene.targets}
-      {life.tapTargets}
-      {story?.targets}
-      {plants.map((plant) => {
+      {preview ? null : scene.targets}
+      {preview ? null : life.tapTargets}
+      {preview ? null : story?.targets}
+      {(preview ? [] : plants).map((plant) => {
         const { x, y } = plantPosition(plant);
         const reach = plant.inPond ? 8 : plantHeight(plant.species);
         const selected = plant.id === selectedId || plant.picked === true;

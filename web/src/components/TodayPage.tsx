@@ -12,6 +12,7 @@ import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { GamesApi } from '../api/generated/apis/GamesApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
@@ -140,6 +141,7 @@ import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirGardenModule } from './WirGardenModule';
 import { WirLists } from './WirLists';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
@@ -927,6 +929,7 @@ export function TodayPage({
   account,
   recapMediaApis,
   partnerLocationApi,
+  gamesApi,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -950,6 +953,8 @@ export function TodayPage({
     PartnerLocationApi,
     'getPartnerDistance' | 'getPartnerLocationMap'
   >;
+  /** The shared garden's read for the optional Wir module. */
+  gamesApi?: Pick<GamesApi, 'getGarden'>;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -2300,6 +2305,21 @@ export function TodayPage({
         ) : null}
       </>
     ),
+    // Opt-in and Premium; it renders nothing (and reads nothing) otherwise.
+    shared_garden:
+      account?.id && gamesApi && entitlementApi ? (
+        <WirGardenModule
+          gamesApi={gamesApi}
+          entitlementApi={entitlementApi}
+          accountId={account.id}
+          spaceId={spaceId}
+          partnerName={partnerName}
+          visible={isDashboardModuleVisible(
+            dashboardPreferences,
+            'shared_garden',
+          )}
+        />
+      ) : null,
   };
   const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
   // The names layout keeps custom orders intact. With the catalog order, the

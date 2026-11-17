@@ -8,6 +8,11 @@ import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialProviderConfigurationException;
 import androidx.credentials.exceptions.GetCredentialUnknownException;
 import androidx.credentials.exceptions.NoCredentialException;
+import androidx.credentials.exceptions.domerrors.InvalidStateError;
+import androidx.credentials.exceptions.domerrors.NotAllowedError;
+import androidx.credentials.exceptions.domerrors.SecurityError;
+import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException;
+import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException;
 import org.junit.Test;
 
 public class PasskeyFailureTest {
@@ -34,5 +39,22 @@ public class PasskeyFailureTest {
         assertEquals(PasskeyFailure.FAILED,
             PasskeyFailure.codeFor(new CreateCredentialUnknownException()));
         assertEquals(PasskeyFailure.FAILED, PasskeyFailure.codeFor(new IllegalStateException("x")));
+    }
+
+    @Test public void anUntrustedAppIsToldApartFromOtherFailures() {
+        assertEquals(PasskeyFailure.NOT_TRUSTED, PasskeyFailure.codeFor(
+            new CreatePublicKeyCredentialDomException(new SecurityError(), "rp=app.eimir.de")));
+        assertEquals(PasskeyFailure.NOT_TRUSTED, PasskeyFailure.codeFor(
+            new GetPublicKeyCredentialDomException(new SecurityError(), "rp=app.eimir.de")));
+    }
+
+    @Test public void anExistingPasskeyIsToldApartFromOtherFailures() {
+        assertEquals(PasskeyFailure.ALREADY_REGISTERED, PasskeyFailure.codeFor(
+            new CreatePublicKeyCredentialDomException(new InvalidStateError(), "x")));
+    }
+
+    @Test public void otherDomErrorsStayGeneric() {
+        assertEquals(PasskeyFailure.FAILED, PasskeyFailure.codeFor(
+            new CreatePublicKeyCredentialDomException(new NotAllowedError(), "x")));
     }
 }

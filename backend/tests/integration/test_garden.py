@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
 from eimir.core import clock
-from eimir.core.clock import now
 from eimir.engagement import notification_policy
 from eimir.engagement import service as engagement
 from eimir.engagement.models import Notification, NotificationKind
@@ -60,7 +59,9 @@ def premium(session: Session, couple, monkeypatch):  # type: ignore[no-untyped-d
         source_type=EntitlementSourceType.TEST_FIXTURE,
         status=EntitlementStatus.ACTIVE,
         tier=EntitlementTier.PREMIUM,
-        effective_from=now() - timedelta(days=1),
+        # Anchor to the fixed test clock, not the wall clock: a grant that
+        # starts after DAY_ONE made every request 403 once real time moved on.
+        effective_from=DAY_ONE - timedelta(days=1),
         capabilities=[Capability.GAMES_COUPLE.value],
     )
     session.flush()

@@ -29,6 +29,12 @@ export default {
   passkeyAddedMessage: 'Passkey hinzugefügt.',
   passkeyRemovedMessage: 'Passkey entfernt.',
   passkeyNotOnThisDevice: 'Auf diesem Gerät sind Passkeys nicht verfügbar.',
+  passkeyAppNotLinked:
+    'Passkeys sind für diese App noch nicht freigeschaltet. Nutze vorerst den E-Mail-Link.',
+  passkeyAlreadyOnDevice:
+    'Auf diesem Gerät ist für dein Konto schon ein Passkey gespeichert.',
+  passkeyServerRejected:
+    'Der Server hat den Passkey von dieser App nicht angenommen. Nutze vorerst den E-Mail-Link.',
   lastMethod:
     'Das ist deine einzige Anmeldemethode. Richte zuerst eine andere ein.',
   methodFailed: 'Das hat nicht geklappt. Bitte versuche es noch einmal.',

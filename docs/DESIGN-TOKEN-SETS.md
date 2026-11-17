@@ -78,14 +78,30 @@ that miss WCAG contrast in Light or Dark (text, muted text and action text
 
 A design file cannot set:
 
-- the canonical create/add action colour (`--color-action-primary`,
-  [Button contract](COMPONENT-CONTRACTS.md#31-button), #1688/#1724); it
-  changes only through an explicit Product Owner decision (#1907 C2);
 - status colours (success, warning, error, info, premium surfaces stay the
   semantic status set);
 - person colours (#1958 is its own personal choice);
 - privacy/concealment and media overlays;
 - the spacing scale, type sizes, focus-ring width and touch targets.
+
+## Action colour
+
+Product Owner decision (2026-11-17): filled create/add actions
+(`AddActionButton`, `AddActionLink`, `AddActionContent`, the floating Compact
+action) and primary links use the design's action colour
+`--color-action-primary` with its label colour `--color-on-action-primary`.
+A design sets them through the optional roles `actionPrimary` and
+`onActionPrimary`; otherwise they are the palette's strong action and
+`onAction`, which gives Verbunden the canonical blue. Shape, icon, label, size
+and the single-primary-action rule stay as in the
+[Button contract](COMPONENT-CONTRACTS.md#31-button) (#1688/#1724).
+
+The generator requires 4.5:1 for the label on the fill and 3:1 for the fill
+against page and surface in Light and Dark. The default palette's Dark blue
+(`#354778` on `#171B2F`, 1.88:1) predates this rule and stays by Product Owner
+decision (2026-11-17); it is exempt until a separate decision. Inside
+contextual colour worlds of the default design the action colour stays the
+canonical blue.
 
 ## Layout modes
 

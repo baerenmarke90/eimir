@@ -80,8 +80,11 @@ ActionState     = idle | submitting | success | error
   inline insertion controls retain their distinct roles. Keep at most one
   visually dominant primary action in the current view/state.
 - All create/add entry points, including authored tags, media and inline list
-  insertion, use `AddActionLink` or `AddActionButton`: the same filled
-  canonical-blue pill, shared icon and **visible localized action label**,
+  insertion, use `AddActionLink` or `AddActionButton`: the same filled pill
+  in the active design's action colour (`--color-action-primary` with
+  `--color-on-action-primary`; Verbunden keeps the canonical blue, Product
+  Owner decision 2026-11-17, #1907 C1), shared icon and **visible localized
+  action label**,
   with a comfortable 48 px target. The optional typed `icon` prop selects an
   `EimirIcon` motif; the plus remains the default for generic creation.
   Product Owner correction #1724 uses photo for device media, photo-library for

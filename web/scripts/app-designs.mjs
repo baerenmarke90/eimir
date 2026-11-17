@@ -271,8 +271,8 @@ export function validateDesign(design, tokens) {
   const palette = palettes(id, design.color, identity);
   for (const scheme of SCHEMES)
     checkContrast(id, scheme, palette[scheme], presets.contrast, {
-      // Open Product Owner question (2026-11-17): the default blue in Dark
-      // (#354778 on #171B2F, 1.88:1) predates this rule and must stay.
+      // Product Owner decision (2026-11-17): the default blue in Dark
+      // (#354778 on #171B2F, 1.88:1) predates this rule and stays as it is.
       actionShape: palette.world !== identity.defaultWorld,
     });
   return { ...design, palette };

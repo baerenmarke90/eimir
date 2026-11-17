@@ -667,7 +667,7 @@ def materials(
     refs = session.scalars(
         select(RecapSource).where(RecapSource.edition_id == value.id).order_by(RecapSource.position)
     ).all()
-    film = value.payload.film if value.kind == RecapKind.MONTH.value else None
+    film = value.payload.film
     for ref in refs:
         metadata = _metadata(context)
         interval = session.execute(
@@ -797,13 +797,17 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
 def film_view(
     session: Session, context: AuthorizationContext, value: RecapEdition
 ) -> dict[str, Any] | None:
-    """The frozen look and the guaranteed highlight; never scores or reasons."""
+    """The frozen look and the guaranteed highlights; never scores or reasons."""
     film = value.payload.film
-    if film is None or value.kind != RecapKind.MONTH.value:
+    if film is None:
         return None
     return {
         **film.look.model_dump(),
         "highlight_key": film.highlight_key,
+        "month_highlights": [
+            {"month": int(month), "key": key}
+            for month, key in sorted(film.months.items(), key=lambda pair: int(pair[0]))
+        ],
         "tags": montage.month_tags(session, context, value),
     }
 

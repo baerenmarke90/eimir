@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -50,6 +50,25 @@ CLIP_SECONDS = 5.0
 # Fixed scenes around the selected moments: cover, opener, tags and closing.
 FRAME_MS = 5_000 + 3_600 + 4_000 + 5_500
 
+# --- Year cut (PO 2026-11-17) ---------------------------------------------------
+# A year is a longer film of month chapters: every month's highlight, the year's
+# strongest further moments, the milestones as one "firsts" sequence and the year
+# highlight as the climax before a montage of the month covers. About 3.5 min,
+# never more than four: a highlight per month is the floor and the couple's
+# words need reading time.
+YEAR_SCENE_LIMIT = 36
+YEAR_PER_MONTH = 4
+YEAR_FIRSTS_LIMIT = 8
+YEAR_FIRSTS_MIN = 3
+YEAR_TARGET_MS = 210_000
+YEAR_DURATION_LIMIT_MS = 240_000
+MONTH_MARKER_MS = 1_800
+FIRSTS_BASE_MS = 2_400
+FIRSTS_ITEM_MS = 1_400
+CLIMAX_EXTRA_MS = 1_200
+# Cover, counted facts, rhythm, tags, the month-cover montage and the closing.
+YEAR_FRAME_MS = 5_000 + 3_600 + 5_000 + 4_000 + 6_000 + 5_500
+
 # --- Photo quality --------------------------------------------------------------
 BLUR_THRESHOLD = 40.0
 DUPLICATE_DISTANCE = 6
@@ -75,11 +94,15 @@ class Look:
     layouts: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
-def choose_look(seed: str, previous: Sequence[Look]) -> Look:
-    """A look that differs from the frozen looks of the latest earlier editions."""
+def choose_look(seed: str, previous: Sequence[Look], avoid: Sequence[Look] = ()) -> Look:
+    """A look that differs from the frozen looks of the latest earlier editions.
+
+    ``avoid`` names looks of other edition kinds that must not be mirrored, such
+    as the December film next to the year film of the same year.
+    """
     recent = list(previous)[-LOOK_MEMORY:]
-    used_moods = {look.mood for look in recent}
-    used_pairs = {look.transitions for look in recent}
+    used_moods = {look.mood for look in [*recent, *avoid]}
+    used_pairs = {look.transitions for look in [*recent, *avoid]}
     used_covers = {look.cover for look in recent[-COVER_MEMORY:]}
     last = recent[-1] if recent else None
     moods = [mood for mood in MOODS if mood not in used_moods] or list(MOODS)
@@ -360,4 +383,138 @@ def cut(moments: Sequence[Moment], seed: str) -> Cut:
         keys=tuple(item.moment.key for item in chosen),
         highlight=highlight.moment.key,
         media={item.moment.key: item.media for item in chosen},
+    )
+
+
+@dataclass(frozen=True)
+class FrozenMonth:
+    """What an existing monthly film already chose; it wins over a fresh cut."""
+
+    highlight: str | None
+    keys: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class YearCut:
+    keys: tuple[str, ...]
+    highlight: str | None
+    # The highlight of every month that has a chapter, by month number.
+    months: dict[int, str]
+    media: dict[str, tuple[Media, ...]]
+
+
+def year_ms(chosen: Sequence[Scored], months: int, firsts: int) -> int:
+    """Running time of a year film with these moments, markers and milestones."""
+    return (
+        YEAR_FRAME_MS
+        + months * MONTH_MARKER_MS
+        + (FIRSTS_BASE_MS + firsts * FIRSTS_ITEM_MS if firsts else 0)
+        + CLIMAX_EXTRA_MS
+        + sum(estimated_ms(item) for item in chosen)
+    )
+
+
+def year_cut(
+    moments: Sequence[Moment],
+    seed: str,
+    frozen: Mapping[int, FrozenMonth] | None = None,
+    month_seed: Callable[[int], str] | None = None,
+) -> YearCut:
+    """Choose a year's moments as month chapters with a guaranteed year highlight.
+
+    Each month contributes its highlight: the frozen one of its monthly film when
+    that film exists, else the result of the monthly cut rules. The year's
+    strongest further moments fill up to four per month; milestones form one
+    sequence of their own. The year highlight is the strongest month highlight.
+    """
+    frozen = frozen or {}
+    month_seed = month_seed or (lambda month: f"{seed}:{month}")
+    ordered = sorted(moments, key=lambda m: (m.occurred_on, m.key))
+    seen: list[int] = []
+    scored = {moment.key: score(moment, seen) for moment in ordered}
+
+    def rank(item: Scored) -> tuple[float, str]:
+        return (-item.score, _rank(seed, item.moment.key))
+
+    by_month: dict[int, list[Scored]] = {}
+    milestones: list[Scored] = []
+    for moment in ordered:
+        if moment.kind == "MILESTONE":
+            milestones.append(scored[moment.key])
+        else:
+            by_month.setdefault(moment.occurred_on.month, []).append(scored[moment.key])
+
+    highlights: dict[int, Scored] = {}
+    eligible: list[Scored] = []
+    for month, items in sorted(by_month.items()):
+        fixed = frozen.get(month)
+        keys = set(fixed.keys) if fixed else set()
+        pool = [item for item in items if item.moment.key in keys]
+        if pool and fixed:
+            top = next(
+                (item for item in pool if item.moment.key == fixed.highlight),
+                min(pool, key=rank),
+            )
+        else:
+            # No monthly film (or none of its moments remain): the monthly rules decide.
+            month_cut = cut([item.moment for item in items], month_seed(month))
+            pool = [scored[key] for key in month_cut.keys]
+            top = scored[month_cut.highlight] if month_cut.highlight else min(pool, key=rank)
+        highlights[month] = top
+        eligible.extend(pool)
+
+    if not highlights and not milestones:
+        return YearCut((), None, {}, {})
+    highlight = min(highlights.values(), key=rank) if highlights else None
+    chosen: list[Scored] = list(highlights.values())
+    firsts = sorted(milestones, key=rank)[:YEAR_FIRSTS_LIMIT]
+
+    def fits(item: Scored) -> bool:
+        month = item.moment.occurred_on.month
+        same_month = sum(other.moment.occurred_on.month == month for other in chosen)
+        same_day = sum(other.moment.occurred_on == item.moment.occurred_on for other in chosen)
+        return same_month < YEAR_PER_MONTH and same_day < MAX_PER_DAY
+
+    rest = sorted((item for item in eligible if item not in chosen), key=rank)
+    if highlight is not None:
+        # The year highlight closes the film, so its month keeps another moment.
+        companion = next(
+            (
+                item
+                for item in rest
+                if item.moment.occurred_on.month == highlight.moment.occurred_on.month
+            ),
+            None,
+        )
+        if companion is not None:
+            chosen.append(companion)
+            rest.remove(companion)
+    for item in rest:
+        if len(chosen) + len(firsts) >= YEAR_SCENE_LIMIT:
+            break
+        if fits(item):
+            chosen.append(item)
+
+    protected = {id(item) for item in highlights.values()}
+
+    def chapters() -> int:
+        return len({item.moment.occurred_on.month for item in chosen})
+
+    while year_ms(chosen, chapters(), len(firsts)) > YEAR_TARGET_MS:
+        removable = [item for item in chosen if id(item) not in protected]
+        if not removable:
+            break
+        chosen.remove(max(removable, key=rank))
+    while (
+        year_ms(chosen, chapters(), len(firsts)) > YEAR_DURATION_LIMIT_MS
+        and len(firsts) > YEAR_FIRSTS_MIN
+    ):
+        firsts.remove(max(firsts, key=rank))
+
+    final = sorted([*chosen, *firsts], key=lambda item: (item.moment.occurred_on, item.moment.key))
+    return YearCut(
+        keys=tuple(item.moment.key for item in final),
+        highlight=highlight.moment.key if highlight else None,
+        months={month: item.moment.key for month, item in highlights.items()},
+        media={item.moment.key: item.media for item in final},
     )

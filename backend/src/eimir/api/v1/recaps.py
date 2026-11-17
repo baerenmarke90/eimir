@@ -74,11 +74,19 @@ class RecapTagView(ApiModel):
     count: int
 
 
+class RecapFilmMonthView(ApiModel):
+    """The highlight that opens the cover of one month chapter in a year film."""
+
+    month: int
+    key: str
+
+
 class RecapFilmView(ApiModel):
-    """The frozen look of a monthly film, from a fixed catalogue of design variants.
+    """The frozen look of a recap film, from a fixed catalogue of design variants.
 
     Names map to design tokens in the reader. Selection scores and reasons are
-    deliberately not part of the contract.
+    deliberately not part of the contract. A year film lists the highlight of
+    every month chapter; a monthly film lists none.
     """
 
     mood: str
@@ -87,6 +95,7 @@ class RecapFilmView(ApiModel):
     motions: list[str]
     layouts: dict[str, list[str]]
     highlight_key: str | None
+    month_highlights: list[RecapFilmMonthView] = Field(default_factory=list)
     tags: list[RecapTagView]
 
 

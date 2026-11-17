@@ -9,10 +9,11 @@ from eimir.attachments import binding
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
 from eimir.memories.models import Memory, MemoryPayload
+from eimir.milestones.models import Milestone, MilestonePayload
 from eimir.recaps import film
 from eimir.recaps.models import RecapEdition
 from tests.conftest import requires_database
-from tests.integration.test_relationship_recaps import NOW, generate, memory, read, request
+from tests.integration.test_relationship_recaps import NOW, generate, read, request
 from tests.integration.test_relationship_recaps import context as context
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -173,8 +174,100 @@ def test_consecutive_months_differ_and_a_recomposition_keeps_the_frozen_look(
     assert read(client, context, refreshed).json()["film"]["mood"] == october["film"]["mood"]
 
 
-def test_year_editions_keep_the_classic_story(client, session, context):  # type: ignore[no-untyped-def]
-    memory(session, context, day=date(2026, 4, 1))
-    created = request(client, context, kind="YEAR", month=0).json()
+def year(client, session, context, number=2025):  # type: ignore[no-untyped-def]
+    created = request(client, context, kind="YEAR", year=number, month=0).json()
     generate(session, context, created)
-    assert read(client, context, created).json()["film"] is None
+    return created
+
+
+def milestone(session, context, title, day):  # type: ignore[no-untyped-def]
+    item = Milestone(
+        space_id=context["space"].id,
+        owner_id=context["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=day,
+        payload=MilestonePayload(title=title),
+    )
+    session.add(item)
+    session.flush()
+    return item
+
+
+def test_a_year_film_covers_every_month_with_bounded_chronological_chapters(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    days = {}
+    for month_number in range(1, 13):
+        for day in (2, 9, 16, 23, 28):
+            item = titled(
+                session, context, f"Day {month_number}.{day}", date(2025, month_number, day)
+            )
+            days[str(item.id)] = item.happened_on
+    summit = titled(session, context, "The summit", date(2025, 7, 12))
+    days[str(summit.id)] = summit.happened_on
+    for position in range(3):
+        picture(session, context, summit, position=position)
+    firsts = [milestone(session, context, f"First {n}", date(2025, n * 3, 5)) for n in (1, 2, 3)]
+    for item in firsts:
+        days[str(item.id)] = item.happened_on
+    # March already has a monthly film; the year keeps its highlight and selection.
+    march = request(client, context, year=2025, month=3).json()
+    generate(session, context, march)
+    march_view = read(client, context, march).json()
+
+    created = year(client, session, context)
+    response = read(client, context, created)
+    value = response.json()
+    film_view = value["film"]
+
+    chosen = [item["id"] for item in value["sources"]]
+    assert len(chosen) <= film.YEAR_SCENE_LIMIT
+    assert [days[key] for key in chosen] == sorted(days[key] for key in chosen)
+    months = {item["month"]: item["key"] for item in film_view["monthHighlights"]}
+    assert set(months) == set(range(1, 13))
+    keys = {item["key"] for item in value["sources"]}
+    assert set(months.values()) <= keys
+    assert (
+        film_view["highlightKey"] == f"MEMORY:{summit.id}"
+        and months[7] == film_view["highlightKey"]
+    )
+    # March's film chose its milestone as highlight: it plays among the year's
+    # firsts, and March's chapter opens with the next pick of that same film.
+    march_keys = {item["key"] for item in march_view["sources"]}
+    assert march_view["film"]["highlightKey"] == f"MILESTONE:{firsts[0].id}"
+    assert march_view["film"]["highlightKey"] in keys and months[3] in march_keys
+    assert {key for key in keys if days[key.split(":")[1]].month == 3} <= {
+        item["key"] for item in march_view["sources"]
+    }
+    for month_number in range(1, 13):
+        chapter = [
+            key
+            for key in keys
+            if key.startswith("MEMORY:") and days[key.split(":")[1]].month == month_number
+        ]
+        assert 1 <= len(chapter) <= film.YEAR_PER_MONTH
+    assert {f"MILESTONE:{item.id}" for item in firsts} <= keys
+    summit_view = next(item for item in value["sources"] if item["id"] == str(summit.id))
+    assert len(summit_view["media"]) == 3
+    assert "score" not in response.text and "reason" not in response.text.lower()
+    # Both partners see the identical film.
+    partner = read(client, context, created, partner=True).json()
+    assert partner["film"] == film_view and partner["sources"] == value["sources"]
+
+
+def test_year_looks_differ_from_the_previous_year_and_the_december_film(client, session, context):  # type: ignore[no-untyped-def]
+    for number in (2024, 2025):
+        titled(session, context, f"Winter {number}", date(number, 12, 6))
+        titled(session, context, f"Summer {number}", date(number, 6, 6))
+    december = request(client, context, year=2025, month=12).json()
+    generate(session, context, december)
+    earlier = read(client, context, year(client, session, context, 2024)).json()["film"]
+    later = read(client, context, year(client, session, context, 2025)).json()["film"]
+    december_look = read(client, context, december).json()["film"]
+    assert later["mood"] not in {earlier["mood"], december_look["mood"]}
+    assert later["transitions"] not in (earlier["transitions"], december_look["transitions"])
+    assert later["monthHighlights"] == [
+        {"month": 6, "key": later["monthHighlights"][0]["key"]},
+        {"month": 12, "key": later["monthHighlights"][1]["key"]},
+    ]
+    assert december_look["monthHighlights"] == []

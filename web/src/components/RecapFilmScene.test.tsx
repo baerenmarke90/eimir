@@ -55,6 +55,7 @@ const timing = {
   motion: 'zoom-in',
   layout: 'dialog',
   climax: false,
+  chapter: null,
 };
 
 function show(scene: FilmScene) {
@@ -125,5 +126,37 @@ describe('RecapFilmScene', () => {
       source: { ...source, title: 'Erinnerung vom 24.10.2026' },
     });
     expect(screen.queryByText('Erinnerung vom 24.10.2026')).toBeNull();
+  });
+
+  it('marks a month chapter with its localized name only', () => {
+    show({ ...timing, layout: '', type: 'month', key: 'month:3', month: 3 });
+    expect(screen.getByRole('heading').textContent).toMatch(/^(März|March)$/u);
+  });
+
+  it('lists the year firsts with their days and own titles', () => {
+    show({
+      ...timing,
+      layout: '',
+      type: 'firsts',
+      key: 'firsts',
+      sources: [
+        {
+          ...source,
+          key: 'MILESTONE:keys',
+          kind: 'MILESTONE',
+          title: 'Our own keys',
+        },
+        {
+          ...source,
+          key: 'MILESTONE:auto',
+          kind: 'MILESTONE',
+          title: 'First trip abroad',
+        },
+      ],
+    });
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toMatch(/Our own keys/u);
+    expect(items[0].textContent).toMatch(/3/u);
   });
 });

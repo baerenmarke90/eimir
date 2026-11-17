@@ -336,6 +336,7 @@ export * from './RecapAnswerView';
 export * from './RecapDraftView';
 export * from './RecapFactsView';
 export * from './RecapFilmMediaView';
+export * from './RecapFilmMonthView';
 export * from './RecapFilmView';
 export * from './RecapKind';
 export * from './RecapMoodBucketView';

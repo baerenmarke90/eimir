@@ -7,12 +7,17 @@ import type { RecapView } from '../api/generated/models/RecapView';
 import { recapRhythm } from './recaps';
 
 /**
- * The monthly recap as a short film (#1744, PO 2026-11-17).
+ * Monthly and yearly recaps as films (#1744, PO 2026-11-17).
  *
  * The server chooses the moments, the guaranteed highlight, the curated media
  * and a frozen look from a fixed catalogue. This module only arranges those
  * choices into timed scenes; it never invents or rewords text and exposes no
  * selection scores or reasons.
+ *
+ * A year film is cut into chapters: an intro, one chapter per month that opens
+ * with a month marker, and a finale with the milestones as one "firsts"
+ * sequence, the year's tags, the year highlight as the climax, a montage of the
+ * month covers and the closing.
  */
 
 export const FILM_MOODS = [
@@ -45,7 +50,15 @@ const FIXED_MS = {
   title: 4_000,
   tags: 4_000,
   closing: 5_500,
+  month: 1_800,
+  covers: 6_000,
 } as const;
+const FIRSTS_BASE_MS = 2_400;
+const FIRSTS_ITEM_MS = 1_400;
+/** A year film shows a firsts sequence from two milestones; one stays a title scene. */
+export const FILM_MIN_FIRSTS = 2;
+/** The cover montage needs a few months to read as a year. */
+export const FILM_MIN_COVERS = 3;
 
 export type FilmMedia = RecapFilmMediaView;
 
@@ -58,6 +71,17 @@ type Timing = {
   /** Layout from the look; an empty string where the scene has one form. */
   layout: string;
   climax: boolean;
+  /**
+   * The progress chapter of a year film ('intro', 'm1' … 'm12', 'finale');
+   * null in a monthly film, whose progress shows every scene.
+   */
+  chapter: string | null;
+};
+
+export type FilmCover = {
+  month: number;
+  media: FilmMedia;
+  source: RecapSourceView;
 };
 
 export type FilmScene = Timing &
@@ -94,12 +118,19 @@ export type FilmScene = Timing &
     | { type: 'title'; source: RecapSourceView }
     | { type: 'answers'; source: RecapSourceView; answers: RecapAnswerView[] }
     | { type: 'tags'; tags: RecapTagView[] }
+    | { type: 'month'; month: number }
+    | { type: 'firsts'; sources: RecapSourceView[] }
+    | { type: 'covers'; covers: FilmCover[] }
     | { type: 'closing'; media: FilmMedia[]; days: number }
   );
 
 type Draft = FilmScene extends infer S
   ? S extends FilmScene
-    ? Omit<S, keyof Timing> & { key: string; climax?: boolean }
+    ? Omit<S, keyof Timing> & {
+        key: string;
+        climax?: boolean;
+        chapter?: string | null;
+      }
     : never
   : never;
 
@@ -295,6 +326,9 @@ function sceneMs(draft: Draft): number {
     case 'rhythm':
       ms = readingMs(40 + draft.buckets.length * 12);
       break;
+    case 'firsts':
+      ms = FIRSTS_BASE_MS + draft.sources.length * FIRSTS_ITEM_MS;
+      break;
     default:
       ms = FIXED_MS[draft.type];
   }
@@ -311,21 +345,128 @@ const LAYOUT_TYPES: Partial<Record<Draft['type'], string>> = {
   fact: 'fact',
 };
 
+/** The month (1-12) a source starts in, read in UTC like every period date. */
+function sourceMonth(source: RecapSourceView): number | null {
+  return source.occurredOn ? source.occurredOn.getUTCMonth() + 1 : null;
+}
+
+/** Moments with their answers, varied so no scene type repeats in a row. */
+function momentDrafts(
+  sources: RecapSourceView[],
+  highlightKey: string | null,
+): Draft[] {
+  return vary(
+    sources.flatMap((source) =>
+      withAnswers(source).map((draft) =>
+        draft.key === highlightKey ? { ...draft, climax: true } : draft,
+      ),
+    ),
+  );
+}
+
+function withChapter(drafts: Draft[], chapter: string): Draft[] {
+  return drafts.map((draft) => ({ ...draft, chapter }));
+}
+
+/**
+ * A year film: month chapters in calendar order, then the finale. The year
+ * highlight leaves its month chapter and closes the film as the climax; the
+ * milestones leave theirs and play together as the firsts (PO 2026-11-17).
+ */
+function yearBody(
+  sources: RecapSourceView[],
+  film: RecapFilmView,
+  highlight: RecapSourceView | null,
+): { chapters: Draft[]; finale: Draft[]; covers: FilmCover[] } {
+  const firsts = sources.filter(
+    (source) => source.available && source.kind === 'MILESTONE',
+  );
+  const byMonth = new Map<number, RecapSourceView[]>();
+  for (const source of sources) {
+    const month = sourceMonth(source);
+    if (
+      !source.available ||
+      month === null ||
+      source === highlight ||
+      source.kind === 'MILESTONE'
+    )
+      continue;
+    byMonth.set(month, [...(byMonth.get(month) ?? []), source]);
+  }
+  const chapters = [...byMonth.entries()]
+    .sort(([left], [right]) => left - right)
+    .flatMap(([month, items]) =>
+      withChapter(
+        [
+          { type: 'month', key: `month:${month}`, month },
+          ...momentDrafts(items, null),
+        ],
+        `m${month}`,
+      ),
+    );
+  const firstsDrafts: Draft[] =
+    firsts.length >= FILM_MIN_FIRSTS
+      ? [{ type: 'firsts', key: 'firsts', sources: firsts }]
+      : firsts.flatMap((source) => withAnswers(source));
+  const covers = (film.monthHighlights ?? []).flatMap(({ month, key }) => {
+    const own = sources.find((source) => source.key === key);
+    const candidates = [
+      ...(own ? [own] : []),
+      ...sources.filter(
+        (source) => source !== own && sourceMonth(source) === month,
+      ),
+    ];
+    for (const source of candidates) {
+      const media = sourceMedia(source).find((item) => item.kind === 'IMAGE');
+      if (media) return [{ month, media, source }];
+    }
+    return [];
+  });
+  return {
+    chapters,
+    finale: [
+      ...firstsDrafts,
+      ...(film.tags.length >= FILM_MIN_TAGS
+        ? [{ type: 'tags' as const, key: 'tags', tags: film.tags }]
+        : []),
+      ...(highlight ? momentDrafts([highlight], highlight.key) : []),
+      ...(covers.length >= FILM_MIN_COVERS
+        ? [{ type: 'covers' as const, key: 'covers', covers }]
+        : []),
+    ],
+    covers,
+  };
+}
+
 /** The film's scenes, or null when the edition has no film (legacy reader). */
 export function recapFilmScenes(value: RecapView): FilmScene[] | null {
   const film: RecapFilmView | null | undefined = value.film;
-  if (!film || value.kind !== 'MONTH') return null;
+  if (!film || (value.kind !== 'MONTH' && value.kind !== 'YEAR')) return null;
   const sources = value.sources;
   const highlight =
     sources.find((source) => source.key === film.highlightKey) ?? null;
   const images = (source: RecapSourceView) =>
     sourceMedia(source).filter((item) => item.kind === 'IMAGE');
+  const yearly =
+    value.kind === 'YEAR' ? yearBody(sources, film, highlight) : null;
+  // A year cover shows the month highlights; a month cover its own pictures.
   const coverMedia = [
     ...(highlight ? images(highlight).slice(0, 1) : []),
-    ...sources
-      .filter((source) => source !== highlight)
-      .flatMap((source) => images(source)),
-  ].slice(0, 4);
+    ...(yearly
+      ? yearly.covers
+          .filter((cover) => cover.source !== highlight)
+          .map((cover) => cover.media)
+      : sources
+          .filter((source) => source !== highlight)
+          .flatMap((source) => images(source))),
+  ]
+    // One picture can belong to several moments; the cover shows it once.
+    .filter(
+      (item, index, all) =>
+        all.findIndex((other) => other.attachmentId === item.attachmentId) ===
+        index,
+    )
+    .slice(0, 4);
   const coverTitle = highlight
     ? (filmSourceTitle(highlight) ??
       (sourceWords(highlight) ? filmExcerpt(sourceWords(highlight), 60) : null))
@@ -353,14 +494,7 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
           ? [{ type: 'fact', key: 'fact', days }]
           : [];
   const rhythm = recapRhythm(value);
-  const body = vary(
-    sources.flatMap((source) =>
-      withAnswers(source).map((draft) =>
-        draft.key === film.highlightKey ? { ...draft, climax: true } : draft,
-      ),
-    ),
-  );
-  const drafts: Draft[] = [
+  const intro: Draft[] = [
     {
       type: 'cover',
       key: 'cover',
@@ -380,12 +514,27 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
           },
         ]
       : []),
-    ...body,
-    ...(film.tags.length >= FILM_MIN_TAGS
-      ? [{ type: 'tags' as const, key: 'tags', tags: film.tags }]
-      : []),
-    { type: 'closing', key: 'reflections', media: coverMedia, days },
   ];
+  const closing: Draft = {
+    type: 'closing',
+    key: 'reflections',
+    media: coverMedia,
+    days,
+  };
+  const drafts: Draft[] = yearly
+    ? [
+        ...withChapter(intro, 'intro'),
+        ...yearly.chapters,
+        ...withChapter([...yearly.finale, closing], 'finale'),
+      ]
+    : [
+        ...intro,
+        ...momentDrafts(sources, film.highlightKey),
+        ...(film.tags.length >= FILM_MIN_TAGS
+          ? [{ type: 'tags' as const, key: 'tags', tags: film.tags }]
+          : []),
+        closing,
+      ];
   const [first, second] = film.transitions;
   const counts: Record<string, number> = {};
   return drafts.map((draft, index) => {
@@ -405,6 +554,7 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
     return {
       ...draft,
       climax,
+      chapter: draft.chapter ?? null,
       ms: sceneMs(draft),
       transition: transition ?? 'fade',
       motion: film.motions.length
@@ -420,6 +570,34 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
   });
 }
 
+export type FilmChapter = {
+  chapter: string;
+  /** Index of the chapter's first scene. */
+  start: number;
+  count: number;
+};
+
+/**
+ * Progress chapters of a year film in playback order; null for a monthly film,
+ * whose progress keeps one bar per scene.
+ */
+export function filmChapters(scenes: FilmScene[] | null): FilmChapter[] | null {
+  if (!scenes?.length || scenes.some((scene) => scene.chapter === null))
+    return null;
+  const result: FilmChapter[] = [];
+  scenes.forEach((scene, index) => {
+    const last = result.at(-1);
+    if (last && last.chapter === scene.chapter) last.count += 1;
+    else
+      result.push({
+        chapter: scene.chapter as string,
+        start: index,
+        count: 1,
+      });
+  });
+  return result;
+}
+
 /** The source a scene links back to, if any. */
 export function filmSceneSource(scene: FilmScene): RecapSourceView | null {
   return 'source' in scene && scene.source ? scene.source : null;
@@ -432,6 +610,8 @@ export function filmSceneLeadMedia(scene: FilmScene): FilmMedia | null {
     case 'duo':
     case 'closing':
       return scene.media[0] ?? null;
+    case 'covers':
+      return scene.covers[0]?.media ?? null;
     case 'photo':
       return scene.media;
     default:

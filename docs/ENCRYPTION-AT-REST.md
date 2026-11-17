@@ -169,9 +169,18 @@ Account display names (`accounts.display_name`) moved the same way with migratio
 account search finds an account by e-mail address or by its complete account ID, which a
 person can copy from the More page of the app.
 
-**Outside the ProtectedPayload boundary today:** email addresses, birthdays and
-relationship kinds of related persons, and the relationship start date. They are listed
-as follow-ups in section 12.
+Birthdays (`accounts.birthday`, `related_persons.birthday`) moved with migration 0150,
+by Product Owner decision of 2026-11-16. `has_birthday` on both tables keeps the one fact
+queries and constraints need in SQL. The move hides the date of birth, and with it the
+year and the age. It does not hide that a birthday exists, nor the day and month of a
+birthday that has a reminder: `reminders.annual_month` and `annual_day` are scheduling
+metadata the server needs to know when to remind, and they name the person or account
+they were derived from. An important date (`important_dates.date`) is also still a plain
+column; its label is protected.
+
+**Outside the ProtectedPayload boundary today:** email addresses, relationship kinds of
+related persons, the date of an important date, and the relationship start date. They
+are listed in section 12.
 
 ## 6. Data flows
 
@@ -263,7 +272,9 @@ their values into the row's payload. `daily_check_ins.vibe`/`energy_level` are
 registered too; that table had no payload column, so migration 0147 adds a **nullable**
 one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
 move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
-a row through `legacy_plain_columns`, not as a malformed envelope:
+a row through `legacy_plain_columns`, not as a malformed envelope. `accounts.display_name`
+(migration 0149) and the two birthday columns (migration 0150) are registered the same
+way:
 
 - **Automatic.** The worker queues the job `security_column_moves` whenever a registered
   column still holds a value and repeats it until none does. It needs no operator
@@ -419,7 +430,10 @@ Known limits and follow-ups (deliberately not implemented here):
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
 - Columns outside the `ProtectedPayload` contract remain plaintext: e-mail addresses,
-  birthdays, relationship kinds and the relationship start date. The
+  relationship kinds, the date of an important date and the relationship start date.
+  A birthday is protected, but the day and month of its reminder
+  (`reminders.annual_month`, `annual_day`) and the fact that it exists (`has_birthday`)
+  are not. The
   check-in day itself (who checked in on which date) stays plain metadata. `places.has_coordinates` (whether a place has a position,
   not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
   lookups, uniqueness and administrative search need them in SQL.
@@ -541,9 +555,10 @@ Product Owner decisions still required before the remaining items can be built:
   (a new scheme number and migration) before Cloud go-live.
 - **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
   and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
-  the partner-location position before them, the daily check-in values and account
-  display names after them. Birthdays and relationship kinds are open follow-ups; e-mail
-  addresses stay plaintext.
+  the partner-location position before them, the daily check-in values, account
+  display names and birthdays after them. Relationship kinds, the date of an important
+  date and the relationship start date stay plaintext, and no move is commissioned for
+  them; e-mail addresses stay plaintext by design.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

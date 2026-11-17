@@ -271,3 +271,48 @@ def test_year_looks_differ_from_the_previous_year_and_the_december_film(client, 
         {"month": 12, "key": later["monthHighlights"][1]["key"]},
     ]
     assert december_look["monthHighlights"] == []
+
+
+def test_the_look_carries_accents_and_pace_and_media_their_format_and_focus(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    measured = film.PhotoQuality(300.0, 0.1, 0x0F0F0F0F0F0F0F0F, 1.4, 0.2, 0.0, 0.0, 0.64, 0.36)
+    monkeypatch.setattr("eimir.recaps.montage.measure", lambda attachment, cache: measured)
+    trip = titled(session, context, "Night at the lake", date(2026, 10, 12))
+    picture(session, context, trip)
+    titled(session, context, "Walk", date(2026, 10, 3))
+    value = month(client, session, context)
+
+    look = value["film"]
+    assert len(look["accents"]) == film.ACCENT_COUNT and set(look["accents"]) <= set(film.ACCENTS)
+    assert look["pace"] == "calm"
+    # The night photo is dark, so the first free dark mood is chosen.
+    assert look["mood"] == "night"
+    media = next(item for item in value["sources"] if item["id"] == str(trip.id))["media"][0]
+    assert (media["shape"], media["focusX"], media["focusY"]) == ("portrait", 0.64, 0.36)
+    text = client.get(f"{context['path']}/{value['id']}", headers=context["headers"]).text
+    for measure in ("luminance", "warmth", "sharpness", "dhash"):
+        assert measure not in text
+
+
+def test_a_film_frozen_before_the_variety_catalogue_stays_readable(client, session, context):  # type: ignore[no-untyped-def]
+    item = titled(session, context, "Autumn", date(2026, 10, 8))
+    picture(session, context, item)
+    value = month(client, session, context)
+    record = session.get(RecapEdition, UUID(value["id"]))
+    stored = record.payload.model_dump(mode="json")
+    stored["film"]["look"].pop("accents")
+    stored["film"]["look"].pop("pace")
+    stored["film"]["look"]["layouts"] = {"photo": ["bleed"], "duo": ["side"]}
+    for media in stored["film"]["media"].values():
+        for entry in media:
+            for key in ("shape", "focus_x", "focus_y"):
+                entry.pop(key)
+    record.payload = type(record.payload).model_validate(stored)
+    session.flush()
+
+    again = read(client, context, value).json()
+    assert again["film"]["accents"] == [] and again["film"]["pace"] is None
+    assert again["film"]["layouts"] == {"photo": ["bleed"], "duo": ["side"]}
+    media = next(entry for entry in again["sources"] if entry["id"] == str(item.id))["media"][0]
+    assert media["shape"] is None and media["focusX"] is None

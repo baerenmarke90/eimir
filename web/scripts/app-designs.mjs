@@ -56,7 +56,25 @@ export const FINE_ROLES = {
   highlight: ['design-highlight'],
   onHighlight: ['design-on-highlight'],
   decorationIcon: ['design-decoration-icon'],
+  actionPrimary: ['color-action-primary'],
+  onActionPrimary: ['color-on-action-primary'],
 };
+
+/**
+ * The design's action colour (Product Owner decision 2026-11-17): the filled
+ * create/add actions and primary links use it. Without an explicit
+ * `actionPrimary` it is the palette's strong action, the same rule that gives
+ * Verbunden its canonical blue; the label uses `onActionPrimary` or `onAction`.
+ */
+export function actionColours(palette, mode) {
+  return {
+    fill:
+      palette.actionPrimary ??
+      palette.actionStrong ??
+      (mode === 'light' ? palette.action : palette.pressed),
+    onFill: palette.onActionPrimary ?? palette.onAction,
+  };
+}
 
 export class AppDesignError extends Error {}
 
@@ -162,20 +180,37 @@ const FINE_TEXT_PAIRS = [
   ['onDecoration', 'decoration'],
   ['onDecorationMuted', 'decoration'],
   ['onHighlight', 'highlight'],
+  ['onActionPrimary', 'actionPrimary'],
 ];
 const NON_TEXT_PAIRS = [
   ['focus', 'page'],
   ['focus', 'surface'],
+  // The filled action shape stands out from the ground it sits on.
+  ['actionPrimary', 'page'],
+  ['actionPrimary', 'surface'],
 ];
 
-function checkContrast(id, scheme, palette, minimums) {
+function checkContrast(
+  id,
+  scheme,
+  palette,
+  minimums,
+  { actionShape = true } = {},
+) {
+  const { fill, onFill } = actionColours(palette, scheme);
+  palette = { ...palette, actionPrimary: fill, onActionPrimary: onFill };
   const fine = FINE_TEXT_PAIRS.filter(
     ([foreground, background]) =>
       foreground in palette && background in palette,
   );
   for (const [pairs, minimum] of [
     [[...TEXT_PAIRS, ...fine], minimums.text],
-    [NON_TEXT_PAIRS, minimums.nonText],
+    [
+      NON_TEXT_PAIRS.filter(
+        ([foreground]) => actionShape || foreground !== 'actionPrimary',
+      ),
+      minimums.nonText,
+    ],
   ]) {
     for (const [foreground, background] of pairs) {
       const ratio = contrastRatio(palette[foreground], palette[background]);
@@ -235,7 +270,11 @@ export function validateDesign(design, tokens) {
   oneOf(id, 'surface.edges', design.surface.edges, EDGES);
   const palette = palettes(id, design.color, identity);
   for (const scheme of SCHEMES)
-    checkContrast(id, scheme, palette[scheme], presets.contrast);
+    checkContrast(id, scheme, palette[scheme], presets.contrast, {
+      // Open Product Owner question (2026-11-17): the default blue in Dark
+      // (#354778 on #171B2F, 1.88:1) predates this rule and must stay.
+      actionShape: palette.world !== identity.defaultWorld,
+    });
   return { ...design, palette };
 }
 
@@ -290,6 +329,11 @@ function motionDeclarations(design, tokens) {
 /** The 16-role declarations followed by the fine roles the palette sets. */
 function designPalette(palette, status, mode) {
   const lines = paletteDeclarations(palette, status, mode);
+  const { fill, onFill } = actionColours(palette, mode);
+  lines.push(
+    `--color-action-primary: ${fill};`,
+    `--color-on-action-primary: ${onFill};`,
+  );
   for (const [role, aliases] of Object.entries(FINE_ROLES))
     if (role in palette)
       for (const alias of aliases) lines.push(`--${alias}: ${palette[role]};`);

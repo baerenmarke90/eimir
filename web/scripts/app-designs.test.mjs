@@ -62,10 +62,44 @@ describe('app design token sets', () => {
     expect(css).not.toContain('[data-app-design="modern"] [data-color-world]');
   });
 
-  it('never lets a design change the create action colour', () => {
+  it('gives each design its action colour and keeps the canonical blue for Verbunden', () => {
     const { css } = buildAppDesigns(tokens, designs);
-    expect(css).not.toContain('--color-action-primary');
+    const block = (selector) => {
+      const start = css.indexOf(selector);
+      return css.slice(start, css.indexOf('}', start));
+    };
+    // Verbunden keeps today's blue from the product roles.
+    expect(block('[data-design-preview="connected"]')).toContain(
+      '--color-action-primary: #3055B8;',
+    );
+    expect(block(':root[data-app-design="warm"],')).toContain(
+      '--color-action-primary: #974A76;',
+    );
+    expect(block(':root[data-app-design="shared_album"],')).toContain(
+      '--color-action-primary: #143C34;',
+    );
     expect(css).not.toContain('--person-');
+  });
+
+  it('lets an explicit action colour override the derived one and checks it', () => {
+    const { light, dark } = designs.shared_album.color;
+    const { css } = buildAppDesigns(tokens, {
+      ...designs,
+      sample: design({
+        color: { light: { ...light, actionPrimary: '#245C51' }, dark },
+      }),
+    });
+    expect(css).toContain('--color-action-primary: #245C51;');
+    expect(() =>
+      validateDesign(
+        design({
+          color: { light: { ...light, actionPrimary: '#E5ECDB' }, dark },
+        }),
+        tokens,
+      ),
+    ).toThrowError(
+      /light (onActionPrimary on actionPrimary|actionPrimary on page)/,
+    );
   });
 
   it('rejects unknown fields and values outside the presets', () => {

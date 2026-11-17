@@ -27,5 +27,7 @@ describe('design token files and stored Wir designs (#1907 C1)', () => {
     expect(wirDesignLayout(WirDesignId.warm)).toBe('open');
     expect(wirDesignLayout(WirDesignId.modern)).toBe('compact');
     expect(wirDesignLayout(WirDesignId.classic)).toBe('classic');
+    expect(wirDesignLayout(WirDesignId.quiet_together)).toBe('connected');
+    expect(wirDesignLayout(WirDesignId.handwriting)).toBe('open');
   });
 });

@@ -31,6 +31,8 @@ class WirDesignId(StrEnum):
     SHARED_ALBUM = "shared_album"
     MODERN = "modern"
     CLASSIC = "classic"
+    QUIET_TOGETHER = "quiet_together"
+    HANDWRITING = "handwriting"
 
 
 class PersonColoursId(StrEnum):

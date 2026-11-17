@@ -9668,6 +9668,27 @@
         "title": "PictureSavedInput",
         "type": "object"
       },
+      "PictureStartInput": {
+        "additionalProperties": false,
+        "properties": {
+          "starter": {
+            "$ref": "#/components/schemas/PictureStarter",
+            "default": "SQUIGGLE",
+            "description": "`SQUIGGLE` begins with a small seed line, `BLANK` with an empty page."
+          }
+        },
+        "title": "PictureStartInput",
+        "type": "object"
+      },
+      "PictureStarter": {
+        "description": "How a new picture begins: with the gentle seed squiggle or a blank page.",
+        "enum": [
+          "SQUIGGLE",
+          "BLANK"
+        ],
+        "title": "PictureStarter",
+        "type": "string"
+      },
       "PictureStrokeInput": {
         "additionalProperties": false,
         "properties": {
@@ -32351,7 +32372,7 @@
         ]
       },
       "post": {
-        "description": "Open a new picture; the partner who opens it draws first.",
+        "description": "Open a new picture; the partner who opens it draws first.\n\nWithout a body the picture begins with the seed squiggle.",
         "operationId": "startPicturePingPong",
         "parameters": [
           {
@@ -32364,6 +32385,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PictureStartInput"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {

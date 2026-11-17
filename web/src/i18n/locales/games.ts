@@ -72,10 +72,14 @@ const games = {
         'Das Herz konnte nicht losgeschickt werden. Versuch es noch einmal.',
       roundOpen:
         'Dein letztes Herz ist noch versteckt. Warte, bis es gefunden wurde.',
+      partnerHidToo:
+        '{{name}} hat dir inzwischen auch ein Herz versteckt. Du kannst gleich danach suchen.',
     },
     waiting: {
       title: '{{name}} sucht jetzt',
       body: 'Du bekommst Bescheid, sobald das Herz gefunden ist.',
+      searching_one: '{{name}} hat schon einmal getippt.',
+      searching_other: '{{name}} hat schon {{count}}-mal getippt.',
       photoLabel: 'Dein Foto mit dem versteckten Herz',
     },
     seek: {
@@ -128,8 +132,17 @@ const games = {
     emptyEyebrow: 'Noch kein Bild',
     emptyTitle: 'Fangt ein Bild an.',
     emptyBody:
-      'Ihr bekommt eine kleine Kritzellinie als Anfang. Danach malt ihr abwechselnd, sechs Züge lang.',
+      'Fangt mit einer kleinen Kritzellinie oder einem leeren Blatt an. Danach malt ihr abwechselnd, sechs Züge lang.',
     newPicture: 'Neues Bild anfangen',
+    starterLegend: 'Wie wollt ihr anfangen?',
+    starterSquiggle: 'Mit Vorlage',
+    starterSquiggleHint: 'Eine kleine Kritzellinie als Anfang',
+    starterBlank: 'Leeres Blatt',
+    starterBlankHint: 'Ihr malt alles selbst',
+    startAction: 'Bild anfangen',
+    starterCancel: 'Doch nicht',
+    partnerStarted: '{{name}} hat gerade ein neues Bild angefangen.',
+    partnerFinished: '{{name}} hat das Bild gerade fertig gemacht.',
     canvasLabel: 'Euer gemeinsames Bild',
     you: 'Du',
     partnerFallback: 'Partner',

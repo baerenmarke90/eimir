@@ -20,6 +20,7 @@ import type { HeartHuntTapResult } from '../api/generated/models/HeartHuntTapRes
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   arcPoints,
   composeHeartPhoto,
@@ -492,6 +493,7 @@ function SeekPanel({
   api,
   spaceId,
   onFound,
+  onSettling,
 }: {
   round: HeartHuntRoundView;
   people: HeartHuntPeople;
@@ -500,6 +502,8 @@ function SeekPanel({
   api: HeartHuntApi;
   spaceId: string;
   onFound: () => void;
+  /** The fog is lifting; live reads wait so the found view follows it. */
+  onSettling?: () => void;
 }) {
   const { t } = useTranslation();
   const [taps, setTaps] = useState<FramePoint[]>(() => [...round.taps]);
@@ -534,6 +538,7 @@ function SeekPanel({
           setMeter(WARMTH_FOR_METER(result.meter));
           if (result.found) {
             setFound(true);
+            onSettling?.();
             // The fog lifts first; the found view follows once it is gone.
             foundTimer.current = window.setTimeout(
               onFound,
@@ -543,7 +548,7 @@ function SeekPanel({
         })
         .catch(() => setFailed(true));
     },
-    [api, found, onFound, round.id, spaceId],
+    [api, found, onFound, onSettling, round.id, spaceId],
   );
 
   const word =
@@ -706,6 +711,15 @@ function WaitingPanel({
           })}
         </h2>
         <p>{t('games.heartHunt.waiting.body')}</p>
+        {/* Live: the partner's search arrives while both are in the game. */}
+        <p className="heart-hunt-live" aria-live="polite">
+          {round.tapCount > 0
+            ? t('games.heartHunt.waiting.searching', {
+                name: people.partner.displayName,
+                count: round.tapCount,
+              })
+            : null}
+        </p>
       </div>
     </section>
   );
@@ -723,6 +737,8 @@ function HidePanel({
   spaceId,
   flight,
   onSent,
+  onDraftChange,
+  partnerWaiting,
 }: {
   people: HeartHuntPeople;
   apis: ReturnType<typeof createReferenceApis>;
@@ -733,6 +749,10 @@ function HidePanel({
   spaceId: string;
   flight: React.RefObject<FlightHandle | null>;
   onSent: () => void;
+  /** A started hiding place keeps this panel even if a partner round arrives. */
+  onDraftChange?: (active: boolean) => void;
+  /** The partner hid a heart for this person while the draft was open. */
+  partnerWaiting?: boolean;
 }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<HidePhase>('idle');
@@ -748,6 +768,12 @@ function HidePanel({
     },
     [preview],
   );
+
+  const drafting = phase !== 'idle' || preview !== null;
+  useEffect(() => {
+    onDraftChange?.(drafting);
+  }, [drafting, onDraftChange]);
+  useEffect(() => () => onDraftChange?.(false), [onDraftChange]);
 
   const choose = async (files: FileList) => {
     const file = files[0];
@@ -820,6 +846,13 @@ function HidePanel({
           })}
         </h2>
         <p>{t('games.heartHunt.hide.body')}</p>
+        {partnerWaiting ? (
+          <p className="heart-hunt-quiet" role="status">
+            {t('games.heartHunt.hide.partnerHidToo', {
+              name: people.partner.displayName,
+            })}
+          </p>
+        ) : null}
         <DeviceMediaPicker
           id="heart-hunt-photo"
           multiple={false}
@@ -924,6 +957,11 @@ export function HeartHuntGamePage({
   );
   const flight = useRef<FlightHandle>(null);
   const [mode, setMode] = useState<'auto' | 'hide'>('auto');
+  // A hiding place in progress stays on screen when the partner's heart
+  // arrives live; the search follows once this one is sent.
+  const [hideDraft, setHideDraft] = useState(false);
+  // The found transition holds live reads until the fog has lifted.
+  const [settling, setSettling] = useState(false);
   const [keeping, setKeeping] = useState(false);
   const [keepFailed, setKeepFailed] = useState(false);
 
@@ -957,7 +995,9 @@ export function HeartHuntGamePage({
     },
     retry: false,
     gcTime: 0,
-    refetchOnWindowFocus: true,
+    // Live while open: a heart hidden for me, the partner's search taps and
+    // the moment my heart is found arrive while both are in the game.
+    ...liveGameQueryOptions({ paused: settling || keeping }),
   });
 
   const rounds = stateQuery.data?.rounds ?? [];
@@ -968,15 +1008,23 @@ export function HeartHuntGamePage({
     (r) => r.role === 'HIDER' && r.state === 'HIDDEN',
   );
   const lastFound = rounds.find((r) => r.state === 'FOUND');
-  const view: 'seek' | 'hide' | 'waiting' | 'found' = seeking
-    ? 'seek'
-    : mode === 'hide' && !waiting
+  // The hold belongs to one search; it never outlives that round's panel.
+  const seekingId = seeking?.id ?? null;
+  useEffect(() => {
+    if (!seekingId) setSettling(false);
+  }, [seekingId]);
+  const view: 'seek' | 'hide' | 'waiting' | 'found' =
+    hideDraft && !waiting
       ? 'hide'
-      : waiting
-        ? 'waiting'
-        : lastFound
-          ? 'found'
-          : 'hide';
+      : seeking
+        ? 'seek'
+        : mode === 'hide' && !waiting
+          ? 'hide'
+          : waiting
+            ? 'waiting'
+            : lastFound
+              ? 'found'
+              : 'hide';
   const current =
     view === 'seek'
       ? seeking
@@ -1073,7 +1121,7 @@ export function HeartHuntGamePage({
           title={t('games.heartHunt.loadingTitle')}
           body={t('games.heartHunt.loadingBody')}
         />
-      ) : peopleQuery.error || stateQuery.error ? (
+      ) : peopleQuery.error || (stateQuery.error && !stateQuery.data) ? (
         <ProblemState
           error={peopleQuery.error ?? stateQuery.error}
           onRetry={() => {
@@ -1104,7 +1152,11 @@ export function HeartHuntGamePage({
               loading={photo.loading}
               api={api}
               spaceId={spaceId}
-              onFound={() => void refresh()}
+              onSettling={() => setSettling(true)}
+              onFound={() => {
+                setSettling(false);
+                void refresh();
+              }}
             />
           ) : view === 'waiting' && waiting ? (
             <WaitingPanel round={waiting} people={people} url={photo.url} />
@@ -1128,8 +1180,11 @@ export function HeartHuntGamePage({
               accountId={currentAccountId}
               spaceId={spaceId}
               flight={flight}
+              onDraftChange={setHideDraft}
+              partnerWaiting={Boolean(seeking)}
               onSent={() => {
                 setMode('auto');
+                setHideDraft(false);
                 void refresh();
               }}
             />

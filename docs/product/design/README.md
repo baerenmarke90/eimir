@@ -137,3 +137,7 @@ list arriving on the partner's Wir.
 [Our garden (#1907 H3)](references/1907-h3-garden/README.md) records the approved
 seed exchange between partners who are apart, its Mobile Interaction Contract, the
 continuous garden motion decision and the three-PR delivery.
+
+[Live partner sync for the apart games (#1907 H3)](references/1907-h3-live-sync/README.md)
+records how Herzversteck, picture ping-pong and the garden show the partner's
+moves while both are in the game, and the picture ping-pong starting choice.

@@ -105,7 +105,11 @@ describe('IdentityEntry providers and passkeys', () => {
     expect(
       await screen.findByRole('button', { name: de.identity.googleContinue }),
     ).toBeDefined();
-    expect(screen.queryByText('Weiter mit Pocket ID')).toBeNull();
+    expect(
+      screen.queryByText(
+        de.identity.providerContinue.replace('{{name}}', 'Pocket ID'),
+      ),
+    ).toBeNull();
   });
 
   it('offers nothing extra where no provider is configured', async () => {

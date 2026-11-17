@@ -4,6 +4,8 @@ import { rememberCurrentAuthReturnTarget } from '../client/deepLinks';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { goToProvider, startOidcLink } from '../client/oidcSignIn';
 import {
+  PasskeyAlreadyOnDeviceError,
+  PasskeyAppNotTrustedError,
   PasskeyCancelledError,
   passkeysAvailable,
   registerPasskey,
@@ -75,6 +77,25 @@ export function SignInMethodsPanel({
 
   function failure(error: unknown): Notice {
     if (error instanceof PasskeyCancelledError) return null;
+    if (error instanceof PasskeyAppNotTrustedError) {
+      return { tone: 'error', text: t('accountSettings.passkeyAppNotLinked') };
+    }
+    if (error instanceof PasskeyAlreadyOnDeviceError) {
+      return {
+        tone: 'error',
+        text: t('accountSettings.passkeyAlreadyOnDevice'),
+      };
+    }
+    if (
+      native &&
+      error instanceof ClientProblemError &&
+      error.code === 'PASSKEY_CEREMONY_INVALID'
+    ) {
+      return {
+        tone: 'error',
+        text: t('accountSettings.passkeyServerRejected'),
+      };
+    }
     const last =
       error instanceof ClientProblemError &&
       error.code === 'SIGN_IN_METHOD_LAST';

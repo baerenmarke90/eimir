@@ -56,6 +56,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
+  --color-action-primary: #3055b8;
+  --color-on-action-primary: #ffffff;
 }
 
 :root[data-theme="dark"] [data-design-preview="classic"],
@@ -109,6 +111,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
+  --color-action-primary: #354778;
+  --color-on-action-primary: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -163,6 +167,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
+    --color-action-primary: #354778;
+    --color-on-action-primary: #ffffff;
   }
 }
 
@@ -215,6 +221,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
+  --color-action-primary: #143c34;
+  --color-on-action-primary: #ffffff;
   --design-decoration: #123a33;
   --design-on-decoration: #fffdf2;
   --design-on-decoration-muted: #e0e8d8;
@@ -272,6 +280,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
+  --color-action-primary: #e1ecdf;
+  --color-on-action-primary: #182d25;
   --design-decoration: #d7e7d5;
   --design-on-decoration: #182d25;
   --design-on-decoration-muted: #344d40;
@@ -330,6 +340,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
+    --color-action-primary: #e1ecdf;
+    --color-on-action-primary: #182d25;
     --design-decoration: #d7e7d5;
     --design-on-decoration: #182d25;
     --design-on-decoration-muted: #344d40;
@@ -388,6 +400,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
+  --color-action-primary: #974a76;
+  --color-on-action-primary: #ffffff;
 }
 
 :root[data-theme="dark"] [data-design-preview="warm"] {
@@ -439,6 +453,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
+  --color-action-primary: #d999b9;
+  --color-on-action-primary: #40263c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -491,6 +507,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
+    --color-action-primary: #d999b9;
+    --color-on-action-primary: #40263c;
   }
 }
 
@@ -554,6 +572,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
+  --color-action-primary: #143c34;
+  --color-on-action-primary: #ffffff;
   --design-decoration: #123a33;
   --design-on-decoration: #fffdf2;
   --design-on-decoration-muted: #e0e8d8;
@@ -614,6 +634,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
+  --color-action-primary: #e1ecdf;
+  --color-on-action-primary: #182d25;
   --design-decoration: #d7e7d5;
   --design-on-decoration: #182d25;
   --design-on-decoration-muted: #344d40;
@@ -675,6 +697,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
+    --color-action-primary: #e1ecdf;
+    --color-on-action-primary: #182d25;
     --design-decoration: #d7e7d5;
     --design-on-decoration: #182d25;
     --design-on-decoration-muted: #344d40;
@@ -736,6 +760,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
+  --color-action-primary: #974a76;
+  --color-on-action-primary: #ffffff;
   --font-heading-family: var(--font-display);
   --design-backdrop-glow: var(--color-brand-glow);
 }
@@ -790,6 +816,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
+  --color-action-primary: #d999b9;
+  --color-on-action-primary: #40263c;
   --font-heading-family: var(--font-display);
   --design-backdrop-glow: var(--color-brand-glow);
 }
@@ -845,6 +873,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
+    --color-action-primary: #d999b9;
+    --color-on-action-primary: #40263c;
     --font-heading-family: var(--font-display);
     --design-backdrop-glow: var(--color-brand-glow);
   }

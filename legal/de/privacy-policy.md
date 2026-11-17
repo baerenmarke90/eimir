@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-14.draft-3
+version: 2026-11-17.draft-4
 status: draft
 effective: null
 legal_review: pending
@@ -18,6 +18,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 - Wir verarbeiten deine Daten, um eimir. für dich und deinen Partner zu betreiben. Wir zeigen keine Werbung, verkaufen keine Daten, setzen keine Analyse- oder Tracking-Dienste ein und trainieren keine KI-Modelle mit euren Inhalten.
 - Was ihr „Für uns beide“ speichert, sieht dein Partner. Was du als „Nur für mich“ speicherst, siehst nur du.
 - Eure Inhalte speichern wir verschlüsselt. Das ist keine Ende-zu-Ende-Verschlüsselung: Damit eimir. funktioniert, kann unser System sie entschlüsseln. Wir sehen sie uns nicht an, außer in den wenigen Fällen, die wir in Abschnitt 5 nennen.
+- Deinen Standort teilen wir mit deinem Partner nur, wenn du das in eimir. Pro selbst einschaltest. Standardmäßig ist er ungefähr; auf Wunsch kannst du ihn genauer teilen. Wir speichern nur deine aktuelle Position und keinen Verlauf (Abschnitt 9).
 - Was ihr festhaltet, kann sehr persönlich sein. Wir nutzen es nur, um eimir. für euch bereitzustellen.
 - Manche Funktionen nutzen Dienste anderer Anbieter, zum Beispiel Karten, Adresssuche oder Push-Benachrichtigungen. Was diese Anbieter dabei erfahren, erklären wir bei der jeweiligen Funktion.
 - Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.
@@ -95,7 +96,12 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 3. Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Potsdam. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.
 4. Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren [Datenschutzhinweisen](https://osmfoundation.org/wiki/Privacy_Policy). Rechtsgrundlage ist unser berechtigtes Interesse, euch eure Orte auf einer Karte zu zeigen (Art. 6 Abs. 1 lit. f DSGVO).
 5. Öffnest du einen Ort ausdrücklich in Google Maps, übergibt eimir. die Koordinaten an Google, aber keine Anmeldedaten. Ab dann gelten die Datenschutzhinweise von Google.
-6. eimir. fragt deinen aktuellen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.
+6. Mit eimir. Pro kannst du deinem Partner zeigen, wie weit du entfernt bist, und auf Wunsch zusätzlich einen ungefähren Kartenbereich. Das ist freiwillig und nie voreingestellt. Du entscheidest, was dein Partner sieht und wie lange, und kannst es jederzeit beenden. Dein Partner entscheidet für sich allein.
+7. Du wählst auch, wie genau deine Position ist. Voreingestellt ist „ungefähr“: Dein Gerät rundet sie auf etwa einen Kilometer, bevor sie an uns geht. Wählst du „genau“, rundet dein Gerät auf etwa 100 Meter. Das stellst du beim ersten Start oder später in den Einstellungen ein. Genau teilen kannst du nur, wenn dein Gerät eine genaue Position hat; erlaubt Android nur den ungefähren Standort, bleibt es bei „ungefähr“ und wir sagen es dir in den Einstellungen. Deine genauen Koordinaten verlassen dein Gerät nicht. Dein Partner sieht eine Entfernungsstufe, bei „genau“ auf beiden Seiten auch eine feinere unter zwei Kilometern, und nie Koordinaten, eine Richtung oder einen Verlauf. Er erfährt nicht, welche Genauigkeit du gewählt hast.
+8. Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.
+9. Die Android-App misst deinen Standort einmal, wenn du sie öffnest oder zu ihr zurückkehrst, und nur solange das Teilen eingeschaltet ist oder du die Entfernung ansiehst. Für „genau“ bittet sie Android zusätzlich um die genaue Standortberechtigung; dort wählst du „Genau“ oder „Ungefähr“. Im Browser fragt dein Browser. Willst du, dass deine Position auch aktuell bleibt, wenn die App geschlossen ist, kannst du das zusätzlich einschalten und „Immer zulassen“ erlauben. Dann nutzt eimir. nur Positionen, die Android ohnehin schon ermittelt hat, und startet selbst keine Messung. Die Berechtigung kannst du jederzeit in den Android-Einstellungen entziehen.
+10. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), für den Zugriff auf den Standort deines Geräts außerdem § 25 Abs. 1 TDDDG. Du kannst sie jederzeit widerrufen, indem du das Teilen beendest oder die Berechtigung entziehst. Das berührt nicht, was bis dahin geschah. Ohne Einwilligung funktioniert eimir. unverändert, nur ohne Entfernung.
+11. Über diese Funktion hinaus fragt eimir. deinen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.
 
 ## 10. Fotos aus anderen Diensten
 
@@ -170,7 +176,7 @@ Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir
 
 Deine Daten erhalten nur:
 
-- dein Partner, soweit ihr Inhalte teilt (Abschnitt 4),
+- dein Partner, soweit ihr Inhalte teilt (Abschnitt 4) und soweit du deine Entfernung oder einen ungefähren Kartenbereich teilst (Abschnitt 9),
 - unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): die netcup GmbH, Karlsruhe, für Server, Datenbank, Speicher und Sicherungen sowie für den Mailserver, den wir dort selbst betreiben, und die Google Ireland Limited, Dublin (Irland), für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),
 - die komoot GmbH, Potsdam, für Adresssuche und Ortsnamen (Abschnitt 9),
 - die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),
@@ -193,6 +199,7 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 - **Gemeinsame Inhalte:** bis ihr sie löscht. Löschst du dein Konto, bleiben sie für deinen Partner erhalten; du erscheinst dort nur noch als ehemaliges Mitglied. Haben beide den Space verlassen, löschen wir ihn nach 30 Tagen mit allen Inhalten.
 - **Einzelne Inhalte, die ihr löscht:** sofort aus eimir.; Kopien in Sicherungen mit deren Ablauf.
 - **Einmalnachrichten:** ungeöffnet 24 Stunden, nach dem Öffnen sofort.
+- **Entfernung zum Partner:** deine aktuelle gerundete Position höchstens 24 Stunden und beim Beenden des Teilens sofort; deine Einstellung zum Teilen bis zum Löschen deines Kontos.
 - **„Gefühl für heute“ und Akku:** bis zum Ende des folgenden Tages.
 - **Sitzungen:** bis zu 60 Tage ohne Nutzung, höchstens 180 Tage.
 - **Links:** Anmeldelinks 15 Minuten, Links zur Bestätigung deiner Adresse 24 Stunden, Einladungen für deinen Partner 14 Tage.

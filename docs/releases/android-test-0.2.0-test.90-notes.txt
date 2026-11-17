@@ -3,5 +3,5 @@ eimir. Android 0.2.0-test.90
 - Each personal design now sets its own colour for the main action buttons.
 - When adding a passkey in Account does not work, the app now tells why: the app is not yet enabled for passkeys, the server did not accept the passkey, or this device already holds one.
 
-The product changes come from main at 1daf96b48d3e0a4f7324a99a75cb8fe7fb5c702f.
+The product changes come from main at 57c0c3a021782a5eb7c8a1896e2d1739b09ba7b7.
 Install over test.89 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 90.

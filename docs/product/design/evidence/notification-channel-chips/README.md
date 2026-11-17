@@ -35,8 +35,9 @@ into a card with its own icon and one hint line. Additional captures:
 
 - `settings-index-live-dark-390.webp`, `settings-index-live-light-390.webp`,
   `settings-index-live-dark-1280.webp`: the Settings overview with live row
-  statuses (for example "1 von 4 aktiv", "System · Deutsch"). Rows whose data is
-  not available keep their static line (the calendar row in this fixture).
+  statuses (enabled shared features out of four, the theme and language in use,
+  the passkey state). Rows whose data is not available keep their static line
+  (the calendar row in this fixture).
 - `settings-wir-grip-dark-390.webp`: the Wir settings list with the dotted
   drag handle.
 

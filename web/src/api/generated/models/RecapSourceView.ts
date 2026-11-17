@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RecapQuoteView } from './RecapQuoteView';
+import {
+    RecapQuoteViewFromJSON,
+    RecapQuoteViewFromJSONTyped,
+    RecapQuoteViewToJSON,
+    RecapQuoteViewToJSONTyped,
+} from './RecapQuoteView';
 import type { RecapAnswerView } from './RecapAnswerView';
 import {
     RecapAnswerViewFromJSON,
@@ -27,13 +34,6 @@ import {
     RecapFilmMediaViewToJSON,
     RecapFilmMediaViewToJSONTyped,
 } from './RecapFilmMediaView';
-import type { RecapQuoteView } from './RecapQuoteView';
-import {
-    RecapQuoteViewFromJSON,
-    RecapQuoteViewFromJSONTyped,
-    RecapQuoteViewToJSON,
-    RecapQuoteViewToJSONTyped,
-} from './RecapQuoteView';
 import type { RecapSourceKind } from './RecapSourceKind';
 import {
     RecapSourceKindFromJSON,

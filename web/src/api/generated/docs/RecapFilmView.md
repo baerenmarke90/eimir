@@ -1,10 +1,7 @@
 
 # RecapFilmView
 
-The frozen look of a monthly film, from a fixed catalogue of design variants.
- *
- * Names map to design tokens in the reader. Selection scores and reasons are
- * deliberately not part of the contract.
+The frozen look of a monthly film, from a fixed catalogue of design variants.  Names map to design tokens in the reader. Selection scores and reasons are deliberately not part of the contract.
 
 ## Properties
 

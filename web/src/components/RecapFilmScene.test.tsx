@@ -56,6 +56,7 @@ const timing = {
   layout: 'dialog',
   climax: false,
   chapter: null,
+  beat: null,
 };
 
 function show(scene: FilmScene) {
@@ -158,5 +159,181 @@ describe('RecapFilmScene', () => {
     expect(items).toHaveLength(2);
     expect(items[0].textContent).toMatch(/Our own keys/u);
     expect(items[0].textContent).toMatch(/3/u);
+  });
+});
+
+describe('RecapFilmScene variety forms', () => {
+  it('counts the days up while assistive technology reads the number once', () => {
+    const { container } = render(
+      <RecapFilmScene
+        scene={{
+          ...timing,
+          layout: 'counter',
+          type: 'fact',
+          key: 'fact',
+          days: 12,
+        }}
+        value={value}
+        playing={false}
+        reducedMotion
+        onSettled={vi.fn()}
+        sourceLink={() => null}
+        mediaApis={{} as ReferenceApis}
+        spaceId="space"
+        account={{ id: 'me' }}
+      />,
+    );
+    const count = container.querySelector('.recap-film-count') as HTMLElement;
+    expect(count.getAttribute('aria-hidden')).toBe('true');
+    expect(count.style.getPropertyValue('--film-days')).toBe('12');
+    expect(container.querySelector('.sr-only')?.textContent).toBe('12');
+  });
+
+  it('reveals words one by one without rewording them', () => {
+    const words = 'You made the whole day lighter.';
+    const { container } = render(
+      <RecapFilmScene
+        scene={{
+          ...timing,
+          layout: 'reveal',
+          type: 'words',
+          key: 'HEART_MOMENT:w',
+          source,
+          words,
+        }}
+        value={value}
+        playing={false}
+        reducedMotion
+        onSettled={vi.fn()}
+        sourceLink={() => null}
+        mediaApis={{} as ReferenceApis}
+        spaceId="space"
+        account={{ id: 'me' }}
+      />,
+    );
+    const reveal = container.querySelector('.recap-film-reveal') as HTMLElement;
+    expect(reveal.textContent).toBe(words);
+    expect(reveal.querySelectorAll('span')).toHaveLength(6);
+  });
+
+  it('sets long words as calm prose even when the look asks for a reveal', () => {
+    const words = 'One sentence that keeps going. '.repeat(5).trim();
+    const { container } = render(
+      <RecapFilmScene
+        scene={{
+          ...timing,
+          layout: 'reveal',
+          type: 'words',
+          key: 'HEART_MOMENT:w',
+          source,
+          words,
+        }}
+        value={value}
+        playing={false}
+        reducedMotion
+        onSettled={vi.fn()}
+        sourceLink={() => null}
+        mediaApis={{} as ReferenceApis}
+        spaceId="space"
+        account={{ id: 'me' }}
+      />,
+    );
+    expect(
+      container.querySelector('.recap-film-frame')?.getAttribute('data-layout'),
+    ).toBe('centered');
+    expect(container.querySelector('.recap-film-reveal')).toBeNull();
+    expect(container.querySelector('.recap-film-prose')?.textContent).toBe(
+      words,
+    );
+  });
+
+  it('keeps the large quote mark and the month numeral decorative', () => {
+    const margin = render(
+      <RecapFilmScene
+        scene={{
+          ...timing,
+          layout: 'margin',
+          type: 'words',
+          key: 'HEART_MOMENT:w',
+          source,
+          words: 'Short and kind.',
+        }}
+        value={value}
+        playing={false}
+        reducedMotion
+        onSettled={vi.fn()}
+        sourceLink={() => null}
+        mediaApis={{} as ReferenceApis}
+        spaceId="space"
+        account={{ id: 'me' }}
+      />,
+    );
+    const mark = margin.container.querySelector('.recap-film-mark');
+    expect(mark?.getAttribute('aria-hidden')).toBe('true');
+    expect(mark?.textContent).toBe('');
+    cleanup();
+    show({
+      ...timing,
+      layout: 'numeral',
+      type: 'month',
+      key: 'month:3',
+      month: 3,
+    });
+    expect(screen.getByRole('heading').textContent).toMatch(/^(März|March)$/u);
+    const numeral = document.querySelector('.recap-film-numeral');
+    expect(numeral?.getAttribute('aria-hidden')).toBe('true');
+    expect(numeral?.textContent).toBe('03');
+    expect(
+      document.querySelector('.recap-film-frame')?.getAttribute('data-variant'),
+    ).toBe('numeral');
+  });
+
+  it('plays a collage of three pictures that keep their format and focus', () => {
+    const picture = (id: string, shape: string) => ({
+      attachmentId: id,
+      parentId: 'happy',
+      kind: 'IMAGE' as const,
+      shape,
+      focusX: 0.62,
+      focusY: 0.3,
+    });
+    const { container } = render(
+      <RecapFilmScene
+        scene={{
+          ...timing,
+          layout: 'grid',
+          type: 'collage',
+          key: 'MEMORY:happy',
+          source,
+          media: [
+            picture('a', 'portrait'),
+            picture('b', 'landscape'),
+            picture('c', 'square'),
+          ],
+          answers: [],
+        }}
+        value={value}
+        playing={false}
+        reducedMotion
+        onSettled={vi.fn()}
+        sourceLink={() => null}
+        mediaApis={{} as ReferenceApis}
+        spaceId="space"
+        account={{ id: 'me' }}
+      />,
+    );
+    const pictures = [
+      ...container.querySelectorAll<HTMLElement>('.recap-film-picture'),
+    ];
+    expect(pictures.map((item) => item.dataset.shape)).toEqual([
+      'portrait',
+      'landscape',
+      'square',
+    ]);
+    expect(pictures[0].style.getPropertyValue('--film-focus-x')).toBe('62%');
+    expect(pictures[0].style.getPropertyValue('--film-focus-y')).toBe('30%');
+    expect(
+      container.querySelector('.recap-film-media')?.getAttribute('data-scene'),
+    ).toBe('collage');
   });
 });

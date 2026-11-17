@@ -1012,6 +1012,10 @@ function RecapReader({
                 data-motion={filmScene?.motion}
                 data-layout={filmScene?.layout || undefined}
                 data-climax={filmScene?.climax || undefined}
+                data-beat={filmScene?.beat ?? undefined}
+                data-pace={
+                  filmScene ? (value.film?.pace ?? undefined) : undefined
+                }
                 key={`${recapId}:${page}`}
                 onPointerDownCapture={beginGesture}
                 onPointerUp={endGesture}

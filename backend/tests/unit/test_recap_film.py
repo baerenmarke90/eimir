@@ -39,7 +39,7 @@ def test_the_look_is_reproducible_and_differs_between_spaces() -> None:
     assert [look.mood for look in looks_for(12)] != [look.mood for look in looks_for(12, "space-b")]
     for look in looks_for(12):
         assert look.mood in film.MOODS and look.cover in film.COVERS
-        assert set(look.motions) <= set(film.MOTIONS) and len(look.motions) == 3
+        assert set(look.motions) <= set(film.MOTIONS) and len(look.motions) == 5
         assert {scene: set(order) for scene, order in look.layouts.items()} == {
             scene: set(options) for scene, options in film.LAYOUTS.items()
         }
@@ -313,3 +313,97 @@ def test_the_year_look_avoids_earlier_years_and_the_december_film() -> None:
         assert look.mood not in {other.mood for other in years[-film.LOOK_MEMORY :]}
         assert look.transitions not in {other.transitions for other in years[-film.LOOK_MEMORY :]}
         years.append(look)
+
+
+def test_accents_closings_and_motions_vary_without_repeating_too_soon() -> None:
+    history = looks_for(24)
+    for index, look in enumerate(history):
+        assert len(look.accents) == film.ACCENT_COUNT == len(set(look.accents))
+        assert set(look.accents) <= set(film.ACCENTS)
+        assert not set(look.accents) & set(look.transitions)
+        recent = history[max(0, index - film.ACCENT_MEMORY) : index]
+        assert look.accents[0] not in {other.accents[0] for other in recent}
+        closings = {other.layouts["closing"][0] for other in history[max(0, index - 2) : index]}
+        assert look.layouts["closing"][0] not in closings
+        # Every format finds a fitting camera motion.
+        assert sum(m in film.HORIZONTAL_MOTIONS for m in look.motions) == 2
+        assert sum(m in film.VERTICAL_MOTIONS for m in look.motions) == 2
+        assert sum(m in film.NEUTRAL_MOTIONS for m in look.motions) == 1
+    assert len({look.accents for look in history}) > 12
+    assert len({look.layouts["collage"][0] for look in history}) == len(film.LAYOUTS["collage"])
+
+
+def test_older_frozen_looks_without_the_new_fields_still_steer_the_next_look() -> None:
+    legacy = Look("rose", ("fade", "slide"), "mosaic", ("zoom-in",), {"photo": ("bleed",)})
+    look = film.choose_look("space:MONTH:2026:11:0", [legacy])
+    assert look.mood != "rose" and "fade" not in look.transitions
+    assert look.layouts["photo"][0] != "bleed" and look.accents
+
+
+def flat(colour: tuple[int, int, int], size: tuple[int, int] = (120, 90)) -> Image.Image:
+    return Image.new("RGB", size, colour)
+
+
+def test_tone_is_measured_from_plain_pixel_statistics() -> None:
+    def measured(colour: tuple[int, int, int]) -> str | None:
+        return film.tone([film.measure(flat(colour))])
+
+    assert measured((30, 30, 40)) == "dark"
+    assert measured((220, 160, 110)) == "warm"
+    assert measured((110, 150, 215)) == "cool"
+    assert measured((120, 190, 110)) == "green"
+    assert measured((235, 235, 235)) == "bright"
+    assert measured((140, 140, 140)) is None
+    assert film.tone([]) is None
+
+
+def test_the_mood_leans_to_the_photos_only_among_the_free_moods() -> None:
+    seed = "space:MONTH:2026:3:0"
+    assert film.choose_look(seed, [], tone="dark").mood == "night"
+    assert film.choose_look(seed, [], tone="warm").mood == "morning"
+    assert film.choose_look(seed, [], tone="green").mood == "sage"
+    night = film.choose_look("space:MONTH:2026:2:0", [], tone="dark")
+    assert night.mood == "night"
+    # The repetition rule wins over the photos' tone.
+    assert film.choose_look(seed, [night], tone="dark").mood == "ink"
+
+
+def test_cover_forms_fit_the_pictures_there_are() -> None:
+    for index in range(12):
+        seed = f"space:MONTH:2026:{index + 1}:0"
+        assert film.choose_look(seed, [], pictures=0).cover == "type"
+        assert film.choose_look(seed, [], pictures=1).cover in {"type", "single", "frame"}
+        assert film.choose_look(seed, [], pictures=2).cover != "strip"
+
+
+def test_the_crop_follows_the_detail_and_stays_away_from_the_edge() -> None:
+    image = flat((200, 200, 200), (200, 100))
+    ImageDraw.Draw(image).rectangle((160, 10, 195, 40), fill=(20, 20, 20))
+    quality = film.measure(image)
+    assert 0.5 < quality.focus_x <= film.FOCUS_MAX and film.FOCUS_MIN <= quality.focus_y < 0.5
+    assert quality.shape == "landscape"
+    assert film.measure(flat((90, 90, 90))).focus_x == 0.5
+    assert film.measure(flat((90, 90, 90), (90, 160))).shape == "portrait"
+    assert film.measure(flat((90, 90, 90), (100, 100))).shape == "square"
+
+
+def test_pace_follows_the_density_of_the_period() -> None:
+    assert film.pace_for(3) == "calm" and film.pace_for(6) == "even"
+    assert film.pace_for(11) == "lively"
+    assert film.pace_for(10, yearly=True) == "calm" and film.pace_for(30, yearly=True) == "lively"
+
+
+def test_curated_media_carry_format_and_focus_and_the_cut_knows_its_tone() -> None:
+    warm = PhotoQuality(300.0, 0.1, distinct_hash("w"), 1.4, 0.6, 0.2, -0.1, 0.62, 0.4)
+    cool = PhotoQuality(300.0, 0.1, distinct_hash("c"), 0.7, 0.5, -0.2, -0.1, 0.5, 0.5)
+    moments = [
+        moment("hi", 3, birthday=True, photos=(Photo("hi-1", "hi", quality=warm),)),
+        moment("lo", 9, photos=(Photo("lo-1", "lo", quality=cool),)),
+    ]
+    result = film.cut(moments, "seed")
+    assert result.highlight == "hi"
+    first = result.media["hi"][0]
+    assert (first.shape, first.focus_x, first.focus_y) == ("portrait", 0.62, 0.4)
+    assert result.media["lo"][0].shape == "landscape"
+    # The highlight counts twice, so the warm photo sets the tone.
+    assert result.tone == "warm" and result.pictures == 2

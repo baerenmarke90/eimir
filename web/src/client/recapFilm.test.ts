@@ -470,3 +470,247 @@ describe('year recap film', () => {
     expect(scenes.at(-2)?.climax).toBe(true);
   });
 });
+
+const shaped = (id: string, shape: string, parentId = id) => ({
+  ...image(id, parentId),
+  shape,
+  focusX: 0.6,
+  focusY: 0.4,
+});
+
+const variety = {
+  transitions: ['blinds', 'flip'],
+  accents: ['light', 'match', 'focus'],
+  motions: ['pan-up', 'drift-left', 'zoom-out', 'parallax', 'diagonal'],
+  pace: 'even',
+  layouts: {
+    photo: ['pano', 'bleed', 'mat', 'corner', 'polaroid', 'split', 'inset'],
+    duo: ['diptych', 'crossfade', 'stacked', 'side', 'overlap', 'scatter'],
+    collage: ['scatter', 'grid', 'strip'],
+    words: ['reveal', 'margin', 'centered'],
+    title: ['rule', 'stamp'],
+    answers: ['cards', 'dialog'],
+    place: ['route', 'postcard'],
+    fact: ['counter', 'large'],
+    month: ['numeral', 'line'],
+    firsts: ['cards', 'timeline'],
+    covers: ['calendar', 'grid'],
+    closing: ['fade', 'tiles'],
+  },
+};
+
+const run = (count: number, shape = 'portrait', prefix = 'p', from = 1) =>
+  Array.from({ length: count }, (_, index) =>
+    source(`MEMORY:${prefix}${index}`, from + index, {
+      media: [shaped(`${prefix}${index}`, shape)],
+    }),
+  );
+
+describe('film variety', () => {
+  it('plays three pictures of one moment as a collage, never two collages in a row', () => {
+    const three = (id: string, day: number) =>
+      source(`MEMORY:${id}`, day, {
+        media: ['1', '2', '3'].map((n) => image(`${id}${n}`, id)),
+      });
+    const scenes =
+      recapFilmScenes(
+        edition([three('a', 1), three('b', 2)], {}, { ...variety }),
+      ) ?? [];
+    const body = scenes.filter((scene) => scene.key.startsWith('MEMORY:'));
+    expect(types(body)).toEqual(['collage', 'duo']);
+    const collage = body[0];
+    expect(collage.type === 'collage' && collage.media).toHaveLength(3);
+    expect(collage.ms).toBe(5_200);
+  });
+
+  it('fits layouts and camera motion to the format and never repeats a neighbour', () => {
+    const value = edition(
+      [
+        ...run(2, 'landscape', 'l', 1),
+        source('MILESTONE:m', 10),
+        ...run(2, 'portrait', 'q', 20),
+      ],
+      {},
+      { ...variety, highlightKey: null },
+    );
+    const scenes = recapFilmScenes(value) ?? [];
+    for (const scene of scenes) {
+      if (scene.type !== 'photo') continue;
+      if (scene.media.shape === 'landscape') {
+        expect(['bleed', 'corner']).not.toContain(scene.layout);
+        expect(['pan-up', 'pan-down', 'parallax']).not.toContain(scene.motion);
+      } else {
+        expect(scene.layout).not.toBe('pano');
+        expect(['drift-left', 'drift-right', 'diagonal']).not.toContain(
+          scene.motion,
+        );
+      }
+    }
+    const photos = scenes.filter((scene) => scene.type === 'photo');
+    expect(photos[0].layout).toBe('pano');
+    for (let index = 1; index < scenes.length; index += 1) {
+      if (scenes[index].layout)
+        expect(scenes[index].layout).not.toBe(scenes[index - 1].layout);
+      expect(scenes[index].motion).not.toBe(scenes[index - 1].motion);
+    }
+  });
+
+  it('opens the highlight with its accent in the most generous form', () => {
+    const value = edition(
+      [
+        ...run(2),
+        source('MEMORY:top', 12, { media: [shaped('top', 'portrait')] }),
+      ],
+      {},
+      { ...variety, highlightKey: 'MEMORY:top' },
+    );
+    const scenes = recapFilmScenes(value) ?? [];
+    const climax = scenes.find((scene) => scene.climax);
+    expect(climax?.transition).toBe('light');
+    expect(climax?.layout).toBe('bleed');
+    expect(climax?.ms).toBe(3_400 + 1_200);
+    // The light leak belongs to the highlight alone.
+    expect(scenes.filter((scene) => scene.transition === 'light')).toHaveLength(
+      1,
+    );
+    expect(scenes[0].transition).toBe('blinds');
+  });
+
+  it('beats a photo run long-short-short-long and keeps match cuts between pictures', () => {
+    const scenes =
+      recapFilmScenes(
+        edition(run(5), {}, { ...variety, highlightKey: null }),
+      ) ?? [];
+    const photos = scenes.filter((scene) => scene.type === 'photo');
+    expect(photos.map((scene) => scene.beat)).toEqual([
+      'long',
+      'short',
+      'short',
+      'long',
+      'long',
+    ]);
+    expect(photos.map((scene) => scene.ms)).toEqual([
+      3_910, 2_720, 2_720, 3_910, 3_910,
+    ]);
+    scenes.forEach((scene, index) => {
+      if (scene.transition !== 'match') return;
+      expect(['photo', 'duo', 'collage']).toContain(scene.type);
+      expect(['photo', 'duo', 'collage']).toContain(scenes[index - 1].type);
+    });
+    expect(scenes.some((scene) => scene.transition === 'match')).toBe(true);
+    for (let index = 2; index < scenes.length; index += 1)
+      expect(
+        scenes[index].transition === scenes[index - 1].transition &&
+          scenes[index].transition === scenes[index - 2].transition,
+      ).toBe(false);
+  });
+
+  it('follows the pace for pictures but never shortens the words of the couple', () => {
+    const value = (pace: string) =>
+      recapFilmScenes(
+        edition(
+          [
+            source('MEMORY:a', 1, { media: [image('a')] }),
+            source('HEART_MOMENT:w', 2, {
+              excerpt: 'One sentence. '.repeat(20),
+            }),
+          ],
+          {},
+          { ...variety, pace, highlightKey: null },
+        ),
+      ) ?? [];
+    const photo = (scenes: FilmScene[]) =>
+      scenes.find((scene) => scene.type === 'photo')?.ms;
+    const words = (scenes: FilmScene[]) =>
+      scenes.find((scene) => scene.type === 'words')?.ms;
+    expect(photo(value('calm'))).toBe(3_910);
+    expect(photo(value('lively'))).toBe(2_890);
+    expect(words(value('lively'))).toBe(words(value('calm')));
+  });
+
+  it('falls back to the calm defaults for names this reader does not know', () => {
+    const scenes =
+      recapFilmScenes(
+        edition(
+          [
+            source('MEMORY:a', 1, { media: [image('a')] }),
+            source('MILESTONE:m', 2),
+          ],
+          {},
+          {
+            transitions: ['sparkle', 'swirl'],
+            accents: ['glitter'],
+            motions: ['spin'],
+            cover: 'hologram',
+            layouts: { photo: ['bubble'], title: ['neon'] },
+            highlightKey: null,
+          },
+        ),
+      ) ?? [];
+    expect(scenes.every((scene) => scene.transition === 'fade')).toBe(true);
+    expect(scenes.every((scene) => scene.motion === 'zoom-in')).toBe(true);
+    expect(scenes[0].layout).toBe('mosaic');
+    expect(scenes.find((scene) => scene.type === 'photo')?.layout).toBe(
+      'bleed',
+    );
+    expect(scenes.find((scene) => scene.type === 'title')?.layout).toBe(
+      'stamp',
+    );
+    expect(scenes.at(-1)?.layout).toBe('tiles');
+  });
+
+  it('leads the cover with the highlight, then different days and formats', () => {
+    const value = edition(
+      [
+        source('MEMORY:a', 1, {
+          media: [shaped('a1', 'portrait', 'a'), shaped('a2', 'portrait', 'a')],
+        }),
+        source('MEMORY:b', 1, { media: [shaped('b', 'landscape')] }),
+        source('MEMORY:c', 4, { media: [shaped('c', 'portrait')] }),
+        source('MEMORY:d', 6, { media: [shaped('d', 'landscape')] }),
+        source('MEMORY:top', 9, { media: [shaped('top', 'portrait')] }),
+      ],
+      {},
+      { ...variety, highlightKey: 'MEMORY:top' },
+    );
+    const [cover] = recapFilmScenes(value) ?? [];
+    expect(
+      cover.type === 'cover' && cover.media.map((item) => item.attachmentId),
+    ).toEqual(['top-photo', 'd-photo', 'a1-photo', 'c-photo']);
+  });
+
+  it('lets the highlight fade out in a fading closing', () => {
+    const scenes =
+      recapFilmScenes(
+        edition(
+          [
+            ...run(2),
+            source('MEMORY:top', 12, { media: [shaped('top', 'portrait')] }),
+          ],
+          {},
+          { ...variety, highlightKey: 'MEMORY:top' },
+        ),
+      ) ?? [];
+    const closing = scenes.at(-1);
+    expect(closing?.layout).toBe('fade');
+    expect(
+      closing?.type === 'closing' &&
+        closing.media.map((item) => item.attachmentId),
+    ).toEqual(['top-photo']);
+  });
+
+  it('takes the year forms of markers, firsts and covers from the look', () => {
+    const scenes = recapFilmScenes(year(variety)) ?? [];
+    const layoutOf = (list: FilmScene[], type: string) =>
+      list.find((scene) => scene.type === type)?.layout;
+    expect(layoutOf(scenes, 'month')).toBe('numeral');
+    expect(layoutOf(scenes, 'firsts')).toBe('cards');
+    expect(layoutOf(scenes, 'covers')).toBe('calendar');
+    // A year look from before the variety catalogue keeps its established forms.
+    const legacy = recapFilmScenes(year()) ?? [];
+    expect(layoutOf(legacy, 'month')).toBe('line');
+    expect(layoutOf(legacy, 'firsts')).toBe('timeline');
+    expect(layoutOf(legacy, 'covers')).toBe('grid');
+    expect(legacy.at(-1)?.layout).toBe('tiles');
+  });
+});

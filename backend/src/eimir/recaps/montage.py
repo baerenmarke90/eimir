@@ -309,6 +309,8 @@ def look_payload(look: film.Look) -> FilmLook:
         cover=look.cover,
         motions=list(look.motions),
         layouts={scene: list(order) for scene, order in look.layouts.items()},
+        accents=list(look.accents),
+        pace=look.pace,
     )
 
 
@@ -320,6 +322,8 @@ def look_from(payload: FilmLook) -> film.Look:
         cover=payload.cover,
         motions=tuple(payload.motions),
         layouts={scene: tuple(order) for scene, order in payload.layouts.items()},
+        accents=tuple(payload.accents),
+        pace=payload.pace,
     )
 
 
@@ -415,13 +419,25 @@ def _seed(value: RecapEdition) -> str:
     return f"{value.space_id}:{value.kind}:{value.year}:{value.month}:{value.variant}"
 
 
-def _frozen_look(session: Session, value: RecapEdition, seed: str) -> FilmLook:
+def _frozen_look(
+    session: Session,
+    value: RecapEdition,
+    seed: str,
+    result: film.Cut | film.YearCut,
+) -> FilmLook:
     # A look is chosen once and then frozen, so reopening never changes it.
     existing = value.payload.film
     if existing is not None:
         return existing.look
     return look_payload(
-        film.choose_look(seed, previous_looks(session, value), counterpart_looks(session, value))
+        film.choose_look(
+            seed,
+            previous_looks(session, value),
+            counterpart_looks(session, value),
+            tone=result.tone,
+            pictures=result.pictures,
+            pace=film.pace_for(len(result.keys), yearly=isinstance(result, film.YearCut)),
+        )
     )
 
 
@@ -434,6 +450,9 @@ def _film_media(media: dict[str, tuple[film.Media, ...]]) -> dict[str, list[Film
                 video=item.video,
                 clip_start=item.clip_start,
                 clip_seconds=item.clip_seconds,
+                shape=item.shape,
+                focus_x=item.focus_x,
+                focus_y=item.focus_y,
             )
             for item in items
         ]
@@ -470,7 +489,7 @@ def compose_year(
     by_key = {item.key: item for item in bounded}
     selected = [by_key[key] for key in result.keys if key in by_key]
     return selected, RecapFilm(
-        look=_frozen_look(session, value, seed),
+        look=_frozen_look(session, value, seed, result),
         highlight_key=result.highlight,
         months={str(month): key for month, key in result.months.items()},
         media=_film_media(result.media),
@@ -490,7 +509,7 @@ def compose(
     by_key = {item.key: item for item in pool}
     selected = [by_key[key] for key in result.keys if key in by_key]
     return selected, RecapFilm(
-        look=_frozen_look(session, value, seed),
+        look=_frozen_look(session, value, seed, result),
         highlight_key=result.highlight,
         media=_film_media(result.media),
     )
@@ -517,6 +536,9 @@ def readable_media(
             "kind": "VIDEO" if media.video else "IMAGE",
             "clip_start_seconds": media.clip_start,
             "clip_seconds": media.clip_seconds,
+            "shape": media.shape,
+            "focus_x": media.focus_x,
+            "focus_y": media.focus_y,
         }
         for media in stored
         if media.attachment_id in current

@@ -330,6 +330,70 @@ function filmYear() {
     },
   };
 }
+/** Every form of the wider film catalogue (#1744 film variety), in a calm order. */
+const VARIETY_LAYOUTS = {
+  photo: [
+    'pano',
+    'corner',
+    'mat',
+    'bleed',
+    'polaroid',
+    'split',
+    'inset',
+    'tilted',
+  ],
+  duo: ['diptych', 'scatter', 'crossfade', 'stacked', 'side', 'overlap'],
+  collage: ['scatter', 'grid', 'strip'],
+  words: ['margin', 'reveal', 'centered', 'letter', 'lines', 'on-photo'],
+  title: ['rule', 'stamp', 'band', 'outline'],
+  answers: ['cards', 'dialog', 'stacked'],
+  place: ['route', 'postcard', 'marker', 'list'],
+  fact: ['counter', 'large', 'row'],
+  month: ['numeral', 'stamp', 'line'],
+  firsts: ['cards', 'timeline'],
+  covers: ['calendar', 'strip', 'grid'],
+  closing: ['fade', 'stack', 'tiles'],
+};
+const VARIETY_LOOK = {
+  transitions: ['split', 'focus'],
+  accents: ['light', 'match', 'blinds'],
+  motions: ['diagonal', 'pan-up', 'breathe', 'drift-left', 'pan-down'],
+  pace: 'even',
+  layouts: VARIETY_LAYOUTS,
+};
+/** The synthetic month staged with the wider catalogue, formats and crop centres. */
+function filmVariety() {
+  const base = filmMonth();
+  const shapes: Record<string, [string, number, number]> = {
+    'mem-canal': ['landscape', 0.62, 0.45],
+    'plan-market': ['portrait', 0.4, 0.38],
+    'mem-breakfast': ['square', 0.5, 0.5],
+    'mem-jetty': ['landscape', 0.55, 0.6],
+  };
+  const sources = base.sources.map((entry) => {
+    const shape = shapes[entry.id];
+    if (!shape) return entry;
+    return {
+      ...entry,
+      media: (entry.media as Record<string, unknown>[]).map((item) => ({
+        ...item,
+        shape: shape[0],
+        focusX: shape[1],
+        focusY: shape[2],
+      })),
+    };
+  });
+  return {
+    ...base,
+    sources,
+    film: { ...base.film, ...VARIETY_LOOK, mood: 'ink', cover: 'stack' },
+  };
+}
+/** The synthetic year with the wider catalogue's year forms. */
+function filmYearVariety() {
+  const base = filmYear();
+  return { ...base, film: { ...base.film, ...VARIETY_LOOK, mood: 'morning' } };
+}
 const DENSE_FACTS = {
   memories: 11,
   heartMoments: 6,
@@ -355,6 +419,7 @@ async function setup(
     earlier?: boolean;
     film?: boolean;
     yearFilm?: boolean;
+    variety?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -439,8 +504,10 @@ async function setup(
         leading: 3,
       },
     });
-  if (options.film) Object.assign(month, filmMonth());
-  if (options.yearFilm) Object.assign(year, filmYear());
+  if (options.film)
+    Object.assign(month, options.variety ? filmVariety() : filmMonth());
+  if (options.yearFilm)
+    Object.assign(year, options.variety ? filmYearVariety() : filmYear());
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
@@ -1950,3 +2017,189 @@ for (const [width, height, scheme, all] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+/** The scene's stage name for evidence: its type, or 'climax' for the highlight. */
+async function stageName(page: Page): Promise<string> {
+  const spread = page.locator('.recap-spread').first();
+  const type = (await spread.getAttribute('class'))?.match(
+    /recap-scene-([a-z]+)/u,
+  )?.[1];
+  return (await spread.getAttribute('data-climax')) === 'true'
+    ? 'climax'
+    : (type ?? 'scene');
+}
+
+/** Waits until every picture of the scene has loaded. */
+async function picturesLoaded(page: Page) {
+  await page.waitForFunction(() => {
+    const pictures = document.querySelectorAll('.recap-film-picture');
+    const loaded = [
+      ...document.querySelectorAll<HTMLImageElement>('.recap-film-picture img'),
+    ].filter((image) => image.complete && image.naturalWidth > 0);
+    const waiting = document.querySelectorAll(
+      '.recap-film-picture .story-media-skeleton',
+    );
+    return loaded.length >= pictures.length && waiting.length === 0;
+  });
+}
+
+// #1744 film variety: the wider catalogue's forms in a synthetic month, with
+// captions never under a picture, no overflow and no axe violation.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the film variety stages its scenes at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { film: true, variety: true });
+    await page.goto(recapDetailPath('october'));
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    const total = await page.locator('.recap-progress > *').count();
+    const forms = new Set<string>();
+    for (let index = 0; index < total; index++) {
+      await page.goto(`${recapDetailPath('october')}?page=${index}`);
+      await expect(page.locator('.recap-spread').first()).toBeVisible();
+      const name = await stageName(page);
+      const frame = page.locator('.recap-film-frame').first();
+      forms.add(
+        `${name}:${(await frame.getAttribute('data-variant')) ?? (await frame.getAttribute('data-layout'))}`,
+      );
+      if (!all && !['cover', 'climax', 'closing'].includes(name)) continue;
+      await picturesLoaded(page);
+      await page.waitForTimeout(400);
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const layout = picture
+              .closest('[data-layout]')
+              ?.getAttribute('data-layout');
+            if (layout === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-film-variety-${String(index).padStart(2, '0')}-${name}-${width}-${scheme}.png`,
+      );
+    }
+    // The cover stack, the route of Places, the collage climax and the fading
+    // closing all come from the frozen look; nothing else chose them.
+    expect([...forms]).toEqual(
+      expect.arrayContaining([
+        'cover:stack',
+        'place:route',
+        'climax:grid',
+        'closing:fade',
+      ]),
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('the film variety catches its accents and the breath before the highlight mid-flight', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const state = await setup(page, { film: true, variety: true });
+  await page.goto(recapDetailPath('october'));
+  await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+  const total = await page.locator('.recap-progress > *').count();
+  const caught = new Set<string>();
+  for (let index = 0; index < total; index++) {
+    await page.goto(`${recapDetailPath('october')}?page=${index}`);
+    const spread = page.locator('.recap-spread').first();
+    await expect(spread).toBeVisible();
+    const transition = (await spread.getAttribute('data-transition')) ?? '';
+    if (caught.has(transition)) continue;
+    caught.add(transition);
+    await picturesLoaded(page);
+    // Every running entrance stops at 40 % so the frame is reproducible.
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        animation.pause();
+        const duration = Number(
+          animation.effect?.getComputedTiming().duration ?? 0,
+        );
+        animation.currentTime = duration * 0.4;
+      }
+    });
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-film-variety-motion-${transition}-390-light.png`,
+    );
+  }
+  expect([...caught]).toEqual(
+    expect.arrayContaining(['split', 'light', 'match']),
+  );
+  expect(state.unexpected).toEqual([]);
+});
+
+test('the year film variety shows its numeral, cards of firsts and calendar of covers', async ({
+  page,
+}, info) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await setup(page, { yearFilm: true, variety: true });
+  await page.goto(recapDetailPath('year'));
+  await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+  const total = await page.locator('.recap-progress-step').count();
+  const wanted = new Map([
+    ['month', 'numeral'],
+    ['firsts', 'cards'],
+    ['covers', 'calendar'],
+  ]);
+  for (let index = 0; index < total && wanted.size; index++) {
+    await page.goto(`${recapDetailPath('year')}?page=${index}`);
+    await expect(page.locator('.recap-spread').first()).toBeVisible();
+    const name = await stageName(page);
+    const variant = wanted.get(name);
+    if (!variant) continue;
+    wanted.delete(name);
+    await expect(page.locator('.recap-film-frame').first()).toHaveAttribute(
+      'data-variant',
+      variant,
+    );
+    await picturesLoaded(page);
+    await page.waitForTimeout(400);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-year-film-variety-${name}-390-light.png`,
+    );
+  }
+  expect(wanted.size).toBe(0);
+  expect(
+    (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+      .violations,
+  ).toEqual([]);
+  expect(state.unexpected).toEqual([]);
+});

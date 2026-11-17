@@ -74,14 +74,14 @@ describe('SettingsIndex', () => {
       <MemoryRouter>
         <SettingsIndex
           statuses={{
-            notifications: 'In-App · E-Mail',
-            shared: '3 von 4 aktiv',
+            notifications: 'status of notifications',
+            shared: 'status of shared features',
           }}
         />
       </MemoryRouter>,
     );
-    expect(live).toContain('In-App · E-Mail');
-    expect(live).toContain('3 von 4 aktiv');
+    expect(live).toContain('status of notifications');
+    expect(live).toContain('status of shared features');
     expect(live).not.toContain(profileIdentity.settingsNotificationsSummary);
     // A row without live data keeps its summary.
     expect(live).toContain(profileIdentity.settingsTodaySummary);

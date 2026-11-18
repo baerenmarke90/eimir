@@ -1,7 +1,7 @@
 
 # OurMomentsMomentView
 
-The flipped card's Memory; the image loads through the attachment path.
+The flipped card\'s Memory; the image loads through the attachment path.
 
 ## Properties
 

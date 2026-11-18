@@ -141,7 +141,7 @@ def _who_of_us_view(
                 matches=(own == other) if revealed else None,
             )
         )
-    revealed = [question for question in questions if question.matches is not None]
+    shown = [question for question in questions if question.matches is not None]
     return WhoOfUsRemoteState(
         game=WhoOfUsRemoteGame(
             id=game.id,
@@ -152,8 +152,8 @@ def _who_of_us_view(
             questions=questions,
             my_answered_count=len(mine),
             partner_answered_count=len(theirs),
-            revealed_count=len(revealed),
-            agreement_count=sum(1 for question in revealed if question.matches),
+            revealed_count=len(shown),
+            agreement_count=sum(1 for question in shown if question.matches),
             updated_at=game.updated_at,
         )
     )

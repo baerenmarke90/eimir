@@ -13,13 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-import type { WhoOfUsRemoteQuestion } from './WhoOfUsRemoteQuestion';
-import {
-    WhoOfUsRemoteQuestionFromJSON,
-    WhoOfUsRemoteQuestionFromJSONTyped,
-    WhoOfUsRemoteQuestionToJSON,
-    WhoOfUsRemoteQuestionToJSONTyped,
-} from './WhoOfUsRemoteQuestion';
 import type { CoupleGameStatus } from './CoupleGameStatus';
 import {
     CoupleGameStatusFromJSON,
@@ -27,6 +20,13 @@ import {
     CoupleGameStatusToJSON,
     CoupleGameStatusToJSONTyped,
 } from './CoupleGameStatus';
+import type { WhoOfUsRemoteQuestion } from './WhoOfUsRemoteQuestion';
+import {
+    WhoOfUsRemoteQuestionFromJSON,
+    WhoOfUsRemoteQuestionFromJSONTyped,
+    WhoOfUsRemoteQuestionToJSON,
+    WhoOfUsRemoteQuestionToJSONTyped,
+} from './WhoOfUsRemoteQuestion';
 
 /**
  * 

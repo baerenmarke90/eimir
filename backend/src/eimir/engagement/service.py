@@ -770,8 +770,12 @@ def _target_is_projectable(
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
     if target_type is EngagementTarget.PICTURE_GAME:
-        current = _picture_finished_exists if picture_finished else _picture_turn_exists
-        return session.scalar(current(context, target_id)) is not None
+        statement = (
+            _picture_finished_exists(context, target_id)
+            if picture_finished
+            else _picture_turn_exists(context, target_id)
+        )
+        return session.scalar(statement) is not None
     if target_type in _COUPLE_GAME_TARGETS:
         return (
             session.scalar(

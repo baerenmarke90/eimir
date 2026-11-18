@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -10,6 +10,12 @@ import {
   ME,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const SELF_ATTRIBUTION = de.story.byAuthor.replace(
   '{{author}}',
@@ -344,15 +350,16 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     await expect(filter).toBeVisible();
     // Match the existing filter-refresh journey: measure the target after
-    // its month heading has finished revealing, not a translated DOMRect.
+    // its month heading and the enclosing tab intro have finished moving,
+    // not a translated DOMRect (#1660).
     await expect(
       page.locator('.story-year-month-header').filter({ has: filter }),
     ).toHaveCSS('transform', 'none');
+    await waitForSettledMotion(page);
     const filterBox = await filter.boundingBox();
     if (!filterBox) throw new Error('Expected a visible Diary filter');
-    // Bounds are single-precision: a 44 px target can measure 43.99999.
-    expect(filterBox.width).toBeGreaterThanOrEqual(44 - 0.01);
-    expect(filterBox.height).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(filterBox.width).toBeGreaterThanOrEqual(44);
+    expect(filterBox.height).toBeGreaterThanOrEqual(44);
     expect(filterBox.x).toBeGreaterThanOrEqual(0);
     expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(320);
     await captureScreenshot(

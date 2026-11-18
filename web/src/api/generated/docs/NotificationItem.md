@@ -13,6 +13,7 @@ Name | Type
 `id` | string
 `kind` | [NotificationKind](NotificationKind.md)
 `readAt` | Date
+`selectionSize` | number
 `sourceEventId` | string
 `target` | [ActivityTargetPresentation](ActivityTargetPresentation.md)
 `targetId` | string
@@ -32,6 +33,7 @@ const example = {
   "id": null,
   "kind": null,
   "readAt": null,
+  "selectionSize": null,
   "sourceEventId": null,
   "target": null,
   "targetId": null,

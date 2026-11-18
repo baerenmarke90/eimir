@@ -73,6 +73,10 @@ class ProfilePreferencePayload(ProtectedPayload):
     """
 
     value: str = Field(min_length=1, max_length=2000)
+    # User-authored like ``value``. ``None`` only on rows written before the topic
+    # moved here; those still carry it in the legacy ``topic`` column until the
+    # column backfill (``eimir.security.column_moves``) has visited them.
+    topic: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class PartnerNicknamePayload(ProtectedPayload):
@@ -157,7 +161,8 @@ class ProfilePreference(
         nullable=False,
     )
     category: Mapped[str] = mapped_column(String(32), nullable=False)
-    topic: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Legacy plaintext home of the topic; new writes keep it NULL (see ``topic``).
+    legacy_topic: Mapped[str | None] = mapped_column("topic", String(120))
     sentiment: Mapped[str] = mapped_column(String(16), nullable=False)
     visibility: Mapped[str] = mapped_column(String(32), nullable=False)
     crypto_version: Mapped[int] = mapped_column(
@@ -201,6 +206,12 @@ class ProfilePreference(
         ),
         Index("ix_profile_preferences_owner_id", "owner_id"),
     )
+
+    @property
+    def topic(self) -> str:
+        """The topic, from the protected payload or, for a legacy row, its column."""
+        stored = self.payload.topic
+        return stored if stored is not None else (self.legacy_topic or "")
 
 
 def privacy_for(visibility: ProfileVisibility) -> PrivacyClass:

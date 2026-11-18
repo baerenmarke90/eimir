@@ -6,6 +6,18 @@ import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
 import { MEMORY_TAGS } from './MemoryTagChoices';
 import './MemoryTagChoices.css';
 
+/** Known tag keys read in the viewer's language; authored tags stay as written. */
+export function contextTagLabel(
+  tag: string,
+  t: (key: string) => string,
+): string {
+  return (MEMORY_TAGS as readonly string[]).includes(tag)
+    ? t(`memory.tagLabels.${tag}`)
+    : (HEART_MOMENT_TAGS as readonly string[]).includes(tag)
+      ? t(`heartMomentProduct.tagLabels.${tag}`)
+      : tag;
+}
+
 export function ContextTagList({
   tags,
   presentation,
@@ -20,13 +32,7 @@ export function ContextTagList({
   return (
     <ul className="memory-tag-summary" aria-label={t('contextTags.label')}>
       {tags.map((tag) => {
-        const label =
-          labelForTag?.(tag) ??
-          ((MEMORY_TAGS as readonly string[]).includes(tag)
-            ? t(`memory.tagLabels.${tag}`)
-            : (HEART_MOMENT_TAGS as readonly string[]).includes(tag)
-              ? t(`heartMomentProduct.tagLabels.${tag}`)
-              : tag);
+        const label = labelForTag?.(tag) ?? contextTagLabel(tag, t);
         return (
           <li key={tag} className="memory-tag">
             <Link

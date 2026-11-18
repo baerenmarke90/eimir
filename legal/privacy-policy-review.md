@@ -45,7 +45,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 9 | Android delivers photo location only with `ACCESS_MEDIA_LOCATION` (asked once) or the system picker's own metadata consent; declined means photos without location | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` |
 | 9 | Photon receives only query or coordinates plus language from the backend; default origin `https://photon.komoot.io` | `backend/src/eimir/providers/photon.py`, `place_search.py`, `docs/PHOTO-PLACE-RESOLUTION.md` |
 | 9 | Map tiles load in the browser from `tile.openstreetmap.org` with `referrerPolicy: origin`; only on opening a map; the CSP allows no other external image, font, frame or script origin | `web/src/components/PlaceMapCanvas.tsx`, `web/nginx.conf` (CSP) |
-| 9 | No live location: no Geolocation API or location permission in Web or Android | `web/src`, `android/app/src/main` (no `navigator.geolocation`, no `ACCESS_FINE_LOCATION`) |
+| 9 | Partner distance (#1792, Premium, opt-in per person): approximate location by default; precise location only after the person's own choice (2026-11-17), rounded to about 100 m on the device before it is sent; background location only after a second opt-in; no history | `web/src/client/approximateLocation.ts`, `android/app/src/main` (`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` for the opt-in precise choice, `ACCESS_BACKGROUND_LOCATION`); policy text in § 9 (version `2026-11-17.draft-4`); Google Play Data safety answers in `docs/operations/play-data-safety-location.md`, to be entered by the listing owner before release |
 | 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
@@ -55,7 +55,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
 | 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
 | 14 | Export scopes SHARED/PERSONAL, 24-hour encrypted bundle retention, credentials not exported | `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `backend/src/eimir/transfer/service.py` |
-| 15 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content, media cache and drafts, each at most seven days; small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
+| 15 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content and drafts, each at most seven days; image cache bounded to 2000 items (Android: every image AES-GCM sealed under a Keystore-wrapped per-login key); small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
 | 16 | Application access log: method, path, status, duration, request ID; no IP or payload. The Web nginx disables its access log for API and health routes; static file requests use the stock log format, and the ingress may log client IPs | `backend/src/eimir/observability/middleware.py`, `web/nginx.conf` |
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
 | 16 | Restore re-applies accepted Account deletions from a pseudonymous journal before traffic resumes; the journal is kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
@@ -87,7 +87,7 @@ the notice before or with the change (`legal/README.md`).
 ## Operator facts entered (2026-11-14)
 
 The Product Owner supplied the operator facts step by step; they are now in the text (version
-`2026-11-14.draft-3`) and in the public imprint of the main site (#1835). The text stays
+`2026-11-17.draft-4`) and in the public imprint of the main site (#1835). The text stays
 `status: draft` with `legal_review: pending`.
 
 | Fact | Entered value | Check before publication |

@@ -1,9 +1,11 @@
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { fulfillNoWishDateProposal } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -255,6 +257,20 @@ async function installMocks(
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/places`) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      return;
+    }
+
+    // The Wish detail also reads its date proposal, the personal reminder and
+    // the Space entitlements. Left to the catch-all 500 below, the proposal
+    // section renders a second server-error alert once its retries end, and
+    // the completion-failure alert assertion then matches two alerts.
+    if (await fulfillNoWishDateProposal(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wishes/${WISH_ID}/reminder`
+    ) {
+      await fulfillJson({ dueAt: null });
       return;
     }
 

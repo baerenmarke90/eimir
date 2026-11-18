@@ -11,6 +11,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
@@ -22,26 +23,27 @@ import {
 import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
-  settleEditorHistory,
-  useEditorHistoryEntry,
-} from '../client/useEditorHistoryEntry';
-import {
   canConfirmRelatedPersonDelete,
   INITIAL_RELATED_PERSON_DELETE_CHOICE,
   type RelatedPersonDeleteChoice,
   type RelatedPersonDeletePolicyValue,
   relatedPersonDeleteReducer,
 } from '../client/relatedPersonDelete';
+import {
+  settleEditorHistory,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AvatarPhoto } from './AvatarPhoto';
 import { DestinationIcon } from './DestinationIcon';
+import { ListEntryIcon } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
 import { ShortTaskSheet } from './ShortTaskSheet';
-import { TaskBackLink } from './TaskBackButton';
+import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './RelatedPeoplePage.css';
@@ -62,6 +64,7 @@ function PersonPhoto({
     attachmentsApi,
     spaceId,
     person.avatarAttachmentId,
+    person.visibility === ContentVisibility.SHARED,
   );
   return (
     <AvatarPhoto
@@ -518,22 +521,27 @@ export function RelatedPeoplePage({
         ) : null}
         {person ? (
           <>
-            <div className="people-profile-actions">
-              <Link
-                className="button-link tertiary compact-action"
-                to={`${personPath(person.id)}/edit`}
-                state={originState}
-              >
-                {t('people.edit')}
-              </Link>
-              <button
-                type="button"
-                className="tertiary icon-only"
-                aria-label={t('people.moreActions')}
-                onClick={() => setMenuOpen(true)}
-              >
-                <span aria-hidden="true">⋯</span>
-              </button>
+            {/* One named item: Back, type label and actions share the row (#1907 C4). */}
+            <div className="page-heading-item-row people-profile-item-row">
+              <BackSlotHost />
+              <p className="page-heading-item-label">{t('people.itemLabel')}</p>
+              <div className="page-heading-item-action people-profile-actions">
+                <Link
+                  to={`${personPath(person.id)}/edit`}
+                  state={originState}
+                  aria-label={t('people.edit')}
+                  title={t('people.edit')}
+                >
+                  <ListEntryIcon kind="edit" />
+                </Link>
+                <button
+                  type="button"
+                  aria-label={t('people.moreActions')}
+                  onClick={() => setMenuOpen(true)}
+                >
+                  <span aria-hidden="true">⋯</span>
+                </button>
+              </div>
             </div>
             <div className="people-profile-hero">
               <PersonPhoto

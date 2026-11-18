@@ -31,12 +31,16 @@ import { ProfilesApi } from '../client/mediaApis';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import {
   isPartnerGestureKind,
+  isPartnerNoticeKind,
   isWishDateReceiptKind,
+  isWishSelectionReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
+  PARTNER_NOTICE_ICONS,
   type PartnerGestureReceiptRequest,
   receiptScope,
+  WISH_SELECTION_RECEIPT_COPY,
 } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { PARTNER_QUICK_ACTIONS_CAPABILITY } from '../client/partnerQuickActions';
@@ -68,7 +72,12 @@ const HEART_PATH =
 
 function Heart() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d={HEART_PATH} />
     </svg>
   );
@@ -99,7 +108,11 @@ function receiptCopy(
         }).format(item.appointmentStart)
       : null;
     return {
-      variant: { motion: 'calm-ring', reply: 'WISH_DATE' } as const,
+      variant: {
+        motion: 'calm-ring',
+        reply: 'OPEN',
+        icons: PARTNER_NOTICE_ICONS[item.kind],
+      } as const,
       title: t(`wishDateProposal.receipt.${message}`, { name }),
       detail:
         item.target?.title && date ? `${item.target.title} · ${date}` : null,
@@ -108,16 +121,44 @@ function receiptCopy(
       ),
     };
   }
+  if (isWishSelectionReceiptKind(item.kind)) {
+    const copy = WISH_SELECTION_RECEIPT_COPY[item.kind];
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const reply =
+      copy === 'ready' || copy === 'accepted' ? 'resultReply' : `${copy}Reply`;
+    return {
+      variant: {
+        motion: 'calm-ring',
+        reply: 'OPEN',
+        icons: PARTNER_NOTICE_ICONS[item.kind],
+      } as const,
+      title: t(`wishSelection.notice.${copy}Title`, { name }),
+      detail:
+        copy === 'shared'
+          ? item.selectionSize
+            ? t('wishSelection.notice.sharedDetail', {
+                count: item.selectionSize,
+              })
+            : t('wishSelection.notice.sharedDetailUncounted')
+          : t(`wishSelection.notice.${copy}Detail`, { name }),
+      reply: t(`wishSelection.notice.${reply}`),
+    };
+  }
   if (!isPartnerGestureKind(item.kind)) {
     return {
-      variant: null,
+      // Partner-caused notices share the calm receipt; system and owner-only
+      // kinds keep the plain notification surface.
+      variant: isPartnerNoticeKind(item.kind)
+        ? ({
+            motion: 'calm-ring',
+            reply: 'OPEN',
+            icons: PARTNER_NOTICE_ICONS[item.kind],
+          } as const)
+        : null,
       title: getNotificationItemTitle(item, t, accountId),
       detail: null,
-      reply: t(
-        item.kind === 'WISH_SELECTION_SHARED'
-          ? 'wishSelection.openOwn'
-          : 'm5s5.common.open',
-      ),
+      reply: t('m5s5.common.open'),
     };
   }
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];
@@ -231,6 +272,12 @@ function NotificationReceipt({
   }, [hold, onHoldChange]);
 
   const { variant } = copy;
+  // Gestures draw their own glyph; the other calm notices badge an icon.
+  const icons = variant && 'icons' in variant ? variant.icons : undefined;
+  const calm = variant?.motion === 'calm-ring';
+  // A badge on an avatar-less circle would only repeat the icon inside it.
+  const showBadge =
+    icons !== undefined && (item.actor || icons.badge !== icons.center);
 
   const configuration = client.getQueryData<SpaceConfigurationSnapshot>(
     spaceConfigurationQueryKey(accountId, spaceId),
@@ -250,7 +297,7 @@ function NotificationReceipt({
   };
 
   let reply: { label: string; run: () => void; pro?: boolean } | null = null;
-  if (!variant || variant.reply === 'WISH_DATE') {
+  if (!variant || variant.reply === 'OPEN') {
     if (openNotification) {
       reply = {
         label: copy.reply,
@@ -344,7 +391,9 @@ function NotificationReceipt({
       data-variant={variant?.motion}
       data-presence={presenceState}
       data-testid={
-        variant ? 'partner-gesture-receipt' : 'foreground-notification'
+        isPartnerGestureKind(item.kind) || isWishDateReceiptKind(item.kind)
+          ? 'partner-gesture-receipt'
+          : 'foreground-notification'
       }
       aria-labelledby={titleId}
       onPointerEnter={() => setPointerInside(true)}
@@ -362,14 +411,8 @@ function NotificationReceipt({
     >
       <div className="partner-gesture-receipt-body">
         <div className="partner-gesture-receipt-person" aria-hidden="true">
-          {variant ? (
+          {variant && !calm ? (
             <span className="partner-gesture-receipt-wave" data-wave="1" />
-          ) : null}
-          {variant?.motion === 'calm-ring' ? (
-            <>
-              <span className="partner-gesture-receipt-wave" data-wave="2" />
-              <span className="partner-gesture-receipt-wave" data-wave="3" />
-            </>
           ) : null}
           {item.actor ? (
             <AuthorAvatar
@@ -380,16 +423,21 @@ function NotificationReceipt({
             />
           ) : (
             <span className="partner-gesture-receipt-placeholder">
-              {variant ? null : <NotificationMotion kind={item.kind} />}
+              {icons ? (
+                <EimirIcon name={icons.center} />
+              ) : variant ? null : (
+                <NotificationMotion kind={item.kind} />
+              )}
             </span>
           )}
-          {variant ? (
-            <span
-              className="partner-gesture-receipt-glyph"
-              data-glyph={
-                variant.reply === 'WISH_DATE' ? 'calendar' : undefined
-              }
-            >
+          {icons ? (
+            showBadge ? (
+              <span className="partner-gesture-receipt-glyph" data-glyph="icon">
+                <EimirIcon name={icons.badge} />
+              </span>
+            ) : null
+          ) : variant ? (
+            <span className="partner-gesture-receipt-glyph">
               {variant.motion === 'heart-pulse' ? (
                 <Heart />
               ) : variant.motion === 'kiss' ? (
@@ -397,8 +445,6 @@ function NotificationReceipt({
                   <Heart />
                   <Heart />
                 </span>
-              ) : variant.reply === 'WISH_DATE' ? (
-                <EimirIcon name="kalender" />
               ) : (
                 '?'
               )}
@@ -408,7 +454,7 @@ function NotificationReceipt({
               <NotificationMotion kind={item.kind} />
             </span>
           ) : null}
-          {variant && variant.motion !== 'calm-ring' ? (
+          {variant && !calm ? (
             <span className="partner-gesture-receipt-hero">
               <Heart />
               {variant.motion === 'kiss' ? <Heart /> : null}
@@ -434,7 +480,7 @@ function NotificationReceipt({
                   if (!replyBusy) reply.run();
                 }}
               >
-                {variant && variant.motion !== 'calm-ring' ? <Heart /> : null}
+                {variant && !calm ? <Heart /> : null}
                 <span>{reply.label}</span>
                 {reply.pro ? (
                   <ProMark label={t('partnerQuickActions.pro')} />

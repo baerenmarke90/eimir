@@ -15,7 +15,6 @@ import {
   filterDateIdeas,
   sanitizeDateIdeasFilter,
   savedDateIdeaWishes,
-  secondaryFilterCount,
   useDateIdeasCatalog,
   useDateInspirationCapability,
 } from '../client/dateIdeas';
@@ -28,9 +27,8 @@ import {
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
-import { DateIdeaFacts } from './DateIdeaFacts';
+import { DateIdeaCard } from './DateIdeaCard';
 import { DateIdeaFilters } from './DateIdeaFilters';
-import { DateIdeaImage } from './DateIdeaImage';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
@@ -100,7 +98,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
   });
 
   const [filter, setFilter] = useState<DateIdeasFilterState>({});
-  const [moreOpen, setMoreOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const restored = useRef<unknown>(null);
   const categoryIds = useMemo(
@@ -117,7 +114,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
     restored.current = key;
     const value = sanitizeDateIdeasFilter(origin.dateIdeasFilter, categoryIds);
     setFilter(value);
-    setMoreOpen(secondaryFilterCount(value) > 0);
     // Keep the idea the couple came back from rendered.
     const index = filterDateIdeas(catalog.data?.ideas ?? [], value).findIndex(
       (item) => item.id === origin.selectedKey,
@@ -218,13 +214,8 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
   );
   const reset = () => {
     setFilter({});
-    setMoreOpen(false);
     setVisibleCount(PAGE_SIZE);
   };
-  const listFormat = new Intl.ListFormat(locale, {
-    style: 'long',
-    type: 'conjunction',
-  });
 
   return (
     <div className="page date-ideas-page">
@@ -249,8 +240,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
           catalog={data}
           filter={filter}
           matchCount={ideas.length}
-          moreOpen={moreOpen}
-          onMoreOpenChange={setMoreOpen}
           onChange={(next) => {
             setVisibleCount(PAGE_SIZE);
             setFilter(next);
@@ -283,10 +272,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
           {ideas.slice(0, visibleCount).map((idea) => {
             const titleId = `date-idea-${idea.id}`;
             const savedWishId = savedWishes[idea.id];
-            const textLang =
-              idea.contentLocale !== data?.locale
-                ? idea.contentLocale
-                : undefined;
             return (
               <li
                 key={idea.id}
@@ -294,36 +279,17 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                 data-date-idea-key={idea.id}
                 tabIndex={-1}
               >
-                <article aria-labelledby={titleId}>
-                  <DateIdeaImage
-                    api={api}
-                    accountId={accountId}
-                    spaceId={spaceId}
-                    image={idea.image}
-                    lang={textLang}
-                  />
-                  <div className="date-idea-body">
-                    <p className="date-idea-category">
-                      {categoryLabels.get(idea.category)}
-                    </p>
-                    <h2 id={titleId} lang={textLang}>
-                      {idea.title}
-                    </h2>
-                    <p className="date-idea-description" lang={textLang}>
-                      {idea.description}
-                    </p>
-                    <DateIdeaFacts
-                      idea={idea}
-                      placeLabel={placeLabels.get(idea.placeType)}
-                    />
-                    {idea.prerequisites.length ? (
-                      <p className="date-idea-requirements" lang={textLang}>
-                        {t('dateIdeas.card.requirements', {
-                          items: listFormat.format(idea.prerequisites),
-                        })}
-                      </p>
-                    ) : null}
-                    <div className="date-idea-actions">
+                <DateIdeaCard
+                  api={api}
+                  accountId={accountId}
+                  spaceId={spaceId}
+                  idea={idea}
+                  titleId={titleId}
+                  categoryLabel={categoryLabels.get(idea.category)}
+                  placeLabel={placeLabels.get(idea.placeType)}
+                  catalogLocale={data?.locale ?? locale}
+                  actions={
+                    <>
                       {savedWishId ? (
                         <Link
                           className="button-link secondary-link date-idea-saved"
@@ -388,9 +354,9 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                             });
                         }}
                       />
-                    </div>
-                  </div>
-                </article>
+                    </>
+                  }
+                />
               </li>
             );
           })}

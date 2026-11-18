@@ -21,6 +21,7 @@ import {
   selectionReady,
   videoVerdictReason,
   waitForPhotoPoll,
+  watchGoogleAppReturn,
   watchPhotoBrowserReturn,
 } from '../client/photoSources';
 import { normalizeClientError } from '../client/problemDetails';
@@ -34,6 +35,7 @@ import type {
 } from '../client/useAttachmentDrafts';
 import { usePhotoSources } from '../client/usePhotoSources';
 import { useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
 import { AutoLoadTrigger } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -523,6 +525,9 @@ export function PhotoSourcePicker({
             consent: true,
             mediaRecoveryPolicy:
               source === 'google' ? 'memory-only-v1' : undefined,
+            // The system browser cannot share the app's cookie: Google returns to the app's own link.
+            returnTo:
+              source === 'google' && isCapacitorNative() ? 'app' : undefined,
             allowVideo: source === 'google' ? allowVideo : undefined,
           },
         },
@@ -542,7 +547,34 @@ export function PhotoSourcePicker({
       }
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
-      await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      if (isCapacitorNative()) {
+        // Sign in at Google, come back through the app's link, then open the Photos picker.
+        const signedIn = watchGoogleAppReturn(current.request.signal);
+        await openPhotoBrowser(ready.authorizationUrl, null);
+        setAwaitingGoogle(true);
+        setMessage(t('photoSources.signingIn'));
+        const result = await signedIn;
+        if (task.current !== current || current.request.signal.aborted) return;
+        if (typeof result === 'string') {
+          release();
+          setAwaitingGoogle(false);
+          setMessage(t('photoSources.nothingChosen'));
+          return;
+        }
+        // The sign-in tab closes itself on the app link; make sure before the next one opens.
+        await closePhotoBrowser(null);
+        ready = await current.api.authorizePhotoSelection(
+          {
+            spaceId,
+            selectionId: ready.id,
+            photoSelectionAuthorize: result,
+          },
+          { signal: current.request.signal },
+        );
+        selectionReady(ready);
+        if (!ready.pickerUri) throw new Error('Photo picker is unavailable.');
+        await openPhotoBrowser(ready.pickerUri, null);
+      } else await openPhotoBrowser(ready.authorizationUrl, current.popup);
       const watching = new AbortController();
       current.request.signal.addEventListener('abort', () => watching.abort(), {
         once: true,

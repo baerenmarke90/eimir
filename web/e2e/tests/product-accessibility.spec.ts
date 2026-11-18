@@ -1,23 +1,25 @@
-import composer from '../../src/i18n/locales/composer';
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import {
-  expectFloatingAddAction,
-  expectLabeledAddAction,
-} from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import gentleCopy from '../../src/i18n/locales/gentlePrompts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
-import gentleCopy from '../../src/i18n/locales/gentlePrompts';
-import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import privateArea from '../../src/i18n/locales/privateArea';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import quietHints from '../../src/i18n/locales/quietHints';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -229,6 +231,22 @@ async function installAuthorizedApiMocks(page: Page): Promise<
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
       await fulfillJson({ id: SPACE_ID, createdAt: TEST_NOW, partners: [] });
+      return;
+    }
+
+    // The Settings overview reads the calendar connection for its row status.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/calendar-sync`
+    ) {
+      await fulfillJson({
+        available: false,
+        canSync: false,
+        connections: [],
+        services: [],
+        target: null,
+        targetToken: 'calendar-target-token',
+      });
       return;
     }
 
@@ -576,6 +594,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (method === 'GET' && pathname === '/api/v1/auth/sign-in-methods') {
+      await fulfillJson({
+        passkeys: [],
+        oidc: [],
+        emailLink: true,
+        localPassword: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
       await fulfillJson({ serverAdmin: false });
       return;
@@ -793,6 +821,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (await fulfillNoWishSelectionRound(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -923,10 +952,17 @@ for (const view of [
       }
       await route.fallback();
     });
+    // The area opens on the notes; this journey only passes through them.
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await page.goto('/more/private');
     await signIn(page);
     await page
-      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .getByRole('link', {
+        name: privateArea.partnerNotes.shortTitle,
+        exact: true,
+      })
       .click();
     await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
@@ -1085,7 +1121,7 @@ for (const view of [
     await page
       .getByRole('link', { name: privateArea.backToHub, exact: true })
       .click();
-    await expect(page).toHaveURL(/\/more\/private$/);
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
     await page.goto('/more/profile');
     await expect(
       page.getByText('Book the cabin for autumn', { exact: true }),
@@ -1258,7 +1294,8 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
       level: 2,
     }),
   ).toBeVisible();
-  await expect(page.getByText(m5s5.dashboard.newSpaceIntro)).toBeVisible();
+  // #1907 I1: without a partner the move-in invites the first picture.
+  await expect(page.getByText(quietHints.moveIn.solo)).toBeVisible();
 
   const skipLink = page.getByRole('link', {
     name: de.navigation.skipToContent,
@@ -1295,7 +1332,7 @@ test('Space configuration is touch operable, reload-safe, responsive, and axe-cl
 
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings/relationship');
+  await page.goto('/more/settings/shared');
 
   await expect(
     page.getByRole('heading', {
@@ -1356,7 +1393,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
 
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
 
     const energySwitch = page.getByRole('switch', {
       name: profileIdentity.energyCheckInToggle,
@@ -1474,6 +1511,10 @@ const SETTINGS_PAGES = [
     heading: profileIdentity.settingsRelationship,
   },
   {
+    path: '/more/settings/shared',
+    heading: profileIdentity.spaceConfigurationTitle,
+  },
+  {
     path: '/more/settings/notifications',
     heading: profileIdentity.settingsNotifications,
   },
@@ -1561,7 +1602,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     const unexpectedRequests = await installAuthorizedApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
@@ -2012,9 +2053,6 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
-  // Contrast is measured on the settled page, not mid route-entry fade.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);

@@ -1,7 +1,7 @@
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -14,6 +14,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const accountId = '11111111-1111-4111-8111-111111111111';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -158,6 +159,7 @@ async function installFixture(page: Page) {
         periods: [],
         hasMore: false,
       });
+    if (await fulfillNoOccasionSources(route)) return;
     unknown.push(`${method} ${pathname}`);
     return json({ code: 'UNEXPECTED_FIXTURE_REQUEST' }, 500);
   });

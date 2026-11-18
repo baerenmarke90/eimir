@@ -5,8 +5,11 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import {
+  type DistanceWords,
   deviceLanguages,
+  distanceBandWords,
   distanceUnitFor,
+  formatCloseBand,
   formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine as PartnerDistanceLineState,
@@ -55,11 +58,45 @@ export function useDistanceAsOfLabel() {
   };
 }
 
-/** The band as the localized `partnerLocation.distanceBetween` sentence. */
+const WORDS = {
+  aroundCorner: {
+    sentence: 'partnerLocation.distanceAroundCorner',
+    short: 'partnerLocation.distanceAroundCornerShort',
+  },
+  stonesThrow: {
+    sentence: 'partnerLocation.distanceStonesThrow',
+    short: 'partnerLocation.distanceStonesThrowShort',
+  },
+  notFar: {
+    sentence: 'partnerLocation.distanceNotFar',
+    short: 'partnerLocation.distanceNotFarShort',
+  },
+  shortTrip: {
+    sentence: 'partnerLocation.distanceShortTrip',
+    short: 'partnerLocation.distanceShortTripShort',
+  },
+} as const satisfies Record<DistanceWords, { sentence: string; short: string }>;
+
+/**
+ * The band as a localized sentence: words for nearby and range bands
+ * (#1907 H4), otherwise `partnerLocation.distanceBetween` with the value.
+ */
 export function useDistanceText() {
   const { t } = useTranslation();
   return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].sentence);
     const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnder', { distance: close.value })
+        : t('partnerLocation.distanceBetween', { distance: close.value });
+    }
     const distance = formatDistanceBand(
       band,
       locale,
@@ -74,7 +111,7 @@ export function useDistanceText() {
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg
-      className={`partner-distance-glyph is-${kind}`}
+      className={`inline-icon partner-distance-glyph is-${kind}`}
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
@@ -134,12 +171,25 @@ export function PartnerDistanceLine({
       );
     }
     const locale = resolvedLocale();
-    const value =
-      formatDistanceBand(
-        line.band,
-        locale,
-        distanceUnitFor(locale, deviceLanguages()),
-      ) ?? t('partnerLocation.distanceNearShort');
+    const words = distanceBandWords(line.band);
+    const close = formatCloseBand(
+      line.band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    const value = words
+      ? t(WORDS[words].short)
+      : close
+        ? close.under
+          ? t('partnerLocation.distanceCloseUnderShort', {
+              distance: close.value,
+            })
+          : close.value
+        : (formatDistanceBand(
+            line.band,
+            locale,
+            distanceUnitFor(locale, deviceLanguages()),
+          ) ?? t('partnerLocation.distanceNearShort'));
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)
@@ -148,7 +198,9 @@ export function PartnerDistanceLine({
         })}`;
     const compactContent = (
       <>
-        <Glyph kind={compactFresh ? 'pin' : 'clock'} />
+        {/* Always the familiar distance pin (Product Owner, 2026-11-16); an
+            earlier value is named in the accessible description. */}
+        <Glyph kind="pin" />
         <span aria-hidden="true">{value}</span>
       </>
     );
@@ -308,4 +360,35 @@ export function WirPartnerDistance({
       compact={compact}
     />
   );
+}
+
+/**
+ * The band as the short H4 word or value, for compact captions such as the
+ * Herzversteck flight (#1907 H3); never more precise than the server band.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnderShort', {
+            distance: close.value,
+          })
+        : close.value;
+    }
+    const distance = formatDistanceBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    return distance ?? t('partnerLocation.distanceNearShort');
+  };
 }

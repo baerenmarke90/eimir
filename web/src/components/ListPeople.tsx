@@ -15,7 +15,7 @@ export function ListPeople({ people }: { people: readonly ListPerson[] }) {
         <PartnerMarker
           key={person.personId}
           name={person.displayName}
-          tone={person.tone}
+          role={person.role}
         />
       ))}
     </span>

@@ -20,6 +20,13 @@ import {
     AuthCapabilitiesToJSON,
     AuthCapabilitiesToJSONTyped,
 } from './AuthCapabilities';
+import type { OidcConnectionView } from './OidcConnectionView';
+import {
+    OidcConnectionViewFromJSON,
+    OidcConnectionViewFromJSONTyped,
+    OidcConnectionViewToJSON,
+    OidcConnectionViewToJSONTyped,
+} from './OidcConnectionView';
 
 /**
  * Public access state.
@@ -54,6 +61,18 @@ export interface InstanceAccessStatus {
      * @memberof InstanceAccessStatus
      */
     maintenanceMode: boolean;
+    /**
+     * External sign-in providers configured here. Empty unless `auth.oidc` is true. Whether a provider may also create a new Account is `oidcSignupAvailable`.
+     * @type {Array<OidcConnectionView>}
+     * @memberof InstanceAccessStatus
+     */
+    oidcConnections?: Array<OidcConnectionView>;
+    /**
+     * Whether a person may create a new Account through an external provider, without an invitation, right now: Cloud, a provider is configured, and the administrator admits new Accounts.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    oidcSignupAvailable?: boolean;
     /**
      * Whether the administrator currently admits new Accounts. It does not say how an Account is created and does not affect sign-in of existing Accounts.
      * @type {boolean}
@@ -123,6 +142,8 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
         'accountCreation': json['accountCreation'] == null ? undefined : json['accountCreation'],
         'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
         'maintenanceMode': json['maintenanceMode'],
+        'oidcConnections': json['oidcConnections'] == null ? undefined : ((json['oidcConnections'] as Array<any>).map(OidcConnectionViewFromJSON)),
+        'oidcSignupAvailable': json['oidcSignupAvailable'] == null ? undefined : json['oidcSignupAvailable'],
         'registrationAvailable': json['registrationAvailable'],
         'registrationUnavailableReason': json['registrationUnavailableReason'],
         'selfServiceSignupAvailable': json['selfServiceSignupAvailable'] == null ? undefined : json['selfServiceSignupAvailable'],
@@ -144,6 +165,8 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
         'accountCreation': value['accountCreation'],
         'auth': AuthCapabilitiesToJSON(value['auth']),
         'maintenanceMode': value['maintenanceMode'],
+        'oidcConnections': value['oidcConnections'] == null ? undefined : ((value['oidcConnections'] as Array<any>).map(OidcConnectionViewToJSON)),
+        'oidcSignupAvailable': value['oidcSignupAvailable'],
         'registrationAvailable': value['registrationAvailable'],
         'registrationUnavailableReason': value['registrationUnavailableReason'],
         'selfServiceSignupAvailable': value['selfServiceSignupAvailable'],

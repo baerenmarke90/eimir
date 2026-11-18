@@ -452,6 +452,11 @@ the release guard and by the application:
 - `disabled` as an explicit opt-out for operators who rely on their own disk/volume
   encryption (leave the key variables empty).
 
+The key set can also come from a private host file instead of the environment value
+(`EIMIR_ENCRYPTION_KEYS_FILE`, optional fragment `deploy/encryption-keys.compose.yaml`),
+which keeps it out of container inspection and container-manager views; see
+[ENCRYPTION-AT-REST.md section 9](ENCRYPTION-AT-REST.md#9-key-management-and-rotation).
+
 This is encryption at rest under keys you hold, not end-to-end encryption. Keep the keys
 apart from database and media backups; losing every copy of a key makes the content it
 protects permanently unreadable. Key generation, rotation, recovery, and verification:

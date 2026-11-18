@@ -1,0 +1,590 @@
+/* Free (SIL OFL 1.1) faces for text on photos, self-hosted like the UI fonts
+   (ADR 0005); browsers fetch each one only when a text uses it. */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Pacifico";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/pacifico-latin-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Bebas Neue";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/bebas-neue-latin-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/courier-prime-latin-700.woff2") format("woff2");
+}
+
+/* The photo is the largest area; it never grows taller than about half the
+   viewport, so the tools and the footer stay reachable. */
+.photo-edit-area {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.photo-edit-view {
+  position: relative;
+  line-height: 0;
+}
+
+.photo-edit-canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--radius-media);
+  touch-action: none;
+}
+
+.photo-edit-canvas[data-tool="draw"] {
+  cursor: crosshair;
+}
+
+.photo-edit-canvas[data-tool="text"] {
+  cursor: text;
+}
+
+/* Cropping as in phone photo apps: the frame stays, the photo moves under it. */
+.photo-edit-stage {
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-media);
+  background: var(--color-surface-subtle);
+  touch-action: none;
+  cursor: grab;
+}
+
+.photo-edit-stage[data-interacting] {
+  cursor: grabbing;
+}
+
+.photo-edit-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  transform-origin: 0 0;
+  pointer-events: none;
+  transition: transform var(--duration-transition) var(--easing-standard);
+}
+
+.photo-edit-frame {
+  position: absolute;
+  box-shadow: 0 0 0 100vmax var(--color-scrim);
+  outline: 2px solid var(--media-overlay-foreground);
+  transition:
+    left var(--duration-transition) var(--easing-standard),
+    top var(--duration-transition) var(--easing-standard),
+    width var(--duration-transition) var(--easing-standard),
+    height var(--duration-transition) var(--easing-standard);
+}
+
+/* Thirds while the photo or the frame moves, to help aligning. */
+.photo-edit-stage[data-interacting] .photo-edit-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(100% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(100% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(100% / 3 + 0.5px),
+      transparent calc(100% / 3 + 0.5px),
+      transparent calc(200% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(200% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(200% / 3 + 0.5px),
+      transparent calc(200% / 3 + 0.5px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(100% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(100% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(100% / 3 + 0.5px),
+      transparent calc(100% / 3 + 0.5px),
+      transparent calc(200% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(200% / 3 - 0.5px),
+      var(--media-overlay-edge) calc(200% / 3 + 0.5px),
+      transparent calc(200% / 3 + 0.5px)
+    );
+}
+
+.photo-edit-stage[data-interacting] .photo-edit-layer,
+.photo-edit-stage[data-interacting] .photo-edit-frame {
+  transition: none;
+}
+
+.photo-edit-stage .photo-edit-frame-move,
+.photo-edit-stage .photo-edit-handle {
+  position: absolute;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--media-overlay-foreground);
+  touch-action: none;
+}
+
+.photo-edit-stage .photo-edit-frame-move:hover,
+.photo-edit-stage .photo-edit-handle:hover,
+.photo-edit-stage .photo-edit-frame-move:active,
+.photo-edit-stage .photo-edit-handle:active {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.photo-edit-stage .photo-edit-frame-move {
+  inset: 0;
+  cursor: inherit;
+}
+
+.photo-edit-stage .photo-edit-frame-move:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -5px;
+}
+
+/* A touch target centred on each corner and edge of the frame. */
+.photo-edit-stage .photo-edit-handle {
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  translate: -50% -50%;
+}
+
+.photo-edit-handle[data-handle="nw"] {
+  left: 0;
+  top: 0;
+  cursor: nwse-resize;
+}
+
+.photo-edit-handle[data-handle="n"] {
+  left: 50%;
+  top: 0;
+  cursor: ns-resize;
+}
+
+.photo-edit-handle[data-handle="ne"] {
+  left: 100%;
+  top: 0;
+  cursor: nesw-resize;
+}
+
+.photo-edit-handle[data-handle="e"] {
+  left: 100%;
+  top: 50%;
+  cursor: ew-resize;
+}
+
+.photo-edit-handle[data-handle="se"] {
+  left: 100%;
+  top: 100%;
+  cursor: nwse-resize;
+}
+
+.photo-edit-handle[data-handle="s"] {
+  left: 50%;
+  top: 100%;
+  cursor: ns-resize;
+}
+
+.photo-edit-handle[data-handle="sw"] {
+  left: 0;
+  top: 100%;
+  cursor: nesw-resize;
+}
+
+.photo-edit-handle[data-handle="w"] {
+  left: 0;
+  top: 50%;
+  cursor: ew-resize;
+}
+
+/* Corners as thick angles and edges as short bars, as in photo apps. */
+.photo-edit-handle::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  border-radius: 2px;
+}
+
+.photo-edit-handle:is(
+  [data-handle="nw"],
+  [data-handle="ne"],
+  [data-handle="se"],
+  [data-handle="sw"]
+)::before {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  border: 4px solid currentcolor;
+}
+
+.photo-edit-handle[data-handle="nw"]::before {
+  translate: -4px -4px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.photo-edit-handle[data-handle="ne"]::before {
+  translate: calc(-100% + 4px) -4px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.photo-edit-handle[data-handle="se"]::before {
+  translate: calc(-100% + 4px) calc(-100% + 4px);
+  border-left: 0;
+  border-top: 0;
+}
+
+.photo-edit-handle[data-handle="sw"]::before {
+  translate: -4px calc(-100% + 4px);
+  border-right: 0;
+  border-top: 0;
+}
+
+.photo-edit-handle:is([data-handle="n"], [data-handle="s"])::before {
+  inline-size: 1.5rem;
+  block-size: 4px;
+  background: currentcolor;
+  translate: -50% -50%;
+}
+
+.photo-edit-handle:is([data-handle="e"], [data-handle="w"])::before {
+  inline-size: 4px;
+  block-size: 1.5rem;
+  background: currentcolor;
+  translate: -50% -50%;
+}
+
+.photo-edit-stage .photo-edit-handle:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -6px;
+  border-radius: var(--radius-pill);
+}
+
+/* The selected text: a light outline and a corner grip to resize it. */
+.photo-edit-text-frame {
+  position: absolute;
+  box-sizing: content-box;
+  padding: var(--space-1) var(--space-2);
+  outline: 1.5px dashed var(--media-overlay-foreground);
+  border-radius: var(--radius-small);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.photo-edit-view .photo-edit-text-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: none;
+  translate: 50% 50%;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: nwse-resize;
+}
+
+.photo-edit-view .photo-edit-text-resize:hover,
+.photo-edit-view .photo-edit-text-resize:active {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.photo-edit-text-resize::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  border: 2px solid var(--color-brand-strong);
+  border-radius: var(--radius-pill);
+  background: var(--media-overlay-foreground);
+  translate: -50% -50%;
+}
+
+.photo-edit-view .photo-edit-text-resize:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-edit-layer,
+  .photo-edit-frame {
+    transition: none;
+  }
+}
+
+/* Beats the global field rule: the text sits on the photo, not in a form. */
+.photo-edit-view .photo-edit-text-input {
+  position: absolute;
+  min-width: 4ch;
+  min-height: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-small);
+  background: var(--media-overlay-surface);
+  backdrop-filter: blur(var(--media-overlay-backdrop-blur));
+  font-family: var(--font-ui);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.photo-edit-view .photo-edit-text-input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.photo-edit-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-web);
+  margin-top: var(--space-3);
+}
+
+.photo-edit-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.photo-edit-action > .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.photo-edit-icon-action {
+  justify-content: center;
+  min-inline-size: var(--touch-target-web);
+  padding-inline: var(--space-2);
+}
+
+/* An unavailable action recedes behind the available ones (Pixel check). */
+.photo-edit-context button.photo-edit-action:disabled {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-color: transparent;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.photo-edit-colors {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.photo-edit-color {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  margin: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* The swatch: the mark colour itself, ringed so white and black both read. */
+.photo-edit-color::before {
+  content: "";
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--photo-edit-swatch);
+  box-shadow: 0 0 0 2px var(--color-surface-subtle);
+}
+
+.photo-edit-color:has(input:checked)::before {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-brand-strong);
+}
+
+.photo-edit-color input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.photo-edit-color:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.photo-edit-tools {
+  display: flex;
+  gap: 2px;
+  margin: var(--space-3) 0 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+}
+
+/* Icon above label, as in phone photo apps; long labels never wrap mid-word. */
+.photo-edit-tool {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: calc(var(--touch-target-web) + var(--space-2));
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-large);
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.photo-edit-tool > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.photo-edit-tool > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.photo-edit-tool input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.photo-edit-tool:has(input:checked) {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-soft);
+}
+
+.photo-edit-tool:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .photo-edit-tool:has(input:checked),
+  .photo-edit-color:has(input:checked),
+  .photo-edit-font:has(input:checked) {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* Two lines for every tool's help, so switching tools never moves the photo. */
+.photo-edit-task .photo-crop-help {
+  min-block-size: 2lh;
+}
+
+/* Typefaces, each named in its own face; the row scrolls when narrow. */
+.photo-edit-fonts {
+  display: flex;
+  flex: 1 0 100%;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 2px;
+  border: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.photo-edit-font {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--touch-target-web);
+  margin: 0;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-size: 1.05rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.photo-edit-font:has(input:checked) {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+
+.photo-edit-font input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.photo-edit-font:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

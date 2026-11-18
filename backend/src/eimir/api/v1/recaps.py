@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Response
 from pydantic import ConfigDict, Field
-from sqlalchemy import select, true
+from sqlalchemy import or_, select, true
 
 from eimir.api.concurrency import IfMatchVersion
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -51,6 +51,60 @@ class RecapQuoteView(ApiModel):
     author_name: str
 
 
+class RecapFilmMediaView(ApiModel):
+    """A curated picture of a film scene; a video names the muted clip it plays."""
+
+    attachment_id: UUID
+    parent_id: UUID
+    kind: Literal["IMAGE", "VIDEO"]
+    clip_start_seconds: float | None = None
+    clip_seconds: float | None = None
+    # Format and crop centre (0-1) measured on the thumbnail; presentation only.
+    shape: str | None = None
+    focus_x: float | None = None
+    focus_y: float | None = None
+
+
+class RecapAnswerView(ApiModel):
+    """One partner's own answer to a guided question, cut at a sentence or word boundary."""
+
+    text: str
+    author_id: UUID
+    author_name: str
+
+
+class RecapTagView(ApiModel):
+    label: str
+    count: int
+
+
+class RecapFilmMonthView(ApiModel):
+    """The highlight that opens the cover of one month chapter in a year film."""
+
+    month: int
+    key: str
+
+
+class RecapFilmView(ApiModel):
+    """The frozen look of a recap film, from a fixed catalogue of design variants.
+
+    Names map to design tokens in the reader. Selection scores and reasons are
+    deliberately not part of the contract. A year film lists the highlight of
+    every month chapter; a monthly film lists none.
+    """
+
+    mood: str
+    transitions: list[str]
+    cover: str
+    motions: list[str]
+    layouts: dict[str, list[str]]
+    accents: list[str] = Field(default_factory=list)
+    pace: str | None = None
+    highlight_key: str | None
+    month_highlights: list[RecapFilmMonthView] = Field(default_factory=list)
+    tags: list[RecapTagView]
+
+
 class RecapSourceView(ApiModel):
     key: str
     kind: RecapSourceKind
@@ -64,6 +118,9 @@ class RecapSourceView(ApiModel):
     available: bool
     quote: RecapQuoteView | None = None
     mutual_reaction: RecapReaction | None = None
+    media: list[RecapFilmMediaView] = Field(default_factory=list)
+    answers: list[RecapAnswerView] = Field(default_factory=list)
+    place_name: str | None = None
 
 
 class RecapReflectionView(ApiModel):
@@ -123,8 +180,17 @@ class RecapView(RecapPeriod):
     sources: list[RecapSourceView]
     facts: RecapFactsView | None = None
     mood: RecapMoodView | None = None
+    film: RecapFilmView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
+    supersedes_id: UUID | None = Field(
+        default=None,
+        description="The retained edition this newer version extends with late entries (#1744).",
+    )
+    superseded_by_id: UUID | None = Field(
+        default=None,
+        description="The newer version that extends this retained edition (#1744).",
+    )
 
 
 class RecapOverview(ApiModel):
@@ -176,6 +242,8 @@ def overview(
             .where(
                 RecapEdition.space_id == authorization.space_id,
                 true() if kind is None else RecapEdition.kind == kind.value,
+                # A candidate newer version stays out of sight until it is kept.
+                or_(RecapEdition.saved_at.is_not(None), RecapEdition.supersedes_id.is_(None)),
             )
             .order_by(
                 RecapEdition.year.desc(), RecapEdition.month.desc(), RecapEdition.created_at.desc()

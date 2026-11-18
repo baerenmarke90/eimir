@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import { mockMapTiles } from '../support/mapTiles';

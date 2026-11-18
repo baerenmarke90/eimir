@@ -217,68 +217,195 @@
     animation: none;
   }
 }
-.couple-experience-links > div {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+/* #1907 F4: one quiet list, each row with the same anatomy. */
+.couple-experience-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
 }
-.couple-experience-links a {
+.couple-experience-list li + li {
+  border-block-start: 1px solid var(--color-border);
+}
+.couple-experience-list a {
+  /* Wraps instead of squeezing the copy when text is enlarged. */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4);
-  min-height: var(--touch-target-web);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-subtle);
-  text-decoration: none;
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text);
-  transition: background var(--duration-transition) var(--easing-standard);
+  text-decoration: none;
+  transition: background var(--duration-feedback) var(--easing-standard);
 }
-.couple-experience-links a:hover {
+.couple-experience-list a:hover {
   background: var(--color-surface-raised);
 }
-.couple-experience-links a > .eimir-icon {
-  width: var(--space-6);
-  height: var(--space-6);
-  flex-shrink: 0;
+.couple-experience-symbol {
+  display: grid;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
   color: var(--color-brand-text);
 }
-.couple-experience-links a > span:not(.pro-mark) {
+.couple-experience-symbol .eimir-icon {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+.couple-experience-copy {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 8rem;
   gap: var(--space-1);
   min-width: 0;
-  flex: 1 1 8rem;
   overflow-wrap: anywhere;
 }
-.couple-experience-links a strong {
+.couple-experience-copy strong {
   font-weight: 650;
 }
-.couple-experience-links a > span > span {
+.couple-experience-copy > span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.couple-experience-list .pro-mark,
+.couple-experience-chevron {
+  flex: none;
+  margin-inline-start: auto;
+}
+.couple-experience-chevron {
+  width: var(--space-5);
+  height: var(--space-5);
   color: var(--color-text-secondary);
 }
-.couple-experience-links a.recap-entry {
-  /* A third row would leave an empty cell in the two-column Expanded grid. */
-  grid-column: 1 / -1;
+
+/* A new monthly recap leads the list until it is opened (#1907 F4). */
+.recap-lead {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-block-end: var(--space-3);
 }
-.couple-experience-links a.recap-entry > .recap-entry-cover {
-  display: block;
-  flex: 0 0 4rem;
-  inline-size: 4rem;
-  block-size: 4rem;
+.recap-lead.is-entering {
+  animation: recap-lead-enter calc(var(--duration-context) * 2)
+    var(--easing-enter) both;
+}
+.recap-lead.is-leaving {
+  animation: recap-lead-leave var(--duration-context) var(--easing-exit) both;
+}
+.recap-lead-frame {
+  min-height: 0;
   overflow: hidden;
-  border-radius: var(--radius-medium);
 }
-.couple-experience-links a.recap-entry > .recap-entry-cover img {
+.recap-lead-card {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.recap-lead-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 2.2;
+  background: var(--color-surface-subtle);
+}
+.recap-lead-photo .story-media-preview,
+.recap-lead-photo .story-media-skeleton,
+.recap-lead-photo .story-media-placeholder {
   display: block;
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
+  border-radius: 0;
 }
-.couple-experience-links a.recap-entry .recap-entry-action {
+.recap-lead-badge {
+  justify-self: start;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
   color: var(--color-brand-text);
-  font-weight: 600;
+  font: var(--font-supporting-copy);
+  font-weight: 650;
+}
+.recap-lead-photo .recap-lead-badge {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  background: var(--media-overlay-surface);
+  color: var(--media-overlay-foreground);
+}
+.recap-lead-body {
+  display: grid;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+.recap-lead-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.recap-lead-copy strong {
+  font: var(--font-story-summary);
+}
+.recap-lead-copy > span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.recap-lead-card:hover .recap-lead-copy strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+@media (min-width: 840px) {
+  /* Expanded keeps the photo beside the words, like the Wir invitation. */
+  .recap-lead-card.has-photo {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+  .recap-lead-card.has-photo .recap-lead-photo {
+    aspect-ratio: auto;
+    min-block-size: 9rem;
+  }
+  .recap-lead-card.has-photo .recap-lead-body {
+    align-content: center;
+    padding: var(--space-4) var(--space-5);
+  }
+}
+@keyframes recap-lead-enter {
+  from {
+    grid-template-rows: 0fr;
+    margin-block-end: 0;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    margin-block-end: var(--space-3);
+    opacity: 1;
+  }
+}
+@keyframes recap-lead-leave {
+  from {
+    grid-template-rows: 1fr;
+    margin-block-end: var(--space-3);
+    opacity: 1;
+  }
+  to {
+    grid-template-rows: 0fr;
+    margin-block-end: 0;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recap-lead.is-entering,
+  .recap-lead.is-leaving {
+    animation: none;
+  }
 }
 .couple-experience-page {
   max-width: var(--reading-max);

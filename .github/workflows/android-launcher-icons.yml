@@ -8,6 +8,9 @@ on:
       - 'scripts/prepare_android_video_fixtures.sh'
       - 'backend/tests/fixtures/media/**'
       - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
+      - 'web/capacitor.config.ts'
+      - 'web/public/offline.css'
+      - 'web/public/webview-unsupported.*'
       - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
       - 'web/src/client/useNativeAppIcon.ts'
@@ -56,11 +59,11 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.21.0'
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Validate all Android icon resources and aliases
         run: |
           python3 scripts/test_android_launcher_identity.py
@@ -339,7 +342,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png webview-update-notice.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             # `test` is a shell builtin, not a run-as executable on these images.
             if "$ANDROID_HOME/platform-tools/adb" -e shell \
                 "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
@@ -358,6 +361,9 @@ jobs:
           fi
           if [ '${{ matrix.api }}' != '28' ]; then
             test -s renderer-background-return.png
+          else
+            # Below the WebView floor the update notice replaces the app (#1931).
+            test -s webview-update-notice.png
           fi
       - name: Capture failed instrumentation process diagnostics
         if: failure()

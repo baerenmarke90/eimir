@@ -36,6 +36,7 @@ import {
   memoryUpdatePayload,
 } from '../client/memoryProduct';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -50,6 +51,7 @@ import {
   memoryDetailPath,
   memoryEditPath,
 } from '../client/routes';
+import { savedPhotoFile } from '../client/savedPhotoFile';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { postSnackbar } from '../client/snackbar';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
@@ -60,6 +62,7 @@ import {
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
 import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -88,6 +91,7 @@ import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateInput } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
@@ -180,6 +184,7 @@ export function MemoryProductPage({
     }) > 0;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const deleteKey = [
     'memory-delete',
     currentAccountId,
@@ -310,6 +315,14 @@ export function MemoryProductPage({
     scope: string;
     key: string | null;
   } | null>(null);
+  // Edited saved photos (#1907 G1): draft id -> saved attachment id it replaces.
+  const [replacedPhotoState, setReplacedPhotoState] = useState<{
+    scope: string;
+    map: Record<string, string>;
+  }>({ scope: photoOrderScope, map: {} });
+  const replacedPhotos =
+    replacedPhotoState.scope === photoOrderScope ? replacedPhotoState.map : {};
+  const replacedOriginals = new Set(Object.values(replacedPhotos));
   const [placesDraft, setPlacesDraft] = useState<{
     scope: string;
     value: MomentPlaceSelection[];
@@ -405,6 +418,7 @@ export function MemoryProductPage({
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
+                ...replacementOf(attachmentId),
                 isSensitive:
                   sensitiveValues[attachmentId] ??
                   attachments.items.find(
@@ -550,6 +564,42 @@ export function MemoryProductPage({
   const deleting = deleteMutation.isPending;
   const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
     deleteMutation;
+
+  /** The saved photo an edited draft replaces, while it is still removed. */
+  function replacementOf(attachmentId: string) {
+    const draft = attachments.items.find(
+      (item) => item.attachmentId === attachmentId,
+    );
+    const replaced = draft ? replacedPhotos[draft.id] : undefined;
+    return replaced && removedAttachmentIds.has(replaced)
+      ? { replacesAttachmentId: replaced }
+      : {};
+  }
+
+  /** Put an edited version in place of a saved photo; saving replaces it. */
+  function replaceSavedPhoto(item: (typeof photoItems)[number], file: File) {
+    const saved = item.photo;
+    if (!saved) return;
+    const [draftId] = attachments.restore([
+      {
+        file,
+        isSensitive: sensitiveValues[saved.id] ?? saved.isSensitive === true,
+      },
+    ]);
+    if (!draftId) return;
+    const key = `draft:${draftId}`;
+    setRemovedAttachmentIds((current) => new Set(current).add(saved.id));
+    setPhotoOrder({
+      scope: photoOrderScope,
+      keys: photoKeys.map((current) => (current === item.key ? key : current)),
+    });
+    if (selectedCoverKey === item.key)
+      setCoverDraft({ scope: photoOrderScope, key });
+    setReplacedPhotoState({
+      scope: photoOrderScope,
+      map: { ...replacedPhotos, [draftId]: saved.id },
+    });
+  }
 
   function toggleAttachmentRemoval(attachmentId: string) {
     setRemovedAttachmentIds((current) => {
@@ -843,8 +893,27 @@ export function MemoryProductPage({
                 videoContext={{ apis, accountId: currentAccountId, spaceId }}
                 disabled={updateMutation.isPending}
                 attachments={attachments}
-                gallery={(addAction) => (
+                gallery={(addAction, editDraft, editFile) => (
                   <PhotoDraftGallery
+                    onEdit={
+                      editDraft && editFile
+                        ? (key) => {
+                            const item = photoItems.find(
+                              (entry) => entry.key === key,
+                            );
+                            const photo = item?.photo;
+                            if (item?.draft) editDraft(item.draft.id);
+                            else if (item && photo)
+                              editFile(
+                                loadMemoryImage(memory.id, photo.id).then(
+                                  (source) =>
+                                    savedPhotoFile(source, `${photo.id}.jpg`),
+                                ),
+                                (edited) => replaceSavedPhoto(item, edited),
+                              );
+                          }
+                        : undefined
+                    }
                     addAction={!memory.experienceKind ? addAction : undefined}
                     key={photoOrderScope}
                     resourceScopeKey={photoOrderScope}
@@ -1103,7 +1172,11 @@ export function MemoryProductPage({
             />
 
             {boundAttachments
-              .filter((photo) => removedAttachmentIds.has(photo.id))
+              .filter(
+                (photo) =>
+                  removedAttachmentIds.has(photo.id) &&
+                  !replacedOriginals.has(photo.id),
+              )
               .map((photo) => (
                 <div key={photo.id} className="photo-draft-controls">
                   <span role="status">
@@ -1257,6 +1330,17 @@ export function MemoryProductPage({
     nicknameFor,
   );
 
+  const occasionMark = (
+    <OccasionMark
+      matches={occasionsOn(
+        memory.happenedOn,
+        memory.happenedUntil,
+        occasions,
+        resolvedLocale(),
+      )}
+      revealKey={`memory:${memory.id}`}
+    />
+  );
   const dateContext = (
     <MomentDate
       dateTime={
@@ -1344,6 +1428,15 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
+      itemLabel={
+        memory.experienceKind
+          ? t(
+              memory.experienceKind === 'HAPPINESS'
+                ? 'coupleExperiences.sharedHappiness'
+                : 'coupleExperiences.sharedTimeTravel',
+            )
+          : undefined
+      }
       before={
         !memory.experienceKind ? (
           <TaskBackButton inline onClick={() => requestReturn(originKey)} />
@@ -1358,7 +1451,10 @@ export function MemoryProductPage({
       }
       titleContext={
         memory.experienceKind && !hasAuthoredTitle ? (
-          <div className="moment-metadata">{placeContext}</div>
+          <>
+            <div className="moment-metadata">{placeContext}</div>
+            {occasionMark}
+          </>
         ) : undefined
       }
       metadata={
@@ -1373,6 +1469,7 @@ export function MemoryProductPage({
               {dateContext}
               {placeContext}
             </div>
+            {occasionMark}
           </div>
         ) : undefined
       }

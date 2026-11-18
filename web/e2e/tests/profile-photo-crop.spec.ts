@@ -1,8 +1,9 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoCrop from '../../src/i18n/locales/photoCrop';
+import photoEdit from '../../src/i18n/locales/photoEdit';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import AxeBuilder from '../support/axe';
 import { waitForSettledMotion } from '../support/settledMotion';
 import {
   ACCOUNT_ID,
@@ -286,12 +287,16 @@ test('keyboard moves and zooms the section; cancelling uploads nothing', async (
   const before = await photo.boundingBox();
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
+  // Panzoom applies each pan and zoom in the next animation frame; a read
+  // before that frame still reports the previous transform.
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const moved = await photo.boundingBox();
   if (!before || !moved) throw new Error('Missing photo geometry');
   expect(moved.x).toBeLessThan(before.x - 20);
 
   // The photo can never leave a gap inside the frame.
   for (let step = 0; step < 30; step++) await page.keyboard.press('ArrowLeft');
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const frame = await stage.boundingBox();
   const edge = await photo.boundingBox();
   if (!frame || !edge) throw new Error('Missing crop geometry');
@@ -306,6 +311,7 @@ test('keyboard moves and zooms the section; cancelling uploads nothing', async (
   await page.keyboard.press('End');
   await expect(zoom).toHaveValue('4');
   await expect(zoom).toHaveAttribute('aria-valuetext', /400/);
+  await page.evaluate(() => new Promise(requestAnimationFrame));
   const zoomed = await photo.boundingBox();
   if (!zoomed) throw new Error('Missing zoomed geometry');
   expect(zoomed.height).toBeGreaterThan(frame.height * 3.9);
@@ -422,4 +428,41 @@ test('the crop step fits a small phone without overflow', async ({
     ),
   ).toBe(true);
   await captureScreenshot(page, info, 'profile-photo-crop-320-light.png');
+});
+
+test('turning the photo before cropping saves it turned (#1907 G1)', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await installProfileUpload(page);
+  await openProfileEditing(page);
+  const sheet = await choosePhoto(page, await landscapePhoto(page));
+
+  // A quarter turn to the left brings the warm left half to the bottom.
+  const turn = sheet.getByRole('button', {
+    name: photoEdit.turn,
+    exact: true,
+  });
+  await turn.click();
+  await expect(turn).toBeEnabled();
+  await expect(
+    sheet.getByRole('application', { name: photoCrop.stageLabel }),
+  ).toHaveAttribute('data-orientation', 'portrait');
+  await waitForSettledMotion(page);
+  await captureScreenshot(page, info, 'profile-photo-turned-390-light.png');
+
+  await sheet
+    .getByRole('button', { name: photoCrop.confirm, exact: true })
+    .click();
+  await expect(sheet).toHaveCount(0);
+  await expect.poll(() => state.bodies.length).toBe(1);
+  const top = await inspectUpload(page, state.bodies[0], { x: 0.5, y: 0.1 });
+  const bottom = await inspectUpload(page, state.bodies[0], {
+    x: 0.5,
+    y: 0.9,
+  });
+  expect(top.width).toBe(top.height);
+  expect(top.blue).toBeGreaterThan(top.red + 40);
+  expect(bottom.red).toBeGreaterThan(bottom.blue + 40);
 });

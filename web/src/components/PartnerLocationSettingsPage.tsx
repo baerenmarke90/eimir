@@ -6,14 +6,18 @@ import type { SharingLevel } from '../api/generated/models/SharingLevel';
 import {
   type BackgroundLocationStatus,
   backgroundLocationStatus,
+  type DevicePreciseAccess,
+  devicePreciseAccess,
   disableBackgroundSharing,
   enableBackgroundSharing,
   type LocationPermission,
+  type LocationPrecision,
   locationPermission,
   openLocationSettings,
   publishOwnPositionIfDue,
   requestBackgroundLocationPermission,
   requestLocationPermission,
+  syncBackgroundSharing,
   usesNativeLocationSettings,
 } from '../client/approximateLocation';
 import { isClientOnline } from '../client/connectivity';
@@ -73,6 +77,23 @@ const PERMISSION_KEYS: Record<LocationPermission, string> = {
   unsupported: 'partnerLocation.permissionUnsupported',
 };
 
+const PRECISIONS: readonly {
+  value: LocationPrecision;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: 'APPROXIMATE',
+    label: 'partnerLocation.precisionApproximate',
+    hint: 'partnerLocation.precisionApproximateHint',
+  },
+  {
+    value: 'PRECISE',
+    label: 'partnerLocation.precisionPrecise',
+    hint: 'partnerLocation.precisionPreciseHint',
+  },
+];
+
 type Sheet =
   | { kind: 'confirm'; level: SharedLevel }
   | { kind: 'duration'; level: SharedLevel }
@@ -111,6 +132,7 @@ export function PartnerLocationSettingsPage({
     : t('partnerLocation.partnerFallback');
   const endLabel = useSharingEndLabel();
   const levelName = useId();
+  const precisionName = useId();
   const native = usesNativeLocationSettings();
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -122,6 +144,8 @@ export function PartnerLocationSettingsPage({
     permission: 'unsupported',
     enabled: false,
   });
+  const [preciseAccess, setPreciseAccess] =
+    useState<DevicePreciseAccess>('unknown');
   const [disclosureOpen, setDisclosureOpen] = useState(false);
   const [backgroundBusy, setBackgroundBusy] = useState(false);
   const [backgroundDenied, setBackgroundDenied] = useState(false);
@@ -134,16 +158,18 @@ export function PartnerLocationSettingsPage({
   }, []);
 
   const refreshDevice = useCallback(async () => {
-    const [nextPermission, nextBackground] = await Promise.all([
+    const [nextPermission, nextBackground, nextPrecise] = await Promise.all([
       locationPermission().catch(() => 'unsupported' as const),
       backgroundLocationStatus().catch(() => ({
         permission: 'unsupported' as const,
         enabled: false,
       })),
+      devicePreciseAccess(),
     ]);
     if (!mounted.current) return;
     setPermission(nextPermission);
     setBackground(nextBackground);
+    setPreciseAccess(nextPrecise);
   }, []);
 
   // Returning from the Android settings re-reads the device state.
@@ -217,8 +243,60 @@ export function PartnerLocationSettingsPage({
     }
   }
 
+  /**
+   * Saves the person's precision choice. A precise choice first asks Android
+   * for the precise grant (it may keep "approximate"; sharing then continues
+   * approximately and says so). A new generation starts, so the next
+   * measurement is published and background updates get a fresh credential.
+   */
+  async function choosePrecision(next: LocationPrecision) {
+    if (busy || !settings || next === settings.precision) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      if (next === 'PRECISE' && active) {
+        const granted = await requestLocationPermission('PRECISE');
+        if (granted !== 'granted') {
+          setMessage(t('partnerLocation.permissionNeeded'));
+          return;
+        }
+      }
+      let view: Awaited<ReturnType<typeof writes.changePrecision>>;
+      try {
+        view = await writes.changePrecision(next, settings);
+      } catch {
+        setMessage(t('partnerLocation.writeFailed'));
+        return;
+      }
+      postSnackbar('partnerLocation.precisionSaved');
+      if (view.state === 'ACTIVE') {
+        try {
+          const published = await publishOwnPositionIfDue({
+            api,
+            spaceId,
+            accountId: account.id,
+            settings: view,
+          });
+          if (published) writes.store(published);
+          await syncBackgroundSharing({
+            api,
+            spaceId,
+            instance: apiBaseUrl,
+            settings: view,
+          });
+        } catch {
+          // Saved; the next open or resume measures and refreshes again.
+          setMessage(t('partnerLocation.locationUnavailable'));
+        }
+      }
+    } finally {
+      if (mounted.current) setBusy(false);
+      void refreshDevice();
+    }
+  }
+
   async function allowLocation() {
-    const next = await requestLocationPermission();
+    const next = await requestLocationPermission(settings?.precision);
     setPermission(next);
     if (next !== 'granted' || !settings) return;
     try {
@@ -243,7 +321,12 @@ export function PartnerLocationSettingsPage({
         setBackgroundDenied(true);
         return;
       }
-      await enableBackgroundSharing({ api, spaceId, instance: apiBaseUrl });
+      await enableBackgroundSharing({
+        api,
+        spaceId,
+        instance: apiBaseUrl,
+        precision: settings?.precision,
+      });
       postSnackbar('partnerLocation.backgroundOn');
     } catch {
       setBackgroundDenied(true);
@@ -477,6 +560,79 @@ export function PartnerLocationSettingsPage({
         ) : null}
       </section>
 
+      {canChoose ? (
+        <section
+          className="settings-section partner-location-section"
+          aria-labelledby="partner-location-precision-heading"
+        >
+          <div className="settings-section-head">
+            <h2 id="partner-location-precision-heading">
+              {t('partnerLocation.precisionTitle')}
+            </h2>
+            <p className="settings-section-intro">
+              {t('partnerLocation.precisionIntro')}
+            </p>
+          </div>
+          <fieldset
+            className="partner-location-levels"
+            disabled={busy}
+            aria-describedby={
+              settings.precision === 'PRECISE' &&
+              preciseAccess === 'approximate-only'
+                ? 'partner-location-precision-note'
+                : undefined
+            }
+          >
+            <legend className="sr-only">
+              {t('partnerLocation.precisionTitle')}
+            </legend>
+            {PRECISIONS.map((option) => (
+              <label
+                key={option.value}
+                className={
+                  option.value === settings.precision
+                    ? 'partner-location-level is-selected'
+                    : 'partner-location-level'
+                }
+              >
+                <input
+                  type="radio"
+                  name={precisionName}
+                  value={option.value}
+                  checked={option.value === settings.precision}
+                  onChange={() => void choosePrecision(option.value)}
+                />
+                <span className="partner-location-level-copy">
+                  <strong>{t(option.label)}</strong>
+                  <span>{t(option.hint)}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          {settings.precision === 'PRECISE' &&
+          preciseAccess === 'approximate-only' ? (
+            <div
+              id="partner-location-precision-note"
+              className="partner-location-precision-note"
+              role="status"
+            >
+              <p className="partner-location-hint">
+                {t('partnerLocation.precisionApproximateOnly')}
+              </p>
+              {native ? (
+                <button
+                  type="button"
+                  className="tertiary partner-location-inline-action"
+                  onClick={() => void openLocationSettings()}
+                >
+                  {t('partnerLocation.permissionChangeApp')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       {canChoose || background.enabled ? (
         <section
           className="settings-section partner-location-section"
@@ -518,7 +674,18 @@ export function PartnerLocationSettingsPage({
             <div className="partner-location-device-row partner-location-permission">
               <span className="partner-location-permission-copy">
                 <strong>
-                  {permission ? t(PERMISSION_KEYS[permission]) : ' '}
+                  {permission
+                    ? t(
+                        permission === 'granted' && preciseAccess === 'granted'
+                          ? 'partnerLocation.permissionGrantedPrecise'
+                          : permission === 'granted' &&
+                              preciseAccess === 'unknown' &&
+                              settings.precision === 'PRECISE'
+                            ? // Browsers cannot tell approximate from precise.
+                              'partnerLocation.permissionGrantedAny'
+                            : PERMISSION_KEYS[permission],
+                      )
+                    : ' '}
                 </strong>
                 {native ? (
                   <button
@@ -534,11 +701,10 @@ export function PartnerLocationSettingsPage({
               </span>
               {permission === 'granted' ? (
                 <svg
-                  className="partner-location-permission-mark"
+                  className="partner-location-permission-mark inline-icon"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
@@ -566,6 +732,7 @@ export function PartnerLocationSettingsPage({
           open
           mode={sheet.kind}
           level={sheet.level}
+          precision={settings.precision}
           partner={partner}
           initialDuration={
             sheet.kind === 'duration'
@@ -588,6 +755,7 @@ export function PartnerLocationSettingsPage({
       <BackgroundLocationDisclosure
         open={disclosureOpen}
         level={sharedLevel}
+        precision={settings.precision}
         partner={partner}
         busy={backgroundBusy}
         onContinue={() => void turnOnBackground()}

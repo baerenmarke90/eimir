@@ -60,7 +60,7 @@
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 50%;
-  background: var(--color-surface);
+  background: var(--color-text-secondary);
   transform: translateY(-50%);
   transition: transform var(--duration-feedback) var(--easing-standard);
 }
@@ -71,6 +71,7 @@
 }
 
 .preference-switch-control[aria-checked="true"] .preference-switch-thumb {
+  background: var(--color-on-accent);
   transform: translate(1.15rem, -50%);
 }
 

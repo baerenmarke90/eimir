@@ -82,7 +82,7 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('Alex');
     expect(html).toContain('Dies ist das Profil, das dein Partner sieht.');
     expect(html).toContain(profileIdentity.editProfile);
-    expect(html).not.toContain(profileIdentity.editName);
+    expect(html).not.toContain(profileIdentity.saveProfile);
     expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 

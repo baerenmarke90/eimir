@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useContext,
   useLayoutEffect,
+  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { createPath, Link } from 'react-router-dom';
@@ -16,12 +17,47 @@ import './SubpageNavigation.css';
 export const TaskBackSlotContext = createContext<{
   slot: HTMLElement | null;
   register: () => () => void;
+  /** A page heading offers its leading cell; the first one in the document wins. */
+  registerHost?: (host: HTMLElement) => () => void;
+  showBackLabel?: boolean;
 } | null>(null);
 
-function BackGlyph({ children }: { children: ReactNode }) {
+/** True inside a secondary destination, where the shell supplies Back. */
+export function useSecondaryPage(): boolean {
+  return useContext(TaskBackSlotContext) !== null;
+}
+
+/**
+ * The leading cell of a secondary page's header row. Back renders here instead
+ * of in a separate shell row; it stays empty when another heading hosts Back.
+ */
+export function BackSlotHost({ className = '' }: { className?: string }) {
+  const registerHost = useContext(TaskBackSlotContext)?.registerHost;
+  const [host, setHost] = useState<HTMLSpanElement | null>(null);
+  useLayoutEffect(
+    () => (host && registerHost ? registerHost(host) : undefined),
+    [host, registerHost],
+  );
+  if (!registerHost) return null;
+  return (
+    <span ref={setHost} className={`page-back-host ${className}`.trim()} />
+  );
+}
+
+function BackLabel({ children }: { children: ReactNode }) {
+  const showBackLabel = useContext(TaskBackSlotContext)?.showBackLabel;
+  if (showBackLabel) {
+    return <span className="task-back-label">{children}</span>;
+  }
   return (
     <>
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <svg
+        className="inline-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
         <path d="m14 5-7 7 7 7" />
       </svg>
       <span className="sr-only">{children}</span>
@@ -61,7 +97,7 @@ export function TaskBackButton({
       data-default-back={shellDefault ? '' : undefined}
       {...props}
     >
-      <BackGlyph>{label}</BackGlyph>
+      <BackLabel>{label}</BackLabel>
     </button>
   );
   return shellDefault ? (
@@ -115,7 +151,7 @@ export function TaskBackLink({
           );
         }}
       >
-        <BackGlyph>{label}</BackGlyph>
+        <BackLabel>{label}</BackLabel>
       </Link>
     </PlaceBackControl>
   );

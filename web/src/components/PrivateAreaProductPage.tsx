@@ -1,5 +1,4 @@
 import {
-  Link,
   matchPath,
   Navigate,
   Route,
@@ -10,18 +9,10 @@ import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { ProfilesApi } from '../client/mediaApis';
 import {
-  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
-  PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
-import { useTranslation } from '../i18n';
-import {
-  ContextualCreateMenu,
-  type ContextualCreateTarget,
-} from './ContextualCreateMenu';
-import { EimirIcon } from './EimirIcon';
 import {
   GiftIdeaCreatePage,
   GiftIdeaDetailPage,
@@ -29,7 +20,6 @@ import {
   GiftIdeasListPage,
 } from './GiftIdeasPage';
 import { PrivateAreaFrame } from './PrivateAreaLayout';
-import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import {
   PrivateCollectionCreatePage,
   PrivateCollectionDetailPage,
@@ -42,83 +32,9 @@ import {
   PrivateNoteEditPage,
   PrivateNotesListPage,
 } from './PrivateNotesPage';
+import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import './PrivateAreaProductPage.css';
 import './PrivateAreaReference.css';
-
-const destinations = [
-  {
-    key: 'notes',
-    icon: 'notes',
-    href: PRIVATE_NOTES_PATH,
-    title: 'privateArea.notes.title',
-  },
-  {
-    key: 'gifts',
-    icon: 'geschenk',
-    href: PRIVATE_GIFT_IDEAS_PATH,
-    title: 'privateArea.gifts.title',
-  },
-  {
-    key: 'collections',
-    icon: 'listen',
-    href: PRIVATE_COLLECTIONS_PATH,
-    title: 'privateArea.collections.title',
-  },
-  {
-    key: 'partner-notes',
-    icon: 'profil',
-    href: PRIVATE_PARTNER_NOTES_PATH,
-    title: 'privateArea.partnerNotes.title',
-  },
-] as const;
-
-const createTargets = [
-  {
-    to: `${PRIVATE_NOTES_PATH}/new`,
-    labelKey: 'privateArea.notes.add',
-    icon: 'notes',
-  },
-  {
-    to: `${PRIVATE_GIFT_IDEAS_PATH}/new`,
-    labelKey: 'privateArea.gifts.add',
-    icon: 'geschenk',
-  },
-  {
-    to: `${PRIVATE_COLLECTIONS_PATH}/new`,
-    labelKey: 'privateArea.collections.add',
-    icon: 'listen',
-  },
-] as const satisfies readonly ContextualCreateTarget[];
-
-function PrivateAreaOverview() {
-  const { t } = useTranslation();
-  return (
-    <div className="private-area-reference-overview">
-      <nav
-        className="private-area-destination-nav"
-        aria-label={t('privateArea.navigation.aria')}
-      >
-        <ul>
-          {destinations.map((destination) => (
-            <li key={destination.key}>
-              <Link
-                className="private-area-destination-card"
-                to={destination.href}
-              >
-                <span className="private-area-destination-icon">
-                  <EimirIcon name={destination.icon} />
-                </span>
-                <span className="private-area-destination-copy">
-                  <strong>{t(destination.title)}</strong>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  );
-}
 
 export function PrivateAreaProductPage({
   api,
@@ -135,31 +51,29 @@ export function PrivateAreaProductPage({
 }) {
   const props = { api, accountId, spaceId };
   const { pathname } = useLocation();
-  const isOverview =
-    pathname === PRIVATE_AREA_ROOT_PATH ||
-    pathname === `${PRIVATE_AREA_ROOT_PATH}/`;
   const isGiftEditor = Boolean(
     matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/new`, pathname) ||
       matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
   );
 
+  // One note, list or gift idea, including its editor, leads with its own
+  // header row; the area card and tabs belong to the lists (#1907 C4).
+  const isItem =
+    !isGiftEditor &&
+    [
+      `${PRIVATE_NOTES_PATH}/:noteId`,
+      `${PRIVATE_NOTES_PATH}/:noteId/edit`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId`,
+      `${PRIVATE_COLLECTIONS_PATH}/:collectionId/edit`,
+      `${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId`,
+    ].some((pattern) => matchPath(pattern, pathname));
+
   return (
-    <PrivateAreaFrame
-      showNavigation={!isOverview}
-      editorFirst={isGiftEditor}
-      overviewAction={
-        isOverview ? (
-          <ContextualCreateMenu
-            labelKey="privateArea.createAction"
-            targets={createTargets}
-            taskItemKey="private-area-create"
-            floating
-          />
-        ) : undefined
-      }
-    >
+    <PrivateAreaFrame editorFirst={isGiftEditor} itemFirst={isItem}>
       <Routes>
-        <Route index element={<PrivateAreaOverview />} />
+        {/* The chips below the header are the only way between sections, so
+            the area opens on the first one instead of a second picker. */}
+        <Route index element={<Navigate replace to="notes" />} />
         {profilesApi && spacesApi ? (
           <Route
             path="partner-notes"

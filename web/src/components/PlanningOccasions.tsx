@@ -1,10 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import type { PlansApi } from '../api/generated/apis/PlansApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { Configuration } from '../client/apiConfiguration';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import {
+  loadOccasionCalendarPlans,
+  occasionCalendarPlansQueryKey,
+} from '../client/occasionCalendarPlans';
 import { normalizeClientError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
@@ -16,6 +21,7 @@ import './PeopleProfiles.css';
 export function PlanningOccasions({
   peopleApi,
   profilesApi,
+  plansApi,
   spaceId,
   accountId,
   apiBaseUrl,
@@ -24,6 +30,8 @@ export function PlanningOccasions({
 }: {
   peopleApi: PeopleApi;
   profilesApi?: ProfilesApi;
+  /** Dated Plans join the calendar (#1907 F3). */
+  plansApi?: Pick<PlansApi, 'listPlans'>;
   spaceId: string;
   accountId?: string;
   apiBaseUrl?: string;
@@ -86,6 +94,24 @@ export function PlanningOccasions({
     },
     retry: false,
   });
+  const plans = useQuery({
+    queryKey: occasionCalendarPlansQueryKey(spaceId),
+    enabled: Boolean(plansApi),
+    queryFn: async ({ signal }) => {
+      if (!plansApi) throw new Error('Plans API unavailable');
+      try {
+        return await loadOccasionCalendarPlans(
+          plansApi,
+          spaceId,
+          new Date(),
+          signal,
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    retry: false,
+  });
   const ownProfile = useQuery({
     queryKey: authorSummaryQueryKeys.profileIdentity(spaceId, accountId),
     enabled: Boolean(accountId && profilesApi),
@@ -131,6 +157,12 @@ export function PlanningOccasions({
           onRetry={() => void ownProfile.refetch()}
         />
       ) : null}
+      {plans.error ? (
+        <ProblemState
+          error={plans.error}
+          onRetry={() => void plans.refetch()}
+        />
+      ) : null}
       {space.isLoading || profile.isLoading || ownProfile.isLoading ? (
         <UiState kind="loading" title={t('importantDates.loading')} />
       ) : null}
@@ -139,16 +171,22 @@ export function PlanningOccasions({
         peopleApi={peopleApi}
         spaceId={spaceId}
         people={people.data ?? []}
+        plans={plans.data ?? []}
         accountId={accountId}
         instance={apiBaseUrl}
         sourcesUnavailable={Boolean(
-          people.error || space.error || profile.error || ownProfile.error,
+          people.error ||
+            space.error ||
+            profile.error ||
+            ownProfile.error ||
+            plans.error,
         )}
         sourcesPending={
           people.isLoading ||
           space.isLoading ||
           profile.isLoading ||
-          ownProfile.isLoading
+          ownProfile.isLoading ||
+          plans.isLoading
         }
         ownBirthday={
           accountId && ownProfile.data?.birthday

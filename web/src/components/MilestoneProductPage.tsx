@@ -28,6 +28,7 @@ import {
   useLeaveDeletedEntries,
   useReturnTo,
 } from '../client/historyEntries';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
@@ -41,6 +42,7 @@ import {
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
@@ -50,6 +52,7 @@ import {
 } from './ComposerDateContext';
 import { ExpandableDescription } from './ExpandableDescription';
 import { NativeDateField } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -119,6 +122,7 @@ export function MilestoneProductPage({
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const runtime = useApiRuntime();
   const {
     eligibleSourcePlanId,
@@ -656,6 +660,7 @@ export function MilestoneProductPage({
           <div className="milestone-hero">
             <span className="milestone-hero-icon" aria-hidden="true">
               <svg
+                className="inline-icon"
                 viewBox="0 0 24 24"
                 width="20"
                 height="20"
@@ -669,6 +674,15 @@ export function MilestoneProductPage({
               <p className="milestone-hero-date">{dateLine}</p>
             ) : null}
           </div>
+          <OccasionMark
+            matches={occasionsOn(
+              milestone.happenedOn,
+              null,
+              occasions,
+              resolvedLocale(),
+            )}
+            revealKey={`milestone:${milestone.id}`}
+          />
         </div>
       }
       offline={offline}

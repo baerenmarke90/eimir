@@ -10,8 +10,11 @@ Name | Type
 `commonDateIdeaIds` | Array&lt;string&gt;
 `commonWishIds` | Array&lt;string&gt;
 `dateIdeaCandidates` | [Array&lt;WishSelectionDateIdeaCandidateView&gt;](WishSelectionDateIdeaCandidateView.md)
+`decision` | [WishSelectionDecisionView](WishSelectionDecisionView.md)
 `id` | string
 `own` | [WishSelectionOwnView](WishSelectionOwnView.md)
+`randomPool` | string
+`randomRequest` | [WishSelectionRandomRequestView](WishSelectionRandomRequestView.md)
 `resultState` | string
 `roundToken` | string
 `selectionToken` | string
@@ -29,8 +32,11 @@ const example = {
   "commonDateIdeaIds": null,
   "commonWishIds": null,
   "dateIdeaCandidates": null,
+  "decision": null,
   "id": null,
   "own": null,
+  "randomPool": null,
+  "randomRequest": null,
   "resultState": null,
   "roundToken": null,
   "selectionToken": null,

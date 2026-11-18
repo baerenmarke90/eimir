@@ -265,10 +265,6 @@
   font: var(--font-action-label);
   overflow-wrap: anywhere;
 }
-.quiet-composer .composer-header .task-back-control {
-  background: transparent;
-  border-color: transparent;
-}
 .quiet-composer .composer-header .page-heading-action {
   display: flex;
   justify-content: flex-end;

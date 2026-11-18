@@ -49,12 +49,14 @@ class DashboardModuleKey(StrEnum):
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
+    PINNED_NOTE = "pinned_note"
     KEEPSAKE = "keepsake"
     RETROSPECTIVE = "retrospective"
     RELATIONSHIP_SIGNAL = "relationship_signal"
     MONTHLY_HIGHLIGHTS = "monthly_highlights"
     RECENT_SHARED = "recent_shared"
     SHARED_STORY_SUMMARY = "shared_story_summary"
+    SHARED_GARDEN = "shared_garden"
 
 
 # Technical bound against abusive payloads, not a product limit on pinned lists.
@@ -125,11 +127,19 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         default_visible=True,
         selects_collection=True,
     ),
+    # #1969: pinned shared notes. The note itself carries the pin, so unlike the
+    # list module this one selects nothing per person; it is only hideable and movable.
+    DashboardModuleDefinition(key=DashboardModuleKey.PINNED_NOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RETROSPECTIVE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.MONTHLY_HIGHLIGHTS, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RECENT_SHARED, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.SHARED_STORY_SUMMARY, default_visible=True),
+    # Product Owner 2026-11-17: the couple's shared garden as a read-only Wir
+    # preview (Premium `games.couple`). It is the one module that stays hidden
+    # until the person turns it on, so a missing row - including every
+    # preference saved before it existed - resolves to hidden.
+    DashboardModuleDefinition(key=DashboardModuleKey.SHARED_GARDEN, default_visible=False),
 )
 
 _DEFINITIONS = {definition.key: definition for definition in CATALOG}
@@ -234,6 +244,8 @@ def set_module_order(
         DashboardModuleKey.SHARED_EXPERIENCE.value,
         DashboardModuleKey.RETROSPECTIVE.value,
         DashboardModuleKey.PARTNER_DISTANCE.value,
+        DashboardModuleKey.PINNED_NOTE.value,
+        DashboardModuleKey.SHARED_GARDEN.value,
     }
     missing = expected - set(module_keys)
     if (

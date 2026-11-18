@@ -7,7 +7,9 @@ import {
   type ApproximatePosition,
   currentApproximatePosition,
   type LocationPermission,
+  type LocationPrecision,
   locationPermission,
+  roundToGrid,
 } from './approximateLocation';
 import {
   isEntitlementRequired,
@@ -79,12 +81,15 @@ export async function readPartnerDistanceLine({
   api,
   spaceId,
   ownSharingActive,
+  precision = 'APPROXIMATE',
   permission = locationPermission,
-  measure = () => currentApproximatePosition(),
+  measure = () => currentApproximatePosition(undefined, precision),
 }: {
   api: DistanceApi;
   spaceId: string;
   ownSharingActive: boolean;
+  /** The viewer's own choice; a precise choice measures better and is rounded on the device. */
+  precision?: LocationPrecision;
   permission?: () => Promise<LocationPermission>;
   measure?: () => Promise<ApproximatePosition>;
 }): Promise<PartnerDistanceLine> {
@@ -94,11 +99,13 @@ export async function readPartnerDistanceLine({
     const map = await api.getPartnerLocationMap({ spaceId });
     return map.available ? { kind: 'ownMissing' } : HIDDEN;
   }
+  const rounded = roundToGrid(position, precision);
   const distance = await api.getPartnerDistance({
     spaceId,
     presencePosition: {
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: rounded.latitude,
+      longitude: rounded.longitude,
+      accuracyMeters: position.accuracyMeters,
       capturedAt: position.capturedAt,
     },
   });
@@ -186,6 +193,7 @@ export function usePartnerDistanceLine({
           api,
           spaceId,
           ownSharingActive: settings?.state === 'ACTIVE',
+          precision: settings?.precision,
         });
       }),
     enabled: enabled && Boolean(api && accountId && spaceId),
@@ -248,6 +256,90 @@ function roundTo(value: number, step: number): number {
   return Math.max(step, Math.round(value / step) * step);
 }
 
+/** How a range band is put into words (#1907 H4). */
+export type DistanceWords =
+  | 'aroundCorner'
+  | 'stonesThrow'
+  | 'notFar'
+  | 'shortTrip';
+
+/**
+ * Range bands (2–50 km) are described in words instead of a numeric range,
+ * which says little to a couple (Product Owner, 2026-11-15). The words follow
+ * the server band only, so they are never more precise than the band.
+ */
+export function distanceBandWords(
+  band: DistanceBandView,
+): DistanceWords | null {
+  if (band.kind !== 'RANGE' || band.maxKm == null) return null;
+  if (band.maxKm <= 5) return 'aroundCorner';
+  if (band.maxKm <= 10) return 'stonesThrow';
+  if (band.maxKm <= 25) return 'notFar';
+  return 'shortTrip';
+}
+
+const FEET_PER_METRE = 3.28084;
+const METRES_PER_KM = 1000;
+/** From here on a converted distance reads better in miles than in feet. */
+const MILES_FROM_METRES = 800;
+
+function metresText(
+  metres: number,
+  locale: string,
+  unit: DistanceUnit,
+  withUnit: boolean,
+): string {
+  const plain = (value: number, digits: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(
+      value,
+    );
+  const withUnitText = (value: number, name: string, digits: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit: name,
+      unitDisplay: 'short',
+      maximumFractionDigits: digits,
+    }).format(value);
+  if (unit === 'kilometer') {
+    if (metres >= METRES_PER_KM) {
+      const km = metres / METRES_PER_KM;
+      return withUnit ? withUnitText(km, 'kilometer', 1) : plain(km, 1);
+    }
+    return withUnit ? withUnitText(metres, 'meter', 0) : plain(metres, 0);
+  }
+  if (metres >= MILES_FROM_METRES) {
+    const miles = metres / KM_PER_MILE / METRES_PER_KM;
+    return withUnit ? withUnitText(miles, 'mile', 1) : plain(miles, 1);
+  }
+  const feet = Math.round((metres * FEET_PER_METRE) / 100) * 100;
+  return withUnit ? withUnitText(feet, 'foot', 0) : plain(feet, 0);
+}
+
+/**
+ * A fine band (both positions precise, below 2 km) as text: "300 m" with
+ * `under` for the first tier ("less than 300 m"), otherwise a range such as
+ * "300 m–1 km". Never finer than the server band.
+ */
+export function formatCloseBand(
+  band: DistanceBandView,
+  locale: string,
+  unit: DistanceUnit,
+): { under: boolean; value: string } | null {
+  if (band.kind !== 'CLOSE' || band.minMeters == null || band.maxMeters == null)
+    return null;
+  if (band.minMeters <= 0) {
+    return {
+      under: true,
+      value: metresText(band.maxMeters, locale, unit, true),
+    };
+  }
+  const sameUnit =
+    band.minMeters >= METRES_PER_KM === band.maxMeters >= METRES_PER_KM;
+  const minText = metresText(band.minMeters, locale, unit, !sameUnit);
+  const maxText = metresText(band.maxMeters, locale, unit, true);
+  return { under: false, value: `${minText}–${maxText}` };
+}
+
 /**
  * The band as display text, or `null` for "nearby", which never shows a
  * number. Converted miles stay as coarse as the kilometre band.
@@ -265,6 +357,8 @@ export function formatDistanceBand(
   });
   const convert = (km: number) => (unit === 'mile' ? km / KM_PER_MILE : km);
   if (band.kind === 'NEARBY') return null;
+  if (band.kind === 'CLOSE')
+    return formatCloseBand(band, locale, unit)?.value ?? null;
   if (band.kind === 'RANGE' && band.minKm != null && band.maxKm != null) {
     const min = Math.max(1, Math.round(convert(band.minKm)));
     const max = Math.max(min + 1, Math.round(convert(band.maxKm)));

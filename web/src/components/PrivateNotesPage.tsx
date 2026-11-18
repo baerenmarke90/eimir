@@ -28,6 +28,8 @@ import {
   DeleteConfirmation,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemPrivacy,
   usePrivateAreaTaskContext,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
@@ -347,7 +349,12 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
             fallbackLabel={t('privateArea.notes.detailBack')}
           />
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.notes.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={note.title}
         titleAction={
           note.capabilities.canEdit ? (

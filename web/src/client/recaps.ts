@@ -1,6 +1,8 @@
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
 import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { RecapView } from '../api/generated/models/RecapView';
+import { resolvedLocale } from '../i18n';
 import {
   chapterDetailPath,
   heartMomentDetailPath,
@@ -21,6 +23,54 @@ export function recapPeriodLabel(value: RecapPeriod, locale: string): string {
         timeZone: 'UTC',
       }).format(new Date(Date.UTC(value.year, (value.month ?? 1) - 1, 1)));
 }
+/**
+ * A recap notice names only its period (#1744). The server sends it as the
+ * target's machine key ("2026-10" or "2026"); the month carries its year only
+ * when the notice was issued in another year.
+ */
+export function recapNoticePeriod(
+  key: string | null | undefined,
+  issued: Date,
+  locale: string,
+): { kind: 'MONTH' | 'YEAR'; label: string } | null {
+  const match = /^(\d{4})(?:-(0[1-9]|1[0-2]))?$/.exec(key ?? '');
+  if (!match) return null;
+  const year = Number(match[1]);
+  if (!match[2])
+    return {
+      kind: 'YEAR',
+      label: new Intl.NumberFormat(locale, { useGrouping: false }).format(year),
+    };
+  return {
+    kind: 'MONTH',
+    label: new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      ...(issued.getUTCFullYear() === year ? {} : { year: 'numeric' }),
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, Number(match[2]) - 1, 1))),
+  };
+}
+
+export function recapNoticeTitle(
+  item: Pick<NotificationItem, 'kind' | 'targetType' | 'target' | 'createdAt'>,
+  translate: (key: string, options?: Record<string, unknown>) => string,
+  locale = resolvedLocale(),
+): string {
+  const grew = item.kind === 'RECAP_GREW';
+  if (!grew && item.targetType !== 'RECAP')
+    return translate('recaps.notice.earlier');
+  const period =
+    item.targetType === 'RECAP'
+      ? recapNoticePeriod(item.target?.title, item.createdAt, locale)
+      : null;
+  const base = grew ? 'recaps.notice.grew' : 'recaps.notice.ready';
+  return period
+    ? translate(`${base}${period.kind === 'YEAR' ? 'Year' : 'Month'}`, {
+        period: period.label,
+      })
+    : translate(base);
+}
+
 export function recapDate(value: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
@@ -98,30 +148,6 @@ export function monthlyRecapInvitation(
         Number(Boolean(a.savedAt)) - Number(Boolean(b.savedAt)) ||
         (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
     )[0];
-}
-
-/**
- * The edition Momente points to: the newest ready one, else the newest still
- * being prepared. Nothing is invented when there is none.
- */
-export function recapEntryEdition(
-  editions: RecapView[],
-): RecapView | undefined {
-  const newest = (values: RecapView[]) =>
-    [...values].sort(
-      (a, b) =>
-        b.year * 12 + (b.month ?? 0) - (a.year * 12 + (a.month ?? 0)) ||
-        (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
-    )[0];
-  return (
-    newest(
-      editions.filter(
-        (edition) =>
-          edition.status === 'READY' &&
-          edition.sources.some((source) => source.available),
-      ),
-    ) ?? newest(editions.filter((edition) => edition.status === 'PENDING'))
-  );
 }
 
 /** Mirrors the server's bounded manual selection. */

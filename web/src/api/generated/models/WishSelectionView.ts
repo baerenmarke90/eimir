@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { WishSelectionDecisionView } from './WishSelectionDecisionView';
+import {
+    WishSelectionDecisionViewFromJSON,
+    WishSelectionDecisionViewFromJSONTyped,
+    WishSelectionDecisionViewToJSON,
+    WishSelectionDecisionViewToJSONTyped,
+} from './WishSelectionDecisionView';
 import type { WishSelectionCandidateView } from './WishSelectionCandidateView';
 import {
     WishSelectionCandidateViewFromJSON,
@@ -34,6 +41,13 @@ import {
     WishSelectionDateIdeaCandidateViewToJSON,
     WishSelectionDateIdeaCandidateViewToJSONTyped,
 } from './WishSelectionDateIdeaCandidateView';
+import type { WishSelectionRandomRequestView } from './WishSelectionRandomRequestView';
+import {
+    WishSelectionRandomRequestViewFromJSON,
+    WishSelectionRandomRequestViewFromJSONTyped,
+    WishSelectionRandomRequestViewToJSON,
+    WishSelectionRandomRequestViewToJSONTyped,
+} from './WishSelectionRandomRequestView';
 
 /**
  * 
@@ -66,6 +80,12 @@ export interface WishSelectionView {
      */
     dateIdeaCandidates: Array<WishSelectionDateIdeaCandidateView>;
     /**
+     * The decided candidate, the same on both devices.
+     * @type {WishSelectionDecisionView}
+     * @memberof WishSelectionView
+     */
+    decision?: WishSelectionDecisionView | null;
+    /**
      * 
      * @type {string}
      * @memberof WishSelectionView
@@ -77,6 +97,18 @@ export interface WishSelectionView {
      * @memberof WishSelectionView
      */
     own: WishSelectionOwnView;
+    /**
+     * Whether chance may decide and from what kind of pool; the pool itself is never returned. Null when chance is not offered.
+     * @type {WishSelectionViewRandomPoolEnum}
+     * @memberof WishSelectionView
+     */
+    randomPool?: WishSelectionViewRandomPoolEnum | null;
+    /**
+     * 
+     * @type {WishSelectionRandomRequestView}
+     * @memberof WishSelectionView
+     */
+    randomRequest?: WishSelectionRandomRequestView | null;
     /**
      * 
      * @type {WishSelectionViewResultStateEnum}
@@ -109,6 +141,16 @@ export interface WishSelectionView {
     version: number;
 }
 
+
+/**
+ * @export
+ */
+export const WishSelectionViewRandomPoolEnum = {
+    COMMON: 'COMMON',
+    FAVORITES: 'FAVORITES',
+    ALL: 'ALL'
+} as const;
+export type WishSelectionViewRandomPoolEnum = typeof WishSelectionViewRandomPoolEnum[keyof typeof WishSelectionViewRandomPoolEnum];
 
 /**
  * @export
@@ -156,8 +198,11 @@ export function WishSelectionViewFromJSONTyped(json: any, ignoreDiscriminator: b
         'commonDateIdeaIds': json['commonDateIdeaIds'],
         'commonWishIds': json['commonWishIds'],
         'dateIdeaCandidates': ((json['dateIdeaCandidates'] as Array<any>).map(WishSelectionDateIdeaCandidateViewFromJSON)),
+        'decision': json['decision'] === undefined ? undefined : json['decision'] === null ? null : WishSelectionDecisionViewFromJSON(json['decision']),
         'id': json['id'],
         'own': WishSelectionOwnViewFromJSON(json['own']),
+        'randomPool': json['randomPool'] === undefined ? undefined : json['randomPool'] === null ? null : json['randomPool'],
+        'randomRequest': json['randomRequest'] === undefined ? undefined : json['randomRequest'] === null ? null : WishSelectionRandomRequestViewFromJSON(json['randomRequest']),
         'resultState': json['resultState'],
         'roundToken': json['roundToken'],
         'selectionToken': json['selectionToken'],
@@ -181,8 +226,11 @@ export function WishSelectionViewToJSONTyped(value?: WishSelectionView | null, i
         'commonDateIdeaIds': value['commonDateIdeaIds'],
         'commonWishIds': value['commonWishIds'],
         'dateIdeaCandidates': ((value['dateIdeaCandidates'] as Array<any>).map(WishSelectionDateIdeaCandidateViewToJSON)),
+        'decision': WishSelectionDecisionViewToJSON(value['decision']),
         'id': value['id'],
         'own': WishSelectionOwnViewToJSON(value['own']),
+        'randomPool': value['randomPool'],
+        'randomRequest': WishSelectionRandomRequestViewToJSON(value['randomRequest']),
         'resultState': value['resultState'],
         'roundToken': value['roundToken'],
         'selectionToken': value['selectionToken'],

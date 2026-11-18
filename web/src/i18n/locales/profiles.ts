@@ -9,8 +9,8 @@ const profiles = {
   accountName: 'Anzeigename',
   premium: {
     title: 'eimir. Pro',
-    rowInactive: 'Alle Pro-Funktionen und Preise für euch beide',
-    rowActive: 'Pro ist für euch beide aktiv',
+    rowInactive: 'Funktionen und Preise entdecken',
+    rowActive: 'Pro aktiv · Funktionen entdecken',
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:
@@ -26,8 +26,6 @@ const profiles = {
   anniversaryInDays_one: 'in 1 Tag',
   anniversaryInDays_other: 'in {{count}} Tagen',
   relationshipSavedSubtle: '✓ Gespeichert',
-  relationshipNotificationHint:
-    'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',

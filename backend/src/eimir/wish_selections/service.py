@@ -8,10 +8,17 @@ Candidates are typed (#465 folded into #1535): ordinary Wishes stay Free/Core;
 curated date ideas need the Space capability ``planning.date_inspiration`` to
 be added, chosen or shown. Without it a round that contains date ideas pauses
 instead of exposing catalog content, and a Wish-only replacement stays Free.
+
+A revealed round can be decided (#1907 J1): with several common favourites the
+couple taps one, and when they disagree one partner may propose that chance
+decides. Only the other partner's consent lets the server draw, once, from a
+pool that is never returned; the decided candidate is stored on the round so
+both devices show the same result.
 """
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass, field
 from hashlib import sha256
 from typing import Any, Literal
@@ -41,6 +48,7 @@ from eimir.wish_selections.models import (
     WishSelection,
     WishSelectionCandidate,
     WishSelectionCandidateSource,
+    WishSelectionDecisionMethod,
     WishSelectionPayload,
     WishSelectionRound,
     WishSelectionRoundPayload,
@@ -48,6 +56,10 @@ from eimir.wish_selections.models import (
 from eimir.wishes.models import Wish, WishStatus
 
 ResultState = Literal["NO_ROUND", "CHOOSING", "WAITING", "READY", "NEEDS_IDEAS", "PAUSED"]
+RandomPool = Literal["COMMON", "FAVORITES", "ALL"]
+DecisionAction = Literal[
+    "REQUEST_RANDOM", "ACCEPT_RANDOM", "DECLINE_RANDOM", "WITHDRAW_RANDOM", "CHOOSE", "CLEAR"
+]
 
 DATE_IDEAS_CAPABILITY = Capability.PLANNING_DATE_INSPIRATION.value
 
@@ -69,6 +81,15 @@ class DateIdeaCandidateProjection:
 
 
 @dataclass(frozen=True)
+class DecisionProjection:
+    """The decided candidate; exactly one of the two references is set."""
+
+    wish_id: UUID | None
+    date_idea_id: str | None
+    method: WishSelectionDecisionMethod
+
+
+@dataclass(frozen=True)
 class SelectionProjection:
     round: WishSelectionRound | None
     candidates: list[CandidateProjection]
@@ -79,6 +100,13 @@ class SelectionProjection:
     common_date_idea_ids: list[str] = field(default_factory=list)
     # Whether catalog content may be returned for this Space right now.
     date_ideas_allowed: bool = False
+    # Revealed-round decision (#1907 J1). The pool itself is never exposed;
+    # ``random_pool`` only names its kind for the consent copy.
+    decision: DecisionProjection | None = None
+    random_pool: RandomPool | None = None
+    # Internal draw input: candidate positions; never part of an API view.
+    random_positions: tuple[int, ...] = ()
+    common_positions: tuple[int, ...] = ()
 
     @property
     def round_token(self) -> str:
@@ -161,6 +189,22 @@ def _date_idea_candidates(
         DateIdeaCandidateProjection(idea_id, catalog.revision(idea_id) == revision)
         for idea_id, revision in rows
     ]
+
+
+def _positions(
+    session: Session, context: AuthorizationContext, round_id: UUID
+) -> dict[int, tuple[UUID | None, str | None]]:
+    rows = session.execute(
+        select(
+            WishSelectionCandidate.position,
+            WishSelectionCandidate.wish_id,
+            WishSelectionCandidate.date_idea_id,
+        ).where(
+            WishSelectionCandidate.round_id == round_id,
+            WishSelectionCandidate.space_id == context.space_id,
+        )
+    ).all()
+    return {position: (wish_id, idea_id) for position, wish_id, idea_id in rows}
 
 
 def _date_ideas_allowed(session: Session, context: AuthorizationContext, *, lock: bool) -> bool:
@@ -255,7 +299,63 @@ def get_selection(
         if candidate.wish.id in shared_ids and candidate.plan_id is None
     ]
     common_ideas = [idea.date_idea_id for idea in date_ideas if idea.date_idea_id in shared_ideas]
-    return projection("READY", common, common_ideas)
+    ready = projection("READY", common, common_ideas)
+
+    positions = _positions(session, context, round.id)
+    open_wishes = {candidate.wish.id for candidate in candidates if candidate.plan_id is None}
+    current_ideas = {idea.date_idea_id for idea in date_ideas if idea.current}
+
+    def available(position: int) -> bool:
+        wish_id, idea_id = positions[position]
+        return (wish_id in open_wishes) if wish_id is not None else (idea_id in current_ideas)
+
+    def chosen_by(wish_ids: set[UUID], idea_ids: set[str]) -> tuple[int, ...]:
+        return tuple(
+            sorted(
+                position
+                for position, (wish_id, idea_id) in positions.items()
+                if available(position)
+                and (wish_id in wish_ids if wish_id is not None else idea_id in idea_ids)
+            )
+        )
+
+    common_positions = chosen_by(set(common), set(common_ideas))
+    decision = None
+    position = round.decision_position
+    if position is not None and position in positions and available(position):
+        wish_id, idea_id = positions[position]
+        decision = DecisionProjection(
+            wish_id, idea_id, WishSelectionDecisionMethod(round.decision_method or "MANUAL")
+        )
+    pool: RandomPool | None = None
+    pool_positions: tuple[int, ...] = ()
+    if decision is None and len(common_positions) >= 2:
+        pool, pool_positions = "COMMON", common_positions
+    elif decision is None and not common_positions:
+        favourites = chosen_by(
+            {item for selection in selections for item in selection.payload.favorite_wish_ids},
+            {item for selection in selections for item in selection.payload.favorite_date_idea_ids},
+        )
+        if favourites:
+            pool, pool_positions = "FAVORITES", favourites
+        else:
+            everything = tuple(sorted(position for position in positions if available(position)))
+            if everything:
+                pool, pool_positions = "ALL", everything
+    return SelectionProjection(
+        round,
+        candidates,
+        own,
+        ready.common_wish_ids,
+        "READY",
+        date_idea_candidates=date_ideas,
+        common_date_idea_ids=ready.common_date_idea_ids,
+        date_ideas_allowed=allowed,
+        decision=decision,
+        random_pool=pool,
+        random_positions=pool_positions,
+        common_positions=common_positions,
+    )
 
 
 def _conflict() -> ConflictError:
@@ -344,6 +444,7 @@ def replace_round(
         current.version += 1
         current.candidate_count = len(wish_ids) + len(idea_ids)
         current.payload = WishSelectionRoundPayload(title=normalized_title or None)
+        _reset_decision(current)
         session.flush()
     for position, wish_id in enumerate(wish_ids):
         session.add(
@@ -431,6 +532,9 @@ def update_own_selection(
     payload = WishSelectionPayload(
         favorite_wish_ids=favorite_wish_ids, favorite_date_idea_ids=idea_favorites
     )
+    if _reset_decision(current.round):
+        # Changed favourites change what chance or a tap would decide between.
+        current.round.version += 1
     own = current.own
     if own is None:
         own = WishSelection(
@@ -453,6 +557,116 @@ def update_own_selection(
     if result.result_state == "READY" and current.result_state != "READY":
         _record_shared_action(session, context, current.round, EventType.WISH_SELECTION_READY)
     return result
+
+
+def _reset_decision(round: WishSelectionRound) -> bool:
+    changed = (
+        round.random_requested_by is not None
+        or round.random_declined
+        or round.decision_position is not None
+    )
+    round.random_requested_by = None
+    round.random_declined = False
+    round.decision_position = None
+    round.decision_method = None
+    return changed
+
+
+def _decision_conflict(detail: str) -> ConflictError:
+    return ConflictError(detail, "WISH_SELECTION_DECISION_UNAVAILABLE")
+
+
+def decide(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    expected_token: str,
+    action: DecisionAction,
+    wish_id: UUID | None = None,
+    date_idea_id: str | None = None,
+) -> SelectionProjection:
+    """Decide a revealed round by a tap, or by chance with both partners' consent.
+
+    Rules (#1907 J1): one request per round; a request from each partner counts
+    as consent; changing favourites or a new round cancels it; there is no
+    expiry; the server draws once and stores the decided candidate.
+    """
+    relationship.lock_space(session, context.space_id)
+    current = get_selection(session, context, lock_grants=True)
+    if current.round is None or current.selection_token != expected_token:
+        raise _conflict()
+    if current.result_state != "READY":
+        raise _decision_conflict("The round is not revealed yet.")
+    round = current.round
+    me = context.account_id
+    requested_by = round.random_requested_by
+    pending_by_partner = (
+        requested_by is not None and requested_by != me and not round.random_declined
+    )
+    pending_by_me = requested_by == me and not round.random_declined
+    event: EventType | None = None
+
+    def draw() -> None:
+        if not current.random_positions:
+            raise _decision_conflict("Chance has nothing to decide between.")
+        round.decision_position = secrets.SystemRandom().choice(current.random_positions)
+        round.decision_method = WishSelectionDecisionMethod.RANDOM.value
+        round.random_requested_by = None
+        round.random_declined = False
+
+    if action == "REQUEST_RANDOM":
+        if current.random_pool is None:
+            raise _decision_conflict("Chance cannot decide this round.")
+        if pending_by_me:
+            return current
+        if pending_by_partner:
+            # Both partners asked for chance: that is mutual consent.
+            draw()
+            event = EventType.WISH_SELECTION_RANDOM_ACCEPTED
+        else:
+            round.random_requested_by = me
+            round.random_declined = False
+            event = EventType.WISH_SELECTION_RANDOM_REQUESTED
+    elif action == "ACCEPT_RANDOM":
+        if not pending_by_partner or current.random_pool is None:
+            raise _decision_conflict("There is no open request to agree to.")
+        draw()
+        event = EventType.WISH_SELECTION_RANDOM_ACCEPTED
+    elif action == "DECLINE_RANDOM":
+        if not pending_by_partner:
+            raise _decision_conflict("There is no open request to decline.")
+        round.random_declined = True
+        event = EventType.WISH_SELECTION_RANDOM_DECLINED
+    elif action == "WITHDRAW_RANDOM":
+        if requested_by != me:
+            raise _decision_conflict("There is no own request to withdraw.")
+        round.random_requested_by = None
+        round.random_declined = False
+    elif action == "CHOOSE":
+        positions = _positions(session, context, round.id)
+        chosen = [
+            position
+            for position in current.common_positions
+            if positions[position] == (wish_id, date_idea_id)
+        ]
+        if len(current.common_positions) < 2 or len(chosen) != 1 or current.decision:
+            raise ValidationError(
+                "Choose one of your common favourites.", "WISH_SELECTION_DECISION_INVALID"
+            )
+        round.decision_position = chosen[0]
+        round.decision_method = WishSelectionDecisionMethod.MANUAL.value
+        round.random_requested_by = None
+        round.random_declined = False
+    elif action == "CLEAR":
+        if current.decision is None:
+            raise _decision_conflict("Nothing has been decided yet.")
+        round.decision_position = None
+        round.decision_method = None
+    round.version += 1
+    session.flush()
+    if event is not None:
+        _record_shared_action(session, context, round, event)
+    return get_selection(session, context, lock_grants=True)
 
 
 def close_round(session: Session, context: AuthorizationContext, *, expected_token: str) -> None:

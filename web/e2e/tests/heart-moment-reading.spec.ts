@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import contextTags from '../../src/i18n/locales/contextTags';

@@ -14,21 +14,20 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
+import { BackSlotHost, TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 export function PrivateAreaFrame({
   children,
-  overviewAction,
-  showNavigation = true,
   editorFirst = false,
+  itemFirst = false,
 }: {
   children: ReactNode;
-  overviewAction?: ReactNode;
-  showNavigation?: boolean;
   editorFirst?: boolean;
+  /** One note, list or gift idea: its own header row leads; no card or tabs. */
+  itemFirst?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigation = showNavigation ? (
+  const navigation = itemFirst ? null : (
     <nav
       className="private-area-nav"
       aria-label={t('privateArea.navigation.aria')}
@@ -46,29 +45,28 @@ export function PrivateAreaFrame({
         {t('privateArea.partnerNotes.shortTitle')}
       </NavLink>
     </nav>
-  ) : null;
+  );
   return (
     <div className="page private-area-page">
-      {editorFirst ? null : (
-        <section
-          className="private-area-context"
-          aria-label={t('privateArea.privacyLabel')}
-        >
-          <div className="private-area-header-info">
-            <h1 className="private-area-title-row">
-              <EimirIcon name="nurfuer" className="private-area-lock-icon" />
-              {t('privateArea.eyebrow')}
-            </h1>
-            <p className="private-area-intro-text">
-              {t(
-                showNavigation
-                  ? 'privateArea.intro'
-                  : 'privateArea.entry.privacy',
-              )}
-            </p>
-          </div>
-          {overviewAction}
-        </section>
+      {editorFirst || itemFirst ? null : (
+        // Back sits beside the area card, the page's title (#1907 C4).
+        <div className="private-area-head">
+          <BackSlotHost className="private-area-back" />
+          <section
+            className="private-area-context"
+            aria-label={t('privateArea.privacyLabel')}
+          >
+            <div className="private-area-header-info">
+              <h1 className="private-area-title-row">
+                <EimirIcon name="nurfuer" className="private-area-lock-icon" />
+                {t('privateArea.eyebrow')}
+              </h1>
+              <p className="private-area-intro-text">
+                {t('privateArea.intro')}
+              </p>
+            </div>
+          </section>
+        </div>
       )}
       {!editorFirst && navigation}
       {children}
@@ -238,5 +236,23 @@ export function DeleteConfirmation({
       )}
       {error ? <ProblemState error={error} /> : null}
     </section>
+  );
+}
+
+/** The type label of one private item, marked with the area lock. */
+export function PrivateItemLabel({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <EimirIcon name="nurfuer" className="private-item-lock-icon" />
+      {children}
+    </>
+  );
+}
+
+/** The quiet privacy line below a private item's name. */
+export function PrivateItemPrivacy() {
+  const { t } = useTranslation();
+  return (
+    <p className="private-item-privacy">{t('privateArea.entry.privacy')}</p>
   );
 }

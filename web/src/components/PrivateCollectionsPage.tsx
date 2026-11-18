@@ -36,6 +36,8 @@ import './SharedPlanningPages.css';
 import {
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemPrivacy,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
@@ -1042,7 +1044,12 @@ export function PrivateCollectionDetailPage({
             />
           )
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.collections.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={
           <span
             style={{

@@ -6,6 +6,7 @@ on:
       - "web/**"
       - "android/**"
       - "design/tokens.json"
+      - "design/designs/**"
       - "legal/**"
       - ".github/workflows/web-s8.yml"
 
@@ -31,7 +32,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Dependency audit
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Type check
         run: npm run typecheck

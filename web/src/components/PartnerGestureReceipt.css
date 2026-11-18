@@ -338,7 +338,7 @@
   height: calc(var(--space-6) + var(--space-2));
 }
 
-.partner-gesture-receipt-glyph[data-glyph="calendar"] svg {
+.partner-gesture-receipt-glyph[data-glyph="icon"] svg {
   fill: none;
 }
 
@@ -466,7 +466,7 @@
   );
 }
 
-/* How are you: one calm breath, three soft waves, no hearts. */
+/* The calm receipt (check-in and partner notices): one soft breath, no hearts. */
 .partner-gesture-receipt[data-variant="calm-ring"]
   .partner-gesture-receipt-person
   .person-identity,
@@ -476,32 +476,13 @@
     var(--easing-standard) var(--duration-sequence-beat) both;
 }
 
+/* No waves: the badge lands soon after the soft breath begins (Product Owner
+ * decision, 2026-11-15). */
 .partner-gesture-receipt[data-variant="calm-ring"]
-  .partner-gesture-receipt-wave {
-  animation: partner-gesture-ripple calc(1.5 * var(--duration-gesture-moment))
-    var(--easing-standard) both;
-}
-
-.partner-gesture-receipt[data-variant="calm-ring"]
-  .partner-gesture-receipt-wave[data-wave="1"] {
-  background: var(--partner-gesture-tint);
-  animation-delay: var(--duration-sequence-beat);
-}
-
-.partner-gesture-receipt[data-variant="calm-ring"]
-  .partner-gesture-receipt-wave[data-wave="2"] {
+.partner-gesture-receipt-glyph {
   animation-delay: calc(
     var(--duration-sequence-beat) +
-    0.5 *
-    var(--duration-gesture-moment)
-  );
-}
-
-.partner-gesture-receipt[data-variant="calm-ring"]
-  .partner-gesture-receipt-wave[data-wave="3"] {
-  animation-delay: calc(
-    var(--duration-sequence-beat) +
-    var(--duration-gesture-moment)
+    var(--duration-context)
   );
 }
 

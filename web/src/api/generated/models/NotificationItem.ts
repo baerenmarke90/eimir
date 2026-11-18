@@ -91,6 +91,12 @@ export interface NotificationItem {
      */
     readAt: Date | null;
     /**
+     * Ideas in the shared round a wish-selection invitation refers to (#1907 J1).
+     * @type {number}
+     * @memberof NotificationItem
+     */
+    selectionSize?: number | null;
+    /**
      * 
      * @type {string}
      * @memberof NotificationItem
@@ -150,6 +156,7 @@ export function NotificationItemFromJSONTyped(json: any, ignoreDiscriminator: bo
         'id': json['id'],
         'kind': NotificationKindFromJSON(json['kind']),
         'readAt': (json['readAt'] == null ? null : new Date(json['readAt'])),
+        'selectionSize': json['selectionSize'] === undefined ? undefined : json['selectionSize'] === null ? null : json['selectionSize'],
         'sourceEventId': json['sourceEventId'],
         'target': json['target'] === undefined ? undefined : json['target'] === null ? null : ActivityTargetPresentationFromJSON(json['target']),
         'targetId': json['targetId'],
@@ -175,6 +182,7 @@ export function NotificationItemToJSONTyped(value?: NotificationItem | null, ign
         'id': value['id'],
         'kind': NotificationKindToJSON(value['kind']),
         'readAt': value['readAt'] == null ? value['readAt'] : value['readAt'].toISOString(),
+        'selectionSize': value['selectionSize'],
         'sourceEventId': value['sourceEventId'],
         'target': ActivityTargetPresentationToJSON(value['target']),
         'targetId': value['targetId'],

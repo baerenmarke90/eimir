@@ -82,12 +82,6 @@
   width: 1rem;
   height: 1rem;
 }
-.people-profile-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-block: calc(-1 * var(--space-3)) var(--space-5);
-}
 .people-profile-hero {
   display: flex;
   align-items: center;
@@ -98,8 +92,8 @@
   min-width: 0;
 }
 .people-profile-hero h1 {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
+  font: var(--font-subpage-title);
+  letter-spacing: var(--tracking-subpage-title);
   overflow-wrap: anywhere;
   margin: 0;
 }
@@ -367,19 +361,34 @@
 }
 
 /* 1. The next occasion leads, like the next plan does. */
-.occasions-next {
+/* One banner for what is coming up: the next occasion and the next Plan. */
+.occasions-next-card {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.occasions-next,
+.occasions-next-plan {
   display: grid;
   justify-items: start;
   gap: var(--space-1);
   border: 0;
-  border-radius: var(--radius-card);
   padding: var(--space-5);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
+  background: transparent;
   color: var(--color-text);
   font: inherit;
   text-align: start;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.occasions-next-card > * + * {
+  border-block-start: var(--border-surface-width) solid
+    var(--color-border-subtle);
+  padding-block: var(--space-4);
 }
 
 .occasions-next-when {
@@ -399,6 +408,10 @@
   line-height: 1.15;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
+}
+
+.occasions-next-card > * + * .occasions-next-title {
+  font-size: clamp(1.15rem, 4.8vw, 1.4rem);
 }
 
 .occasions-next-date {
@@ -461,8 +474,16 @@
 }
 
 .occasions-band-dots i.is-personal,
-.occasions-grid-day.is-personal::after {
+.occasions-grid-marks i.is-personal {
   background: var(--color-private);
+}
+
+/* A Plan is a short bar, an occasion a dot: the shape tells them apart. */
+.occasions-band-dots i.is-plan,
+.occasions-grid-marks i.is-plan {
+  width: 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-text);
 }
 
 /* 3. The chosen month: numbers and marks only, no ruled grid. */
@@ -511,14 +532,18 @@
   font-weight: 700;
 }
 
-.occasions-grid-day.has-occasion::after {
+.occasions-grid-marks {
   position: absolute;
   bottom: 0.3rem;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.occasions-grid-marks i {
   width: 0.3rem;
   height: 0.3rem;
   border-radius: 50%;
   background: var(--color-text-muted);
-  content: "";
 }
 
 .occasions-grid-day.is-today {
@@ -530,6 +555,21 @@
 .occasions-sheet-empty {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+/* A Plan row opens the Plan; its date marker carries the planning tint. */
+.occasion-plan-card {
+  text-decoration: none;
+}
+
+.occasions-list .occasion-plan-card .important-date-marker {
+  background: var(--color-surface-subtle);
+  color: var(--color-brand-text);
+}
+
+.occasion-plan-lock {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
 }
 
 /* Rows under the sheet are compact: the day tile already says the date. */
@@ -577,4 +617,14 @@ button.occasions-grid-day {
 button.occasions-grid-day:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* The Person actions share the item row with Back (#1907 C4). */
+.people-profile .people-profile-item-row {
+  grid-template-columns:
+    minmax(var(--touch-target-web), auto) minmax(0, 1fr)
+    minmax(var(--touch-target-web), auto);
+}
+.people-profile .people-profile-actions {
+  gap: var(--space-2);
 }

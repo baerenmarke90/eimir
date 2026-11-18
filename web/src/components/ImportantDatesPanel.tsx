@@ -11,12 +11,13 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
 import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import {
@@ -27,22 +28,30 @@ import {
   type DeleteFocusTarget,
   deleteFocusTarget,
 } from '../client/deleteFocusTarget';
+import { planListTitle } from '../client/discreetPlans';
 import {
   EMPTY_IMPORTANT_DATE_DRAFT,
   IMPORTANT_DATE_LABEL_MAX_LENGTH,
   type ImportantDateDraft,
   importantDateFieldsFromDraft,
 } from '../client/importantDateDraft';
+import { planCalendarDays } from '../client/occasionCalendarPlans';
 import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
 import { nextOccasionHolidays } from '../client/occasionHolidays';
+import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
-import { PLAN_CREATE_ROUTE, settingsCategoryPath } from '../client/routes';
+import {
+  PLAN_CREATE_ROUTE,
+  planDetailPath,
+  settingsCategoryPath,
+} from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { DestinationIcon } from './DestinationIcon';
+import { DiscreetLock } from './DiscreetPlan';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
@@ -598,6 +607,58 @@ interface OccasionEntry {
 
 type OccasionOccurrence = OccasionEntry & { repeats: DateRepeat };
 
+/** A dated Plan on the occasions calendar (#1907 F3). */
+interface CalendarPlan {
+  key: string;
+  plan: PlanDetail;
+  first: Date;
+  last: Date;
+  title: string;
+}
+
+type SheetRow =
+  | { kind: 'occasion'; sortDate: Date; entry: OccasionOccurrence }
+  | { kind: 'plan'; sortDate: Date; entry: CalendarPlan };
+
+const PLAN_KEY_PREFIX = 'plan:';
+const DAY_MS = 86_400_000;
+
+function monthKeyOf(date: Date): string {
+  return dateInputValue(date).slice(0, 7);
+}
+
+/** Every `YYYY-MM` from the first to the last day, inclusive. */
+function monthsBetween(first: Date, last: Date): string[] {
+  const keys: string[] = [];
+  let cursor = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1);
+  while (cursor <= last.getTime()) {
+    const month = new Date(cursor);
+    keys.push(monthKeyOf(month));
+    cursor = Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1);
+  }
+  return keys;
+}
+
+/** Plans keep the shape of the Planen navigation glyph (PO, 2026-11-15). */
+function PlanTitle({ title, discreet }: { title: string; discreet: boolean }) {
+  const { t } = useTranslation();
+  const kind = t('importantDates.planKind');
+  return (
+    <span className="occasion-title">
+      <span
+        className="occasion-type-symbol"
+        role="img"
+        aria-label={kind}
+        title={kind}
+      >
+        <EimirIcon name="planen" variant="duotone" />
+      </span>
+      <span>{title}</span>
+      {discreet ? <DiscreetLock className="occasion-plan-lock" /> : null}
+    </span>
+  );
+}
+
 /**
  * The occasion last opened per space. Only the chosen month is listed, so a
  * return from a task started in the reader needs that month shown again; the
@@ -610,6 +671,7 @@ export function ImportantDatesPanel({
   peopleApi,
   spaceId,
   people,
+  plans = [],
   accountId = '',
   instance = '',
   partnerBirthday = null,
@@ -622,6 +684,8 @@ export function ImportantDatesPanel({
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
+  /** Upcoming dated Plans; they share the calendar but not the reader. */
+  plans?: PlanDetail[];
   accountId?: string;
   instance?: string;
   partnerBirthday?: PartnerBirthdayProjection | null;
@@ -1002,12 +1066,29 @@ export function ImportantDatesPanel({
   const past = occurrences
     .filter((entry) => entry.date < today)
     .sort((a, b) => compareDates(b, a) || compareTitles(a, b));
-  occasionMonths.current = new Map(
-    upcoming.map((entry) => [
-      entry.key,
-      dateInputValue(entry.date).slice(0, 7),
-    ]),
-  );
+  const calendarPlans: CalendarPlan[] = plans.flatMap((plan) => {
+    const days = planCalendarDays(plan);
+    if (!days || days.last < today) return [];
+    // A running multi-day Plan starts on today for the calendar.
+    const first = days.first < today ? today : days.first;
+    return [
+      {
+        key: `${PLAN_KEY_PREFIX}${plan.id}`,
+        plan,
+        first,
+        last: days.last,
+        title: planListTitle(plan, t),
+      },
+    ];
+  });
+  occasionMonths.current = new Map([
+    ...upcoming.map(
+      (entry) => [entry.key, monthKeyOf(entry.date)] as [string, string],
+    ),
+    ...calendarPlans.map(
+      (entry) => [entry.key, monthKeyOf(entry.first)] as [string, string],
+    ),
+  ]);
   const selected = occurrences.find((entry) => entry.key === readingKey);
   const canCreatePlan =
     selected &&
@@ -1081,6 +1162,71 @@ export function ImportantDatesPanel({
     );
   }
 
+  function openPlan(entry: CalendarPlan, target: HTMLElement) {
+    // The calendar shows this month again on return, with the row focused.
+    lastOpenedOccasion.set(spaceId, entry.key);
+    readerReturnRef.current =
+      target instanceof HTMLButtonElement ? target : null;
+    const taskOriginKey = captureOrigin({
+      planningSegment: 'dates',
+      selectedKey: entry.key,
+    });
+    void navigate(planDetailPath(entry.plan.id), {
+      state: { taskOriginKey },
+    });
+  }
+
+  function renderPlanRow(entry: CalendarPlan) {
+    const schedule = planScheduleLabel(entry.plan);
+    return (
+      <li key={entry.key}>
+        <Link
+          className="important-date-card occasion-plan-card"
+          to={planDetailPath(entry.plan.id)}
+          data-planning-key={entry.key}
+          onClick={(event) => {
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            openPlan(entry, event.currentTarget);
+          }}
+        >
+          <time
+            className="important-date-marker"
+            dateTime={dateInputValue(entry.first)}
+          >
+            <span className="important-date-marker-day" aria-hidden="true">
+              {dateFormats.day.format(entry.first)}
+            </span>
+            <span className="sr-only">
+              {dateFormats.detail.format(entry.first)}
+            </span>
+          </time>
+          <span className="important-date-timeline-body">
+            <strong>
+              <PlanTitle
+                title={entry.title}
+                discreet={Boolean(entry.plan.discreet)}
+              />
+            </strong>
+            <span className="important-date-meta">
+              {schedule
+                ? t('importantDates.planMeta', { schedule })
+                : t('importantDates.planKind')}
+            </span>
+          </span>
+        </Link>
+      </li>
+    );
+  }
+
   function renderMonths(rows: OccasionOccurrence[], isPast = false) {
     const months = new Map<string, OccasionOccurrence[]>();
     for (const entry of rows) {
@@ -1108,13 +1254,20 @@ export function ImportantDatesPanel({
   // three steps from coarse to fine: the next occasion, a band of the coming
   // twelve months, and the chosen month as a quiet sheet with its occasions.
   function renderCalendar() {
-    const monthKey = (date: Date) => dateInputValue(date).slice(0, 7);
+    const monthKey = monthKeyOf;
     const isPersonal = (entry: OccasionOccurrence) =>
       Boolean(entry.custom) || entry.type !== ImportantDateType.CUSTOM;
     const byMonth = new Map<string, OccasionOccurrence[]>();
     for (const entry of upcoming) {
       const key = monthKey(entry.date);
       byMonth.set(key, [...(byMonth.get(key) ?? []), entry]);
+    }
+    // A multi-day Plan belongs to every month it touches.
+    const plansByMonth = new Map<string, CalendarPlan[]>();
+    for (const entry of calendarPlans) {
+      for (const key of monthsBetween(entry.first, entry.last)) {
+        plansByMonth.set(key, [...(plansByMonth.get(key) ?? []), entry]);
+      }
     }
     const comingYear = Array.from({ length: 12 }, (_, index) => {
       const first = new Date(
@@ -1125,7 +1278,9 @@ export function ImportantDatesPanel({
     // An occasion can fall after the coming twelve months: an annual one whose
     // day already passed this month, or a one-off date further out. Its month
     // joins the band so every occasion stays reachable.
-    const laterMonths = [...byMonth.keys()]
+    const laterMonths = [
+      ...new Set([...byMonth.keys(), ...plansByMonth.keys()]),
+    ]
       .filter((key) => !comingYear.some((month) => month.key === key))
       .sort()
       .map((key) => ({ key, first: new Date(`${key}-01T00:00:00Z`) }));
@@ -1136,10 +1291,42 @@ export function ImportantDatesPanel({
     );
     const shown = (key: string | null | undefined) =>
       key && months.some((month) => month.key === key) ? key : null;
+    const firstKey = [
+      ...(next ? [monthKey(next.date)] : []),
+      ...(calendarPlans[0] ? [monthKey(calendarPlans[0].first)] : []),
+    ].sort()[0];
     const activeKey =
-      shown(calendarMonth) ?? shown(openedMonth) ?? monthKey(next.date);
+      shown(calendarMonth) ?? shown(openedMonth) ?? shown(firstKey);
     const active = months.find((month) => month.key === activeKey) ?? months[0];
     const activeEntries = byMonth.get(active.key) ?? [];
+    const activePlans = plansByMonth.get(active.key) ?? [];
+    // Occasions lead on a shared day; Plans keep their schedule order.
+    const sheetRows: SheetRow[] = [
+      ...activeEntries.map(
+        (entry): SheetRow => ({
+          kind: 'occasion',
+          sortDate: entry.date,
+          entry,
+        }),
+      ),
+      ...activePlans.map(
+        (entry): SheetRow => ({
+          kind: 'plan',
+          sortDate: entry.first < active.first ? active.first : entry.first,
+          entry,
+        }),
+      ),
+    ].sort(
+      (a, b) =>
+        a.sortDate.getTime() - b.sortDate.getTime() ||
+        (a.kind === b.kind ? 0 : a.kind === 'occasion' ? -1 : 1),
+    );
+    const plansOnDay = (key: string) =>
+      activePlans.filter(
+        (entry) =>
+          dateInputValue(entry.first) <= key &&
+          key <= dateInputValue(entry.last),
+      );
     const year = active.first.getUTCFullYear();
     const monthIndex = active.first.getUTCMonth();
     const daysInMonth = new Date(
@@ -1158,9 +1345,81 @@ export function ImportantDatesPanel({
     const relative = new Intl.RelativeTimeFormat(i18n.language, {
       numeric: 'auto',
     });
-    const daysUntilNext = Math.round(
-      (next.date.getTime() - today.getTime()) / 86_400_000,
+    const daysUntilNext = next
+      ? Math.round((next.date.getTime() - today.getTime()) / DAY_MS)
+      : 0;
+    // The banner also names the next dated Plan, so what is coming up reads
+    // as one thing: the occasion and the Plan, nearest first.
+    const nextPlan = [...calendarPlans].sort(
+      (a, b) => a.first.getTime() - b.first.getTime(),
+    )[0];
+    const daysUntilPlan = nextPlan
+      ? Math.round((nextPlan.first.getTime() - today.getTime()) / DAY_MS)
+      : 0;
+    const planFirst = Boolean(
+      nextPlan && (!next || nextPlan.first.getTime() < next.date.getTime()),
     );
+    const occasionRow = next ? (
+      <button
+        key="occasion"
+        type="button"
+        className="occasions-next"
+        aria-haspopup="dialog"
+        onClick={(event) => {
+          readerReturnRef.current = event.currentTarget;
+          openReader(next.key);
+        }}
+      >
+        <span className="occasions-next-when">
+          {relative.format(daysUntilNext, 'day')}
+        </span>
+        <strong className="occasions-next-title">{next.label}</strong>
+        <time
+          className="occasions-next-date"
+          dateTime={dateInputValue(next.date)}
+        >
+          {dateFormats.detail.format(next.date)}
+        </time>
+      </button>
+    ) : null;
+    const planRow = nextPlan ? (
+      <Link
+        key="plan"
+        className="occasions-next-plan"
+        to={planDetailPath(nextPlan.plan.id)}
+        onClick={(event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          )
+            return;
+          event.preventDefault();
+          openPlan(nextPlan, event.currentTarget);
+        }}
+      >
+        <span className="occasions-next-when">
+          {relative.format(daysUntilPlan, 'day')}
+          <span aria-hidden="true"> · </span>
+          {t('importantDates.planKind')}
+        </span>
+        <strong className="occasions-next-title">
+          {nextPlan.title}
+          {nextPlan.plan.discreet ? (
+            <DiscreetLock className="occasion-plan-lock" />
+          ) : null}
+        </strong>
+        <time
+          className="occasions-next-date"
+          dateTime={dateInputValue(nextPlan.first)}
+        >
+          {dateFormats.detail.format(nextPlan.first)}
+        </time>
+      </Link>
+    ) : null;
     const todayKey = dateInputValue(today);
     const weekdays = Array.from({ length: 7 }, (_, index) => ({
       id: `weekday-${index + 1}`,
@@ -1174,30 +1433,17 @@ export function ImportantDatesPanel({
 
     return (
       <div className="occasions-calendar">
-        <button
-          type="button"
-          className="occasions-next"
-          aria-haspopup="dialog"
-          onClick={(event) => {
-            readerReturnRef.current = event.currentTarget;
-            openReader(next.key);
-          }}
-        >
-          <span className="occasions-next-when">
-            {relative.format(daysUntilNext, 'day')}
-          </span>
-          <strong className="occasions-next-title">{next.label}</strong>
-          <time
-            className="occasions-next-date"
-            dateTime={dateInputValue(next.date)}
-          >
-            {dateFormats.detail.format(next.date)}
-          </time>
-        </button>
+        {occasionRow || planRow ? (
+          <div className="occasions-next-card">
+            {planFirst ? planRow : occasionRow}
+            {planFirst ? occasionRow : planRow}
+          </div>
+        ) : null}
 
         <div className="occasions-band">
           {months.map((month) => {
             const entries = byMonth.get(month.key) ?? [];
+            const monthPlans = plansByMonth.get(month.key) ?? [];
             const isActive = month.key === active.key;
             return (
               <button
@@ -1205,12 +1451,13 @@ export function ImportantDatesPanel({
                 type="button"
                 className={`occasions-band-month${isActive ? ' is-active' : ''}`}
                 aria-pressed={isActive}
-                aria-label={`${dateFormats.monthAndYear.format(month.first)}, ${entries.length}`}
+                aria-label={`${dateFormats.monthAndYear.format(month.first)}, ${entries.length + monthPlans.length}`}
                 onClick={() => setCalendarMonth(month.key)}
               >
                 <span>{shortMonth.format(month.first)}</span>
                 <span className="occasions-band-dots" aria-hidden="true">
-                  {entries.slice(0, 3).map((entry) => (
+                  {monthPlans.length ? <i className="is-plan" /> : null}
+                  {entries.slice(0, monthPlans.length ? 2 : 3).map((entry) => (
                     <i
                       key={entry.key}
                       className={isPersonal(entry) ? 'is-personal' : undefined}
@@ -1245,31 +1492,49 @@ export function ImportantDatesPanel({
               const onDay = activeEntries.filter(
                 (entry) => dateInputValue(entry.date) === key,
               );
+              const dayPlans = plansOnDay(key);
               const className = [
                 'occasions-grid-day',
                 key === todayKey ? 'is-today' : '',
-                onDay.length ? 'has-occasion' : '',
+                onDay.length || dayPlans.length ? 'has-occasion' : '',
+                dayPlans.length ? 'has-plan' : '',
                 onDay.some(isPersonal) ? 'is-personal' : '',
               ]
                 .filter(Boolean)
                 .join(' ');
-              // A day with an occasion opens it; several on one day open the
-              // first, and the list below shows them all.
-              return onDay.length ? (
+              const labels = [
+                ...onDay.map((entry) => entry.label),
+                ...dayPlans.map((entry) =>
+                  t('importantDates.planEntryLabel', { title: entry.title }),
+                ),
+              ];
+              // A day opens its first entry, an occasion before a Plan; the
+              // list below shows them all.
+              return labels.length ? (
                 <button
                   key={key}
                   type="button"
                   className={className}
-                  aria-haspopup="dialog"
-                  aria-label={`${dateFormats.detail.format(onDay[0].date)}: ${onDay
-                    .map((entry) => entry.label)
-                    .join(', ')}`}
+                  aria-haspopup={onDay.length ? 'dialog' : undefined}
+                  aria-label={`${dateFormats.detail.format(new Date(`${key}T00:00:00Z`))}: ${labels.join(', ')}`}
                   onClick={(event) => {
-                    readerReturnRef.current = event.currentTarget;
-                    openReader(onDay[0].key);
+                    if (onDay.length) {
+                      readerReturnRef.current = event.currentTarget;
+                      openReader(onDay[0].key);
+                    } else openPlan(dayPlans[0], event.currentTarget);
                   }}
                 >
                   {day}
+                  <span className="occasions-grid-marks" aria-hidden="true">
+                    {dayPlans.length ? <i className="is-plan" /> : null}
+                    {onDay.length ? (
+                      <i
+                        className={
+                          onDay.some(isPersonal) ? 'is-personal' : undefined
+                        }
+                      />
+                    ) : null}
+                  </span>
                 </button>
               ) : (
                 <span key={key} className={className} aria-hidden="true">
@@ -1278,9 +1543,13 @@ export function ImportantDatesPanel({
               );
             })}
           </div>
-          {activeEntries.length ? (
+          {sheetRows.length ? (
             <ul className="occasions-list">
-              {activeEntries.map(renderDateRow)}
+              {sheetRows.map((row) =>
+                row.kind === 'plan'
+                  ? renderPlanRow(row.entry)
+                  : renderDateRow(row.entry),
+              )}
             </ul>
           ) : (
             <p className="occasions-sheet-empty">
@@ -1343,11 +1612,12 @@ export function ImportantDatesPanel({
       ) : null}
       {datesQuery.data &&
       !entries.length &&
+      !calendarPlans.length &&
       !sourcesPending &&
       !sourcesUnavailable ? (
         <UiState kind="empty" title={t('importantDates.emptyTitle')} />
       ) : null}
-      {upcoming.length ? renderCalendar() : null}
+      {upcoming.length || calendarPlans.length ? renderCalendar() : null}
       {past.length ? (
         <div className="occasions-past">
           <h2>{t('importantDates.past')}</h2>

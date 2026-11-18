@@ -1,8 +1,12 @@
 package de.eimir.app;
 
-/** Pure publish rule shared with the Web bridge: 1 km of movement or a 6-hour-old upload. */
+/**
+ * Pure publish rule shared with the Web bridge: 1 km of movement (200 m for a
+ * precise choice) or a 6-hour-old upload.
+ */
 final class PresencePublishRule {
     static final double MIN_DISPLACEMENT_KM = 1.0;
+    static final double MIN_PRECISE_DISPLACEMENT_KM = 0.2;
     static final long MAX_INTERVAL_MS = 6 * 60 * 60 * 1000L;
     private static final double EARTH_RADIUS_KM = 6371.0088;
 
@@ -17,7 +21,13 @@ final class PresencePublishRule {
     }
 
     static boolean due(double lastLat, double lastLon, long lastPublishedAtMs, double lat, double lon, long nowMs) {
+        return due(lastLat, lastLon, lastPublishedAtMs, lat, lon, nowMs, false);
+    }
+
+    static boolean due(double lastLat, double lastLon, long lastPublishedAtMs, double lat, double lon, long nowMs,
+            boolean precise) {
         if (nowMs - lastPublishedAtMs >= MAX_INTERVAL_MS) return true;
-        return distanceKm(lastLat, lastLon, lat, lon) >= MIN_DISPLACEMENT_KM;
+        double threshold = precise ? MIN_PRECISE_DISPLACEMENT_KM : MIN_DISPLACEMENT_KM;
+        return distanceKm(lastLat, lastLon, lat, lon) >= threshold;
     }
 }

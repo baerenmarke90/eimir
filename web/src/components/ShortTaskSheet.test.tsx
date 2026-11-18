@@ -908,14 +908,19 @@ describe('ShortTaskSheet history ownership', () => {
     ).toBe('0px');
   });
 
-  it.each(['pointer', 'touch'] as const)(
-    'leaves a downward %s drag on map tiles to the map',
-    (input) => {
+  it.each([
+    ['pointer', 'place-map-viewport'],
+    ['touch', 'place-map-viewport'],
+    ['pointer', 'photo-edit-area'],
+    ['touch', 'photo-edit-area'],
+  ] as const)(
+    'leaves a downward %s drag inside .%s to its own gesture',
+    (input, owner) => {
       mockMatchMedia(false);
       const onClose = vi.fn();
       render(
         <ShortTaskSheet open title="Map" onClose={onClose}>
-          <div className="place-map-viewport">
+          <div className={owner}>
             <span data-testid="map-tile">Map tile</span>
           </div>
         </ShortTaskSheet>,

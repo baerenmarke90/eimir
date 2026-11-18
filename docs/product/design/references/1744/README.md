@@ -189,3 +189,505 @@ Built from the reference above (reviewed against `main@71f1680a2`, built on `mai
 - On Expanded the row spans the full width of the two-column group so no cell stays empty.
 - Not performed: large-text capture of the new row, the Free/pending/no-edition states in the browser (selector covered by unit tests), and Android device acceptance.
 
+
+## The monthly film (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: a monthly recap is an automatic best-of,
+cut like a short film from the month's shared material, **without a model and
+without generated text**, presented in the existing scene reader (no rendered
+video file). The Product Owner reviewed an animated prototype on the live app
+with the couple's real data (read-only, nothing stored) and approved its cut,
+layouts and timing ("exactly like this"). The baseline was `main@43fabb129`.
+
+**Visual reference (Product Owner decision 2026-11-17):** the Product Owner
+accepted screenshots of this animated prototype as the visual product reference
+instead of a generated image. Because the prototype ran on the couple's real
+photos and words, those screenshots stay out of the repository and the issue;
+the committed evidence is captured from synthetic fixtures in the implemented
+reader.
+
+### Selection and cut (server, `recaps/film.py`, `recaps/montage.py`)
+
+- **Pool:** every shared moment that starts in the month (Memory, HeartMoment,
+  Milestone, Chapter, completed Plan). Both answers to one guided happiness or
+  time-travel question are one moment. A multi-day moment belongs to the month
+  it starts in. Owner-only content never enters.
+- **Points, no model:** real photos, collage material (three or more), words,
+  both partners' answers, a mutual positive reaction, a linked Place, a
+  multi-day moment and a member's own birthday. Deductions for moments that
+  only have screenshots or duplicates, for blur and for the app's automatic
+  fallback title. The highlight is guaranteed.
+- **Length:** at most 12 moments, two per day, and about 90 seconds of running
+  time (Google and Apple memories run 30-60 s; the couple's words need reading
+  time). Sparse months get fewer scenes, never filler.
+- **Photos:** quality is measured on the stored 512 px thumbnail with Pillow
+  only: Laplacian variance (blur), the share of flat areas plus a tall format
+  (screenshots) and a 64-bit difference hash (duplicates). Real photos lead,
+  then videos, then screenshots. A sensitive photo stays out while its moment
+  stays (Product Owner 2026-11-17). A video plays a muted clip of at most five
+  seconds from its first third through the existing short-lived playback access.
+- **Look:** eight moods, eight transitions (56 ordered pairs), five motions, four
+  covers and two to five layouts per scene type. Each edition freezes one look,
+  chosen deterministically from Space and period against the frozen looks of the
+  latest five monthly editions: no mood and no transition pair repeats within
+  five recaps, consecutive recaps never share a cover or a first layout. A
+  recomposition keeps the frozen look. Moods are names; the reader maps them to
+  semantic tokens, so app designs and Light/Dark apply.
+- **Never served:** scores, ranks and selection reasons (Product Owner: the cut
+  plan is a trade secret). The read contract carries the frozen look, the
+  highlight key, curated media per moment, live answers, the first Place name
+  and the month's authored tags with counts. All of these are re-authorized on
+  every read; a newly sensitive or removed photo disappears at once.
+- **Scene rules:** a calm opener (Places of the month, else the days with
+  entries), chronological order with the highlight as the longest and strongest
+  scene, never the same scene type twice in a row, answers in the picture when
+  short or as the next scene, a scene where the month's tags fly together, and a
+  quiet closing. A HeartMoment with a photo shows the photo with its words.
+  Music stays optional and is not built; the contract leaves room for it.
+- **Year editions** are cut as a longer film (see "The year film" below);
+  editions without a frozen film use the existing reader unchanged.
+
+### Mobile Interaction Contract (film)
+
+Human task: watch the month in one sitting, like a photo memory. Focal point: a
+real photo or the couple's own words. Single dominant action: play/pause; tap
+left/right, hold to pause and the explicit controls stay. Captions never sit
+under an image area; full-bleed captions use the strong scrim. States:
+loading reserves the scene frame; pending, empty, error, offline and downgrade
+semantics are unchanged. Reduced motion follows the app's motion tokens, which
+are zero under that preference: scenes change without transition, drift, zoom,
+stagger and the tag flight stop, and video posters replace clips; state and
+focus are unchanged. Large text reflows;
+long words are never set as a display heading. Browser-only arrows stay hidden
+in the native runtime. Expanded keeps the same order inside the reading column.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** Pillow (already a dependency) for photo measures; ImageHash and
+  OpenCV were considered and are not needed for three statistics on a thumbnail.
+  Existing worker queue, authorized media loader, playback access, scene reader
+  and Web Animations API. No new dependency, provider or model.
+- **Business/freemium impact reviewed:** unchanged row "Relationship passport and
+  automatic recaps (#497, #1528)": Premium composition behind
+  `relationship.passport`, retained editions stay readable after expiry (the
+  frozen look is part of the edition). Identical on Cloud and Self-Hosted; no
+  inference, so managed cost falls. Thumbnail reads add bounded worker CPU per
+  composed month.
+- **Privacy:** only shared, authorized content; derived measures are never
+  stored; the frozen look and curated media live in the protected edition
+  payload and follow the edition lifecycle. No faces, no biometrics.
+- **Not part of this change:** removing the local wording model and its texts
+  (separate step), music, a per-entry "not in recaps" control.
+
+### Runtime evidence: the monthly film
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the monthly film presents
+its scenes …") from a synthetic month with curated media, two Places, both
+answers to a guided question, five tags and a frozen look (mood `rose`, cover
+`mosaic`). Reduced motion is on so every capture shows a settled scene; each run
+also asserts that no caption band sits under a picture (full-bleed captions use
+the scrim), no horizontal overflow and no axe violation in the reader.
+
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (mosaic) | [00](evidence/recaps-film-00-390-light.png) | [00](evidence/recaps-film-00-430-dark.png) | [00](evidence/recaps-film-00-1280-dark.png) |
+| Places opener | [01](evidence/recaps-film-01-390-light.png) | | |
+| Photo (polaroid) | [02](evidence/recaps-film-02-390-light.png) | | |
+| Words (letter) | [03](evidence/recaps-film-03-390-light.png) | | |
+| Photo (full-bleed caption) | [04](evidence/recaps-film-04-390-light.png) | [04](evidence/recaps-film-04-430-dark.png) | [04](evidence/recaps-film-04-1280-dark.png) |
+| Photo with both answers | [05](evidence/recaps-film-05-390-light.png) | | |
+| Milestone (stamp) | [06](evidence/recaps-film-06-390-light.png) | | |
+| Highlight (collage of three pictures, since the film variety) | [07](evidence/recaps-film-07-390-light.png) | | |
+| Words (centered) | [08](evidence/recaps-film-08-390-light.png) | | |
+| Chapter (band) | [09](evidence/recaps-film-09-390-light.png) | | |
+| Tags of the month | [10](evidence/recaps-film-10-390-light.png) | [10](evidence/recaps-film-10-430-dark.png) | [10](evidence/recaps-film-10-1280-dark.png) |
+| Closing | [11](evidence/recaps-film-11-390-light.png) | | |
+
+Not performed: captures of the transitions and motions in flight, a video clip
+(the fixture has no video; the clip path is covered by unit tests), large-text
+capture of the film scenes, and Android device acceptance.
+
+## The year film (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: year recaps work exactly like the monthly
+film, but longer and with the year's highlights. The Product Owner approved the
+cut plan below in chat, including three choices: the year highlight closes the
+film as its climax, the milestones play as one "firsts" sequence in the finale,
+and the film is bounded to 36 moments (about 3.5 minutes, at most 4). The
+synthetic storyboard shown with the plan and the browser captures below serve
+as the visual reference; the baseline was this stack's base
+`claude/recap-bestof-8cf63b@d212c72ab` (PR #2018 on `main@1daf96b48`).
+
+### Cut (server, `recaps/film.py` `year_cut`, `recaps/montage.py` `compose_year`)
+
+- **Per month:** where a monthly film of that month exists, its frozen highlight
+  and its frozen selection are reused; otherwise the monthly cut rules choose,
+  with the seed the monthly film would use. Months with a film therefore only
+  contribute what that film chose, which also bounds the photos measured for a
+  year. Months without material get no chapter.
+- **Fill:** the year's strongest further moments, at most four per month
+  (highlight included) and two per day, until 36 moments or about 3.5 minutes.
+  Month highlights are never removed; the hard limit of four minutes is held by
+  dropping the weakest milestones down to three.
+- **Year highlight:** the strongest month highlight, guaranteed. Because it
+  closes the film, its month keeps at least one other moment when one exists.
+- **Firsts:** every milestone of the year (at most eight) plays as one sequence
+  in the finale and never again inside a month chapter. A month film whose
+  highlight is a milestone therefore opens its year chapter with its next pick.
+- **Look:** frozen per year edition; no mood and no transition pair of the latest
+  five year editions, and never the mood or transition pair of the December film
+  of the same year (checked from either side, whichever is composed later).
+- **Contract:** additive `film.monthHighlights` (month number and source key);
+  scores, ranks and selection reasons are still never stored or served.
+
+### Scenes (Web, `recapFilm.ts`, `RecapFilmScene`)
+
+- **Intro:** cover with the year and a mosaic of the month highlights (the year
+  highlight's own title as heading, else `recaps.film.coverFallbackYear`), the counted facts or
+  Places of the year and the rhythm scene with twelve buckets when frozen.
+- **Month chapters:** a short marker that shows only the localized month name
+  (no generated text), followed by the month's moments under every monthly rule
+  (chronology, no scene type twice in a row, answers in the picture or next).
+- **Finale:** the firsts (`recaps.film.firsts`) with each milestone's day and own title appearing one
+  after another, the year's tags flying together, the year highlight as the
+  longest and strongest scene, a montage of the month covers with the short
+  month name below each picture (never on it), and the quiet closing.
+- **Progress:** one segment per chapter (intro, each month, finale) that fills
+  scene by scene; taps, swipes and arrow keys still page by scene. The monthly
+  film keeps one bar per scene.
+
+### Mobile Interaction Contract (year film)
+
+Unchanged from the monthly film: watch in one sitting, a real photo or the
+couple's own words as focal point, play/pause as the single dominant action,
+tap left/right and hold to pause. Captions never sit under an image area. Reduced
+motion follows the app's motion tokens like the monthly film: scenes change
+without transition, and the month-marker zoom and the staggered firsts and
+covers stop; state and focus are unchanged.
+Browser-only arrows stay hidden in the native runtime. Expanded keeps the same
+order inside the reading column. Pending, empty, error, offline and downgrade
+behavior is unchanged; a year without material keeps the empty state.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** the monthly film's scoring, photo measures, look catalogue, reader,
+  playback and progress fill; no new dependency, provider or model.
+- **Business/freemium impact reviewed:** the same Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)"; the matrix wording
+  now names monthly and yearly films. No tier change; identical on Cloud and
+  Self-Hosted; retained year editions keep their look after expiry. A year job
+  measures at most the photos of months without a monthly film, so worker CPU
+  stays bounded; no inference.
+- **Privacy:** only shared, authorized content; month highlights are source keys
+  the edition already references; derived measures are not stored.
+- **Performance:** reading a year edition re-authorizes up to 36 sources with the
+  same per-source live extras as a month (answers, first Place, media).
+
+### Runtime evidence: the year film
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the year film plays its
+month chapters …" and "the year film keeps browser-only arrows hidden in the
+native app") from a synthetic year (January to October 2026, one highlight and
+one further moment per month, three milestones, six tags, frozen mood `sage`).
+Reduced motion is on, so every capture shows a settled scene; each run asserts
+twelve progress chapters, that no caption band sits under a picture, no
+horizontal overflow and no axe violation in the reader.
+
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (mosaic of month highlights) | [390](evidence/recaps-year-film-cover-390-light.png) | [430](evidence/recaps-year-film-cover-430-dark.png) | [1280](evidence/recaps-year-film-cover-1280-dark.png) |
+| Places opener | [390](evidence/recaps-year-film-place-390-light.png) |  |  |
+| Month marker | [390](evidence/recaps-year-film-month-390-light.png) | [430](evidence/recaps-year-film-month-430-dark.png) | [1280](evidence/recaps-year-film-month-1280-dark.png) |
+| Photo in a month chapter | [390](evidence/recaps-year-film-photo-390-light.png) |  |  |
+| Title in a month chapter | [390](evidence/recaps-year-film-title-390-light.png) |  |  |
+| Words in a month chapter | [390](evidence/recaps-year-film-words-390-light.png) |  |  |
+| Firsts | [390](evidence/recaps-year-film-firsts-390-light.png) | [430](evidence/recaps-year-film-firsts-430-dark.png) | [1280](evidence/recaps-year-film-firsts-1280-dark.png) |
+| Tags of the year | [390](evidence/recaps-year-film-tags-390-light.png) |  |  |
+| Year highlight (climax) | [390](evidence/recaps-year-film-climax-390-light.png) | [430](evidence/recaps-year-film-climax-430-dark.png) | [1280](evidence/recaps-year-film-climax-1280-dark.png) |
+| Month covers | [390](evidence/recaps-year-film-covers-390-light.png) | [430](evidence/recaps-year-film-covers-430-dark.png) | [1280](evidence/recaps-year-film-covers-1280-dark.png) |
+| Closing | [390](evidence/recaps-year-film-closing-390-light.png) |  |  |
+| Native container, month marker | [390](evidence/recaps-year-film-native-390-light.png) | | |
+
+Not performed: captures of transitions and motions in flight, a large-text
+capture of the year scenes, a full twelve-month browser fixture (the
+PostgreSQL integration test covers twelve months), and Android device
+acceptance.
+
+## The film variety (#1744, Product Owner 2026-11-17)
+
+Product Owner direction of 2026-11-17: the monthly and yearly films need far
+more animations, transitions and presentation logic, and must feel clean and
+well made throughout. "Choices" means **automatisms, not settings**: the app
+itself picks the most beautiful moments and stages them attractively. No option
+or setting reaches the couple. The Product Owner approved the plan below in chat
+without a preview. On 2026-11-17 the Product Owner accepted the synthetic
+browser captures below as the visual product reference instead of a generated
+image. The baseline was this stack's base
+`claude/recap-year-film-6b7fbd@94608eb42` (PR #2019).
+
+### Catalogue (server `recaps/film.py`, reader `recapFilm.ts`)
+
+- **Transitions:** twelve pair transitions (fade, slide, rise, zoom, iris, wipe,
+  shift, blur, and new: blinds, split, flip, focus pull), 132 ordered pairs.
+  Each look also freezes three **accents**: the first opens the highlight (a
+  warm light leak is reserved for it), the others join photo runs, including a
+  **match cut** that grows the next picture out of the previous frame. A real
+  shared-element morph across scenes was ruled out: scenes remount, so it would
+  stutter.
+- **Camera motion:** nine paths in three families. Portraits move vertically
+  (pan up, pan down, parallax), landscapes horizontally (drift left/right,
+  diagonal), and neutral paths fit both (zoom in/out, breathe). Each look
+  freezes two of each orientation and one neutral path.
+- **Layouts:** photo (+ mat, panorama band, corner with the day), two pictures
+  (+ diptych, crossfade, scattered prints), **collage** for three pictures of a
+  moment (grid, scattered prints, travelling strip), words (+ word by word,
+  large quote mark), titles (+ between two rules), answers (+ soft cards),
+  Places (+ postcard, route in visiting order without a map), counted days (+
+  counting up), year forms (month as numeral or stamp, firsts as cards, covers
+  as calendar or travelling strip) and three closings (tiles, polaroid stack,
+  fade). Covers: + frame, stack and split.
+
+### Staging from the material (deterministic, no model)
+
+- **Format and crop:** the stored thumbnail gives each curated picture a format
+  (portrait, landscape, square) and a crop centre: the centre of its edge energy
+  (where the photo has the most detail), damped and bounded to 30-70 % so a
+  subject is never pushed to the edge. Layouts and camera paths follow the
+  format; the crop and the camera's origin follow the centre.
+- **Mood from the photos:** the mean light and colour of the film's photos (the
+  highlight counts twice) gives a tone (dark, warm, cool, green, bright). The
+  mood leans towards it (for example dark photos towards night or ink), but only
+  among the moods the five-edition rule leaves free.
+- **Cover:** the highlight's best photo first, then one picture per day with
+  alternating formats; the cover form fits the pictures there are (a strip needs
+  three, a split two; a film without pictures uses the type cover).
+- **Pace:** frozen from the number of chosen moments: calm up to four (month)
+  or fourteen (year), lively from nine or twenty-eight. Picture time scales by
+  1.15 or 0.85; the couple's words keep their full reading time.
+- **Beat:** a run of three or more plain picture scenes plays long-short-short-
+  long, with quicker entrances on the short beats.
+- **Climax:** a held breath in the mood colour, then the highlight's accent, the
+  most generous form that suits its pictures (full bleed, overlap or collage
+  grid) and a slower, deeper camera move.
+- **No repetition:** within a film no neighbouring scenes share a layout or a
+  camera path, no transition plays three times in a row, and two collages in a
+  row become a collage and a pair. Across editions the existing rules stay, and
+  the highlight's accent and the closing form do not return within three
+  consecutive editions.
+- **Calm finish:** a fading closing lets the highlight go into the mood colour
+  above the closing line.
+
+### Contract and compatibility
+
+- Additive and optional: `film.accents`, `film.pace`, and per curated picture
+  `shape`, `focusX`, `focusY`. Nothing else is served: tone, light, sharpness,
+  hashes, scores and selection reasons stay on the server and are never stored.
+- Frozen editions stay readable: a look without accents or pace plays its pair
+  and an even pace, layouts and scene types it lacks use the established first
+  form (line marker, timeline, grid covers, tiles), and every unknown name falls
+  back to fade, the type's first known layout, zoom-in or the mosaic cover.
+- The arrangement is reader logic, so an existing edition now also benefits:
+  three pictures of one moment play as a collage and its highlight takes the
+  most generous form. The frozen names themselves never change.
+
+### Mobile Interaction Contract (film variety)
+
+Unchanged from the monthly and year film: watch in one sitting, a real photo or
+the couple's own words as focal point, play/pause as the single dominant action,
+captions never under a picture (full-bleed captions keep the strong scrim). All
+timings derive from motion tokens; under reduced motion entrances, accents, the
+breath, camera paths, the word-by-word reveal, the counter and the covers strip
+stop, a crossfade shows both pictures next to each other and the covers strip keeps
+the calm grid. Decorative marks (the large quote mark, the month numeral, the
+corner day and the counting digits) are hidden from assistive technology, which
+reads the real text once. Browser-only arrows stay hidden in the native runtime.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** Pillow statistics on the existing thumbnails (no new dependency),
+  CSS registered custom properties for the blinds and the counter, container
+  query units for the covers strip, and the existing reader, playback and
+  motion tokens. Colour and saliency libraries (ColorThief, OpenCV saliency)
+  were considered and are not needed for a mean colour and an edge centroid.
+- **Business/freemium impact reviewed:** the same Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)"; no tier, quota or
+  entitlement change; identical on Cloud and Self-Hosted. Colour and focus come
+  from the same thumbnail read as the quality measures, so worker cost stays
+  bounded; no inference.
+- **Privacy:** format and crop centre are presentation hints of already curated,
+  authorized pictures and live in the protected edition payload; derived
+  colour and detail measures are not stored.
+- **Accessibility and i18n:** no new text; the quote mark uses the locale's own
+  quotes, and month numerals use the locale's number format.
+
+### Runtime evidence: the film variety
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("the film variety stages
+its scenes …", "… catches its accents and the breath before the highlight
+mid-flight" and "the year film variety shows …") from the synthetic month and
+year with a frozen variety look (mood `ink`, cover `stack`, accents `light`,
+`match`, `blinds`) and formats and crop centres on the pictures. Each run
+asserts that no caption band sits under a picture, no horizontal overflow and
+no axe violation, and that the cover stack, the Places route, the collage
+climax and the fading closing come from the look. The mid-flight captures stop
+every running animation at 40 % with the Web Animations API.
+
+| Scene | Compact 390 Light | Compact 430 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Cover (stack) | [00](evidence/recaps-film-variety-00-cover-390-light.png) | [00](evidence/recaps-film-variety-00-cover-430-dark.png) | [00](evidence/recaps-film-variety-00-cover-1280-dark.png) |
+| Places (route) | [01](evidence/recaps-film-variety-01-place-390-light.png) | | |
+| Photo (panorama, landscape) | [02](evidence/recaps-film-variety-02-photo-390-light.png) | | |
+| Words (large quote mark) | [03](evidence/recaps-film-variety-03-words-390-light.png) | | |
+| Photo (corner with the day, portrait) | [04](evidence/recaps-film-variety-04-photo-390-light.png) | | |
+| Photo with answers (mat) | [05](evidence/recaps-film-variety-05-photo-390-light.png) | | |
+| Milestone (between rules) | [06](evidence/recaps-film-variety-06-title-390-light.png) | | |
+| Highlight (collage grid) | [07](evidence/recaps-film-variety-07-climax-390-light.png) | [07](evidence/recaps-film-variety-07-climax-430-dark.png) | [07](evidence/recaps-film-variety-07-climax-1280-dark.png) |
+| Words (word by word) | [08](evidence/recaps-film-variety-08-words-390-light.png) | | |
+| Chapter (stamp) | [09](evidence/recaps-film-variety-09-title-390-light.png) | | |
+| Tags of the month | [10](evidence/recaps-film-variety-10-tags-390-light.png) | | |
+| Closing (fade) | [11](evidence/recaps-film-variety-11-closing-390-light.png) | [11](evidence/recaps-film-variety-11-closing-430-dark.png) | [11](evidence/recaps-film-variety-11-closing-1280-dark.png) |
+| In flight: split entrance | [split](evidence/recaps-film-variety-motion-split-390-light.png) | | |
+| In flight: focus pull | [focus](evidence/recaps-film-variety-motion-focus-390-light.png) | | |
+| In flight: breath and light leak before the highlight | [light](evidence/recaps-film-variety-motion-light-390-light.png) | | |
+| In flight: match cut | [match](evidence/recaps-film-variety-motion-match-390-light.png) | | |
+| Year: month numeral | [390](evidence/recaps-year-film-variety-month-390-light.png) | | |
+| Year: firsts as cards | [390](evidence/recaps-year-film-variety-firsts-390-light.png) | | |
+| Year: covers calendar | [390](evidence/recaps-year-film-variety-covers-390-light.png) | | |
+
+The monthly and year film captures above were renewed with this change: the
+monthly highlight now plays its three pictures as a collage, and the year
+climax, closing and tag captures follow the new arrangement.
+
+Not performed: captures of the blinds, flip and diagonal or
+breathing camera paths in flight (unit tests cover their selection), large-text
+captures of the new forms, a video clip in the new layouts, and Android device
+acceptance on the Pixel.
+
+
+## Readiness notices and late entries (#1744, Product Owner 2026-11-17)
+
+Product Owner request of 2026-11-17: notify the couple when a recap is ready;
+recaps collect in the background, and a sound algorithm must recognise entries
+added later for the previous month or months further back. The Product Owner
+approved the plan in chat and decided the open questions:
+
+1. **Timing:** a recap is announced once it is final, after its grace week
+   (when the edition is retained), not on the first day of the next month.
+2. **Turn of the year:** one notice that opens the year film; December has no
+   notice of its own.
+3. **Retained editions:** late entries may produce a newer version when they are
+   significant; the earlier version stays readable.
+4. **Wording:** the proposed German copy for a ready month, a ready year and
+   a newer version (`recaps.notice.readyMonth`, `readyYear`, `grewMonth`).
+
+The baseline was this stack's base `claude/recap-film-variety-18ddaa@111f6a74a`
+(PR #2020). The Product Owner accepted the synthetic browser captures below as
+the visual reference, as for the film variety.
+
+### Late-entry detection (server `recaps/freshness.py`, `recaps/service.py`)
+
+- **Fingerprint:** every composition stores a digest of the shared material it
+  accounted for: all shared, readable sources that start in the period with
+  their versions (`material_digest`), and the database time of the composition
+  (`material_at`). One grouped query per Space computes the current digest of
+  every month (and, from the months, every year), so any create, edit, date
+  move, withdrawal, deletion or import is noticed however far back it lies.
+- **Quiet period:** a changed period is acted on only after two hours without a
+  further change (`observed_digest`, `observed_at`; a new change restarts the
+  wait). A follow-up scan of the Space is queued for that moment, so a burst of
+  back-filled entries costs one recomposition, not one per entry.
+- **Open proposal** (not yet retained): recomposed silently; it is not retained
+  while its material is still settling.
+- **Retained edition:** never changed. A candidate version is composed with the
+  retained edition's frozen look and kept only when the late material is
+  significant: a late moment (selected, not in the retained film, created or
+  changed after its composition) becomes the highlight, or at least three late
+  moments join the film. Otherwise the candidate is discarded and the retained
+  edition records that it has weighed this material. The earlier version stays
+  readable; the archive marks `recaps.versionEarlier` and
+  `recaps.versionGrown`, and the
+  earlier film's closing scene links to the newer one.
+- **Untouched:** curated selections (`customized`), manual variants and the
+  running period's daily refresh. A year waits while one of its months is still
+  settling, so it picks up the month's final highlight. Editions composed before
+  this change are adopted as they are, without retroactive versions or notices.
+
+### Notices (server `recaps/notices.py`, catalog `RECAP_READY`, `RECAP_GREW`)
+
+- **Ready:** a completed month or year retained within 21 days of its end gets
+  its own notice. December is announced by the year film.
+- **Grew:** a kept newer version gets one notice.
+- **Earlier:** a period that only appears now (late entries for an empty month,
+  a first Pro month, an import) is earlier news. Earlier and grew notices are
+  sent at most once a day per Space; several at once become one notice
+  (`recaps.notice.earlier`) that opens the overview.
+- **Delivery:** never for the running period; not before 09:00 or after 21:00
+  in the Space's time zone; recipient Quiet Hours, the own recaps switch (`notificationSettings.recaps`)
+  (`RECAP_GREW` follows it) and the in-app/Push channel choices apply; never by
+  email. Both active partners receive the identical notice (one outbox event
+  each, no actor). The device preview names only the period as a machine key
+  (`2026-10`, `2026`) that Android and the Web localize; never a title or photo.
+- **Free:** without `relationship.passport` nothing is composed, so nothing is
+  announced; a notice still pending when the capability ends is dropped.
+
+### Mobile Interaction Contract (notices and versions)
+
+- **Notice:** one line in the Notification Center with the recap icon and a
+  gentle bloom (the existing prompt motion, off under reduced motion); a tap
+  opens the recap (or the overview for a collected notice).
+- **Settings:** a recaps group (`notificationSettings.recaps`) beside the
+  shared-activity and closeness groups with the same per-channel switches; no
+  new pattern.
+- **Archive:** both versions of a period stay in the list; the period note says
+  `recaps.versionGrown` or `recaps.versionEarlier` in place of the period
+  status. The
+  earlier film's closing scene carries one quiet sentence and a text link to
+  the newer version; no dialog, no extra primary action.
+- Compact and Expanded share the layout of the existing archive and reader.
+
+### Reuse, business and cross-cutting review
+
+- **Reuse:** the existing PostgreSQL job queue, outbox projection,
+  notification catalog, channel preferences, Quiet Hours and encrypted device
+  preview; PostgreSQL `md5`/`string_agg` for the fingerprint; the existing film
+  composition with its frozen look. No new dependency, provider or model.
+- **Business/freemium impact reviewed:** part of the Premium composition row
+  "Relationship passport and automatic recaps (#497, #1528)" and the Free/Core
+  Notification Policy row; matrix revision 1.35 records that retained editions
+  may gain a newer version and that notices need the capability. Self-Hosted
+  equals Cloud. Managed cost: one grouped query per Space and scan, at most one
+  model-free composition per settled change, one Push per partner and period.
+- **Privacy:** events and push previews carry references and the period key
+  only; the fingerprint is a hash of identifiers and versions, not content.
+- **Concurrency:** the Space advisory lock serializes scan, retention and
+  announcement; `announced_at` makes each notice once-only; a candidate version
+  that cannot finish is discarded and weighed again.
+- **i18n and accessibility:** German and English copy in `recaps.notice.*` and
+  `notificationSettings.recaps*`; month names come from the locale; the notice
+  reads as plain text.
+
+### Runtime evidence: versions in the archive and reader
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` ("a newer version after
+late entries sits beside the earlier one at …") from the synthetic retained
+September with a newer version. Each run asserts both rows, no horizontal
+overflow, no axe violation on the library and the reader, and that the closing
+link opens the newer version.
+
+| State | Compact 390 Light | Compact 390 Dark | Expanded 1280 Dark |
+| --- | --- | --- | --- |
+| Archive with both versions | [library](evidence/recaps-version-library-390-light.png) | [library](evidence/recaps-version-library-390-dark.png) | [library](evidence/recaps-version-library-1280-dark.png) |
+| Earlier version, closing scene | [closing](evidence/recaps-version-closing-390-light.png) | [closing](evidence/recaps-version-closing-390-dark.png) | [closing](evidence/recaps-version-closing-1280-dark.png) |
+
+Backend evidence: `backend/tests/unit/test_recap_notices.py` (decisions) and
+`backend/tests/integration/test_recap_notices.py` (PostgreSQL: grace week and
+09:00 window, both partners, burst debouncing, settling proposals, versions of
+a retained month, collected earlier notices once a day, the turn of the year,
+Quiet Hours, the switch and the end of the capability).
+
+The first dark run failed axe: the inline link kept the browser's default
+colour on the dark card. It now uses the shared link colour token.
+
+Not performed: captures of the Notification Center item and the settings group,
+large-text captures and Android device acceptance on the Pixel (push
+presentation is covered by the native catalog fixtures only).

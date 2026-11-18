@@ -31,6 +31,8 @@ import {
   DeleteConfirmation,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemPrivacy,
   usePrivateAreaTaskContext,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
@@ -490,7 +492,12 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
             fallbackLabel={t('privateArea.gifts.detailBack')}
           />
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.gifts.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={gift.title}
         description={t(`privateArea.gifts.status.${gift.status}`)}
         titleAction={

@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
   type Locator,
@@ -9,7 +8,6 @@ import {
   test,
 } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
-import planFiles from '../../src/i18n/locales/planFiles';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -19,10 +17,13 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import photoSources from '../../src/i18n/locales/photoSources';
+import planFiles from '../../src/i18n/locales/planFiles';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import sharedNotes from '../../src/i18n/locales/sharedNotes';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
+import AxeBuilder from '../support/axe';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { expectQuietComposerMedia } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
@@ -652,11 +653,14 @@ for (const view of [
       {
         name: 'plan-empty-frame-9',
         path: '/plan/plans/new',
+        // #1969: the Notiz tool collects notes in the draft and links them
+        // after the Plan is saved, so the create frame offers it as well.
         tools: [
           composer.photo,
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
       },
@@ -678,6 +682,7 @@ for (const view of [
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
         edit: true,
@@ -1670,6 +1675,8 @@ test('HeartMoment keeps every feeling visible, tints page and system bar, and re
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await installPageComposerFixture(page);
   await signIn(page);
+  // The browser bar follows the saved app design once it has resolved.
+  await expect(page.locator('html')).toHaveAttribute('data-app-design', /.+/);
   const initialBar = await page
     .locator('meta[name="theme-color"]')
     .getAttribute('content');

@@ -6,6 +6,8 @@ import { mockEmptyPartnerNickname } from './partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillEmptyPlanComments } from './planComments';
 import { fulfillNoWishDateProposal } from './productContext';
+import { fulfillNoOccasionSources } from './occasionSources';
+import { NO_WISH_SELECTION_ROUND } from './storyTimelineFixture';
 
 /*
  * Mocked API for the Pro date inspiration journey. The catalog response is
@@ -369,17 +371,8 @@ export async function installDateIdeaMocks(
         state.wishes.filter((wish) => !status || wish.status === status),
       );
     }
-    if (method === 'GET' && pathname === `${space}/wish-selections/current`)
-      return json(
-        {
-          code: 'WISH_SELECTION_NOT_FOUND',
-          detail: 'No current round.',
-          status: 404,
-          title: 'Not Found',
-          type: 'not-found',
-        },
-        404,
-      );
+    if (method === 'GET' && pathname === `${space}/wish-selection`)
+      return json(NO_WISH_SELECTION_ROUND);
 
     if (method === 'GET' && pathname === `${space}/date-ideas`) {
       state.catalogRequests += 1;
@@ -498,6 +491,7 @@ export async function installDateIdeaMocks(
     )
       return page_([]);
 
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${pathname}${url.search}`);
     return json(
       {

@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
@@ -16,6 +16,12 @@ import {
   SPACE_ID,
   DETAIL_COMMENTS,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const fixture = localizedFixture.sharedExperience;
 

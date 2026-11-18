@@ -254,7 +254,9 @@
           "PLACE_CREATED",
           "CHAPTER_CREATED",
           "COLLECTION_CREATED",
-          "COMMENT_CREATED"
+          "COMMENT_CREATED",
+          "SHARED_NOTE_CREATED",
+          "SHARED_NOTE_CHANGED"
         ],
         "title": "ActivityKind",
         "type": "string"
@@ -578,6 +580,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [
@@ -616,6 +630,7 @@
               "HEART_MOMENT",
               "RELATED_PERSON",
               "PLAN",
+              "HEART_HUNT_ROUND",
               "NONE"
             ],
             "title": "Parenttype",
@@ -3741,6 +3756,7 @@
           "kind": {
             "enum": [
               "NEARBY",
+              "CLOSE",
               "RANGE",
               "APPROXIMATE"
             ],
@@ -3758,6 +3774,18 @@
             ],
             "title": "Maxkm"
           },
+          "maxMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Maxmeters"
+          },
           "minKm": {
             "anyOf": [
               {
@@ -3768,6 +3796,18 @@
               }
             ],
             "title": "Minkm"
+          },
+          "minMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for CLOSE.",
+            "title": "Minmeters"
           }
         },
         "required": [
@@ -3812,7 +3852,12 @@
           "PLAN",
           "PLACE",
           "CHAPTER",
-          "COLLECTION"
+          "COLLECTION",
+          "PICTURE_GAME",
+          "SHARED_NOTE",
+          "GARDEN_SEED",
+          "GARDEN_BOUQUET",
+          "RECAP"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -4084,6 +4129,519 @@
         ],
         "title": "GameWishCandidateSet",
         "type": "object"
+      },
+      "GardenBouquetCloseInput": {
+        "additionalProperties": false,
+        "properties": {
+          "kept": {
+            "default": false,
+            "description": "The bouquet was put into Momente.",
+            "title": "Kept",
+            "type": "boolean"
+          }
+        },
+        "title": "GardenBouquetCloseInput",
+        "type": "object"
+      },
+      "GardenBouquetFlower": {
+        "properties": {
+          "senderId": {
+            "description": "Who once sent this flower's seed (its colour).",
+            "format": "uuid",
+            "title": "Senderid",
+            "type": "string"
+          },
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          }
+        },
+        "required": [
+          "species",
+          "senderId"
+        ],
+        "title": "GardenBouquetFlower",
+        "type": "object"
+      },
+      "GardenBouquetInput": {
+        "additionalProperties": false,
+        "properties": {
+          "plantIds": {
+            "description": "Blooming flowers to pick.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Plantids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plantIds"
+        ],
+        "title": "GardenBouquetInput",
+        "type": "object"
+      },
+      "GardenBouquetView": {
+        "properties": {
+          "flowers": {
+            "description": "One to three flowers.",
+            "items": {
+              "$ref": "#/components/schemas/GardenBouquetFlower"
+            },
+            "title": "Flowers",
+            "type": "array"
+          },
+          "givenOn": {
+            "format": "date",
+            "title": "Givenon",
+            "type": "string"
+          },
+          "giverId": {
+            "format": "uuid",
+            "title": "Giverid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "giverId",
+          "givenOn",
+          "flowers"
+        ],
+        "title": "GardenBouquetView",
+        "type": "object"
+      },
+      "GardenForm": {
+        "description": "The garden's overall form, named in the garden book.",
+        "enum": [
+          "BED",
+          "MEADOW",
+          "GARDEN",
+          "PARADISE"
+        ],
+        "title": "GardenForm",
+        "type": "string"
+      },
+      "GardenNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 40 characters after trimming; empty restores the default title.",
+            "title": "Name"
+          }
+        },
+        "title": "GardenNameInput",
+        "type": "object"
+      },
+      "GardenPlantView": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inPond": {
+            "default": false,
+            "description": "A water lily: the slot is a place in the pond.",
+            "title": "Inpond",
+            "type": "boolean"
+          },
+          "senderId": {
+            "format": "uuid",
+            "title": "Senderid",
+            "type": "string"
+          },
+          "sentOn": {
+            "format": "date",
+            "title": "Senton",
+            "type": "string"
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Position in the garden; absent while not planted.",
+            "title": "Slot"
+          },
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          },
+          "stage": {
+            "description": "`0` seed, `1` sprout, `2` bud, `3` bloom.",
+            "title": "Stage",
+            "type": "integer"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fixed phrase the sender attached, if any."
+          }
+        },
+        "required": [
+          "id",
+          "species",
+          "words",
+          "senderId",
+          "sentOn",
+          "stage",
+          "slot"
+        ],
+        "title": "GardenPlantView",
+        "type": "object"
+      },
+      "GardenSeedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "species": {
+            "$ref": "#/components/schemas/GardenSpecies"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "species"
+        ],
+        "title": "GardenSeedInput",
+        "type": "object"
+      },
+      "GardenSpecies": {
+        "description": "What a seed becomes; a surprise is shown until its moonflower first blooms.",
+        "enum": [
+          "POPPY",
+          "BELLFLOWER",
+          "STARFLOWER",
+          "SUNFLOWER",
+          "TULIP",
+          "WATER_LILY",
+          "STRAWBERRY",
+          "MOONFLOWER",
+          "SURPRISE"
+        ],
+        "title": "GardenSpecies",
+        "type": "string"
+      },
+      "GardenUnlock": {
+        "description": "What appears in the garden after cumulative shared days (never reset).",
+        "enum": [
+          "PATH",
+          "POND",
+          "SUNFLOWER",
+          "TULIP",
+          "WATER_LILY",
+          "BENCH",
+          "TREE",
+          "MORE_ROOM",
+          "STRAWBERRY",
+          "BIRDHOUSE",
+          "ROSE_ARCH",
+          "SWING",
+          "STREAM",
+          "EVEN_MORE_ROOM"
+        ],
+        "title": "GardenUnlock",
+        "type": "string"
+      },
+      "GardenView": {
+        "properties": {
+          "bouquet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenBouquetView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A bouquet from the partner that waits on its card."
+          },
+          "discovered": {
+            "description": "Species in the garden book.",
+            "items": {
+              "$ref": "#/components/schemas/GardenSpecies"
+            },
+            "title": "Discovered",
+            "type": "array"
+          },
+          "form": {
+            "$ref": "#/components/schemas/GardenForm",
+            "default": "BED",
+            "description": "The garden's overall form."
+          },
+          "gaveBouquetToday": {
+            "default": false,
+            "description": "The reader already gave a bouquet today.",
+            "title": "Gavebouquettoday",
+            "type": "boolean"
+          },
+          "incoming": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenPlantView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A seed that arrived for the reader and waits to be planted."
+          },
+          "localDate": {
+            "description": "The couple's shared calendar day.",
+            "format": "date",
+            "title": "Localdate",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The couple's name for the garden.",
+            "title": "Name"
+          },
+          "news": {
+            "description": "Unlocks the reader has not been shown yet.",
+            "items": {
+              "$ref": "#/components/schemas/GardenUnlock"
+            },
+            "title": "News",
+            "type": "array"
+          },
+          "offer": {
+            "description": "Seeds the reader can choose from today.",
+            "items": {
+              "$ref": "#/components/schemas/GardenSpecies"
+            },
+            "title": "Offer",
+            "type": "array"
+          },
+          "partnerSentToday": {
+            "title": "Partnersenttoday",
+            "type": "boolean"
+          },
+          "partnerWateredToday": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plant the partner watered today.",
+            "title": "Partnerwateredtoday"
+          },
+          "plants": {
+            "description": "Planted plants in slot order.",
+            "items": {
+              "$ref": "#/components/schemas/GardenPlantView"
+            },
+            "title": "Plants",
+            "type": "array"
+          },
+          "reunionOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First day of the next anticipated shared Plan, the couple's reunion.",
+            "title": "Reunionon"
+          },
+          "reunionToday": {
+            "description": "Today is a day of that reunion Plan.",
+            "title": "Reuniontoday",
+            "type": "boolean"
+          },
+          "sentToday": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenPlantView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The reader's own seed of today, if sent."
+          },
+          "sharedDays": {
+            "default": 0,
+            "description": "Days both partners sent a seed; drives growth, never shown as a number.",
+            "title": "Shareddays",
+            "type": "integer"
+          },
+          "sharedToday": {
+            "description": "Both partners sent a seed today; the garden grew.",
+            "title": "Sharedtoday",
+            "type": "boolean"
+          },
+          "sleeping": {
+            "description": "Neither partner was in the garden for a few days; it wakes for the reader.",
+            "title": "Sleeping",
+            "type": "boolean"
+          },
+          "unlocks": {
+            "description": "Everything the couple's care has unlocked.",
+            "items": {
+              "$ref": "#/components/schemas/GardenUnlock"
+            },
+            "title": "Unlocks",
+            "type": "array"
+          },
+          "visitorNames": {
+            "description": "Names the couple gave to visiting animals; unnamed visitors are absent.",
+            "items": {
+              "$ref": "#/components/schemas/GardenVisitorNameView"
+            },
+            "title": "Visitornames",
+            "type": "array"
+          },
+          "wateredToday": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plant the reader watered today.",
+            "title": "Wateredtoday"
+          }
+        },
+        "required": [
+          "localDate",
+          "plants",
+          "partnerSentToday",
+          "sharedToday",
+          "offer",
+          "sleeping",
+          "reunionToday"
+        ],
+        "title": "GardenView",
+        "type": "object"
+      },
+      "GardenVisitor": {
+        "description": "Animals that visit the garden; the couple may give each one a name.",
+        "enum": [
+          "SNAIL",
+          "RABBIT",
+          "HEDGEHOG",
+          "DUCKS",
+          "SQUIRREL",
+          "DEER"
+        ],
+        "title": "GardenVisitor",
+        "type": "string"
+      },
+      "GardenVisitorNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 40 characters after trimming; empty removes the name.",
+            "title": "Name"
+          }
+        },
+        "title": "GardenVisitorNameInput",
+        "type": "object"
+      },
+      "GardenVisitorNameView": {
+        "properties": {
+          "animal": {
+            "$ref": "#/components/schemas/GardenVisitor"
+          },
+          "name": {
+            "description": "The couple's shared name for this visitor.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "animal",
+          "name"
+        ],
+        "title": "GardenVisitorNameView",
+        "type": "object"
+      },
+      "GardenWateringInput": {
+        "additionalProperties": false,
+        "properties": {
+          "plantId": {
+            "format": "uuid",
+            "title": "Plantid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plantId"
+        ],
+        "title": "GardenWateringInput",
+        "type": "object"
+      },
+      "GardenWords": {
+        "description": "Fixed phrases a partner may attach to a seed; clients localize them.",
+        "enum": [
+          "THINKING_OF_YOU",
+          "MISS_YOU",
+          "LOOKING_FORWARD",
+          "GOOD_NIGHT",
+          "FOR_YOU"
+        ],
+        "title": "GardenWords",
+        "type": "string"
       },
       "GentleSuggestion": {
         "properties": {
@@ -4575,6 +5133,238 @@
         ],
         "title": "HeartEmotion",
         "type": "string"
+      },
+      "HeartHuntKept": {
+        "additionalProperties": false,
+        "properties": {
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ],
+        "title": "HeartHuntKept",
+        "type": "object"
+      },
+      "HeartHuntRoundCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "heart": {
+            "$ref": "#/components/schemas/HeartPoint"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "attachmentId",
+          "heart"
+        ],
+        "title": "HeartHuntRoundCreate",
+        "type": "object"
+      },
+      "HeartHuntRoundView": {
+        "description": "One round as the caller may see it.\n\n`heart` is present for the hider and, for the seeker, only after the round\nis FOUND. The seeker's search never receives it earlier.",
+        "properties": {
+          "attachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Photo of the round; read it with parentType HEART_HUNT_ROUND.",
+            "title": "Attachmentid"
+          },
+          "bestLevel": {
+            "description": "Warmest word reached: 0 cold .. 3 hot.",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Bestlevel",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "deleteAfter": {
+            "description": "When the photo is deleted for good.",
+            "format": "date-time",
+            "title": "Deleteafter",
+            "type": "string"
+          },
+          "foundAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foundat"
+          },
+          "heart": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeartPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kept": {
+            "description": "Whether the photo was saved as a shared Moment.",
+            "title": "Kept",
+            "type": "boolean"
+          },
+          "partnerId": {
+            "format": "uuid",
+            "title": "Partnerid",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "HIDER",
+              "SEEKER"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "HIDDEN",
+              "FOUND"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tapCount": {
+            "title": "Tapcount",
+            "type": "integer"
+          },
+          "taps": {
+            "description": "Bounded marks of the search so far.",
+            "items": {
+              "$ref": "#/components/schemas/HeartPoint"
+            },
+            "title": "Taps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "state",
+          "partnerId",
+          "attachmentId",
+          "taps",
+          "tapCount",
+          "bestLevel",
+          "createdAt",
+          "foundAt",
+          "deleteAfter",
+          "kept"
+        ],
+        "title": "HeartHuntRoundView",
+        "type": "object"
+      },
+      "HeartHuntState": {
+        "properties": {
+          "rounds": {
+            "description": "Newest first, at most six.",
+            "items": {
+              "$ref": "#/components/schemas/HeartHuntRoundView"
+            },
+            "title": "Rounds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rounds"
+        ],
+        "title": "HeartHuntState",
+        "type": "object"
+      },
+      "HeartHuntTap": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "HeartHuntTap",
+        "type": "object"
+      },
+      "HeartHuntTapResult": {
+        "properties": {
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "level": {
+            "description": "0 Noch kalt, 1 Lauwarm, 2 Warm, 3 Ganz heiß.",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Level",
+            "type": "integer"
+          },
+          "meter": {
+            "description": "Coarse warmth in steps of five.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Meter",
+            "type": "integer"
+          },
+          "round": {
+            "$ref": "#/components/schemas/HeartHuntRoundView"
+          }
+        },
+        "required": [
+          "level",
+          "meter",
+          "found",
+          "round"
+        ],
+        "title": "HeartHuntTapResult",
+        "type": "object"
       },
       "HeartMomentCreate": {
         "additionalProperties": false,
@@ -5072,6 +5862,30 @@
         "title": "HeartMomentVisibilityChange",
         "type": "object"
       },
+      "HeartPoint": {
+        "properties": {
+          "x": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Position in the photo frame, 0..1000.",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "HeartPoint",
+        "type": "object"
+      },
       "ImportStatus": {
         "enum": [
           "QUEUED",
@@ -5224,6 +6038,20 @@
           },
           "maintenanceMode": {
             "title": "Maintenancemode",
+            "type": "boolean"
+          },
+          "oidcConnections": {
+            "description": "External sign-in providers configured here. Empty unless `auth.oidc` is true. Whether a provider may also create a new Account is `oidcSignupAvailable`.",
+            "items": {
+              "$ref": "#/components/schemas/OidcConnectionView"
+            },
+            "title": "Oidcconnections",
+            "type": "array"
+          },
+          "oidcSignupAvailable": {
+            "default": false,
+            "description": "Whether a person may create a new Account through an external provider, without an invitation, right now: Cloud, a provider is configured, and the administrator admits new Accounts.",
+            "title": "Oidcsignupavailable",
             "type": "boolean"
           },
           "registrationAvailable": {
@@ -5429,6 +6257,25 @@
         "title": "LinkPreviewResult",
         "type": "object"
       },
+      "LinkedProviderView": {
+        "properties": {
+          "connectionId": {
+            "title": "Connectionid",
+            "type": "string"
+          },
+          "linkedAt": {
+            "format": "date-time",
+            "title": "Linkedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "linkedAt"
+        ],
+        "title": "LinkedProviderView",
+        "type": "object"
+      },
       "MagicLinkConsumeRequest": {
         "properties": {
           "deviceName": {
@@ -5594,6 +6441,18 @@
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
+          },
+          "replacesAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacesattachmentid"
           }
         },
         "required": [
@@ -6734,6 +7593,18 @@
             ],
             "title": "Readat"
           },
+          "selectionSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+            "title": "Selectionsize"
+          },
           "sourceEventId": {
             "format": "uuid",
             "title": "Sourceeventid",
@@ -6799,6 +7670,11 @@
           "PLAN_CANCELLED",
           "WISH_SELECTION_SHARED",
           "WISH_SELECTION_READY",
+          "WISH_SELECTION_RANDOM_REQUESTED",
+          "WISH_SELECTION_RANDOM_ACCEPTED",
+          "WISH_SELECTION_RANDOM_DECLINED",
+          "HEART_HUNT_HIDDEN",
+          "HEART_HUNT_FOUND",
           "PHOTO_REACTION",
           "PARTNER_JOINED",
           "COUPLE_EXPERIENCE_SHARED",
@@ -6810,7 +7686,14 @@
           "WISH_REMINDER_DUE",
           "WISH_DATE_PROPOSED",
           "WISH_DATE_COUNTERED",
-          "WISH_DATE_ACCEPTED"
+          "WISH_DATE_ACCEPTED",
+          "COLLECTION_SENT",
+          "PICTURE_PING_PONG_TURN",
+          "SHARED_NOTE_CREATED",
+          "SHARED_NOTE_CHANGED",
+          "GARDEN_SEED_ARRIVED",
+          "RECAP_READY",
+          "RECAP_GREW"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -6985,8 +7868,80 @@
         "title": "ObservationKind",
         "type": "string"
       },
+      "OidcConnectionView": {
+        "description": "A configured external sign-in provider, as an unauthenticated client may know it.\n\nOnly what a sign-in screen needs to draw a button and start the flow. The\nissuer, client identity and callback addresses stay in configuration.",
+        "properties": {
+          "brand": {
+            "enum": [
+              "google",
+              "generic"
+            ],
+            "title": "Brand",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Button text for a `generic` provider; empty for `google`.",
+            "title": "Label",
+            "type": "string"
+          },
+          "nativeAvailable": {
+            "description": "Whether the Android app has a registered callback for this provider.",
+            "title": "Nativeavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "brand",
+          "label",
+          "nativeAvailable"
+        ],
+        "title": "OidcConnectionView",
+        "type": "object"
+      },
+      "OidcLinkRequest": {
+        "properties": {
+          "client": {
+            "default": "web",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          }
+        },
+        "title": "OidcLinkRequest",
+        "type": "object"
+      },
       "OidcStartRequest": {
         "properties": {
+          "acceptedTermsVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms-of-use version the person accepted before leaving for the provider.",
+            "title": "Acceptedtermsversion"
+          },
+          "client": {
+            "default": "web",
+            "description": "Which registered callback to use: the web page or the native Android app.",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Client",
+            "type": "string"
+          },
           "invitationToken": {
             "anyOf": [
               {
@@ -6997,6 +7952,12 @@
               }
             ],
             "title": "Invitationtoken"
+          },
+          "signup": {
+            "default": false,
+            "description": "Create a new Account if this identity has none and no invitation applies. Only Cloud offers this, and it requires `acceptedTermsVersion`.",
+            "title": "Signup",
+            "type": "boolean"
           }
         },
         "title": "OidcStartRequest",
@@ -7566,6 +8527,17 @@
           },
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SharingPrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Omit to keep the stored choice (approximate for a new decision). Choosing precise needs the Premium capability; approximate and OFF never do."
           }
         },
         "required": [
@@ -7617,6 +8589,10 @@
           "level": {
             "$ref": "#/components/schemas/SharingLevel"
           },
+          "precision": {
+            "$ref": "#/components/schemas/SharingPrecision",
+            "description": "How finely the caller shares (own choice). Precise stays inactive when the device only grants an approximate position."
+          },
           "state": {
             "$ref": "#/components/schemas/SharingState"
           }
@@ -7624,6 +8600,7 @@
         "required": [
           "available",
           "level",
+          "precision",
           "state",
           "indefinite",
           "expiresAt",
@@ -8081,6 +9058,65 @@
         "title": "PasswordRequest",
         "type": "object"
       },
+      "PersonColoursId": {
+        "description": "A fixed pair: the owner's own colour first, then the partner's colour.\n\nThe pair is a purely personal view setting. It is never shared with the\npartner, so the two people can see each other in different colours.",
+        "enum": [
+          "rose_blue",
+          "blue_rose",
+          "rose_deeprose",
+          "deeprose_rose",
+          "blue_deepblue",
+          "deepblue_blue",
+          "moss_rose",
+          "moss_blue"
+        ],
+        "title": "PersonColoursId",
+        "type": "string"
+      },
+      "PersonColoursPreferencePatch": {
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "colours"
+        ],
+        "title": "PersonColoursPreferencePatch",
+        "type": "object"
+      },
+      "PersonColoursPreferenceView": {
+        "description": "The caller's own colour pair; ``colours`` is null while automatic.",
+        "properties": {
+          "colours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonColoursId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "colours",
+          "version"
+        ],
+        "title": "PersonColoursPreferenceView",
+        "type": "object"
+      },
       "PersonRelationship": {
         "enum": [
           "CHILD",
@@ -8241,6 +9277,29 @@
         "title": "PhotoReactionSummary",
         "type": "object"
       },
+      "PhotoSelectionAuthorize": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "code"
+        ],
+        "title": "PhotoSelectionAuthorize",
+        "type": "object"
+      },
       "PhotoSelectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -8272,6 +9331,16 @@
               }
             ],
             "title": "Mediarecoverypolicy"
+          },
+          "returnTo": {
+            "default": "web",
+            "description": "web: Google returns to the browser that started the selection (cookie proof). app: Google returns to the installed eimir. app's own link and the app finishes the sign-in through the authorize call.",
+            "enum": [
+              "web",
+              "app"
+            ],
+            "title": "Returnto",
+            "type": "string"
           },
           "source": {
             "enum": [
@@ -8517,6 +9586,258 @@
           "consent"
         ],
         "title": "PhotoSourceConnectionCreate",
+        "type": "object"
+      },
+      "PictureColour": {
+        "enum": [
+          "PERSON",
+          "INK",
+          "SUN"
+        ],
+        "title": "PictureColour",
+        "type": "string"
+      },
+      "PictureFinishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "turnsDone": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Turnsdone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turnsDone"
+        ],
+        "title": "PictureFinishInput",
+        "type": "object"
+      },
+      "PicturePingPongState": {
+        "properties": {
+          "picture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PicturePingPongView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PicturePingPongState",
+        "type": "object"
+      },
+      "PicturePingPongView": {
+        "properties": {
+          "drawerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whose turn it is; absent once finished.",
+            "title": "Drawerid"
+          },
+          "finishedEarly": {
+            "title": "Finishedearly",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "maxTurns": {
+            "title": "Maxturns",
+            "type": "integer"
+          },
+          "savedMemoryId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Memory the finished picture was saved to, if the couple chose so.",
+            "title": "Savedmemoryid"
+          },
+          "startedBy": {
+            "format": "uuid",
+            "title": "Startedby",
+            "type": "string"
+          },
+          "status": {
+            "description": "`DRAWING` while turns remain, then `FINISHED`.",
+            "title": "Status",
+            "type": "string"
+          },
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/PictureStrokeView"
+            },
+            "title": "Strokes",
+            "type": "array"
+          },
+          "turnsDone": {
+            "title": "Turnsdone",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "drawerId",
+          "startedBy",
+          "turnsDone",
+          "maxTurns",
+          "finishedEarly",
+          "savedMemoryId",
+          "strokes",
+          "updatedAt"
+        ],
+        "title": "PicturePingPongView",
+        "type": "object"
+      },
+      "PictureSavedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ],
+        "title": "PictureSavedInput",
+        "type": "object"
+      },
+      "PictureStartInput": {
+        "additionalProperties": false,
+        "properties": {
+          "starter": {
+            "$ref": "#/components/schemas/PictureStarter",
+            "default": "SQUIGGLE",
+            "description": "`SQUIGGLE` begins with a small seed line, `BLANK` with an empty page."
+          }
+        },
+        "title": "PictureStartInput",
+        "type": "object"
+      },
+      "PictureStarter": {
+        "description": "How a new picture begins: with the gentle seed squiggle or a blank page.",
+        "enum": [
+          "SQUIGGLE",
+          "BLANK"
+        ],
+        "title": "PictureStarter",
+        "type": "string"
+      },
+      "PictureStrokeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "colour": {
+            "$ref": "#/components/schemas/PictureColour"
+          },
+          "points": {
+            "description": "Flat `x0, y0, x1, y1, ...` list on a 0 to 1000 grid.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 480,
+            "minItems": 4,
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "colour",
+          "points"
+        ],
+        "title": "PictureStrokeInput",
+        "type": "object"
+      },
+      "PictureStrokeView": {
+        "properties": {
+          "authorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent for the starting squiggle.",
+            "title": "Authorid"
+          },
+          "colour": {
+            "$ref": "#/components/schemas/PictureColour"
+          },
+          "points": {
+            "description": "Flat `x0, y0, x1, y1, ...` list on a 0 to 1000 grid.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "turn": {
+            "description": "`0` is the starting squiggle; `1` to `6` are the turns.",
+            "title": "Turn",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn",
+          "authorId",
+          "colour",
+          "points"
+        ],
+        "title": "PictureStrokeView",
+        "type": "object"
+      },
+      "PictureTurnInput": {
+        "additionalProperties": false,
+        "properties": {
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/PictureStrokeInput"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Strokes",
+            "type": "array"
+          },
+          "turnsDone": {
+            "description": "The turn count this client saw; a mismatch is a conflict.",
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Turnsdone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turnsDone",
+          "strokes"
+        ],
+        "title": "PictureTurnInput",
         "type": "object"
       },
       "PlaceCreate": {
@@ -9633,6 +10954,20 @@
       "PresencePosition": {
         "additionalProperties": false,
         "properties": {
+          "accuracyMeters": {
+            "anyOf": [
+              {
+                "maximum": 50000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reported accuracy of the position. Required to publish; for a distance read it only lets a precise choice count when the fix itself is precise.",
+            "title": "Accuracymeters"
+          },
           "capturedAt": {
             "format": "date-time",
             "title": "Capturedat",
@@ -10520,6 +11855,31 @@
         "title": "Readiness",
         "type": "object"
       },
+      "RecapAnswerView": {
+        "description": "One partner's own answer to a guided question, cut at a sentence or word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapAnswerView",
+        "type": "object"
+      },
       "RecapDraftView": {
         "properties": {
           "text": {
@@ -10587,6 +11947,201 @@
           "busiestMonth"
         ],
         "title": "RecapFactsView",
+        "type": "object"
+      },
+      "RecapFilmMediaView": {
+        "description": "A curated picture of a film scene; a video names the muted clip it plays.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "clipSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipseconds"
+          },
+          "clipStartSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clipstartseconds"
+          },
+          "focusX": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusx"
+          },
+          "focusY": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focusy"
+          },
+          "kind": {
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "parentId",
+          "kind"
+        ],
+        "title": "RecapFilmMediaView",
+        "type": "object"
+      },
+      "RecapFilmMonthView": {
+        "description": "The highlight that opens the cover of one month chapter in a year film.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "key"
+        ],
+        "title": "RecapFilmMonthView",
+        "type": "object"
+      },
+      "RecapFilmView": {
+        "description": "The frozen look of a recap film, from a fixed catalogue of design variants.\n\nNames map to design tokens in the reader. Selection scores and reasons are\ndeliberately not part of the contract. A year film lists the highlight of\nevery month chapter; a monthly film lists none.",
+        "properties": {
+          "accents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accents",
+            "type": "array"
+          },
+          "cover": {
+            "title": "Cover",
+            "type": "string"
+          },
+          "highlightKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlightkey"
+          },
+          "layouts": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Layouts",
+            "type": "object"
+          },
+          "monthHighlights": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMonthView"
+            },
+            "title": "Monthhighlights",
+            "type": "array"
+          },
+          "mood": {
+            "title": "Mood",
+            "type": "string"
+          },
+          "motions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motions",
+            "type": "array"
+          },
+          "pace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/RecapTagView"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "transitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Transitions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mood",
+          "transitions",
+          "cover",
+          "motions",
+          "layouts",
+          "highlightKey",
+          "tags"
+        ],
+        "title": "RecapFilmView",
         "type": "object"
       },
       "RecapKind": {
@@ -10891,6 +12446,13 @@
       },
       "RecapSourceView": {
         "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/RecapAnswerView"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
           "available": {
             "title": "Available",
             "type": "boolean"
@@ -10917,6 +12479,13 @@
           },
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFilmMediaView"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "mutualReaction": {
             "anyOf": [
@@ -10945,6 +12514,17 @@
               }
             ],
             "title": "Occurredon"
+          },
+          "placeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placename"
           },
           "previewAttachmentId": {
             "anyOf": [
@@ -11010,12 +12590,40 @@
         "title": "RecapSourceView",
         "type": "object"
       },
+      "RecapTagView": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "RecapTagView",
+        "type": "object"
+      },
       "RecapView": {
         "properties": {
           "facts": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RecapFactsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFilmView"
               },
               {
                 "type": "null"
@@ -11133,6 +12741,32 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "supersededById": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newer version that extends this retained edition (#1744).",
+            "title": "Supersededbyid"
+          },
+          "supersedesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The retained edition this newer version extends with late entries (#1744).",
+            "title": "Supersedesid"
           },
           "theme": {
             "title": "Theme",
@@ -12168,6 +13802,7 @@
           "CHAPTER",
           "COLLECTION",
           "COLLECTION_ITEM",
+          "SHARED_NOTE",
           "PRIVATE_NOTE",
           "GIFT_IDEA",
           "PRIVATE_COLLECTION",
@@ -14057,6 +15692,230 @@
         "title": "SharedHeartMomentSummary",
         "type": "object"
       },
+      "SharedNoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 40000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "pinned": {
+            "default": false,
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 400,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "SharedNoteCreate",
+        "type": "object"
+      },
+      "SharedNoteDetail": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/ResourceCapabilities"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "title": "Createdby",
+            "type": "string"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/AuthorSummary"
+          },
+          "editedAt": {
+            "format": "date-time",
+            "title": "Editedat",
+            "type": "string"
+          },
+          "editedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editedby"
+          },
+          "editor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "wirTitleOnly": {
+            "title": "Wirtitleonly",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "spaceId",
+          "createdBy",
+          "title",
+          "body",
+          "pinned",
+          "wirTitleOnly",
+          "version",
+          "createdAt",
+          "editedAt",
+          "creator",
+          "capabilities"
+        ],
+        "title": "SharedNoteDetail",
+        "type": "object"
+      },
+      "SharedNotePage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SharedNoteDetail"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "SharedNotePage",
+        "type": "object"
+      },
+      "SharedNotePresentation": {
+        "additionalProperties": false,
+        "description": "Whether a note is pinned (overview and Wir) and whether Wir hides its excerpt.",
+        "properties": {
+          "pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned"
+          },
+          "wirTitleOnly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wirtitleonly"
+          }
+        },
+        "title": "SharedNotePresentation",
+        "type": "object"
+      },
+      "SharedNoteUpdate": {
+        "additionalProperties": false,
+        "description": "Partial text update. Pinning is a separate state, see ``SharedNotePresentation``.",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 40000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 400,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "SharedNoteUpdate",
+        "type": "object"
+      },
       "SharedPhoto": {
         "properties": {
           "attachment": {
@@ -14133,6 +15992,15 @@
         "title": "SharingLevel",
         "type": "string"
       },
+      "SharingPrecision": {
+        "description": "How finely the owner agrees to share (PO 2026-11-17); a person-level choice.",
+        "enum": [
+          "APPROXIMATE",
+          "PRECISE"
+        ],
+        "title": "SharingPrecision",
+        "type": "string"
+      },
       "SharingState": {
         "enum": [
           "OFF",
@@ -14143,6 +16011,42 @@
         ],
         "title": "SharingState",
         "type": "string"
+      },
+      "SignInMethodsView": {
+        "description": "The ways this Account can currently sign in, beyond what it signed in with.",
+        "properties": {
+          "emailLink": {
+            "description": "A mailed link can sign this Account in: a verified address and mail here.",
+            "title": "Emaillink",
+            "type": "boolean"
+          },
+          "localPassword": {
+            "title": "Localpassword",
+            "type": "boolean"
+          },
+          "oidc": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedProviderView"
+            },
+            "title": "Oidc",
+            "type": "array"
+          },
+          "passkeys": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyView"
+            },
+            "title": "Passkeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passkeys",
+          "oidc",
+          "emailLink",
+          "localPassword"
+        ],
+        "title": "SignInMethodsView",
+        "type": "object"
       },
       "SignInRequest": {
         "properties": {
@@ -15018,6 +16922,27 @@
         "title": "StoryKind",
         "type": "string"
       },
+      "StoryLifelineEntriesView": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "StoryLifelineEntriesView",
+        "type": "object"
+      },
       "StoryLifelineView": {
         "properties": {
           "startsOn": {
@@ -15861,7 +17786,9 @@
           "warm",
           "shared_album",
           "modern",
-          "classic"
+          "classic",
+          "quiet_together",
+          "handwriting"
         ],
         "title": "WirDesignId",
         "type": "string"
@@ -16350,6 +18277,98 @@
         "title": "WishSelectionDateIdeaCandidateView",
         "type": "object"
       },
+      "WishSelectionDecisionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "`REQUEST_RANDOM` asks the partner whether chance may decide (a request from each partner is consent); `ACCEPT_RANDOM` lets the server draw once; `DECLINE_RANDOM` keeps deciding together; `WITHDRAW_RANDOM` removes the own request; `CHOOSE` decides one of several common favourites; `CLEAR` undoes the decision.",
+            "enum": [
+              "REQUEST_RANDOM",
+              "ACCEPT_RANDOM",
+              "DECLINE_RANDOM",
+              "WITHDRAW_RANDOM",
+              "CHOOSE",
+              "CLEAR"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "dateIdeaId": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For `CHOOSE`: a common date idea.",
+            "title": "Dateideaid"
+          },
+          "wishId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For `CHOOSE`: a common Wish.",
+            "title": "Wishid"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "WishSelectionDecisionUpdate",
+        "type": "object"
+      },
+      "WishSelectionDecisionView": {
+        "properties": {
+          "dateIdeaId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dateideaid"
+          },
+          "method": {
+            "enum": [
+              "RANDOM",
+              "MANUAL"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "wishId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wishid"
+          }
+        },
+        "required": [
+          "wishId",
+          "dateIdeaId",
+          "method"
+        ],
+        "title": "WishSelectionDecisionView",
+        "type": "object"
+      },
       "WishSelectionOwnView": {
         "properties": {
           "favoriteDateIdeaIds": {
@@ -16383,6 +18402,26 @@
           "version"
         ],
         "title": "WishSelectionOwnView",
+        "type": "object"
+      },
+      "WishSelectionRandomRequestView": {
+        "properties": {
+          "declined": {
+            "description": "The partner would rather decide together.",
+            "title": "Declined",
+            "type": "boolean"
+          },
+          "mine": {
+            "description": "True when the caller asked; false when the partner did.",
+            "title": "Mine",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mine",
+          "declined"
+        ],
+        "title": "WishSelectionRandomRequestView",
         "type": "object"
       },
       "WishSelectionRoundUpdate": {
@@ -16498,6 +18537,17 @@
             "title": "Dateideacandidates",
             "type": "array"
           },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishSelectionDecisionView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The decided candidate, the same on both devices."
+          },
           "id": {
             "anyOf": [
               {
@@ -16512,6 +18562,33 @@
           },
           "own": {
             "$ref": "#/components/schemas/WishSelectionOwnView"
+          },
+          "randomPool": {
+            "anyOf": [
+              {
+                "enum": [
+                  "COMMON",
+                  "FAVORITES",
+                  "ALL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether chance may decide and from what kind of pool; the pool itself is never returned. Null when chance is not offered.",
+            "title": "Randompool"
+          },
+          "randomRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishSelectionRandomRequestView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "resultState": {
             "enum": [
@@ -17326,6 +19403,62 @@
         ]
       }
     },
+    "/api/v1/auth/oidc/{connectionId}": {
+      "delete": {
+        "description": "Unlink an external provider, unless it is the account's only way to sign in.",
+        "operationId": "unlink_oidc_api_v1_auth_oidc__connectionId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "title": "Connectionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Unlink Oidc",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/oidc/{connectionId}/callback": {
       "post": {
         "description": "Complete the callback from the external identity provider.",
@@ -17414,6 +19547,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OidcLinkRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {
@@ -17707,6 +19857,63 @@
           }
         },
         "summary": "Start Passkey Registration",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/{passkeyId}": {
+      "delete": {
+        "description": "Remove one passkey, unless it is the account's only way to sign in.",
+        "operationId": "remove_passkey_api_v1_auth_passkeys__passkeyId__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "passkeyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Passkeyid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Remove Passkey",
         "tags": [
           "auth"
         ]
@@ -18915,6 +21122,38 @@
           }
         },
         "summary": "Sign In",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sign-in-methods": {
+      "get": {
+        "description": "List the passkeys and linked providers of the authenticated account.",
+        "operationId": "list_sign_in_methods_api_v1_auth_sign_in_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInMethodsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "List Sign In Methods",
         "tags": [
           "auth"
         ]
@@ -22037,6 +24276,177 @@
           }
         },
         "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/person-colours": {
+      "get": {
+        "description": "Read only the caller's own colour pair. No partner value is ever returned.",
+        "operationId": "getPersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Person Colours Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known colour pair (Pro) or return to automatic (always Free).\n\nMembership precedes the capability check. Reads never delete or revert a\nsaved pair when a grant expires, and going back to automatic stays free.\nThe pair is a personal view of the people in this Space. It is not shared\nand carries no gender statement.",
+        "operationId": "updatePersonColoursPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonColoursPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonColoursPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Person Colours Preference",
         "tags": [
           "appearance"
         ]
@@ -26508,6 +28918,81 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/collections/{collectionId}/send": {
+      "post": {
+        "description": "A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.",
+        "operationId": "sendCollectionToPartner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "title": "Collectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Send a shared list to the partner",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions": {
       "get": {
         "operationId": "listCollectionSuggestions",
@@ -28789,6 +31274,1159 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/garden": {
+      "get": {
+        "description": "The shared garden and today's step for the reader.",
+        "operationId": "getGarden",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Get Garden",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/bouquets": {
+      "post": {
+        "description": "Give up to three blooming flowers to the partner; a seed stays in each place.",
+        "operationId": "giveGardenBouquet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenBouquetInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Give Garden Bouquet",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close": {
+      "post": {
+        "description": "Close a received bouquet's card, optionally noting it went into Momente.",
+        "operationId": "closeGardenBouquet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bouquetId",
+            "required": true,
+            "schema": {
+              "title": "Bouquetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenBouquetCloseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Close Garden Bouquet",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/name": {
+      "put": {
+        "description": "Name the shared garden; it becomes the page title for both partners.",
+        "operationId": "renameGarden",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Rename Garden",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/news/seen": {
+      "post": {
+        "description": "The reader saw what is new in the garden; each unlock is shown once.",
+        "operationId": "acknowledgeGardenNews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Acknowledge Garden News",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/seeds": {
+      "post": {
+        "description": "Send today's seed to the partner; one per partner and day.",
+        "operationId": "sendGardenSeed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenSeedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Send Garden Seed",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant": {
+      "post": {
+        "description": "Plant a seed that arrived for the reader.",
+        "operationId": "plantGardenSeed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "seedId",
+            "required": true,
+            "schema": {
+              "title": "Seedid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Plant Garden Seed",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name": {
+      "put": {
+        "description": "Name a visiting animal; both partners see the same name (the duck pair shares one).",
+        "operationId": "nameGardenVisitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "animal",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GardenVisitor"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenVisitorNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Name Garden Visitor",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/waterings": {
+      "post": {
+        "description": "Water one plant; a daily gesture that never changes growth.",
+        "operationId": "waterGardenPlant",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenWateringInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Water Garden Plant",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt": {
+      "get": {
+        "description": "Open rounds of the two partners; the seeker never receives the heart early.",
+        "operationId": "getHeartHunt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Heart Hunt",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds": {
+      "post": {
+        "description": "Hide a heart in an uploaded photo and send it to the partner.",
+        "operationId": "createHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntRoundCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntRoundView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Round",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept": {
+      "post": {
+        "description": "Record that the found photo was saved as a shared Moment by explicit tap.",
+        "operationId": "keepHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roundId",
+            "required": true,
+            "schema": {
+              "title": "Roundid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntKept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntRoundView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Keep Round",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps": {
+      "post": {
+        "description": "Clear fog at a tap; the answer is a coarse warmth and whether the heart was found.",
+        "operationId": "tapHeartHuntRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roundId",
+            "required": true,
+            "schema": {
+              "title": "Roundid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartHuntTap"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartHuntTapResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Tap Round",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/games/moments/candidates": {
       "get": {
         "description": "Return Premium-authorized shared photo Memories for the first #863 grammar.\n\nNormal authentication and Space membership are resolved before this route\nreceives `authorization`. Commercial entitlement is then enforced on the\nserver. The actual content query remains constrained by the existing\n`readable()` authorization predicate and existing attachment bindings.",
@@ -28847,6 +32485,416 @@
           }
         },
         "summary": "Get Game Moment Candidates",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong": {
+      "get": {
+        "description": "The current shared picture, or `null` when none was started.",
+        "operationId": "getPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      },
+      "post": {
+        "description": "Open a new picture; the partner who opens it draws first.\n\nWithout a body the picture begins with the seed squiggle.",
+        "operationId": "startPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PictureStartInput"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish": {
+      "post": {
+        "description": "Either partner may call the picture finished early.",
+        "operationId": "finishPicturePingPong",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureFinishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Finish Picture Ping Pong",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved": {
+      "post": {
+        "description": "Record the Memory the finished picture was saved to (explicit tap only).",
+        "operationId": "markPicturePingPongSaved",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureSavedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Mark Picture Ping Pong Saved",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns": {
+      "post": {
+        "description": "Add up to three strokes for the current turn and pass the picture on.",
+        "operationId": "handOverPicturePingPongTurn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PictureTurnInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PicturePingPongState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Hand Over Picture Ping Pong Turn",
         "tags": [
           "games"
         ]
@@ -35643,6 +39691,128 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize": {
+      "post": {
+        "description": "Finish an app-flow Google sign-in with the state and code from the app's return link.",
+        "operationId": "authorizePhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionAuthorize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Authorize",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}": {
       "get": {
         "operationId": "readSelectedPhoto",
@@ -38710,6 +42880,195 @@
           }
         },
         "summary": "Complete Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/notes": {
+      "get": {
+        "operationId": "listPlanNotes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SharedNoteDetail"
+                  },
+                  "title": "Response Listplannotes",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Plan Notes",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}": {
+      "delete": {
+        "operationId": "unlinkPlanNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Unlink Plan Note",
+        "tags": [
+          "plans"
+        ]
+      },
+      "put": {
+        "operationId": "linkPlanNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Link Plan Note",
         "tags": [
           "plans"
         ]
@@ -44002,6 +48361,574 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/shared-notes": {
+      "get": {
+        "operationId": "listSharedNotes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Return only pinned (true) or only unpinned (false) notes.",
+            "in": "query",
+            "name": "pinned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only pinned (true) or only unpinned (false) notes.",
+              "title": "Pinned"
+            }
+          },
+          {
+            "description": "Return only these notes, so several known notes need one request.",
+            "in": "query",
+            "name": "ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only these notes, so several known notes need one request.",
+              "title": "Ids"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedNotePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Shared Notes",
+        "tags": [
+          "shared-notes"
+        ]
+      },
+      "post": {
+        "operationId": "createSharedNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharedNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedNoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Shared Note",
+        "tags": [
+          "shared-notes"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}": {
+      "delete": {
+        "operationId": "deleteSharedNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Delete Shared Note",
+        "tags": [
+          "shared-notes"
+        ]
+      },
+      "get": {
+        "operationId": "getSharedNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedNoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Shared Note",
+        "tags": [
+          "shared-notes"
+        ]
+      },
+      "patch": {
+        "operationId": "updateSharedNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharedNoteUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedNoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Shared Note",
+        "tags": [
+          "shared-notes"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}/presentation": {
+      "put": {
+        "operationId": "setSharedNotePresentation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sharedNoteId",
+            "required": true,
+            "schema": {
+              "title": "Sharednoteid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharedNotePresentation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedNoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Shared Note Presentation",
+        "tags": [
+          "shared-notes"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/story-lifeline": {
       "get": {
         "description": "Return the shared Story bucketed by week for the Pro Wir lifeline.",
@@ -44060,6 +48987,103 @@
           }
         },
         "summary": "Get Story Lifeline",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/story-lifeline/entries": {
+      "get": {
+        "description": "Return the shared entries of one lifeline period, oldest first.\n\nRead lazily when a lifeline column is selected. The entries are exactly\nthose the lifeline counts for the range; at most a bounded number is\nreturned together with the range total.",
+        "operationId": "getStoryLifelineEntries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of the range (inclusive).",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the range (inclusive).",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the range (exclusive).",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Day after the range (exclusive).",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryLifelineEntriesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Story Lifeline Entries",
         "tags": [
           "dashboard"
         ]
@@ -45060,6 +50084,128 @@
           }
         },
         "summary": "Replace Wish Selection Round",
+        "tags": [
+          "wish-selections"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wish-selection/decision": {
+      "put": {
+        "operationId": "decideWishSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Preferred locale for date-idea content.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Preferred locale for date-idea content.",
+              "title": "Locale"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishSelectionDecisionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: the round contains curated date ideas and the Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Decide Wish Selection",
         "tags": [
           "wish-selections"
         ]

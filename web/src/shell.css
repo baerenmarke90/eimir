@@ -42,7 +42,11 @@
     --safe-area-inset-top,
     env(safe-area-inset-top, 0px)
   );
+  --shell-topbar-min-height: calc(72px + var(--shell-header-safe-top));
+  --shell-content-top-inset: var(--shell-header-safe-top);
 
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   background: transparent;
 }
@@ -67,39 +71,6 @@
 
 #root:has(> .demo-instance-banner) .product-shell {
   --shell-header-safe-top: 0px;
-}
-
-/* The Today glow fades with the route handoff instead of popping in or out. */
-.product-shell {
-  position: relative;
-  isolation: isolate;
-}
-
-.product-shell::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0 0 auto;
-  height: 24rem;
-  background: radial-gradient(
-    120% 24rem at 30% 0%,
-    var(--color-brand-glow),
-    transparent 70%
-  );
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* The glow belongs to Wir alone. It fades in on arrival but leaves at once,
-   so it never lingers as a tint over the tab that slides in. */
-.product-shell[data-top-surface="today"]::before {
-  opacity: 1;
-  transition: opacity var(--duration-context) var(--easing-standard);
-}
-
-.product-shell[data-top-surface="today"]
-  .today-hero.couple-presence-card::before {
-  content: none;
 }
 
 .product-topbar {
@@ -525,15 +496,23 @@
   display: none;
 }
 
+/* Resolve the shell's width before descendants introduce their own containers. */
+@property --shell-inline-size {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+  --shell-inline-size: 100cqi;
+  --shell-main-padding-top: clamp(var(--space-6), 4vw, var(--space-10));
   --primary-tab-peek-offset: 0px;
   --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
-  padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
-    var(--shell-content-bottom-clearance);
+  padding: var(--shell-main-padding-top) 0 var(--shell-content-bottom-clearance);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -678,7 +657,6 @@
   height: 1.35rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1078,6 +1056,10 @@
 }
 
 @media (min-width: 840px) {
+  .product-shell {
+    --shell-content-top-inset: var(--shell-topbar-min-height);
+  }
+
   .shell-nav {
     display: flex;
   }

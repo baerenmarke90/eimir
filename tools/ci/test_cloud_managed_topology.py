@@ -72,7 +72,38 @@ services:
   cloud-worker:
     <<: *apns-runtime
 """
-PUSH_FRAGMENT_CONTRACTS = {FCM_FRAGMENT: FCM_FRAGMENT_CONTRACT, APNS_FRAGMENT: APNS_FRAGMENT_CONTRACT}
+ENCRYPTION_KEYS_FRAGMENT = ROOT / "deploy/encryption-keys.compose.yaml"
+ENCRYPTION_KEYS_FRAGMENT_CONTRACT = """x-encryption-keys-runtime: &encryption-keys-runtime
+  environment:
+    EIMIR_ENCRYPTION_KEYS_FILE: /run/secrets/eimir-encryption-keys.json
+  volumes:
+    - type: bind
+      source: "${EIMIR_ENCRYPTION_KEYS_HOST_FILE:?Set the absolute private key-set file on the Docker host}"
+      target: /run/secrets/eimir-encryption-keys.json
+      read_only: true
+      bind:
+        create_host_path: false
+services:
+  api:
+    <<: *encryption-keys-runtime
+  worker:
+    <<: *encryption-keys-runtime
+  cloud-api:
+    <<: *encryption-keys-runtime
+  cloud-worker:
+    <<: *encryption-keys-runtime
+  video-worker:
+    <<: *encryption-keys-runtime
+  cloud-video-worker:
+    <<: *encryption-keys-runtime
+  demo-init:
+    <<: *encryption-keys-runtime
+"""
+PUSH_FRAGMENT_CONTRACTS = {
+    FCM_FRAGMENT: FCM_FRAGMENT_CONTRACT,
+    APNS_FRAGMENT: APNS_FRAGMENT_CONTRACT,
+    ENCRYPTION_KEYS_FRAGMENT: ENCRYPTION_KEYS_FRAGMENT_CONTRACT,
+}
 CLOUD_ENV_EXAMPLE = ROOT / "deploy/cloud-managed.env.example"
 DEV_ENV_EXAMPLE = ROOT / "deploy/persistent-development.env.example"
 LEGACY_COMPOSE_REFERENCES = (
@@ -244,6 +275,41 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
                 self.assertFalse(_matches_runtime_fragment(
                     APNS_FRAGMENT_CONTRACT.replace(original, mutation), APNS_FRAGMENT_CONTRACT
                 ))
+
+    def test_encryption_keys_fragment_rejects_process_and_mount_changes(self) -> None:
+        contract = ENCRYPTION_KEYS_FRAGMENT_CONTRACT
+        for original, mutation in (
+            ("  worker:\n", "  worker:\n    command: other-worker\n"),
+            ("read_only: true", "read_only: false"),
+            ("  api:\n", "  migrate:\n    <<: *encryption-keys-runtime\n  api:\n"),
+            ("create_host_path: false", "create_host_path: true"),
+        ):
+            with self.subTest(change=mutation):
+                self.assertIn(original, contract)
+                self.assertFalse(
+                    _matches_runtime_fragment(contract.replace(original, mutation), contract)
+                )
+
+    def test_encryption_keys_fragment_covers_every_role_that_receives_the_keys(self) -> None:
+        # A role that gets the runtime environment gets EIMIR_ENCRYPTION_KEYS today.
+        # If the fragment misses one, that role starts without keys once the
+        # operator moves them into the file.
+        compose = _read(COMPOSE)
+        services = re.findall(r"(?m)^  ([a-z0-9-]+):$", compose.split("\nservices:\n", 1)[1])
+        with_keys = {
+            name
+            for name in services
+            if re.search(
+                r"\*(?:self-hosted|cloud)-runtime-environment", _service_block(compose, name)
+            )
+        }
+        covered = set(
+            re.findall(
+                r"(?m)^  ([a-z0-9-]+):$",
+                ENCRYPTION_KEYS_FRAGMENT_CONTRACT.split("services:\n", 1)[1],
+            )
+        )
+        self.assertEqual(covered, with_keys)
 
 
 class CloudComposeTextContractTest(unittest.TestCase):

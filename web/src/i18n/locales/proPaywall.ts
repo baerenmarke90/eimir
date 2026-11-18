@@ -118,23 +118,89 @@ const proPaywall = {
       title: 'Mehr Möglichkeiten für eure gemeinsame Geschichte.',
       description:
         'eimir. Pro ergänzt euer gemeinsames Zuhause um Ideen, Rückblicke und besondere Erlebnisse.',
-      benefits: {
-        first: {
-          title: 'Date-Ideen',
-          body: '200 kuratierte Ideen für eure gemeinsame Zeit.',
-        },
-        second: {
-          title: 'Rückblicke und Erinnerungskarte',
-          body: 'Entdeckt eure Geschichte über die Zeit und an ihren Orten.',
-        },
-        third: {
-          title: 'Spiele und persönliche Extras',
-          body: 'Gemeinsame Erlebnisse, der Spruch des Tages und eigene Gestaltung.',
-        },
-      },
     },
   },
   benefitsLabel: 'Was Pro euch bietet',
+  catalogue: {
+    title: 'Was in Pro steckt',
+    groups: {
+      memories: 'Erinnerungen & Rückblicke',
+      timeTogether: 'Zeit zu zweit',
+      everyday: 'Nähe im Alltag',
+      style: 'Euer persönlicher Stil',
+      integrations: 'Fotos & Kalender',
+    },
+    features: {
+      memoryMap: {
+        title: 'Erinnerungskarte',
+        body: 'Seht, wo eure Erinnerungen entstanden sind, und öffnet sie direkt von der Karte aus.',
+      },
+      recaps: {
+        title: 'Monats- und Jahresrückblicke',
+        body: 'Lasst aus euren Erinnerungen Rückblicke entstehen und ergänzt sie mit eigenen Worten. Gespeicherte Rückblicke bleiben euch erhalten.',
+      },
+      passport: {
+        title: 'Beziehungspass & gemeinsame Geschichte',
+        body: 'Entdeckt Zahlen und Stationen eurer gemeinsamen Zeit und blendet sie auf „Wir“ ein, wenn ihr möchtet.',
+      },
+      video: {
+        title: 'Kurze Videos',
+        body: 'Fügt kurze Videos zu euren Momenten hinzu, wenn Video-Uploads für euren Bereich verfügbar sind.',
+      },
+      dateIdeas: {
+        title: 'Date-Inspiration',
+        body: 'Filtert 200 Date-Ideen nach Zeit, Budget und Ort. Übernehmt eine Idee als Wunsch, als Plan oder in eure gemeinsame Auswahl.',
+      },
+      games: {
+        title: 'Paarspiele',
+        body: 'Startet ein Spiel zu zweit, zum Beispiel rund um eure gemeinsamen Erinnerungen und Wünsche.',
+      },
+      experiences: {
+        title: 'Glücksmomente & Zeitreise',
+        body: 'Teilt, was euch gerade glücklich macht, oder schickt euch gegenseitig eine kleine Reise in eure Erinnerungen.',
+      },
+      insights: {
+        title: 'Einblicke in Stimmung & Energie',
+        body: 'Schaut über mehrere Wochen oder Monate auf eure Check-ins und entdeckt, wie sich Stimmung und Energie entwickeln. Der tägliche Check-in bleibt kostenlos.',
+      },
+      quote: {
+        title: 'Spruch des Tages',
+        body: 'Lest auf „Wir“ jeden Tag einen Spruch aus Themen, die ihr für euch auswählt.',
+      },
+      gestures: {
+        title: 'Mehr kleine Gesten',
+        body: 'Schickt euch einen Kuss oder fragt mit einem Tipp „Wie geht’s dir?“. „Ich denke an dich“ bleibt kostenlos.',
+      },
+      onceMessages: {
+        title: 'Einmal-Nachrichten',
+        body: 'Schickt euch Nachrichten zum einmaligen Öffnen, wenn ihr beide zugestimmt habt.',
+      },
+      location: {
+        title: 'Standort & Entfernung',
+        body: 'Teilt freiwillig, wie weit ihr voneinander entfernt seid, oder zeigt euren Standort auf der Karte. Ihr könnt die Freigabe jederzeit beenden.',
+      },
+      wirDesigns: {
+        title: 'Weitere App-Designs',
+        body: 'Gestaltet euer eigenes eimir. mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
+      },
+      appIcons: {
+        title: 'Alternative App-Symbole',
+        body: 'Wählt ein anderes eimir.-Symbol, wo eure App oder euer Browser diese Auswahl unterstützt.',
+      },
+      personColours: {
+        title: 'Eigene Personenfarben',
+        body: 'Wählt, in welchen Farben du dich und deinen Lieblingsmenschen in deiner App siehst.',
+      },
+      photoSources: {
+        title: 'Fotos aus Immich & Google Fotos',
+        body: 'Übernehmt ausgewählte Fotos aus Immich oder Google Fotos, wenn die jeweilige Verbindung verfügbar ist.',
+      },
+      calendarSync: {
+        title: 'Automatischer Kalenderabgleich',
+        body: 'Übertragt Pläne automatisch in euren gemeinsamen CalDAV- oder Google-Kalender, wenn die Verbindung verfügbar ist.',
+      },
+    },
+  },
   plansLegend: 'Euer Tarif',
   plans: {
     yearly: {
@@ -177,10 +243,12 @@ const proPaywall = {
     'Die Preise konnten nicht geladen werden. Bitte versucht es gleich noch einmal. Eure Inhalte sind davon nicht betroffen.',
   unavailableTitle: 'Kauf hier noch nicht möglich',
   unavailableBody:
-    'Pro kann in eimir. noch nicht gekauft werden. Sobald es möglich ist, findet ihr den Kauf genau an dieser Stelle.',
+    'Für diese App oder diesen Bereich steht gerade kein Kauf zur Verfügung.',
+  webUnavailableBody:
+    'Wenn Pro für euren Bereich angeboten wird, könnt ihr es in der Android-App über Google Play abonnieren.',
   active: {
     title: 'eimir. Pro ist für euch aktiv.',
-    body: 'Alle Pro-Funktionen stehen euch beiden zur Verfügung.',
+    body: 'Euer Pro-Zugang gilt für euren gemeinsamen Bereich und damit für euch beide.',
     continue: 'Weiter',
   },
   statusUnknown:

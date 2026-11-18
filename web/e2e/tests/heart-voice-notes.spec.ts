@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/storyProducts';
@@ -332,6 +332,10 @@ test('permission denial retains the thought and allows file import', async ({
     .getByRole('dialog')
     .getByRole('button', { name: 'Abbrechen', exact: true })
     .click();
+  // Cancelling closes the voice sheet. Wait for its exit to finish: during
+  // the exit animation the sheet still reports visible, so reopening it for
+  // the file import would act on the closing sheet.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,

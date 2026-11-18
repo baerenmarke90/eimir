@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
@@ -13,6 +13,7 @@ import {
   expectOverviewActionPlacement,
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -118,10 +119,13 @@ async function installPeopleApiMocks(
     now = new Date(),
     relationshipStartedOn = '2023-06-17',
     oneTimeDates = [],
+    listedPlans = [],
   }: {
     now?: Date;
     relationshipStartedOn?: string;
     oneTimeDates?: { id: string; label: string; date: string }[];
+    /** Plans of the open overview, which the occasions calendar reads. */
+    listedPlans?: Record<string, unknown>[];
   } = {},
 ): Promise<string[]> {
   const unexpectedRequests: string[] = [];
@@ -524,6 +528,17 @@ async function installPeopleApiMocks(
     ) {
       return fulfillJson(createdPlan);
     }
+    const listedPlan = listedPlans.find(
+      (plan) => pathname === `${plansPath}/${plan.id}`,
+    );
+    if (method === 'GET' && listedPlan) return fulfillJson(listedPlan);
+    if (method === 'GET' && pathname === plansPath && listedPlans.length) {
+      return fulfillJson({
+        hasMore: false,
+        items: listedPlans,
+        nextCursor: null,
+      });
+    }
 
     if (
       method === 'GET' &&
@@ -602,6 +617,7 @@ async function installPeopleApiMocks(
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -1065,6 +1081,141 @@ test.describe('Occasions in a timezone west of UTC', () => {
     await expect(anniversary).toBeFocused();
     expect(unknown).toEqual([]);
   });
+});
+
+test('the occasions calendar shows dated Plans with the Planen symbol and returns from them (#1907 F3)', async ({
+  page,
+}, info) => {
+  test.setTimeout(120_000);
+  const now = new Date('2026-11-15T11:00:00Z');
+  const listedPlan = (
+    id: string,
+    title: string,
+    schedule: Record<string, unknown>,
+  ) => ({
+    id,
+    spaceId: SPACE_ID,
+    title,
+    status: 'PLANNED',
+    plannedOn: null,
+    plannedUntil: null,
+    plannedStart: null,
+    plannedEnd: null,
+    capabilities: { canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    createdBy: ACCOUNT_ID,
+    updatedAt: TEST_NOW,
+    version: 1,
+    ...schedule,
+  });
+  const unknown = await installPeopleApiMocks(page, {
+    now,
+    listedPlans: [
+      listedPlan('plan-cinema', 'Cinema night', {
+        plannedStart: '2026-11-21T19:00:00Z',
+      }),
+      listedPlan('plan-market', 'Christmas market', {
+        plannedOn: '2026-12-05',
+      }),
+      listedPlan('plan-secret', 'Surprise in the woods', {
+        plannedOn: '2026-12-18',
+        discreet: true,
+        discreetTitleMode: 'PREVIEW',
+        previewTitle: 'Evening for two',
+      }),
+      listedPlan('plan-cabin', 'Cabin weekend', {
+        plannedOn: '2026-12-30',
+        plannedUntil: '2027-01-02',
+      }),
+    ],
+  });
+  await page.clock.setFixedTime(now);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.goto('/plan#dates');
+  const sheet = page.locator('.occasions-sheet');
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'November 2026',
+  );
+
+  // A Plan is a link row with the Planen symbol; its day carries a bar.
+  const cinema = sheet.locator('a.occasion-plan-card', {
+    hasText: 'Cinema night',
+  });
+  await expect(cinema).toHaveAttribute('href', '/plan/plans/plan-cinema');
+  await expect(
+    cinema.getByRole('img', { name: importantDates.planKind }),
+  ).toBeVisible();
+  await expect(cinema.locator('.important-date-meta')).toContainText('Plan');
+  const day = sheet.locator('button.occasions-grid-day.has-plan');
+  await expect(day).toHaveText('21');
+  await expect(day).toHaveAttribute('aria-label', /Plan: Cinema night$/);
+  await expect(
+    page
+      .locator('.occasions-band-month.is-active')
+      .locator('.occasions-band-dots i.is-plan'),
+  ).toHaveCount(1);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-november-390-light.png'),
+  });
+
+  await page.locator('.occasions-band-month').nth(1).click();
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'Dezember 2026',
+  );
+  // Discreet Plans show their list title and the lock only.
+  const secret = sheet.locator('a.occasion-plan-card', {
+    hasText: 'Evening for two',
+  });
+  await expect(secret.locator('.discreet-lock')).toBeVisible();
+  await expect(page.locator('#main-content')).not.toContainText(
+    'Surprise in the woods',
+  );
+  // A multi-day Plan marks each of its December days.
+  for (const cabinDay of ['30', '31'])
+    await expect(
+      sheet.locator('button.occasions-grid-day.has-plan', {
+        hasText: new RegExp(`^${cabinDay}$`),
+      }),
+    ).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-390-light.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-390-dark.png'),
+    fullPage: true,
+  });
+  // Expanded keeps the same calendar in the centered Planen column.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-1280-dark.png'),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // Opening a Plan shows its detail; Back returns to the same month.
+  await sheet
+    .locator('a.occasion-plan-card', { hasText: 'Christmas market' })
+    .click();
+  await expect(page).toHaveURL(/\/plan\/plans\/plan-market$/);
+  await expect(
+    page.getByRole('heading', { name: 'Christmas market' }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/plan#dates$/);
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'Dezember 2026',
+  );
+  await expect(
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
+  ).toBeVisible();
+  expect(unknown).toEqual([]);
 });
 
 test('People creation and dirty edit return to the originating control', async ({

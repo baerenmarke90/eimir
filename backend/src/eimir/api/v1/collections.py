@@ -21,7 +21,7 @@ from eimir.api.shared_achievements import (
     SHARED_ACHIEVEMENT_HEADER,
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
-from eimir.collections import service
+from eimir.collections import sending, service
 from eimir.collections.models import Collection, CollectionItem, CollectionKind
 from eimir.relationship import configuration as relationship_configuration
 
@@ -609,6 +609,28 @@ def finish_collection_shopping(
     if shared_achievement_enabled and result.finished_count > 0 and not detail.items:
         response.headers[SHARED_ACHIEVEMENT_HEADER] = COLLECTION_COMPLETED_ACHIEVEMENT
     return CollectionFinishResult(collection=detail, finished_count=result.finished_count)
+
+
+@router.post(
+    "/spaces/{spaceId}/collections/{collectionId}/send",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    operation_id="sendCollectionToPartner",
+    summary="Send a shared list to the partner",
+    description=(
+        "A deliberate gesture: notifies the partner with a neutral message and adds the "
+        "list at the end of their personal pinned lists. The list itself is unchanged. "
+        "A repeat within 30 minutes adds nothing and stays silent."
+    ),
+    responses=problem_responses(401, 404, 409, 422),
+)
+def send_collection_to_partner(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> Response:
+    sending.send_to_partner(session, authorization, collection_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(

@@ -51,10 +51,27 @@ export function useGardenFullscreen() {
   const openFullscreen = useCallback(() => {
     setOpen(true);
     setRotateHint(false);
-    void enterLandscape(document.documentElement, native).then((result) =>
-      setRotateHint(result === 'unsupported'),
-    );
-  }, [native]);
+  }, []);
+
+  // The sheet itself becomes the browser's full-screen element: a full-screen
+  // document would sit above the modal sheet in the top layer and hide it.
+  // This runs right after the tap, inside its user activation.
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    const frame = requestAnimationFrame(() => {
+      const sheet = document.querySelector<HTMLElement>(
+        'dialog.garden-fullscreen[open]',
+      );
+      void enterLandscape(sheet, native).then((result) => {
+        if (active) setRotateHint(result === 'unsupported');
+      });
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
+  }, [open, native]);
 
   const closeFullscreen = useCallback(() => {
     setOpen(false);

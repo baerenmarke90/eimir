@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { WHO_OF_US_QUESTION_IDS } from '../../src/client/whoOfUsSession';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { renderedContrast } from '../support/renderedContrast';
+import AxeBuilder from '../support/axe';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { renderedContrast } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -124,9 +124,11 @@ async function installMocks(page: Page) {
 
 /** #2048: the play-mode choice comes first; this journey plays on one phone. */
 async function playTogether(page: Page) {
-  await page
-    .getByRole('radio', { name: new RegExp(games.playMode.together) })
-    .check();
+  // The card is the tap target; the radio itself is visually hidden.
+  await page.getByText(games.playMode.together, { exact: true }).click();
+  await expect(
+    page.getByRole('radio', { name: new RegExp(games.playMode.together) }),
+  ).toBeChecked();
   await page.getByRole('button', { name: games.playMode.start }).click();
 }
 

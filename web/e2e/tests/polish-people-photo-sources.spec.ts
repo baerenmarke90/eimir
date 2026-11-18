@@ -1,7 +1,8 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import people from '../../src/i18n/locales/people';
+import photoCrop from '../../src/i18n/locales/photoCrop';
 import sources from '../../src/i18n/locales/photoSources';
+import AxeBuilder from '../support/axe';
 import {
   captureScreenshot,
   installMocks,
@@ -348,6 +349,16 @@ for (const view of [
           .click();
       }
       await expect(sheet).toBeHidden();
+      // Every avatar passes the round crop step (#1907 G1), also from a source.
+      const crop = page.getByRole('dialog', {
+        name: photoCrop.title,
+        exact: true,
+      });
+      await expect(crop).toBeVisible();
+      await crop
+        .getByRole('button', { name: photoCrop.confirm, exact: true })
+        .click();
+      await expect(crop).toHaveCount(0);
       await expect(
         editor.getByText(people.avatarUploading, { exact: true }),
       ).toHaveCount(0);
@@ -356,9 +367,15 @@ for (const view of [
       expect(state.starts).toEqual([
         expect.objectContaining({ source, maxItems: 1, consent: true }),
       ]);
+      // The imported photo, then its cropped square in its place.
       expect(state.uploads).toEqual([
         expect.objectContaining({
           mediaType: 'IMAGE',
+          preserveMetadata: false,
+        }),
+        expect.objectContaining({
+          mediaType: 'IMAGE',
+          expectedMimeType: 'image/jpeg',
           preserveMetadata: false,
         }),
       ]);

@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
@@ -36,6 +36,7 @@ import {
 } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -417,6 +418,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

@@ -1,4 +1,10 @@
-import { type ReactNode, type Ref, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
@@ -56,13 +62,27 @@ export function SingleAvatar({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   const initials = useMemo(
     () => personInitials(person.displayName),
     [person.displayName],
   );
   const imageUrl = person.imageUrl;
   const hasValidImage = Boolean(imageUrl) && !failed;
+  const loaded = Boolean(imageUrl) && loadedUrl === imageUrl;
+  // An image already in memory may finish before React attaches onLoad.
+  const detectCachedImage = useCallback(
+    (image: HTMLImageElement | null) => {
+      if (image?.complete && image.naturalWidth > 0 && imageUrl) {
+        setLoadedUrl(imageUrl);
+      }
+    },
+    [imageUrl],
+  );
 
+  // The initials stay underneath until the photo has decoded, and the photo
+  // fades in over them, so a late photo never leaves an empty circle or
+  // replaces the initials in a single frame.
   return (
     <span
       className={`partner-avatar partner-avatar-${size} ${className}`}
@@ -70,16 +90,17 @@ export function SingleAvatar({
     >
       {hasValidImage && imageUrl ? (
         <img
+          ref={detectCachedImage}
           src={imageUrl}
           alt={person.displayName}
-          className="partner-avatar-img"
+          className={`partner-avatar-img${loaded ? ' is-loaded' : ''}`}
+          onLoad={() => setLoadedUrl(imageUrl)}
           onError={() => setFailed(true)}
         />
-      ) : (
-        <span className="partner-avatar-initials" aria-hidden="true">
-          {initials}
-        </span>
-      )}
+      ) : null}
+      <span className="partner-avatar-initials" aria-hidden="true">
+        {initials}
+      </span>
     </span>
   );
 }

@@ -3,20 +3,29 @@ import {
   ApproximateLocationError,
   clearPublicationMemory,
   currentApproximatePosition,
+  devicePreciseAccess,
   distanceKm,
   locationPermission,
   MAX_PUBLISH_INTERVAL_MS,
   publishOwnPositionIfDue,
   REUSE_CACHED_FIX_MS,
+  requestLocationPermission,
+  roundToGrid,
   shouldPublish,
 } from './approximateLocation';
 import { isAndroidApp } from './config';
 
 const native = vi.hoisted(() => ({
   available: true,
-  checkPermissions: vi.fn(async () => ({ location: 'granted' })),
-  requestPermissions: vi.fn(async () => ({ location: 'granted' })),
-  current: vi.fn(async (_options: { maxAgeMs: number }) => ({
+  checkPermissions: vi.fn(
+    async (): Promise<{ location: string; preciseLocation?: string }> => ({
+      location: 'granted',
+    }),
+  ),
+  requestPermissions: vi.fn(async (_options?: unknown) => ({
+    location: 'granted',
+  })),
+  current: vi.fn(async (_options: { maxAgeMs: number; precise?: boolean }) => ({
     latitude: 53.5511,
     longitude: 9.9937,
     accuracyMeters: 1200,
@@ -144,6 +153,7 @@ describe('publishOwnPositionIfDue', () => {
       publishPartnerLocationSnapshot: vi.fn(async () => ({
         available: true,
         level: 'DISTANCE' as const,
+        precision: 'APPROXIMATE' as const,
         state: state as 'ACTIVE',
         indefinite: true,
         expiresAt: null,
@@ -160,7 +170,7 @@ describe('publishOwnPositionIfDue', () => {
         api: client,
         spaceId: 's',
         accountId: 'a',
-        settings: { state: 'OFF', generation: 4 },
+        settings: { state: 'OFF', generation: 4, precision: 'APPROXIMATE' },
         now: NOW,
       }),
     ).toBeNull();
@@ -170,7 +180,7 @@ describe('publishOwnPositionIfDue', () => {
         api: client,
         spaceId: 's',
         accountId: 'a',
-        settings: { state: 'ACTIVE', generation: 4 },
+        settings: { state: 'ACTIVE', generation: 4, precision: 'APPROXIMATE' },
         now: NOW,
       }),
     ).toBeNull();
@@ -184,15 +194,20 @@ describe('publishOwnPositionIfDue', () => {
       api: client,
       spaceId: 's',
       accountId: 'a',
-      settings: { state: 'ACTIVE' as const, generation: 4 },
+      settings: {
+        state: 'ACTIVE' as const,
+        generation: 4,
+        precision: 'APPROXIMATE' as const,
+      },
       now: NOW,
     };
     expect(await publishOwnPositionIfDue(request)).not.toBeNull();
     expect(client.publishPartnerLocationSnapshot).toHaveBeenCalledWith({
       spaceId: 's',
       presencePublish: {
-        latitude: 53.5511,
-        longitude: 9.9937,
+        // Rounded on the device to the 0.01 degree grid before it is sent.
+        latitude: 53.55,
+        longitude: 9.99,
         accuracyMeters: 1200,
         capturedAt: new Date('2026-11-13T10:00:00Z'),
         consentGeneration: 4,
@@ -208,11 +223,150 @@ describe('publishOwnPositionIfDue', () => {
       api: client,
       spaceId: 's',
       accountId: 'a',
-      settings: { state: 'ACTIVE' as const, generation: 4 },
+      settings: {
+        state: 'ACTIVE' as const,
+        generation: 4,
+        precision: 'APPROXIMATE' as const,
+      },
       now: NOW,
     };
     await publishOwnPositionIfDue(request);
     await publishOwnPositionIfDue(request);
     expect(client.publishPartnerLocationSnapshot).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('precise location choice', () => {
+  const fine = { latitude: 53.55117, longitude: 9.99371, accuracyMeters: 25 };
+
+  it('rounds on the device: 0.001 degrees for a precise fix, 0.01 otherwise', () => {
+    expect(roundToGrid(fine, 'PRECISE')).toEqual({
+      latitude: 53.551,
+      longitude: 9.994,
+    });
+    expect(roundToGrid(fine, 'APPROXIMATE')).toEqual({
+      latitude: 53.55,
+      longitude: 9.99,
+    });
+    // A precise choice with a coarse fix (approximate-only grant) stays coarse.
+    expect(roundToGrid({ ...fine, accuracyMeters: 1800 }, 'PRECISE')).toEqual({
+      latitude: 53.55,
+      longitude: 9.99,
+    });
+  });
+
+  it('asks the plugin for a precise fix only after a precise choice', async () => {
+    await currentApproximatePosition();
+    expect(native.current).toHaveBeenLastCalledWith({
+      maxAgeMs: REUSE_CACHED_FIX_MS,
+    });
+    await currentApproximatePosition(undefined, 'PRECISE');
+    expect(native.current).toHaveBeenLastCalledWith({
+      maxAgeMs: REUSE_CACHED_FIX_MS,
+      precise: true,
+    });
+  });
+
+  it('requests the precise permission together with the approximate one', async () => {
+    await requestLocationPermission();
+    expect(native.requestPermissions).toHaveBeenLastCalledWith({
+      permissions: ['location'],
+    });
+    await requestLocationPermission('PRECISE');
+    expect(native.requestPermissions).toHaveBeenLastCalledWith({
+      permissions: ['location', 'preciseLocation'],
+    });
+  });
+
+  it('reports whether Android kept the grant approximate', async () => {
+    native.checkPermissions.mockResolvedValueOnce({
+      location: 'granted',
+      preciseLocation: 'granted',
+    });
+    expect(await devicePreciseAccess()).toBe('granted');
+    native.checkPermissions.mockResolvedValueOnce({
+      location: 'granted',
+      preciseLocation: 'denied',
+    });
+    expect(await devicePreciseAccess()).toBe('approximate-only');
+    native.checkPermissions.mockResolvedValueOnce({ location: 'denied' });
+    expect(await devicePreciseAccess()).toBe('unknown');
+    vi.mocked(isAndroidApp).mockReturnValue(false);
+    expect(await devicePreciseAccess()).toBe('unknown');
+  });
+
+  it('asks the browser for high accuracy only after a precise choice', async () => {
+    vi.mocked(isAndroidApp).mockReturnValue(false);
+    const getCurrentPosition = vi.fn(
+      (
+        success: (position: GeolocationPosition) => void,
+        _error: unknown,
+        _options: PositionOptions,
+      ) =>
+        success({
+          coords: { latitude: 1, longitude: 2, accuracy: 20 },
+          timestamp: 1,
+        } as GeolocationPosition),
+    );
+    vi.stubGlobal('navigator', { geolocation: { getCurrentPosition } });
+    await currentApproximatePosition();
+    expect(getCurrentPosition.mock.lastCall?.[2]).toMatchObject({
+      enableHighAccuracy: false,
+      maximumAge: REUSE_CACHED_FIX_MS,
+    });
+    await currentApproximatePosition(undefined, 'PRECISE');
+    expect(getCurrentPosition.mock.lastCall?.[2]).toMatchObject({
+      enableHighAccuracy: true,
+      maximumAge: 3 * 60 * 1000,
+    });
+  });
+
+  it('publishes a precise position on the fine grid and after 200 metres', async () => {
+    native.current.mockResolvedValue({ ...fine, capturedAt: NOW.getTime() });
+    const publish = vi.fn(async () => ({
+      available: true,
+      level: 'DISTANCE' as const,
+      precision: 'PRECISE' as const,
+      state: 'ACTIVE' as const,
+      indefinite: true,
+      expiresAt: null,
+      generation: 4,
+      lastPublishedAt: NOW,
+    }));
+    const request = {
+      api: { publishPartnerLocationSnapshot: publish },
+      spaceId: 's',
+      accountId: 'a',
+      settings: {
+        state: 'ACTIVE' as const,
+        generation: 4,
+        precision: 'PRECISE' as const,
+      },
+      now: NOW,
+    };
+    await publishOwnPositionIfDue(request);
+    expect(publish).toHaveBeenLastCalledWith({
+      spaceId: 's',
+      presencePublish: expect.objectContaining({
+        latitude: 53.551,
+        longitude: 9.994,
+        accuracyMeters: 25,
+      }),
+    });
+    // 110 m north: below the precise threshold, nothing is sent.
+    native.current.mockResolvedValue({
+      ...fine,
+      latitude: 53.5521,
+      capturedAt: NOW.getTime(),
+    });
+    expect(await publishOwnPositionIfDue(request)).toBeNull();
+    // About 245 m north: sent.
+    native.current.mockResolvedValue({
+      ...fine,
+      latitude: 53.5533,
+      capturedAt: NOW.getTime(),
+    });
+    expect(await publishOwnPositionIfDue(request)).not.toBeNull();
+    expect(publish).toHaveBeenCalledTimes(2);
   });
 });

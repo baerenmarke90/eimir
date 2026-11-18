@@ -11,6 +11,7 @@ import { fulfillDefaultAppIcon } from './appIcon';
 import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillEmptyPlanComments } from './planComments';
 import { fulfillNoWishDateProposal } from './productContext';
+import { fulfillNoOccasionSources } from './occasionSources';
 
 export const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 export const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -52,6 +53,26 @@ export const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );
+
+/** The authoritative projection of a Space without an open round. */
+export const NO_WISH_SELECTION_ROUND = {
+  id: null,
+  version: 0,
+  roundToken: 'absent',
+  title: null,
+  candidates: [],
+  own: {
+    favoriteWishIds: [],
+    favoriteDateIdeaIds: [],
+    published: false,
+    version: 0,
+  },
+  selectionToken: null,
+  resultState: 'NO_ROUND',
+  commonWishIds: [],
+  dateIdeaCandidates: [],
+  commonDateIdeaIds: [],
+};
 
 export async function captureScreenshot(
   target: Page | Locator,
@@ -172,6 +193,21 @@ export type MockOptions = {
   asPartner?: boolean;
   withDetailComments?: boolean;
   strict?: boolean;
+  /** Ongoing chapters shown under the matching Diary months. */
+  chapterPeriods?: ReadonlyArray<{
+    id: string;
+    title: string;
+    startOn: string;
+    endOn?: string | null;
+  }>;
+  /** Chapter start dividers placed between Diary entries. */
+  chapterMarkers?: ReadonlyArray<{
+    id: string;
+    title: string;
+    startOn: string;
+    endOn?: string | null;
+    position: number;
+  }>;
 };
 
 export async function installMocks(
@@ -279,6 +315,16 @@ export async function installMocks(
       return;
     }
 
+    // The Wishes entry row reads whether a shared round is open (#1907 J1).
+    // Journeys about the round itself install their own stateful endpoint.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wish-selection`
+    ) {
+      await fulfillJson(NO_WISH_SELECTION_ROUND);
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,
@@ -365,6 +411,12 @@ export async function installMocks(
         items,
         hasMore: false,
         nextCursor: null,
+        ...(options.chapterPeriods
+          ? {
+              chapterMarkers: options.chapterMarkers ?? [],
+              chapterPeriods: options.chapterPeriods,
+            }
+          : {}),
       });
       return;
     }
@@ -534,6 +586,7 @@ export async function installMocks(
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     if (options.strict) {
       unexpected.push(`${method} ${pathname}`);
       await fulfillJson({ code: 'UNEXPECTED_TEST_REQUEST' }, 500);

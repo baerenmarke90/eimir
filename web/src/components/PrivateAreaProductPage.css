@@ -521,3 +521,24 @@ body.theme-vault .back-link:hover {
   letter-spacing: 0.05em;
   color: var(--color-text-secondary);
 }
+
+/* Back shares the row with the area card, the page's title (#1907 C4). The
+   card moves below Back when it cannot keep a readable measure beside it. */
+.private-area-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.private-area-head > .private-area-context {
+  flex: 1 1 14rem;
+  min-inline-size: 0;
+}
+
+/* The quiet privacy line below one private item's name (#1907 C4). */
+.private-item-privacy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}

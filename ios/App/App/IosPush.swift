@@ -223,7 +223,7 @@ final class IosPush: NSObject, UNUserNotificationCenterDelegate {
 final class IosPushPlugin: CAPPlugin, CAPBridgedPlugin {
     let identifier = "EimirPush"
     let jsName = "EimirPush"
-    let pluginMethods = [
+    let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "enable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise),

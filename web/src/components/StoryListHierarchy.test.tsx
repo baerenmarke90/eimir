@@ -1,4 +1,5 @@
 import '../i18n';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // @vitest-environment jsdom
 import {
   cleanup,
@@ -8,6 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
@@ -15,6 +17,18 @@ import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import { StoryList } from './StoryList';
+
+/** StoryList reads the couple's occasions through Query (#1907 F2). */
+function StoryListProviders({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 const loadImage = () => new Promise<string>(() => {});
 const author = { id: 'author-1', displayName: 'Anna-Katharina Lindqvist' };
@@ -90,14 +104,14 @@ const milestone = StoryItemFromJSON({
 
 function renderList(items: StoryItem[], currentAccountId?: string) {
   return render(
-    <MemoryRouter>
+    <StoryListProviders>
       <StoryList
         items={items}
         loadMemoryImage={loadImage}
         loadHeartMomentImage={loadImage}
         currentAccountId={currentAccountId}
       />
-    </MemoryRouter>,
+    </StoryListProviders>,
   );
 }
 
@@ -230,13 +244,13 @@ describe('StoryList card hierarchy (#969)', () => {
             ? { ...item, heartMoment: { ...item.heartMoment, attachment } }
             : item;
       const { container } = render(
-        <MemoryRouter>
+        <StoryListProviders>
           <StoryList
             items={[sensitive as StoryItem]}
             loadMemoryImage={async () => 'blob:sensitive-preview'}
             loadHeartMomentImage={async () => 'blob:sensitive-preview'}
           />
-        </MemoryRouter>,
+        </StoryListProviders>,
       );
       await waitFor(() =>
         expect(

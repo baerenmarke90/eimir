@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -11,7 +11,11 @@ import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillNoWishDateProposal } from '../support/productContext';
+import {
+  fulfillNoWishDateProposal,
+  fulfillNoWishSelectionRound,
+} from '../support/productContext';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 /*
  * #1816: a completed wish can be experienced again. The repeat is a new wish
@@ -303,6 +307,8 @@ async function installMocks(page: Page): Promise<RepeatState> {
         { ETag: '"1"' },
       );
 
+    if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillNoWishSelectionRound(route)) return;
     state.unexpected.push(`${method} ${pathname}`);
     return json(
       {

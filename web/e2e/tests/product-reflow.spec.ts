@@ -1,3 +1,4 @@
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -5,6 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -427,6 +429,8 @@ async function installApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

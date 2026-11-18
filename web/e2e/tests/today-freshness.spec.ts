@@ -6,6 +6,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -377,6 +378,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

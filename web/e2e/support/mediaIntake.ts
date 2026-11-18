@@ -38,9 +38,13 @@ export async function expectMediaIntakeAction(
           : '--color-surface',
       )
       .trim();
-    let expected = /^#[a-f\d]{6}$/i.test(token)
-      ? `rgb(${[1, 3, 5].map((start) => Number.parseInt(token.slice(start, start + 2), 16)).join(', ')})`
-      : token;
+    // Resolve the token as the browser does; a production build may
+    // shorten hex values (#ffffff becomes #fff).
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = token;
+    element.append(probe);
+    let expected = getComputedStyle(probe).backgroundColor;
+    probe.remove();
     if (
       element.closest('.photo-source-sheet') &&
       document.querySelector('.heart-emotion-page')

@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { WHO_OF_US_QUESTION_IDS } from '../../src/client/whoOfUsSession';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { renderedContrast } from '../support/renderedContrast';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -109,6 +110,7 @@ async function installMocks(page: Page) {
       await route.fulfill({ json: responses[pathname] });
       return;
     }
+    if (await fulfillNoOccasionSources(route)) return;
     unexpected.push(`${request.method()} ${pathname}`);
     await route.fulfill({
       status: 500,

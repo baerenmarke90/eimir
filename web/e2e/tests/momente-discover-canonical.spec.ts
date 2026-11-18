@@ -1,7 +1,8 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import mapCopy from '../../src/i18n/locales/memoryMap';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -256,6 +257,46 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
+/**
+ * Pages once through the Fotostory with its visible "next" control and
+ * returns each slide's title and destination in playing order.
+ */
+async function walkStory(
+  page: Page,
+  titles: readonly string[],
+): Promise<string[]> {
+  const story = storyProducts.discoverStory;
+  const pause = page.getByRole('button', { name: story.pause, exact: true });
+  if (await pause.count()) await pause.click();
+  const viewer = page.locator('.momente-story-viewer');
+  const open = viewer.getByRole('link', {
+    name: new RegExp(`^${story.open}:`),
+  });
+  const hrefs: string[] = [];
+  for (const title of titles) {
+    await expect(
+      viewer.locator('.momente-story-slide[data-state="current"]'),
+    ).toContainText(title);
+    await expect(viewer.getByText(title, { exact: true })).toBeVisible();
+    hrefs.push((await open.getAttribute('href')) ?? '');
+    await page.getByRole('button', { name: story.next, exact: true }).click();
+  }
+  return hrefs;
+}
+
+// Fotostory themes play heart moments, milestones, then memories in words;
+// inside each theme the canonical backend order is kept.
+const STORY_TITLES = [
+  'Thinking of you',
+  'Our first apartment',
+  'Winter evening',
+] as const;
+const STORY_HREFS = [
+  '/story/heart-moments/discover-heart',
+  '/story/milestones/discover-milestone',
+  '/story/memories/discover-memory',
+];
+
 async function captureEvidence(
   page: Page,
   testInfo: TestInfo,
@@ -286,19 +327,7 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     const discover = page.locator('.momente-discover-page');
     const diary = page.locator('#momente-diary');
     await expect(discover.getByText('Morning by the lake')).toBeVisible();
-    await expect(discover.getByText('Thinking of you')).toBeVisible();
-    await expect(discover.getByText('Our first apartment')).toBeVisible();
-    await expect(discover.getByText('Winter evening')).toBeVisible();
-    await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
-    expect(
-      await discover
-        .locator('.momente-tapestry-item')
-        .evaluateAll((items) => items.map((item) => item.getAttribute('href'))),
-    ).toEqual([
-      '/story/heart-moments/discover-heart',
-      '/story/milestones/discover-milestone',
-      '/story/memories/discover-memory',
-    ]);
+    expect(await walkStory(page, STORY_TITLES)).toEqual(STORY_HREFS);
     const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
     const diaryTab = page.getByRole('tab', { name: de.story.tabTimeline });
     const mapTab = page.getByRole('tab', { name: mapCopy.entry, exact: true });
@@ -320,8 +349,8 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('.momente-discover-page')).toBeVisible();
-    await expect(discover.getByText('Winter evening')).toBeVisible();
-    await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
+    await page.locator('.momente-story-viewer').scrollIntoViewIfNeeded();
+    expect(await walkStory(page, STORY_TITLES)).toEqual(STORY_HREFS);
     await expect(diary).toBeHidden();
     await captureEvidence(
       page,

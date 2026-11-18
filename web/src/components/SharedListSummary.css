@@ -31,11 +31,8 @@
   border-radius: var(--radius-pill);
   transition: flex-grow var(--duration-feedback) var(--easing-standard);
 }
-.shared-list-summary-fill-a {
-  background: var(--color-partner-a);
-}
-.shared-list-summary-fill-b {
-  background: var(--color-partner-b);
+.shared-list-summary-fill {
+  background: var(--person-accent);
 }
 .shared-list-summary-fill-plain {
   background: var(--color-text-secondary);

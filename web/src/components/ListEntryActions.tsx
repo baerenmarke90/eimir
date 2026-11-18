@@ -93,7 +93,11 @@ export function useListItemReorder({
 }: {
   itemIds: readonly string[];
   disabled: boolean;
-  onReorder: (itemIds: string[], movedId: string) => void;
+  /**
+   * Returns `true` when the caller accepted the order and will reflect it in
+   * `itemIds`. Later moves then start from that order even before it renders.
+   */
+  onReorder: (itemIds: string[], movedId: string) => boolean | undefined;
   animatePreview?: boolean;
 }) {
   const dragRef = useRef<DragState | null>(null);
@@ -103,13 +107,37 @@ export function useListItemReorder({
   const animations = useRef(new Map<HTMLElement, Animation>());
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  // Accepted orders that `itemIds` does not reflect yet. A caller may apply
+  // its optimistic order after an asynchronous step, so a rapid second move
+  // must start from the latest accepted order rather than from the last
+  // rendered `itemIds`; otherwise the second move is lost (#1687).
+  const requestedOrders = useRef<string[][]>([]);
   const orderSignature = itemIds.join('|');
   const confirmedOrder = useRef(orderSignature);
   useEffect(() => {
-    if (confirmedOrder.current !== orderSignature && !dragRef.current)
-      setPreviewOrder(null);
+    if (confirmedOrder.current !== orderSignature) {
+      const reached = requestedOrders.current.findIndex(
+        (order) => order.join('|') === orderSignature,
+      );
+      // An order that matches no accepted request (a failed save restored,
+      // or another device's order) supersedes every pending request.
+      requestedOrders.current =
+        reached < 0 ? [] : requestedOrders.current.slice(reached + 1);
+      if (!dragRef.current)
+        setPreviewOrder(requestedOrders.current.at(-1) ?? null);
+    }
     confirmedOrder.current = orderSignature;
   }, [orderSignature]);
+
+  function latestOrder(): readonly string[] {
+    return requestedOrders.current.at(-1) ?? itemIds;
+  }
+
+  function requestOrder(order: string[], movedId: string): boolean {
+    if (onReorder(order, movedId) !== true) return false;
+    requestedOrders.current = [...requestedOrders.current, order];
+    return true;
+  }
 
   function captureRects() {
     if (!animatePreview) return;
@@ -277,7 +305,7 @@ export function useListItemReorder({
     setActiveItemId(null);
 
     if (commit && !sameOrder(drag.initialOrder, drag.order)) {
-      onReorder(drag.order, drag.itemId);
+      requestOrder(drag.order, drag.itemId);
     }
   }
 
@@ -296,14 +324,15 @@ export function useListItemReorder({
         if (direction === 0) return;
 
         event.preventDefault();
+        const current = latestOrder();
         const next = moveSortableItemByOffset(
-          itemIds,
+          current,
           itemId,
           direction as -1 | 1,
         );
-        if (!sameOrder(itemIds, next)) {
+        if (!sameOrder(current, next)) {
           captureRects();
-          onReorder(next, itemId);
+          if (requestOrder(next, itemId)) setPreviewOrder(next);
         }
       },
       onPointerDown: (event) => {
@@ -317,7 +346,7 @@ export function useListItemReorder({
         for (const animation of animations.current.values()) animation.cancel();
         animations.current.clear();
         const scrollContainer = scrollContainerFor(event.currentTarget);
-        const initialOrder = [...itemIds];
+        const initialOrder = [...latestOrder()];
         dragRef.current = {
           itemId,
           pointerId: event.pointerId,
@@ -415,14 +444,14 @@ export function EditPencilIcon({ className }: { className?: string }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className={className}
+      className={className ? `inline-icon ${className}` : 'inline-icon'}
     >
       <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
     </svg>
   );
 }
 
-function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
+export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'edit') {
     return <EditPencilIcon className="list-entry-icon" />;
   }
@@ -432,7 +461,7 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 24 24"
-        className="list-entry-icon"
+        className="list-entry-icon inline-icon"
       >
         <path d="m6 6 12 12M18 6 6 18" />
       </svg>
@@ -444,7 +473,7 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className="list-entry-icon"
+      className="list-entry-icon inline-icon"
     >
       {kind === 'more' ? (
         <>
@@ -471,9 +500,12 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       ) : null}
       {kind === 'reorder' ? (
         <>
-          <path d="M5 7h14" />
-          <path d="M5 12h14" />
-          <path d="M5 17h14" />
+          <circle cx="9" cy="6" r="1.2" />
+          <circle cx="15" cy="6" r="1.2" />
+          <circle cx="9" cy="12" r="1.2" />
+          <circle cx="15" cy="12" r="1.2" />
+          <circle cx="9" cy="18" r="1.2" />
+          <circle cx="15" cy="18" r="1.2" />
         </>
       ) : null}
     </svg>

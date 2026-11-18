@@ -66,7 +66,7 @@ Historical #1042 state:
 - Phase B Slice 2 retained full regression: **314** browser tests
 - #961 adds two retained tests to `f2-task-boundaries.spec.ts` (unknown-create verification and its photo continuation), so the full regression is **316** tests
 - PR-critical group: **152** browser tests
-- Current topology: **4 PR shards** / **4 full-regression shards**, one Playwright worker per shard
+- Current topology: **4 PR shards** / **up to 3 additional-spec shards** / **4 full-regression shards**, one Playwright worker per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
 
@@ -118,7 +118,7 @@ For a `pull_request` touching `web/**` or the workflow itself:
 
 1. a planning job validates both inventories, proves the planner with deterministic tests and resolves the complete GitHub PR Files response, bound to the event's head SHA;
 2. four PR-critical jobs run `npm run test:pr -- --shard=1/4` through `--shard=4/4` against the validated core-plus-impact selection;
-3. one additional isolated job runs affected or changed non-critical specs completely when required; critical files are already covered by step 2 and are not executed twice;
+3. when required, isolated additional jobs run affected or changed non-critical specs completely through native sharding; the plan emits `min(3, selected additional files)` shards so no shard is empty and a small selection pays for one runner only. Critical files are already covered by step 2 and are not executed twice;
 4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
 5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
 

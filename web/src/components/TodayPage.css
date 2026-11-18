@@ -12,7 +12,53 @@
  * rhythm and its ambient tint instead of from stacked empty space.
  */
 .today-page {
+  position: relative;
   padding-top: 0;
+}
+
+/* Keep the full-bleed backdrop on the page so a pager preview and the active
+   tab paint the same glow, at the same reading position. The other palettes
+   already paint a backdrop on the page. */
+.today-page:not(
+  [data-wir-layout="open"],
+  [data-wir-layout="rows"],
+  [data-wir-layout="names"],
+  [data-wir-layout="note"]
+)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: calc(
+    -1 *
+    (var(--shell-content-top-inset) + var(--shell-main-padding-top))
+  );
+  left: 50%;
+  width: var(--shell-inline-size);
+  height: 24rem;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    120% 24rem at 30% 0%,
+    var(--design-backdrop-glow),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A tap may reveal the backdrop with the route entry. The swipe already
+     reveals it under the finger and skips that entry animation. */
+  .product-main[data-navigation-slide]
+    > .primary-tab-panel
+    > .today-page::before {
+    animation: today-backdrop-enter var(--duration-transition)
+      var(--easing-standard);
+  }
+}
+
+@keyframes today-backdrop-enter {
+  from {
+    opacity: 0;
+  }
 }
 
 .today-hero.couple-presence-card {
@@ -27,28 +73,6 @@
   background: transparent;
   box-shadow: none;
   gap: var(--space-3);
-}
-
-/*
- * Warmth without another card: a soft brand aura bleeding out of the top of
- * the page behind the couple, so the hero reads as a lit place rather than a
- * bordered header block. Purely decorative, so it never affects layout.
- */
-.today-hero.couple-presence-card::before {
-  content: "";
-  position: absolute;
-  /* The bleed stops exactly at the shell's 1rem compact gutter. Anything
-     wider pushes the document's scroll width past the viewport and breaks
-     WCAG 2.2 SC 1.4.10 reflow at 320 CSS px. */
-  inset: calc(-1 * var(--space-8)) calc(-1 * var(--space-4)) auto;
-  height: 19rem;
-  background: radial-gradient(
-    105% 95% at 50% 0%,
-    var(--color-brand-glow),
-    transparent 70%
-  );
-  pointer-events: none;
-  z-index: -1;
 }
 
 @media (min-width: 768px) {
@@ -299,7 +323,7 @@
 .today-section-title {
   margin: 0;
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-heading-family);
   font-size: 1.25rem;
   font-weight: 750;
   letter-spacing: -0.01em;
@@ -527,7 +551,6 @@
   height: 1rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -591,6 +614,12 @@
 }
 
 @media (min-width: 840px) {
+  /* Align Wir with the Planen reading column while the backdrop can bleed. */
+  .today-page > :is(.today-content, .ui-state, .overview-cache-notice-slot) {
+    max-inline-size: var(--reading-max);
+    margin-inline: auto;
+  }
+
   /* Expanded: the sparse welcome sits under the centered hero, not at the edge. */
   .new-space-experience {
     margin-inline: auto;
@@ -609,6 +638,92 @@
   margin: var(--space-3) 0 var(--space-5);
   color: var(--color-text-secondary);
   font-size: 1rem;
+}
+
+/*
+ * #1907 I1 move-in: an empty frame waits on the wall, then one filled action
+ * opens the existing composer. Without a partner a quiet link leads to the
+ * existing invitation.
+ */
+.today-page .new-space-experience {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.today-page .new-space-experience > .new-space-body {
+  margin: 0;
+}
+
+.new-space-wall {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: 9rem;
+  border-radius: var(--radius-content);
+  background: var(--color-surface-subtle);
+}
+
+.new-space-wall > span {
+  inline-size: 5.5rem;
+  block-size: 4.5rem;
+  border: 2px dashed var(--color-text-muted);
+  border-radius: var(--radius-medium);
+  opacity: 0.6;
+}
+
+.new-space-invite {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target-web);
+  color: var(--color-brand-text);
+  font: var(--font-action-label);
+  text-decoration: none;
+}
+
+.new-space-invite .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+@media (min-width: 840px) {
+  .today-page .new-space-experience {
+    justify-items: center;
+  }
+
+  .new-space-wall {
+    max-inline-size: 28rem;
+  }
+}
+
+/*
+ * #1907 I1: Wir rises like the other roots, once per page load. The header
+ * keeps the floating create action fixed, and the hero keeps its own intro.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .today-content[data-root-intro] > :not(.page-heading, :nth-child(-n + 2)) {
+    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter)
+      var(--root-intro-delay, calc(var(--duration-sequence-beat) * 0)) backwards;
+  }
+
+  .today-content[data-root-intro] > :nth-child(3) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.3);
+  }
+
+  .today-content[data-root-intro] > :nth-child(4) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.6);
+  }
+
+  .today-content[data-root-intro] > :nth-child(5) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.9);
+  }
+
+  .today-content[data-root-intro] > :nth-child(n + 6) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 1.2);
+  }
 }
 
 @media (max-width: 599px) {
@@ -1352,5 +1467,14 @@
   .today-activity-trace > .activity-result-wrapper {
     flex: 1 1 220px;
     max-width: 18rem;
+  }
+}
+
+@media (min-width: 840px) {
+  /* Keep tile widths consistent across modules with different item counts. */
+  .today-agenda-row,
+  .today-agenda-list:has(> .today-agenda-row:nth-child(2)) > .today-agenda-row,
+  .today-activity-trace > .activity-result-wrapper {
+    flex: 0 1 18rem;
   }
 }

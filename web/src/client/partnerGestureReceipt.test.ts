@@ -8,8 +8,10 @@ import {
 } from './foregroundNotifications';
 import {
   isPartnerGestureKind,
+  isPartnerNoticeKind,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
+  PARTNER_NOTICE_ICONS,
   requestPartnerGestureReceipt,
 } from './partnerGestureReceipt';
 
@@ -60,6 +62,27 @@ describe('partner gesture receipt policy', () => {
       motion: 'calm-ring',
       reply: 'CHECK_IN',
     });
+  });
+
+  it('gives partner-caused notices a badge and leaves system kinds plain', () => {
+    expect(isPartnerNoticeKind('WISH_SELECTION_SHARED')).toBe(true);
+    expect(PARTNER_NOTICE_ICONS.WISH_SELECTION_SHARED.badge).toBe('gemeinsam');
+    // The plain wish heart is never a badge: it belongs to "thinking of you".
+    for (const icons of Object.values(PARTNER_NOTICE_ICONS))
+      expect(icons.badge).not.toBe('wuensche');
+    for (const kind of [
+      'TRANSFER_READY',
+      'TRANSFER_COMPLETED',
+      'TRANSFER_FAILED',
+      'VIDEO_PROCESSING_FAILED',
+      'REMINDER_DUE',
+      'WISH_REMINDER_DUE',
+      'GENTLE_PROMPT',
+      'THINKING_OF_YOU',
+      'PARTNER_KISS',
+      'PARTNER_CHECK_IN',
+    ])
+      expect(isPartnerNoticeKind(kind), kind).toBe(false);
   });
 
   it('selects the newest new, unread gesture from the partner', () => {

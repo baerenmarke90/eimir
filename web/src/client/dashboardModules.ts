@@ -30,17 +30,24 @@ export type DashboardModuleKey =
   | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
+  | 'pinned_note'
   | 'keepsake'
   | 'retrospective'
   | 'relationship_signal'
   | 'monthly_highlights'
   | 'recent_shared'
-  | 'shared_story_summary';
+  | 'shared_story_summary'
+  | 'shared_garden';
 
 export interface DashboardModuleCatalogEntry {
   key: DashboardModuleKey;
   /** i18n key for the module's label in Settings, without interpolation. */
   labelKey: string;
+  /**
+   * Visibility without a saved choice. Only an opt-in module sets `false`;
+   * the backend catalog carries the same `default_visible`.
+   */
+  defaultVisible?: false;
 }
 
 /**
@@ -62,6 +69,10 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
       key: 'pinned_collection',
       labelKey: 'm5s5.dashboard.pinnedCollectionSettingsTitle',
     },
+    {
+      key: 'pinned_note',
+      labelKey: 'sharedNotes.dashboard.settingsTitle',
+    },
     { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
     { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.settingsTitle' },
@@ -70,7 +81,23 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
       key: 'shared_story_summary',
       labelKey: 'm5s5.dashboard.storySummaryTitle',
     },
+    // Product Owner 2026-11-17: the shared garden on Wir, only when chosen.
+    {
+      key: 'shared_garden',
+      labelKey: 'games.garden.title',
+      defaultVisible: false,
+    },
   ];
 
 export const DASHBOARD_MODULE_KEYS: readonly DashboardModuleKey[] =
   DASHBOARD_MODULE_CATALOG.map((entry) => entry.key);
+
+/** Whether a module shows on Wir before the person made a choice. */
+export function dashboardModuleDefaultVisible(
+  key: DashboardModuleKey,
+): boolean {
+  return (
+    DASHBOARD_MODULE_CATALOG.find((entry) => entry.key === key)
+      ?.defaultVisible !== false
+  );
+}

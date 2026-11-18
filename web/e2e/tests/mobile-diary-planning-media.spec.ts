@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import tagCopy from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
@@ -30,6 +30,12 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const picture = readFileSync(

@@ -167,20 +167,6 @@ export function storyItemPresentation(
 export type TapestryRole = 'media' | 'note' | 'milestone' | 'text';
 
 /**
- * The Discover tapestry gives each content type a distinct physical role
- * (#790): a photo Memory is image-first, a Heart Moment reads as a note, a
- * Milestone is a compact marker, and a Memory without media falls back to a
- * quiet text card.
- */
-export function tapestryItemRole(item: StoryItem): TapestryRole {
-  if (item.kind === 'MEMORY') {
-    return item.memory.attachments.length > 0 ? 'media' : 'text';
-  }
-  if (item.kind === 'HEART_MOMENT') return 'note';
-  return 'milestone';
-}
-
-/**
  * Relative weights approximating each role's real rendered height, used to
  * balance the tapestry's columns. A photo tile reads roughly as tall as three
  * or four milestone markers, so pure item-count balancing would leave a

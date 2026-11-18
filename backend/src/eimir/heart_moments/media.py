@@ -53,6 +53,7 @@ def replace(
     *,
     selected_cover: UUID | None = None,
     cover_supplied: bool = False,
+    replacements: dict[UUID, UUID] | None = None,
 ) -> None:
     """Caller holds the authorized parent lock; all writes share its version."""
     ids = [identifier for identifier, _ in selection]
@@ -62,6 +63,7 @@ def replace(
         raise ValidationError("The cover must belong to this gallery.", "GALLERY_COVER_INVALID")
     current = galleries(session, [moment])[moment.id]
     previous = {entry.attachment.id for entry in current}
+    replaced_by = binding.check_replacements(replacements, previous=previous, selected=ids)
     locked = binding.lock_for_binding(session, sorted(previous | set(ids)))
     selected: list[Attachment] = []
     for identifier in ids:
@@ -117,7 +119,15 @@ def replace(
     )
     for identifier in previous - set(ids):
         attachments.mark_for_deletion(session, locked[identifier])
-    photo_locations.bind(session, context, moment, selected, heart=True)
+    # An edited photo keeps its metadata but must not add a second Place.
+    photo_locations.discard(session, list(replaced_by))
+    photo_locations.bind(
+        session,
+        context,
+        moment,
+        [candidate for candidate in selected if candidate.id not in replaced_by],
+        heart=True,
+    )
     session.flush()
     for candidate in selected:
         if candidate.id not in previous:

@@ -39,8 +39,7 @@ def list_memory_map(
         .join(Place, Place.id == PlaceMemory.place_id)
         .where(
             Place.id.in_(readable(Place, context).with_only_columns(Place.id)),
-            Place.latitude.is_not(None),
-            Place.longitude.is_not(None),
+            Place.located(),
         )
     )
     if cursor:

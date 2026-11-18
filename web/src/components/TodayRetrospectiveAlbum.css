@@ -1,0 +1,218 @@
+/* "Erinnert ihr euch?" on Wir in the scrapbook language. Album view only: the
+ * classic card in TodayPage.css stays untouched and returns when the setting
+ * "Momente-Ansicht" is switched to Klassisch. Tokens only. A photo memory
+ * hangs from a clothespin and swings in once; a memory without a photo is a
+ * calm, static warm note (see `retrospectiveTone`). */
+
+.today-living-retrospective[data-diary-layout="album"] {
+  position: relative;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sheet);
+  /* A calm plain surface one step below the Polaroid. The ruled wall texture
+     looked out of place on Wir; only the clothespin and the Polaroid stay
+     scrapbook. */
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+/* A string the Polaroid hangs from. Decorative only. */
+.today-living-retrospective[data-diary-layout="album"]::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-6) * -1);
+  inset-inline: calc(var(--space-6) * -1);
+  height: calc(var(--space-6) + var(--space-8));
+  border-bottom: 2px solid var(--color-text-muted);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  pointer-events: none;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-photo {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, 18.5rem);
+  min-width: 0;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-3) 0;
+  /* Keeps the paper readable where the card and the Polaroid share a colour
+     (most light designs). */
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  filter: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 8px 8px var(--color-shadow-soft));
+  transform: rotate(-1.6deg);
+  transform-origin: 50% 0;
+  animation: today-retrospective-swing-in var(--duration-gesture-sequence)
+    var(--easing-standard) backwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .today-living-retrospective[data-diary-layout="album"]
+    .today-retrospective-photo {
+    animation:
+      today-retrospective-swing-in var(--duration-gesture-sequence)
+      var(--easing-standard) backwards,
+      today-retrospective-sway var(--duration-connection-travel-far)
+      var(--duration-gesture-sequence) var(--easing-travel) infinite alternate;
+  }
+}
+
+@keyframes today-retrospective-swing-in {
+  0% {
+    rotate: 16deg;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  28% {
+    rotate: -9deg;
+  }
+  46% {
+    rotate: 5deg;
+  }
+  62% {
+    rotate: -2.4deg;
+  }
+  80% {
+    rotate: 1deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+@keyframes today-retrospective-sway {
+  from {
+    rotate: -1.1deg;
+  }
+  to {
+    rotate: 1.1deg;
+  }
+}
+@keyframes today-retrospective-develop {
+  0% {
+    filter: brightness(2.6) saturate(0) contrast(0.5) blur(4px);
+  }
+  45% {
+    filter: brightness(1.5) saturate(0.35) sepia(0.5) blur(2px);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+/* Clothespin: decorative, not in the DOM and never over the user's photo. */
+.today-living-retrospective[data-diary-layout="album"]
+.today-retrospective-photo::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--space-4) * -1);
+  inset-inline-start: 50%;
+  width: 0.95rem;
+  height: 2.9rem;
+  margin-inline-start: -0.475rem;
+  border-radius: 4px 4px 3px 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 55%,
+      var(--color-discovery-surface)
+    ),
+    color-mix(
+        in srgb,
+        var(--color-discovery) 75%,
+        var(--color-discovery-surface)
+      )
+      48%,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 45%,
+      var(--color-discovery-surface)
+    )
+  );
+  box-shadow: 0 3px 6px var(--color-shadow-overlay);
+  pointer-events: none;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-preview,
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-skeleton,
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* The photo "develops" once, like instant film. */
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-preview {
+  animation: today-retrospective-develop var(--duration-gesture-sequence)
+    var(--duration-sequence-beat) var(--easing-enter) backwards;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-title {
+  font: var(--font-content-heading);
+  letter-spacing: var(--tracking-content-heading);
+}
+
+/* A long text memory must not turn the card into a whole screen. */
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-text-only
+  .today-retrospective-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-action {
+  margin-block-start: var(--space-3);
+}
+
+/* Calm entries (no photo, no positive signal): a plain note on the same calm
+   surface as the photo card. No string, clothespin, swing or developing
+   effect. */
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"] {
+  padding-block-start: var(--space-5);
+}
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]::before,
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
+  .today-retrospective-photo::before {
+  display: none;
+}
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
+  .today-retrospective-photo {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  filter: none;
+  transform: none;
+  animation: none;
+}

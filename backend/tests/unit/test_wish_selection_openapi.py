@@ -9,8 +9,14 @@ def test_selection_contract_requires_explicit_consent_and_concurrency() -> None:
     assert set(path for path in schema["paths"] if "wish-selection" in path) == {
         base,
         base + "/own",
+        base + "/decision",
     }
-    for path, method in [(base, "put"), (base, "delete"), (base + "/own", "put")]:
+    for path, method in [
+        (base, "put"),
+        (base, "delete"),
+        (base + "/own", "put"),
+        (base + "/decision", "put"),
+    ]:
         parameters = schema["paths"][path][method]["parameters"]
         assert next(parameter for parameter in parameters if parameter["name"] == "If-Match")[
             "required"
@@ -23,3 +29,7 @@ def test_selection_contract_requires_explicit_consent_and_concurrency() -> None:
     assert not {"partner", "selections", "partnerVersion", "partnerDraft"} & set(
         response["properties"]
     )
+    # A random pick exposes neither its pool nor a partner's favourites (#1907 J1).
+    assert not {"pool", "randomPositions", "commonPositions"} & set(response["properties"])
+    decision = schema["components"]["schemas"]["WishSelectionDecisionUpdate"]
+    assert decision["required"] == ["action"] and decision["additionalProperties"] is False

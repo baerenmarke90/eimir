@@ -1,42 +1,44 @@
 import './FreeComposer.css';
-import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { formatChapterPeriod } from '../client/chapterPresentation';
+import { invalidateChapterProjections } from '../client/chapterQueries';
+import { assertOnlineWrite } from '../client/connectivity';
+import {
+  deleteFocusTargetFromInfiniteData,
+  type InfiniteItemsData,
+  PLANNING_DELETE_FOCUS_STATE_KEY,
+} from '../client/deleteFocusTarget';
 import { normalizeClientError } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { placeDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
 import {
   dateFromInput,
   dateOnlyInput,
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { placeDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import {
-  deleteFocusTargetFromInfiniteData,
-  type InfiniteItemsData,
-  PLANNING_DELETE_FOCUS_STATE_KEY,
-} from '../client/deleteFocusTarget';
-import { resolvedLocale, useTranslation } from '../i18n';
-import { formatChapterPeriod } from '../client/chapterPresentation';
-import { invalidateChapterProjections } from '../client/chapterQueries';
-import { assertOnlineWrite } from '../client/connectivity';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { ChapterContextFields, type ChapterDraft } from './ChapterFields';
-import { TaskBackButton } from './TaskBackButton';
-import { PageHeader } from './PageHeader';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
 } from './PlanningEditorLifecycle';
 import { PlanningRelationManager } from './PlanningRelationManager';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './ChapterExperience.css';
+import './StoryUnifiedPage.css';
+import './StoryHandmade.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -457,7 +459,7 @@ function ScopedChapterProductPage({
             }
           />
         }
-        eyebrow={t('m5s3.chapter.detailEyebrow')}
+        itemLabel={t('m5s3.chapter.detailEyebrow')}
         title={chapter.title}
         titleEditor={
           isEditing ? (

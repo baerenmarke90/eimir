@@ -72,7 +72,12 @@ still needs relevant Product Acceptance beyond a green automated selection.
 The existing job/context names, four one-worker PR shards, four full-regression
 shards, independent retries, `fail-fast: false`, diagnostic paths and artifact
 names remain. The stable `Playwright + axe` aggregate additionally rejects a
-skipped additional job when the plan required it.
+skipped additional job when the plan required it. Since 2026-11-16 the
+additional group runs as up to three native Playwright shards, bounded by the
+number of selected additional files, because a single additional job had
+become the longest PR browser job (27-32 minutes measured on 2026-11-16).
+Selection, assertions and the aggregate contract are unchanged; shard
+artifacts carry the shard number.
 
 ## Measured collection, 2026-11-04
 

@@ -2,7 +2,6 @@ const privateArea = {
   eyebrow: 'Für mich',
   intro: 'In eimir. nicht mit deinem Partner geteilt.',
   privacyLabel: 'Nur für mich',
-  createAction: 'Privaten Eintrag hinzufügen',
   backToMore: '← Zurück zu Mehr',
   backToHub: '← Zurück zu Nur für mich',
   backToSearch: '← Zurück zur Suche',
@@ -37,6 +36,7 @@ const privateArea = {
   },
   notes: {
     title: 'Notizen für mich',
+    itemLabel: 'Notiz',
     intro: 'Gedanken und Notizen, die ausschließlich für dich bestimmt sind.',
     add: 'Notiz für mich hinzufügen',
     createTitle: 'Neue Notiz',
@@ -57,6 +57,7 @@ const privateArea = {
   },
   gifts: {
     title: 'Geschenkideen',
+    itemLabel: 'Geschenkidee',
     intro: 'Ideen und Vorbereitungen, die dein Partner nicht sehen kann.',
     add: 'Geschenkidee hinzufügen',
     createTitle: 'Neue Geschenkidee',
@@ -84,6 +85,7 @@ const privateArea = {
   },
   collections: {
     title: 'Meine Listen',
+    itemLabel: 'Meine Liste',
     intro: 'Persönliche Listen mit Reihenfolge und Erledigt-Status.',
     add: 'Liste hinzufügen',
     createTitle: 'Neue Liste',

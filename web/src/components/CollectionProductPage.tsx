@@ -21,20 +21,11 @@ import {
   CollectionDetailToJSON,
 } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
 import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
-import { sharedAchievementKind } from '../client/sharedAchievements';
-import {
-  knownPersonName,
-  listPeople,
-  partnerTone,
-  summarizeSharedList,
-} from '../client/sharedListSummary';
-import { visibleSuggestions } from '../client/shoppingSuggestions';
-import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
@@ -44,6 +35,9 @@ import {
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { usePartnerNickname } from '../client/partnerNickname';
+import { firstNameFromDisplayName } from '../client/personalName';
+import { personRoleResolver } from '../client/personColours';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -55,10 +49,18 @@ import {
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import { sharedAchievementKind } from '../client/sharedAchievements';
+import {
+  knownPersonName,
+  listPeople,
+  summarizeSharedList,
+} from '../client/sharedListSummary';
 import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { visibleSuggestions } from '../client/shoppingSuggestions';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import {
@@ -74,6 +76,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { SharedContentSheet } from './SharedContentSheet';
 import { SharedListCartBar } from './SharedListCartBar';
 import {
   type FinishBlock,
@@ -81,7 +84,6 @@ import {
   SharedListTripEnd,
   type TripEnd,
 } from './SharedListFinish';
-import { SharedContentSheet } from './SharedContentSheet';
 import { SharedListSuggestions } from './SharedListSuggestions';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
@@ -177,6 +179,11 @@ function CollectionProductDetail({
     null,
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  // The menu's second step asks before sending the list to the partner (#1907 E2).
+  const [sendStep, setSendStep] = useState(false);
+  const [showSent, showSentForFeedbackWindow] = useTransientFlag(4000);
+  const { state: partnerState, nicknameFor } = usePartnerNickname();
+  const partnerId = partnerState?.partnerId ?? null;
   // The entry that was just checked or put back arrives in its new place with
   // a short glide; the rest of the list does not move (#1808).
   const [arrivingId, setArrivingId] = useState<string | null>(null);
@@ -310,6 +317,49 @@ function CollectionProductDetail({
   }, [collectionQuery.data]);
 
   const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
+
+  // The partner's name for the send wording: a chosen nickname, or someone the
+  // list already shows; only when neither is known does one Dashboard read ask.
+  const partnerNickname = nicknameFor(partnerId);
+  const knownPartnerName =
+    partnerNickname ||
+    (collectionQuery.data
+      ? knownPersonName(collectionQuery.data, partnerId ?? undefined)
+      : '');
+  const partnerNameQuery = useQuery({
+    queryKey: ['collection-send-partner-name', spaceId, partnerId],
+    queryFn: async () => {
+      if (!dashboardApi) return '';
+      const view = await apiCall(() => dashboardApi.getDashboard({ spaceId }));
+      return view.space.partner?.displayName ?? '';
+    },
+    enabled: Boolean(
+      dashboardApi && partnerId && !knownPartnerName && !embedded,
+    ),
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+
+  // A deliberate gesture: one request notifies the partner and puts the list on
+  // their Wir. Nothing is queued offline, so a send never replays by surprise.
+  const sendToPartner = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: () => {
+      assertOnlineWrite();
+      return apiCall(() =>
+        apis.collections.sendCollectionToPartner({
+          spaceId,
+          collectionId: collectionId ?? '',
+        }),
+      );
+    },
+    onSuccess: () => {
+      setMenuOpen(false);
+      setSendStep(false);
+      showSentForFeedbackWindow();
+    },
+  });
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -882,7 +932,8 @@ function CollectionProductDetail({
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
   const shopping = collection.kind === 'SHOPPING';
-  const summary = summarizeSharedList(collection, items);
+  const roleOf = personRoleResolver(accountId);
+  const summary = summarizeSharedList(items, roleOf);
   const markerFor = (item: CollectionItemDetail) => {
     const finisher = item.completed ? item.completer : null;
     const person = finisher ?? item.creator;
@@ -892,7 +943,7 @@ function CollectionProductDetail({
       (person.id === accountId ? t('m5s3.collection.you') : '');
     return {
       name,
-      tone: partnerTone(collection, person.id),
+      role: roleOf(person.id),
       caption: name
         ? t(
             finisher
@@ -922,18 +973,27 @@ function CollectionProductDetail({
         setTripEnd(null);
         finishTrip.mutate({
           itemIds: doneItems.map((entry) => entry.id),
-          shares: summarizeSharedList(collection, doneItems).shares,
+          shares: summarizeSharedList(doneItems, roleOf).shares,
         });
       }}
     />
   ) : null;
   // The list's menu (#1808): sorting lives here instead of in the page. Without
   // a page header (the Wir sheet) the button sits in the list's toolbar.
-  const hasListMenu =
-    !embedded &&
-    collection.capabilities.canEdit &&
-    items.length > 1 &&
-    !isSorting;
+  const canSort = collection.capabilities.canEdit && items.length > 1;
+  const canSend = Boolean(partnerId) && Boolean(accountId);
+  const hasListMenu = !embedded && !isSorting && (canSort || canSend);
+  const partnerLabel =
+    partnerNickname ||
+    firstNameFromDisplayName(
+      knownPartnerName || partnerNameQuery.data,
+      t('m5s3.collection.menu.partnerFallback'),
+    );
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setSendStep(false);
+    sendToPartner.reset();
+  };
   const listMenuButton = hasListMenu ? (
     <ListEntryIconButton
       ref={menuTriggerRef}
@@ -1006,7 +1066,7 @@ function CollectionProductDetail({
       ? {
           from: row.getBoundingClientRect(),
           label: targetItem.title,
-          tone: partnerTone(collection, accountId),
+          role: roleOf(accountId),
           at: performance.now(),
         }
       : null;
@@ -1084,6 +1144,7 @@ function CollectionProductDetail({
       {!embedded && !inSheet ? (
         <PageHeader
           className="shared-authored-heading"
+          itemLabel={t('m5s3.collection.detailEyebrow')}
           title={
             <span
               style={{
@@ -1238,6 +1299,12 @@ function CollectionProductDetail({
         />
       ) : null}
 
+      {showSent ? (
+        <p className="shared-list-sent" role="status" aria-live="polite">
+          {t('m5s3.collection.menu.sendDone', { name: partnerLabel })}
+        </p>
+      ) : null}
+
       <section
         className="planning-subsection"
         aria-labelledby="collection-items-heading"
@@ -1253,7 +1320,7 @@ function CollectionProductDetail({
           <SharedListSummary
             summary={summary}
             shopping={shopping}
-            people={listPeople(collection, items)}
+            people={listPeople(collection, items, roleOf)}
           />
         ) : null}
         <div className="shared-list-toolbar">
@@ -1286,7 +1353,7 @@ function CollectionProductDetail({
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"
-                  className="shared-list-outbox-icon"
+                  className="shared-list-outbox-icon inline-icon"
                 >
                   {online ? (
                     <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
@@ -1519,25 +1586,72 @@ function CollectionProductDetail({
 
       <SharedContentSheet
         open={menuOpen && hasListMenu}
-        title={collection.title}
+        title={
+          sendStep
+            ? t('m5s3.collection.menu.sendTitle', { name: partnerLabel })
+            : collection.title
+        }
+        isPending={sendToPartner.isPending}
         restoreFocusRef={menuTriggerRef}
-        onClose={() => setMenuOpen(false)}
+        onClose={closeMenu}
       >
-        {() => (
-          <div className="shared-content-actions">
-            <button
-              type="button"
-              className="tertiary"
-              disabled={isReordering || outbox.pendingCount > 0}
-              onClick={() => {
-                setMenuOpen(false);
-                setIsSorting(true);
-              }}
-            >
-              {t('m5s3.collection.sort')}
-            </button>
-          </div>
-        )}
+        {() =>
+          sendStep ? (
+            <div className="shared-content-actions">
+              <p>{t('m5s3.collection.menu.sendBody')}</p>
+              <button
+                type="button"
+                disabled={sendToPartner.isPending}
+                onClick={() => sendToPartner.mutate()}
+              >
+                {sendToPartner.isPending
+                  ? t('m5s3.collection.menu.sendSending')
+                  : t('m5s3.collection.menu.sendConfirm', {
+                      name: partnerLabel,
+                    })}
+              </button>
+              <button
+                type="button"
+                className="tertiary"
+                disabled={sendToPartner.isPending}
+                onClick={closeMenu}
+              >
+                {t('m5s3.collection.menu.sendKeep')}
+              </button>
+              {sendToPartner.error ? (
+                <ProblemState
+                  error={sendToPartner.error}
+                  onRetry={() => sendToPartner.mutate()}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <div className="shared-content-actions">
+              {canSort ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={isReordering || outbox.pendingCount > 0}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setIsSorting(true);
+                  }}
+                >
+                  {t('m5s3.collection.sort')}
+                </button>
+              ) : null}
+              {canSend ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => setSendStep(true)}
+                >
+                  {t('m5s3.collection.menu.send', { name: partnerLabel })}
+                </button>
+              ) : null}
+            </div>
+          )
+        }
       </SharedContentSheet>
 
       {shopping && !embedded && !isSorting ? (

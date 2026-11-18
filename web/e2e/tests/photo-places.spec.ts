@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import experiences from '../../src/i18n/locales/experiences';
@@ -14,6 +14,7 @@ import localeFixture from '../fixtures/locales/de';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -487,6 +488,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
       return;
     }
     if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     await route.fallback();
   });
   return {

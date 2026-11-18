@@ -77,6 +77,7 @@ const SEARCH_KINDS: readonly SearchKind[] = [
   'CHAPTER',
   'COLLECTION',
   'COLLECTION_ITEM',
+  'SHARED_NOTE',
   'PRIVATE_NOTE',
   'GIFT_IDEA',
   'PRIVATE_COLLECTION',
@@ -457,22 +458,8 @@ export function ActivityProductPage({
   const items = readableActivityItems(activityQuery);
 
   return (
-    <div className="page m4-product-page">
-      <PageHeader
-        title={t('m5s5.activity.title')}
-        action={
-          <button
-            type="button"
-            className="secondary compact-action"
-            onClick={() => void activityQuery.refetch()}
-            disabled={activityQuery.isFetching}
-          >
-            {activityQuery.isFetching && !activityQuery.isFetchingNextPage
-              ? t('m5s5.common.refreshing')
-              : t('m5s5.common.refresh')}
-          </button>
-        }
-      />
+    <div className="page m4-product-page m4-feed-page">
+      <PageHeader title={t('m5s5.activity.title')} />
       <div
         className="planen-segmented"
         role="tablist"
@@ -792,60 +779,31 @@ export function NotificationsProductPage({
   const unreadCount = unreadQuery.data?.unreadCount;
 
   return (
-    <div className="page m4-product-page">
-      <PageHeader
-        title={t('m5s5.notifications.title')}
-        action={
-          <button
-            type="button"
-            className="secondary compact-action"
-            onClick={() => {
-              void notificationsQuery.refetch();
-              void unreadQuery.refetch();
-            }}
-            disabled={notificationsQuery.isFetching || unreadQuery.isFetching}
-          >
-            {notificationsQuery.isFetching || unreadQuery.isFetching
-              ? t('m5s5.common.refreshing')
-              : t('m5s5.common.refresh')}
-          </button>
-        }
-      />
+    <div className="page m4-product-page m4-feed-page">
+      <PageHeader title={t('m5s5.notifications.title')} />
 
       {unreadQuery.isLoading ? (
-        <section
-          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
-          aria-live="polite"
-        >
-          <p className="planning-meta">
-            {t('m5s5.notifications.unreadLoading')}
-          </p>
-        </section>
+        <p className="m4-unread-line" aria-live="polite">
+          {t('m5s5.notifications.unreadLoading')}
+        </p>
       ) : unreadQuery.isSuccess && unreadCount !== undefined ? (
-        <section
-          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
-          aria-labelledby="m4-notification-summary"
-        >
-          <div className="m4-notification-summary">
-            <h2
-              id="m4-notification-summary"
-              className="m4-unread-badge"
-              aria-live="polite"
-            >
-              {t('m5s5.notifications.unreadCount', { count: unreadCount })}
-            </h2>
+        <div className="m4-notification-bar">
+          <p className="m4-unread-line" aria-live="polite">
+            {t('m5s5.notifications.unreadCount', { count: unreadCount })}
+          </p>
+          {unreadCount > 0 || isMarkAllPending ? (
             <button
               type="button"
-              className="secondary"
+              className="tertiary compact-action"
               onClick={markAllNotificationsRead}
-              disabled={isMarkAllPending || unreadCount === 0}
+              disabled={isMarkAllPending}
             >
               {isMarkAllPending
                 ? t('m5s5.notifications.markingAllRead')
                 : t('m5s5.notifications.markAllRead')}
             </button>
-          </div>
-        </section>
+          ) : null}
+        </div>
       ) : null}
 
       {notificationsQuery.isLoading ? (
@@ -881,7 +839,7 @@ export function NotificationsProductPage({
       ) : null}
 
       {items.length > 0 ? (
-        <section className="layout-panel" aria-live="polite">
+        <section aria-live="polite">
           <ul className="m4-list m4-list-rows">
             {items.map((item) => (
               <NotificationCard

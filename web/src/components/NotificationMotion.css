@@ -1,3 +1,7 @@
+/*
+ * Motion for the plain notification surface (system and owner-only kinds).
+ * Partner-caused notices use the calm receipt badge instead.
+ */
 .notification-motion {
   display: grid;
   place-items: center;
@@ -18,39 +22,6 @@
   }
 }
 
-.notification-motion-accent {
-  transform: translate(30%, -28%) scale(0.66);
-}
-
-.notification-motion[data-motion="wish-fan"] .notification-motion-accent {
-  z-index: -1;
-  transform: translate(20%, -16%) rotate(15deg);
-}
-
-.notification-motion:is(
-    [data-motion="wish-match"],
-    [data-motion="photo-reaction"],
-    [data-motion="plan-cancel"]
-  )
-  .notification-motion-accent
-  svg {
-  border-radius: 50%;
-  background: var(--partner-gesture-tint);
-}
-
-@keyframes notification-message-unfold {
-  from {
-    opacity: 0;
-    transform: translateY(15%) scaleY(0.25);
-  }
-  55% {
-    transform: translateY(-8%) scaleY(1.08);
-  }
-  to {
-    transform: none;
-  }
-}
-
 @keyframes notification-prompt-bloom {
   from {
     opacity: 0;
@@ -58,21 +29,6 @@
   }
   65% {
     transform: scale(1.2) rotate(7deg);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-reminder-set {
-  from {
-    transform: translateY(-40%);
-  }
-  50% {
-    transform: translateY(12%) scaleY(0.86);
-  }
-  75% {
-    transform: translateY(-5%);
   }
   to {
     transform: none;
@@ -135,150 +91,6 @@
   }
 }
 
-@keyframes notification-plan-flip {
-  from {
-    opacity: 0;
-    transform: perspective(12em) rotateX(-74deg);
-  }
-  70% {
-    transform: perspective(12em) rotateX(10deg);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-plan-slide {
-  from {
-    transform: translateX(28%) scale(0.9);
-  }
-  51% {
-    transform: translateX(-10%) scale(1.04);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-plan-cancel {
-  from {
-    transform: rotate(-9deg);
-  }
-  65% {
-    transform: rotate(4deg) scale(0.88);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-plan-cancel-accent {
-  0%,
-  32% {
-    opacity: 0;
-    transform: translate(30%, -28%) scale(1.15);
-  }
-}
-
-@keyframes notification-wish-fan {
-  from {
-    transform: translateX(9%) rotate(6deg);
-  }
-  64% {
-    transform: translateX(-12%) rotate(-17deg);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-wish-fan-accent {
-  from {
-    transform: none;
-  }
-  64% {
-    transform: translate(36%, -20%) rotate(25deg);
-  }
-}
-
-@keyframes notification-wish-match {
-  from {
-    opacity: 0.5;
-    transform: translateX(-34%) rotate(-18deg);
-  }
-  58% {
-    transform: translateX(8%) scale(1.16);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-wish-match-accent {
-  from {
-    opacity: 0;
-    transform: translate(72%, -10%) scale(0.5);
-  }
-  60% {
-    transform: translate(9%, -11%) scale(1);
-  }
-}
-
-@keyframes notification-photo-reaction {
-  0%,
-  100% {
-    transform: none;
-  }
-  44% {
-    transform: scale(0.9) rotate(-6deg);
-  }
-}
-
-@keyframes notification-photo-reaction-accent {
-  0%,
-  26% {
-    opacity: 0;
-    transform: translate(5%, 6%) scale(0.4);
-  }
-  66% {
-    transform: translate(42%, -40%) scale(0.88);
-  }
-}
-
-@keyframes notification-partner-join {
-  from {
-    transform: scaleX(1.38) scaleY(0.85);
-  }
-  63% {
-    transform: scaleX(0.94) scaleY(1.08);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes notification-moment-reveal {
-  from {
-    clip-path: circle(10% at 50% 82%);
-  }
-  to {
-    clip-path: circle(100% at 50% 82%);
-  }
-}
-
-@keyframes notification-comment-arrive {
-  from {
-    opacity: 0;
-    transform: translate(22%, 28%) scale(0.72);
-  }
-  60% {
-    transform: translate(-4%, -9%) scale(1.06);
-  }
-  to {
-    transform: none;
-  }
-}
-
 @keyframes notification-reminder-ring {
   0%,
   100% {
@@ -304,6 +116,32 @@
   }
   72% {
     transform: translateY(4%) rotate(-5deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes notification-recap-ready {
+  from {
+    opacity: 0;
+    transform: translateY(28%) scale(0.7);
+  }
+  70% {
+    transform: translateY(-6%) scale(1.06);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes notification-recap-grew {
+  from {
+    opacity: 0;
+    transform: translateX(-22%) rotate(-8deg);
+  }
+  65% {
+    transform: translateX(5%) rotate(3deg);
   }
   to {
     transform: none;

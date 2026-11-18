@@ -89,6 +89,22 @@
   color: var(--color-link-text);
 }
 
+/* MapLibre's own rule paints the attribution strip translucent white. Over the
+   dark map that is the brightest thing on screen, so Dark swaps it for the
+   page surface at the same translucency. Light keeps the stock strip. */
+:root[data-theme="dark"]
+  .place-map-viewport
+  .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+
+/* One calm, muted map tone for every map in the app (Momente map, distance map,
+   place picker). Only map pixels change; authored previews, markers and
+   attribution keep their true colours. */
+.place-map-viewport .maplibregl-canvas {
+  filter: var(--map-paper-tile-filter);
+}
+
 /* Only map pixels change scheme; authored previews, markers and attribution do not. */
 :root[data-theme="dark"] .place-map-viewport .maplibregl-canvas {
   filter: var(--map-dark-tile-filter);
@@ -165,6 +181,10 @@
   pointer-events: none;
 }
 
+.place-map-connection:not(.is-started) {
+  visibility: hidden;
+}
+
 .place-map-connection-line {
   position: absolute;
   inset: 0;
@@ -217,18 +237,37 @@
 }
 
 .place-map-connection-glow {
+  --place-map-connection-glow-opacity: 1;
+
   position: absolute;
   top: 0;
   left: 0;
-  width: 11px;
-  height: 11px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--place-map-connection-tone);
   box-shadow:
-    0 0 0 2px var(--place-map-connection-casing),
-    0 0 0 9px var(--place-map-connection-halo);
+    0 0 0 3px var(--place-map-connection-casing),
+    0 0 0 10px var(--place-map-connection-halo),
+    0 0 24px 10px var(--place-map-connection-halo);
   offset-rotate: 0deg;
   opacity: 0;
+}
+
+/* A short tail: smaller points that follow the glow a beat later. */
+.place-map-connection-glow.is-trail {
+  --place-map-connection-glow-opacity: 0.55;
+
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 2px var(--place-map-connection-casing);
+}
+
+.place-map-connection-glow.is-trail-2 {
+  --place-map-connection-glow-opacity: 0.3;
+
+  width: 7px;
+  height: 7px;
 }
 
 .place-map-connection-heart {
@@ -277,6 +316,23 @@
     var(--easing-travel) var(--duration-connection-draw) 3;
 }
 
+.place-map-connection.is-playing:not(.is-earlier)
+  .place-map-connection-glow.is-trail-1 {
+  animation-delay: calc(
+    var(--duration-connection-draw) +
+    var(--duration-feedback)
+  );
+}
+
+.place-map-connection.is-playing:not(.is-earlier)
+  .place-map-connection-glow.is-trail-2 {
+  animation-delay: calc(
+    var(--duration-connection-draw) +
+    2 *
+    var(--duration-feedback)
+  );
+}
+
 .place-map-connection.is-far.is-playing:not(.is-earlier)
   .place-map-connection-glow {
   animation-duration: var(--duration-connection-travel-far);
@@ -304,18 +360,19 @@
   }
 }
 
+/* Turns just outside both avatars (set per arc), so it never hides. */
 @keyframes place-map-connection-travel {
   0% {
-    offset-distance: 0%;
-    opacity: 1;
+    offset-distance: var(--place-map-connection-start, 0%);
+    opacity: var(--place-map-connection-glow-opacity);
   }
   50% {
-    offset-distance: 100%;
-    opacity: 1;
+    offset-distance: var(--place-map-connection-end, 100%);
+    opacity: var(--place-map-connection-glow-opacity);
   }
   100% {
-    offset-distance: 0%;
-    opacity: 1;
+    offset-distance: var(--place-map-connection-start, 0%);
+    opacity: var(--place-map-connection-glow-opacity);
   }
 }
 

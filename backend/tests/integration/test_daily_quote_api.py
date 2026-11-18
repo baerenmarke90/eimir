@@ -181,7 +181,9 @@ def test_pro_space_receives_deterministic_daily_quote_and_metadata(
     assert quote is not None
     assert quote["id"]
     assert len(quote["text"]) > 0
-    assert quote["rightsClassification"] == "PUBLIC_DOMAIN"
+    resolved_quote = catalog.get_quote_by_id(quote["id"])
+    assert resolved_quote is not None
+    assert quote["rightsClassification"] == resolved_quote.rights_classification
     assert quote["attributionRequired"] is bool(quote["authorDisplay"])
     if not quote["attributionRequired"]:
         assert quote["sourceDisplay"] is None
@@ -230,16 +232,14 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     assert after.status_code == 200
     saying = after.json()["quote"]
     assert saying["locale"] == "en"
-    assert saying["id"].startswith("saying-en-")
-    assert saying["rightsClassification"] == "EDITORIAL_CURATED"
+    assert saying["id"] == before.json()["quote"]["id"].replace("saying-de-", "saying-en-", 1)
     assert "motivation" in saying["categoryIds"]
     translation = catalog.get_quote_by_id(saying["id"])
     assert translation is not None
     assert saying["sourceId"] == translation.source_id
     assert saying["text"] == translation.text
-    assert saying["sourceDisplay"] == (
-        "English translation" if saying["attributionRequired"] else None
-    )
+    assert saying["rightsClassification"] == translation.rights_classification
+    assert saying["sourceDisplay"] == translation.source_display
 
 
 def test_daily_quote_preferences_crud_and_optimistic_concurrency(
@@ -406,7 +406,9 @@ def test_catalog_endpoint_returns_sources_and_categories(client, session: Sessio
     assert "motivation" in category_ids
 
     for source in data["sources"]:
-        assert source["rightsClassification"] == "PUBLIC_DOMAIN"
+        assert (
+            source["rightsClassification"] == catalog.SOURCE_MAP[source["id"]].rights_classification
+        )
 
 
 def test_demo_space_seeds_capabilities_and_distinct_quote_preferences(

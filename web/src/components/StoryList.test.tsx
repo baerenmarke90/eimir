@@ -1,9 +1,23 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
-import { StoryList } from './StoryList';
 import de from '../i18n/locales/de';
+import { StoryList } from './StoryList';
+
+/** StoryList reads the couple's occasions through Query (#1907 F2). */
+function StoryListProviders({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 const loadMemoryImage = async () => 'blob:test-image';
 const loadHeartMomentImage = async () => 'blob:test-heart-image';
@@ -28,13 +42,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
     expect(html).toContain('<ol');
     expect(html).toContain('aria-label="Gemeinsame Story"');
@@ -74,13 +88,13 @@ describe('StoryList', () => {
     } as unknown as StoryItem;
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[heartMoment, milestone]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('href="/story/heart-moments/heart-1"');
@@ -112,13 +126,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('class="story-card-footer"');
@@ -149,13 +163,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).not.toContain('story-card-author');
@@ -212,13 +226,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[memoryWithImage, memoryWithoutImage]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('story-card-memory has-image');
@@ -261,13 +275,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[heartMoment]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('story-card-heart-moment has-image');
@@ -307,23 +321,23 @@ describe('StoryList', () => {
     });
 
     const progressiveHtml = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
           progressiveReveal
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
     const sharedHtml = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(progressiveHtml).toContain('story-timeline-progressive-reveal');
@@ -335,11 +349,13 @@ describe('StoryList', () => {
 
   it('announces an empty story as a status', () => {
     const html = renderToStaticMarkup(
-      <StoryList
-        items={[]}
-        loadMemoryImage={loadMemoryImage}
-        loadHeartMomentImage={loadHeartMomentImage}
-      />,
+      <StoryListProviders>
+        <StoryList
+          items={[]}
+          loadMemoryImage={loadMemoryImage}
+          loadHeartMomentImage={loadHeartMomentImage}
+        />
+      </StoryListProviders>,
     );
     expect(html).toContain('role="status"');
     expect(html).toContain(de.story.emptyTitle);

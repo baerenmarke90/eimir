@@ -7,6 +7,7 @@ const people = {
   optionalYear: 'Jahr (optional)',
   eyebrow: 'Wichtige Menschen',
   title: 'Menschen',
+  itemLabel: 'Person',
   intro: 'Ihr entscheidet, welche Angaben ihr teilt.',
   formRailAria: 'Person anlegen oder bearbeiten',
   createTitle: 'Person hinzufügen',

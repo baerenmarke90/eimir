@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/partnerLocation';
@@ -31,6 +31,7 @@ type Scenario = {
   ownLevel?: 'OFF' | 'DISTANCE' | 'DISTANCE_AND_MAP';
   distance?: { band: Band; asOf: Date } | null;
   map?: boolean;
+  mapReadGate?: Promise<void>;
   mapPosition?: { latitude: number; longitude: number };
   capturedAt?: Date;
 };
@@ -71,6 +72,7 @@ async function distanceMocks(
       asOf: minutesAgo(20),
     },
     map = true,
+    mapReadGate,
     mapPosition = { latitude: 53.55, longitude: 10.0 },
     capturedAt = minutesAgo(20),
   }: Scenario = {},
@@ -181,6 +183,10 @@ async function distanceMocks(
     }
     if (url.pathname === mapPath && method === 'GET') {
       server.mapReads += 1;
+      // Wir reads map availability before it offers a link to the map.
+      if (mapReadGate && new URL(page.url()).pathname === MAP_ROUTE) {
+        await mapReadGate;
+      }
       return route.fulfill({
         json: map
           ? {
@@ -269,7 +275,12 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await grantBrowserLocation(page);
-  const server = await distanceMocks(page, { ownLevel: 'DISTANCE' });
+  const { promise: mapReadGate, resolve: releaseMapRead } =
+    Promise.withResolvers<void>();
+  const server = await distanceMocks(page, {
+    ownLevel: 'DISTANCE',
+    mapReadGate,
+  });
   await openWir(page);
 
   const line = hero(page).getByRole('link', {
@@ -292,11 +303,27 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   await page.waitForTimeout(1500);
   expect(server.distanceBodies.length).toBe(reads);
 
+  const mapReadsBeforeOpen = server.mapReads;
   await line.click();
   await expect(page).toHaveURL(MAP_ROUTE);
   await expect(
     page.getByRole('heading', { name: copy.mapTitle, level: 1 }),
   ).toBeVisible();
+  try {
+    await expect(
+      page.locator('.place-map-viewport .maplibregl-canvas'),
+    ).toBeVisible();
+    await expect
+      .poll(() => server.mapReads)
+      .toBeGreaterThan(mapReadsBeforeOpen);
+    await expect(page.locator('.place-map-area.is-partner')).toHaveCount(0);
+    await expect(
+      page.getByText(forPartner(copy.mapPartnerNotSharing)),
+    ).toHaveCount(0);
+    await captureScreenshot(page, info, 'today-location-map-pending-390.png');
+  } finally {
+    releaseMapRead();
+  }
   await expect(
     page.getByText(forPartner(copy.mapPartnerArea).replace('Alex', 'Alex')),
   ).toBeVisible();
@@ -347,7 +374,9 @@ test('distance line states: nearby, range, earlier, own location missing, unavai
   });
   await page.reload();
   await settleStartSheet(page);
-  await expect(hero(page).getByText(between('5–10 km'))).toBeVisible();
+  // A range band is put into words, not a numeric range (#1907 H4).
+  await expect(hero(page).getByText(copy.distanceStonesThrow)).toBeVisible();
+  await expect(hero(page).getByText(/\d+–\d+/)).toHaveCount(0);
 
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await distanceMocks(page, {
@@ -564,7 +593,9 @@ test('both sharing: the map connects the two avatars by distance', async ({
       false,
   );
   expect(markerAfter).toBe(true);
-  const glow = connection(page).locator('.place-map-connection-glow');
+  const glow = connection(page).locator(
+    '.place-map-connection-glow:not(.is-trail)',
+  );
   await expect(glow).toHaveCSS('animation-name', 'place-map-connection-travel');
   await expect(glow).toHaveCSS('animation-duration', '6s');
   await expect(glow).toHaveCSS('animation-iteration-count', '3');
@@ -599,6 +630,8 @@ test('both sharing nearby: a heart instead of a line', async ({
     mapPosition: { latitude: 50.955, longitude: 6.985 },
   });
   await openMapFromWir(page, copy.distanceNear);
+  // Nearby never shows a number, not even on the map.
+  await expect(page.locator('.partner-map-between-km')).toHaveCount(0);
   await expect(connection(page)).toHaveClass(/\bis-near\b/);
   await expect(
     connection(page).locator('.place-map-connection-heart'),
@@ -622,10 +655,20 @@ test('both sharing regionally: a solid arc with a shorter trip', async ({
     },
     mapPosition: { latitude: 51.23, longitude: 6.78 },
   });
-  await openMapFromWir(page, between('25–50 km'));
+  await openMapFromWir(page, copy.distanceShortTrip);
+  // The map keeps the kilometres below the words (#1907 H4).
+  await expect(page.locator('.partner-map-between')).toContainText(
+    copy.distanceShortTrip,
+  );
+  await expect(page.locator('.partner-map-between-km')).toHaveText('25–50 km');
+  await captureScreenshot(
+    page.locator('.partner-map-sheet'),
+    info,
+    'partner-map-sheet-km-25-50-390.png',
+  );
   await expect(connection(page)).toHaveClass(/\bis-regional\b/);
   await expect(
-    connection(page).locator('.place-map-connection-glow'),
+    connection(page).locator('.place-map-connection-glow:not(.is-trail)'),
   ).toHaveCSS('animation-duration', '3.2s');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await captureScreenshot(page, info, 'partner-connection-regional-390.png');
@@ -647,7 +690,7 @@ test('an earlier partner snapshot keeps a muted connection without motion', asyn
   await openMapFromWir(page, between('340 km'));
   await expect(connection(page)).toHaveClass(/\bis-earlier\b/);
   await expect(
-    connection(page).locator('.place-map-connection-glow'),
+    connection(page).locator('.place-map-connection-glow:not(.is-trail)'),
   ).toHaveCSS('animation-name', 'none');
   await expect(
     connection(page).locator('.place-map-connection-reveal'),
@@ -688,6 +731,119 @@ test('partner without a map area: no connection', async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(page.locator('.place-map-area.is-partner')).toHaveCount(0);
   await expect(connection(page)).toHaveCount(0);
+});
+
+/** The default Verbunden hero with both partners' daily marks (#1790). */
+async function connectedHeroWithMarks(page: Page) {
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const space = `/api/v1/spaces/${SPACE_ID}`;
+    if (pathname.endsWith('/appearance/wir-design'))
+      return route.fulfill({ json: { designId: 'connected', version: 1 } });
+    if (request.method() === 'GET' && pathname === `${space}/configuration`)
+      return route.fulfill({
+        json: {
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: 'Europe/Berlin',
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: true,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: true,
+          vibeVisibilityMode: 'IMMEDIATE',
+        },
+        headers: { ETag: '"7"' },
+      });
+    if (pathname === `${space}/daily-check-in/today`)
+      return route.fulfill({
+        json: {
+          checkedOn: '2026-11-13',
+          dailyContextTimezone: 'Europe/Berlin',
+          own: { energyLevel: 70, vibe: 'GOOD', vibeNote: null, version: 1 },
+          energy: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'VISIBLE', value: 40 },
+          },
+          vibe: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'VISIBLE', value: 'OKAY' },
+            partnerNote: null,
+          },
+        },
+        headers: { ETag: '"2026-11-13:check-in-1:1"' },
+      });
+    return route.fallback();
+  });
+}
+
+test('Verbunden hero: range words beside the daily marks, below them when tight', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, {
+    distance: {
+      band: { kind: 'RANGE', minKm: 5, maxKm: 10 },
+      asOf: minutesAgo(10),
+    },
+  });
+  await connectedHeroWithMarks(page);
+  await openWir(page);
+  const slot = hero(page).locator('.wir-stage-distance');
+  const value = slot.getByRole('link', {
+    name: `${copy.distanceStonesThrow}. ${copy.distanceOpenMap}`,
+  });
+  await expect(value).toHaveText(copy.distanceStonesThrowShort);
+  const marks = hero(page).locator('.wir-checkin-badge');
+  await expect(marks).toHaveCount(2);
+  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-verbunden-marks-390.png',
+  );
+
+  // Narrow screens and larger text move the value onto its own line.
+  for (const [width, scale] of [
+    [320, '100%'],
+    [390, '130%'],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.evaluate((size) => {
+      document.documentElement.style.fontSize = size;
+    }, scale);
+    await expect(slot).toHaveClass(/\bis-below-marks\b/);
+    const valueBox = await value.boundingBox();
+    for (const mark of await marks.all()) {
+      const box = await mark.boundingBox();
+      expect(valueBox && box).toBeTruthy();
+      if (valueBox && box)
+        expect(valueBox.y).toBeGreaterThanOrEqual(box.y + box.height);
+    }
+    await expectNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      `partner-distance-verbunden-marks-${width}-${scale.replace('%', '')}.png`,
+    );
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-verbunden-marks-390-dark.png',
+  );
 });
 
 const evidence = [

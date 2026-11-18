@@ -45,6 +45,15 @@ def _content(session: Session, notification: Notification, context: Authorizatio
             return ""
         start = wish_date_notice.appointment_start(notification)
         return clock.ensure_utc(start).isoformat() if start is not None else ""
+    if (
+        notification.kind == NotificationKind.WISH_SELECTION_SHARED.value
+        and notification.target_id is not None
+    ):
+        # Only the number of ideas in the round; never titles or choices.
+        size = presentation.selection_sizes(
+            session, context, {(EngagementTarget.WISH_SELECTION, notification.target_id)}
+        ).get(notification.target_id)
+        return str(size) if size else ""
     if notification.kind == NotificationKind.COMMENT_CREATED.value:
         # The parent was reauthorized by for_notification. Read only the exact
         # current comment referenced by this event, never the latest sibling.
@@ -116,6 +125,10 @@ def for_notification(
             target_type is not EngagementTarget.HEART_MOMENT
             and not concealed
             and notification.kind != NotificationKind.WISH_REMINDER_DUE.value
+            # A sent list may be a surprise (a gift list): never its title (#1907 E2).
+            and notification.kind != NotificationKind.COLLECTION_SENT.value
+            # A garden seed never shows its attached words (#1907 H3).
+            and notification.kind != NotificationKind.GARDEN_SEED_ARRIVED.value
             and not (
                 notification.kind == NotificationKind.REMINDER_DUE.value
                 and target_type is EngagementTarget.PLAN

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -23,6 +23,7 @@ import {
   fulfillUnconfiguredPhotoSources,
 } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -339,6 +340,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         capabilities: ['core'],
       });
     }
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });

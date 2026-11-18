@@ -290,6 +290,17 @@
   gap: var(--space-2);
 }
 
+.partner-location-precision,
+.partner-location-precision-note {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.partner-location-precision {
+  justify-items: stretch;
+}
+
 /* Sheets. */
 .partner-location-sheet-lead {
   margin: 0;

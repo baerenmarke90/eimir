@@ -11,8 +11,10 @@
   --wir-ring: 5px;
   /* How far the marks ride outward past the photo's edge, per axis. */
   --wir-mark-out: 0.4rem;
-  --wir-own-accent: var(--color-brand-text);
-  --wir-partner-accent: var(--color-private);
+  /* Height of a daily mark under a name (`.wir-checkin-badge`). */
+  --wir-stage-mark-height: 1.75rem;
+  --wir-own-accent: var(--person-own-accent);
+  --wir-partner-accent: var(--person-partner-accent);
   position: relative;
   margin-bottom: var(--space-section);
 }
@@ -172,7 +174,6 @@
   height: 1.05rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -214,11 +215,31 @@
 .wir-stage-distance {
   position: absolute;
   top: calc(100% + var(--space-1) + 2 * var(--space-2) + 1.56rem);
-  right: calc(-1 * var(--space-2));
-  left: calc(-1 * var(--space-2));
+  /* Centred on its own line: the words of a range band (#1907 H4) are wider
+     than the gap between the avatars and must not wrap there. */
+  left: 50%;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2 * var(--space-4)));
+  translate: -50% 0;
   display: flex;
   justify-content: center;
   pointer-events: auto;
+}
+
+/* Too close to the daily marks: its own line below them (#1907 H4). */
+.wir-stage-distance.is-below-marks {
+  top: calc(
+    100% +
+    var(--space-1) +
+    3 *
+    var(--space-2) +
+    1.56rem +
+    var(--wir-stage-mark-height)
+  );
+}
+
+.today-page .wir-stage .today-hero:has(.wir-stage-distance.is-below-marks) {
+  padding-bottom: calc(var(--wir-stage-mark-height) + var(--space-2));
 }
 
 .wir-hero-distance {
@@ -355,43 +376,13 @@
   }
 }
 
-/*
- * Opening sequence, once per page load: the two portraits appear, each ring
- * draws itself around its portrait and ends facing the partner, the arms
- * leave from there, and the two halves of the heart grow until they meet.
- * Without motion everything simply stands there.
- */
-@property --wir-ring-sweep {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 360deg;
-}
-
+/* The portraits and content are visible immediately. Only the heart line
+ * takes a short beat to draw when the start of Wir is visible. */
 @media (prefers-reduced-motion: no-preference) {
-  .wir-stage-intro .partner-avatar {
-    animation: wir-intro-portrait calc(var(--duration-sequence-beat) * 4)
-      var(--easing-standard) both;
-  }
-
-  .wir-stage-intro .partner-avatar-stack > :nth-child(2) .partner-avatar {
-    animation-delay: var(--duration-sequence-beat);
-  }
-
-  .wir-stage-intro .partner-avatar-stack > *::before {
-    -webkit-mask: conic-gradient(
-      from 90deg,
-      #000 var(--wir-ring-sweep),
-      transparent 0
-    );
-    mask: conic-gradient(from 90deg, #000 var(--wir-ring-sweep), transparent 0);
-    animation: wir-intro-ring calc(var(--duration-sequence-beat) * 5.5)
-      var(--easing-standard) calc(var(--duration-sequence-beat) * 3) both;
-  }
-
   .wir-stage-intro .wir-bridge-arm {
     transform-origin: left center;
     animation: wir-intro-arm calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 8.5) both;
+      var(--easing-enter) both;
   }
 
   .wir-stage-intro .wir-bridge-arm-partner {
@@ -400,122 +391,8 @@
 
   /* Each half is 100 units long; its arm arrives 56 units from the tip. */
   .wir-stage-intro .wir-bridge-line path {
-    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 3)
-      var(--easing-standard) calc(var(--duration-sequence-beat) * 10.5) both;
-  }
-
-  .wir-stage-intro .wir-stage-name,
-  .wir-stage-intro .wir-stage-amp,
-  .wir-stage-intro .partner-avatar-stack .wir-checkin-badge {
-    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 2.5) both;
-  }
-
-  .wir-stage-intro .wir-stage-gesture,
-  .wir-stage-intro .partner-avatar-stack .wir-checkin-note-dot,
-  .wir-stage-intro .wir-bridge-lead,
-  .wir-stage-intro .wir-bridge-rest,
-  .wir-stage-intro .wir-stage-distance {
-    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 13) both;
-  }
-}
-
-/*
- * The modules below join the same opening: a short rise with a fade, one
- * after the other, once the heart line above is closing: the hero leads. A short
- * rise reads as native; a long fly-in would compete with the hero. The fill
- * only covers the wait, so no transform lingers on the modules afterwards.
- */
-@media (prefers-reduced-motion: no-preference) {
-  .today-page[data-wir-intro]
-    .today-content
-    > :not(.page-heading, .wir-stage, :has(.wir-stage)) {
-    --wir-intro-module-delay: calc(var(--duration-sequence-beat) * 11);
-    animation: wir-intro-module calc(var(--duration-sequence-beat) * 2.5)
-      var(--easing-enter) var(--wir-intro-module-delay) backwards;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(1) {
-    --wir-intro-module-delay: 2200ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(2) {
-    --wir-intro-module-delay: 2290ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(3) {
-    --wir-intro-module-delay: 2380ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(4) {
-    --wir-intro-module-delay: 2470ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(5) {
-    --wir-intro-module-delay: 2560ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(6) {
-    --wir-intro-module-delay: 2650ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(7) {
-    --wir-intro-module-delay: 2740ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(8) {
-    --wir-intro-module-delay: 2830ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(9) {
-    --wir-intro-module-delay: 2920ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(10) {
-    --wir-intro-module-delay: 3010ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(11) {
-    --wir-intro-module-delay: 3100ms;
-  }
-
-  .today-page[data-wir-intro] .today-content > :nth-child(12) {
-    --wir-intro-module-delay: 3190ms;
-  }
-}
-
-@keyframes wir-intro-module {
-  from {
-    opacity: 0;
-    transform: translateY(0.9rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes wir-intro-portrait {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes wir-intro-ring {
-  from {
-    --wir-ring-sweep: 0deg;
-  }
-
-  to {
-    --wir-ring-sweep: 360deg;
+    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 2)
+      var(--easing-standard) var(--duration-sequence-beat) both;
   }
 }
 
@@ -544,18 +421,6 @@
     opacity: 1;
     stroke-dasharray: 100 200;
     stroke-dashoffset: 0;
-  }
-}
-
-@keyframes wir-intro-caption {
-  from {
-    opacity: 0;
-    transform: translateY(0.25rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

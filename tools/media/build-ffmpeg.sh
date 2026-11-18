@@ -8,6 +8,7 @@ cd "$source_dir"
 patch -p1 --forward < "$patch_dir/reject-encrypted-mov.patch"
 patch -p1 --forward < "$patch_dir/guard-h264-context.patch"
 patch -p1 --forward < "$patch_dir/initialize-hdr-payload.patch"
+patch -p1 --forward < "$patch_dir/clear-sei-message-slot.patch"
 export PKG_CONFIG_PATH="$install_dir/lib/pkgconfig"
 ./configure \
   --prefix="$install_dir" \

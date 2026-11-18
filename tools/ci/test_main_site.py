@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import re
-import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / "site"
-BUILD = ROOT / "tools/site/build_main_site.py"
 PAGES = (SITE / "index.html", SITE / "en/index.html", SITE / "impressum/index.html")
+
+sys.path.insert(0, str(ROOT / "tools/site"))
+import build_main_site
 
 DECLARATION = re.compile(r"(--color-[a-z0-9-]+)\s*:\s*([^;]+);")
 
@@ -33,6 +36,12 @@ def _values(body: str) -> dict[str, str]:
 
 
 class MainSiteTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temp = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.dist = temp / "dist"
+        self.preview = temp / "dist-preview"
+        self.enterContext(patch.multiple(build_main_site, DIST=self.dist, PREVIEW=self.preview))
+
     def test_site_colors_match_the_web_design_system_adapter(self) -> None:
         site_light, site_dark, site_media = (_values(b) for b in _blocks((SITE / "assets/site.css").read_text()))
         web_light: dict[str, str] = {}
@@ -67,6 +76,18 @@ class MainSiteTests(unittest.TestCase):
         css = (SITE / "assets/site.css").read_text()
         self.assertNotIn("http", re.sub(r"/\*.*?\*/", "", css, flags=re.S), "no remote CSS resources")
 
+    def test_preview_is_framed_from_the_same_origin_only(self) -> None:
+        for page in PAGES[:2]:
+            text = page.read_text(encoding="utf-8")
+            name = page.relative_to(SITE).as_posix()
+            self.assertIn("frame-src 'self'", text, name)
+            frames = re.findall(r"<iframe[^>]*>", text)
+            self.assertEqual(len(frames), 1, name)
+            self.assertRegex(frames[0], r'src="/preview/(\?lang=en)?"', name)
+            self.assertIn("sandbox=", frames[0], name)
+            self.assertIn('loading="lazy"', frames[0], name)
+        self.assertIn("frame-src 'self'", (SITE / "security-headers.conf").read_text())
+
     def test_privacy_and_terms_links_use_the_application_origin(self) -> None:
         for page in PAGES[:2]:
             text = page.read_text(encoding="utf-8")
@@ -77,21 +98,42 @@ class MainSiteTests(unittest.TestCase):
     def test_imprint_is_not_indexed_and_blocks_production_while_unfinished(self) -> None:
         imprint = PAGES[2].read_text(encoding="utf-8")
         self.assertIn('<meta name="robots" content="noindex">', imprint)
-        development = subprocess.run([sys.executable, str(BUILD)], capture_output=True, text=True, check=False)
-        self.assertEqual(development.returncode, 0, development.stderr)
-        production = subprocess.run([sys.executable, str(BUILD), "--production"], capture_output=True, text=True, check=False)
+        self.preview.mkdir()
+        (self.preview / "index.html").write_text("<!doctype html>", encoding="utf-8")
+        self.assertEqual(build_main_site.build(production=False), [])
+        production = build_main_site.build(production=True)
         if "[[" in imprint:
-            self.assertNotEqual(production.returncode, 0)
-            self.assertIn("unresolved [[PLACEHOLDER]]", production.stderr)
+            self.assertEqual(production, ["impressum/index.html: unresolved [[PLACEHOLDER]] marker"])
         else:
-            self.assertEqual(production.returncode, 0, production.stderr)
+            self.assertEqual(production, [])
+        self.assertTrue((self.dist / "preview/index.html").is_file())
+        for page in PAGES[:2]:
+            html = (self.dist / page.relative_to(SITE)).read_text(encoding="utf-8")
+            self.assertIn('src="/preview/', html)
+            self.assertIn('href="#ausprobieren"', html)
+
+    def test_development_omits_unbuilt_preview_and_production_requires_it(self) -> None:
+        self.assertEqual(build_main_site.build(production=False), [])
+        for page in PAGES[:2]:
+            html = (self.dist / page.relative_to(SITE)).read_text(encoding="utf-8")
+            self.assertNotIn('/preview/', html)
+            self.assertNotIn('ausprobieren"', html)
+        production = build_main_site.build(production=True)
+        self.assertIn("missing web/dist-preview: run npm run build:preview in web/", production)
+
+    def test_built_preview_links_are_validated(self) -> None:
+        self.preview.mkdir()
+        (self.preview / "index.html").write_text('<script src="/preview/missing.js"></script>', encoding="utf-8")
+        self.assertEqual(
+            build_main_site.build(production=False),
+            ["preview/index.html: broken local reference /preview/missing.js"],
+        )
 
     def test_built_site_does_not_ship_server_configuration(self) -> None:
-        build = subprocess.run([sys.executable, str(BUILD)], capture_output=True, text=True, check=False)
-        self.assertEqual(build.returncode, 0, build.stderr)
-        for name in ("Dockerfile", "nginx.conf", "security-headers.conf"):
-            self.assertFalse((SITE / "dist" / name).exists(), f"{name} must not be served")
-        self.assertTrue((SITE / "dist" / "index.html").is_file())
+        self.assertEqual(build_main_site.build(production=False), [])
+        for name in ("Dockerfile", "nginx.conf", "security-headers.conf", "security-headers-preview.conf"):
+            self.assertFalse((self.dist / name).exists(), f"{name} must not be served")
+        self.assertTrue((self.dist / "index.html").is_file())
 
     def test_container_reuses_the_pinned_web_image_and_sends_security_headers(self) -> None:
         dockerfile = (SITE / "Dockerfile").read_text()
@@ -105,7 +147,18 @@ class MainSiteTests(unittest.TestCase):
         headers = (SITE / "security-headers.conf").read_text()
         for directive in ("Content-Security-Policy", "frame-ancestors 'none'", "Referrer-Policy", "X-Content-Type-Options"):
             self.assertIn(directive, headers)
-        self.assertEqual(nginx.count("include /etc/nginx/security-headers.conf;"), nginx.count("location "))
+        includes = nginx.count("include /etc/nginx/security-headers.conf;") + nginx.count(
+            "include /etc/nginx/security-headers-preview.conf;"
+        )
+        self.assertEqual(includes, nginx.count("location "))
+        preview_headers = (SITE / "security-headers-preview.conf").read_text()
+        for directive in ("frame-ancestors 'self'", "script-src 'self'", "connect-src 'self'", "X-Frame-Options"):
+            self.assertIn(directive, preview_headers)
+        self.assertNotIn("unsafe-inline", preview_headers)
+        self.assertNotIn("http", preview_headers.replace("Referrer-Policy", ""), "the preview may not reach other origins")
+        self.assertIn("security-headers-preview.conf", dockerfile)
+        self.assertIn("build:preview", dockerfile)
+        self.assertRegex(dockerfile, r"COPY --from=preview /app/dist-preview web/dist-preview\s+RUN .* --production")
         self.assertIn("/etc/nginx/security-headers.conf", dockerfile)
 
 

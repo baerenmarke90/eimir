@@ -1,0 +1,27 @@
+/* The preview opens Wir and Momente only: no other tabs, nothing that creates content. */
+.mobile-bottom-nav a[href="/plan"],
+.mobile-bottom-nav a[href="/more"],
+.shell-nav a[href="/plan"],
+.shell-nav a[href="/more"],
+.add-action,
+.demo-launch,
+a[href$="/edit"],
+.comments-panel form,
+.comment-menu {
+  /* biome-ignore lint/complexity/noImportantStyles: the app's own display rules are as specific */
+  display: none !important;
+}
+
+.preview-notice {
+  position: fixed;
+  inset-inline: var(--space-4, 16px);
+  bottom: calc(var(--space-16, 64px) + var(--space-4, 16px));
+  z-index: 100;
+  margin: 0;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-radius: var(--radius-large, 16px);
+  background: var(--color-text);
+  color: var(--color-background);
+  font: 600 0.9375rem / 1.4 var(--font-ui);
+  text-align: center;
+}

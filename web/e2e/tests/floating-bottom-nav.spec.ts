@@ -277,7 +277,7 @@ async function waitForGamesHub(page: Page): Promise<void> {
 }
 
 test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
-  test('four equal docked destinations and a separate contextual plus', async ({
+  test('five equal docked destinations and a separate contextual plus', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -292,13 +292,14 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     const nav = floatingShell.locator('.mobile-bottom-nav');
     await expect(nav).toBeVisible();
     const links = nav.locator('a.shell-nav-link');
-    await expect(links).toHaveCount(4);
+    await expect(links).toHaveCount(5);
 
     const labels = await links.allInnerTexts();
     expect(labels.map((label) => label.trim())).toEqual([
       navigation.today,
       navigation.story,
       navigation.plan,
+      navigation.shared,
       navigation.more,
     ]);
 
@@ -320,7 +321,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       const links = Array.from(
         element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
       );
-      if (links.length !== 4)
+      if (links.length !== 5)
         throw new Error('Missing bottom navigation destinations');
       return {
         height: element.getBoundingClientRect().height,
@@ -699,7 +700,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.waitForURL('**/today');
 
     const links = page.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links).toHaveCount(4);
+    await expect(links).toHaveCount(5);
 
     await expect(links.nth(0)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(0)).toHaveAttribute('aria-current', 'page');
@@ -716,17 +717,25 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(links.nth(2)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(2)).toHaveAttribute('aria-current', 'page');
 
+    // Listen is a primary destination of its own, between Planen and Mehr.
     await links.nth(3).click();
-    await page.waitForURL('**/more');
+    await page.waitForURL('**/more/collections');
     await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(2)).not.toHaveClass(/shell-nav-link-active/);
+
+    await links.nth(4).click();
+    await page.waitForURL('**/more');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(3)).not.toHaveClass(/shell-nav-link-active/);
 
     await page
       .getByRole('link', { name: new RegExp(navigation.games) })
       .click();
     await waitForGamesHub(page);
-    await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
-    await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
   });
 
   test('Our Moments child route stays under More and reflows without exposing sparse counts', async ({
@@ -792,8 +801,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(page.getByText(games.momentsGame.sparseTitle)).toBeVisible();
 
     const links = page.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
-    await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
 
     const axe390 = await new AxeBuilder({ page })
       .include('.our-moments-page')
@@ -947,8 +956,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(floatingShell).toBeVisible();
 
     const links = floatingShell.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links).toHaveCount(4);
-    for (let index = 0; index < 4; index += 1) {
+    await expect(links).toHaveCount(5);
+    for (let index = 0; index < 5; index += 1) {
       await expect(links.nth(index)).toBeVisible();
     }
     const labels = await links.allInnerTexts();
@@ -956,6 +965,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.today,
       navigation.story,
       navigation.plan,
+      navigation.shared,
       navigation.more,
     ]);
 

@@ -1,11 +1,47 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import games from '../i18n/locales/games';
 import type { WishDetectiveGameSetup } from './WishDetectiveGamePage';
 import { WishDetectiveGamePage } from './WishDetectiveGamePage';
+
+// #2048: the play-mode choice comes first; these tests play on one phone.
+vi.mock('../client/useRemoteCoupleGames', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../client/useRemoteCoupleGames')>();
+  const ok = async () => ({ ok: true as const });
+  const stub = () => ({
+    state: undefined,
+    isLoading: false,
+    loadError: null,
+    problem: null,
+    busy: false,
+    refetch: () => undefined,
+    view: { phase: 'notStarted' as const, readiness: null },
+    missingWishes: null,
+    start: ok,
+    end: ok,
+    continue: () => undefined,
+  });
+  return {
+    ...actual,
+    useRemoteWhoOfUsGame: stub,
+    useRemoteWishDetectiveGame: stub,
+    useRemoteOurMomentsGame: stub,
+  };
+});
+
+async function chooseTogether() {
+  fireEvent.click(
+    await screen.findByRole('radio', {
+      name: new RegExp(games.playMode.together),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: games.playMode.start }));
+}
 
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const SECRET_WISH_TITLE = 'Stargazing in the garden';
@@ -64,6 +100,7 @@ describe('WishDetectiveGamePage', () => {
 
   it('keeps the wish visible during clue entry and hides it for handoff and guessing', async () => {
     renderPage(playableSetup());
+    await chooseTogether();
 
     await screen.findByRole('heading', {
       name: games.entries.wishes.title,
@@ -122,6 +159,7 @@ describe('WishDetectiveGamePage', () => {
 
   it('does not reveal the secret when a hidden phase is remounted', async () => {
     const firstRender = renderPage(playableSetup());
+    await chooseTogether();
     await screen.findByText(SECRET_WISH_TITLE);
 
     fireEvent.change(
@@ -166,6 +204,7 @@ describe('WishDetectiveGamePage', () => {
 
   it('shows validation feedback instead of silently accepting invalid clues', async () => {
     renderPage(playableSetup());
+    await chooseTogether();
     await screen.findByText(SECRET_WISH_TITLE);
 
     fireEvent.change(
@@ -201,16 +240,53 @@ describe('WishDetectiveGamePage', () => {
 
   it('shows the sparse state without exposing hidden candidate totals', async () => {
     const setup = playableSetup();
-    renderPage({ participants: setup.participants, rounds: [] });
+    renderPage({
+      participants: setup.participants,
+      rounds: [],
+      missing: { you: true, partner: false },
+    });
 
     await screen.findByRole('heading', {
-      name: games.wishDetective.sparseTitle,
+      name: games.wishDetective.sparseTitleYou,
       level: 2,
     });
     const wishesLink = screen.getByRole('link', {
       name: games.wishDetective.sparseAction,
     });
     expect(wishesLink.getAttribute('href')).toBe('/plan/wishes/new');
+  });
+
+  it('names the partner who still needs a wish, without an action for them', async () => {
+    const setup = playableSetup();
+    renderPage({
+      participants: setup.participants,
+      rounds: [],
+      missing: { you: false, partner: true },
+    });
+
+    await screen.findByRole('heading', {
+      name: games.wishDetective.sparseTitlePartner.replace('{{name}}', 'Alex'),
+      level: 2,
+    });
+    expect(
+      screen.queryByRole('link', { name: games.wishDetective.sparseAction }),
+    ).toBeNull();
+  });
+
+  it('starts with one wish per person', async () => {
+    const setup = playableSetup();
+    renderPage({
+      participants: setup.participants,
+      rounds: setup.rounds.slice(0, 2),
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', {
+          name: games.wishDetective.sparseTitleBoth,
+        }),
+      ).toBeNull(),
+    );
+    expect(screen.queryByText(games.wishDetective.sparseEyebrow)).toBeNull();
   });
 
   it('does not start when the active Space is not a two-partner couple', async () => {

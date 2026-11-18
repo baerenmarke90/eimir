@@ -1,8 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -268,6 +269,20 @@ test('Today event trace keeps compact borderless composition and authoritative o
     expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
     expect(Number.parseFloat(style.radius)).toBeGreaterThan(0);
   }
+
+  // Modules arrive when they are reached and the plans grow in place: reach
+  // both, then measure the settled geometry.
+  await page.locator('.today-agenda-row').first().scrollIntoViewIfNeeded();
+  await expect(page.locator('.today-section-upcoming')).not.toHaveAttribute(
+    'data-wir-reveal',
+    'pending',
+  );
+  await tiles.last().scrollIntoViewIfNeeded();
+  await expect(page.locator('.today-section-recent')).not.toHaveAttribute(
+    'data-wir-reveal',
+    'pending',
+  );
+  await waitForSettledMotion(page);
 
   // Compact and bounded, not full-width rows: none should come close to the
   // 1920px viewport, and several must share the same line (2-4 per row is

@@ -111,6 +111,8 @@ export const PARTNER_NOTICE_ICONS = {
   HEART_HUNT_HIDDEN: { badge: 'sparkle', center: 'foto' },
   HEART_HUNT_FOUND: { badge: 'sparkle', center: 'foto' },
   PICTURE_PING_PONG_TURN: { badge: 'sparkle', center: 'spiele' },
+  PICTURE_PING_PONG_FINISHED: { badge: 'sparkle', center: 'spiele' },
+  COUPLE_GAME_TURN: { badge: 'sparkle', center: 'spiele' },
   GARDEN_SEED_ARRIVED: { badge: 'sparkle', center: 'spiele' },
   PLAN_CREATED: { badge: 'kalender', center: 'kalender' },
   PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },

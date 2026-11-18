@@ -5,6 +5,8 @@ const notificationSettings = {
   closenessDescription:
     'Gedanken aneinander, Küsse, Check-ins, geschickte Listen und Samen aus eurem Garten.',
   individual: 'Einzeln anpassen',
+  pendingLegend:
+    'Gestrichelt: gewählt, wirkt aber erst, sobald der Kanal eingerichtet ist.',
   dates: 'Wichtige Tage',
   mixed:
     'Unterschiedlich eingestellt. Unter „Einzeln anpassen“ siehst du die Auswahl.',
@@ -42,6 +44,8 @@ const notificationSettings = {
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceToggle: 'Push auf diesem Gerät',
+  deviceHintOff:
+    'Gewählte Push-Kanäle starten, sobald du Push eingerichtet hast.',
   browserToggle: 'Push in diesem Browser',
   browserPermissionDenied:
     'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',

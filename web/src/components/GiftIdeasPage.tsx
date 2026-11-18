@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
@@ -21,6 +21,7 @@ import {
   privateGiftIdeaEditPath,
   privateGiftIdeaPath,
 } from '../client/privateArea';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -28,16 +29,17 @@ import { EimirIcon } from './EimirIcon';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import {
-  DeleteConfirmation,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   PrivateItemLabel,
+  PrivateItemMenuSheets,
+  PrivateItemMenuTrigger,
   PrivateItemPrivacy,
   usePrivateAreaTaskContext,
+  usePrivateItemMenu,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { ProblemState } from './ProblemState';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
@@ -221,27 +223,23 @@ function GiftIdeaEditor({
   giftIdea,
   backLabel,
   saving,
-  deleting = false,
   error,
   titleValidation,
   onClose,
   onSubmit,
   onChange,
-  children,
 }: {
   giftIdea?: GiftIdeaDetail;
   backLabel: string;
   saving: boolean;
-  deleting?: boolean;
   error: unknown;
   titleValidation: ReturnType<typeof useRequiredTitleValidation>;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onChange: () => void;
-  children?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const blocked = saving || deleting;
+  const blocked = saving;
 
   return (
     <div className="private-gift-composer quiet-composer">
@@ -288,7 +286,6 @@ function GiftIdeaEditor({
           </button>
         </div>
       </form>
-      {children}
     </div>
   );
 }
@@ -468,10 +465,49 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
 
 export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { query } = useGiftIdea(api, accountId, spaceId);
   const { navigationState } = usePrivateAreaTaskContext(
     PRIVATE_GIFT_IDEAS_PATH,
   );
+  const menu = usePrivateItemMenu();
+  const captureOwnership = useTaskActivation(true);
+  const deleteMutation = useMutation({
+    mutationFn: (targetGift: GiftIdeaDetail) =>
+      privateApiCall(() =>
+        api.deleteGiftIdea({
+          spaceId: targetGift.spaceId,
+          giftIdeaId: targetGift.id,
+          ifMatch: String(targetGift.version),
+        }),
+      ),
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
+      }
+      menu.deleteSheet.current?.closeForNavigation(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
+        }
+      });
+    },
+  });
 
   if (query.isLoading)
     return <UiState kind="loading" title={t('privateArea.gifts.loading')} />;
@@ -501,12 +537,8 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
         title={gift.title}
         description={t(`privateArea.gifts.status.${gift.status}`)}
         titleAction={
-          gift.capabilities.canEdit ? (
-            <StoryDetailEditLink
-              to={privateGiftIdeaEditPath(gift.id)}
-              state={navigationState}
-              label={t('privateArea.edit')}
-            />
+          gift.capabilities.canEdit || gift.capabilities.canDelete ? (
+            <PrivateItemMenuTrigger menu={menu} name={gift.title} />
           ) : undefined
         }
       />
@@ -547,52 +579,31 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
           {gift.description || t('privateArea.gifts.noDetails')}
         </p>
       </article>
+      <PrivateItemMenuSheets
+        menu={menu}
+        title={gift.title}
+        canEdit={gift.capabilities.canEdit}
+        canDelete={gift.capabilities.canDelete}
+        onEdit={() =>
+          void navigate(privateGiftIdeaEditPath(gift.id), {
+            state: navigationState,
+          })
+        }
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onDeleteRequested={() => deleteMutation.reset()}
+        onConfirmDelete={() => deleteMutation.mutate(gift)}
+      />
     </>
   );
 }
 
 export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { giftIdeaId, query } = useGiftIdea(api, accountId, spaceId);
-  const deleteMutation = useMutation({
-    mutationFn: (targetGift: GiftIdeaDetail) =>
-      privateApiCall(() =>
-        api.deleteGiftIdea({
-          spaceId: targetGift.spaceId,
-          giftIdeaId: targetGift.id,
-          ifMatch: String(targetGift.version),
-        }),
-      ),
-    onMutate: (target) =>
-      capturePrivateDelete(
-        queryClient,
-        privateAreaQueryKeys.giftIdea(
-          target.ownerId,
-          target.spaceId,
-          target.id,
-        ),
-        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
-        captureDeleteOwnership(),
-      ),
-    onSuccess: async (_result, _target, context) => {
-      if (!context) return;
-      await context.refreshList();
-      if (!context.isCurrentTask()) {
-        context.remove();
-        return;
-      }
-      closeTask(() => {
-        const shouldNavigate = context.isCurrentTask();
-        if (context.remove() && shouldNavigate) {
-          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
-        }
-      });
-    },
-  });
 
   const mutation = useMutation({
     mutationFn: ({ gift, data }: { gift: GiftIdeaDetail; data: FormData }) => {
@@ -636,7 +647,6 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     ? privateGiftIdeaPath(giftIdeaId)
     : PRIVATE_GIFT_IDEAS_PATH;
   const {
-    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -645,7 +655,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
   } = usePrivateTaskEditorLifecycle({
     fallbackPath: detailFallback,
     isDirty: dirty,
-    isCloseBlocked: mutation.isPending || deleteMutation.isPending,
+    isCloseBlocked: mutation.isPending,
     closeToFallback: true,
   });
 
@@ -670,7 +680,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending || deleteMutation.isPending) return;
+    if (mutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -687,27 +697,12 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
         giftIdea={gift}
         backLabel={t('privateArea.gifts.detailBack')}
         saving={mutation.isPending}
-        deleting={deleteMutation.isPending}
         error={mutation.error}
         titleValidation={titleValidation}
         onClose={requestClose}
         onSubmit={submit}
         onChange={() => setDirty(true)}
-      >
-        {gift.capabilities.canDelete ? (
-          <article
-            className="private-area-detail-card"
-            style={{ marginTop: 'var(--space-8)' }}
-          >
-            <DeleteConfirmation
-              onDelete={() => deleteMutation.mutate(gift)}
-              pending={deleteMutation.isPending}
-              disabled={mutation.isPending}
-              error={deleteMutation.error}
-            />
-          </article>
-        ) : null}
-      </GiftIdeaEditor>
+      />
       <PrivateEditorDiscardSheet
         open={showDiscardConfirm}
         onKeep={keepEditing}

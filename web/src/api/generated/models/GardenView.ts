@@ -48,6 +48,13 @@ import {
     GardenBouquetViewToJSON,
     GardenBouquetViewToJSONTyped,
 } from './GardenBouquetView';
+import type { GardenVisitorNameView } from './GardenVisitorNameView';
+import {
+    GardenVisitorNameViewFromJSON,
+    GardenVisitorNameViewFromJSONTyped,
+    GardenVisitorNameViewToJSON,
+    GardenVisitorNameViewToJSONTyped,
+} from './GardenVisitorNameView';
 
 /**
  * 
@@ -170,6 +177,12 @@ export interface GardenView {
      */
     unlocks?: Array<GardenUnlock>;
     /**
+     * Names the couple gave to visiting animals; unnamed visitors are absent.
+     * @type {Array<GardenVisitorNameView>}
+     * @memberof GardenView
+     */
+    visitorNames?: Array<GardenVisitorNameView>;
+    /**
      * Plant the reader watered today.
      * @type {string}
      * @memberof GardenView
@@ -222,6 +235,7 @@ export function GardenViewFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'sharedToday': json['sharedToday'],
         'sleeping': json['sleeping'],
         'unlocks': json['unlocks'] == null ? undefined : ((json['unlocks'] as Array<any>).map(GardenUnlockFromJSON)),
+        'visitorNames': json['visitorNames'] == null ? undefined : ((json['visitorNames'] as Array<any>).map(GardenVisitorNameViewFromJSON)),
         'wateredToday': json['wateredToday'] === undefined ? undefined : json['wateredToday'] === null ? null : json['wateredToday'],
     };
 }
@@ -256,6 +270,7 @@ export function GardenViewToJSONTyped(value?: GardenView | null, ignoreDiscrimin
         'sharedToday': value['sharedToday'],
         'sleeping': value['sleeping'],
         'unlocks': value['unlocks'] == null ? undefined : ((value['unlocks'] as Array<any>).map(GardenUnlockToJSON)),
+        'visitorNames': value['visitorNames'] == null ? undefined : ((value['visitorNames'] as Array<any>).map(GardenVisitorNameViewToJSON)),
         'wateredToday': value['wateredToday'],
     };
 }

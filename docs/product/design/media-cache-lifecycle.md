@@ -197,6 +197,10 @@ parent read-access first. Hidden tabs keep their query observers, so the
 existing freshness, invalidation, revocation and logout/Space wipes apply to
 them unchanged. Memory is bounded by the four primary tabs.
 
+Since PR #2044 (2026-11-18) the shell has a fifth primary destination, `Listen`
+(`shared`). It is routed normally and is not one of the kept panels, so the
+bound above refers to the four kept tabs.
+
 Images that do mount now fade in once decoded (`useMediaReveal`) instead of
 replacing the frame abruptly; the fade uses `--duration-context`, which is
 zero under reduced motion, and failed images settle visibly.

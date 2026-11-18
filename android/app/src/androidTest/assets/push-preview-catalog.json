@@ -2205,6 +2205,242 @@
       }
     },
     {
+      "id": "COUPLE_GAME_TURN-WHO_OF_US_GAME-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c01",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..IJBhkKFzj7KVNFja.6Xtr1fVNuWO62_IAQtVm87f2O9i4Rr8XLmeEgXoU_pHLXi1kXqOjst70qzp__hEO9BOsOYIXRceZ5gASzrxRSAEaFqR9VA0Lp-31CKuJFb-odn-mwaSuIeywrK2HcFzqhWt77xibKDv49phSs-5WtFuietHNJOHQO-j5Je4JDdf9Ac6zpvZisiDaezBLXKiRe0TpTeHCjVRGf6GHxtbaZdpcpypRu5gZa27ozt91mamJ1LArzp1BVAGsy5Gs-llh.QaTp8B2sSuD_4FR5EgVOjQ",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "COUPLE_GAME_TURN-WHO_OF_US_GAME-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c02",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..VNKDTQD-QoifDm2y.50p5GcXUSRSQZ5c6RYYx3vKSZifp1yO2UFqND6gBTW5-YNOADzD5zp9RsZv7unrG5LEiKXT2v4JDqaQpF0bSQvSZ0JTmRCMmFgtG_D2ttKBSp4Md53zwKDoWtzc8QFfeGdL7WxYOwNRvoY7cnh4jEAXRDqiPh0GbgJFmrczi-kXykMS1sIT-17nDD0F-vrawj8L0M3hgeU79ZbozdVhcSzjtWQaZArQ8i5XVUigSWQP1BTFCHinyolqDIAX0FPoxLHaAuhBDxe4gJvITRzVxYJs.Fjv0ZaJrXtFI3wFl9vhwIQ",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "COUPLE_GAME_TURN-WHO_OF_US_GAME-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c03",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..ETWYiu6komhSYkPw.X2zDmp4A_uq4KMLeuhHNC5CMcT6fnyKi9bptj3ADgAuMY0K_sPlKS9J76i0bNmQV3Qh3NbKEQdFV6jBpDREg8n59_W3w-iY1aLuhOekDTkrxkZDAIPVpiSRXILGdKxs4dKB4Ja_b41lFMc69zhSByPTe42wL6zP9p1WO8sq-cHmDg0mzACDi0DfnkwcaP4hzuFm0-_piYR7UaZieoVI1MTj3Nf0feVmLv7r9vj6jnQjqGNpmaooe2KExrUXCEhT-qajFKhwGC-n0Hw.qC5dBJeBDd98HLPo9Cn4Zg",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "COUPLE_GAME_TURN-WHO_OF_US_GAME-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c04",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..PAsfE437TX2uVsfH.dC8sGlw8OguftLkNiwREYACdK9KNooi8W2K8RVh0Wd1ggXHy8gFCBqCS6_9592C4Pnx3v2xgkWjHbs85CffUYv6UQzuElgyXC3eVxNzRjNtsjVRDui7lbhyC2TGzJwr_ztKYHIC5QnvOR_VughwoSP6tv2Cq97mrXHoYY7tCNDdQ5xBJjtbSi3_6iTWF2fFxZCEV-J7bog6ah2w-wZ0fI-u34yvgWxP2jGDwcNnq6fJ8t0DXaxWCbfiba5j3JnPFNjlRcjQjRe4nbzSJkUuz-VVgfMNrPbA060-x.11hyPiSfwxgeS2_lhsJM6Q",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "COUPLE_GAME_TURN-WISH_DETECTIVE_GAME-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c05",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_DETECTIVE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..tENibqn4NNU6ZgPv.YhELiF2A0DdWW355H6n-ZOQvUeA9US-X90NZ0Ge9r8HT6x9AlddhOlJTLfm_uDzwrRLckD_FXoPDului44nKObJgujq3TyxfhNQhgizls6p8vEZ6WvPQyCI2MIxNEd8pRLcBKP3IKcPl4p27-CNi4Z1XSWc4LZq7o5BDkKP55AzRuH5oiseo-WZmouzC63C3f-1gsLZufQpfFs3I6tLrApCqGet1WRUhVuhtyDUNYZ2qGwQ-FDtY7Y7ITJHOf65yfCywsI9fkD3v5fPsn5Z5.t0R451HmYHT4Fen1oZlPGA",
+      "expectedBody": {
+        "de": "Alex hat beim Wunschdetektiv gespielt. Schau mal rein.",
+        "en": "Alex played Wish detective. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "COUPLE_GAME_TURN-OUR_MOMENTS_GAME-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c06",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "OUR_MOMENTS_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OD_uEzPEPYrgYSa6.IlPN4hrfIa903TVZP0t8UYpB7OJPcQmnUhownU0DmG0cduDzQqvSua1Xl36RqlAZ_tBnw524XVtczSv7Kvno3GAhwoGU_d_reLBeUjeNJONMJ-tT2NIdHRfE4LoFqxIiHr6_DXMTJAKUrI_4MleCMevs2W_wNRwt1gRZN3T2sHRoKuVdWmq6sdDjxl2fovaCD2u14jqPLV1MpWi2cVoeKNUS4YiayO688GF0iMRUdzRATfUqqkvRrMZe3IrSifehrdaBtwAGU5WfyWfy.eBGecS5lV94CdWJtcsgRXQ",
+      "expectedBody": {
+        "de": "Alex hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+        "en": "Alex played “Our moments”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_FINISHED-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c11",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1DNobws7Fmadak1F.0G038bJt6TpgAXTN6mINT8KpQhfnMBA_TXDFxYHDmd5ObPg5arrndbalOGH8933n52ry7LQCw9ur0yC72D8vvbcC5TgdZNBZpyNCLkdNFJtX-VcTl60yUdUKGLCvT4eXqT9zfTjztV-DRrmldLtuE8t2h9LQ61p2_MoRnA6ZpuaTOyfRIO-0_PLRVoU9SqoRBFf7fXJK2KHjUTrd1LNqRF9lltxB9y2Rm4CadGRvCYnIm2CVvaQD3I1L0kgwUAZfVcW0sAWctyQ.xn6X4C8nZZMiGDIfx-lzrg",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_FINISHED-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c12",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..HZiuoJ9cNgygYXfz.HiW91JQM5Y6tyoPCQEdvItJ1VvNkdx5N8eBLxdJeiv8h0dd0PyY_12B7Df64sS8Teq7m3AUb9xG87KeVgs5nH_GODE_B4AW5ZhPctWzRQjKr98iFuFowep41h7q5tOLJxIrCSAvkSF882UfCsaxeo8Q8iuR4oDMhQQxKE7aRaM7LaYTtRxRRmu86S-Bf7m9uHKDJ2ddWNAFX5uy58XaPBVoCQfmyUZiF8-0TSj0B9nfZl1oTAXKdPTg9Kg16ITvToEk5n-1W4uPv_Cwcr10_r5G6jFa59uZVzw.BstRZYhCp6vxgKsPK-SkMg",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_FINISHED-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c13",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YxH-my986ICiwdqb.YP8cUWZEFGMM7kHNxjwrtzqNEKuGURURExyRfJlDCrd0RMb9fG53cOj-eRNlFlGKXUN60sYcYTXKI5QJn0o-TiZSRQAPJp8ntJPjYcf2vO9-tdlfPIa4yrWv8Sw8soiinMME-ju1eDSSwoJfq_TBkk0l8MbsbKVrRjPoQ9_gZOkoD6yz3YGDDpZXMMd1WRfvkjOOtUlWVnqUKDpDasANkvtlsfEArCRAX9LgQNzkY_bzvoripPx5d5A3S4K-17Yg0iRfXC5-qKqGhGR7ZzW3Ez0f.DieG2qJ6abF0LNQfXDY0YA",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
+      "id": "PICTURE_PING_PONG_FINISHED-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7c14",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OZJGo5t1yM7Gb3ph.9alOWvT-DO7dvwrpoXs1WB7dTpZVHum6uHwxTH_ygd104Lx27kyhfQv2kOu7hpw5ZUv5EY_9znUW5s-3z3-Lowad2WAIvWsOUE8puedAHSMKMiOSkqhtUfU7UekMRZGVlIGr2phg77YOtsC8cER9I7xhVL2DY06vKhW-Ld6f8c8DWw0BJg2-5O7rmXbD7OSWF8I7IcjjEQ69Vtxz14ExDsHcL5ojwnveAbNemUv4fo-gLQooRcQ2wNeUdIyIOifx6zx1HDpC_uze-kG4__T-vrt2ODHfeexoJ2L2uVr_JP0x4Kg.Kh5xla3LdowqBYHrm5rjyA",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
       "id": "SHARED_NOTE_CREATED-empty",
       "payload": {
         "v": 1,

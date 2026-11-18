@@ -132,6 +132,14 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.PICTURE_PING_PONG_TURN: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        NotificationKind.PICTURE_PING_PONG_FINISHED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # The same quiet turn signal for the remote couple games; answers,
+        # clues, guesses, wishes and Memories never appear in a preview.
+        NotificationKind.COUPLE_GAME_TURN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.PHOTO_REACTION: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),

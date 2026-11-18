@@ -35,7 +35,6 @@ const commentsCss = readSource('./components/CommentsPanel.css');
 const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
 );
-const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
 const productRolesCss = readSource('./design/product-roles.css');
 const sharedPlanningSanctuaryCss = readSource(
   './components/SharedPlanningSanctuary.css',
@@ -263,7 +262,6 @@ describe('web layout tokens', () => {
       readSource('./components/StoryMomentMetadata.css'),
       readSource('./components/StoryProductPages.css'),
       timelineProgressiveCss,
-      discoverRevealCss,
       readSource('./components/TodayPage.css'),
     ].join('\n');
 
@@ -282,9 +280,8 @@ describe('web layout tokens', () => {
 });
 
 describe('mobile feed compositor budget (#1028)', () => {
-  it('does not pin every unrevealed Timeline or Discover item into a compositor layer', () => {
+  it('does not pin every unrevealed Timeline item into a compositor layer', () => {
     expect(timelineProgressiveCss).not.toContain('will-change:');
-    expect(discoverRevealCss).not.toContain('will-change:');
   });
 });
 
@@ -309,7 +306,7 @@ describe('compact navigation', () => {
   it('owns the bottom navigation grid in one stylesheet', () => {
     expect(
       ruleBlock(shellCss, '.mobile-bottom-shell .mobile-bottom-nav'),
-    ).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
+    ).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
 
     const pageStylesheets = [
       readSource('./components/M4ProductPages.css'),

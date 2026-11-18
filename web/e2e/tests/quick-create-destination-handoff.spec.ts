@@ -2,6 +2,7 @@ import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
+import { editViaMenu } from '../support/itemMenu';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import composer from '../../src/i18n/locales/composer';
@@ -769,17 +770,13 @@ for (const viewport of [
       fullPage: true,
     });
 
-    await page
-      .getByRole('link', { name: storyProducts.milestoneProduct.edit })
-      .click();
+    await editViaMenu(page, storyProducts.milestoneProduct.edit);
     await expect(page).toHaveURL(/\/edit$/);
     await page.getByRole('link', { name: de.common.cancel }).click();
     await expect(page).toHaveURL(
       /\/story\/milestones\/44444444-4444-4444-8444-444444444444$/,
     );
-    await page
-      .getByRole('link', { name: storyProducts.milestoneProduct.edit })
-      .click();
+    await editViaMenu(page, storyProducts.milestoneProduct.edit);
     await page.locator('#milestone-title').fill('Our next home');
     await page
       .getByRole('button', { name: storyProducts.milestoneProduct.save })

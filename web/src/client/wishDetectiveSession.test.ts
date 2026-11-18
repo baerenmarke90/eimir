@@ -1,10 +1,12 @@
+import { WISH_DETECTIVE_GERMAN_STOP_WORDS } from '../i18n/locales/wishDetectiveRules';
+import ruleVectors from '../i18n/locales/wishDetectiveRuleVectors.json';
 import {
   createLocalWishDetectiveSession,
   isWishDetectiveGuessCorrect,
   selectWishDetectiveRounds,
+  validateWishDetectiveClues,
   type WishDetectiveCandidate,
   type WishDetectiveParticipant,
-  validateWishDetectiveClues,
 } from './wishDetectiveSession';
 
 const PARTICIPANTS: readonly [
@@ -64,7 +66,7 @@ describe('selectWishDetectiveRounds', () => {
     }
   });
 
-  it('supports a smaller 2+2 round and fails sparse below two wishes for either partner', () => {
+  it('supports a smaller 2+2 round and a 1+1 round with one wish per partner', () => {
     expect(
       selectWishDetectiveRounds(
         [
@@ -79,16 +81,35 @@ describe('selectWishDetectiveRounds', () => {
       ),
     ).toHaveLength(4);
 
+    const single = selectWishDetectiveRounds(
+      [
+        candidate('l1', 'lea', 'L1'),
+        candidate('a1', 'alex', 'A1'),
+        candidate('a2', 'alex', 'A2'),
+      ],
+      PARTICIPANTS,
+    );
+    expect(single.map((round) => round.createdBy)).toEqual(['lea', 'alex']);
+  });
+
+  it('fails sparse when either partner has no wish at all', () => {
     expect(
       selectWishDetectiveRounds(
-        [
-          candidate('l1', 'lea', 'L1'),
-          candidate('a1', 'alex', 'A1'),
-          candidate('a2', 'alex', 'A2'),
-        ],
+        [candidate('a1', 'alex', 'A1'), candidate('a2', 'alex', 'A2')],
         PARTICIPANTS,
       ),
     ).toEqual([]);
+    expect(selectWishDetectiveRounds([], PARTICIPANTS)).toEqual([]);
+  });
+
+  it('starts a local 1+1 game with one wish per partner', () => {
+    const session = createLocalWishDetectiveSession();
+    session.start(FOUR_ROUNDS.slice(0, 2), PARTICIPANTS);
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'clue',
+      totalRounds: 2,
+    });
+    session.dispose();
   });
 });
 
@@ -115,6 +136,31 @@ describe('Wish Detective text rules', () => {
     expect(isWishDetectiveGuessCorrect('targ', title)).toBe(false);
     expect(isWishDetectiveGuessCorrect('Seaside', 'Seaside')).toBe(true);
     expect(isWishDetectiveGuessCorrect('Sea', 'Seaside')).toBe(false);
+  });
+});
+
+// The server re-validates clues and judges guesses with a port of these
+// rules (couple_games/wish_detective_rules.py); both run the same vectors.
+describe('Wish Detective rules shared with the server', () => {
+  it('uses the same stop words as the server vectors', () => {
+    expect([...ruleVectors.stopWords].sort()).toEqual(
+      [...WISH_DETECTIVE_GERMAN_STOP_WORDS].sort(),
+    );
+  });
+
+  it.each(ruleVectors.clues)('validates clues %#', (vector) => {
+    expect(
+      validateWishDetectiveClues(
+        vector.clues as [string, string, string],
+        vector.wishTitle,
+      ),
+    ).toEqual(vector.errors);
+  });
+
+  it.each(ruleVectors.guesses)('judges guess %#', (vector) => {
+    expect(isWishDetectiveGuessCorrect(vector.guess, vector.wishTitle)).toBe(
+      vector.correct,
+    );
   });
 });
 

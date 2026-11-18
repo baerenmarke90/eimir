@@ -324,10 +324,12 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   } finally {
     releaseMapRead();
   }
+  // The avatar labels are the bare names; the partner's own area is no longer
+  // spelled out. They are short, so they must match exactly.
   await expect(
-    page.getByText(forPartner(copy.mapPartnerArea).replace('Alex', 'Alex')),
+    page.getByText(forPartner(copy.mapPartnerArea), { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(copy.mapYou)).toBeVisible();
+  await expect(page.getByText(copy.mapYou, { exact: true })).toBeVisible();
   await expect(
     page.getByText(forPartner(copy.mapOwnSharesDistance)),
   ).toBeVisible();
@@ -891,7 +893,7 @@ for (const variant of evidence) {
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     }
     await expect(page.locator('.place-map-area.is-partner')).toHaveCount(1);
-    await expect(page.getByText(copy.mapYou)).toBeVisible();
+    await expect(page.getByText(copy.mapYou, { exact: true })).toBeVisible();
     await page.waitForTimeout(400);
     await expectNoHorizontalOverflow(page);
     await captureScreenshot(page, info, `partner-distance-map-${name}.png`, {

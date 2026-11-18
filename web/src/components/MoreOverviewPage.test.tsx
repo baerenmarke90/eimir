@@ -54,8 +54,6 @@ describe('MoreOverviewPage', () => {
       '/more/private',
       '/more/people',
       '/more/places',
-      '/more/collections',
-      '/more/notes',
       '/more/insights',
       '/games',
       '/more/notifications',
@@ -70,6 +68,10 @@ describe('MoreOverviewPage', () => {
     expect(weeklyInsightsIndex).toBeGreaterThan(-1);
     expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
 
+    // Lists and Notes live in the Gemeinsam primary destination, not in More.
+    expect(html).not.toContain('href="/more/collections"');
+    expect(html).not.toContain('href="/more/notes"');
+
     // #1790 E1: years and recaps share one destination that opens the years.
     expect(html).not.toContain('href="/more/passport"');
     expect(html).not.toContain('href="/story/recaps"');
@@ -81,7 +83,6 @@ describe('MoreOverviewPage', () => {
       de.more.subtitles.chapters,
       de.more.subtitles.yearsAndRecaps,
       de.more.subtitles.insights,
-      de.more.subtitles.lists,
       de.more.subtitles.places,
       de.more.subtitles.people,
       de.more.subtitles.games,
@@ -135,7 +136,7 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(15);
+    expect(rowMatches).toHaveLength(13);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 

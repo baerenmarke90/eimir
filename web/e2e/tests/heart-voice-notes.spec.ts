@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/storyProducts';
 import voice from '../../src/i18n/locales/voiceNotes';
+import { editViaMenu } from '../support/itemMenu';
 import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -410,10 +411,7 @@ test('preserves saved audio while editing and leaves unchanged edits without a d
       audio.evaluate((element: HTMLAudioElement) => element.currentTime),
     )
     .toBeCloseTo(0.1, 2);
-  const edit = () =>
-    page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+  const edit = () => editViaMenu(page, copy.heartMomentProduct.edit);
   await edit();
   await openVoiceTask(page);
   await expect(

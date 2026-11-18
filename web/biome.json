@@ -10,6 +10,7 @@
     "includes": [
       "**",
       "!src/api/generated",
+      "!preview/data",
       "!vite.config.js",
       "!vite.config.d.ts"
     ]

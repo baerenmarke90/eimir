@@ -4,26 +4,25 @@
  * hangs from a clothespin and swings in once; a memory without a photo is a
  * calm, static warm note (see `retrospectiveTone`). */
 
+/* The card itself sits in the warm colour world, which remaps the tinted
+   surface token to lavender. Read the token here, outside that world, so the
+   card gets the same tint as the plans, notes and activity cards. */
+.today-section-retrospective {
+  --rediscovery-card-surface: var(--color-surface-subtle);
+}
+
 .today-living-retrospective[data-diary-layout="album"] {
   position: relative;
   gap: var(--space-3);
   padding: var(--space-10) var(--space-4) var(--space-5);
   overflow: hidden;
-  border: 0;
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-sheet);
-  background:
-    radial-gradient(
-      ellipse at 50% 0%,
-      color-mix(in srgb, var(--color-surface-raised) 70%, transparent),
-      transparent 65%
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 2rem,
-      color-mix(in srgb, var(--color-border) 55%, transparent) 2rem
-        calc(2rem + 1px)
-    ),
-    var(--color-background);
+  /* The same tinted surface as the plans, notes and activity cards on Wir, so
+     the Polaroid (raised paper) lifts off it. The ruled wall texture looked
+     out of place on Wir; only the clothespin and the Polaroid stay scrapbook.
+     Momente > Erinnerungen uses the identical card (StoryHandmadeDiscover.css). */
+  background: var(--rediscovery-card-surface);
   box-shadow: var(--shadow-raised);
 }
 
@@ -44,10 +43,13 @@
   position: relative;
   display: grid;
   gap: var(--space-3);
-  width: min(100%, 18.5rem);
+  width: min(100%, var(--polaroid-width));
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-3) var(--space-3) 0;
+  /* Keeps the paper readable where the card and the Polaroid share a colour
+     (most light designs). */
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   background: var(--color-surface-raised);
   filter: drop-shadow(0 1px 1px var(--color-shadow-card))
@@ -200,8 +202,9 @@
   margin-block-start: var(--space-3);
 }
 
-/* Calm entries (no photo, no positive signal): a plain warm note. No string,
-   clothespin, swing or developing effect. */
+/* Calm entries (no photo, no positive signal): a plain note on the same calm
+   surface as the photo card. No string, clothespin, swing or developing
+   effect. */
 .today-living-retrospective[data-diary-layout="album"][data-tone="calm"] {
   padding-block-start: var(--space-5);
 }
@@ -215,33 +218,9 @@
   width: 100%;
   margin: 0;
   padding: 0;
+  border: 0;
   background: transparent;
   filter: none;
   transform: none;
   animation: none;
-}
-
-/* The calm note sits on ruled paper whose lines come from the text's own line
-   height, so the title and date always sit on a line (the hanging photo variant
-   keeps the plain wall texture). */
-.today-living-retrospective[data-diary-layout="album"][data-tone="calm"] {
-  --note-lh: 1.8rem;
-  line-height: var(--note-lh);
-  background:
-    repeating-linear-gradient(
-      180deg,
-      transparent 0 calc(1lh - 1px),
-      color-mix(in srgb, var(--color-border) 75%, transparent) calc(1lh - 1px)
-        1lh
-    )
-    0 var(--space-8) / 100% 100% no-repeat,
-    var(--color-background);
-}
-.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
-  .today-retrospective-caption {
-  gap: 0;
-}
-.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
-  :is(.today-retrospective-title, .today-retrospective-date) {
-  line-height: var(--note-lh);
 }

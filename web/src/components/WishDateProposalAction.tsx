@@ -260,7 +260,9 @@ export function WishDateProposalAction({
     <section
       id="terminvorschlag"
       aria-label={t('wishDateProposal.action')}
-      className="wish-date-proposal planning-subsection page-reading"
+      // A bare "propose a date" action stands without a box; only a running
+      // proposal, which has its own text and answers, sits in one.
+      className={`wish-date-proposal page-reading${proposal ? ' planning-subsection' : ''}`}
     >
       {data.isError ? (
         <ProblemState error={data.error} onRetry={() => void data.refetch()} />

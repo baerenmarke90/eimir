@@ -1,0 +1,157 @@
+/*
+ * Rare visitors (#1907 H3 follow-up): owl, fox and ducklings. Illustration
+ * roles stay local to the garden scene with Light and Dark values
+ * (docs/DESIGN-TOKEN-POLICY.md, local literals). Idle motion runs only in a
+ * lively scene; a tap reaction is one short, gentle movement. The page's
+ * reduced-motion rule stops every animation, so a reaction is then a still
+ * pose that the status line describes.
+ */
+.garden-game-page {
+  --garden-owl: #8b6d55;
+  --garden-owl-light: #e8dcc8;
+  --garden-fox: #d0743a;
+  --garden-fox-light: #fbf3e8;
+  --garden-duckling: #f4d35e;
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-owl: #7a604c;
+  --garden-owl-light: #d3c7b3;
+  --garden-fox: #b9672f;
+  --garden-fox-light: #e8e0d4;
+  --garden-duckling: #dcbc52;
+}
+
+.garden-rare
+  :is(
+    .garden-owl-head,
+    .garden-owl-eyes,
+    .garden-fox-tail,
+    .garden-fox-ears,
+    .garden-fox-head,
+    .garden-duckling
+  ) {
+  transform-box: fill-box;
+}
+
+.garden-owl-head {
+  transform-origin: 50% 100%;
+}
+
+.garden-owl-eyes {
+  transform-origin: 50% 50%;
+}
+
+.garden-fox-tail {
+  transform-origin: 100% 80%;
+}
+
+.garden-fox-ears,
+.garden-fox-head {
+  transform-origin: 30% 100%;
+}
+
+.garden-duckling {
+  transform-origin: 50% 100%;
+}
+
+/* Idle: the owl blinks now and then, the ducklings bob on the water. */
+.garden-scene.is-lively .garden-rare-owl .garden-owl-eyes {
+  animation: garden-owl-blink calc(var(--duration-connection-travel) * 2.4)
+    var(--easing-standard) infinite;
+}
+
+.garden-scene.is-lively .garden-rare-ducklings .garden-duckling {
+  animation: garden-duckling-bob calc(var(--duration-connection-travel) * 1.2)
+    var(--easing-standard) infinite;
+}
+
+/* Reactions. */
+.garden-scene .garden-rare-owl.is-reacting .garden-owl-head {
+  animation: garden-owl-turn var(--duration-gesture-sequence)
+    var(--garden-spring) both;
+}
+
+.garden-scene .garden-rare-fox.is-reacting .garden-fox-tail {
+  animation: garden-fox-swish var(--duration-gesture-sequence)
+    var(--easing-standard) both;
+}
+
+.garden-scene .garden-rare-fox.is-reacting .garden-fox-ears {
+  animation: garden-fox-ears var(--duration-gesture-moment)
+    var(--easing-standard) both;
+}
+
+.garden-scene .garden-rare-ducklings.is-reacting .garden-duckling {
+  animation: garden-duckling-paddle var(--duration-gesture-sequence)
+    var(--easing-standard) both;
+}
+
+@keyframes garden-owl-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes garden-owl-turn {
+  0% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-18deg);
+  }
+  60% {
+    transform: rotate(14deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes garden-fox-swish {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(16deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes garden-fox-ears {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes garden-duckling-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.6px);
+  }
+}
+
+@keyframes garden-duckling-paddle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}

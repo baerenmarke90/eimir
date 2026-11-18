@@ -147,7 +147,12 @@ function renderDetail(
                   path="/story/heart-moments/:heartMomentId"
                   element={<p>Saved partner words</p>}
                 />
-              ) : null}
+              ) : (
+                <Route
+                  path="/story/heart-moments/:heartMomentId/edit"
+                  element={<p>Edit page</p>}
+                />
+              )}
             </Routes>
           </AppShell>
         </TaskOriginProvider>
@@ -759,17 +764,23 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
     ).toBeTruthy();
   });
-  it('offers editing as the shared round pencil control in the read header', async () => {
+  it('offers Edit first and Delete last through one header menu', async () => {
     renderDetail();
-    const editLink = await screen.findByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
-    });
-    expect(editLink.getAttribute('href')).toBe(
-      '/story/heart-moments/heart-1/edit',
-    );
-    expect(editLink.className).toContain('story-detail-edit-link');
-    expect(editLink.querySelector('svg')).not.toBeNull();
-    expect(editLink.className).not.toContain('secondary-link');
+    const copy = storyProducts.heartMomentProduct;
+    const trigger = await screen.findByRole('button', { name: copy.menu });
+    // No separate Edit control outside the menu.
+    expect(screen.queryByRole('link', { name: copy.edit })).toBeNull();
+    expect(screen.queryByRole('button', { name: copy.edit })).toBeNull();
+    const user = userEvent.setup();
+    await user.click(trigger);
+    const rows = [...document.querySelectorAll('.item-menu-option')];
+    expect(rows.map((row) => row.textContent)).toEqual([
+      copy.edit,
+      copy.delete,
+    ]);
+    expect(rows[1]?.getAttribute('data-danger')).toBe('true');
+    await user.click(rows[0] as HTMLElement);
+    expect(await screen.findByText('Edit page')).toBeTruthy();
   });
 
   it('shows shared visibility as subdued metadata instead of a prominent badge', async () => {
@@ -788,11 +799,16 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       capabilities: { canEdit: true, canDelete: false, canComment: true },
     });
     await screen.findByText('I love you more each day');
+    await userEvent.setup().click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.menu,
+      }),
+    );
     expect(
-      screen
-        .getByRole('link', { name: storyProducts.heartMomentProduct.edit })
-        .getAttribute('href'),
-    ).toBe('/story/heart-moments/heart-1/edit');
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.edit,
+      }),
+    ).toBeTruthy();
     expect(
       screen.queryByRole('button', {
         name: storyProducts.heartMomentProduct.makePrivate,
@@ -865,7 +881,9 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       }),
     ).toBeNull();
     expect(
-      screen.getByRole('link', { name: storyProducts.heartMomentProduct.edit }),
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.menu,
+      }),
     ).toBeTruthy();
   });
 });
@@ -1155,8 +1173,8 @@ describe('Completed Plan handoff to HeartMoment', () => {
         name: storyProducts.heartMomentProduct.save,
       }),
     );
-    const edit = await screen.findByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
+    const menu = await screen.findByRole('button', {
+      name: storyProducts.heartMomentProduct.menu,
     });
     expect(createHeartMoment).toHaveBeenCalledOnce();
     expect(createHeartMoment).toHaveBeenCalledWith(
@@ -1164,14 +1182,19 @@ describe('Completed Plan handoff to HeartMoment', () => {
         heartMomentCreate: expect.objectContaining({ placeId: place.id }),
       }),
     );
-    await user.click(edit);
+    await user.click(menu);
+    await user.click(
+      await screen.findByRole('button', {
+        name: storyProducts.heartMomentProduct.edit,
+      }),
+    );
     await screen.findByRole('heading', {
       level: 1,
       name: storyProducts.heartMomentProduct.editHeading,
     });
     await user.click(screen.getByRole('link', { name: taskBoundary.back }));
-    await screen.findByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
+    await screen.findByRole('button', {
+      name: storyProducts.heartMomentProduct.menu,
     });
     expect(screen.queryByText(taskBoundary.discardTitle)).toBeNull();
     expect(updateHeartMoment).not.toHaveBeenCalled();

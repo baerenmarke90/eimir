@@ -13,7 +13,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import { privateAreaQueryKeys } from '../client/privateArea';
@@ -21,6 +21,15 @@ import { ClientProblemError } from '../client/problemDetails';
 import de from '../i18n/locales/de';
 import privateArea from '../i18n/locales/privateArea';
 import { PrivateCollectionDetailPage } from './PrivateCollectionsPage';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 afterEach(() => {
   cleanup();
@@ -127,7 +136,12 @@ function setup() {
     </QueryClientProvider>
   );
   const view = render(tree());
-  fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: privateArea.menuLabel.replace('{{name}}', 'Travel preparations'),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: privateArea.edit }));
   return {
     queryClient,
     write,

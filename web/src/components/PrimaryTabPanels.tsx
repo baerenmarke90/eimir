@@ -25,6 +25,18 @@ export interface PrimaryTabPanel {
 }
 
 /**
+ * Wir starts fresh when it is opened again: the carousels inside it (lists,
+ * what is coming up, recent activity) show their first item again instead of
+ * wherever they were swiped to. They are the only scrollers a person can leave
+ * half-way, so any element with a horizontal offset is put back.
+ */
+function resetHorizontalScroll(panel: Element | null) {
+  if (!panel) return;
+  for (const element of panel.querySelectorAll<HTMLElement>('*'))
+    if (element.scrollLeft !== 0) element.scrollLeft = 0;
+}
+
+/**
  * Keeps every visited primary tab mounted, like a native tab bar. Returning to
  * a tab reuses the view and its images and restores the reader on Back.
  * Inactive tabs are removed from layout, focus order and accessibility tree
@@ -81,6 +93,10 @@ export function PrimaryTabPanels({
       ? 0
       : (scrollPositions.current.get(active) ?? 0);
     window.scrollTo({ top: target, behavior: 'instant' });
+    if (startWirAtTop)
+      resetHorizontalScroll(
+        document.querySelector(`[data-primary-tab="${active}"]`),
+      );
     if (target === 0) return;
     // The revealed panel can still be briefly shorter than when it was left
     // (content settling after it becomes visible), which clamps the restore.
@@ -120,6 +136,8 @@ export function PrimaryTabPanels({
     const panel = peekRef.current;
     const main = panel?.parentElement;
     if (!panel || !main || !peek) return;
+    // Wir is always shown from its start, like it opens from the tab bar.
+    if (peek === DEFAULT_APP_ROUTE) resetHorizontalScroll(panel);
     const box = main.getBoundingClientRect();
     const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
     const saved =

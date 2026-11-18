@@ -88,6 +88,17 @@ class GardenForm(StrEnum):
     PARADISE = "PARADISE"
 
 
+class GardenVisitor(StrEnum):
+    """Animals that visit the garden; the couple may give each one a name."""
+
+    SNAIL = "SNAIL"
+    RABBIT = "RABBIT"
+    HEDGEHOG = "HEDGEHOG"
+    DUCKS = "DUCKS"
+    SQUIRREL = "SQUIRREL"
+    DEER = "DEER"
+
+
 class GardenWords(StrEnum):
     """Fixed phrases a partner may attach to a seed; clients localize them."""
 
@@ -185,6 +196,29 @@ class Garden(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (CheckConstraint("length(btrim(name)) > 0", name="name_not_blank"),)
+
+
+class GardenVisitorName(Base):
+    """One shared name per visitor and couple; the duck pair shares one name.
+
+    Like the garden name, the row exists only while the visitor has a name.
+    """
+
+    __tablename__ = "garden_visitor_names"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    animal: Mapped[str] = mapped_column(String(16), primary_key=True)
+    name: Mapped[str] = mapped_column(String(40), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(_allowed("animal", GardenVisitor), name="animal_allowed"),
+        CheckConstraint("length(btrim(name)) > 0", name="name_not_blank"),
+    )
 
 
 class GardenReader(Base):

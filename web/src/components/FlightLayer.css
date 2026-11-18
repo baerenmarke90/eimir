@@ -27,6 +27,17 @@
   pointer-events: none;
 }
 
+/* The "Wie geht's?" line on its way into the plus on the own ring. */
+.wir-checkin-flight-ghost.is-prompt {
+  padding: 0.2rem 0.55rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .wir-checkin-flight-ring {
   position: absolute;
   border-radius: var(--radius-pill);

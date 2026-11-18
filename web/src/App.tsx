@@ -12,6 +12,7 @@ import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
+import { GamesApi } from './api/generated/apis/GamesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
@@ -67,15 +68,13 @@ import {
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
-  NOTE_CREATE_ROUTE,
-  NOTE_DETAIL_ROUTE_PATTERN,
-  NOTE_EDIT_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_PICTURE_PING_PONG_ROUTE,
+  GAMES_WHO_OF_US_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
@@ -90,16 +89,19 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
-  MORE_NOTES_ROUTE,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
+  NOTE_CREATE_ROUTE,
+  NOTE_DETAIL_ROUTE_PATTERN,
+  NOTE_EDIT_ROUTE_PATTERN,
   PARTNER_LOCATION_MAP_ROUTE,
   PARTNER_LOCATION_SETTINGS_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
@@ -159,9 +161,6 @@ import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
-import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
-import { SharedNoteReadPage } from './components/SharedNoteReadPage';
-import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DateIdeasPage } from './components/DateIdeasPage';
@@ -191,6 +190,7 @@ import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
+import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
 import { PicturePingPongPage } from './components/PicturePingPongPage';
 import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
@@ -214,6 +214,9 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SettingsPage } from './components/SettingsPage';
+import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
+import { SharedNoteReadPage } from './components/SharedNoteReadPage';
+import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -224,6 +227,7 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
+import { WhoOfUsGamePage } from './components/WhoOfUsGamePage';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
@@ -452,6 +456,16 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const gamesApi = useMemo(
+    () =>
+      new GamesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
@@ -575,6 +589,7 @@ function AuthenticatedApp({
           profilesApi={profilesApi}
           account={account}
           partnerLocationApi={partnerLocationApi}
+          gamesApi={gamesApi}
         />
       ),
     },
@@ -906,6 +921,17 @@ function AuthenticatedApp({
               }
             />
             <Route
+              path={GAMES_WHO_OF_US_ROUTE}
+              element={
+                <WhoOfUsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
               path={GAMES_WISH_DETECTIVE_ROUTE}
               element={
                 <WishDetectiveGamePage
@@ -974,6 +1000,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
                 />
               }
             />
@@ -1206,6 +1233,13 @@ function AuthenticatedApp({
           </Routes>
         </AppErrorBoundary>
       </AppShell>
+      <PersonalSettingsSyncRuntime
+        key={`settings:${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+      />
       <PartnerLocationSync
         key={`${apiBaseUrl}:${account.id}:${spaceId}`}
         apiBaseUrl={apiBaseUrl}

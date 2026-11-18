@@ -205,6 +205,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/story-lifeline/entries",
+        query={"from": "2026-10-05", "to": "2026-10-12"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
@@ -245,6 +250,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/personal-settings"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/personal-settings",
+        body={"occasionHolidays": True},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/person-colours",
@@ -495,6 +507,60 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
         body={"memoryId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/who-of-us"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/who-of-us"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/who-of-us/answers",
+        body={
+            "gameId": "00000000-0000-0000-0000-000000000001",
+            "questionId": "snack",
+            "partnerId": "00000000-0000-0000-0000-000000000001",
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/who-of-us/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wish-detective"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/wish-detective"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/skip",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "round": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/clues",
+        body={
+            "gameId": "00000000-0000-0000-0000-000000000001",
+            "round": 0,
+            "clues": ["Nacht", "Decke", "Warm"],
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/guesses",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "round": 0, "guess": "Meer"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/our-moments"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/our-moments"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/our-moments/flips",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "flipsDone": 0, "position": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/our-moments/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
@@ -505,6 +571,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name",
+        body={"name": "Frieda"},
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/games/garden/bouquets",
@@ -1561,6 +1632,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/account/device-context"),
     ("GET", "/api/v1/account/language-preference"),
     ("PUT", "/api/v1/account/language-preference"),
+    ("GET", "/api/v1/account/personal-settings"),
+    ("PATCH", "/api/v1/account/personal-settings"),
     ("GET", "/api/v1/account/photo-location-preference"),
     ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
@@ -1840,6 +1913,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             # No seed exists in the matrix; tenant and entitlement checks come first.
             "seedId": str(uuid4()),
             "bouquetId": str(uuid4()),
+            # A closed visitor code, not a database row.
+            "animal": "SNAIL",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

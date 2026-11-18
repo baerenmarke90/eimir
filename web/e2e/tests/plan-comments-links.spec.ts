@@ -5,6 +5,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { editViaMenu } from '../support/itemMenu';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -400,10 +401,7 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
   const reply = panel.locator('form.comment-form').getByRole('textbox');
   await reply.click();
   await reply.fill('Keep this thought while checking our schedule.');
-  await page
-    .locator('.page-heading')
-    .getByRole('button', { name: copy.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   await expect(panel).toBeHidden();
   await page
     .getByRole('button', { name: taskBoundary.close, exact: true })

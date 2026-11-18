@@ -23,6 +23,12 @@ import { MilestoneProductPage } from './MilestoneProductPage';
 const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   window.matchMedia = (query: string) => ({
     matches: false,
     media: query,
@@ -97,6 +103,10 @@ function renderDetail(taskOriginKey?: unknown) {
           >
             <Routes>
               <Route path="/story" element={<div>story landing</div>} />
+              <Route
+                path="/story/milestones/:milestoneId/edit"
+                element={<p>Edit page</p>}
+              />
               <Route
                 path="/story/milestones/:milestoneId"
                 element={
@@ -297,29 +307,38 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
 });
 
 describe('Milestone detail header', () => {
-  it('uses the shared composer header with a written-out edit action', async () => {
+  it('uses the shared composer header with one actions menu', async () => {
     const { container } = renderDetail();
-    const editLink = await screen.findByRole('link', {
-      name: storyProducts.milestoneProduct.edit,
-    });
-    expect(editLink.getAttribute('href')).toBe(
-      '/story/milestones/milestone-1/edit',
-    );
-    expect(editLink.textContent?.trim()).toBe(
-      storyProducts.milestoneProduct.edit,
-    );
-    expect(editLink.className).not.toContain('button-link');
-    expect(editLink.className).not.toContain('secondary-link');
+    const copy = storyProducts.milestoneProduct;
+    const trigger = await screen.findByRole('button', { name: copy.menu });
     expect(container.querySelector('.page-composer-detail')).toBeTruthy();
-    expect(
-      container.querySelector('.composer-header .story-detail-edit-link'),
-    ).toBe(editLink);
+    expect(container.querySelector('.composer-header .item-menu-trigger')).toBe(
+      trigger,
+    );
+    // No separate Edit control outside the menu.
+    expect(screen.queryByRole('link', { name: copy.edit })).toBeNull();
+    expect(screen.queryByRole('button', { name: copy.edit })).toBeNull();
     expect(
       screen.getByRole('heading', {
         level: 1,
         name: storyProducts.milestoneProduct.detailEyebrow,
       }),
     ).toBeTruthy();
+  });
+
+  it('lists Edit first and Delete last in the menu', async () => {
+    renderDetail();
+    const copy = storyProducts.milestoneProduct;
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: copy.menu }));
+    const rows = [...document.querySelectorAll('.item-menu-option')];
+    expect(rows.map((row) => row.textContent)).toEqual([
+      copy.edit,
+      copy.delete,
+    ]);
+    expect(rows[1]?.getAttribute('data-danger')).toBe('true');
+    await user.click(rows[0] as HTMLElement);
+    expect(await screen.findByText('Edit page')).toBeTruthy();
   });
 
   it('shows the milestone title and date as the hero below the header', async () => {

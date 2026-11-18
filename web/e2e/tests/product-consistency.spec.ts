@@ -7,6 +7,7 @@ import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -24,6 +25,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { pinDiaryLayout } from '../support/diaryLayout';
+import { editViaMenu } from '../support/itemMenu';
 
 // These checks describe the compact composition, not the Album default.
 test.beforeEach(async ({ page }) => {
@@ -160,16 +162,26 @@ for (const scenario of [
     await expect(
       page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
     ).toHaveCount(0);
-    await expect(page.locator('.momente-tapestry-item')).toHaveCount(
-      getTimelineItems().length - 1,
-    );
-    // The HeartMoment note shows its emotion badge instead of a corner glyph (#1784).
-    expect(
-      await page.locator('.momente-tapestry-kind').allTextContents(),
-    ).toEqual(['', '']);
-    await expect(
-      page.locator('.momente-tapestry-note .heart-emotion-badge'),
-    ).toHaveCount(1);
+    // The curated selection plays as one Fotostory: every entry except the
+    // lead appears once, and the Heart Moment wears its emotion badge (#1784).
+    const story = storyProducts.discoverStory;
+    const storyViewer = page.locator('.momente-story-viewer');
+    const storyOpen = storyViewer.getByRole('link', {
+      name: new RegExp(`^${story.open}:`),
+    });
+    const storyHrefs = new Set<string>();
+    let heartBadges = 0;
+    for (let index = 0; index < getTimelineItems().length - 1; index++) {
+      storyHrefs.add((await storyOpen.getAttribute('href')) ?? '');
+      heartBadges += await storyViewer
+        .locator(
+          '.momente-story-slide[data-state="current"] .heart-emotion-badge',
+        )
+        .count();
+      await page.getByRole('button', { name: story.next, exact: true }).click();
+    }
+    expect(storyHrefs.size).toBe(getTimelineItems().length - 1);
+    expect(heartBadges).toBe(1);
     const overflowDetails = await page.evaluate(() =>
       Array.from(document.querySelectorAll('main *'))
         .filter((node) => {
@@ -186,8 +198,9 @@ for (const scenario of [
 
     expect(overflowDetails).toEqual([]);
     if (scenario.scale === 1) {
+      // The theme bubbles share one row above the story viewer.
       const cards = await page
-        .locator('.momente-tapestry-item')
+        .locator('.momente-story-bubble')
         .evaluateAll((nodes) =>
           nodes.map((node) => ({
             x: node.getBoundingClientRect().x,
@@ -258,9 +271,7 @@ for (const scenario of [
         .locator('.composer-tool-row')
         .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(0);
-    await page
-      .getByRole('link', { name: memoryProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, memoryProduct.edit);
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
     await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: copy.add });
@@ -553,9 +564,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
   await mockMapTiles(page, { fail: true });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await openComposerPlace(page);
   const picker = page.getByRole('dialog', { name: copy.add });

@@ -40,6 +40,23 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // The Settings overview reads the calendar connection and the sign-in
+    // methods for its row statuses.
+    if (path === `${base}/calendar-sync`)
+      return route.fulfill({
+        json: {
+          available: false,
+          canSync: false,
+          connections: [],
+          services: [],
+          target: null,
+          targetToken: 'calendar-target-token',
+        },
+      });
+    if (path === '/api/v1/auth/sign-in-methods')
+      return route.fulfill({
+        json: { emailLink: true, localPassword: false, oidc: [], passkeys: [] },
+      });
     // Settings › Wir reads the owner's partner-distance view (#1792) to
     // decide on the display toggle; a Space without it shares nothing.
     if (path === `${base}/partner-location/settings`)

@@ -21,7 +21,7 @@ jobs:
   web:
     name: Web Reference Flow
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     defaults:
       run:
         working-directory: web
@@ -32,7 +32,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Dependency audit
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Type check
         run: npm run typecheck

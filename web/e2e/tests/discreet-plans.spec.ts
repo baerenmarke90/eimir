@@ -5,6 +5,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import discreetPlans from '../../src/i18n/locales/discreetPlans';
 import copy from '../../src/i18n/locales/m5s3';
+import { editViaMenu } from '../support/itemMenu';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -293,7 +294,7 @@ test('either partner turns Diskret on in the editor and chooses the list title',
   await prepare(page, { width: 390, height: 844, theme: 'light' });
   await page.goto(`/plan/plans/${PLAN}`);
   await expect(page.getByText(DESCRIPTION)).toBeVisible();
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
 
   const switches = page.getByRole('switch');
   await expect(switches).toHaveCount(2);

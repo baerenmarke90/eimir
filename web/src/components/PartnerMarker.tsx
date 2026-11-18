@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PersonRole } from '../client/personColours';
 import { personInitials } from './PersonIdentity';
 import './PartnerMarker.css';
@@ -10,13 +11,33 @@ import './PartnerMarker.css';
 export function PartnerMarker({
   name,
   role,
+  imageUrl = null,
 }: {
   name: string;
   role: PersonRole;
+  /** The person's profile picture; the initials stay as the fallback. */
+  imageUrl?: string | null;
 }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showImage = Boolean(imageUrl) && imageUrl !== failedUrl;
   return (
-    <span className={`partner-marker person-role-${role}`} aria-hidden="true">
-      {name.trim() ? personInitials(name) : '·'}
+    <span
+      className={`partner-marker person-role-${role}${showImage ? ' has-image' : ''}`}
+      aria-hidden="true"
+    >
+      {showImage && imageUrl ? (
+        <img
+          className="partner-marker-image"
+          src={imageUrl}
+          alt=""
+          draggable={false}
+          onError={() => setFailedUrl(imageUrl)}
+        />
+      ) : name.trim() ? (
+        personInitials(name)
+      ) : (
+        '·'
+      )}
     </span>
   );
 }

@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -12,6 +13,7 @@ import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { GamesApi } from '../api/generated/apis/GamesApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
@@ -85,6 +87,7 @@ import {
 } from '../client/routes';
 import { WIR_NOTE_LIMIT } from '../client/sharedNotes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   type LivingModule,
   livingModuleContentId,
@@ -105,6 +108,7 @@ import { useHeldQuery, useResumeSettling } from '../client/useResumeSettling';
 import { useRevealAfterCache } from '../client/useRevealAfterCache';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
+import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AnticipationCard } from './AnticipationCard';
@@ -139,8 +143,11 @@ import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
+import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirGardenModule } from './WirGardenModule';
 import { WirLists } from './WirLists';
+import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
@@ -161,11 +168,13 @@ import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 import './WirCompactLayouts.css';
+import './WirMotion.css';
+import { useWirReveal } from './useWirReveal';
 
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
 let wirHeroIntroStartedAt: number | null | undefined;
-const WIR_HERO_INTRO_WINDOW_MS = 1000;
+const WIR_HERO_INTRO_WINDOW_MS = 1500;
 
 function WirIntroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -276,11 +285,14 @@ export function TodayModuleSection({
   headerAction?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { ref, revealProps } = useWirReveal<HTMLElement>(className);
   return (
     <section
+      ref={ref}
       id={id}
       className={`today-section ${className ?? ''}`.trim()}
       data-color-world={colorWorld}
+      {...revealProps}
     >
       <div className="today-section-header">
         <div>
@@ -528,6 +540,7 @@ function TodayAgendaRow({
 function TodayMomentFeature({
   item,
   loadMemoryImage,
+  loadMemoryClip,
   isKeepsake,
 }: {
   item: DashboardItem;
@@ -536,6 +549,7 @@ function TodayMomentFeature({
     attachmentId: string,
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
+  loadMemoryClip?: MomentClipLoader;
   isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
@@ -549,11 +563,34 @@ function TodayMomentFeature({
       : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
+  // The Keepsake rotates through its memory's pictures. The server only lists
+  // ready, non-sensitive ones; a sensitive preview never rotates.
+  const gallery = item.gallery ?? [];
+  const rotating =
+    hasImage && item.previewIsSensitive !== true && gallery.length > 1;
+  const clipsAllowed = Boolean(loadMemoryClip) && !prefersReducedData();
+  const rotation = useMomentRotation(
+    rotating ? gallery.length : 0,
+    (position) => clipsAllowed && gallery[position]?.mediaType === 'VIDEO',
+  );
 
   const feature = hasImage ? (
     <figure className="today-moment-figure eimir-motion-lift">
       <div className="today-moment-media">
-        {previewAttachmentId && loadMemoryImage ? (
+        {rotating && loadMemoryImage ? (
+          <WirMomentSlides
+            memoryId={item.id}
+            media={gallery}
+            index={rotation.index}
+            previous={rotation.previous}
+            running={rotation.running}
+            preloadNext={rotation.rotates}
+            clipsAllowed={clipsAllowed}
+            loadImage={loadMemoryImage}
+            loadClip={loadMemoryClip}
+            onClipEnded={rotation.advance}
+          />
+        ) : previewAttachmentId && loadMemoryImage ? (
           <MemoryPreview
             memoryId={item.id}
             attachmentId={previewAttachmentId}
@@ -592,8 +629,22 @@ function TodayMomentFeature({
     </article>
   );
 
+  const frame = (moment: ReactNode) =>
+    rotating ? (
+      // The controls sit beside the link, never inside it.
+      <div
+        ref={rotation.frameRef}
+        className="wir-moment-frame"
+        {...rotation.engagement}
+      >
+        {moment}
+      </div>
+    ) : (
+      moment
+    );
+
   if (path) {
-    return (
+    return frame(
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
@@ -611,10 +662,10 @@ function TodayMomentFeature({
           .join(' · ')}
       >
         {feature}
-      </TodayDestinationLink>
+      </TodayDestinationLink>,
     );
   }
-  return <div className="today-moment">{feature}</div>;
+  return frame(<div className="today-moment">{feature}</div>);
 }
 
 /** Daily rediscovery has its own visibility, order and section heading. */
@@ -927,6 +978,7 @@ export function TodayPage({
   account,
   recapMediaApis,
   partnerLocationApi,
+  gamesApi,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -950,8 +1002,26 @@ export function TodayPage({
     PartnerLocationApi,
     'getPartnerDistance' | 'getPartnerLocationMap'
   >;
+  /** The shared garden's read for the optional Wir module. */
+  gamesApi?: Pick<GamesApi, 'getGarden'>;
 }) {
   const { t } = useTranslation();
+  // Clips of the shared moment play silently; they need the media APIs.
+  const loadMemoryClip = useMemo<MomentClipLoader | undefined>(
+    () =>
+      recapMediaApis
+        ? (memoryId, attachmentId, signal) =>
+            loadVideoSource(
+              recapMediaApis,
+              spaceId,
+              'MEMORY',
+              memoryId,
+              attachmentId,
+              signal,
+            )
+        : undefined,
+    [recapMediaApis, spaceId],
+  );
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
@@ -1125,6 +1195,16 @@ export function TodayPage({
   // daily check-in once; the flag is removed so Back never reopens it.
   const location = useLocation();
   const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  // #2048: alone in the Space, the empty partner place invites.
+  const partnerInviteRoute = `${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`;
+  const openPartnerInvite = () => {
+    const taskOriginKey = captureOrigin({ selectedKey: 'wir-invite-place' });
+    void navigate(
+      partnerInviteRoute,
+      taskOriginKey ? { state: { taskOriginKey } } : undefined,
+    );
+  };
   const openOwnCheckIn = dailyCheckIn?.ownAction.onActivate;
   useEffect(() => {
     const state = location.state as Record<string, unknown> | null;
@@ -1642,6 +1722,14 @@ export function TodayPage({
         }
         secondaryLabel={partner ? partnerName : undefined}
         status={partnerPresenceStatus}
+        onInviteClick={partner ? undefined : openPartnerInvite}
+        waitingAvatarAdornment={
+          partner ? undefined : (
+            <span className="wir-stage-name is-waiting" aria-hidden="true">
+              {t('m5s5.dashboard.partnerPlace')}
+            </span>
+          )
+        }
         relationshipDuration={heroBridge ? undefined : heroDurationText}
         avatarAdornment={
           heroBridge ? (
@@ -1775,6 +1863,7 @@ export function TodayPage({
         <TodayMomentFeature
           item={focalItem.item}
           loadMemoryImage={loadMemoryImage}
+          loadMemoryClip={loadMemoryClip}
           isKeepsake={focalItem.kind === 'keepsake'}
         />
       </div>
@@ -1950,7 +2039,8 @@ export function TodayPage({
         isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <TodayModulePlaceholder kind="shared-experience" />
       ) : null,
-    daily_quote: dailyQuote,
+    // #2048: a brand-new, empty Space starts calm, without a Pro teaser.
+    daily_quote: isSparse ? null : dailyQuote,
     relationship_presence: (
       <>
         {/* The shared couple identity stays above the personal section stack,
@@ -2014,6 +2104,7 @@ export function TodayPage({
             <TodayMomentFeature
               item={focalItem.item}
               loadMemoryImage={loadMemoryImage}
+              loadMemoryClip={loadMemoryClip}
               isKeepsake={focalItem.kind === 'keepsake'}
             />
           </TodayModuleSection>
@@ -2290,6 +2381,7 @@ export function TodayPage({
             spaceId={spaceId}
             dashboardApi={apis.dashboard}
             loadMemoryImage={loadMemoryImage}
+            variant="compact"
           />
         ) : dashboardQuery.isCached &&
           wirStatistics.allowed &&
@@ -2299,6 +2391,21 @@ export function TodayPage({
         ) : null}
       </>
     ),
+    // Opt-in and Premium; it renders nothing (and reads nothing) otherwise.
+    shared_garden:
+      account?.id && gamesApi && entitlementApi ? (
+        <WirGardenModule
+          gamesApi={gamesApi}
+          entitlementApi={entitlementApi}
+          accountId={account.id}
+          spaceId={spaceId}
+          partnerName={partnerName}
+          visible={isDashboardModuleVisible(
+            dashboardPreferences,
+            'shared_garden',
+          )}
+        />
+      ) : null,
   };
   const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
   // The names layout keeps custom orders intact. With the catalog order, the
@@ -2390,13 +2497,17 @@ export function TodayPage({
                   ? t('m5s5.dashboard.newSpacePartner', {
                       name: partnerName,
                     })
-                  : t('m5s5.dashboard.newSpaceEmpty')}
+                  : connectedDesign
+                    ? t('m5s5.dashboard.newSpaceSolo', { name: heroOwnName })
+                    : t('m5s5.dashboard.newSpaceEmpty')}
               </h2>
               <p className="new-space-body">
                 {t(
                   partner
                     ? 'm5s5.dashboard.newSpaceIntro'
-                    : 'quietHints.moveIn.solo',
+                    : connectedDesign
+                      ? 'm5s5.dashboard.newSpaceSoloIntro'
+                      : 'quietHints.moveIn.solo',
                 )}
               </p>
               <span className="new-space-wall" aria-hidden="true">

@@ -7,6 +7,7 @@ import {
   limitUpcomingItems,
   orderedDashboardModuleKeys,
   selectedDashboardCollectionId,
+  withDashboardModuleOrder,
 } from './dashboardPreferences';
 
 function preferences(itemLimit: number): DashboardModulePreferenceList {
@@ -211,9 +212,60 @@ describe('dashboardPreferences', () => {
     it('defaults every registered module to visible without a preferences response', () => {
       for (const key of DASHBOARD_MODULE_KEYS) {
         expect(isDashboardModuleVisible(undefined, key)).toBe(
-          key !== 'shared_story_summary',
+          key !== 'shared_story_summary' && key !== 'shared_garden',
         );
       }
+    });
+
+    it('keeps the opt-in shared garden hidden until it is explicitly shown', () => {
+      // Saved preferences from before the module existed have no row for it.
+      expect(isDashboardModuleVisible({ items: [] }, 'shared_garden')).toBe(
+        false,
+      );
+      expect(
+        isDashboardModuleVisible(
+          withVisibility('keepsake', true),
+          'shared_garden',
+        ),
+      ).toBe(false);
+      expect(
+        isDashboardModuleVisible(
+          withVisibility('shared_garden', true),
+          'shared_garden',
+        ),
+      ).toBe(true);
+      expect(
+        isDashboardModuleVisible(
+          withVisibility('shared_garden', false),
+          'shared_garden',
+        ),
+      ).toBe(false);
+    });
+
+    it('accepts an older complete order without the garden and keeps it hidden', () => {
+      const older = DASHBOARD_MODULE_KEYS.filter(
+        (key) => key !== 'shared_garden',
+      ).reverse();
+      const preferences = {
+        items: older.map((moduleKey) => ({
+          moduleKey,
+          visible: moduleKey !== 'keepsake',
+        })),
+      } as DashboardModulePreferenceList;
+      const ordered = orderedDashboardModuleKeys(preferences);
+      expect(ordered.filter((key) => key !== 'shared_garden')).toEqual([
+        'relationship_presence',
+        ...older.filter((key) => key !== 'relationship_presence'),
+      ]);
+      expect(ordered).toContain('shared_garden');
+      expect(isDashboardModuleVisible(preferences, 'keepsake')).toBe(false);
+      expect(isDashboardModuleVisible(preferences, 'shared_garden')).toBe(
+        false,
+      );
+      const reordered = withDashboardModuleOrder(preferences, ordered);
+      expect(
+        reordered.items.find((item) => item.moduleKey === 'shared_garden'),
+      ).toEqual({ moduleKey: 'shared_garden', visible: false });
     });
 
     it('defaults to visible when the module has no explicit override', () => {

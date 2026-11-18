@@ -2,7 +2,9 @@ import { expect, type Page, test } from '@playwright/test';
 import composerCopy from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import navigation from '../../src/i18n/locales/navigation';
 import sharedNotesCopy from '../../src/i18n/locales/sharedNotes';
+import { editViaMenu, itemMenuRow, openItemMenu } from '../support/itemMenu';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -198,9 +200,16 @@ test('browse, read, edit and save a shared note on a phone', async ({
   const { patches } = await fixture(page, [holiday, places]);
   await signIn(page);
   await page.goto('/more/notes');
+  // Notes share the Gemeinsam destination with Lists; the view is a tab.
   await expect(
-    page.getByRole('heading', { name: copy.title, exact: true }),
+    page.getByRole('heading', {
+      name: navigation.sharedHeading,
+      exact: true,
+    }),
   ).toBeVisible();
+  await expect(
+    page.getByRole('tab', { name: navigation.sharedNotes, exact: true }),
+  ).toHaveAttribute('aria-selected', 'true');
   await expect(
     page.getByRole('heading', { name: holiday.title }),
   ).toBeVisible();
@@ -212,7 +221,11 @@ test('browse, read, edit and save a shared note on a phone', async ({
   );
 
   await page.getByRole('heading', { name: holiday.title }).click();
-  await expect(page.getByText(copy.audience, { exact: true })).toBeVisible();
+  // One quiet author line replaces the audience badge: the note was written
+  // by the viewer and last changed by the partner.
+  await expect(
+    page.getByText(copy.writtenByYou, { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Bins on Monday')).toBeVisible();
   await captureScreenshot(
     page,
@@ -221,7 +234,13 @@ test('browse, read, edit and save a shared note on a phone', async ({
     { animations: 'disabled' },
   );
 
-  await page.getByRole('button', { name: copy.read.edit, exact: true }).click();
+  // Editing, pinning and deleting live in the one actions menu: Edit is first
+  // and Delete is last.
+  await openItemMenu(page);
+  const menuRows = page.locator('.item-menu-option');
+  await expect(menuRows.first()).toContainText(copy.read.edit);
+  await expect(menuRows.last()).toContainText(copy.menu.delete);
+  await itemMenuRow(page, copy.read.edit).click();
   const text = page.getByLabel(copy.edit.bodyLabel, { exact: true });
   await text.fill(
     'Key box next to the door.\nCheck-in from 3 pm.\n• Bins on Monday',
@@ -330,9 +349,7 @@ test.describe('reflow and reduced motion', () => {
     await largeText();
     expect(await horizontalOverflow()).toBe(false);
 
-    await page
-      .getByRole('button', { name: copy.read.edit, exact: true })
-      .click();
+    await editViaMenu(page, copy.read.edit);
     await expect(
       page.getByLabel(copy.edit.bodyLabel, { exact: true }),
     ).toBeVisible();

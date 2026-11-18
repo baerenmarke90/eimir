@@ -16,6 +16,7 @@ import {
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
@@ -231,6 +232,22 @@ async function installAuthorizedApiMocks(page: Page): Promise<
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
       await fulfillJson({ id: SPACE_ID, createdAt: TEST_NOW, partners: [] });
+      return;
+    }
+
+    // The Settings overview reads the calendar connection for its row status.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/calendar-sync`
+    ) {
+      await fulfillJson({
+        available: false,
+        canSync: false,
+        connections: [],
+        services: [],
+        target: null,
+        targetToken: 'calendar-target-token',
+      });
       return;
     }
 
@@ -839,6 +856,14 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
     return;
   }
 
+  if (path === '/more/collections') {
+    await page
+      .getByRole('link', { name: navigation.shared, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/collections$/);
+    return;
+  }
+
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
   await page.locator(`a[href="${path}"]`).first().click();
@@ -1316,7 +1341,7 @@ test('Space configuration is touch operable, reload-safe, responsive, and axe-cl
 
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings/relationship');
+  await page.goto('/more/settings/shared');
 
   await expect(
     page.getByRole('heading', {
@@ -1377,7 +1402,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
 
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
 
     const energySwitch = page.getByRole('switch', {
       name: profileIdentity.energyCheckInToggle,
@@ -1495,6 +1520,10 @@ const SETTINGS_PAGES = [
     heading: profileIdentity.settingsRelationship,
   },
   {
+    path: '/more/settings/shared',
+    heading: profileIdentity.spaceConfigurationTitle,
+  },
+  {
     path: '/more/settings/notifications',
     heading: profileIdentity.settingsNotifications,
   },
@@ -1582,7 +1611,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     const unexpectedRequests = await installAuthorizedApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
@@ -1952,7 +1981,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -2004,7 +2033,7 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -2047,9 +2076,10 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await page.goto('/');
   await signIn(page);
 
+  // Editing starts from the item menu; the menu button gets focus back.
   await page.goto('/plan/places/place-1');
-  const placeEdit = page.getByRole('button', { name: de.common.edit });
-  await placeEdit.click();
+  const placeEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   const placeName = page.getByLabel(m5s3.place.name);
   await expect(placeName).toBeFocused();
   await placeName.fill('Lakeside park');
@@ -2068,15 +2098,15 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(placeEdit).toBeFocused();
 
   await page.goto('/plan/collections/collection-1');
-  const collectionEdit = page.getByRole('button', { name: de.common.edit });
-  await collectionEdit.click();
+  const collectionEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await page.goBack();
   await expect(collectionEdit).toBeFocused();
 
   await page.goto('/plan/chapters/chapter-1');
-  const chapterEdit = page.getByRole('button', { name: de.common.edit });
-  await chapterEdit.click();
+  const chapterEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2088,7 +2118,7 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(chapterEdit).toBeFocused();
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await chapterEdit.click();
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2149,7 +2179,7 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
     });
 
     await page.goto('/plan/places/place-1');
-    await page.getByRole('button', { name: de.common.edit }).click();
+    await editViaMenu(page, de.common.edit);
     await page
       .getByRole('dialog')
       .locator('summary', { hasText: m5s3.place.technicalDetails })
@@ -2195,6 +2225,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         [navigation.today, '/today'],
         [navigation.story, '/story'],
         [navigation.plan, '/plan'],
+        [navigation.shared, '/more/collections'],
         [navigation.more, '/more'],
       ]) {
         const link = navigationRegion.getByRole('link', { name, exact: true });

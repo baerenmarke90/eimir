@@ -17,6 +17,7 @@ import {
   signIn,
   SPACE_ID,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const EMOTIONS = [
   'LOVED',
@@ -359,9 +360,7 @@ for (const scenario of scenarios) {
         page.locator('.moment-metadata .visibility-private'),
       ).toBeVisible();
     }
-    await page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, copy.heartMomentProduct.edit);
     const field = page.getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,
       exact: true,
@@ -492,9 +491,7 @@ test('all six native feelings color the complete HeartMoment page through create
     await expect(page.locator('.heart-moment-detail-text')).toHaveText(TEXT);
     await expectFeelingSurface(page, 'GRATEFUL', true);
     expect(creates).toBe(1);
-    await page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, copy.heartMomentProduct.edit);
     const editColors = new Set<string>();
     await expectFeelingSurface(page, 'GRATEFUL');
     for (const emotion of EMOTIONS)

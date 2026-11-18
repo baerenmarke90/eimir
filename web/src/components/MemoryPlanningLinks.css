@@ -56,6 +56,34 @@
 .memory-planning-destination:hover strong {
   text-decoration: underline;
 }
+.memory-planning-links-detail > ul {
+  overflow: clip;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+.memory-planning-links-detail > ul > li + li {
+  position: relative;
+}
+.memory-planning-links-detail > ul > li + li::before {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: calc(var(--space-3) * 2 + var(--space-6)) var(--space-3);
+  border-block-start: var(--border-divider-width) solid var(--color-border);
+  pointer-events: none;
+  content: "";
+}
+.memory-planning-links-detail .memory-planning-destination {
+  border-radius: 0;
+  background: transparent;
+}
+.memory-planning-links-detail .memory-planning-destination:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: calc(-1 * var(--space-1));
+}
+.memory-planning-links-detail .memory-planning-destination strong {
+  color: var(--color-link-text);
+  font: var(--font-action-label);
+}
 .memory-planning-choices {
   display: grid;
   gap: var(--space-2);

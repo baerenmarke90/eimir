@@ -6,10 +6,12 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PicturePingPongState } from '../api/generated/models/PicturePingPongState';
+import { LIVE_GAME_REFRESH_MS } from '../client/liveGameSync';
 import games from '../i18n/locales/games';
 import {
   PicturePingPongPage,
@@ -127,8 +129,14 @@ function drawStroke(from: [number, number], to: [number, number]) {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   window.sessionStorage.clear();
 });
+
+/** One live read cycle while the page stays open. */
+async function nextLiveRead() {
+  await vi.advanceTimersByTimeAsync(LIVE_GAME_REFRESH_MS + 100);
+}
 
 describe('PicturePingPongPage', () => {
   it('offers a new picture when none exists and starts it on tap', async () => {
@@ -138,7 +146,105 @@ describe('PicturePingPongPage', () => {
       await screen.findByRole('button', { name: games.pingPong.newPicture }),
     );
     await waitFor(() => expect(api.start).toHaveBeenCalledTimes(1));
+    expect(api.start).toHaveBeenCalledWith('SQUIGGLE');
     expect(await screen.findByText(games.pingPong.turnYou)).toBeTruthy();
+  });
+
+  it('lets the opener start on a blank page instead of the squiggle', async () => {
+    const api = services({ picture: undefined });
+    renderPage(api);
+    const squiggle = await screen.findByRole('radio', {
+      name: new RegExp(games.pingPong.starterSquiggle),
+    });
+    expect((squiggle as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: new RegExp(games.pingPong.starterBlank),
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: games.pingPong.newPicture }),
+    );
+    await waitFor(() => expect(api.start).toHaveBeenCalledWith('BLANK'));
+  });
+
+  it('asks for the starting choice before a new picture after a finished one', async () => {
+    const api = services(
+      state({ status: 'FINISHED', drawerId: null, turnsDone: 6 }),
+    );
+    renderPage(api);
+    fireEvent.click(
+      await screen.findByRole('button', { name: games.pingPong.newPicture }),
+    );
+    expect(api.start).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: new RegExp(games.pingPong.starterBlank),
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: games.pingPong.startAction }),
+    );
+    await waitFor(() => expect(api.start).toHaveBeenCalledWith('BLANK'));
+  });
+
+  it('shows the partner’s hand-over live while both have the page open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = services(state({ drawerId: PARTNER, turnsDone: 1 }));
+    renderPage(api);
+    await screen.findByText(
+      localized(games.pingPong.turnPartner, { name: 'Alex' }),
+    );
+    (api.load as ReturnType<typeof vi.fn>).mockResolvedValue(
+      state({ drawerId: ME, turnsDone: 2 }),
+    );
+    await nextLiveRead();
+    expect(await screen.findByText(games.pingPong.turnYou)).toBeTruthy();
+    expect(screen.getByTestId('pingpong-flyer')).toBeTruthy();
+  });
+
+  it('names an early finish by the partner and keeps a failed live read quiet', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = services(state({ turnsDone: 1 }));
+    renderPage(api);
+    await screen.findByText(games.pingPong.turnYou);
+    (api.load as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('offline for a moment'),
+    );
+    await nextLiveRead();
+    expect(screen.getByText(games.pingPong.turnYou)).toBeTruthy();
+    (api.load as ReturnType<typeof vi.fn>).mockResolvedValue(
+      state({
+        status: 'FINISHED',
+        drawerId: null,
+        turnsDone: 1,
+        finishedEarly: true,
+      }),
+    );
+    await nextLiveRead();
+    expect(
+      await screen.findByText(
+        localized(games.pingPong.partnerFinished, { name: 'Alex' }),
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(games.pingPong.doneTitle)).toBeTruthy();
+  });
+
+  it('does not name its own early finish as the partner’s', async () => {
+    const api = services(state({ drawerId: PARTNER, turnsDone: 1 }));
+    renderPage(api);
+    fireEvent.click(
+      await screen.findByRole('button', { name: games.pingPong.finishEarly }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: games.pingPong.finishConfirmAction }),
+    );
+    await screen.findByText(games.pingPong.doneTitle);
+    expect(
+      screen.queryByText(
+        localized(games.pingPong.partnerFinished, { name: 'Alex' }),
+      ),
+    ).toBeNull();
   });
 
   it('lets the drawer paint up to three strokes, undo, and send', async () => {
@@ -247,11 +353,33 @@ describe('PicturePingPongPage', () => {
     renderPage(api);
     await screen.findByText(games.pingPong.doneBody);
     expect(api.saveToMoments).not.toHaveBeenCalled();
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    // #2048: the name is asked when saving, prefilled with a suggestion.
+    const name = screen.getByRole('textbox', {
+      name: games.pingPong.titleLegend,
+    }) as HTMLInputElement;
+    expect(name.value).not.toBe('');
+    expect(
+      within(
+        screen.getByRole('group', { name: games.pingPong.nameSuggestions }),
+      ).getAllByRole('button'),
+    ).toHaveLength(3);
+    // An empty name does not save.
+    fireEvent.change(name, { target: { value: '   ' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: games.pingPong.saveToMoments }),
+    );
+    expect(await screen.findByText(games.pingPong.nameMissing)).toBeTruthy();
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(api.saveToMoments).not.toHaveBeenCalled();
+    // The own name becomes the Moment title.
+    fireEvent.change(name, { target: { value: '  Sun bunny  ' } });
     fireEvent.click(
       screen.getByRole('button', { name: games.pingPong.saveToMoments }),
     );
     await waitFor(() => expect(api.saveToMoments).toHaveBeenCalledTimes(1));
+    expect(api.saveToMoments).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Sun bunny' }),
+    );
     await waitFor(() => expect(api.markSaved).toHaveBeenCalledWith('memory-1'));
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

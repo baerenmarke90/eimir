@@ -328,27 +328,30 @@ export function Messenger({
   );
 }
 
+/** The slow drift of a cloud; its tap target drifts along in step. */
+export function cloudDriftStyle(x: number, scale: number): Style {
+  return {
+    '--garden-drift-duration': `calc(var(--duration-connection-travel-far) * ${((26 + scale * 30) / 6).toFixed(2)})`,
+    '--garden-drift-delay': `calc(var(--duration-connection-travel-far) * ${(-x / 54).toFixed(2)})`,
+  } as Style;
+}
+
 export function Cloud({
   x,
   y,
   scale,
   flip = false,
+  children,
 }: {
   x: number;
   y: number;
   scale: number;
   flip?: boolean;
+  /** Drifts with the cloud, for example a short shower after a tap. */
+  children?: ReactNode;
 }) {
   return (
-    <g
-      className="garden-drift"
-      style={
-        {
-          '--garden-drift-duration': `calc(var(--duration-connection-travel-far) * ${((26 + scale * 30) / 6).toFixed(2)})`,
-          '--garden-drift-delay': `calc(var(--duration-connection-travel-far) * ${(-x / 54).toFixed(2)})`,
-        } as Style
-      }
-    >
+    <g className="garden-drift" style={cloudDriftStyle(x, scale)}>
       <g
         transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`}
       >
@@ -364,17 +367,22 @@ export function Cloud({
           strokeLinecap="round"
         />
       </g>
+      {children}
     </g>
   );
 }
 
-/** A sun with a soft halo by day; a crescent moon in the Dark theme. */
+/** A sun with a soft halo by day; a crescent moon at night. */
 export function SunAndMoon({ haloId }: { haloId: string }) {
   return (
     <>
       <g className="garden-sun">
         <path d={blob(0, 0, 30, 30, 8, 0.04)} fill={`url(#${haloId})`} />
-        <path d={blob(0, 0, 13.5, 13.5, 8, 0.015)} fill="var(--garden-sun)" />
+        <path
+          className="garden-sun-disc"
+          d={blob(0, 0, 13.5, 13.5, 8, 0.015)}
+          fill="var(--garden-sun)"
+        />
         <path
           d="M-7 -6 C-5 -9 -1.6 -10.4 1.6 -10"
           stroke="var(--garden-highlight)"

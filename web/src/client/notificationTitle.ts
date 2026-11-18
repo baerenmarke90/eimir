@@ -23,6 +23,26 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  // One notice kind for the remote couple games; the target names the game.
+  // It never carries answers, clues, guesses, wishes or moments.
+  if (item.kind === 'COUPLE_GAME_TURN') {
+    const game =
+      item.targetType === 'WHO_OF_US_GAME'
+        ? 'WHO_OF_US'
+        : item.targetType === 'WISH_DETECTIVE_GAME'
+          ? 'WISH_DETECTIVE'
+          : item.targetType === 'OUR_MOMENTS_GAME'
+            ? 'OUR_MOMENTS'
+            : null;
+    return t(
+      game
+        ? `coupleExperiences.notifications.COUPLE_GAME_TURN_${game}`
+        : 'coupleExperiences.notifications.COUPLE_GAME_TURN',
+      {
+        name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+      },
+    );
+  }
   // A garden bouquet reuses the seed notice with its own text (#1907 H3).
   if (
     item.kind === 'GARDEN_SEED_ARRIVED' &&
@@ -65,6 +85,7 @@ export function getNotificationItemTitle(
       'HEART_HUNT_HIDDEN',
       'HEART_HUNT_FOUND',
       'PICTURE_PING_PONG_TURN',
+      'PICTURE_PING_PONG_FINISHED',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
       'COLLECTION_SENT',

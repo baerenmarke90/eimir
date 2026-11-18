@@ -33,7 +33,13 @@ import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
-import { ListEntryIconButton } from './ListEntryActions';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { PageHeader } from './PageHeader';
 import { PlaceMapPicker } from './PlaceMapPicker';
 import { PlanningRelationManager } from './PlanningRelationManager';
@@ -78,17 +84,11 @@ function PlaceEditor({
   draft,
   setDraft,
   titleInputRef,
-  editTriggerRef,
+  restoreFocusRef,
   sheetRef,
   updatePending,
   updateError,
-  deletePending,
-  deleteError,
   onSubmit,
-  onDelete,
-  onArchive,
-  archivePending,
-  archiveError,
   onClose,
 }: {
   open: boolean;
@@ -97,41 +97,20 @@ function PlaceEditor({
   draft: PlaceDraft;
   setDraft: (draft: PlaceDraft) => void;
   titleInputRef: RefObject<HTMLInputElement | null>;
-  editTriggerRef: RefObject<HTMLButtonElement | null>;
+  restoreFocusRef: RefObject<HTMLButtonElement | null>;
   sheetRef: RefObject<ShortTaskSheetHandle | null>;
   updatePending: boolean;
   updateError: unknown;
-  deletePending: boolean;
-  deleteError: unknown;
   onSubmit: (draft: PlaceDraft) => void;
-  onDelete: () => void;
-  onArchive: () => void;
-  archivePending: boolean;
-  archiveError: unknown;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const [coordinateError, setCoordinateError] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
-  const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
-  const restoreDeleteTriggerRef = useRef(false);
   useEffect(() => {
-    if (!open) {
-      setConfirmDelete(false);
-      setCoordinateError(false);
-    }
+    if (!open) setCoordinateError(false);
   }, [open]);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(placeDraft(place));
-  const isPending = updatePending || deletePending || archivePending;
-
-  useEffect(() => {
-    if (confirmDelete) deleteHeadingRef.current?.focus();
-    else if (restoreDeleteTriggerRef.current) {
-      restoreDeleteTriggerRef.current = false;
-      deleteTriggerRef.current?.focus();
-    }
-  }, [confirmDelete]);
+  const isPending = updatePending;
 
   const updateDraft = (values: Partial<PlaceDraft>) => {
     const next = { ...draft, ...values };
@@ -159,13 +138,8 @@ function PlaceEditor({
       isDirty={isDirty}
       isPending={isPending}
       initialFocusRef={titleInputRef}
-      restoreFocusRef={editTriggerRef}
+      restoreFocusRef={restoreFocusRef}
       sheetRef={sheetRef}
-      hasDismissLayer={confirmDelete}
-      onDismissLayer={() => {
-        restoreDeleteTriggerRef.current = true;
-        setConfirmDelete(false);
-      }}
       onClose={onClose}
     >
       {(requestClose) => (
@@ -319,82 +293,6 @@ function PlaceEditor({
               {updateError ? <ProblemState error={updateError} /> : null}
             </fieldset>
           </form>
-
-          {place.capabilities.canEdit ? (
-            <div className="form-actions">
-              <button
-                type="button"
-                className="secondary"
-                disabled={isPending || isDirty}
-                onClick={onArchive}
-              >
-                {t(
-                  archivePending
-                    ? 'm5s3.common.saving'
-                    : place.archived
-                      ? 'm5s3.place.restore'
-                      : 'm5s3.place.archive',
-                )}
-              </button>
-              {isDirty ? (
-                <p className="field-help">{t('m5s3.place.archiveSaveFirst')}</p>
-              ) : null}
-              {archiveError ? <ProblemState error={archiveError} /> : null}
-            </div>
-          ) : null}
-          {place.capabilities.canDelete ? (
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
-                <button
-                  ref={deleteTriggerRef}
-                  type="button"
-                  className="button-link danger-link"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={isPending}
-                >
-                  {t('m5s3.common.delete')}
-                </button>
-              ) : (
-                <section
-                  className="planning-danger-zone"
-                  aria-labelledby="place-delete-heading"
-                >
-                  <h2
-                    ref={deleteHeadingRef}
-                    id="place-delete-heading"
-                    tabIndex={-1}
-                  >
-                    {t('m5s3.common.deleteHeading')}
-                  </h2>
-                  <p>{t('m5s3.place.deleteConsequence')}</p>
-                  <div className="planning-confirm-row">
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={onDelete}
-                      disabled={isPending}
-                    >
-                      {deletePending
-                        ? t('m5s3.common.deleting')
-                        : t('m5s3.common.confirmDelete')}
-                    </button>
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => {
-                        restoreDeleteTriggerRef.current = true;
-                        setConfirmDelete(false);
-                      }}
-                      disabled={isPending}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  </div>
-                  {deleteError ? <ProblemState error={deleteError} /> : null}
-                </section>
-              )}
-            </div>
-          ) : null}
         </>
       )}
     </SharedContentSheet>
@@ -417,10 +315,14 @@ export function PlaceProductPage({
     ?.taskOriginKey;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
-  const editTriggerRef = useRef<HTMLButtonElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const editorSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
+  const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
   const key = authorSummaryQueryKeys.placeDetail(spaceId, placeId);
 
   const placeQuery = useQuery({
@@ -489,8 +391,7 @@ export function PlaceProductPage({
       queryClient.setQueryData(key, place);
       await invalidatePlaceConsumers(queryClient, spaceId);
       if (!context.isCurrent()) return;
-      setIsEditing(false);
-      setDraft(null);
+      setMenuOpen(false);
       postSnackbar(
         t(place.archived ? 'm5s3.place.archived' : 'm5s3.place.restored'),
       );
@@ -532,8 +433,8 @@ export function PlaceProductPage({
           state: { [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget },
         });
       };
-      if (editorSheetRef.current)
-        editorSheetRef.current.closeForNavigation(returnToOverview);
+      if (deleteSheetRef.current)
+        deleteSheetRef.current.closeForNavigation(returnToOverview);
       else returnToOverview();
     },
   });
@@ -576,16 +477,14 @@ export function PlaceProductPage({
         itemLabel={t('m5s3.place.detailEyebrow')}
         title={place.name}
         titleAction={
-          place.capabilities.canEdit ? (
-            <ListEntryIconButton
-              ref={editTriggerRef}
-              disabled={isEditing || archiveMutation.isPending}
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => {
-                setDraft(placeDraft(place));
-                setIsEditing(true);
+          place.capabilities.canEdit || place.capabilities.canDelete ? (
+            <ItemMenuTrigger
+              triggerRef={menuTriggerRef}
+              label={t('m5s3.place.menu')}
+              open={menuOpen}
+              onOpen={() => {
+                archiveMutation.reset();
+                setMenuOpen(true);
               }}
             />
           ) : undefined
@@ -606,12 +505,10 @@ export function PlaceProductPage({
         draft={draft ?? placeDraft(place)}
         setDraft={setDraft}
         titleInputRef={titleInputRef}
-        editTriggerRef={editTriggerRef}
+        restoreFocusRef={menuTriggerRef}
         sheetRef={editorSheetRef}
         updatePending={updateMutation.isPending}
         updateError={updateMutation.error}
-        deletePending={deleteMutation.isPending}
-        deleteError={deleteMutation.error}
         onSubmit={(next) =>
           updateMutation.mutate({
             place,
@@ -626,19 +523,84 @@ export function PlaceProductPage({
               : null,
           })
         }
-        onDelete={() => deleteMutation.mutate(place)}
-        onArchive={() => {
-          if (!archiveMutation.isPending) archiveMutation.mutate(place);
-        }}
-        archivePending={archiveMutation.isPending}
-        archiveError={archiveMutation.error}
         onClose={() => {
           setIsEditing(false);
           setDraft(null);
           updateMutation.reset();
-          deleteMutation.reset();
-          archiveMutation.reset();
         }}
+      />
+
+      <ItemMenuSheet
+        open={menuOpen}
+        title={t('m5s3.place.detailEyebrow')}
+        restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
+        isCloseBlocked={archiveMutation.isPending}
+        onClose={() => setMenuOpen(false)}
+      >
+        {place.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('common.edit')}
+            disabled={archiveMutation.isPending}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () => {
+                  setDraft(placeDraft(place));
+                  setIsEditing(true);
+                },
+                () => setMenuOpen(false),
+              )
+            }
+          />
+        ) : null}
+        {place.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon={place.archived ? 'undo' : 'download'}
+            title={t(
+              archiveMutation.isPending
+                ? 'm5s3.common.saving'
+                : place.archived
+                  ? 'm5s3.place.restore'
+                  : 'm5s3.place.archive',
+            )}
+            disabled={archiveMutation.isPending}
+            onClick={() => {
+              if (!archiveMutation.isPending) archiveMutation.mutate(place);
+            }}
+          />
+        ) : null}
+        {place.capabilities.canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('m5s3.common.delete')}
+            disabled={archiveMutation.isPending}
+            onClick={() => {
+              setMenuOpen(false);
+              deleteMutation.reset();
+              setDeleteOpen(true);
+            }}
+          />
+        ) : null}
+        {archiveMutation.error ? (
+          <ProblemState error={archiveMutation.error} />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheetRef}
+        open={deleteOpen}
+        title={t('m5s3.common.deleteHeading')}
+        body={t('m5s3.place.deleteConsequence')}
+        confirmLabel={t('m5s3.common.confirmDelete')}
+        pendingLabel={t('m5s3.common.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTriggerRef}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMutation.mutate(place)}
       />
 
       {place.archived ? (

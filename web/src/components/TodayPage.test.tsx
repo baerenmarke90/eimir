@@ -2502,6 +2502,7 @@ describe('formatRelationshipDuration', () => {
       monthly_highlights: 'today-section-monthly',
       recent_shared: 'today-section-recent',
       shared_story_summary: 'shared-story-summary',
+      shared_garden: 'today-section-garden',
     };
 
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
@@ -2513,7 +2514,10 @@ describe('formatRelationshipDuration', () => {
         key !== 'daily_quote' &&
         // Rendered only with the partner-location API and capability; covered
         // by `PartnerDistanceLine.test.tsx` and `partner-distance-wir.spec.ts`.
-        key !== 'partner_distance',
+        key !== 'partner_distance' &&
+        // Opt-in Premium module with its own read; covered by
+        // `WirGardenModule.test.tsx` and `wir-garden.spec.ts`.
+        key !== 'shared_garden',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {

@@ -13,7 +13,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
@@ -22,6 +22,15 @@ import { ClientProblemError } from '../client/problemDetails';
 import de from '../i18n/locales/de';
 import privateArea from '../i18n/locales/privateArea';
 import { PrivateCollectionDetailPage } from './PrivateCollectionsPage';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 afterEach(() => {
   cleanup();
@@ -389,7 +398,12 @@ it('keeps an equal-version authorized item authoritative after late completion',
 
 it('confirms a private item rename without restoring an older collection position', async () => {
   const h = setup();
-  fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: privateArea.menuLabel.replace('{{name}}', 'Travel preparations'),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: privateArea.edit }));
   const input = screen.getAllByLabelText(privateArea.collections.rename)[0];
   fireEvent.change(input, { target: { value: 'Reserve train tickets' } });
   fireEvent.blur(input);

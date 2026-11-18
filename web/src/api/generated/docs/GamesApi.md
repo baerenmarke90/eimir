@@ -5,23 +5,38 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**acknowledgeGardenNews**](GamesApi.md#acknowledgegardennews) | **POST** /api/v1/spaces/{spaceId}/games/garden/news/seen | Acknowledge Garden News |
+| [**answerWhoOfUsRemoteQuestion**](GamesApi.md#answerwhoofusremotequestion) | **POST** /api/v1/spaces/{spaceId}/games/who-of-us/answers | Answer Who Of Us Remote Question |
 | [**closeGardenBouquet**](GamesApi.md#closegardenbouquet) | **POST** /api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close | Close Garden Bouquet |
 | [**createHeartHuntRound**](GamesApi.md#createhearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds | Create Round |
+| [**endOurMomentsRemoteGame**](GamesApi.md#endourmomentsremotegame) | **POST** /api/v1/spaces/{spaceId}/games/our-moments/end | End Our Moments Remote Game |
+| [**endWhoOfUsRemoteGame**](GamesApi.md#endwhoofusremotegame) | **POST** /api/v1/spaces/{spaceId}/games/who-of-us/end | End Who Of Us Remote Game |
+| [**endWishDetectiveRemoteGame**](GamesApi.md#endwishdetectiveremotegame) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective/end | End Wish Detective Remote Game |
 | [**finishPicturePingPong**](GamesApi.md#finishpicturepingpong) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/finish | Finish Picture Ping Pong |
+| [**flipOurMomentsRemoteCard**](GamesApi.md#flipourmomentsremotecard) | **POST** /api/v1/spaces/{spaceId}/games/our-moments/flips | Flip Our Moments Remote Card |
 | [**getCoupleExperienceQuestions**](GamesApi.md#getcoupleexperiencequestions) | **GET** /api/v1/spaces/{spaceId}/experiences/{kind}/questions | Get Couple Experience Questions |
 | [**getGameMomentCandidates**](GamesApi.md#getgamemomentcandidates) | **GET** /api/v1/spaces/{spaceId}/games/moments/candidates | Get Game Moment Candidates |
 | [**getGameWishCandidates**](GamesApi.md#getgamewishcandidates) | **GET** /api/v1/spaces/{spaceId}/games/wishes/candidates | Get Game Wish Candidates |
 | [**getGarden**](GamesApi.md#getgarden) | **GET** /api/v1/spaces/{spaceId}/games/garden | Get Garden |
 | [**getHeartHunt**](GamesApi.md#gethearthunt) | **GET** /api/v1/spaces/{spaceId}/games/heart-hunt | Get Heart Hunt |
+| [**getOurMomentsRemoteGame**](GamesApi.md#getourmomentsremotegame) | **GET** /api/v1/spaces/{spaceId}/games/our-moments | Get Our Moments Remote Game |
 | [**getPicturePingPong**](GamesApi.md#getpicturepingpong) | **GET** /api/v1/spaces/{spaceId}/games/picture-ping-pong | Get Picture Ping Pong |
+| [**getWhoOfUsRemoteGame**](GamesApi.md#getwhoofusremotegame) | **GET** /api/v1/spaces/{spaceId}/games/who-of-us | Get Who Of Us Remote Game |
+| [**getWishDetectiveRemoteGame**](GamesApi.md#getwishdetectiveremotegame) | **GET** /api/v1/spaces/{spaceId}/games/wish-detective | Get Wish Detective Remote Game |
 | [**giveGardenBouquet**](GamesApi.md#givegardenbouquet) | **POST** /api/v1/spaces/{spaceId}/games/garden/bouquets | Give Garden Bouquet |
+| [**guessWishDetectiveRemoteWish**](GamesApi.md#guesswishdetectiveremotewish) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective/guesses | Guess Wish Detective Remote Wish |
 | [**handOverPicturePingPongTurn**](GamesApi.md#handoverpicturepingpongturn) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/turns | Hand Over Picture Ping Pong Turn |
 | [**keepHeartHuntRound**](GamesApi.md#keephearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept | Keep Round |
 | [**markPicturePingPongSaved**](GamesApi.md#markpicturepingpongsaved) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/saved | Mark Picture Ping Pong Saved |
+| [**nameGardenVisitor**](GamesApi.md#namegardenvisitor) | **PUT** /api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name | Name Garden Visitor |
 | [**plantGardenSeed**](GamesApi.md#plantgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant | Plant Garden Seed |
 | [**renameGarden**](GamesApi.md#renamegarden) | **PUT** /api/v1/spaces/{spaceId}/games/garden/name | Rename Garden |
 | [**sendGardenSeed**](GamesApi.md#sendgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds | Send Garden Seed |
+| [**skipWishDetectiveRemoteWish**](GamesApi.md#skipwishdetectiveremotewish) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective/skip | Skip Wish Detective Remote Wish |
+| [**startOurMomentsRemoteGame**](GamesApi.md#startourmomentsremotegame) | **POST** /api/v1/spaces/{spaceId}/games/our-moments | Start Our Moments Remote Game |
 | [**startPicturePingPong**](GamesApi.md#startpicturepingpong) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong | Start Picture Ping Pong |
+| [**startWhoOfUsRemoteGame**](GamesApi.md#startwhoofusremotegame) | **POST** /api/v1/spaces/{spaceId}/games/who-of-us | Start Who Of Us Remote Game |
+| [**startWishDetectiveRemoteGame**](GamesApi.md#startwishdetectiveremotegame) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective | Start Wish Detective Remote Game |
+| [**submitWishDetectiveRemoteClues**](GamesApi.md#submitwishdetectiveremoteclues) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective/clues | Submit Wish Detective Remote Clues |
 | [**tapHeartHuntRound**](GamesApi.md#taphearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps | Tap Round |
 | [**waterGardenPlant**](GamesApi.md#watergardenplant) | **POST** /api/v1/spaces/{spaceId}/games/garden/waterings | Water Garden Plant |
 
@@ -94,6 +109,81 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## answerWhoOfUsRemoteQuestion
+
+> WhoOfUsRemoteState answerWhoOfUsRemoteQuestion(spaceId, whoOfUsAnswerInput)
+
+Answer Who Of Us Remote Question
+
+Answer one question; an answer cannot be changed afterwards.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { AnswerWhoOfUsRemoteQuestionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // WhoOfUsAnswerInput
+    whoOfUsAnswerInput: ...,
+  } satisfies AnswerWhoOfUsRemoteQuestionRequest;
+
+  try {
+    const data = await api.answerWhoOfUsRemoteQuestion(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **whoOfUsAnswerInput** | [WhoOfUsAnswerInput](WhoOfUsAnswerInput.md) |  | |
+
+### Return type
+
+[**WhoOfUsRemoteState**](WhoOfUsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -251,6 +341,228 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## endOurMomentsRemoteGame
+
+> OurMomentsRemoteState endOurMomentsRemoteGame(spaceId, coupleGameEndInput)
+
+End Our Moments Remote Game
+
+Either partner may end the open board; found pairs stay readable.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { EndOurMomentsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // CoupleGameEndInput
+    coupleGameEndInput: ...,
+  } satisfies EndOurMomentsRemoteGameRequest;
+
+  try {
+    const data = await api.endOurMomentsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **coupleGameEndInput** | [CoupleGameEndInput](CoupleGameEndInput.md) |  | |
+
+### Return type
+
+[**OurMomentsRemoteState**](OurMomentsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## endWhoOfUsRemoteGame
+
+> WhoOfUsRemoteState endWhoOfUsRemoteGame(spaceId, coupleGameEndInput)
+
+End Who Of Us Remote Game
+
+Either partner may end the open game; the revealed answers stay readable.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { EndWhoOfUsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // CoupleGameEndInput
+    coupleGameEndInput: ...,
+  } satisfies EndWhoOfUsRemoteGameRequest;
+
+  try {
+    const data = await api.endWhoOfUsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **coupleGameEndInput** | [CoupleGameEndInput](CoupleGameEndInput.md) |  | |
+
+### Return type
+
+[**WhoOfUsRemoteState**](WhoOfUsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## endWishDetectiveRemoteGame
+
+> WishDetectiveRemoteState endWishDetectiveRemoteGame(spaceId, coupleGameEndInput)
+
+End Wish Detective Remote Game
+
+Either partner may end the open game; revealed rounds stay readable.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { EndWishDetectiveRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // CoupleGameEndInput
+    coupleGameEndInput: ...,
+  } satisfies EndWishDetectiveRemoteGameRequest;
+
+  try {
+    const data = await api.endWishDetectiveRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **coupleGameEndInput** | [CoupleGameEndInput](CoupleGameEndInput.md) |  | |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## finishPicturePingPong
 
 > PicturePingPongState finishPicturePingPong(spaceId, pictureFinishInput)
@@ -321,6 +633,81 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## flipOurMomentsRemoteCard
+
+> OurMomentsRemoteState flipOurMomentsRemoteCard(spaceId, ourMomentsFlipInput)
+
+Flip Our Moments Remote Card
+
+Flip one card; the second card of a turn is judged at once.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { FlipOurMomentsRemoteCardRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // OurMomentsFlipInput
+    ourMomentsFlipInput: ...,
+  } satisfies FlipOurMomentsRemoteCardRequest;
+
+  try {
+    const data = await api.flipOurMomentsRemoteCard(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ourMomentsFlipInput** | [OurMomentsFlipInput](OurMomentsFlipInput.md) |  | |
+
+### Return type
+
+[**OurMomentsRemoteState**](OurMomentsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -679,6 +1066,76 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getOurMomentsRemoteGame
+
+> OurMomentsRemoteState getOurMomentsRemoteGame(spaceId)
+
+Get Our Moments Remote Game
+
+The current or last remote memory board, with only flipped cards revealed.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GetOurMomentsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetOurMomentsRemoteGameRequest;
+
+  try {
+    const data = await api.getOurMomentsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**OurMomentsRemoteState**](OurMomentsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getPicturePingPong
 
 > PicturePingPongState getPicturePingPong(spaceId)
@@ -727,6 +1184,146 @@ example().catch(console.error);
 ### Return type
 
 [**PicturePingPongState**](PicturePingPongState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getWhoOfUsRemoteGame
+
+> WhoOfUsRemoteState getWhoOfUsRemoteGame(spaceId)
+
+Get Who Of Us Remote Game
+
+The current or last remote Who of us game, as the reader may see it.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GetWhoOfUsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetWhoOfUsRemoteGameRequest;
+
+  try {
+    const data = await api.getWhoOfUsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WhoOfUsRemoteState**](WhoOfUsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getWishDetectiveRemoteGame
+
+> WishDetectiveRemoteState getWishDetectiveRemoteGame(spaceId)
+
+Get Wish Detective Remote Game
+
+The current or last remote Wish detective game, as the reader may see it.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GetWishDetectiveRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetWishDetectiveRemoteGameRequest;
+
+  try {
+    const data = await api.getWishDetectiveRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
 
 ### Authorization
 
@@ -800,6 +1397,81 @@ example().catch(console.error);
 ### Return type
 
 [**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## guessWishDetectiveRemoteWish
+
+> WishDetectiveRemoteState guessWishDetectiveRemoteWish(spaceId, wishDetectiveGuessInput)
+
+Guess Wish Detective Remote Wish
+
+The guesser guesses (or passes); the round is revealed to both.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GuessWishDetectiveRemoteWishRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // WishDetectiveGuessInput
+    wishDetectiveGuessInput: ...,
+  } satisfies GuessWishDetectiveRemoteWishRequest;
+
+  try {
+    const data = await api.guessWishDetectiveRemoteWish(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **wishDetectiveGuessInput** | [WishDetectiveGuessInput](WishDetectiveGuessInput.md) |  | |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
 
 ### Authorization
 
@@ -1051,6 +1723,84 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## nameGardenVisitor
+
+> GardenView nameGardenVisitor(animal, spaceId, gardenVisitorNameInput)
+
+Name Garden Visitor
+
+Name a visiting animal; both partners see the same name (the duck pair shares one).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { NameGardenVisitorRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // GardenVisitor
+    animal: ...,
+    // string
+    spaceId: spaceId_example,
+    // GardenVisitorNameInput
+    gardenVisitorNameInput: ...,
+  } satisfies NameGardenVisitorRequest;
+
+  try {
+    const data = await api.nameGardenVisitor(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **animal** | `GardenVisitor` |  | [Defaults to `undefined`] [Enum: SNAIL, RABBIT, HEDGEHOG, DUCKS, SQUIRREL, DEER] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **gardenVisitorNameInput** | [GardenVisitorNameInput](GardenVisitorNameInput.md) |  | |
+
+### Return type
+
+[**GardenView**](GardenView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## plantGardenSeed
 
 > GardenView plantGardenSeed(seedId, spaceId)
@@ -1275,13 +2025,159 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## skipWishDetectiveRemoteWish
+
+> WishDetectiveRemoteState skipWishDetectiveRemoteWish(spaceId, wishDetectiveSkipInput)
+
+Skip Wish Detective Remote Wish
+
+The giver draws another own wish (three times per round).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { SkipWishDetectiveRemoteWishRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // WishDetectiveSkipInput
+    wishDetectiveSkipInput: ...,
+  } satisfies SkipWishDetectiveRemoteWishRequest;
+
+  try {
+    const data = await api.skipWishDetectiveRemoteWish(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **wishDetectiveSkipInput** | [WishDetectiveSkipInput](WishDetectiveSkipInput.md) |  | |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## startOurMomentsRemoteGame
+
+> OurMomentsRemoteState startOurMomentsRemoteGame(spaceId)
+
+Start Our Moments Remote Game
+
+Lay out a new board; the opener flips first.  It needs at least three photo Memories both partners may read (&#x60;OUR_MOMENTS_MOMENTS_MISSING&#x60; otherwise).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { StartOurMomentsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies StartOurMomentsRemoteGameRequest;
+
+  try {
+    const data = await api.startOurMomentsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**OurMomentsRemoteState**](OurMomentsRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## startPicturePingPong
 
-> PicturePingPongState startPicturePingPong(spaceId)
+> PicturePingPongState startPicturePingPong(spaceId, pictureStartInput)
 
 Start Picture Ping Pong
 
-Open a new picture; the partner who opens it draws first.
+Open a new picture; the partner who opens it draws first.  Without a body the picture begins with the seed squiggle.
 
 ### Example
 
@@ -1299,6 +2195,8 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
+    // PictureStartInput (optional)
+    pictureStartInput: ...,
   } satisfies StartPicturePingPongRequest;
 
   try {
@@ -1319,10 +2217,82 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **pictureStartInput** | [PictureStartInput](PictureStartInput.md) |  | [Optional] |
 
 ### Return type
 
 [**PicturePingPongState**](PicturePingPongState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## startWhoOfUsRemoteGame
+
+> WhoOfUsRemoteState startWhoOfUsRemoteGame(spaceId)
+
+Start Who Of Us Remote Game
+
+Open a remote game; it replaces a finished or ended one.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { StartWhoOfUsRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies StartWhoOfUsRemoteGameRequest;
+
+  try {
+    const data = await api.startWhoOfUsRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WhoOfUsRemoteState**](WhoOfUsRemoteState.md)
 
 ### Authorization
 
@@ -1342,6 +2312,152 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## startWishDetectiveRemoteGame
+
+> WishDetectiveRemoteState startWishDetectiveRemoteGame(spaceId)
+
+Start Wish Detective Remote Game
+
+Open a remote game; the opener gives the first clues.  Each partner needs at least one OPEN wish. Otherwise the problem code says who is missing one: &#x60;WISH_DETECTIVE_OWN_WISH_MISSING&#x60;, &#x60;WISH_DETECTIVE_PARTNER_WISH_MISSING&#x60; or &#x60;WISH_DETECTIVE_WISHES_MISSING&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { StartWishDetectiveRemoteGameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies StartWishDetectiveRemoteGameRequest;
+
+  try {
+    const data = await api.startWishDetectiveRemoteGame(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## submitWishDetectiveRemoteClues
+
+> WishDetectiveRemoteState submitWishDetectiveRemoteClues(spaceId, wishDetectiveCluesInput)
+
+Submit Wish Detective Remote Clues
+
+The giver hands three clues to the guesser.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { SubmitWishDetectiveRemoteCluesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // WishDetectiveCluesInput
+    wishDetectiveCluesInput: ...,
+  } satisfies SubmitWishDetectiveRemoteCluesRequest;
+
+  try {
+    const data = await api.submitWishDetectiveRemoteClues(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **wishDetectiveCluesInput** | [WishDetectiveCluesInput](WishDetectiveCluesInput.md) |  | |
+
+### Return type
+
+[**WishDetectiveRemoteState**](WishDetectiveRemoteState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

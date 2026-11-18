@@ -5,6 +5,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { editViaMenu } from '../support/itemMenu';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 
@@ -475,7 +476,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await showPlanSchedule(page);
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');

@@ -9,6 +9,7 @@ import {
   expectFloatingAddAction,
   expectLabeledAddAction,
 } from '../support/addAction';
+import { deleteViaMenu, editViaMenu } from '../support/itemMenu';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -224,8 +225,7 @@ const seed = () =>
   );
 const back = (page: Page) =>
   page.getByRole('button', { name: taskBoundary.back, exact: true });
-const edit = (page: Page) =>
-  page.getByRole('button', { name: de.common.edit, exact: true });
+const startEdit = (page: Page) => editViaMenu(page, de.common.edit);
 const titleField = (page: Page) =>
   page.getByRole('textbox', { name: m5s3.common.title, exact: true });
 async function expectNoHorizontalOverflow(page: Page) {
@@ -333,7 +333,7 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   await expect(page).toHaveURL(/year=2026/);
   await expect(marker).toBeFocused();
   await marker.click();
-  await edit(page).click();
+  await startEdit(page);
   await page
     .getByLabel(m5s3.chapter.startOn, { exact: true })
     .fill('2025-09-01');
@@ -347,10 +347,14 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(0);
   await page.goto('/story?tab=timeline&year=2025');
   await marker.click();
-  await edit(page).click();
-  await page
-    .getByRole('button', { name: m5s3.common.delete, exact: true })
-    .click();
+  // Delete is no longer offered inside the editor; it starts from the menu.
+  await startEdit(page);
+  await expect(
+    page.getByRole('button', { name: m5s3.common.delete, exact: true }),
+  ).toHaveCount(0);
+  await back(page).click();
+  await expect(titleField(page)).toHaveCount(0);
+  await deleteViaMenu(page, m5s3.common.delete);
   await page
     .getByRole('button', { name: m5s3.common.confirmDelete, exact: true })
     .click();
@@ -464,7 +468,7 @@ test('dirty Back, retained failed creation and If-Match conflict preserve author
     }),
   ).toBeVisible();
   state.conflictUpdate = true;
-  await edit(page).click();
+  await startEdit(page);
   await page
     .getByLabel(m5s3.common.description, { exact: true })
     .fill(content.chapterExperience.correction);

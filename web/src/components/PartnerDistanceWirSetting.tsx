@@ -1,14 +1,22 @@
-import type { ComponentProps } from 'react';
+import { type ComponentProps, useMemo } from 'react';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { Configuration } from '../client/apiConfiguration';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   usePartnerLocationApi,
   usePartnerLocationSettings,
 } from '../client/partnerLocation';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
 
 const PARTNER_DISTANCE_MODULE: readonly DashboardModuleKey[] = [
   'partner_distance',
 ];
+const SHARED_GARDEN_MODULE: readonly DashboardModuleKey[] = ['shared_garden'];
 const NONE: readonly DashboardModuleKey[] = [];
 
 /**
@@ -35,14 +43,53 @@ export function usePartnerDistanceModuleUnavailable({
   return settings?.available === true ? NONE : PARTNER_DISTANCE_MODULE;
 }
 
-/** Settings › Wir: the module panel, aware of partner-distance availability. */
+/**
+ * Settings › Wir (Product Owner 2026-11-17): the shared garden module is
+ * Premium (`games.couple`). Without the capability its row stays listed with
+ * the Pro marker but switched off and disabled; a saved choice is kept and
+ * returns with Pro. Reuses the session's single entitlement read.
+ */
+export function useSharedGardenModuleLocked({
+  apiBaseUrl,
+  accessToken,
+  accountId,
+  spaceId,
+}: {
+  apiBaseUrl: string;
+  accessToken: string;
+  accountId: string;
+  spaceId: string;
+}): readonly DashboardModuleKey[] {
+  const load = useMemo(
+    () =>
+      entitlementLoader(
+        new EntitlementsApi(
+          new Configuration({
+            basePath: apiBaseUrl,
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+        ),
+        spaceId,
+      ),
+    [apiBaseUrl, accessToken, spaceId],
+  );
+  const games = useSpaceCapability({
+    accountId,
+    spaceId,
+    load,
+    capability: GAMES_COUPLE_CAPABILITY,
+  });
+  return games.data === true && !games.isError ? NONE : SHARED_GARDEN_MODULE;
+}
+
+/** Settings › Wir: the module panel, aware of Pro module availability. */
 export function WirDashboardSettingsPanel({
   apiBaseUrl,
   accessToken,
   ...panel
 }: Omit<
   ComponentProps<typeof DashboardSettingsPanel>,
-  'unavailableModuleKeys'
+  'unavailableModuleKeys' | 'lockedModuleKeys'
 > & {
   apiBaseUrl: string;
   accessToken: string;
@@ -53,7 +100,17 @@ export function WirDashboardSettingsPanel({
     accountId: panel.accountId,
     spaceId: panel.spaceId,
   });
+  const locked = useSharedGardenModuleLocked({
+    apiBaseUrl,
+    accessToken,
+    accountId: panel.accountId,
+    spaceId: panel.spaceId,
+  });
   return (
-    <DashboardSettingsPanel {...panel} unavailableModuleKeys={unavailable} />
+    <DashboardSettingsPanel
+      {...panel}
+      unavailableModuleKeys={unavailable}
+      lockedModuleKeys={locked}
+    />
   );
 }

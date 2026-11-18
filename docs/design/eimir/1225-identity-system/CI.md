@@ -14,7 +14,7 @@
 
 These PNGs are kept byte-for-byte as supplied. The app logo is extracted directly from the first poster; the other owner images remain design references. When a historical SVG differs from the poster, the owner image decides the logo. Semantic tokens and accessibility contracts govern its UI use. This decision replaces the former interlocking-ring brand mark and the earlier plant proposal as the app logo. The two-circle symbol remains the **Wir** navigation icon.
 
-The scope is identity: logo, icons, semantic color worlds and their existing Web delivery points. It does not change routes, feature behavior, entitlement, copy, image content or screen composition. The current Compact shell has **Wir, Momente, Planen and Mehr**, plus a central add action. **Listen** keeps its own icon under **Mehr > Gemeinsame Listen**; the five-item navigation in the reference is an icon usage example, not a new route decision.
+The scope is identity: logo, icons, semantic color worlds and their existing Web delivery points. It does not change routes, feature behavior, entitlement, copy, image content or screen composition. The current Compact shell has **Wir, Momente, Planen and Mehr**, plus a central add action. **Listen** keeps its own icon under **Mehr > Gemeinsame Listen**; the five-item navigation in the reference is an icon usage example, not a new route decision. Amended 2026-11-18 (PR #2044): **Listen** is now the fifth primary destination (route ID `shared`) with this icon unchanged.
 
 ## 2. Brand mark, app icon and wordmark
 

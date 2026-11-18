@@ -1,8 +1,9 @@
 # Information Architecture for eimir.
 
 **Status:** Binding foundation for Web and App  
-**Version:** 1.6<br/>
+**Version:** 1.7<br/>
 **Effective from:** September 15, 2026<br/>
+**Amended:** November 18, 2026 (PR #2044: fifth primary destination `shared`/Listen)<br/>
 **Route model decided by:** `decisions/0003-primary-navigation-and-route-model.md`  
 **Harmonized by:** `decisions/0008-product-ia-harmonization-and-domain-alignment.md`  
 **Games placement decided by:** `decisions/0010-games-secondary-navigation-under-more.md`  
@@ -35,15 +36,27 @@ conventions.
 | `today` | Wir | shared overview, partner pulse, and next meaningful actions | now |
 | `story` | Momente | non-public shared timeline of memories, milestones, and chapters | now |
 | `plan` | Planen | wishes and concrete plans; shopping later | now |
-| `more` | Mehr | games plus secondary shared, private, and account-adjacent areas | now |
+| `shared` | Listen | shared lists (collections) and shared notes as peer views under the heading **Gemeinsam** | now |
+| `more` | Mehr | games plus secondary people, places, private, and account-adjacent areas | now |
 
 The previous top-level `discover` reservation is superseded by Decision 0009.
 Discovery experiences remain product behavior inside `Momente`; they do not
 consume a persistent primary-navigation slot.
 
+`Listen` (en: Lists) is the fifth primary destination, added by PR #2044 on
+2026-11-18. Its stable route ID is `shared` and its canonical path is
+`/more/collections`: the historical `/more` prefix is kept so Deep Links stay
+valid (ADR 0008 section 3). Lists (`/more/collections`) and Notes
+(`/more/notes`) are peer views of the one destination, switched by a
+**Listen | Notizen** segmented control under the shared page heading
+**Gemeinsam**. List and note detail, creation and editing keep `Listen`
+active (`/plan/collections*`, `/more/collections*`, `/more/notes*`). Lists and
+Notes no longer appear as More rows. See the
+[Mobile Interaction Contract](./product/design/mobile-interaction-contract-lists-and-item-menu.md).
+
 `Spielen` is a first-class product area with the stable route ID `games` and
 canonical path `/games`, but Decision 0010 deliberately places its entry under
-`Mehr`. It is therefore not a fifth persistent primary destination. When a
+`Mehr`. It is therefore not a persistent primary destination; `Listen` is the fifth. When a
 user is inside `/games` or `/games/...`, `Mehr` remains the active primary area.
 
 The visible label **Wir** intentionally replaces previous **Heute** and
@@ -62,7 +75,7 @@ their route IDs are not.
 
 - **Android app:** renders the Web shell below (Capacitor wrapper). The retired Compose client's at-every-size Bottom Navigation is recorded in the historical
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
-- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
+- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with five icon-and-label destinations (five equal columns). The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
 - **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation; the 2026-11-14 Product Owner correction removed the cross-area create shortcut from the browser header. On Expanded, the Planen column and the Planen/Momente view switches are centered like the diary reading column. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
@@ -97,12 +110,14 @@ eimir.
 │   │   ├── checklist
 │   │   └── media and notes
 │   └── Einkauf (later, feature-controlled)
+├── Listen (route ID `shared`; peer views under the heading Gemeinsam)
+│   ├── Listen (shared lists and collections; canonical route `/more/collections`)
+│   └── Notizen (shared notes; canonical route `/more/notes`)
 └── Mehr
     ├── Unser Jahr (annual shared history; canonical route `/story/years`)
     ├── Spielen (relationship-native games; canonical route `/games`)
     ├── Menschen (shared people and their profiles)
     ├── Orte (shared places and destinations)
-    ├── Gemeinsame Listen (collections)
     ├── Für mich (owner-only area)
     ├── Space and partner
     ├── privacy and permissions
@@ -137,8 +152,9 @@ into a plan is a visible, understandable state transition. Discovery behavior
 inside Momente does not create a fourth copy of content; it may adopt a
 recommendation as a wish or plan where that product flow exists.
 
-Life chapters (Kapitel) are preserved under Momente. Places (Orte) and shared
-lists (Gemeinsame Listen) are organized under Mehr.
+Life chapters (Kapitel) are preserved under Momente. Places (Orte) are
+organized under Mehr; shared lists (Gemeinsame Listen) and shared notes live in
+the `Listen` destination.
 
 ### Secondary navigation
 
@@ -173,8 +189,13 @@ Links. IDs are opaque, stable identifiers.
 | eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
-| Collections (Mehr) | `/plan/collections` |
+| Listen destination: shared lists (`shared`, home view) | `/more/collections` |
+| Legacy collections address (redirects to `/more/collections`) | `/plan/collections` |
+| Create shared list | `/more/collections/new` |
 | Open collection | `/plan/collections/:collectionId` |
+| Listen destination: shared notes (`shared`, peer view) | `/more/notes` |
+| Create shared note | `/more/notes/new` |
+| Open / edit shared note | `/more/notes/:noteId`, `/more/notes/:noteId/edit` |
 | Space and partner | `/more/space` |
 | Shared people and profiles | `/more/people` |
 | Important dates and derived birthdays | `/plan#dates` |
@@ -288,6 +309,8 @@ or `SPACE_SHARED`. `public` is not a valid value.
 - Android System Back and Browser Back have the same domain behavior.
 - Close ends a dialog; Back navigates history.
 - Switching primary navigation does not create stacked detail history.
+- Peer views of one destination (Listen | Notizen) are
+  siblings, not a drill-down: switching between them replaces the history entry.
 - Opening a Web utility/account destination keeps its canonical history entry;
   closing an account popover itself does not create history.
 

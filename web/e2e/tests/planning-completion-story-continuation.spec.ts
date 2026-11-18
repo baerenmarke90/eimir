@@ -7,6 +7,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { itemMenuTrigger } from '../support/itemMenu';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -642,13 +643,13 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
     'readonly',
     '',
   );
+  // Editing starts from the item menu behind the modal completion sheet. It
+  // cannot be opened while the write is pending, so no menu row (Edit or
+  // Delete) can start a competing write.
   await expect(
-    page.getByRole('button', {
-      name: de.common.edit,
-      exact: true,
-      includeHidden: true,
-    }),
-  ).toBeDisabled();
+    page.getByRole('button', { name: m5s3.plan.menu, includeHidden: true }),
+  ).toHaveCount(1);
+  await expect(page.locator('.item-menu-option')).toHaveCount(0);
   // The completion date and planned date deliberately share the concise label
   // "Datum". Only the schedule editor must be absent during completion.
   await expect(page.locator('#plan-schedule-date')).toHaveCount(0);
@@ -867,13 +868,7 @@ test('Plan completion failure remains actionable after leaving and returning to 
   await expect(page).toHaveURL(/\/more$/);
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
-  await expect(
-    page.getByRole('button', {
-      name: de.common.edit,
-      exact: true,
-      includeHidden: true,
-    }),
-  ).toBeVisible();
+  await expect(itemMenuTrigger(page)).toBeVisible();
   await page.locator('.planen-complete-cta').click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await expect(

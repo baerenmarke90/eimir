@@ -17,11 +17,7 @@ import {
   selectBrowserImpact,
   validatePlannedSpecs,
 } from './browser-impact.mjs';
-import {
-  additionalShards,
-  MAX_ADDITIONAL_SHARDS,
-  planBrowserTests,
-} from './pr-browser-plan.mjs';
+import { additionalShards, planBrowserTests } from './pr-browser-plan.mjs';
 import { readTestInventory } from './test-inventory.mjs';
 import { verifyBrowserQa } from './verify-browser-qa.mjs';
 
@@ -319,12 +315,8 @@ test('additional specs never plan more shards than files or the bound', () => {
   assert.deepEqual(additionalShards(['a.spec.ts']), [1]);
   assert.deepEqual(additionalShards(['a.spec.ts', 'b.spec.ts']), [1, 2]);
   const many = Array.from({ length: 40 }, (_, index) => `s${index}.spec.ts`);
-  const shards = additionalShards(many);
-  assert.equal(shards.length, MAX_ADDITIONAL_SHARDS);
-  assert.deepEqual(
-    shards,
-    Array.from({ length: MAX_ADDITIONAL_SHARDS }, (_, index) => index + 1),
-  );
+  assert.deepEqual(additionalShards(many.slice(0, 5)), [1, 2, 3, 4, 5]);
+  assert.deepEqual(additionalShards(many), [1, 2, 3, 4, 5, 6]);
 });
 
 test('aggregate rejects failed, cancelled and unexpectedly skipped required work', () => {

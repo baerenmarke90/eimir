@@ -91,7 +91,8 @@
   object-fit: cover;
   border-radius: inherit;
   opacity: 0;
-  transition: opacity var(--duration-context) var(--easing-standard);
+  transition: opacity calc(var(--duration-sequence-beat) * 2.4)
+    var(--easing-standard);
 }
 
 .partner-avatar-img.is-loaded {
@@ -101,7 +102,7 @@
 .partner-avatar-img.is-loaded + .partner-avatar-initials {
   visibility: hidden;
   transition-property: visibility;
-  transition-delay: var(--duration-context);
+  transition-delay: calc(var(--duration-sequence-beat) * 2.4);
 }
 
 /* Sizes */

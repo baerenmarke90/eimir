@@ -21,8 +21,8 @@ WORKFLOW_DIR = ROOT / ".github/workflows"
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1",
-    "actions/setup-java": "de7274f081f381c8f8158605e0321c36c376e2e6",
-    "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
+    "actions/setup-java": "77dd5b2ce225ea11469928ac317850245a74ae78",
+    "gradle/actions/setup-gradle": "8da46b539cd8fe6ab27ca75128919a18d757604c",
     "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "actions/download-artifact": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
 }
@@ -247,7 +247,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (
-            "Set up Node.js 24.21.0",
+            "Set up Node.js 26.13.1",
             "Set up JDK 21",
             "Set up Gradle cache and validate wrapper",
             "Verify pinned Gradle wrapper JAR",
@@ -602,7 +602,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
         self.assertIn('java-version: "21"', self.workflow)
-        self.assertIn('node-version: "24.21.0"', self.workflow)
+        self.assertIn('node-version: "26.13.1"', self.workflow)
         self.assertIn("621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8", self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:

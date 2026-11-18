@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent,
   type PointerEvent,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -12,9 +14,13 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
+import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardSharedStorySummary } from '../api/generated/models/DashboardSharedStorySummary';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
-import { storyLifelineQueryKey } from '../client/dashboardQueries';
+import {
+  storyLifelineEntriesQueryKey,
+  storyLifelineQueryKey,
+} from '../client/dashboardQueries';
 import { formatCalendarDate } from '../client/formatRecency';
 import { dashboardItemPath } from '../client/m4Product';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
@@ -22,30 +28,47 @@ import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath } from '../client/routes';
 import {
   buildLifeline,
+  dotEntry,
+  entryDot,
   type LifelineColumn,
   type LifelineKind,
   type LifelineModel,
+  lifelineKindOf,
   monthTicks,
   nearestColumn,
 } from '../client/storyLifeline';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { StoryKindGlyph } from './StoryKindGlyph';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './SharedStorySummary.css';
 
-const HINT_STORAGE_KEY = 'eimir-story-lifeline-hint-v1';
+const HINT_STORAGE_KEY = 'eimir-story-lifeline-hint-v2';
 /** Room one short month label needs, in ems of the axis text. */
 const TICK_LABEL_EMS = 2.8;
 /** Room the today label needs at the end of the axis, in ems. */
 const TODAY_LABEL_EMS = 3.4;
 /** Fallback axis room before the band has been measured. */
 const DEFAULT_AXIS = { width: 320, fontSize: 13 };
+/** Movement before a press becomes a horizontal or vertical drag. */
+const DRAG_THRESHOLD = 6;
+/** Vertical travel that moves the selection by one entry. */
+const DRAG_ENTRY_STEP = 14;
+/** The most rows the full variant lists around the selected entry. */
+const FAN_ROWS = 6;
+/** The most pagination dots the preview shows around the selection. */
+const PAGER_DOTS = 9;
+/** Horizontal travel on the preview that changes the entry. */
+const SWIPE_COMMIT = 40;
+/** The swiped card fades with distance, never below this much. */
+const SWIPE_FADE_DISTANCE = 200;
+const SWIPE_FADE_MAX = 0.5;
 
-const KIND_ICON: Record<string, EimirIconName> = {
-  MEMORY: 'erinnerungen',
-  HEART_MOMENT: 'momente',
-  MILESTONE: 'meilensteine',
+const KIND_LABEL: Record<LifelineKind, string> = {
+  memories: 'm5s5.dashboard.storyLifelineKindMemory',
+  heartMoments: 'm5s5.dashboard.storyLifelineKindHeartMoment',
+  milestones: 'm5s5.dashboard.storyLifelineKindMilestone',
 };
 
 type LoadMemoryImage = (
@@ -54,6 +77,9 @@ type LoadMemoryImage = (
   signal?: AbortSignal,
   variant?: 'original' | 'thumbnail',
 ) => Promise<ObjectUrlSource>;
+
+/** `compact` on Wir: one preview card. `full` on Eure Geschichte: a list. */
+export type SharedStorySummaryVariant = 'compact' | 'full';
 
 interface SharedStorySummaryProps {
   /** Dashboard totals, shown until the lifeline arrives or if it fails. */
@@ -67,6 +93,7 @@ interface SharedStorySummaryProps {
    * is then named by it and renders no title of its own.
    */
   labelledBy?: string;
+  variant?: SharedStorySummaryVariant;
 }
 
 function readHintSeen(): boolean {
@@ -85,10 +112,12 @@ function rememberHintSeen() {
   }
 }
 
+const isoDay = (value: Date) => value.toISOString().slice(0, 10);
+
 /**
- * Wir `Eure Geschichte` (#1770): the shape of the couple's shared story as a
- * lifeline from its start to today, with on-demand previews instead of
- * repeating photos that `Euer Moment` and the monthly mosaic already show.
+ * `Eure Geschichte` (#1770): the shape of the couple's shared story as a
+ * lifeline from its start to today. A period is chosen sideways; within it
+ * every entry can be chosen on its own, read lazily from the server.
  */
 export function SharedStorySummary({
   summary,
@@ -97,6 +126,7 @@ export function SharedStorySummary({
   dashboardApi,
   loadMemoryImage,
   labelledBy,
+  variant = 'compact',
 }: SharedStorySummaryProps) {
   const { t } = useTranslation();
   const headingId = 'shared-story-summary-heading';
@@ -139,7 +169,7 @@ export function SharedStorySummary({
 
   return (
     <section
-      className="shared-story-summary"
+      className={`shared-story-summary shared-story-summary-${variant}`}
       aria-labelledby={labelledBy ?? headingId}
     >
       {labelledBy ? null : (
@@ -153,8 +183,11 @@ export function SharedStorySummary({
       {model?.drawable && model.columns.length > 0 ? (
         <LifelineBand
           model={model}
+          accountId={accountId}
           spaceId={spaceId}
+          dashboardApi={dashboardApi}
           loadMemoryImage={loadMemoryImage}
+          variant={variant}
         />
       ) : null}
       <StoryLegend totals={totals} />
@@ -209,10 +242,13 @@ function StoryLegend({ totals }: { totals: Record<LifelineKind, number> }) {
         <li className="shared-story-summary-metric" key={metric.key}>
           <Link
             to={metric.to}
-            className={`shared-story-summary-row shared-story-summary-category-${metric.key}`}
+            className={`shared-story-summary-row story-kind-${metric.key}`}
             aria-label={metric.ariaLabel}
           >
-            <span className="shared-story-summary-dot" aria-hidden="true" />
+            <StoryKindGlyph
+              kind={metric.key}
+              className="shared-story-summary-glyph"
+            />
             <span className="shared-story-summary-label">
               <strong className="shared-story-summary-number">
                 {numberFormat.format(totals[metric.key])}
@@ -252,39 +288,126 @@ function periodLabel(
   return format.formatRange(column.start, last);
 }
 
+interface DragState {
+  pointerId: number;
+  x: number;
+  y: number;
+  axis: 'x' | 'y' | null;
+  startEntry: number | null;
+}
+
 function LifelineBand({
   model,
+  accountId,
   spaceId,
+  dashboardApi,
   loadMemoryImage,
+  variant,
 }: {
   model: LifelineModel;
+  accountId: string;
   spaceId: string;
+  dashboardApi?: DashboardApi;
   loadMemoryImage?: LoadMemoryImage;
+  variant: SharedStorySummaryVariant;
 }) {
   const { t } = useTranslation();
   const locale = resolvedLocale();
   const bandRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<DragState | null>(null);
   const previewId = useId();
   const [active, setActive] = useState<number | null>(null);
-  const [scrubbing, setScrubbing] = useState(false);
+  // The chosen entry inside the active column; `null` follows its highlight.
+  const [entryChoice, setEntryChoice] = useState<number | null>(null);
+  // A dot tapped before the column's entries arrived.
+  const [requestedDot, setRequestedDot] = useState<number | null>(null);
+  const [travel, setTravel] = useState<{ direction: -1 | 0 | 1; at: number }>({
+    direction: 0,
+    at: 0,
+  });
   const [hintSeen, setHintSeen] = useState(readHintSeen);
+  const hintUsed = useRef(false);
+  const retireUsedHint = useCallback(() => {
+    if (hintUsed.current) setHintSeen(true);
+  }, []);
   const ticksRef = useRef<HTMLDivElement>(null);
   const [axis, setAxis] = useState(DEFAULT_AXIS);
   const columns = model.columns;
   const last = columns.length - 1;
   const current = active === null ? null : (columns[active] ?? null);
 
+  const entriesQuery = useQuery({
+    queryKey: storyLifelineEntriesQueryKey(
+      accountId,
+      spaceId,
+      current ? isoDay(current.from) : '',
+      current ? isoDay(current.to) : '',
+    ),
+    enabled: Boolean(current && dashboardApi && accountId && spaceId),
+    retry: false,
+    staleTime: 60_000,
+    queryFn: async ({ signal }) => {
+      if (!dashboardApi || !current)
+        throw new Error('Dashboard API is unavailable');
+      try {
+        return await dashboardApi.getStoryLifelineEntries(
+          { spaceId, from: current.from, to: current.to },
+          { signal },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+  });
+  const entries =
+    current && entriesQuery.data && entriesQuery.data.items.length > 0
+      ? entriesQuery.data.items
+      : null;
+  const kinds = useMemo(
+    () => (entries ? entries.map((item) => lifelineKindOf(item.type)) : []),
+    [entries],
+  );
+  let selected: number | null = null;
+  if (current && entries) {
+    const highlightIndex = Math.max(
+      0,
+      entries.findIndex((item) => item.id === current.highlight.id),
+    );
+    const fromDot =
+      requestedDot === null ? -1 : dotEntry(current, kinds, requestedDot);
+    selected = Math.min(
+      entries.length - 1,
+      entryChoice ?? (fromDot >= 0 ? fromDot : highlightIndex),
+    );
+  }
+  const selectedDot =
+    current && selected !== null
+      ? entryDot(current, kinds, selected)
+      : requestedDot;
+  const selectedItem: DashboardItem | null = current
+    ? selected !== null && entries
+      ? entries[selected]
+      : current.highlight
+    : null;
+
   useEffect(() => {
     if (active === null) return;
+    // A click, not a press: pressing elsewhere first may shift the layout and
+    // swallow the click that follows.
+    // The path, not `contains`: a click on a node that re-rendered away is
+    // detached by now and would otherwise count as outside.
     const dismiss = (event: Event) => {
-      if (!containerRef.current?.contains(event.target as Node))
+      const container = containerRef.current;
+      if (container && !event.composedPath().includes(container)) {
         setActive(null);
+        retireUsedHint();
+      }
     };
-    document.addEventListener('pointerdown', dismiss);
-    return () => document.removeEventListener('pointerdown', dismiss);
-  }, [active]);
+    document.addEventListener('click', dismiss);
+    return () => document.removeEventListener('click', dismiss);
+  }, [active, retireUsedHint]);
 
   // Axis labels must not collide at any width or text size.
   useLayoutEffect(() => {
@@ -307,10 +430,37 @@ function LifelineBand({
     return () => observer.disconnect();
   }, []);
 
-  const markInteracted = () => {
-    if (hintSeen) return;
-    setHintSeen(true);
+  const markEntryInteraction = () => {
+    if (hintSeen || hintUsed.current) return;
+    // Keep the page height stable while the active period is being browsed.
+    hintUsed.current = true;
     rememberHintSeen();
+  };
+
+  const selectColumn = (index: number | null) => {
+    if (index === active) return;
+    retireUsedHint();
+    setActive(index);
+    setEntryChoice(null);
+    setRequestedDot(null);
+    setTravel((previous) => ({ direction: 0, at: previous.at + 1 }));
+  };
+
+  const chooseEntry = (index: number) => {
+    if (!entries || selected === null) return;
+    const next = Math.min(entries.length - 1, Math.max(0, index));
+    if (next === selected) return;
+    setEntryChoice(next);
+    setRequestedDot(null);
+    setTravel((previous) => ({
+      direction: next > selected ? 1 : -1,
+      at: previous.at + 1,
+    }));
+    markEntryInteraction();
+  };
+
+  const step = (delta: number) => {
+    if (selected !== null) chooseEntry(selected + delta);
   };
 
   const columnAt = (clientX: number) => {
@@ -323,54 +473,137 @@ function LifelineBand({
     return index < 0 ? null : index;
   };
 
+  /** The dot of a column under a tap, with a finger's tolerance. */
+  const dotAt = (column: number, clientX: number, clientY: number) => {
+    const dots = bandRef.current?.querySelectorAll<HTMLElement>(
+      `[data-lifeline-column="${column}"] [data-lifeline-dot]`,
+    );
+    let best: number | null = null;
+    let distance = Number.POSITIVE_INFINITY;
+    for (const dot of dots ?? []) {
+      const box = dot.getBoundingClientRect();
+      const reach = Math.max(box.height, 14);
+      const dx = Math.abs(box.left + box.width / 2 - clientX);
+      const dy = Math.abs(box.top + box.height / 2 - clientY);
+      if (dx > Math.max(box.width, 22) || dy > reach) continue;
+      if (dy < distance) {
+        distance = dy;
+        best = Number(dot.dataset.lifelineDot);
+      }
+    }
+    return best;
+  };
+
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (
+      dragRef.current ||
+      (event.pointerType === 'mouse' && event.button !== 0)
+    )
+      return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setScrubbing(true);
-    setActive(columnAt(event.clientX));
-    markInteracted();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      axis: null,
+      startEntry: selected,
+    };
+  };
+  const updateDrag = (drag: DragState, event: PointerEvent<HTMLDivElement>) => {
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (
+      !drag.axis &&
+      (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)
+    )
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (drag.axis === 'x') {
+      selectColumn(columnAt(event.clientX));
+    } else if (drag.axis === 'y' && selected !== null) {
+      drag.startEntry ??= selected;
+      chooseEntry(drag.startEntry + Math.round(-dy / DRAG_ENTRY_STEP));
+    }
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (scrubbing || event.pointerType === 'mouse')
-      setActive(columnAt(event.clientX));
+    const drag = dragRef.current;
+    if (drag && drag.pointerId === event.pointerId) updateDrag(drag, event);
   };
-  const endScrub = () => setScrubbing(false);
-  const onPointerLeave = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && !scrubbing) setActive(null);
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    updateDrag(drag, event);
+    if (drag.axis) return;
+    const column = columnAt(event.clientX);
+    if (column === null) return;
+    const dot = dotAt(column, event.clientX, event.clientY);
+    selectColumn(column);
+    if (dot === null) return;
+    markEntryInteraction();
+    if (column !== active || !current || !entries) {
+      setRequestedDot(dot);
+      return;
+    }
+    const index = dotEntry(current, kinds, dot);
+    if (index >= 0) chooseEntry(index);
+  };
+  const endScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const from = active ?? last;
     let next: number | null = null;
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown')
+    if (event.key === 'ArrowLeft')
       next = active === null ? last : Math.max(0, from - 1);
-    else if (event.key === 'ArrowRight' || event.key === 'ArrowUp')
+    else if (event.key === 'ArrowRight')
       next = active === null ? last : Math.min(last, from + 1);
-    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (active === null) selectColumn(last);
+      else step(event.key === 'ArrowUp' ? 1 : -1);
+      return;
+    } else if (event.key === 'Home') next = 0;
     else if (event.key === 'End') next = last;
     else if (event.key === 'Escape' && active !== null) {
       event.preventDefault();
-      setActive(null);
+      selectColumn(null);
       return;
     } else if (event.key === 'Enter' && current) {
       event.preventDefault();
-      previewRef.current?.querySelector('a')?.click();
+      previewRef.current
+        ?.querySelector<HTMLAnchorElement>(
+          '.shared-story-lifeline-preview-main',
+        )
+        ?.click();
       return;
     }
     if (next === null) return;
     event.preventDefault();
-    setActive(next);
-    markInteracted();
+    selectColumn(next);
   };
 
-  const valueText = (column: LifelineColumn) =>
-    t('m5s5.dashboard.storyLifelineValue', {
+  const kindLabel = (item: DashboardItem) =>
+    t(KIND_LABEL[lifelineKindOf(item.type)]);
+  const valueText = (column: LifelineColumn) => {
+    const item =
+      column === current && selectedItem ? selectedItem : column.highlight;
+    const base = {
       period: periodLabel(column, model.unit, t, locale),
       entries: t('m5s5.dashboard.storyLifelineEntries', {
         count: column.total,
       }),
-      title: dashboardItemTitle(column.highlight, t).title,
-    });
+      kind: kindLabel(item),
+      title: dashboardItemTitle(item, t).title,
+    };
+    return column === current && entries && selected !== null
+      ? t('m5s5.dashboard.storyLifelineValuePosition', {
+          ...base,
+          position: selected + 1,
+          total: entries.length,
+        })
+      : t('m5s5.dashboard.storyLifelineValue', base);
+  };
 
   const ticks: { label: string; position: number }[] = [];
   const tickFormat = new Intl.DateTimeFormat(locale, {
@@ -391,50 +624,93 @@ function LifelineBand({
     });
   }
 
+  const hint = hintSeen
+    ? null
+    : current
+      ? current.total > 1
+        ? t('m5s5.dashboard.storyLifelineEntryHint')
+        : null
+      : t('m5s5.dashboard.storyLifelineHint');
+
   return (
     <div
       ref={containerRef}
-      className={`shared-story-lifeline${current ? ' is-active' : ''}${scrubbing ? ' is-scrubbing' : ''}`}
+      className={`shared-story-lifeline${current ? ' is-active' : ''}`}
     >
-      <div
-        ref={bandRef}
-        className="shared-story-lifeline-band"
-        role="slider"
-        tabIndex={0}
-        aria-label={t('m5s5.dashboard.storyLifelineAria')}
-        aria-valuemin={0}
-        aria-valuemax={last}
-        aria-valuenow={active ?? last}
-        aria-valuetext={valueText(current ?? columns[last])}
-        aria-describedby={current ? previewId : undefined}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endScrub}
-        onPointerCancel={endScrub}
-        onPointerLeave={onPointerLeave}
-        onKeyDown={onKeyDown}
-      >
-        {columns.map((column, index) => (
-          <span
-            key={column.key}
-            className={`shared-story-lifeline-column${index === active ? ' is-current' : ''}`}
-            style={{ '--lifeline-x': column.position } as CSSProperties}
-            aria-hidden="true"
+      <div className="shared-story-lifeline-stage">
+        <div
+          ref={bandRef}
+          className="shared-story-lifeline-band"
+          role="slider"
+          tabIndex={0}
+          aria-label={t('m5s5.dashboard.storyLifelineAria')}
+          aria-valuemin={0}
+          aria-valuemax={last}
+          aria-valuenow={active ?? last}
+          aria-valuetext={valueText(current ?? columns[last])}
+          aria-describedby={current ? previewId : undefined}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={endScrub}
+          onLostPointerCapture={endScrub}
+          onKeyDown={onKeyDown}
+        >
+          {columns.map((column, index) => (
+            <span
+              key={column.key}
+              className={`shared-story-lifeline-column${index === active ? ' is-current' : ''}`}
+              style={{ '--lifeline-x': column.position } as CSSProperties}
+              data-lifeline-column={index}
+              aria-hidden="true"
+            >
+              {column.dots.map((kind, stack) => (
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: dots are positional.
+                  key={stack}
+                  className={`shared-story-lifeline-dot story-kind-${kind}${index === active && stack === selectedDot ? ' is-selected' : ''}`}
+                  data-lifeline-dot={stack}
+                >
+                  <StoryKindGlyph kind={kind} />
+                </span>
+              ))}
+            </span>
+          ))}
+          <span className="shared-story-lifeline-axis" aria-hidden="true" />
+          <span className="shared-story-lifeline-now" aria-hidden="true" />
+          {current ? (
+            <span
+              className="shared-story-lifeline-cursor"
+              style={{ '--lifeline-x': current.position } as CSSProperties}
+              aria-hidden="true"
+            />
+          ) : null}
+        </div>
+        {current && selectedItem ? (
+          <div
+            ref={previewRef}
+            id={previewId}
+            key={current.key}
+            className="shared-story-lifeline-preview"
+            style={{ '--lifeline-x': current.position } as CSSProperties}
           >
-            {column.dots.map((kind, stack) => (
-              <span
-                // biome-ignore lint/suspicious/noArrayIndexKey: dots are positional.
-                key={stack}
-                className={`shared-story-lifeline-dot shared-story-summary-category-${kind}`}
-              />
-            ))}
-          </span>
-        ))}
-        <span className="shared-story-lifeline-axis" aria-hidden="true" />
-        <span className="shared-story-lifeline-now" aria-hidden="true" />
+            <LifelinePreview
+              item={selectedItem}
+              position={selected}
+              count={entries?.length ?? null}
+              travel={travel}
+              // The full variant announces loading with its list.
+              loading={variant === 'compact' && entriesQuery.isPending}
+              spaceId={spaceId}
+              loadMemoryImage={loadMemoryImage}
+              onStep={step}
+              onChoose={chooseEntry}
+            />
+          </div>
+        ) : null}
         {current ? (
           <span
-            className="shared-story-lifeline-cursor"
+            className="shared-story-lifeline-preview-tail"
             style={{ '--lifeline-x': current.position } as CSSProperties}
             aria-hidden="true"
           />
@@ -458,87 +734,410 @@ function LifelineBand({
           {t('m5s5.dashboard.storyLifelineToday')}
         </span>
       </div>
-      {current ? (
-        <div
-          ref={previewRef}
-          id={previewId}
-          className="shared-story-lifeline-preview"
-          style={{ '--lifeline-x': current.position } as CSSProperties}
-        >
-          <LifelinePreview
-            column={current}
-            unitLabel={periodLabel(current, model.unit, t, locale)}
-            spaceId={spaceId}
-            loadMemoryImage={loadMemoryImage}
-          />
-        </div>
+      {hint ? <p className="shared-story-lifeline-hint">{hint}</p> : null}
+      {current && variant === 'full' ? (
+        <LifelineFan
+          column={current}
+          period={periodLabel(current, model.unit, t, locale)}
+          entries={entries}
+          selected={selected}
+          highlight={current.highlight}
+          loading={entriesQuery.isPending}
+          spaceId={spaceId}
+          loadMemoryImage={loadMemoryImage}
+        />
       ) : null}
-      {hintSeen ? null : (
-        <p className="shared-story-lifeline-hint">
-          {t('m5s5.dashboard.storyLifelineHint')}
-        </p>
-      )}
     </div>
   );
 }
 
-function LifelinePreview({
-  column,
-  unitLabel,
+function EntryThumb({
+  item,
   spaceId,
   loadMemoryImage,
+  className,
 }: {
-  column: LifelineColumn;
-  unitLabel: string;
+  item: DashboardItem;
   spaceId: string;
   loadMemoryImage?: LoadMemoryImage;
+  className: string;
 }) {
-  const { t } = useTranslation();
-  const item = column.highlight;
-  const { title } = dashboardItemTitle(item, t);
-  const date = item.occurredOn ?? item.createdAt;
-  const path = dashboardItemPath(item.type, item.id);
-  const glyph = (
-    <span className="shared-story-lifeline-glyph" aria-hidden="true">
-      <EimirIcon name={KIND_ICON[item.type] ?? 'erinnerungen'} />
+  const kind = lifelineKindOf(item.type);
+  const tile = (
+    <span className={`shared-story-lifeline-tile story-kind-${kind}`}>
+      <StoryKindGlyph kind={kind} />
     </span>
   );
+  return (
+    <span className={className} aria-hidden="true">
+      {item.previewAttachmentId && loadMemoryImage ? (
+        <MemoryPreview
+          memoryId={item.id}
+          attachmentId={item.previewAttachmentId}
+          isSensitive={item.previewIsSensitive}
+          hasThumbnail={item.previewHasThumbnail}
+          loadImage={loadMemoryImage}
+          resourceScopeKey={`story-lifeline:${spaceId}:${item.id}`}
+          fallback={tile}
+        />
+      ) : (
+        tile
+      )}
+    </span>
+  );
+}
+
+function itemDate(item: DashboardItem): string | null {
+  const date = item.occurredOn ?? item.createdAt;
+  return date ? formatCalendarDate(date) : null;
+}
+
+/**
+ * The selected entry, floating above its column inside the graphic. The whole
+ * card opens the entry; a sideways swipe on it, its pagination dots or the
+ * Left/Right keys move through the period.
+ */
+function LifelinePreview({
+  item,
+  position,
+  count,
+  travel,
+  loading,
+  spaceId,
+  loadMemoryImage,
+  onStep,
+  onChoose,
+}: {
+  item: DashboardItem;
+  position: number | null;
+  count: number | null;
+  travel: { direction: -1 | 0 | 1; at: number };
+  loading: boolean;
+  spaceId: string;
+  loadMemoryImage?: LoadMemoryImage;
+  onStep: (delta: number) => void;
+  onChoose: (index: number) => void;
+}) {
+  const { t } = useTranslation();
+  const { title } = dashboardItemTitle(item, t);
+  const kind = lifelineKindOf(item.type);
+  const path = dashboardItemPath(item.type, item.id);
+  const date = itemDate(item);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    moved: boolean;
+    pointerId: number;
+  } | null>(null);
+  // A click that ends a swipe must not open the entry.
+  const swipedRef = useRef(false);
+  const refocusRef = useRef(false);
+
+  // Keyboard stepping replaces the focused card; keep focus on the new one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs per entry.
+  useEffect(() => {
+    if (!refocusRef.current) return;
+    refocusRef.current = false;
+    mainRef.current
+      ?.querySelector<HTMLElement>('.shared-story-lifeline-preview-main')
+      ?.focus();
+  }, [item.id, travel.at]);
+
+  const follow = (dx: number) => {
+    const main = mainRef.current;
+    if (!main) return;
+    main.style.transform = dx ? `translateX(${dx}px)` : '';
+    main.style.opacity = dx
+      ? String(1 - Math.min(SWIPE_FADE_MAX, Math.abs(dx) / SWIPE_FADE_DISTANCE))
+      : '';
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // A swipe that ended without a click must not swallow the next tap.
+    swipedRef.current = false;
+    swipeRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      pointerId: event.pointerId,
+    };
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const swipe = swipeRef.current;
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    if (
+      !swipe.moved &&
+      Math.abs(dx) > DRAG_THRESHOLD &&
+      Math.abs(dx) > Math.abs(dy)
+    ) {
+      swipe.moved = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      mainRef.current?.classList.add('is-dragging');
+    }
+    if (swipe.moved) follow(dx);
+  };
+  const endSwipe = (event: PointerEvent<HTMLDivElement>, commit: boolean) => {
+    const swipe = swipeRef.current;
+    swipeRef.current = null;
+    if (!swipe?.moved) return;
+    mainRef.current?.classList.remove('is-dragging');
+    follow(0);
+    swipedRef.current = true;
+    const dx = event.clientX - swipe.x;
+    // A left swipe brings the next entry, a right swipe the previous one.
+    if (commit && Math.abs(dx) > SWIPE_COMMIT) onStep(dx < 0 ? 1 : -1);
+  };
+  const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+    if (!swipedRef.current) return;
+    swipedRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    event.stopPropagation();
+    refocusRef.current = (event.target as HTMLElement).classList.contains(
+      'shared-story-lifeline-preview-main',
+    );
+    onStep(event.key === 'ArrowRight' ? 1 : -1);
+  };
+
+  const motion =
+    travel.direction > 0
+      ? ' is-from-right'
+      : travel.direction < 0
+        ? ' is-from-left'
+        : '';
   const content = (
     <>
-      <span className="shared-story-lifeline-preview-media">
-        {item.previewAttachmentId && loadMemoryImage ? (
-          <MemoryPreview
-            memoryId={item.id}
-            attachmentId={item.previewAttachmentId}
-            isSensitive={item.previewIsSensitive}
-            hasThumbnail={item.previewHasThumbnail}
-            loadImage={loadMemoryImage}
-            resourceScopeKey={`story-lifeline:${spaceId}:${item.id}`}
-            fallback={glyph}
-          />
-        ) : (
-          glyph
-        )}
-      </span>
+      <EntryThumb
+        item={item}
+        spaceId={spaceId}
+        loadMemoryImage={loadMemoryImage}
+        className="shared-story-lifeline-preview-media"
+      />
       <span className="shared-story-lifeline-preview-text">
         <strong>{title}</strong>
-        <span>
-          {[
-            date ? formatCalendarDate(date) : unitLabel,
-            t('m5s5.dashboard.storyLifelineEntries', { count: column.total }),
-          ].join(' · ')}
+        <span className="shared-story-lifeline-preview-meta">
+          <StoryKindGlyph kind={kind} />
+          {[t(KIND_LABEL[kind]), date].filter(Boolean).join(' · ')}
         </span>
       </span>
     </>
   );
-  return path ? (
-    <TodayDestinationLink
-      to={path}
+  const dots: number[] = [];
+  if (position !== null && count !== null && count > 1) {
+    const shown = Math.min(PAGER_DOTS, count);
+    const start = Math.min(
+      Math.max(0, position - Math.floor(PAGER_DOTS / 2)),
+      count - shown,
+    );
+    for (let index = start; index < start + shown; index += 1) dots.push(index);
+  }
+  return (
+    // The card only adds a swipe to the link and buttons inside it.
+    // biome-ignore lint/a11y/noStaticElementInteractions: see above.
+    <div
       className="shared-story-lifeline-preview-card"
+      data-primary-tab-swipe-block="true"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={(event) => endSwipe(event, true)}
+      onPointerCancel={(event) => endSwipe(event, false)}
+      onClickCapture={onClickCapture}
+      onKeyDown={onKeyDown}
     >
-      {content}
-    </TodayDestinationLink>
-  ) : (
-    <span className="shared-story-lifeline-preview-card">{content}</span>
+      <div ref={mainRef} className="shared-story-lifeline-preview-swipe">
+        {path ? (
+          <TodayDestinationLink
+            key={`${item.id}:${travel.at}`}
+            to={path}
+            className={`shared-story-lifeline-preview-main${motion}`}
+          >
+            {content}
+          </TodayDestinationLink>
+        ) : (
+          <span
+            key={`${item.id}:${travel.at}`}
+            className={`shared-story-lifeline-preview-main${motion}`}
+          >
+            {content}
+          </span>
+        )}
+      </div>
+      {dots.length > 0 && position !== null && count !== null ? (
+        <fieldset className="shared-story-lifeline-pager">
+          <legend className="sr-only">
+            {t('m5s5.dashboard.storyLifelinePosition', {
+              position: position + 1,
+              total: count,
+            })}
+          </legend>
+          {dots.map((index) => (
+            <button
+              key={index}
+              type="button"
+              className="shared-story-lifeline-pager-dot"
+              aria-label={t('m5s5.dashboard.storyLifelineEntryLabel', {
+                position: index + 1,
+                total: count,
+              })}
+              aria-current={index === position ? 'true' : undefined}
+              onClick={() => onChoose(index)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
+      {loading ? (
+        <span className="sr-only" role="status">
+          {t('m5s5.dashboard.storyLifelineLoading')}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** Full (Eure Geschichte): the period's entries in date order. */
+function LifelineFan({
+  column,
+  period,
+  entries,
+  selected,
+  highlight,
+  loading,
+  spaceId,
+  loadMemoryImage,
+}: {
+  column: LifelineColumn;
+  period: string;
+  entries: readonly DashboardItem[] | null;
+  selected: number | null;
+  highlight: DashboardItem;
+  loading: boolean;
+  spaceId: string;
+  loadMemoryImage?: LoadMemoryImage;
+}) {
+  const { t } = useTranslation();
+  let rows: { item: DashboardItem; index: number }[] = [
+    { item: highlight, index: 0 },
+  ];
+  if (entries) {
+    const shown = Math.min(FAN_ROWS, entries.length);
+    const start = Math.min(
+      Math.max(0, (selected ?? 0) - 2),
+      entries.length - shown,
+    );
+    rows = entries
+      .slice(start, start + shown)
+      .map((item, offset) => ({ item, index: start + offset }));
+  }
+  const year = column.start.getUTCFullYear();
+  return (
+    <div
+      className="shared-story-lifeline-fan"
+      key={column.key}
+      style={{ '--lifeline-x': column.position } as CSSProperties}
+    >
+      <p className="shared-story-lifeline-fan-head">
+        <strong>{period}</strong>
+        <span>
+          {entries && selected !== null
+            ? t('m5s5.dashboard.storyLifelinePosition', {
+                position: selected + 1,
+                total: entries.length,
+              })
+            : t('m5s5.dashboard.storyLifelineEntries', {
+                count: column.total,
+              })}
+        </span>
+      </p>
+      <ol className="shared-story-lifeline-rows">
+        {rows.map(({ item, index }, order) => (
+          <LifelineRow
+            key={item.id}
+            item={item}
+            order={order}
+            selected={entries ? index === selected : true}
+            spaceId={spaceId}
+            loadMemoryImage={loadMemoryImage}
+          />
+        ))}
+      </ol>
+      {loading ? (
+        <p className="shared-story-lifeline-loading" role="status">
+          {t('m5s5.dashboard.storyLifelineLoading')}
+        </p>
+      ) : null}
+      {column.total > FAN_ROWS ? (
+        <Link
+          className="shared-story-lifeline-all"
+          to={`${appRoutePath('story')}?tab=timeline&year=${year}&order=ASC`}
+        >
+          {t('m5s5.dashboard.storyLifelineAll', {
+            count: column.total,
+            period,
+          })}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+function LifelineRow({
+  item,
+  order,
+  selected,
+  spaceId,
+  loadMemoryImage,
+}: {
+  item: DashboardItem;
+  order: number;
+  selected: boolean;
+  spaceId: string;
+  loadMemoryImage?: LoadMemoryImage;
+}) {
+  const { t } = useTranslation();
+  const kind = lifelineKindOf(item.type);
+  const { title } = dashboardItemTitle(item, t);
+  const path = dashboardItemPath(item.type, item.id);
+  const date = itemDate(item);
+  const content = (
+    <>
+      <EntryThumb
+        item={item}
+        spaceId={spaceId}
+        loadMemoryImage={loadMemoryImage}
+        className="shared-story-lifeline-row-media"
+      />
+      <span className="shared-story-lifeline-row-text">
+        <strong>{title}</strong>
+        <span>{t(KIND_LABEL[kind])}</span>
+      </span>
+      {date ? (
+        <span className="shared-story-lifeline-row-date">{date}</span>
+      ) : null}
+      <EimirIcon
+        name="chevron-right"
+        className="shared-story-lifeline-chevron"
+      />
+    </>
+  );
+  const className = `shared-story-lifeline-row story-kind-${kind}${selected ? ' is-selected' : ''}`;
+  return (
+    <li style={{ '--lifeline-row': order } as CSSProperties}>
+      {path ? (
+        <TodayDestinationLink to={path} className={className}>
+          {content}
+        </TodayDestinationLink>
+      ) : (
+        <span className={className}>{content}</span>
+      )}
+    </li>
   );
 }

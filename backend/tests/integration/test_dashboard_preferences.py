@@ -108,6 +108,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
         "monthly_highlights",
         "recent_shared",
         "shared_story_summary",
+        "shared_garden",
     ]
     assert len(keys) == len(set(keys))
 
@@ -120,8 +121,9 @@ def test_only_upcoming_defines_an_item_limit_facet() -> None:
             assert definition.item_limit is None
 
 
-def test_every_module_defaults_visible() -> None:
-    assert all(definition.default_visible for definition in CATALOG)
+def test_every_module_but_the_opt_in_garden_defaults_visible() -> None:
+    hidden = [definition.key for definition in CATALOG if not definition.default_visible]
+    assert hidden == [DashboardModuleKey.SHARED_GARDEN]
 
 
 def test_reorder_persists_full_order_without_losing_visibility_or_other_facets(
@@ -162,7 +164,8 @@ def test_reorder_rejects_partial_duplicate_and_foreign_keys_atomically(
     space_id = couple["space"].id
     token = couple["token_a"]
     for invalid in [
-        ALL_MODULE_KEYS[:-1],
+        # A required module is missing (older catalogs may only omit later additions).
+        [key for key in ALL_MODULE_KEYS if key != "keepsake"],
         [ALL_MODULE_KEYS[0]] * len(ALL_MODULE_KEYS),
         [*ALL_MODULE_KEYS[:-1], "not-a-module"],
     ]:
@@ -209,6 +212,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
             {"moduleKey": "monthly_highlights", "visible": True},
             {"moduleKey": "recent_shared", "visible": True},
             {"moduleKey": "shared_story_summary", "visible": True},
+            {"moduleKey": "shared_garden", "visible": False},
         ],
     }
     assert session.scalar(select(func.count()).select_from(DashboardModulePreference)) == 0
@@ -942,3 +946,76 @@ def test_a_selection_written_by_an_older_version_is_still_read(
     )
     assert reloaded["selectedCollectionId"] == str(shopping.id)
     assert reloaded["selectedCollectionIds"] == [str(shopping.id)]
+
+
+# --- The opt-in shared garden (Product Owner 2026-11-17) ----------------------
+
+
+def test_saved_preferences_from_before_the_garden_keep_order_and_leave_it_hidden(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    """A person with a saved order and hidden modules never sees the garden appear."""
+    space_id, token = couple["space"].id, couple["token_a"]
+    older = [key for key in ALL_MODULE_KEYS if key != "shared_garden"]
+    older = [older[0], *reversed(older[1:])]
+    assert _reorder(client, space_id, token, older).status_code == 200
+    assert _set_visible(client, space_id, token, "keepsake", False).status_code == 200
+    # The state an application version before the garden left behind.
+    session.execute(
+        DashboardModulePreference.__table__.delete().where(
+            DashboardModulePreference.module_key == "shared_garden"
+        )
+    )
+    session.expire_all()
+
+    items = _preferences(client, space_id, token).json()["items"]
+    keys = [item["moduleKey"] for item in items]
+    assert [key for key in keys if key != "shared_garden"] == older
+    assert keys.index("shared_garden") == keys.index("shared_story_summary") + 1
+    assert _item({"items": items}, "shared_garden")["visible"] is False
+    assert _item({"items": items}, "keepsake")["visible"] is False
+    assert all(
+        item["visible"] is True
+        for item in items
+        if item["moduleKey"] not in {"keepsake", "shared_garden"}
+    )
+
+
+def test_older_clients_without_the_garden_keep_their_order(client, couple) -> None:  # type: ignore[no-untyped-def]
+    older = [key for key in ALL_MODULE_KEYS if key != "shared_garden"]
+    older = [older[0], *reversed(older[1:])]
+    response = _reorder(client, couple["space"].id, couple["token_a"], older)
+    assert response.status_code == 200, response.text
+    keys = [item["moduleKey"] for item in response.json()["items"]]
+    assert [key for key in keys if key != "shared_garden"] == older
+    assert _item(response.json(), "shared_garden")["visible"] is False
+
+
+def test_turning_the_garden_on_is_personal_and_survives_a_reorder(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    shown = _set_visible(client, space_id, couple["token_a"], "shared_garden", True)
+    assert shown.status_code == 200, shown.text
+    assert shown.json() == {"moduleKey": "shared_garden", "visible": True}
+
+    desired = ["relationship_presence", "shared_garden"] + [
+        key for key in ALL_MODULE_KEYS if key not in {"relationship_presence", "shared_garden"}
+    ]
+    reordered = _reorder(client, space_id, couple["token_a"], desired)
+    assert reordered.status_code == 200, reordered.text
+    assert [item["moduleKey"] for item in reordered.json()["items"]] == desired
+
+    session.expire_all()
+    mine = _preferences(client, space_id, couple["token_a"]).json()
+    assert [item["moduleKey"] for item in mine["items"]] == desired
+    assert _item(mine, "shared_garden")["visible"] is True
+    partner = _preferences(client, space_id, couple["token_b"]).json()
+    assert _item(partner, "shared_garden")["visible"] is False
+
+    hidden = _set_visible(client, space_id, couple["token_a"], "shared_garden", False)
+    assert hidden.json()["visible"] is False
+    session.expire_all()
+    again = _preferences(client, space_id, couple["token_a"]).json()
+    assert [item["moduleKey"] for item in again["items"]] == desired
+    assert _item(again, "shared_garden")["visible"] is False

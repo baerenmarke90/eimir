@@ -6,6 +6,8 @@ import {
 } from '@tanstack/react-query';
 import {
   type FormEvent,
+  type RefObject,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -30,24 +32,36 @@ function presetDate(days: number): string {
   return localDateTimeInput(date);
 }
 
+/**
+ * The personal reminder for a wish. The page's actions menu owns the entry
+ * point: the menu opens this sheet through `open` and learns the saved time
+ * through `onSavedChange`, so no button or status line sits on the page.
+ */
 export function WishReminderAction({
   accountId,
   apiBaseUrl,
   spaceId,
   wishId,
   api,
+  open,
+  onOpenChange,
+  onSavedChange,
+  restoreFocusRef,
 }: {
   accountId: string;
   apiBaseUrl: string;
   spaceId: string;
   wishId: string;
   api: WishesApi;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSavedChange?: (saved: Date | null) => void;
+  restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const id = useId();
   const client = useQueryClient();
-  const trigger = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const setOpen = onOpenChange;
   const [draft, setDraft] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
   const online = useSyncExternalStore(
@@ -103,12 +117,21 @@ export function WishReminderAction({
   });
   const prefix = 'm5s3.wish.reminder' as const;
 
-  function start() {
-    write.reset();
-    setInvalid(false);
-    setDraft(null);
-    setOpen(true);
-  }
+  // Every opening starts from the saved time (or tomorrow) with a clean form.
+  const opened = useRef(false);
+  useEffect(() => {
+    if (open && !opened.current) {
+      write.reset();
+      setInvalid(false);
+      setDraft(null);
+    }
+    opened.current = open;
+  }, [open, write]);
+
+  const savedTime = saved?.getTime() ?? null;
+  useEffect(() => {
+    onSavedChange?.(savedTime === null ? null : new Date(savedTime));
+  }, [savedTime, onSavedChange]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,26 +151,13 @@ export function WishReminderAction({
   }
 
   return (
-    <div>
-      <button type="button" className="secondary" ref={trigger} onClick={start}>
-        {t(saved ? `${prefix}.edit` : `${prefix}.action`)}
-      </button>
-      <p role="status">
-        {saved
-          ? t(`${prefix}.scheduled`, {
-              date: new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              }).format(saved),
-            })
-          : null}
-      </p>
+    <>
       <ShortTaskSheet
         open={open}
         title={t(`${prefix}.action`)}
         onClose={() => setOpen(false)}
         isCloseBlocked={write.isPending}
-        restoreFocusRef={trigger}
+        restoreFocusRef={restoreFocusRef}
       >
         <p>{t(`${prefix}.privacy`)}</p>
         {!online ? <p role="status">{t(`${prefix}.offline`)}</p> : null}
@@ -223,6 +233,6 @@ export function WishReminderAction({
           </form>
         ) : null}
       </ShortTaskSheet>
-    </div>
+    </>
   );
 }

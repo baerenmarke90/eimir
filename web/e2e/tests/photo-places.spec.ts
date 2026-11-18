@@ -6,6 +6,7 @@ import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -14,6 +15,7 @@ import localeFixture from '../fixtures/locales/de';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -23,6 +25,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const PHOTO = fs.readFileSync(
   path.resolve(
@@ -120,9 +123,7 @@ test('the saved Place opens the pinned map directly, restores the moment and ret
       exact: true,
     }),
   ).toBeVisible();
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   const picker = await openPlaceEditor(page);
   await expect(
     picker
@@ -172,9 +173,7 @@ test('a pending photo location becomes a readable address without another upload
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(place).toBeFocused();
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   const picker = await openPlaceEditor(page);
   await expect(
     picker
@@ -202,9 +201,7 @@ test('canonical Place correction returns to the originating saved moment', async
       exact: true,
     }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: m5s3.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   await page
     .getByLabel(m5s3.place.name, { exact: true })
     .fill(localeFixture.photoPlaces.correctedName);
@@ -487,6 +484,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
       return;
     }
     if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     await route.fallback();
   });
   return {
@@ -542,12 +540,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
         .focus();
       const destination = page
-        .locator('.memory-planning-links')
+        .getByRole('region', {
+          name: memoryProduct.planning.detailHeading,
+          exact: true,
+        })
         .getByRole('link', {
-          name: new RegExp(localeFixture.photoPlaces.title),
+          name: `${localeFixture.photoPlaces.title} ${m5s5.kind.PLAN}`,
+          exact: true,
         });
-      await expect(destination).toContainText(composer.viewLinkedPlan);
-      await expect(destination).toContainText(localeFixture.photoPlaces.title);
       await expect(destination).toHaveAttribute(
         'href',
         '/plan/plans/plan-canal',
@@ -568,9 +568,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('button', { name: photoPlaceCopy.add }),
       ).toHaveCount(0);
       await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
-      await page
-        .getByRole('link', { name: memoryProduct.edit, exact: true })
-        .click();
+      await editViaMenu(page, memoryProduct.edit);
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
       const dialog = await openPlaceActions(page);
       await expect(
@@ -638,9 +636,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
       expect(state.writes).toEqual(['save']);
-      await page
-        .getByRole('link', { name: memoryProduct.edit, exact: true })
-        .click();
+      await editViaMenu(page, memoryProduct.edit);
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
       await expect(
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),

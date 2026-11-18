@@ -91,7 +91,7 @@ export function WirNotes({
               ) : null}
               <p className="wir-list-tile-last">
                 {own
-                  ? t('sharedNotes.editedByYou', { when })
+                  ? when
                   : t('sharedNotes.editedBy', {
                       name: authorFirstName(person),
                       when,

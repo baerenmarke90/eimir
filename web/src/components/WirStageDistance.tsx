@@ -1,13 +1,14 @@
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
 
-/** Minimum clear space between the distance and a daily mark, in pixels. */
-const MARK_CLEARANCE_PX = 8;
+/** Minimum clear space between the distance chip and a name, in pixels. */
+const NAME_CLEARANCE_PX = 8;
 
 /**
- * The distance on the Verbunden hero's middle axis (#1792), level with the
- * two daily marks. When the value would come closer to a mark than the
- * clearance (a narrow screen, larger text or a longer word, #1907 H4), it
- * moves to its own line below the marks instead of touching them.
+ * The distance on the Verbunden hero's middle axis (#1792), in the place of
+ * the ampersand between the two names. When the chip would come closer to a
+ * name than the clearance (a narrow screen, larger text or a longer word,
+ * #1907 H4), it moves to its own line below the daily marks instead of
+ * touching the name.
  */
 export function WirStageDistance({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -20,13 +21,13 @@ export function WirStageDistance({ children }: { children: ReactNode }) {
       // Moving down keeps the centre, so the horizontal check stays stable.
       const crowded =
         Boolean(value?.width) &&
-        [...hero.querySelectorAll('.wir-checkin-badge')].some((mark) => {
-          const box = mark.getBoundingClientRect();
+        [...hero.querySelectorAll('.wir-stage-name')].some((name) => {
+          const box = name.getBoundingClientRect();
           return (
             value != null &&
             box.width > 0 &&
-            box.right + MARK_CLEARANCE_PX > value.left &&
-            box.left - MARK_CLEARANCE_PX < value.right
+            box.right + NAME_CLEARANCE_PX > value.left &&
+            box.left - NAME_CLEARANCE_PX < value.right
           );
         });
       slot.classList.toggle('is-below-marks', crowded);

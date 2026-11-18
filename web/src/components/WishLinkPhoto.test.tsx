@@ -26,6 +26,8 @@ const WISH: WishDetail = {
   plan: null,
   hasMemory: false,
   followedFromWishId: null,
+  linkUrl: null,
+  photoAttachmentId: null,
   seriesId: 'wish-1',
   seriesPosition: 1,
   id: 'wish-1',

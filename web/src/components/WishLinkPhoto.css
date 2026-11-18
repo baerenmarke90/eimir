@@ -36,6 +36,7 @@
 /* Detail: the link as one findable row, tinted fill and no outline. */
 .wish-link-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   box-sizing: border-box;
@@ -43,7 +44,8 @@
   max-inline-size: var(--reading-max);
   min-block-size: var(--touch-target-web);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
+  /* A long host wraps to a second line; keep the ends from turning into a half circle. */
+  border-radius: min(var(--radius-pill), var(--space-6));
   background: var(--color-surface-subtle);
   color: var(--color-link-text);
   font: var(--font-action-label);
@@ -57,7 +59,7 @@
 }
 
 .wish-link-host {
-  flex: 1 1 auto;
+  flex: 1 1 8rem;
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }

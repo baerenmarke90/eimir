@@ -58,15 +58,48 @@ continue sheet), `PlanProductPage` (origin Wish block), `SharedPlanningOverviewP
 share intake), `SelectedMediaProvider`, the attachment binding and read
 authorization, and the app-link manifest filter.
 
-## Visual reference (open)
+## Visual reference and evidence
 
 The generated visual product reference required by `AGENTS.md` and section 9A of
-the partner-app standard is NOT yet attached. It must be generated against
-`70dc15952` and show, in one Compact composition: the Wish detail with the link
-row and photo, the Wish editor with link and photo tools beside the existing tag
-tool, and the shared-content sheet with "Save as Wish" and "Add to Wish". It is
-not replaced by this text. Implementation in the draft diff follows the existing
-shared product language so the reference can still steer composition.
+the partner-app standard was NOT produced before implementation, and the working
+session has no image generator, so that requirement is still open. It must be
+generated against `70dc15952` (or the then-current `main`) and show, in one
+Compact composition: the Wish detail with the link row and photo, the Wish
+editor with link and photo tools beside the existing tag tool, and the
+shared-content sheet with "Save as Wish" and "Add to Wish".
+
+What exists instead is rendered evidence of the implementation, captured from the
+real UI with Playwright against a mocked API (Wish and Plan mock, a faked native
+`WishShare` plugin, the repository demo photo, reduced motion) in
+`evidence/wish-link-photo-share/` (43 PNGs):
+
+- Wish detail sparse and dense at 390 Light/Dark, dense at 360, 430 and 1440
+  Light; at 150 % text size a dense detail and a very long link host.
+- Editor empty and filled at 390 Light/Dark, 360, 430 and 1440 Light; link sheet
+  (Light/Dark) and its invalid state; photo uploading and failed with Retry; the
+  filled editor at 150 % text size.
+- Plan detail with the originating Wish link and photo (390 Light/Dark, 1440).
+- Shared-content sheet "Save as Wish" and the "Add to Wish" list, the Keep/Replace
+  merge sheet, the edit screen after merging and the create editor prefilled from
+  a share (390).
+- Actions menu in a browser and in native mode ("Share Wish"), and the "not
+  available" state of a Wish the viewer cannot read.
+
+Not captured: Expanded in Dark, the share and merge sheets at 360/430/1440, any
+real Android WebView rendering. The capture code is not committed to avoid
+adding an unregistered browser spec to the impact selection; it exists only as
+untracked files in the author's worktree and must be committed deliberately
+(for example with its own impact registration) if the captures should be
+reproducible.
+
+Findings from reviewing the captures: a long link host wrapped one letter per
+line at 150 % text on a 360 px screen (fixed with a wrapping link row); the
+single-line title input clips long titles without an ellipsis and the photo
+"Edit" overlay clips at 150 % text (both existing behavior, not changed); a failed
+upload stacks several messages (the existing retry overlay and the new hint)
+and should be reduced; the Keep/Replace choice for a photo has no thumbnails;
+at 1440 the centered photo gallery and the left-aligned link row do not share a
+column edge.
 
 ## Mobile Interaction Contract
 

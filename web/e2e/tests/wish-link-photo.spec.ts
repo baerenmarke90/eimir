@@ -294,7 +294,9 @@ test('creates a Wish with a link and a photo and shows both on its detail', asyn
   await expect(row).toHaveAttribute('rel', /noopener/);
   await expect(row).toContainText('hut.example');
   await expect(row).toContainText(copy.wish.link.open);
-  await expect(page.locator('.wish-photo-gallery img:not([aria-hidden])').first()).toBeVisible();
+  await expect(
+    page.locator('.wish-photo-gallery img:not([aria-hidden])').first(),
+  ).toBeVisible();
 
   // The cover opens in the shared viewer.
   await page
@@ -328,7 +330,9 @@ test('edits or removes only the link and leaves the photo untouched', async ({
     'https://new.example/offer',
   );
   expect(api.updates).toHaveLength(1);
-  expect(api.updates[0]).toMatchObject({ linkUrl: 'https://new.example/offer' });
+  expect(api.updates[0]).toMatchObject({
+    linkUrl: 'https://new.example/offer',
+  });
   expect(api.updates[0]).not.toHaveProperty('photoAttachmentId');
 
   await editViaMenu(page, de.common.edit);
@@ -387,9 +391,7 @@ test('blocks Save after a failed upload and binds the fresh attachment after a r
   await expect(saveCreate(page)).toBeDisabled();
   expect(api.creates).toHaveLength(0);
 
-  await page
-    .locator('.photo-draft-stage-retry')
-    .click();
+  await page.locator('.photo-draft-stage-retry').click();
   await expect(page.locator('.photo-draft-tile')).toHaveAttribute(
     'aria-label',
     new RegExp(de.memory.photoReady),
@@ -398,9 +400,7 @@ test('blocks Save after a failed upload and binds the fresh attachment after a r
   await saveCreate(page).click();
   await expect(page).toHaveURL(/\/plan\/wishes\/wish-new-1$/);
   expect(api.creates).toHaveLength(1);
-  expect(api.creates[0].photoAttachmentId).toBe(
-    `photo-${api.uploadCount()}`,
-  );
+  expect(api.creates[0].photoAttachmentId).toBe(`photo-${api.uploadCount()}`);
   expect(api.uploadCount()).toBeGreaterThan(1);
 });
 
@@ -422,10 +422,7 @@ test('a Plan from a Wish shows the original link and photo read-only', async ({
   await page.goto('/plan/plans/plan-1');
   const origin = page.locator('.wish-origin-media');
   await expect(origin).toContainText(copy.wish.origin.label);
-  await expect(origin.locator('a.wish-link-row')).toHaveAttribute(
-    'href',
-    LINK,
-  );
+  await expect(origin.locator('a.wish-link-row')).toHaveAttribute('href', LINK);
   await expect(origin.locator('img:not([aria-hidden])').first()).toBeVisible();
 
   await page.goto('/plan/plans/plan-2');

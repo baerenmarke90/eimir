@@ -31,17 +31,17 @@ export interface WishCreate {
      */
     description?: string;
     /**
-     * Optional web link (http/https, at most 2048 characters).
+     * Optional http(s) web address. The server never fetches it. Blank means no link.
      * @type {string}
      * @memberof WishCreate
      */
-    linkUrl?: string | null;
+    linkUrl?: string;
     /**
-     * READY image attachment to bind as the one photo of this Wish.
+     * Optional READY image attachment uploaded by the caller; it becomes the Wish's single photo.
      * @type {string}
      * @memberof WishCreate
      */
-    photoAttachmentId?: string | null;
+    photoAttachmentId?: string;
     /**
      * 
      * @type {Array<string>}

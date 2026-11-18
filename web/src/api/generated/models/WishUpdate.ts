@@ -30,13 +30,13 @@ export interface WishUpdate {
      */
     description?: string | null;
     /**
-     * Web link; explicit null clears it, omitted leaves it unchanged.
+     * http(s) web address. Explicit null (or blank) removes the link.
      * @type {string}
      * @memberof WishUpdate
      */
     linkUrl?: string | null;
     /**
-     * READY image attachment bound as the photo; explicit null clears it, omitted leaves it unchanged.
+     * READY image attachment uploaded by the caller to set or replace the Wish's photo. Explicit null removes the photo; omitted leaves it untouched.
      * @type {string}
      * @memberof WishUpdate
      */

@@ -33,13 +33,14 @@ class Milestone(
     PrivateResourceMixin,
     Base,
 ):
-    """A shared milestone readable by both partners and editable by its author.
+    """A shared milestone readable and content-editable by both partners.
 
     Unlike a memory, ``happened_on`` is required. A milestone without a date
     would not be a milestone, and story ordering depends on that date.
     """
 
     __tablename__ = "milestones"
+    shared_edit: ClassVar[bool] = True
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Milestone not found.", "RESOURCE_NOT_FOUND"

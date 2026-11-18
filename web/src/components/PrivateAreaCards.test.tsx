@@ -53,7 +53,7 @@ describe('issue #619: private area cards unified navigation', () => {
       </QueryClientProvider>,
     );
 
-    expect(html).toContain('href="/more/private"');
+    expect(html).not.toContain('class="back-link"');
     // Entire card is the link
     expect(html).toContain('private-area-card-clickable');
     expect(html).toContain('href="/more/private/notes/note-1"');
@@ -61,7 +61,7 @@ describe('issue #619: private area cards unified navigation', () => {
     expect(html).toContain('Look into cabin rentals by the lake');
     expect(html).toContain('private-area-badge');
     expect(html).toContain('Angeheftet');
-    expect(html).toContain('private-area-card-arrow');
+    expect(html).not.toContain('private-area-card-arrow');
     // Redundant separate edit button removed
     expect(html).not.toContain('button-link secondary-link');
   });
@@ -113,7 +113,7 @@ describe('issue #619: private area cards unified navigation', () => {
       </QueryClientProvider>,
     );
 
-    expect(html).toContain('href="/more/private"');
+    expect(html).not.toContain('class="back-link"');
     // Entire card is the link
     expect(html).toContain('private-area-card-clickable');
     expect(html).toContain('href="/more/private/gift-ideas/gift-1"');
@@ -121,7 +121,7 @@ describe('issue #619: private area cards unified navigation', () => {
     expect(html).toContain('Alex');
     expect(html).toContain('Found a restored 1970s turntable');
     expect(html).toContain('private-area-badge');
-    expect(html).toContain('private-area-card-arrow');
+    expect(html).not.toContain('private-area-card-arrow');
     // Redundant separate edit button removed
     expect(html).not.toContain('button-link secondary-link');
   });

@@ -1,35 +1,41 @@
-import { type FormEvent, useState } from 'react';
+import './FreeComposer.css';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
+import { useReturnTo } from '../client/historyEntries';
 import {
-  PRIVATE_NOTES_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_NOTES_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateNoteEditPath,
   privateNotePath,
 } from '../client/privateArea';
 import { useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
-  LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemPrivacy,
   usePrivateAreaTaskContext,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
+import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
@@ -143,13 +149,14 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_NOTES_PATH}/new`}>
-            {t('privateArea.notes.add')}
-          </Link>
+          <AddActionLink
+            floating
+            label={t('privateArea.notes.add')}
+            to={`${PRIVATE_NOTES_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -190,18 +197,13 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
                       <p className="private-area-excerpt">{note.body}</p>
                     ) : null}
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}
           </ul>
-          <LoadMoreButton
-            hasMore={Boolean(query.hasNextPage)}
-            loading={query.isFetchingNextPage}
-            onLoadMore={() => void query.fetchNextPage()}
-          />
+          <AutoLoadMore query={query} className="secondary">
+            {t('privateArea.loadMore')}
+          </AutoLoadMore>
         </section>
       ) : null}
     </>
@@ -243,6 +245,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -271,19 +274,23 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.notes.detailBack')}
-          </button>
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.notes.detailBack',
+            )}
+          </TaskBackButton>
         }
         title={t('privateArea.notes.createTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}
@@ -342,17 +349,20 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
             fallbackLabel={t('privateArea.notes.detailBack')}
           />
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.notes.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={note.title}
-        action={
+        titleAction={
           note.capabilities.canEdit ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={privateNoteEditPath(note.id)}
               state={navigationState}
-            >
-              {t('privateArea.edit')}
-            </Link>
+              label={t('privateArea.edit')}
+            />
           ) : undefined
         }
       />
@@ -373,6 +383,7 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
 export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { noteId, query } = usePrivateNote(api, accountId, spaceId);
@@ -437,10 +448,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateNotePath(note.id), {
-          replace: true,
-          state: navigationState,
-        });
+        returnTo(privateNotePath(note.id), { state: navigationState });
       });
     },
   });
@@ -503,19 +511,19 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending || deleteMutation.isPending}
           >
             {t('privateArea.notes.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.notes.editTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}

@@ -542,3 +542,443 @@ class TestCleanupRespectsBinding:
             ).status_code
             == 404
         )
+
+
+class TestSensitiveMedia:
+    def test_mixed_gallery_classification_is_published_atomically_and_projected_to_partner(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        first = ready_attachment(client, couple, session)
+        second = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        path = f"{base_path(couple['space'].id)}/memories/{created['id']}"
+        original = client.get(
+            f"{base_path(couple['space'].id)}/attachments/{first}/content",
+            headers=auth(couple["token_a"]),
+        ).content
+        updated = client.put(
+            f"{path}/attachments",
+            json={
+                "attachments": [
+                    {"attachmentId": first, "position": 0, "isSensitive": True},
+                    {"attachmentId": second, "position": 1, "isSensitive": False},
+                ]
+            },
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert updated.status_code == 200
+        assert [item["isSensitive"] for item in updated.json()["attachments"]] == [True, False]
+        partner = client.get(path, headers=auth(couple["token_b"]))
+        assert [item["isSensitive"] for item in partner.json()["attachments"]] == [True, False]
+        assert (
+            client.get(
+                f"{base_path(couple['space'].id)}/attachments/{first}/content",
+                headers=auth(couple["token_b"]),
+            ).content
+            == original
+        )
+        story = client.get(
+            f"{base_path(couple['space'].id)}/timeline", headers=auth(couple["token_b"])
+        )
+        assert story.status_code == 200
+        item = next(item for item in story.json()["items"] if item["kind"] == "MEMORY")
+        assert item["memory"]["attachments"][0]["isSensitive"] is True
+
+    def test_stale_edit_cannot_unmark_and_partner_edits_preserve_legacy_classification(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        photo = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        path = f"{base_path(couple['space'].id)}/memories/{created['id']}/attachments"
+        body = {"attachments": [{"attachmentId": photo, "position": 0, "isSensitive": True}]}
+        initial = client.put(
+            path, json=body, headers=if_match(couple["token_a"], created["version"])
+        )
+        assert initial.status_code == 200
+        body["attachments"][0]["isSensitive"] = False
+        assert (
+            client.put(
+                path, json=body, headers=if_match(couple["token_a"], created["version"])
+            ).status_code
+            == 409
+        )
+        outsider = make_account(session, "Another account")
+        make_space(session, outsider)
+        outsider_token = sign_in(session, outsider)
+        for headers, expected in [
+            ({"If-Match": str(initial.json()["version"])}, 401),
+            (if_match(outsider_token, initial.json()["version"]), 404),
+        ]:
+            assert client.put(path, json=body, headers=headers).status_code == expected
+        unchanged = client.get(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}",
+            headers=auth(couple["token_a"]),
+        ).json()
+        assert unchanged["version"] == initial.json()["version"]
+        assert unchanged["attachments"][0]["isSensitive"] is True
+        partner = client.put(
+            path, json=body, headers=if_match(couple["token_b"], initial.json()["version"])
+        )
+        assert partner.status_code == 200
+        assert partner.json()["attachments"][0]["isSensitive"] is False
+        body["attachments"][0]["isSensitive"] = True
+        marked = client.put(
+            path, json=body, headers=if_match(couple["token_b"], partner.json()["version"])
+        )
+        assert marked.status_code == 200
+        assert marked.json()["attachments"][0]["canEditSensitivity"] is True
+        initial = marked
+        session.get(Attachment, UUID(photo)).ready_at = now() - timedelta(days=30)
+        session.flush()
+        del body["attachments"][0]["isSensitive"]
+        legacy = client.put(
+            path, json=body, headers=if_match(couple["token_a"], initial.json()["version"])
+        )
+        assert legacy.status_code == 200
+        assert legacy.json()["attachments"][0]["isSensitive"] is True
+        body["attachments"][0]["isSensitive"] = False
+        unmarked = client.put(
+            path, json=body, headers=if_match(couple["token_a"], legacy.json()["version"])
+        )
+        assert unmarked.status_code == 200
+        assert unmarked.json()["attachments"][0]["isSensitive"] is False
+
+    def test_invalid_gallery_rolls_back_classification_and_binding(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        photo = ready_attachment(client, couple, session)
+        foreign = ready_attachment(client, couple, session, token_key="token_b")
+        created = memory(client, couple)
+        result = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}/attachments",
+            json={
+                "attachments": [
+                    {"attachmentId": photo, "position": 0, "isSensitive": True},
+                    {"attachmentId": foreign, "position": 1},
+                ]
+            },
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert result.status_code in {403, 404}
+        detail = client.get(
+            f"{base_path(couple['space'].id)}/attachments/{photo}", headers=auth(couple["token_a"])
+        )
+        assert detail.json()["isSensitive"] is False
+
+    def test_private_heart_moment_keeps_classification_through_sharing_and_versioned_edits(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        photo = ready_attachment(client, couple, session)
+        root = base_path(couple["space"].id)
+        created = client.post(
+            f"{root}/heart-moments",
+            json={
+                "text": "A private thought",
+                "emotion": "LOVED",
+                "visibility": "PRIVATE",
+                "happenedOn": "2026-10-28",
+                "attachmentId": photo,
+                "attachmentIsSensitive": True,
+            },
+            headers=auth(couple["token_a"]),
+        )
+        assert created.status_code == 201
+        current = created.json()
+        assert current["attachment"]["isSensitive"] is True
+        path = f"{root}/heart-moments/{current['id']}"
+        assert client.get(path, headers=auth(couple["token_b"])).status_code == 404
+        shared = client.patch(
+            f"{path}/visibility",
+            json={"visibility": "SHARED"},
+            headers=if_match(couple["token_a"], current["version"]),
+        )
+        assert shared.status_code == 200
+        assert (
+            client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
+            is True
+        )
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": False},
+            headers=if_match(couple["token_b"], shared.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert denied.json()["code"] == "NOT_RESOURCE_OWNER"
+        edited = client.patch(
+            path,
+            json={"text": "Updated thought", "attachmentIsSensitive": False},
+            headers=if_match(couple["token_a"], shared.json()["version"]),
+        )
+        assert edited.status_code == 200
+        assert edited.json()["version"] == shared.json()["version"] + 1
+        assert edited.json()["attachment"]["isSensitive"] is False
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": True},
+            headers=if_match(couple["token_b"], edited.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert (
+            client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
+            is False
+        )
+        stale = client.patch(
+            path,
+            json={"attachmentIsSensitive": True},
+            headers=if_match(couple["token_a"], shared.json()["version"]),
+        )
+        assert stale.status_code == 409
+
+    def test_export_retains_original_and_sensitive_classification(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        import json
+        from zipfile import ZipFile
+
+        from eimir.authorization import AuthorizationContext
+        from eimir.transfer import service as transfer_service
+        from eimir.transfer.models import TransferScope
+
+        photo = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        client.put(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}/attachments",
+            json={"attachments": [{"attachmentId": photo, "position": 0, "isSensitive": True}]},
+            headers=if_match(couple["token_a"], created["version"]),
+        ).raise_for_status()
+        context = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
+        with (
+            transfer_service.build_export_archive(session, context, TransferScope.SHARED) as bundle,
+            ZipFile(bundle) as archive,
+        ):
+            media = json.loads(archive.read("media/index.json"))["items"]
+            assert media[0]["isSensitive"] is True
+            with get_media_store().open(
+                build_storage_key(couple["space"].id, UUID(photo), "original")
+            ) as original:
+                assert archive.read(f"media/{photo}/original") == original.read()
+
+    def test_transfer_round_trip_preserves_sensitive_payload(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        from eimir.authorization import AuthorizationContext
+        from eimir.transfer import jobs
+        from eimir.transfer import service as transfer_service
+        from eimir.transfer.models import ImportStatus, TransferScope
+
+        photo = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        client.put(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}/attachments",
+            json={"attachments": [{"attachmentId": photo, "position": 0, "isSensitive": True}]},
+            headers=if_match(couple["token_a"], created["version"]),
+        ).raise_for_status()
+        target = make_space(session, couple["anna"])
+        relationship_service.add_member(session, target.id, couple["ben"])
+        source_context = AuthorizationContext(
+            account_id=couple["anna"].id, space_id=couple["space"].id
+        )
+        target_context = AuthorizationContext(account_id=couple["anna"].id, space_id=target.id)
+        with transfer_service.build_export_archive(
+            session, source_context, TransferScope.SHARED
+        ) as bundle:
+            bundle.seek(0, io.SEEK_END)
+            size = bundle.tell()
+            bundle.seek(0)
+            transfer = transfer_service.create_import(session, target_context, bundle, size=size)
+        jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+        assert transfer.status == ImportStatus.READY_TO_APPLY.value
+        transfer_service.request_apply(session, target_context, str(transfer.id))
+        jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+        assert transfer.status == ImportStatus.COMPLETED.value
+        imported = session.execute(
+            select(Attachment).where(Attachment.space_id == target.id)
+        ).scalar_one()
+        assert imported.payload.is_sensitive is True
+        with get_media_store().open(
+            build_storage_key(target.id, imported.id, "original")
+        ) as original:
+            assert original.read()
+
+    def test_classification_failure_rolls_back_before_first_shared_binding(
+        self, production_client, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.attachments import binding
+        from eimir.core.errors import ConflictError, ErrorCode
+
+        # The regular client fixture replaces get_session with a shared test
+        # Session and deliberately bypasses the request's rollback boundary.
+        # Exercise real independent request transactions for this guarantee.
+        client, maker = production_client
+        with maker.begin() as session:
+            anna = make_account(session, "Anna")
+            ben = make_account(session, "Ben")
+            space = make_space(session, anna)
+            relationship_service.add_member(session, space.id, ben)
+            couple = {
+                "anna": anna,
+                "ben": ben,
+                "space": space,
+                "token_a": sign_in(session, anna),
+                "token_b": sign_in(session, ben),
+            }
+        with maker.begin() as session:
+            first = ready_attachment(client, couple, session)
+        with maker.begin() as session:
+            second = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        original = binding.set_sensitive
+        calls = 0
+
+        def fail_second(
+            attachment: Attachment, value: bool | None, *, allow_change: bool = True
+        ) -> None:
+            nonlocal calls
+            calls += 1
+            original(attachment, value, allow_change=allow_change)
+            if calls == 2:
+                raise ConflictError(
+                    "Simulated classification conflict.", ErrorCode.RESOURCE_VERSION_CONFLICT
+                )
+
+        monkeypatch.setattr(binding, "set_sensitive", fail_second)
+        root = base_path(couple["space"].id)
+        result = client.put(
+            f"{root}/memories/{created['id']}/attachments",
+            json={
+                "attachments": [
+                    {"attachmentId": first, "position": 0, "isSensitive": True},
+                    {"attachmentId": second, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert result.status_code == 409
+        assert calls == 2
+        partner = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert partner.status_code == 200
+        assert partner.json()["attachments"] == []
+        assert partner.json()["version"] == created["version"]
+        for photo in [first, second]:
+            assert (
+                client.get(f"{root}/attachments/{photo}", headers=auth(couple["token_a"])).json()[
+                    "isSensitive"
+                ]
+                is False
+            )
+
+
+class TestPartnerEnrichment:
+    def test_partner_can_add_own_photo_but_cannot_remove_or_borrow_the_authors_photo(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        root = base_path(couple["space"].id)
+        original = ready_attachment(client, couple, session)
+        own = ready_attachment(client, couple, session, token_key="token_b")
+        foreign_unbound = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        url = f"{root}/memories/{created['id']}/attachments"
+        first = client.put(
+            url,
+            json={"attachments": [{"attachmentId": original, "position": 0}]},
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert first.status_code == 200
+        version = first.json()["version"]
+        borrowed = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": foreign_unbound, "position": 1},
+                ]
+            },
+            headers=if_match(couple["token_b"], version),
+        )
+        assert borrowed.status_code == 404
+        enriched = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1},
+                ]
+            },
+            headers=if_match(couple["token_b"], version),
+        )
+        assert enriched.status_code == 200
+        assert [item["id"] for item in enriched.json()["attachments"]] == [original, own]
+        assert enriched.json()["authorId"] == str(couple["anna"].id)
+        assert [item["canEditSensitivity"] for item in enriched.json()["attachments"]] == [
+            True,
+            True,
+        ]
+        owner_view = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_a"]))
+        assert [item["canEditSensitivity"] for item in owner_view.json()["attachments"]] == [
+            True,
+            True,
+        ]
+        classified = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], enriched.json()["version"]),
+        )
+        assert classified.status_code == 200
+        assert [item["isSensitive"] for item in classified.json()["attachments"]] == [False, True]
+        partner_marked = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0, "isSensitive": True},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], classified.json()["version"]),
+        )
+        assert partner_marked.status_code == 200
+        reloaded = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert [item["isSensitive"] for item in reloaded.json()["attachments"]] == [True, True]
+        timeline = client.get(f"{root}/timeline", headers=auth(couple["token_b"]))
+        projected = next(
+            item["memory"]
+            for item in timeline.json()["items"]
+            if item["kind"] == "MEMORY" and item["memory"]["id"] == created["id"]
+        )
+        assert [item["canEditSensitivity"] for item in projected["attachments"]] == [True, True]
+        unmarked = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0, "isSensitive": False},
+                    {"attachmentId": own, "position": 1, "isSensitive": False},
+                ]
+            },
+            headers=if_match(couple["token_b"], reloaded.json()["version"]),
+        )
+        assert unmarked.status_code == 200
+        assert [item["isSensitive"] for item in unmarked.json()["attachments"]] == [False, False]
+        removed = client.put(
+            url,
+            json={"attachments": [{"attachmentId": own, "position": 0}]},
+            headers=if_match(couple["token_b"], unmarked.json()["version"]),
+        )
+        assert removed.status_code == 403
+        final = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert [item["id"] for item in final.json()["attachments"]] == [original, own]
+
+    def test_partner_cannot_remove_an_authors_shared_heart_moment_photo(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        photo = ready_attachment(client, couple, session)
+        created = heart_moment(client, couple, attachment_id=photo).json()
+        url = f"{base_path(couple['space'].id)}/heart-moments/{created['id']}"
+        response = client.patch(
+            url,
+            json={"attachmentId": None},
+            headers=if_match(couple["token_b"], created["version"]),
+        )
+        assert response.status_code == 403
+        assert client.get(url, headers=auth(couple["token_b"])).json()["attachment"]["id"] == photo

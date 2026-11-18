@@ -63,6 +63,21 @@ function normalizeHex(hex: string): string {
 }
 
 const tokensJson = JSON.parse(readSource('../../design/tokens.json'));
+
+it('keeps the native startup background aligned with each canonical Web palette', () => {
+  for (const [directory, scheme] of [
+    ['values', 'light'],
+    ['values-night', 'dark'],
+  ] as const) {
+    const xml = readSource(
+      `../../android/app/src/main/res/${directory}/startup.xml`,
+    );
+    const color = xml.match(/name="eimir_startup_background">([^<]+)</)?.[1];
+    expect(color?.toLowerCase()).toBe(
+      tokensJson.color.scheme[scheme].background.$value.toLowerCase(),
+    );
+  }
+});
 const themeCss = readSource('./theme.css');
 const stylesCss = readSource('./styles.css');
 const themeTs = readSource('./theme.ts');

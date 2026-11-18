@@ -18,10 +18,12 @@ All URIs are relative to *http://localhost*
 | [**getAccountCapabilitiesApiV1AuthCapabilitiesGet**](AuthApi.md#getaccountcapabilitiesapiv1authcapabilitiesget) | **GET** /api/v1/auth/capabilities | Get Account Capabilities |
 | [**linkOidcApiV1AuthOidcConnectionIdLinkPost**](AuthApi.md#linkoidcapiv1authoidcconnectionidlinkpost) | **POST** /api/v1/auth/oidc/{connectionId}/link | Link Oidc |
 | [**listAccountMembershipsApiV1AuthMembershipsGet**](AuthApi.md#listaccountmembershipsapiv1authmembershipsget) | **GET** /api/v1/auth/memberships | List Account Memberships |
+| [**listSignInMethodsApiV1AuthSignInMethodsGet**](AuthApi.md#listsigninmethodsapiv1authsigninmethodsget) | **GET** /api/v1/auth/sign-in-methods | List Sign In Methods |
 | [**meApiV1AuthMeGet**](AuthApi.md#meapiv1authmeget) | **GET** /api/v1/auth/me | Me |
 | [**passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost**](AuthApi.md#passwordapiv1authrecentauthenticationaccountdeletionpasswordpost) | **POST** /api/v1/auth/recent-authentication/account-deletion/password | Password |
 | [**refreshApiV1AuthRefreshPost**](AuthApi.md#refreshapiv1authrefreshpost) | **POST** /api/v1/auth/refresh | Refresh |
 | [**registerApiV1AuthRegisterPost**](AuthApi.md#registerapiv1authregisterpost) | **POST** /api/v1/auth/register | Register |
+| [**removePasskeyApiV1AuthPasskeysPasskeyIdDelete**](AuthApi.md#removepasskeyapiv1authpasskeyspasskeyiddelete) | **DELETE** /api/v1/auth/passkeys/{passkeyId} | Remove Passkey |
 | [**requestEmailVerificationApiV1AuthEmailVerificationRequestPost**](AuthApi.md#requestemailverificationapiv1authemailverificationrequestpost) | **POST** /api/v1/auth/email/verification/request | Request Email Verification |
 | [**requestMagicLinkApiV1AuthMagicLinkRequestPost**](AuthApi.md#requestmagiclinkapiv1authmagiclinkrequestpost) | **POST** /api/v1/auth/magic-link/request | Request Magic Link |
 | [**requestRecoveryApiV1AuthRecoveryRequestPost**](AuthApi.md#requestrecoveryapiv1authrecoveryrequestpost) | **POST** /api/v1/auth/recovery/request | Request Recovery |
@@ -40,6 +42,7 @@ All URIs are relative to *http://localhost*
 | [**startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost**](AuthApi.md#startpasskeyapiv1authrecentauthenticationaccountdeletionpasskeysstartpost) | **POST** /api/v1/auth/recent-authentication/account-deletion/passkeys/start | Start Passkey |
 | [**startPasskeyAuthenticationApiV1AuthPasskeysAuthenticationStartPost**](AuthApi.md#startpasskeyauthenticationapiv1authpasskeysauthenticationstartpost) | **POST** /api/v1/auth/passkeys/authentication/start | Start Passkey Authentication |
 | [**startPasskeyRegistrationApiV1AuthPasskeysRegistrationStartPost**](AuthApi.md#startpasskeyregistrationapiv1authpasskeysregistrationstartpost) | **POST** /api/v1/auth/passkeys/registration/start | Start Passkey Registration |
+| [**unlinkOidcApiV1AuthOidcConnectionIdDelete**](AuthApi.md#unlinkoidcapiv1authoidcconnectioniddelete) | **DELETE** /api/v1/auth/oidc/{connectionId} | Unlink Oidc |
 
 
 
@@ -591,7 +594,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
 | **403** | &#x60;AUTH_METHOD_DISABLED&#x60; on deployments without self-service signup, or &#x60;REGISTRATION_DISABLED&#x60; when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created. |  -  |
-| **409** | The request conflicts with the current state of the resource. |  -  |
+| **409** | &#x60;TERMS_ACCEPTANCE_REQUIRED&#x60;: the proof would create a new Account without an acceptance of the current terms of use. Nothing was created and the proof stays redeemable: redeem it again with &#x60;acceptedTermsVersion&#x60;. &#x60;TERMS_VERSION_OUTDATED&#x60;: &#x60;acceptedTermsVersion&#x60; is not the current version. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | &#x60;MAINTENANCE_MODE&#x60;: no new Account is created during maintenance. |  -  |
@@ -863,7 +866,7 @@ No authorization required
 
 ## linkOidcApiV1AuthOidcConnectionIdLinkPost
 
-> OidcStartView linkOidcApiV1AuthOidcConnectionIdLinkPost(connectionId)
+> OidcStartView linkOidcApiV1AuthOidcConnectionIdLinkPost(connectionId, oidcLinkRequest)
 
 Link Oidc
 
@@ -885,6 +888,8 @@ async function example() {
   const body = {
     // string
     connectionId: connectionId_example,
+    // OidcLinkRequest (optional)
+    oidcLinkRequest: ...,
   } satisfies LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest;
 
   try {
@@ -905,6 +910,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **connectionId** | `string` |  | [Defaults to `undefined`] |
+| **oidcLinkRequest** | [OidcLinkRequest](OidcLinkRequest.md) |  | [Optional] |
 
 ### Return type
 
@@ -916,7 +922,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 
@@ -971,6 +977,66 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**Array&lt;AccountMembershipView&gt;**](AccountMembershipView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listSignInMethodsApiV1AuthSignInMethodsGet
+
+> SignInMethodsView listSignInMethodsApiV1AuthSignInMethodsGet()
+
+List Sign In Methods
+
+List the passkeys and linked providers of the authenticated account.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ListSignInMethodsApiV1AuthSignInMethodsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  try {
+    const data = await api.listSignInMethodsApiV1AuthSignInMethodsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**SignInMethodsView**](SignInMethodsView.md)
 
 ### Authorization
 
@@ -1256,6 +1322,76 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## removePasskeyApiV1AuthPasskeysPasskeyIdDelete
+
+> removePasskeyApiV1AuthPasskeysPasskeyIdDelete(passkeyId)
+
+Remove Passkey
+
+Remove one passkey, unless it is the account\&#39;s only way to sign in.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { RemovePasskeyApiV1AuthPasskeysPasskeyIdDeleteRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // string
+    passkeyId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+  } satisfies RemovePasskeyApiV1AuthPasskeysPasskeyIdDeleteRequest;
+
+  try {
+    const data = await api.removePasskeyApiV1AuthPasskeysPasskeyIdDelete(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **passkeyId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## requestEmailVerificationApiV1AuthEmailVerificationRequestPost
 
 > requestEmailVerificationApiV1AuthEmailVerificationRequestPost()
@@ -1523,6 +1659,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **202** | Successful Response |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **409** | &#x60;TERMS_VERSION_OUTDATED&#x60;: &#x60;acceptedTermsVersion&#x60; is not the version currently published by &#x60;GET /instance/status&#x60;. No proof was issued. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | A capability required for this operation is not configured on this instance. |  -  |
@@ -2455,6 +2592,76 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## unlinkOidcApiV1AuthOidcConnectionIdDelete
+
+> unlinkOidcApiV1AuthOidcConnectionIdDelete(connectionId)
+
+Unlink Oidc
+
+Unlink an external provider, unless it is the account\&#39;s only way to sign in.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // string
+    connectionId: connectionId_example,
+  } satisfies UnlinkOidcApiV1AuthOidcConnectionIdDeleteRequest;
+
+  try {
+    const data = await api.unlinkOidcApiV1AuthOidcConnectionIdDelete(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **connectionId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

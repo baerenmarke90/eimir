@@ -1,9 +1,12 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -23,10 +26,27 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 }, testInfo) => {
   const unexpectedRequests: string[] = [];
   let dashboardRequestCount = 0;
+  let deviceContextRequestCount = 0;
+  let confirmDeviceContext!: () => void;
+  const deviceContextConfirmation = new Promise<void>((resolve) => {
+    confirmDeviceContext = resolve;
+  });
   let isRescheduled = false;
+  let planPatchCount = 0;
+  let dashboardDelayMs = 0;
 
   await page.route('**/api/v1/**', async (route) => {
+    if (
+      route.request().method() === 'PUT' &&
+      new URL(route.request().url()).pathname ===
+        '/api/v1/account/device-context'
+    ) {
+      deviceContextRequestCount++;
+      await deviceContextConfirmation;
+    }
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -40,6 +60,16 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
     if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
       await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
       return;
     }
 
@@ -188,6 +218,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
       dashboardRequestCount++;
+      if (dashboardDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, dashboardDelayMs));
+      }
       if (!isRescheduled) {
         // Initial state: Plan is scheduled later in October
         await fulfillJson({
@@ -200,6 +233,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -223,6 +259,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -276,9 +315,14 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     }
 
     if (
-      method === 'POST' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/schedule`
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
+      planPatchCount++;
+      expect(request.postDataJSON()).toMatchObject({
+        title: 'Later October trip',
+        schedule: { plannedStart: expect.stringMatching(/^2026-09-05T.*Z$/) },
+      });
       isRescheduled = true;
       await fulfillJson({
         id: PLAN_ID,
@@ -334,6 +378,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -361,19 +406,22 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   // Assert initial dashboard renders later upcoming plan as primary context
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole('heading', {
-      name: m5s5.today.headerTitle,
-      level: 1,
-    }),
+    page.getByRole('heading', { name: navigation.today, level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', {
-      name: 'Anna & Ben',
-      level: 2,
-    }),
+    page.getByRole('heading', { name: 'Anna & Ben', level: 2 }),
   ).toBeVisible();
-  await expect(page.getByText('Later October trip')).toBeVisible();
+  await expect(page.locator('.today-date-heading')).toHaveCount(0);
+  const agenda = page.locator('.today-agenda-list');
+  await expect(
+    agenda.getByText('Later October trip', { exact: true }),
+  ).toBeVisible();
+  // Keep the initial read and the existing timezone revalidation ordered.
+  // Without this barrier they may legitimately coalesce while the first read is pending.
   expect(dashboardRequestCount).toBe(1);
+  await expect.poll(() => deviceContextRequestCount).toBe(1);
+  confirmDeviceContext();
+  await expect.poll(() => dashboardRequestCount).toBe(2);
 
   // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
   const refreshIndicator = page.locator('.app-pull-refresh-indicator');
@@ -413,44 +461,98 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   });
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
+  const requestsBeforePlan = dashboardRequestCount;
+
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
-  await page.getByRole('link', { name: /Later October trip/ }).click();
+  await agenda.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
     page.getByRole('heading', {
       name: 'Later October trip',
-      level: 1,
+      level: 2,
+      exact: true,
     }),
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await showPlanSchedule(page);
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');
   await expect(dateInput).toBeVisible();
   await expect(timeInput).toBeVisible();
   await dateInput.fill('2026-09-05');
   await timeInput.fill('10:00');
+  await closePlanSchedule(page);
 
-  // Submit the reschedule form and wait for the response
+  // One unified editor Save must still invalidate the derived overview.
   const rescheduleButton = page.getByRole('button', {
-    name: m5s3.plan.reschedule,
+    name: m5s3.common.saveChanges,
   });
   await rescheduleButton.click();
-  await expect(rescheduleButton).toBeEnabled();
+  await expect(rescheduleButton).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', {
+      name: 'Earlier September outing',
+      level: 2,
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(planPatchCount).toBe(1);
 
   // Step 4: Navigate back to Wir via client-side link (NO page.reload())
   await page.getByRole('link', { name: navigation.today }).click();
   await expect(page).toHaveURL(/\/today$/);
 
   // Step 5: Verify Dashboard query was automatically refetched after route re-entry.
-  await expect.poll(() => dashboardRequestCount).toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() => dashboardRequestCount)
+    .toBeGreaterThan(requestsBeforePlan);
 
   // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone
-  await expect(page.getByText('Earlier September outing')).toBeVisible();
+  await expect(
+    agenda.getByText('Earlier September outing', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Later October trip')).toHaveCount(0);
 
-  // Step 7: Verify no unexpected network requests occurred
+  // Step 7: Returning after a long time in the background revalidates, but the
+  // page the person is reading stays whole while the slower answer is in
+  // flight: no loading state, no vanished modules, no module-by-module shuffle.
+  const todayContent = page.locator('.today-content');
+  const textBeforeResume = await todayContent.innerText();
+  const requestsBeforeResume = dashboardRequestCount;
+  dashboardDelayMs = 700;
+  await page.clock.install();
+  await page.clock.fastForward('10:00');
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  });
+  await expect
+    .poll(() => dashboardRequestCount)
+    .toBeGreaterThan(requestsBeforeResume);
+  for (let sample = 0; sample < 8; sample++) {
+    await expect(todayContent).toHaveCount(1);
+    await expect(todayContent).toBeVisible();
+    expect(await todayContent.innerText()).toBe(textBeforeResume);
+    if (sample === 3) {
+      await page.screenshot({
+        path: testInfo.outputPath('today-resume-in-flight-390-light.png'),
+      });
+    }
+    await page.waitForTimeout(80);
+  }
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-390-dark.png'),
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(todayContent).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-1280-dark.png'),
+  });
+  dashboardDelayMs = 0;
+
+  // Step 8: Verify no unexpected network requests occurred
   expect(unexpectedRequests).toEqual([]);
 });

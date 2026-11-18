@@ -15,6 +15,15 @@ COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
 DETAIL = "/api/v1/spaces/{spaceId}/wishes/{wishId}"
 COMPLETE = f"{DETAIL}/complete"
 PLAN = f"{DETAIL}/plan"
+REPEAT = f"{DETAIL}/repeat"
+REMINDER = f"{DETAIL}/reminder"
+DATE_PROPOSAL = f"{DETAIL}/date-proposal"
+DATE_PROPOSAL_COMMANDS = {
+    "accept": "acceptWishDateProposal",
+    "counter": "counterWishDateProposal",
+    "decline": "declineWishDateProposal",
+    "withdraw": "withdrawWishDateProposal",
+}
 
 
 def _schema() -> dict[str, object]:
@@ -42,12 +51,32 @@ def test_wish_routes_have_frozen_operation_ids() -> None:
     assert paths[DETAIL]["delete"]["operationId"] == "deleteWish"
     assert paths[COMPLETE]["post"]["operationId"] == "completeWish"
     assert paths[PLAN]["post"]["operationId"] == "convertWishToPlan"
+    assert paths[REPEAT]["post"]["operationId"] == "repeatWish"
+    assert paths[REMINDER]["get"]["operationId"] == "getPersonalWishReminder"
+    assert paths[REMINDER]["put"]["operationId"] == "setPersonalWishReminder"
+    assert paths[REMINDER]["delete"]["operationId"] == "clearPersonalWishReminder"
+    assert paths[DATE_PROPOSAL]["get"]["operationId"] == "getWishDateProposal"
+    assert paths[DATE_PROPOSAL]["post"]["operationId"] == "createWishDateProposal"
+    for command, operation_id in DATE_PROPOSAL_COMMANDS.items():
+        assert (
+            paths[f"{DATE_PROPOSAL}/{{proposalId}}/{command}"]["post"]["operationId"]
+            == operation_id
+        )
 
 
 def test_the_contract_carries_exactly_the_decided_wish_surface() -> None:
     """Wish lifecycle commands are explicit rather than generic status writes."""
     wish_paths = _wish_paths()
-    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN}
+    assert wish_paths == {
+        COLLECTION,
+        DETAIL,
+        COMPLETE,
+        PLAN,
+        REPEAT,
+        REMINDER,
+        DATE_PROPOSAL,
+        *(f"{DATE_PROPOSAL}/{{proposalId}}/{command}" for command in DATE_PROPOSAL_COMMANDS),
+    }
 
 
 def test_wish_status_has_no_generic_mutation_route() -> None:
@@ -89,12 +118,26 @@ def test_no_request_body_accepts_status_or_ownership() -> None:
         "createdAt",
         "updatedAt",
     }
-    for name in ("WishCreate", "WishUpdate"):
+    for name in (
+        "WishCreate",
+        "WishUpdate",
+        "WishRepeat",
+        "PersonalWishReminderUpdate",
+        "WishDateProposalWrite",
+    ):
         schema = _components()[name]
         assert set(schema["properties"]) & forbidden == set()
+        assert not {"followedFromWishId", "seriesId", "seriesPosition"} & set(schema["properties"])
         # Do not silently discard extra fields; otherwise a client could
         # believe that it successfully set the status.
         assert schema.get("additionalProperties") is False
+
+
+def test_repeat_is_idempotent_by_key_not_by_version() -> None:
+    """Repeating creates a new Wish, so it has no version to compare (#1816)."""
+    names = {parameter["name"] for parameter in _paths()[REPEAT]["post"].get("parameters", [])}
+    assert "If-Match" not in names
+    assert "Idempotency-Key" in names
 
 
 def test_direct_completion_has_no_request_body() -> None:
@@ -104,13 +147,16 @@ def test_direct_completion_has_no_request_body() -> None:
 
 def test_create_requires_only_a_title() -> None:
     schema = _components()["WishCreate"]
-    assert set(schema["properties"]) == {"title"}
+    assert set(schema["properties"]) == {"title", "description", "tags"}
+    assert schema["properties"]["description"]["type"] == "string"
     assert schema["required"] == ["title"]
 
 
-def test_update_offers_only_the_title() -> None:
+def test_update_offers_authored_content_only() -> None:
     """There is no field through which PATCH could set the status."""
-    assert set(_components()["WishUpdate"]["properties"]) == {"title"}
+    properties = _components()["WishUpdate"]["properties"]
+    assert set(properties) == {"title", "description", "tags"}
+    assert {item["type"] for item in properties["description"]["anyOf"]} == {"string", "null"}
 
 
 def test_detail_exposes_status_and_attribution_read_only() -> None:
@@ -119,9 +165,13 @@ def test_detail_exposes_status_and_attribution_read_only() -> None:
     assert set(_components()["WishStatus"]["enum"]) == {"OPEN", "PLANNED", "COMPLETED"}
 
 
-def test_detail_carries_no_wish_body() -> None:
-    """A Wish has only a title in M3; `body` belongs to the Plan."""
-    assert "body" not in _components()["WishDetail"]["properties"]
+def test_detail_carries_an_optional_description() -> None:
+    schema = _components()["WishDetail"]
+    assert "description" not in schema["required"]
+    assert {item["type"] for item in schema["properties"]["description"]["anyOf"]} == {
+        "string",
+        "null",
+    }
 
 
 def test_list_filters_by_status_and_not_by_free_text() -> None:

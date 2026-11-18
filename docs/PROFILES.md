@@ -7,6 +7,12 @@ The M1 Profiles Domain strictly separates two technically different kinds of inf
 - `SELF_PROFILE`: An Account describes itself to the active partner in the same Space. These rows are `SPACE_SHARED`.
 - `PRIVATE_PARTNER_NOTE`: An Account privately remembers something about the other active partner. These rows are `OWNER_ONLY`.
 
+The private partner-note reading and editing destination is
+`/more/private/partner-notes`, reached through More → the private area. The shared
+Profile surface contains personal and partner-shared preferences only. This
+placement follows PO decision #1655 (2026-11-05) and reuses the existing private
+preference records without migration or audience changes.
+
 There is no `PUBLIC` visibility and the request cannot freely set `privacyClass`. The API derives the Privacy class server-side from the Domain `visibility`.
 
 ### Account presentation identity

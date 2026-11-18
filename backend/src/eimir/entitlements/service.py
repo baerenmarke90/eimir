@@ -26,6 +26,7 @@ CLOUD_ONLY_CAPABILITIES = frozenset({Capability.STORAGE_CLOUD_QUOTA_50GB.value})
 _EXTERNAL_SOURCE_TYPES = frozenset(
     {
         EntitlementSourceType.GOOGLE_PLAY.value,
+        EntitlementSourceType.APP_STORE.value,
         EntitlementSourceType.CLOUD_STRIPE.value,
         EntitlementSourceType.SELF_HOSTED_KEY.value,
     }

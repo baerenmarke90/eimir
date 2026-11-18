@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
+from tempfile import TemporaryFile
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, StrictBool, model_validator
+from starlette.concurrency import run_in_threadpool
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.attachments import service, upload_ownership
+from eimir.attachments import documents, service, upload_ownership
+from eimir.attachments.content import content_response
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.core.clock import now
 from eimir.media import create_signed_upload, get_media_store
@@ -40,6 +44,11 @@ attachment no longer exists at the domain level and is not returned at all.
 """
 
 
+def public_attachment_status(value: str) -> str:
+    """One lifecycle projection for attachment and parent-resource consumers."""
+    return _PUBLIC_STATUS.get(value, "PROCESSING")
+
+
 class AttachmentUploadCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -47,6 +56,13 @@ class AttachmentUploadCreate(ApiModel):
     original_name: str = Field(min_length=1, max_length=255)
     expected_mime_type: str = Field(min_length=1, max_length=128)
     expected_size: int = Field(gt=0)
+    preserve_metadata: StrictBool = Field(
+        default=False,
+        description=(
+            "Retain readable EXIF/ICC in the validated primary image; "
+            "independent of Place association."
+        ),
+    )
 
 
 class AttachmentFinalize(ApiModel):
@@ -61,7 +77,9 @@ class AttachmentFinalize(ApiModel):
 class AttachmentReadRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
-    parent_type: Literal["MEMORY", "HEART_MOMENT", "RELATED_PERSON", "NONE"] = "NONE"
+    parent_type: Literal[
+        "MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "HEART_HUNT_ROUND", "NONE"
+    ] = "NONE"
     parent_id: UUID | None = None
     variant: ReadVariant = Field(
         default="original",
@@ -83,6 +101,10 @@ class AttachmentReadRequest(ApiModel):
 class AttachmentDetail(ApiModel):
     id: UUID
     status: str
+    failure_code: str | None = Field(
+        default=None,
+        description="Stable validation code for a failed upload; never decoder diagnostics.",
+    )
     media_type: MediaType
     mime_type: str | None
     size: int | None
@@ -90,6 +112,10 @@ class AttachmentDetail(ApiModel):
     height: int | None
     duration_seconds: int | None
     has_thumbnail: bool
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
     version: int
     created_at: datetime
 
@@ -104,12 +130,61 @@ class AttachmentSummary(ApiModel):
 
     id: UUID
     status: str
+    failure_code: str | None = None
     media_type: MediaType
     mime_type: str | None
     size: int | None
     width: int | None
     height: int | None
     has_thumbnail: bool
+    duration_seconds: int | None = None
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
+
+
+class AttachmentEntry(ApiModel):
+    """Ordered atomic gallery binding, shared by Memory and Plan writers."""
+
+    model_config = ConfigDict(extra="forbid")
+    attachment_id: UUID
+    position: int = Field(ge=0)
+    is_sensitive: bool | None = Field(default=None, strict=True)
+    replaces_attachment_id: UUID | None = None
+
+
+def replacements_of(entries: Sequence[AttachmentEntry] | None) -> dict[UUID, UUID]:
+    """Edited photos as new id -> replaced id; only gallery updates accept them."""
+    return {
+        entry.attachment_id: entry.replaces_attachment_id
+        for entry in entries or []
+        if entry.replaces_attachment_id is not None
+    }
+
+
+def reject_replacements(entries: Sequence[AttachmentEntry] | None) -> None:
+    """A new parent has no photo to replace."""
+    if replacements_of(entries):
+        from eimir.core.errors import ValidationError
+
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
+
+
+class OrderedAttachmentSummary(AttachmentSummary):
+    """A bound photo with its stable position in a parent's gallery."""
+
+    position: int
+    can_edit_sensitivity: bool = Field(
+        default=False,
+        description=(
+            "Viewer-specific authority to edit classification through this parent; "
+            "never a read grant."
+        ),
+    )
 
 
 class UploadDescriptor(ApiModel):
@@ -121,6 +196,7 @@ class UploadDescriptor(ApiModel):
 
 
 class ReadDescriptor(ApiModel):
+    media_type: MediaType | None = None
     method: Literal["STREAM", "SIGNED_URL"]
     url: str
     expires_at: datetime | None = None
@@ -129,7 +205,8 @@ class ReadDescriptor(ApiModel):
 def _detail(attachment: Attachment) -> AttachmentDetail:
     return AttachmentDetail(
         id=attachment.id,
-        status=_PUBLIC_STATUS.get(attachment.status, "PROCESSING"),
+        status=public_attachment_status(attachment.status),
+        failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
         media_type=MediaType(attachment.media_type),
         mime_type=attachment.mime_type,
         size=attachment.size,
@@ -137,6 +214,7 @@ def _detail(attachment: Attachment) -> AttachmentDetail:
         height=attachment.height,
         duration_seconds=attachment.duration_seconds,
         has_thumbnail=attachment.has_thumbnail,
+        is_sensitive=attachment.payload.is_sensitive,
         version=attachment.version,
         created_at=attachment.created_at,
     )
@@ -198,15 +276,21 @@ def create_attachment_upload(
         original_name=body.original_name,
         expected_mime_type=body.expected_mime_type,
         expected_size=body.expected_size,
+        preserve_metadata=body.preserve_metadata,
     )
     _no_store(response)
 
-    store = get_media_store()
-    signed = create_signed_upload(
-        store,
-        service.storage_key_for(attachment),
-        attachment.declared_mime_type,
-        SIGNED_UPLOAD_TTL,
+    # A PDF's original is kept byte for byte. A replayable signed PUT must
+    # never be able to replace that object after validation has completed.
+    signed = (
+        None
+        if attachment.media_type == MediaType.DOCUMENT
+        else create_signed_upload(
+            get_media_store(),
+            service.storage_key_for(attachment),
+            attachment.declared_mime_type,
+            SIGNED_UPLOAD_TTL,
+        )
     )
     if signed is not None:
         return UploadDescriptor(
@@ -253,17 +337,19 @@ async def upload_attachment_content(
     """
     claim = upload_ownership.claim_upload(session, authorization, attachment_id)
     try:
-        chunks: list[bytes] = []
-        bytes_read = 0
-        async for chunk in request.stream():
-            bytes_read += len(chunk)
-            if bytes_read > claim.rule.max_size:
-                raise service.too_large()
-            chunks.append(chunk)
-            if upload_ownership.should_renew(claim):
-                claim = upload_ownership.renew_upload_claim(session, claim)
-
-        upload_ownership.complete_upload(session, claim, b"".join(chunks))
+        # Transfer size must not become process memory, including when the
+        # encrypted S3 adapter consumes this private, automatically removed file.
+        with TemporaryFile(mode="w+b") as body:
+            bytes_read = 0
+            async for chunk in request.stream():
+                bytes_read += len(chunk)
+                if bytes_read > claim.rule.max_size:
+                    raise service.too_large()
+                await run_in_threadpool(body.write, chunk)
+                if upload_ownership.should_renew(claim):
+                    claim = upload_ownership.renew_upload_claim(session, claim)
+            body.seek(0)
+            await run_in_threadpool(upload_ownership.complete_upload, session, claim, body)
     except BaseException:
         # Token matching makes this safe even if another request reclaimed an
         # expired generation while this one was unwinding.
@@ -335,19 +421,24 @@ def create_attachment_read_access(
     _require_available_variant(attachment, body.variant)
     _no_store(response)
 
-    store = get_media_store()
-    signed_url = store.create_read_url(
-        service.storage_key_for(attachment, _storage_variant(body.variant)), SIGNED_READ_TTL
+    signed_url = (
+        None
+        if attachment.media_type == MediaType.DOCUMENT
+        else get_media_store().create_read_url(
+            service.storage_key_for(attachment, _storage_variant(body.variant)), SIGNED_READ_TTL
+        )
     )
     if signed_url is not None:
         return ReadDescriptor(
             method="SIGNED_URL",
+            media_type=MediaType(attachment.media_type),
             url=signed_url,
             expires_at=now() + SIGNED_READ_TTL,
         )
 
     return ReadDescriptor(
         method="STREAM",
+        media_type=MediaType(attachment.media_type),
         url=_content_path(authorization.space_id, attachment.id, body.variant),
     )
 
@@ -361,9 +452,10 @@ def create_attachment_read_access(
 def get_attachment_content(
     authorization: Authorization,
     session: DbSession,
+    request: Request,
     attachment_id: Annotated[str, Path(alias="attachmentId")],
     variant: ReadVariant = "original",
-) -> StreamingResponse:
+) -> Response:
     """Authorized streaming route (media pipeline, section 9).
 
     Every access is verified immediately before opening the content. A
@@ -384,34 +476,18 @@ def get_attachment_content(
         if variant == "thumbnail"
         else (attachment.mime_type or "application/octet-stream")
     )
+    document_name = (
+        documents.display_name(attachment.payload.original_name)
+        if attachment.media_type == MediaType.DOCUMENT
+        else None
+    )
 
-    # Read the first block before the response starts. Decryption authenticates
-    # per block, so a wrong key or a tampered object is reported as an error
-    # here instead of after a 200 has already been sent.
-    try:
-        first = source.read(STREAM_CHUNK)
-    except BaseException:
-        source.close()
-        raise
-
-    def chunks() -> object:
-        try:
-            chunk = first
-            while chunk:
-                yield chunk
-                chunk = source.read(STREAM_CHUNK)
-        finally:
-            source.close()
-
-    return StreamingResponse(
-        chunks(),  # type: ignore[arg-type]
+    return content_response(
+        source,
         media_type=media_type,
-        headers={
-            # Do not leak a filesystem path or username in the header; the
-            # download name is controlled by the server.
-            "Content-Disposition": f'inline; filename="{attachment.id}"',
-            "Cache-Control": "private, no-store",
-        },
+        filename="document.pdf" if document_name is not None else str(attachment.id),
+        download_name=document_name,
+        range_header=request.headers.get("range"),
     )
 
 

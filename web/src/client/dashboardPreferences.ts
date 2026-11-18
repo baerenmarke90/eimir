@@ -2,15 +2,23 @@ import type { DashboardModulePreferenceList } from '../api/generated/models/Dash
 import {
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
+  dashboardModuleDefaultVisible,
 } from './dashboardModules';
 
 export const DEFAULT_UPCOMING_ITEM_LIMIT = 1;
 export const UPCOMING_MODULE_KEY: DashboardModuleKey = 'upcoming';
 export const PINNED_COLLECTION_MODULE_KEY: DashboardModuleKey =
   'pinned_collection';
+/** The couple identity stays visible above the personal section stack. */
+export const COUPLE_HERO_MODULE_KEY: DashboardModuleKey =
+  'relationship_presence';
 export const UPCOMING_ITEM_LIMITS = [1, 2, 3] as const;
 
-/** Absence of an explicit override resolves to visible, the product default. */
+/**
+ * Absence of an explicit override resolves to visible, the product default,
+ * except for an opt-in module such as `shared_garden`, which stays hidden
+ * until the person turns it on (`dashboardModuleDefaultVisible`).
+ */
 export const DEFAULT_MODULE_VISIBLE = true;
 
 export type UpcomingItemLimit = (typeof UPCOMING_ITEM_LIMITS)[number];
@@ -48,18 +56,21 @@ export function limitUpcomingItems<T>(
  * Effective per-user visibility for one registered Dashboard module (#817).
  *
  * Absence of an explicit override — including while the preferences query is
- * still loading or unavailable — resolves to `DEFAULT_MODULE_VISIBLE` so a
- * transient fetch hiccup never hides real content the user never chose to
- * hide.
+ * still loading or unavailable — resolves to the module's default
+ * (`DEFAULT_MODULE_VISIBLE` for every standard module) so a transient fetch
+ * hiccup never hides real content the user never chose to hide, and never
+ * reveals an opt-in module the user never chose to show.
  */
 export function isDashboardModuleVisible(
   preferences: DashboardModulePreferenceList | undefined,
   moduleKey: DashboardModuleKey,
 ): boolean {
+  if (moduleKey === COUPLE_HERO_MODULE_KEY) return true;
+  if (moduleKey === 'shared_story_summary') return false;
   const value = preferences?.items.find(
     (item) => item.moduleKey === moduleKey,
   )?.visible;
-  return value ?? DEFAULT_MODULE_VISIBLE;
+  return value ?? dashboardModuleDefaultVisible(moduleKey);
 }
 
 /** The server orders complete preference lists; older/incomplete cached data uses the catalog. */
@@ -67,13 +78,45 @@ export function orderedDashboardModuleKeys(
   preferences: DashboardModulePreferenceList | undefined,
 ): DashboardModuleKey[] {
   const keys = preferences?.items.map((item) => item.moduleKey);
-  return keys?.length === DASHBOARD_MODULE_KEYS.length &&
-    new Set(keys).size === DASHBOARD_MODULE_KEYS.length &&
-    keys.every((key) =>
-      DASHBOARD_MODULE_KEYS.includes(key as DashboardModuleKey),
+  const legacyCatalog =
+    keys?.length &&
+    DASHBOARD_MODULE_KEYS.every(
+      (key) =>
+        key === 'daily_quote' ||
+        key === 'shared_experience' ||
+        key === 'retrospective' ||
+        // #1792: older saved orders predate the partner distance module.
+        key === 'partner_distance' ||
+        // #1969: older saved orders predate the pinned notes module.
+        key === 'pinned_note' ||
+        // 2026-11-17: older saved orders predate the shared garden module.
+        key === 'shared_garden' ||
+        keys.includes(key),
+    );
+  if (
+    !keys?.length ||
+    (!legacyCatalog && keys.length !== DASHBOARD_MODULE_KEYS.length) ||
+    new Set(keys).size !== keys.length ||
+    keys.some(
+      (key) => !DASHBOARD_MODULE_KEYS.includes(key as DashboardModuleKey),
     )
-    ? (keys as DashboardModuleKey[])
-    : [...DASHBOARD_MODULE_KEYS];
+  ) {
+    return [...DASHBOARD_MODULE_KEYS];
+  }
+  // Older personal orders can put the hero lower down. Preserve the relative
+  // order of every other section while keeping the shared entry point first.
+  const result = [
+    COUPLE_HERO_MODULE_KEY,
+    ...keys.filter((key) => key !== COUPLE_HERO_MODULE_KEY),
+  ] as DashboardModuleKey[];
+  for (const [index, key] of DASHBOARD_MODULE_KEYS.entries()) {
+    if (result.includes(key)) continue;
+    const predecessor = [...DASHBOARD_MODULE_KEYS.slice(0, index)]
+      .reverse()
+      .find((candidate) => result.includes(candidate));
+    result.splice(predecessor ? result.indexOf(predecessor) + 1 : 0, 0, key);
+  }
+  return result;
 }
 
 export function withDashboardModuleOrder(
@@ -86,7 +129,10 @@ export function withDashboardModuleOrder(
   return {
     items: keys.map(
       (moduleKey) =>
-        byKey.get(moduleKey) ?? { moduleKey, visible: DEFAULT_MODULE_VISIBLE },
+        byKey.get(moduleKey) ?? {
+          moduleKey,
+          visible: dashboardModuleDefaultVisible(moduleKey),
+        },
     ),
   };
 }
@@ -99,4 +145,20 @@ export function selectedDashboardCollectionId(
     preferences?.items.find((item) => item.moduleKey === moduleKey)
       ?.selectedCollectionId ?? null
   );
+}
+
+/**
+ * Every list the person chose to show on Wir, in their order. A server that
+ * only reports the single selection still yields a list of one (#1808).
+ */
+export function selectedDashboardCollectionIds(
+  preferences: DashboardModulePreferenceList | undefined,
+  moduleKey: DashboardModuleKey,
+): string[] {
+  const item = preferences?.items.find(
+    (entry) => entry.moduleKey === moduleKey,
+  );
+  if (item?.selectedCollectionIds?.length)
+    return [...item.selectedCollectionIds];
+  return item?.selectedCollectionId ? [item.selectedCollectionId] : [];
 }

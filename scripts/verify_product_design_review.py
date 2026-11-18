@@ -16,6 +16,13 @@ from __future__ import annotations
 
 import sys
 
+# Routine version bumps from Dependabot cannot carry the repository-specific PR
+# body, so requiring it would be a permanent false failure (the Reuse Review gate
+# exempts them for the same reason). The exemption is exact-match and applies
+# only while no user-facing client path changed: anything that touches product
+# UI keeps the full declaration mandatory.
+AUTOMATED_DEPENDENCY_AUTHOR = "dependabot[bot]"
+
 IMPACT_REVIEWED = "- [x] User-facing UI / UX impact reviewed"
 IMPACT_NO_IMPACT = "- [x] No user-facing UI / UX impact"
 
@@ -61,6 +68,11 @@ def _normalize(body: str | None) -> str:
 def _has_checked_line(body: str, text: str) -> bool:
     """Case-insensitive fixed-string search for a checked checkbox line."""
     return f"- [x] {text}".casefold() in body.casefold()
+
+
+def is_exempt_dependency_update(author: str | None, *, ui_changed: bool) -> bool:
+    """True for an automated dependency update that changed no user-facing path."""
+    return author == AUTOMATED_DEPENDENCY_AUTHOR and not ui_changed
 
 
 def verify_impact_decision(body: str | None, *, ui_changed: bool) -> list[str]:
@@ -114,7 +126,7 @@ def verify_mandatory_design_review(body: str | None) -> list[str]:
 
 
 def main() -> int:
-    """CLI entrypoint. Reads PR_BODY and UI_CHANGED from the environment.
+    """CLI entrypoint. Reads PR_BODY, PR_AUTHOR and UI_CHANGED from the environment.
 
     UI_CHANGED must be the literal string "true" or "false" (matches the
     `changed` step output produced by classify_product_design_paths.py in the
@@ -124,6 +136,12 @@ def main() -> int:
 
     body = os.environ.get("PR_BODY", "")
     ui_changed = os.environ.get("UI_CHANGED", "false").strip().lower() == "true"
+
+    author = os.environ.get("PR_AUTHOR", "")
+    if is_exempt_dependency_update(author, ui_changed=ui_changed):
+        print(f"Automated dependency update from {author}; no user-facing path changed.")
+        print("The Product Design / UX declaration is not required.")
+        return 0
 
     errors = verify_impact_decision(body, ui_changed=ui_changed)
     if errors:

@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import {
   type PlanUpdate,
@@ -11,9 +17,22 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
+import { ClientProblemError } from '../client/problemDetails';
 import { PlanProductPage } from './PlanProductPage';
 
-function renderEditor(status: PlanDetail['status']) {
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+function renderEditor(
+  status: PlanDetail['status'],
+  places: { id: string; name: string }[] = [],
+) {
   const plan: PlanDetail = {
     capabilities: { canComment: false, canDelete: true, canEdit: true },
     createdAt: new Date('2026-08-01T10:00:00Z'),
@@ -58,10 +77,17 @@ function renderEditor(status: PlanDetail['status']) {
   const apis = {
     plans: {
       getPlan: vi.fn(async () => saved),
+      listPlanCollections: vi.fn(async () => []),
+      listPlanNotes: vi.fn(async () => []),
+      listPlanStory: vi.fn(async () => ({
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      })),
       updatePlan,
     },
     places: {
-      listPlaces: vi.fn(async () => ({ items: [], nextCursor: null })),
+      listPlaces: vi.fn(async () => ({ items: places, nextCursor: null })),
     },
   } as unknown as SharedPlanningApis;
   const queryClient = new QueryClient({
@@ -74,7 +100,10 @@ function renderEditor(status: PlanDetail['status']) {
     authorSummaryQueryKeys.planDetail('space-1', plan.id),
     plan,
   );
-  queryClient.setQueryData(authorSummaryQueryKeys.placeOptions('space-1'), []);
+  queryClient.setQueryData(
+    authorSummaryQueryKeys.placeOptions('space-1'),
+    places,
+  );
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -89,7 +118,15 @@ function renderEditor(status: PlanDetail['status']) {
     </QueryClientProvider>,
   );
 
-  return { requestBodies, updatePlan };
+  return {
+    requestBodies,
+    updatePlan,
+    queryClient,
+    plan,
+    setServer: (next: PlanDetail) => {
+      saved = next;
+    },
+  };
 }
 
 async function editDescription() {
@@ -132,6 +169,12 @@ describe('PlanProductPage editor request serialization', () => {
           description: 'Updated note',
           placeId: null,
           title: 'Evening together',
+          tags: [],
+          anticipationEnabled: false,
+          schedule:
+            status === 'PLANNED'
+              ? { plannedStart: '2026-11-21T21:00:00.000Z' }
+              : null,
         },
       ]);
     },
@@ -140,9 +183,22 @@ describe('PlanProductPage editor request serialization', () => {
   it('keeps an explicitly edited completion date for a completed Plan', async () => {
     const { requestBodies } = renderEditor('COMPLETED');
     await editDescription();
-    fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.experiencedOn')), {
-      target: { value: '2026-10-18' },
-    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('m5s3.plan.experiencedOn')),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n.t('m5s3.plan.experiencedOn'), {
+        selector: 'input',
+      }),
+      {
+        target: { value: '2026-10-18' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
     await saveEdit();
 
     expect(requestBodies).toEqual([
@@ -151,7 +207,109 @@ describe('PlanProductPage editor request serialization', () => {
         experiencedOn: '2026-10-18',
         placeId: null,
         title: 'Evening together',
+        tags: [],
+        anticipationEnabled: false,
       },
     ]);
+  });
+});
+
+it('keeps the activating Edit button separate from the new native-submit control', async () => {
+  const h = renderEditor('IDEA');
+  const edit = screen.getByRole('button', {
+    name: i18n.t('common.edit'),
+  }) as HTMLButtonElement;
+  fireEvent.click(edit);
+  await screen.findByRole('button', {
+    name: i18n.t('m5s3.common.saveChanges'),
+  });
+  // Native click default activation runs after React's discrete event update.
+  // The initiating read action must not become a submit control mid-click.
+  expect(edit.type).toBe('button');
+  expect(edit.form).toBeNull();
+  expect(h.updatePlan).not.toHaveBeenCalled();
+});
+
+it('releases the parent pending guard after choosing a Place and saves the staged location', async () => {
+  const h = renderEditor('IDEA', [{ id: 'river', name: 'Riverside' }]);
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('composer.place') }),
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Riverside' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  const save = screen.getByRole('button', {
+    name: i18n.t('m5s3.common.saveChanges'),
+  });
+  expect(save.hasAttribute('disabled')).toBe(false);
+  fireEvent.click(save);
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(1));
+  expect(h.requestBodies[0]).toMatchObject({ placeId: 'river' });
+});
+
+it('keeps the initiating version during background reads and rebases only on deliberate retry without losing the draft', async () => {
+  const h = renderEditor('PLANNED');
+  h.updatePlan.mockRejectedValueOnce(
+    new ClientProblemError('conflict', 409, 'CONFLICT'),
+  );
+  await editDescription();
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: new RegExp(i18n.t('m5s3.plan.schedule')),
+    }),
+  );
+  fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')), {
+    target: { value: '2026-12-12' },
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+  );
+  const latest = { ...h.plan, title: 'Partner correction', version: 4 };
+  h.setServer(latest);
+  act(() =>
+    h.queryClient.setQueryData(
+      authorSummaryQueryKeys.planDetail('space-1', h.plan.id),
+      latest,
+    ),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+  );
+  await screen.findByText(i18n.t('states.conflict.title'));
+  expect(h.updatePlan.mock.calls[0][0]).toMatchObject({ ifMatch: '3' });
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.retry') }));
+  await waitFor(() =>
+    expect(
+      h.queryClient.getQueryState(
+        authorSummaryQueryKeys.planDetail('space-1', h.plan.id),
+      )?.fetchStatus,
+    ).toBe('idle'),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: new RegExp(i18n.t('m5s3.plan.schedule')),
+    }),
+  );
+  expect(
+    (screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')) as HTMLInputElement)
+      .value,
+  ).toBe('2026-12-12');
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+  );
+  expect(
+    (
+      screen.getByLabelText(
+        i18n.t('m5s3.common.description'),
+      ) as HTMLTextAreaElement
+    ).value,
+  ).toBe('Updated note');
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+  );
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(2));
+  expect(h.updatePlan.mock.calls[1][0]).toMatchObject({
+    ifMatch: '4',
+    planUpdate: { description: 'Updated note' },
   });
 });

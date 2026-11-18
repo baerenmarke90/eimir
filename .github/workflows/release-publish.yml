@@ -1,13 +1,24 @@
 name: Publish Immutable Release
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+      - Web Browser QA
+      - CodeQL SAST
+      - Self-Hosted Deployment Guard
+      - Self-Hosted Recovery
+      - Media Video
+    types: [completed]
     branches: [main]
   pull_request:
     paths:
       - ".github/workflows/release-publish.yml"
       - "scripts/test_deployment_channel.py"
+      - "scripts/image_archive_config.py"
+      - "deploy/push-fcm.compose.yaml"
       - "tools/ci/test_test_deployment_channel.py"
+      - "tools/ci/test_image_archive_config.py"
       - "deploy/private-test-channel.env.example"
       - "docs/PRIVATE-TEST-CHANNEL.md"
       - ".github/actions/attest-release-artifact/**"
@@ -20,6 +31,8 @@ on:
       - "scripts/verify_release_asset_set.py"
       - "tools/ci/test_release_manifest.py"
       - "tools/ci/test_release_publish_workflow.py"
+      - "scripts/android_firebase_configuration.py"
+      - "tools/ci/test_android_firebase_configuration.py"
       - "tools/ci/test_verify_release_asset_set.py"
       - "docs/SELF-HOSTING.md"
       - "docs/m6/IMMUTABLE-RELEASES.md"
@@ -47,6 +60,15 @@ on:
         description: Backend API base URL baked into Android assets; required only when Android is included.
         required: false
         type: string
+      android_firebase_project_id:
+        description: Firebase project for direct Android FCM; empty builds UnifiedPush only.
+        required: false
+        type: string
+      android_play_store_release:
+        description: Require direct FCM in Play Store artifacts; this does not upload to Google Play.
+        required: true
+        default: false
+        type: boolean
       initial_release:
         description: Select only for the first product release with no previous known-good release.
         required: true
@@ -68,7 +90,9 @@ permissions:
   attestations: write
 
 concurrency:
-  group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}
+  # Late completions must not evict a queued candidate from another source or
+  # origin. Product releases retain their single protected publication queue.
+  group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.event.workflow_run.head_sha && format('{0}-{1}-{2}', github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, github.event.workflow_run.head_sha) || github.ref }}
   cancel-in-progress: false
 
 env:
@@ -79,6 +103,7 @@ env:
 jobs:
   contract:
     name: Release publication contract
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -89,6 +114,8 @@ jobs:
         run: |
           python3 tools/ci/test_release_manifest.py
           python3 tools/ci/test_release_publish_workflow.py
+          python3 tools/ci/test_image_archive_config.py
+          python3 tools/ci/test_android_firebase_configuration.py
           python3 tools/ci/test_verify_release_asset_set.py
 
   evidence:
@@ -102,7 +129,10 @@ jobs:
       # Android channel passes; 0 is treated as unset by the evidence workflow.
       android_version_code: ${{ inputs.include_android && inputs.android_version_code || 0 }}
       android_api_base_url: ${{ inputs.android_api_base_url }}
+      android_firebase_project_id: ${{ inputs.android_firebase_project_id }}
       release_version: ${{ inputs.release_version }}
+    secrets:
+      EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ inputs.include_android && inputs.android_firebase_project_id != '' && secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON || '' }}
 
   preflight:
     name: Verify immutable release inputs
@@ -119,7 +149,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download exact #193 evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-evidence-${{ github.sha }}
           path: release-evidence
@@ -133,6 +163,8 @@ jobs:
           API_BASE_URL: ${{ inputs.include_android && inputs.android_api_base_url || '' }}
           ANDROID_VERSION_CODE: ${{ inputs.include_android && inputs.android_version_code || '' }}
           RELEASE_VERSION: ${{ inputs.release_version }}
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+          ANDROID_PLAY_STORE_RELEASE: ${{ inputs.android_play_store_release }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -141,6 +173,9 @@ jobs:
           import urllib.parse
 
           include_android = os.environ.get("INCLUDE_ANDROID", "").lower() == "true"
+          play_store = os.environ.get("ANDROID_PLAY_STORE_RELEASE", "").lower() == "true"
+          if play_store and (not include_android or not os.environ.get("ANDROID_FIREBASE_PROJECT_ID", "").strip()):
+              raise SystemExit("Play Store artifacts require Android and an explicit Firebase project; UnifiedPush-only publication is not accepted.")
           url = os.environ.get("API_BASE_URL", "").strip()
           version_code = os.environ.get("ANDROID_VERSION_CODE", "").strip()
           version = os.environ.get("RELEASE_VERSION", "").strip()
@@ -168,7 +203,7 @@ jobs:
                   raise SystemExit("android_api_base_url must not contain userinfo")
               if parsed.query or parsed.fragment:
                   raise SystemExit("android_api_base_url must not contain query or fragment")
-          elif url or version_code:
+          elif url or version_code or os.environ.get("ANDROID_FIREBASE_PROJECT_ID", "").strip():
               raise SystemExit("Android-excluded publication must not provide Android URL/version inputs")
           PY
 
@@ -351,25 +386,33 @@ jobs:
           fetch-depth: 0
 
       - name: Download exact #193 evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-evidence-${{ github.sha }}
           path: release-evidence
 
       - name: Download retained #193 attestations
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-attestations-${{ github.sha }}
           path: release-evidence/attestations
 
       - name: Download verified preflight state
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-preflight-${{ github.sha }}
           path: release-preflight
 
       - name: Re-verify transported #193 evidence
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
+
+      - name: Prepare Firebase Android build configuration
+        if: inputs.include_android
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+          ANDROID_PLAY_STORE_RELEASE: ${{ inputs.android_play_store_release }}
+          EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ inputs.android_firebase_project_id != '' && secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON || '' }}
+        run: python3 scripts/android_firebase_configuration.py prepare
 
       - name: Set up Node.js 24.21.0
         if: inputs.include_android
@@ -379,14 +422,14 @@ jobs:
 
       - name: Set up JDK 21
         if: inputs.include_android
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
         if: inputs.include_android
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Verify pinned Gradle wrapper JAR
         if: inputs.include_android
@@ -394,7 +437,7 @@ jobs:
         shell: bash
         run: |
           printf '%s  %s\n' \
-            '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98' \
+            '621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
@@ -430,6 +473,7 @@ jobs:
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
           RELEASE_VERSION: ${{ inputs.release_version }}
+          ANDROID_PLAY_STORE_RELEASE: ${{ inputs.android_play_store_release }}
           KEYSTORE_BASE64: ${{ secrets.EIMIR_RELEASE_KEYSTORE_BASE64 || secrets.SBS_RELEASE_KEYSTORE_BASE64 }}
           EIMIR_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.EIMIR_RELEASE_KEYSTORE_PASSWORD || secrets.SBS_RELEASE_KEYSTORE_PASSWORD }}
           EIMIR_RELEASE_KEY_ALIAS: ${{ secrets.EIMIR_RELEASE_KEY_ALIAS || secrets.SBS_RELEASE_KEY_ALIAS }}
@@ -453,6 +497,7 @@ jobs:
           ./gradlew --no-daemon --stacktrace --dependency-verification strict \
             -PeimirVersionCode="$ANDROID_VERSION_CODE" \
             -PeimirVersionName="$RELEASE_VERSION" \
+            -PeimirPlayStoreRelease="$ANDROID_PLAY_STORE_RELEASE" \
             :app:assembleRelease :app:bundleRelease
 
           apk=$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)
@@ -469,7 +514,7 @@ jobs:
           aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
           test -x "$aapt"
           badging=$("$aapt" dump badging "$apk")
-          echo "$badging" | grep -q "package: name='de.sidebyside.app'"
+          echo "$badging" | grep -q "package: name='de.eimir.app'"
           echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
           echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
           python3 ../scripts/android_launcher_identity.py "$apk" \
@@ -477,7 +522,7 @@ jobs:
 
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$analyzer"
-          test "$("$analyzer" manifest application-id "$apk")" = "de.sidebyside.app"
+          test "$("$analyzer" manifest application-id "$apk")" = "de.eimir.app"
           test "$("$analyzer" manifest version-name "$apk")" = "$RELEASE_VERSION"
           test "$("$analyzer" manifest version-code "$apk")" = "$ANDROID_VERSION_CODE"
 
@@ -520,6 +565,19 @@ jobs:
           rm -f \
             ../release-evidence/android/eimir-release-unsigned.apk \
             ../release-evidence/android/eimir-release-unsigned.aab
+
+      - name: Verify packaged Firebase Android configuration
+        if: inputs.include_android
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+        run: |
+          python3 scripts/android_firebase_configuration.py verify-apk \
+            release-evidence/android/eimir-release.apk \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+
+      - name: Remove Firebase Android build configuration
+        if: always() && inputs.include_android
+        run: rm -f -- android/app/google-services.json
 
       - name: Install verified Syft release
         if: inputs.include_android
@@ -570,7 +628,7 @@ jobs:
           if evidence.get("sourceRevision") != os.environ["SOURCE_REVISION"]:
               raise SystemExit("#193 evidence sourceRevision changed before publication")
           android = evidence.get("android", {})
-          if android.get("applicationId") != "de.sidebyside.app":
+          if android.get("applicationId") != "de.eimir.app":
               raise SystemExit("Unexpected Android applicationId in #193 evidence")
           if android.get("versionName") != os.environ["RELEASE_VERSION"]:
               raise SystemExit("Android versionName does not match release version")
@@ -731,6 +789,10 @@ jobs:
           version_tag="v${RELEASE_VERSION}"
           source_tag="sha-${SOURCE_REVISION}"
           transport_tag="publish-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Containerd image stores can keep a provenance index beside the runtime
+          # image. Publish only the runtime platform; the original evidence archives,
+          # SBOMs and GitHub attestations stay untouched.
+          runtime_platform="linux/amd64"
 
           # GHCR does not provide server-side immutable tags. The sha-/v aliases below
           # are discoverability only and are never trusted as release identity. The
@@ -761,6 +823,7 @@ jobs:
 
           require_single_manifest() {
             local digest_ref="$1"
+            local expected_config_digest="${2:-}"
             local output
             local status
 
@@ -773,7 +836,7 @@ jobs:
               return 1
             fi
 
-            if ! MANIFEST_JSON="$output" python3 - <<'PY'
+            if ! MANIFEST_JSON="$output" EXPECTED_CONFIG_DIGEST="$expected_config_digest" python3 - <<'PY'
           import json
           import os
 
@@ -795,6 +858,9 @@ jobs:
               raise SystemExit(f"unsupported registry manifest media type: {media_type!r}")
           if not isinstance(manifest.get("config"), dict) or not isinstance(manifest.get("layers"), list):
               raise SystemExit("registry digest is not a single image manifest")
+          expected_config = os.environ["EXPECTED_CONFIG_DIGEST"]
+          if expected_config and manifest["config"].get("digest") != expected_config:
+              raise SystemExit("registry manifest config differs from the evidence archive")
           PY
             then
               echo "Registry digest ${digest_ref} is not a supported single-image manifest; refusing publication." >&2
@@ -841,13 +907,14 @@ jobs:
           push_single_digest() {
             local ref="$1"
             local repository="$2"
+            local expected_config_digest="${3:-}"
             local output
             local status
             local digest
             local digest_ref
 
             set +e
-            output=$(docker push "$ref" 2>&1)
+            output=$(docker push --platform "$runtime_platform" "$ref" 2>&1)
             status=$?
             set -e
             printf '%s\n' "$output" >&2
@@ -857,7 +924,7 @@ jobs:
             fi
             digest=$(extract_registry_digest "$output") || return 1
             digest_ref="${repository}@${digest}"
-            require_single_manifest "$digest_ref" || return 1
+            require_single_manifest "$digest_ref" "$expected_config_digest" || return 1
             printf '%s\n' "$digest_ref"
           }
 
@@ -912,16 +979,19 @@ jobs:
             local repository="$3"
             local result_file="$4"
 
-            docker load --input "$archive" >/dev/null
-            local local_id
-            local remote_id
+            # Docker image IDs are store dependent (config digest in the legacy store,
+            # manifest or index digest under containerd). The exact config bytes inside
+            # the verified evidence archive are the store-independent identity.
+            local evidence_config
+            local pullback_archive
+            local pullback_config
             local transport_ref
             local transport_digest_ref
             local source_ref
             local version_ref
             local digest
-            local_id=$(docker image inspect "$source_image" --format '{{.Id}}')
-            test -n "$local_id"
+            evidence_config=$(python3 scripts/image_archive_config.py "$archive" --tag "$source_image")
+            docker load --input "$archive" >/dev/null
 
             # The image must describe its own identity: the labels were baked in
             # by the #193 evidence build and are part of the attested digest.
@@ -930,10 +1000,14 @@ jobs:
 
             transport_ref="${repository}:${transport_tag}"
             docker tag "$source_image" "$transport_ref"
-            transport_digest_ref=$(push_single_digest "$transport_ref" "$repository")
+            transport_digest_ref=$(push_single_digest "$transport_ref" "$repository" "$evidence_config")
             docker pull "$transport_digest_ref" >/dev/null
-            remote_id=$(docker image inspect "$transport_digest_ref" --format '{{.Id}}')
-            if [ "$remote_id" != "$local_id" ]; then
+            pullback_archive="${RUNNER_TEMP}/$(basename "$archive").pullback"
+            rm -f "$pullback_archive"
+            docker image save --output "$pullback_archive" "$transport_digest_ref"
+            pullback_config=$(python3 scripts/image_archive_config.py "$pullback_archive")
+            rm -f "$pullback_archive"
+            if [ "$pullback_config" != "$evidence_config" ]; then
               echo "Published registry digest does not resolve to the release image bytes." >&2
               exit 1
             fi
@@ -1092,6 +1166,8 @@ jobs:
           cp -- compose.yaml "$bundle_root/compose.yaml"
           cp -- deploy/self-hosted-release.env.example \
             "$bundle_root/deploy/self-hosted-release.env.example"
+          cp -- deploy/push-fcm.compose.yaml \
+            "$bundle_root/deploy/push-fcm.compose.yaml"
           cp -- scripts/self_hosted_release.py \
             "$bundle_root/scripts/self_hosted_release.py"
           cp -- scripts/check_runtime_environment.py \
@@ -1109,6 +1185,7 @@ jobs:
           ${bundle_name}/
           ${bundle_name}/compose.yaml
           ${bundle_name}/deploy/
+          ${bundle_name}/deploy/push-fcm.compose.yaml
           ${bundle_name}/deploy/self-hosted-release.env.example
           ${bundle_name}/scripts/
           ${bundle_name}/scripts/_identity_environment.py
@@ -1313,6 +1390,10 @@ jobs:
 
   test-channel-contract:
     name: Private test channel contract
+    needs: test-checked-main
+    if: >-
+      always() &&
+      (github.event_name != 'workflow_run' || needs.test-checked-main.outputs.ready == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1328,15 +1409,18 @@ jobs:
           python3 tools/ci/test_release_evidence.py
 
   test-checked-main:
-    name: Wait for checked main
-    needs: test-channel-contract
+    name: Check completed main
     if: >-
       github.repository == 'baerenmarke90/eimir' &&
-      (github.event_name == 'push' || inputs.private_test_channel == true) &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true)) &&
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
       vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: read
@@ -1346,17 +1430,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Require exact-source CI, browser, security and recovery workflows
+      - name: Check exact-source CI, browser, security and recovery workflows once
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          python3 scripts/test_deployment_channel.py wait
+          python3 scripts/test_deployment_channel.py check
           --revision "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT"
 
   test-evidence:
     name: Build and attest test runtime pair
-    needs: test-checked-main
+    needs: [test-checked-main, test-channel-contract]
     if: needs.test-checked-main.outputs.ready == 'true'
     permissions:
       contents: read
@@ -1364,6 +1448,7 @@ jobs:
       attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
+      include_video_media: true
       include_android: false
       android_version_code: 0
       android_api_base_url: ''
@@ -1373,6 +1458,8 @@ jobs:
     concurrency:
       group: private-test-channel-publisher
       cancel-in-progress: false
+      # Preserve pending candidates across revisions; each rechecks current main.
+      queue: max
     name: Publish images and promote one Git Sync commit
     needs: test-evidence
     runs-on: ubuntu-latest
@@ -1385,7 +1472,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-evidence-${{ github.sha }}
           path: release-evidence
@@ -1412,3 +1499,4 @@ jobs:
           path: test-channel/
           if-no-files-found: error
           retention-days: 30
+

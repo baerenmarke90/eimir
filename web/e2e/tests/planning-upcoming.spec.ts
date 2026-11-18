@@ -1,5 +1,9 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { readFileSync } from 'node:fs';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -114,12 +118,26 @@ const earlyPlan = planDetail({
   plannedStart: EARLY_DATE,
   sourceWishId: WISH_ID,
 });
-const latePlan = planDetail({
-  id: LATE_PLAN_ID,
-  title: LATE_TITLE,
-  status: 'PLANNED',
-  plannedStart: LATE_DATE,
-});
+const latePlan = {
+  ...planDetail({
+    id: LATE_PLAN_ID,
+    title: LATE_TITLE,
+    status: 'PLANNED',
+    plannedStart: LATE_DATE,
+  }),
+  description: 'Doors open early. We can have dinner before the concert.',
+  coverAttachment: {
+    id: 'later-plan-cover',
+    status: 'READY',
+    mediaType: 'IMAGE',
+    mimeType: 'image/jpeg',
+    size: 10000,
+    width: 1200,
+    height: 800,
+    hasThumbnail: true,
+    isSensitive: false,
+  },
+};
 const ideaPlan = planDetail({
   id: IDEA_PLAN_ID,
   title: IDEA_TITLE,
@@ -148,7 +166,11 @@ type PlanningMockCalls = {
 
 async function installPlanningMocks(
   page: Page,
-  options: { empty?: boolean; secondaryDomains?: boolean } = {},
+  options: {
+    empty?: boolean;
+    secondaryDomains?: boolean;
+    pastOpen?: boolean;
+  } = {},
 ): Promise<PlanningMockCalls> {
   const calls: PlanningMockCalls = {
     conversionBody: null,
@@ -157,6 +179,9 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());
@@ -168,6 +193,31 @@ async function installPlanningMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (pathname.endsWith('/attachments/later-plan-cover/read-access')) {
+      expect(request.postDataJSON()).toMatchObject({
+        parentType: 'PLAN',
+        parentId: LATE_PLAN_ID,
+        variant: 'thumbnail',
+      });
+      await fulfillJson({
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/later-plan-cover/content`,
+      });
+      return;
+    }
+    if (pathname.endsWith('/attachments/later-plan-cover/content')) {
+      await route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/concert-lights.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -401,10 +451,30 @@ async function installPlanningMocks(
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/plans`) {
       const requestedStatus = url.searchParams.get('status');
       let items: unknown[] = [];
-      if (!options.empty && requestedStatus === 'PLANNED') {
+      if (
+        !options.empty &&
+        (requestedStatus === 'PLANNED' ||
+          url.searchParams.get('overviewScope') === 'OPEN')
+      ) {
         // Deliberately not chronological, and includes a defensive rogue
         // completed row so the client selector proves the section contract.
         items = [latePlan, completedPlan, earlyPlan];
+        if (url.searchParams.get('overviewScope') === 'OPEN')
+          items.push(...(converted ? [convertedPlan, ideaPlan] : [ideaPlan]));
+        if (options.pastOpen)
+          items.push(
+            planDetail({
+              id: 'past-open',
+              title: 'A plan still waiting',
+              status: 'PLANNED',
+              plannedStart: '2020-01-01T10:00:00Z',
+            }),
+          );
+      } else if (
+        !options.empty &&
+        url.searchParams.get('overviewScope') === 'COMPLETED'
+      ) {
+        items = [completedPlan];
       } else if (!options.empty && requestedStatus === 'IDEA') {
         items = converted ? [convertedPlan, ideaPlan] : [ideaPlan];
       }
@@ -528,13 +598,34 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-agenda-link')).toContainText(
     LATE_TITLE,
   );
+  const later = plansPanel.locator('.planen-agenda-link');
+  await expect(later.locator('img')).toBeVisible();
+  await expect(later.locator('.planen-agenda-description')).toHaveText(
+    latePlan.description,
+  );
+  await expect(later.locator('.planen-agenda-schedule')).toContainText('Uhr');
+  const agendaBox = await plansPanel.locator('.planen-agenda').boundingBox();
+  const undatedBox = await plansPanel
+    .locator('.planen-undated-link')
+    .first()
+    .boundingBox();
+  expect(agendaBox?.y).toBeLessThan(undatedBox?.y ?? 0);
+  await expect(plansPanel.locator('.wish-selection-entry')).toHaveCount(0);
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
-  await expect(plansPanel.locator('.planen-history')).toContainText(
-    COMPLETED_TITLE,
+  await expect(plansPanel.getByText(COMPLETED_TITLE)).toHaveCount(0);
+  await expect(
+    plansPanel.getByRole('button', {
+      name: m5s3.wish.status.OPEN,
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-overview-dense-390-light.png',
   );
-  await captureR3Evidence(page, testInfo, 'r3-overview-dense-390-light.png');
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -543,6 +634,7 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   const wishesPanel = page.getByRole('tabpanel', {
     name: m5s3.overview.segmentWishes,
   });
+  await expect(wishesPanel.locator('.wish-selection-entry')).toBeVisible();
   await expect(
     wishesPanel.getByText(EARLY_TITLE, { exact: true }),
   ).toBeVisible();
@@ -575,7 +667,11 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${CONVERTED_PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: CONVERTED_PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', {
+      name: CONVERTED_PLAN_TITLE,
+      level: 2,
+      exact: true,
+    }),
   ).toBeVisible();
   expect(calls.conversionIfMatch).toBe('2');
   expect(calls.conversionBody).toMatchObject({
@@ -583,7 +679,7 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
   });
 
   await page.getByRole('button', { name: taskBoundary.back }).click();
-  await expect(page).toHaveURL(/\/plan$/);
+  await expect(page).toHaveURL(/\/plan#wishes$/);
   await expect(
     page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
   ).toHaveAttribute('aria-selected', 'true');
@@ -598,7 +694,18 @@ test('planning segments keep their relationship-native empty states', async ({
   await signIn(page);
   await page.goto('/plan');
 
-  await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toBeVisible();
+  await page
+    .getByRole('button', { name: m5s3.overview.experiencedPlans, exact: true })
+    .click();
+  await expect(
+    page.getByText(m5s3.overview.experiencedPlansEmpty),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toHaveCount(0);
+  await page
+    .getByRole('button', { name: m5s3.wish.status.OPEN, exact: true })
+    .click();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toBeVisible();
   await captureR3Evidence(page, testInfo, 'r3-overview-empty-390-light.png');
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(page.getByText(m5s3.overview.wishesEmpty)).toBeVisible();
@@ -616,6 +723,13 @@ for (const scenario of [
     viewport: { width: 430, height: 860 },
     colorScheme: 'light' as const,
     reducedMotion: 'reduce' as const,
+  },
+  {
+    name: '320-dark-large-text',
+    viewport: { width: 320, height: 800 },
+    colorScheme: 'dark' as const,
+    reducedMotion: 'reduce' as const,
+    largeText: true,
   },
   {
     name: '1280-expanded',
@@ -638,7 +752,24 @@ for (const scenario of [
     await signIn(page);
     await page.goto('/plan');
 
+    if ('largeText' in scenario && scenario.largeText)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
+    await expect(page.locator('.planen-agenda-link')).toContainText(LATE_TITLE);
+    await expect(page.locator('.planen-agenda-schedule')).toContainText('Uhr');
+    // Secondary agenda previews retain a cropped thumbnail beside readable copy.
+    const preview = page.locator('.planen-agenda-link');
+    await expect(preview.locator('.plan-cover')).toBeVisible();
+    await preview.locator('.plan-cover').scrollIntoViewIfNeeded();
+    const copy = await preview.locator('.planen-agenda-copy').boundingBox();
+    const cover = await preview.locator('.plan-cover').boundingBox();
+    expect(copy).not.toBeNull();
+    expect(cover).not.toBeNull();
+    expect(copy?.x).toBeGreaterThanOrEqual(
+      (cover?.x ?? 0) + (cover?.width ?? 0),
+    );
+    expect((cover?.width ?? 0) / (cover?.height ?? 1)).toBeCloseTo(1, 1);
+    await expect(preview.locator('img')).toHaveCSS('object-fit', 'cover');
     await expect(page.locator('.planen-undated-link')).toContainText(
       IDEA_TITLE,
     );
@@ -646,7 +777,11 @@ for (const scenario of [
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
-    await captureR3Evidence(page, testInfo, `r3-overview-${scenario.name}.png`);
+    await captureR3Evidence(
+      page,
+      testInfo,
+      `planning-overview-${scenario.name}.png`,
+    );
   });
 }
 
@@ -666,10 +801,13 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
     page.getByRole('heading', { name: CHAPTER_TITLE, level: 1 }),
   ).toBeVisible();
   await expect(page.getByText(CHAPTER_DESCRIPTION)).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: m5s3.chapter.contextHeading }),
-  ).toBeVisible();
-  const placeLink = page.getByRole('link', { name: new RegExp(PLACE_NAME) });
+  const context = page.getByRole('region', {
+    name: m5s3.chapter.contextHeading,
+  });
+  await expect(context).toBeVisible();
+  const placeLink = context.getByRole('link', {
+    name: new RegExp(PLACE_NAME),
+  });
   await expect(placeLink).toBeVisible();
   expect(
     await page.evaluate(
@@ -689,9 +827,11 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
   ).toBeVisible();
   await expect(page.getByText(PLACE_DESCRIPTION)).toBeVisible();
   await expect(page.getByText(PLACE_ADDRESS)).toBeVisible();
-  await expect(
-    page.locator('details.planning-technical-details'),
-  ).not.toHaveAttribute('open', '');
+  const locationDetails = page.locator('details').filter({
+    has: page.getByText(m5s3.place.locationHeading, { exact: true }),
+  });
+  await expect(locationDetails).toBeVisible();
+  await expect(locationDetails).not.toHaveAttribute('open', '');
   await captureR3Evidence(page, testInfo, 'planning-p2-place-390-light.png');
 
   await page.getByRole('button', { name: taskBoundary.back }).click();
@@ -789,3 +929,99 @@ test('Wishes panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are ex
 
   expect(requestedStatus).toBe('OPEN');
 });
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+  [320, 'light'],
+] as const) {
+  test(`Plan Open and Experienced scopes retain past intentions and restore after detail at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await installPlanningMocks(page, { pastOpen: true });
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/plans/${COMPLETED_PLAN_ID}`,
+      (route) => route.fulfill({ json: completedPlan }),
+    );
+    await page.goto('/plan');
+    await signIn(page);
+    await page.goto('/plan');
+    if (width === 320)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const panel = page.getByRole('tabpanel', {
+      name: m5s3.overview.segmentPlans,
+    });
+    const open = panel.getByRole('button', {
+      name: m5s3.wish.status.OPEN,
+      exact: true,
+    });
+    const experienced = panel.getByRole('button', {
+      name: m5s3.overview.experiencedPlans,
+      exact: true,
+    });
+    await expect(open).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toBeVisible();
+    await expect(panel.getByText(COMPLETED_TITLE)).toHaveCount(0);
+    await captureR3Evidence(
+      page,
+      info,
+      `1616-plans-open-${width}-${theme}.png`,
+    );
+    await experienced.click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toHaveCount(0);
+    await expect(panel.getByText(EARLY_TITLE)).toHaveCount(0);
+    const completed = panel.getByRole('link', {
+      name: new RegExp(COMPLETED_TITLE),
+    });
+    await expect(completed).toBeVisible();
+    await captureR3Evidence(
+      page,
+      info,
+      `1616-plans-experienced-${width}-${theme}.png`,
+    );
+    await completed.click();
+    await expect(
+      page.getByRole('heading', {
+        name: COMPLETED_TITLE,
+        level: 2,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await expect(completed).toBeFocused();
+    await page
+      .getByRole('tab', { name: m5s3.overview.segmentWishes, exact: true })
+      .click();
+    await expect(
+      page.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole('tab', { name: m5s3.overview.segmentPlans, exact: true })
+      .click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await open.click();
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
+  });
+}

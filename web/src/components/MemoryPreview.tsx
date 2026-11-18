@@ -1,68 +1,109 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useContext, useEffect } from 'react';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { useMediaReveal } from '../client/useMediaReveal';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useTranslation } from '../i18n';
+import { PreviewCardLocationContext } from './PreviewCardLink';
+import {
+  SensitiveMediaControl,
+  SensitiveMediaCover,
+  useSensitiveMediaReveals,
+} from './SensitiveMedia';
 
 export function MemoryPreview({
   memoryId,
   attachmentId,
+  hasThumbnail = false,
   loadImage,
   loadingMode = 'immediate',
   resourceScopeKey,
+  isSensitive,
+  allowReveal = false,
+  onSettled,
+  fallback,
 }: {
   memoryId: string;
+  isSensitive?: boolean;
+  allowReveal?: boolean;
   attachmentId: string;
+  hasThumbnail?: boolean;
   loadImage: (
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+    variant?: 'original' | 'thumbnail',
+  ) => Promise<ObjectUrlSource>;
   loadingMode?: 'immediate' | 'near-viewport';
   resourceScopeKey?: string;
+  /** Resource completion, including reuse/failure; never grants media visibility. */
+  onSettled?: () => void;
+  fallback?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const [shouldLoad, setShouldLoad] = useState(loadingMode === 'immediate');
-
-  useEffect(() => {
-    if (loadingMode === 'immediate' || shouldLoad) {
-      setShouldLoad(true);
-      return;
-    }
-
-    const node = sentinelRef.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setShouldLoad(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        setShouldLoad(true);
-        observer.disconnect();
-      },
-      {
-        root: null,
-        rootMargin: '75% 0px',
-        threshold: 0,
-      },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadingMode, shouldLoad]);
+  const { ref: sentinelRef, shouldLoad } = usePreviewLoadGate(
+    loadingMode,
+    typeof isSensitive === 'boolean',
+  );
+  const locationKey = useContext(PreviewCardLocationContext);
+  const scope = resourceScopeKey ?? `story-preview:${memoryId}`;
+  const reveals = useSensitiveMediaReveals(
+    JSON.stringify([scope, memoryId, attachmentId, isSensitive, locationKey]),
+    allowReveal && isSensitive === true,
+  );
+  const revealed = isSensitive === true && reveals.isRevealed(attachmentId);
 
   const mediaResource = useObjectUrlResource(
-    resourceScopeKey ?? `story-preview:${memoryId}`,
-    shouldLoad ? attachmentId : null,
-    (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
+    hasThumbnail ? `${scope}:thumbnail` : scope,
+    shouldLoad && typeof isSensitive === 'boolean' ? attachmentId : null,
+    (_resourceId, signal) =>
+      hasThumbnail
+        ? loadImage(memoryId, attachmentId, signal, 'thumbnail')
+        : loadImage(memoryId, attachmentId, signal, 'original'),
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;
+  const reveal = useMediaReveal(url);
+
+  useEffect(() => {
+    if (url || failed || typeof isSensitive !== 'boolean') onSettled?.();
+  }, [url, failed, isSensitive, onSettled]);
+
+  if (typeof isSensitive !== 'boolean')
+    return <SensitiveMediaCover className="story-media-preview" />;
+
+  if (isSensitive && (shouldLoad || url)) {
+    return (
+      <span className="story-media-preview sensitive-media-preview">
+        {revealed && url ? (
+          <img src={url} alt={t('media.alt')} loading="lazy" decoding="async" />
+        ) : (
+          <SensitiveMediaCover showLabel={!allowReveal}>
+            {url ? (
+              <img src={url} alt="" loading="lazy" decoding="async" />
+            ) : null}
+          </SensitiveMediaCover>
+        )}
+        {failed ? (
+          <span className="sr-only">{t('media.unavailable')}</span>
+        ) : null}
+        {allowReveal ? (
+          <SensitiveMediaControl
+            className="sensitive-media-preview-control"
+            overlay
+            revealed={revealed}
+            onToggle={() => reveals.toggle(attachmentId)}
+          />
+        ) : null}
+      </span>
+    );
+  }
 
   if (failed) {
     return (
-      <div className="story-media-placeholder">{t('media.unavailable')}</div>
+      <div className="story-media-placeholder">
+        {fallback ?? t('media.unavailable')}
+      </div>
     );
   }
 
@@ -92,6 +133,7 @@ export function MemoryPreview({
       alt={t('media.alt')}
       loading="lazy"
       decoding="async"
+      {...reveal}
     />
   );
 }

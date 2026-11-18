@@ -1,12 +1,27 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type Route } from '@playwright/test';
+import {
+  expect,
+  type Locator,
+  type Page,
+  type Route,
+  test,
+} from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
-import { writeFile } from 'node:fs/promises';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -15,6 +30,38 @@ const PRIVATE_NOTE_ID = '44444444-4444-4444-8444-444444444444';
 const PRIVATE_COLLECTION_ID = '55555555-5555-4555-8555-555555555555';
 const PRIVATE_ITEM_ID = '66666666-6666-4666-8666-666666666666';
 const TEST_NOW = '2026-09-01T10:00:00Z';
+
+const privateCreateCases = [
+  { kind: 'notes', copy: privateArea.notes },
+  { kind: 'gift-ideas', copy: privateArea.gifts },
+  { kind: 'collections', copy: privateArea.collections },
+] as const;
+
+/**
+ * Leaves an open private item through the primary navigation. Item pages lead
+ * with their own header row and show no section tabs (#1907 C4).
+ */
+async function openPrivateSection(page: Page, kind: string): Promise<void> {
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.locator('a[href="/more/private"]').first().click();
+  await page.locator(`a[href="/more/private/${kind}"]`).first().click();
+}
+
+/**
+ * Opens a section read anew. The area opens on the notes before a journey
+ * installs its own mocks, so a journey that starts from a section reloads it.
+ * Journeys with a request still in flight use `openPrivateSection` instead.
+ */
+async function openFreshPrivateSection(
+  page: Page,
+  kind: string,
+): Promise<void> {
+  if (kind === 'notes') {
+    await page.goto('/more/private/notes');
+    return;
+  }
+  await openPrivateSection(page, kind);
+}
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -65,6 +112,33 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   );
 }
 
+async function expectPrivateFloatingColor(action: Locator) {
+  const colors = await action.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      primary: style.getPropertyValue('--color-action-primary').trim(),
+      private: style.getPropertyValue('--private-action-color').trim(),
+      shared: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-action-primary')
+        .trim(),
+    };
+  });
+  expect(colors.primary).toBe(colors.private);
+  expect(colors.primary).not.toBe(colors.shared);
+  // The label uses the design's on-action colour (white in Verbunden).
+  const label = await action.evaluate((element) => {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(element)
+      .getPropertyValue('--color-on-action-primary')
+      .trim();
+    element.append(probe);
+    const expected = getComputedStyle(probe).color;
+    probe.remove();
+    return { actual: getComputedStyle(element).color, expected };
+  });
+  expect(label.actual).toBe(label.expected);
+}
+
 async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
   let collectionTitle = 'Packing list';
@@ -110,6 +184,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const requestUrl = new URL(request.url());
@@ -124,6 +199,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
 
     if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
       await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
       return;
     }
 
@@ -370,6 +455,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -393,10 +479,15 @@ async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 
+  // The area has no picker of its own: it opens on the notes.
   await page.goto('/more/private');
-  await expect(page).toHaveURL(/\/more\/private$/);
+  await expect(page).toHaveURL(/\/more\/private\/notes$/);
   await expect(
-    page.getByRole('heading', { name: privateArea.eyebrow, level: 1 }),
+    page.getByRole('heading', {
+      name: privateArea.eyebrow,
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
 
   return unexpectedRequests;
@@ -409,9 +500,7 @@ async function signOutToPublicEntry(page: Page): Promise<void> {
     expect(dialog.type()).toBe('beforeunload');
     await dialog.accept();
   });
-  await page
-    .getByRole('button', { name: navigation.profileMenu, exact: true })
-    .click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await Promise.all([
     page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
     page.getByRole('button', { name: de.header.logout, exact: true }).click(),
@@ -427,31 +516,66 @@ async function signInAgain(page: Page): Promise<void> {
 }
 
 async function expectPrivateReferenceStructure(page: Page): Promise<void> {
-  const banner = page.getByRole('note');
-  await expect(banner).toContainText(privateArea.privacyLabel);
-  await expect(banner).toContainText(privateArea.entry.privacy);
+  const context = page.locator('.private-area-context');
+  await expect(context).toHaveAccessibleName(privateArea.privacyLabel);
+  await expect(context.locator('.private-area-intro-text')).toHaveText(
+    privateArea.intro,
+  );
+  await expect(page.getByText(privateArea.intro, { exact: true })).toHaveCount(
+    1,
+  );
+  await expect(page.getByRole('note')).toHaveCount(0);
 
-  const cards = page.locator('.private-area-destination-card');
-  await expect(cards).toHaveCount(3);
-  await expect(cards.nth(0)).toHaveAttribute('href', '/more/private/notes');
-  await expect(cards.nth(1)).toHaveAttribute(
+  // The section chips are the only way between sections; no card hub exists.
+  await expect(page.locator('.private-area-destination-card')).toHaveCount(0);
+  const sections = page
+    .getByRole('navigation', { name: privateArea.navigation.aria })
+    .getByRole('link');
+  await expect(sections).toHaveCount(4);
+  await expect(sections.nth(0)).toHaveAttribute('href', '/more/private/notes');
+  await expect(sections.nth(1)).toHaveAttribute(
     'href',
     '/more/private/gift-ideas',
   );
-  await expect(cards.nth(2)).toHaveAttribute(
+  await expect(sections.nth(2)).toHaveAttribute(
     'href',
     '/more/private/collections',
   );
-  await expect(cards.nth(0)).toContainText(privateArea.notes.title);
-  await expect(cards.nth(1)).toContainText(privateArea.gifts.title);
-  await expect(cards.nth(2)).toContainText(privateArea.collections.title);
+  await expect(sections.nth(3)).toHaveAttribute(
+    'href',
+    '/more/private/partner-notes',
+  );
+  await expect(sections.nth(0)).toHaveAttribute('aria-current', 'page');
+  await expect(sections.nth(0)).toContainText(privateArea.navigation.notes);
+  await expect(sections.nth(1)).toContainText(privateArea.navigation.gifts);
+  await expect(sections.nth(2)).toContainText(
+    privateArea.navigation.collections,
+  );
+  await expect(sections.nth(3)).toContainText(
+    privateArea.partnerNotes.shortTitle,
+  );
+
+  const create = page.getByRole('link', {
+    name: privateArea.notes.add,
+    exact: true,
+  });
+  if ((page.viewportSize()?.width ?? 0) < 840) {
+    await expectFloatingAddAction(create, page.locator('.mobile-bottom-shell'));
+    await expectPrivateFloatingColor(create);
+  } else {
+    await expectLabeledAddAction(create);
+    await expect(create).not.toHaveCSS('position', 'fixed');
+    await expect(
+      page.getByRole('button', { name: navigation.newContent, exact: true }),
+    ).toHaveCount(0);
+  }
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
 }
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`private overview preserves section spacing through resize and return in ${theme}`, async ({
+  test(`private area keeps its section chips through resize and return in ${theme}`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -466,11 +590,11 @@ for (const theme of ['light', 'dark'] as const) {
     for (const viewport of [
       { width: 481, largeText: false },
       { width: 480, largeText: false },
-      { width: 481, largeText: false },
-      { width: 480, largeText: false },
       { width: 360, largeText: false },
       { width: 390, largeText: false },
       { width: 430, largeText: false },
+      { width: 839, largeText: false },
+      { width: 840, largeText: false },
       { width: 1440, largeText: false },
       { width: 360, largeText: true },
     ]) {
@@ -478,68 +602,19 @@ for (const theme of ['light', 'dark'] as const) {
       await page.locator('html').evaluate((element, largeText) => {
         element.style.fontSize = largeText ? '200%' : '';
       }, viewport.largeText);
-      const name = `private-spacing-${viewport.width}-${theme}${viewport.largeText ? '-large' : ''}`;
-      const geometry = await page
-        .locator('.private-area-reference-overview')
-        .evaluate((element) => {
-          const fontSize = Number.parseFloat(
-            getComputedStyle(document.documentElement).fontSize,
-          );
-          const children = Array.from(element.children);
-          const rects = children.map((child) => child.getBoundingClientRect());
-          return {
-            width: window.innerWidth,
-            fontSize,
-            expectedGap:
-              window.innerWidth <= 480
-                ? 1.25 * fontSize
-                : Math.min(
-                    2 * fontSize,
-                    Math.max(1.25 * fontSize, window.innerWidth * 0.05),
-                  ),
-            computedGap: getComputedStyle(element).rowGap,
-            visibleGaps: rects.slice(1).map((rect, index) => ({
-              distance: rect.top - rects[index].bottom,
-              adjacentMargins:
-                Number.parseFloat(
-                  getComputedStyle(children[index]).marginBottom,
-                ) +
-                Number.parseFloat(
-                  getComputedStyle(children[index + 1]).marginTop,
-                ),
-            })),
-          };
-        });
-      await writeFile(
-        testInfo.outputPath(`${name}.json`),
-        JSON.stringify(geometry, null, 2),
-      );
       await page.screenshot({
-        path: testInfo.outputPath(`${name}.png`),
+        path: testInfo.outputPath(
+          `private-chips-${viewport.width}-${theme}${viewport.largeText ? '-large' : ''}.png`,
+        ),
         fullPage: true,
       });
-      expect
-        .soft(Number.parseFloat(geometry.computedGap))
-        .toBeCloseTo(geometry.expectedGap, 1);
-      for (const gap of geometry.visibleGaps)
-        expect
-          .soft(gap.distance)
-          .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
       await expectPrivateReferenceStructure(page);
-      await expect(page).toHaveURL(/\/more\/private$/);
+      await expect(page).toHaveURL(/\/more\/private\/notes$/);
     }
 
-    await page.locator('.private-area-destination-card').first().click();
-    await expect(page).toHaveURL(/\/more\/private\/notes$/);
-    await expect(
-      page.getByText(privateArea.notes.emptyTitle, { exact: true }),
-    ).toBeVisible();
     await page
-      .getByRole('link', { name: privateArea.backToHub, exact: true })
-      .click();
-    await expectPrivateReferenceStructure(page);
-    await page
-      .getByRole('link', { name: privateArea.backToMore, exact: true })
+      .getByRole('link', { name: navigation.more, exact: true })
+      .last()
       .click();
     await expect(page).toHaveURL(/\/more$/);
     expect(unexpectedRequests).toEqual([]);
@@ -555,6 +630,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       window.localStorage.setItem('eimir.theme', 'system');
     });
     await page.setViewportSize({ width: 390, height: 844 });
+    if (colorScheme === 'dark') await installNativeAppLifecycle(page);
 
     const unexpectedRequests = await signInAndOpenPrivateArea(page);
     await expect(page.locator('html')).toHaveAttribute(
@@ -567,6 +643,35 @@ for (const colorScheme of ['light', 'dark'] as const) {
       path: testInfo.outputPath(`private-area-390-${colorScheme}.png`),
       fullPage: true,
     });
+
+    const create = page.getByRole('link', {
+      name: privateArea.notes.add,
+      exact: true,
+    });
+    await expect(create).toHaveAttribute('href', '/more/private/notes/new');
+
+    if (colorScheme === 'dark') {
+      await create.click();
+      const title = page.getByLabel(privateArea.notes.titleLabel, {
+        exact: true,
+      });
+      await title.fill('Unsaved private note');
+      const back = page.getByRole('button', {
+        name: privateArea.notes.detailBack,
+      });
+      await back.click();
+      const discard = page.getByRole('alertdialog', {
+        name: taskBoundary.discardTitle,
+      });
+      await discard
+        .getByRole('button', { name: taskBoundary.keepEditing })
+        .click();
+      await expect(title).toHaveValue('Unsaved private note');
+      await back.click();
+      await discard.getByRole('button', { name: taskBoundary.discard }).click();
+      await expect(page).toHaveURL(/\/more\/private\/notes$/);
+      await expect(create).toBeVisible();
+    }
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -583,7 +688,7 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
   const unexpectedRequests = await signInAndOpenPrivateArea(page);
   await expectPrivateReferenceStructure(page);
 
-  const firstCard = page.locator('.private-area-destination-card').first();
+  const firstCard = page.locator('.private-area-nav a').first();
   const transitionDuration = await firstCard.evaluate(
     (element) => getComputedStyle(element).transitionDuration,
   );
@@ -596,6 +701,18 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
   await page.screenshot({
     path: testInfo.outputPath('private-area-320-light.png'),
     fullPage: true,
+  });
+  await page.goto('/more/private/gift-ideas/new');
+  await expect(
+    page.getByLabel(privateArea.gifts.titleLabel, { exact: true }),
+  ).toBeInViewport();
+  await expect(
+    page.getByRole('button', { name: privateArea.save, exact: true }),
+  ).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('private-gift-create-320-light.png'),
   });
   expect(unexpectedRequests).toEqual([]);
 });
@@ -618,8 +735,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(page.locator('#app-favicon')).toHaveAttribute(
       'href',
       colorScheme === 'dark'
-        ? '/identity/app-icon-dark.png'
-        : '/identity/app-icon-light.png',
+        ? '/identity/favicon/dark.png'
+        : '/identity/favicon/light.png',
     );
     await expectPrivateReferenceStructure(page);
 
@@ -627,6 +744,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       path: testInfo.outputPath(`private-area-1440-${colorScheme}.png`),
       fullPage: true,
     });
+    await expectNoWcagViolations(page);
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -768,12 +886,18 @@ test('private collection is read/check-first and discloses management in Edit', 
   ).toBeVisible();
 
   await page.getByRole('button', { name: de.common.edit }).click();
-  await expect(
-    page.getByPlaceholder(privateArea.collections.itemTitleLabel),
-  ).toBeVisible();
-  await expect(page.getByLabel(privateArea.collections.rename)).toBeVisible();
-
   const titleInput = page.getByLabel(privateArea.collections.titleLabel);
+  const newItem = page.getByPlaceholder(privateArea.collections.itemTitleLabel);
+  const rename = page.getByLabel(privateArea.collections.rename);
+  for (const field of [titleInput, newItem, rename]) {
+    await expectVisibleFieldBoundary(field);
+  }
+  await rename.focus();
+  await expect(rename).toHaveCSS('outline-style', 'solid');
+  await page.screenshot({
+    path: testInfo.outputPath('private-collection-fields-390-dark.png'),
+    fullPage: true,
+  });
   await titleInput.fill('Packing for Lisbon');
   await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
 
@@ -1134,7 +1258,7 @@ for (const view of [
           completed: false,
         });
       await context.setOffline(true);
-      await page.clock.fastForward(16_000);
+      await page.clock.fastForward(61_000);
       await context.setOffline(false);
       await expect.poll(() => fixture.detailReads()).toBe(2);
       if (change === 'item') {
@@ -1214,7 +1338,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -1509,7 +1633,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -1817,12 +1941,6 @@ for (const view of [
   }
 }
 
-const privateCreateCases = [
-  { kind: 'notes', copy: privateArea.notes },
-  { kind: 'gift-ideas', copy: privateArea.gifts },
-  { kind: 'collections', copy: privateArea.collections },
-] as const;
-
 async function installHeldPrivateCreate(page: Page, kind: string) {
   const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
   const id = '77777777-7777-4777-8777-777777777777';
@@ -1837,6 +1955,7 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
     finish = resolve;
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'POST' && path === endpoint) {
@@ -1896,9 +2015,14 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
   return { endpoint, id, writes, release, settled };
 }
 
-for (const view of [
+const privateEditorViews = [
   { name: '390-light', width: 390, scheme: 'light' },
   { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const;
+
+for (const view of [
+  ...privateEditorViews,
+  { name: '390-dark', width: 390, scheme: 'dark' },
 ] as const) {
   for (const definition of privateCreateCases) {
     test(`private ${definition.kind} create preserves result and return at ${view.name}`, async ({
@@ -1912,18 +2036,101 @@ for (const view of [
       await page.addInitScript(() =>
         localStorage.setItem('eimir.theme', 'system'),
       );
+      const compactListEntry = view.width === 390;
+      if (compactListEntry) await installNativeAppLifecycle(page);
       const unexpected = await signInAndOpenPrivateArea(page);
+      if (compactListEntry && definition.kind === 'gift-ideas') {
+        await page.evaluate(() =>
+          document.documentElement.style.setProperty(
+            '--safe-area-inset-top',
+            '28px',
+          ),
+        );
+      }
       const fixture = await installHeldPrivateCreate(page, definition.kind);
-      await page
-        .getByRole('link', { name: definition.copy.title, exact: false })
-        .click();
-      await page
-        .getByRole('link', { name: definition.copy.add, exact: true })
-        .click();
+      const add = page.getByRole('link', {
+        name: definition.copy.add,
+        exact: true,
+      });
+      const dock = page.locator('.mobile-bottom-shell');
+      await openFreshPrivateSection(page, definition.kind);
+      await expect(
+        page.getByText(definition.copy.emptyTitle, { exact: true }),
+      ).toBeVisible();
+      if (compactListEntry) {
+        await expect(page.locator('[data-floating-create]')).toHaveCount(1);
+        await expectFloatingAddAction(add, dock);
+        await expectPrivateFloatingColor(add);
+      } else {
+        await expectLabeledAddAction(
+          add,
+          definition.kind === 'collections' ? 'listen' : undefined,
+        );
+      }
+      await add.click();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/new$`),
+      );
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+      const titleInput = page.getByLabel(definition.copy.titleLabel, {
+        exact: true,
+      });
+      await expectVisibleFieldBoundary(titleInput);
+      if (definition.kind === 'notes') {
+        await expectVisibleFieldBoundary(
+          page.getByLabel(privateArea.notes.bodyLabel, { exact: true }),
+        );
+        await expect(
+          page.locator('.private-area-editor.free-composer'),
+        ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        if (view.width === 390) {
+          await page.screenshot({
+            path: testInfo.outputPath(`private-note-fields-${view.name}.png`),
+            fullPage: true,
+          });
+        }
+      }
+      if (definition.kind === 'gift-ideas') {
+        const editor = page.locator('.private-gift-composer');
+        const save = editor.getByRole('button', {
+          name: privateArea.save,
+          exact: true,
+        });
+        await expect(
+          editor.getByText(privateArea.privacyLabel, { exact: true }),
+        ).toBeInViewport();
+        await expect(titleInput).toBeInViewport();
+        await expect(titleInput).not.toBeFocused();
+        await expectVisibleFieldBoundary(
+          editor.getByLabel(privateArea.gifts.descriptionLabel),
+        );
+        await expectVisibleFieldBoundary(
+          editor.getByLabel(privateArea.gifts.targetOnLabel),
+        );
+        await expect(save).toBeInViewport();
+        await expectNoHorizontalOverflow(page);
+        await expectNoWcagViolations(page);
+        if (compactListEntry) {
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .scrollIntoViewIfNeeded();
+          await editor
+            .getByLabel(privateArea.gifts.urlLabel)
+            .scrollIntoViewIfNeeded();
+          await expect(save).toBeInViewport();
+          expect(
+            await editor
+              .locator('.composer-header')
+              .evaluate((header) => header.getBoundingClientRect().top),
+          ).toBeGreaterThanOrEqual(28);
+          await page.evaluate(() => window.scrollTo(0, 0));
+        }
+      }
       const title = `Personal ${definition.kind} plan`;
-      await page
-        .getByLabel(definition.copy.titleLabel, { exact: true })
-        .fill(title);
+      await titleInput.fill(title);
       await page
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();
@@ -1938,6 +2145,7 @@ for (const view of [
       await expect(
         page.getByRole('heading', { name: title, exact: true }),
       ).toBeVisible();
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       await expectNoWcagViolations(page);
       await page.screenshot({
@@ -1956,11 +2164,24 @@ for (const view of [
       await expect(
         page.getByRole('link', { name: new RegExp(title) }),
       ).toBeVisible();
+      if (compactListEntry) await expectFloatingAddAction(add, dock);
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-area-subpage-${definition.kind}-${view.name}.png`,
+        ),
+        animations: 'disabled',
+      });
       expect(fixture.writes).toHaveLength(1);
       expect(fixture.writes[0].title).toBe(title);
       expect(unexpected).toEqual([]);
     });
+  }
+}
 
+for (const view of privateEditorViews) {
+  for (const definition of privateCreateCases) {
     test(`private ${definition.kind} create cannot redirect a replacement task at ${view.name}`, async ({
       page,
     }, testInfo) => {
@@ -1979,9 +2200,7 @@ for (const view of [
           ? privateCreateCases[1]
           : privateCreateCases[0];
       await installHeldPrivateCreate(page, destination.kind);
-      await page
-        .getByRole('link', { name: definition.copy.title, exact: false })
-        .click();
+      await openFreshPrivateSection(page, definition.kind);
       await page
         .getByRole('link', { name: definition.copy.add, exact: true })
         .click();
@@ -1992,13 +2211,7 @@ for (const view of [
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
-      await page
-        .getByRole('navigation', {
-          name: privateArea.navigation.aria,
-          exact: true,
-        })
-        .getByRole('link', { name: destination.copy.title, exact: true })
-        .click();
+      await openPrivateSection(page, destination.kind);
       await expect(
         page.getByRole('heading', {
           name: destination.copy.title,
@@ -2085,9 +2298,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateCreate(page, 'notes');
-    await page
-      .getByRole('link', { name: privateArea.notes.title, exact: false })
-      .click();
+    await openFreshPrivateSection(page, 'notes');
     await page
       .getByRole('link', { name: privateArea.notes.add, exact: true })
       .click();
@@ -2251,9 +2462,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await page
-      .getByRole('link', { name: privateArea.notes.title, exact: false })
-      .click();
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await expect(
       page.getByRole('heading', { name: 'Hidden cabin idea' }),
@@ -2315,9 +2524,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await page
-      .getByRole('link', { name: privateArea.notes.title, exact: false })
-      .click();
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await page
       .getByRole('link', { name: privateArea.edit, exact: true })
@@ -2330,16 +2537,10 @@ for (const view of [
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
-    await page
-      .locator('.private-area-nav')
-      .getByRole('link', {
-        name: privateArea.navigation.notes,
-        exact: true,
-      })
-      .click();
-    // Reopen after the production 15-second freshness window to obtain a new read.
+    await openPrivateSection(page, 'notes');
+    // Reopen after the documented one-minute freshness window to obtain a new read.
     await page.clock.setSystemTime(
-      await page.evaluate(() => Date.now() + 15_001),
+      await page.evaluate(() => Date.now() + 60_001),
     );
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await expect(
@@ -2401,9 +2602,7 @@ for (const view of [
     );
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateNoteEdit(page);
-    await page
-      .getByRole('link', { name: privateArea.notes.title, exact: false })
-      .click();
+    await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await page
       .getByRole('link', { name: privateArea.edit, exact: true })
@@ -2538,9 +2737,7 @@ for (const view of [
         );
         const unexpected = await signInAndOpenPrivateArea(page);
         const fixture = await installHeldPrivateDelete(page, definition.kind);
-        await page
-          .getByRole('link', { name: definition.copy.title, exact: false })
-          .click();
+        await openFreshPrivateSection(page, definition.kind);
         await page
           .getByRole('link', { name: new RegExp(fixture.title) })
           .click();
@@ -2603,13 +2800,7 @@ for (const view of [
             : privateCreateCases[0];
         if (leave) {
           await installHeldPrivateDelete(page, destination.kind);
-          await page
-            .getByRole('navigation', {
-              name: privateArea.navigation.aria,
-              exact: true,
-            })
-            .getByRole('link', { name: destination.copy.title, exact: true })
-            .click();
+          await openPrivateSection(page, destination.kind);
           await expect(
             page.getByRole('heading', {
               name: destination.copy.title,

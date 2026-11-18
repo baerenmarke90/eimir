@@ -7,8 +7,15 @@
 Name | Type
 ------------ | -------------
 `attachmentId` | string
+`attachmentIsSensitive` | boolean
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
+`audioSpeakerName` | string
+`audioTitle` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`location` | [HeartMomentLocation](HeartMomentLocation.md)
+`placeId` | string
+`selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -21,8 +28,15 @@ import type { HeartMomentCreate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachmentId": null,
+  "attachmentIsSensitive": null,
+  "attachments": null,
+  "audioSpeakerName": null,
+  "audioTitle": null,
   "emotion": null,
   "happenedOn": null,
+  "location": null,
+  "placeId": null,
+  "selectedCoverAttachmentId": null,
   "tags": null,
   "text": null,
   "visibility": null,

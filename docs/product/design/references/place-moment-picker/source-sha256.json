@@ -1,0 +1,45 @@
+{
+  "base": "5d5d6e1b0a798ad0a96e8704cd6d64c5f887459d",
+  "sources": [
+    {
+      "path": "web/src/components/PlanningRelationManager.tsx",
+      "sha256": "3497fb6d4b09aa9fe2eb5275df3f6f351c2b63147f560d13aa40a9e50f6a7bed"
+    },
+    {
+      "path": "web/src/components/PlanningRelationManager.css",
+      "sha256": "445dc5ae4cb5f0b8483590b58504c3e77c8f27315e6c173ecf2918575b1eed35"
+    },
+    {
+      "path": "web/src/components/RelationMomentPreview.tsx",
+      "sha256": "5dd0eccf58482027b1e6c1ed58c9121cf61b61ef363c1785f0df82721a663edb"
+    },
+    {
+      "path": "web/src/client/sharedPlanning.ts",
+      "sha256": "6eb6e1853f31719fd28da14fd72e4ded28dc126489d1f8a19f3fdb80577a2c67"
+    },
+    {
+      "path": "web/src/client/dashboardModules.ts",
+      "sha256": "d118a0d83bbeae834fc278323a432cbc02659fee4b4e7bc51c8fa41ad79f8e19"
+    },
+    {
+      "path": "web/src/client/dashboardPreferences.ts",
+      "sha256": "ec79161a3b86312828752d38d500aac99a9fa11a73a1d1e3ffbf157c8d367526"
+    },
+    {
+      "path": "web/src/components/DashboardSettingsPanel.tsx",
+      "sha256": "5914f1eaecbd19076bd63374b2cb46cb5f5439b22c0c0895ac41fddb771a7efe"
+    },
+    {
+      "path": "web/src/components/PlaceProductPage.tsx",
+      "sha256": "9fd59c9ca5c8302312528a6c10fe38c455fc06d2701fbf80f0f57689c0bbad52"
+    },
+    {
+      "path": "web/src/components/ChapterProductPage.tsx",
+      "sha256": "0998ffe22402eafdfc3cda743a349ef6256daa4622f7c548d2444b6ddd4409e7"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s3.ts",
+      "sha256": "67c48dffb2b3d32bfa166c259aef5f183f4f7cd444e529d7b28fffb1ef4d6e30"
+    }
+  ]
+}

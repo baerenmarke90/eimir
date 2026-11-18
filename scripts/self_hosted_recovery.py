@@ -335,6 +335,8 @@ def _write_database_dump(target: ComposeTarget, destination: Path) -> None:
         "--format=custom",
         "--no-owner",
         "--no-privileges",
+        "--exclude-table-data=public.once_messages",
+        "--exclude-table-data=public.once_devices",
         "--username",
         target.postgres_value("POSTGRES_USER"),
         "--dbname",

@@ -3,9 +3,10 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import {
   formatCompactCalendarDate,
+  formatCompactCalendarRange,
   formatCompactWeekdayDate,
 } from './formatRecency';
-import { resolvedLocale } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 
 /**
  * Shared Planen product-reference (#859) status/date pill presentation for
@@ -38,10 +39,20 @@ export function planStatusWord(
 }
 
 export function planScheduleLabel(
-  plan: Pick<PlanDetail, 'plannedOn' | 'plannedStart' | 'plannedEnd'>,
+  plan: Pick<PlanDetail, 'plannedOn' | 'plannedStart' | 'plannedEnd'> &
+    Partial<Pick<PlanDetail, 'plannedUntil'>>,
   locale = resolvedLocale(),
 ): string | null {
-  if (plan.plannedOn) return formatCompactCalendarDate(plan.plannedOn, locale);
+  if (plan.plannedOn) {
+    // A multi-day date-only Plan reads as one period, never as its first day.
+    if (plan.plannedUntil && plan.plannedUntil > plan.plannedOn)
+      return formatCompactCalendarRange(
+        plan.plannedOn,
+        plan.plannedUntil,
+        locale,
+      );
+    return formatCompactCalendarDate(plan.plannedOn, locale);
+  }
   if (plan.plannedStart) {
     const formatTime = (value: Date) =>
       new Intl.DateTimeFormat(locale, {
@@ -50,19 +61,21 @@ export function planScheduleLabel(
       }).format(value);
     const startDate = formatCompactWeekdayDate(plan.plannedStart, locale);
     const startTime = formatTime(plan.plannedStart);
-    if (!plan.plannedEnd) return `${startDate} · ${startTime}`;
+    const withUnit = (time: string) =>
+      i18n.t('m5s3.common.timeWithUnit', { time, lng: locale });
+    if (!plan.plannedEnd) return `${startDate} · ${withUnit(startTime)}`;
 
     const sameDay =
       plan.plannedStart.getFullYear() === plan.plannedEnd.getFullYear() &&
       plan.plannedStart.getMonth() === plan.plannedEnd.getMonth() &&
       plan.plannedStart.getDate() === plan.plannedEnd.getDate();
     if (sameDay) {
-      return `${startDate} · ${startTime}–${formatTime(plan.plannedEnd)}`;
+      return `${startDate} · ${withUnit(`${startTime}–${formatTime(plan.plannedEnd)}`)}`;
     }
-    return `${startDate} · ${startTime} – ${formatCompactWeekdayDate(
+    return `${startDate} · ${withUnit(startTime)} – ${formatCompactWeekdayDate(
       plan.plannedEnd,
       locale,
-    )} · ${formatTime(plan.plannedEnd)}`;
+    )} · ${withUnit(formatTime(plan.plannedEnd))}`;
   }
   return null;
 }
@@ -77,7 +90,8 @@ export function planPillLabel(
   plan: Pick<
     PlanDetail,
     'status' | 'plannedOn' | 'plannedStart' | 'plannedEnd'
-  >,
+  > &
+    Partial<Pick<PlanDetail, 'plannedUntil'>>,
 ): string {
   const statusWord = planStatusWord(t, plan);
   const date = planScheduleLabel(plan);

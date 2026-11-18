@@ -1,9 +1,11 @@
+import { i18n } from '../i18n';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import {
   consumeSignup,
   requestSignup,
+  requestMagicLink,
   signInAndJoinInvitation,
   revokeUnacceptedSession,
 } from './identityFlow';
@@ -113,20 +115,84 @@ describe('identityFlow signup methods', () => {
       }
     },
   );
-  it('requests signup proof with proper email request body', async () => {
-    const spy = vi
-      .spyOn(AuthApi.prototype, 'requestSignupApiV1AuthSignupRequestPost')
-      .mockResolvedValue();
+  it.each(['de', 'en'])(
+    'requests signup proof with preserved headers in %s',
+    async (language) => {
+      await i18n.changeLanguage(language);
+      const spy = vi
+        .spyOn(AuthApi.prototype, 'requestSignupApiV1AuthSignupRequestPost')
+        .mockResolvedValue();
 
-    try {
-      await requestSignup('https://eimir.invalid', 'couple@example.invalid');
-      expect(spy).toHaveBeenCalledWith({
-        signupEmailRequest: { email: 'couple@example.invalid' },
-      });
-    } finally {
-      spy.mockRestore();
-    }
-  });
+      try {
+        await requestSignup('https://eimir.invalid', 'couple@example.invalid');
+        expect(spy).toHaveBeenCalledWith(
+          {
+            signupEmailRequest: { email: 'couple@example.invalid' },
+          },
+          expect.any(Function),
+        );
+        const override = spy.mock.calls[0]?.[1];
+        if (typeof override !== 'function')
+          throw new Error('Missing mail locale override');
+        const init = await override({
+          init: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+          context: {
+            path: '/auth/signup/request',
+            method: 'POST',
+            headers: {},
+          },
+        });
+        const headers = new Headers(init.headers);
+        expect(headers.get('Accept-Language')).toBe(language);
+        expect(headers.get('Content-Type')).toBe('application/json');
+        expect(headers.has('Authorization')).toBe(false);
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
+
+  it.each(['de', 'en'])(
+    'carries the visible locale for a magic-link request in %s',
+    async (language) => {
+      await i18n.changeLanguage(language);
+      const spy = vi
+        .spyOn(
+          AuthApi.prototype,
+          'requestMagicLinkApiV1AuthMagicLinkRequestPost',
+        )
+        .mockResolvedValue();
+      try {
+        await requestMagicLink(
+          'https://eimir.invalid',
+          'couple@example.invalid',
+        );
+        const override = spy.mock.calls[0]?.[1];
+        if (typeof override !== 'function')
+          throw new Error('Missing mail locale override');
+        const init = await override({
+          init: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+          context: {
+            path: '/auth/magic-link/request',
+            method: 'POST',
+            headers: {},
+          },
+        });
+        expect(new Headers(init.headers).get('Accept-Language')).toBe(language);
+        expect(new Headers(init.headers).get('Content-Type')).toBe(
+          'application/json',
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
 
   it('carries an invitation only in the signup request body', async () => {
     const spy = vi
@@ -138,12 +204,15 @@ describe('identityFlow signup methods', () => {
         'couple@example.invalid',
         'invite',
       );
-      expect(spy).toHaveBeenCalledWith({
-        signupEmailRequest: {
-          email: 'couple@example.invalid',
-          invitationToken: 'invite',
+      expect(spy).toHaveBeenCalledWith(
+        {
+          signupEmailRequest: {
+            email: 'couple@example.invalid',
+            invitationToken: 'invite',
+          },
         },
-      });
+        expect.any(Function),
+      );
     } finally {
       spy.mockRestore();
     }

@@ -167,15 +167,23 @@ def _active_partner_account_id(
     return membership.account_id if membership is not None else None
 
 
-def _dimension_value(
+def has_own_entry(
     check_in: DailyCheckIn | None,
-    dimension: DailyCheckInDimension,
-) -> DimensionValue | None:
+    *,
+    vibe_enabled: bool,
+    energy_enabled: bool,
+) -> bool:
+    """Whether the caller has any current-day entry in an enabled dimension.
+
+    Under Mutual Reveal one own entry of any kind reveals every partner
+    dimension together (#1790, ADR 0007 amendment). A Vibe note always belongs
+    to a Vibe, so it is covered by the Vibe.
+    """
     if check_in is None:
-        return None
-    if dimension is DailyCheckInDimension.VIBE:
-        return check_in.vibe
-    return check_in.energy_level
+        return False
+    return (vibe_enabled and check_in.vibe is not None) or (
+        energy_enabled and check_in.energy_level is not None
+    )
 
 
 def _partner_dimension(
@@ -183,14 +191,13 @@ def _partner_dimension(
     authorization: AuthorizationContext,
     *,
     checked_on: date,
-    own: DailyCheckIn | None,
+    own_has_entry: bool,
     dimension: DailyCheckInDimension,
     visibility_mode: DailyCheckInVisibilityMode,
 ) -> PartnerDimensionProjection:
-    own_value = _dimension_value(own, dimension)
-    if visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL and own_value is None:
+    if visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL and not own_has_entry:
         # Privacy invariant: do not even query partner participation while the
-        # caller has not satisfied this dimension's reveal condition.
+        # caller has not satisfied the shared reveal condition.
         return PartnerDimensionProjection(state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN)
 
     partner_account_id = _active_partner_account_id(session, authorization)
@@ -202,19 +209,22 @@ def _partner_dimension(
         DailyCheckIn.account_id == partner_account_id,
         DailyCheckIn.checked_on == checked_on,
     )
-    selected_dimension = (
-        DailyCheckIn.vibe if dimension is DailyCheckInDimension.VIBE else DailyCheckIn.energy_level
-    )
-    partner_row = session.execute(
-        select(DailyCheckIn.id, selected_dimension).where(*filters)
-    ).one_or_none()
+    # The values are protected content, so the row is loaded and read in Python.
+    partner_row = session.execute(select(DailyCheckIn).where(*filters)).scalar_one_or_none()
+    value: str | int | None = None
+    if partner_row is not None:
+        value = (
+            partner_row.vibe
+            if dimension is DailyCheckInDimension.VIBE
+            else partner_row.energy_level
+        )
 
-    if partner_row is None or partner_row[1] is None:
+    if partner_row is None or value is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
     return PartnerDimensionProjection(
         state=PartnerRevealState.VISIBLE,
-        value=partner_row[1],
-        check_in_id=partner_row[0],
+        value=value,
+        check_in_id=partner_row.id,
     )
 
 
@@ -233,13 +243,18 @@ def _project(
         configuration,
         configuration_service.SpaceModule.VIBE_CHECK,
     )
+    energy_enabled = configuration_service.module_enabled(
+        configuration,
+        configuration_service.SpaceModule.ENERGY_CHECK_IN,
+    )
+    own_has_entry = has_own_entry(own, vibe_enabled=vibe_enabled, energy_enabled=energy_enabled)
     vibe_mode = DailyCheckInVisibilityMode(configuration.vibe_visibility_mode)
     partner_vibe = (
         _partner_dimension(
             session,
             authorization,
             checked_on=checked_on,
-            own=own,
+            own_has_entry=own_has_entry,
             dimension=DailyCheckInDimension.VIBE,
             visibility_mode=vibe_mode,
         )
@@ -258,17 +273,13 @@ def _project(
         else None
     )
 
-    energy_enabled = configuration_service.module_enabled(
-        configuration,
-        configuration_service.SpaceModule.ENERGY_CHECK_IN,
-    )
     energy_mode = DailyCheckInVisibilityMode(configuration.energy_visibility_mode)
     partner_energy = (
         _partner_dimension(
             session,
             authorization,
             checked_on=checked_on,
-            own=own,
+            own_has_entry=own_has_entry,
             dimension=DailyCheckInDimension.ENERGY,
             visibility_mode=energy_mode,
         )
@@ -461,8 +472,7 @@ def update_today(
         _flush(session)
         own = None
     else:
-        own.energy_level = next_energy
-        own.vibe = next_vibe
+        own.set_values(vibe=next_vibe, energy_level=next_energy)
 
     if own is not None:
         note_changed = next_vibe_note != current_vibe_note

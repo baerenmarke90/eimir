@@ -1,3 +1,4 @@
+import { interleaveDiaryEntries } from './diaryEntries';
 import type { GetStoryTimelineRequest } from '../api/generated/apis/StoryApi';
 import {
   StoryKind,
@@ -21,6 +22,22 @@ export const DEFAULT_STORY_FILTERS: StoryFilters = {
   year: null,
   order: StoryOrder.DESC,
 };
+
+export function parseStoryYear(raw: string | undefined): number | null {
+  if (!raw || !/^\d{4}$/.test(raw)) return null;
+  const year = Number(raw);
+  return year >= 1900 && year <= 2100 ? year : null;
+}
+
+export function storyYearFilters(year: number | null): StoryFilters {
+  return { kind: null, year, order: StoryOrder.ASC };
+}
+
+export function storyYearsIndexRequest(
+  spaceId: string,
+): GetStoryTimelineRequest {
+  return { spaceId, order: StoryOrder.DESC, limit: 1, includeChapters: true };
+}
 
 function isStoryKind(value: string | null): value is StoryKindValue {
   return (
@@ -52,7 +69,7 @@ export function storyFiltersToSearch(filters: StoryFilters): URLSearchParams {
 
 export function storyCacheResourceId(filters: StoryFilters): string {
   return [
-    'timeline',
+    'diary-v2',
     filters.kind ?? 'ALL',
     filters.year ?? 'ALL',
     filters.order,
@@ -67,6 +84,7 @@ export function storyRequest(
   return {
     spaceId,
     type: filters.kind ? [filters.kind] : undefined,
+    includeChapters: filters.kind ? undefined : true,
     year: filters.year ?? undefined,
     order: filters.order,
     cursor: cursor ?? undefined,
@@ -76,8 +94,34 @@ export function storyRequest(
 
 export function aggregateStoryPages(pages: StoryPage[]): StoryPage {
   const lastPage = pages.at(-1);
+  const entries = [
+    ...new Map(
+      pages
+        .flatMap((page) =>
+          interleaveDiaryEntries(page.items, page.chapterMarkers ?? []),
+        )
+        .map((entry) => [
+          entry.type === 'chapter'
+            ? `chapter-${entry.chapter.id}`
+            : storyItemKey(entry.item),
+          entry,
+        ]),
+    ).values(),
+  ];
   return {
-    items: pages.flatMap((page) => page.items),
+    items: entries.flatMap((entry) =>
+      entry.type === 'story' ? [entry.item] : [],
+    ),
+    chapterMarkers: entries.flatMap((entry, position) =>
+      entry.type === 'chapter' ? [{ ...entry.chapter, position }] : [],
+    ),
+    chapterPeriods: [
+      ...new Map(
+        pages
+          .flatMap((page) => page.chapterPeriods ?? [])
+          .map((chapter) => [chapter.id, chapter]),
+      ).values(),
+    ],
     hasMore: lastPage?.hasMore ?? false,
     nextCursor: lastPage?.nextCursor ?? null,
     availableYears: pages[0]?.availableYears ?? [],

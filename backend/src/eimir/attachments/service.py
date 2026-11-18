@@ -19,17 +19,18 @@ from datetime import UTC, datetime, timedelta
 from typing import BinaryIO
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from eimir.attachments import images
-from eimir.attachments.limits import MediaRule, rule_for
+from eimir.attachments import documents, images
+from eimir.attachments.limits import PDF_MIME_TYPE, MediaRule, is_supported, rule_for
 from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
+    PhotoLocationDraft,
 )
 from eimir.authorization import (
     AuthorizationContext,
@@ -43,22 +44,29 @@ from eimir.core.errors import (
     ErrorCode,
     NotFoundError,
     PayloadTooLargeError,
+    PremiumEntitlementRequiredError,
     UnsupportedMediaTypeError,
     ValidationError,
 )
 from eimir.core.ids import parse_id
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import Capability
 from eimir.jobs import queue
 from eimir.media import (
+    ByteSource,
     build_account_storage_key,
     build_storage_key,
     get_media_store,
     supports_signed_upload,
 )
+from eimir.media.streams import BoundedSource, ByteLimitExceededError
 from eimir.security.errors import PlaintextRejectedError
 
 log = logging.getLogger(__name__)
 
 ATTACHMENT_VALIDATION = "attachment_validation"
+ATTACHMENT_AUDIO_VALIDATION = "attachment_audio_validation"
+ATTACHMENT_VIDEO_VALIDATION = "attachment_video_validation"
 
 BINDING_WINDOW = timedelta(minutes=60)
 """M2-D20: maximum time a READY attachment may remain unbound."""
@@ -153,7 +161,7 @@ def _require_rule(mime_type: str, media_type: MediaType) -> MediaRule:
             "This media type is not accepted.",
             ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED,
         )
-    if not rule.supported:
+    if not is_supported(rule):
         # M2-D23: the contract permits the type while this release does not
         # implement it. Reject fail-closed using the same code as an unknown
         # type because the distinction is not useful to the client.
@@ -172,6 +180,7 @@ def create_upload(
     original_name: str,
     expected_mime_type: str,
     expected_size: int,
+    preserve_metadata: bool = False,
 ) -> Attachment:
     """Register an upload.
 
@@ -180,6 +189,10 @@ def create_upload(
     that is already known to be impossible.
     """
     rule = _require_rule(expected_mime_type, media_type)
+    if media_type is MediaType.VIDEO and not entitlements.has_capability(
+        session, context.space_id, Capability.MEDIA_VIDEO_UPLOAD, lock_grants=True
+    ):
+        raise PremiumEntitlementRequiredError(Capability.MEDIA_VIDEO_UPLOAD.value)
 
     name = original_name.strip()
     if not name or len(name) > MAX_ORIGINAL_NAME:
@@ -200,7 +213,7 @@ def create_upload(
         media_type=media_type.value,
         declared_mime_type=rule.mime_type,
         declared_size=expected_size,
-        payload=AttachmentPayload(original_name=name),
+        payload=AttachmentPayload(original_name=name, preserve_metadata=preserve_metadata),
     )
     session.add(attachment)
     _flush(session)
@@ -246,16 +259,22 @@ def complete_upload(
     session: Session,
     attachment: Attachment,
     rule: MediaRule,
-    data: bytes,
+    data: bytes | ByteSource,
 ) -> Attachment:
     """Store accepted upload bytes.
 
     The size limit is already applied while reading; it is checked again here
     so another caller cannot bypass the request-layer boundary.
     """
-    if len(data) > rule.max_size:
+    if isinstance(data, bytes) and len(data) > rule.max_size:
         raise too_large()
-    get_media_store().put(storage_key_for(attachment), io.BytesIO(data), rule.mime_type)
+    source = io.BytesIO(data) if isinstance(data, bytes) else data
+    try:
+        get_media_store().put(
+            storage_key_for(attachment), BoundedSource(source, rule.max_size), rule.mime_type
+        )
+    except ByteLimitExceededError:
+        raise too_large() from None
     attachment.status = AttachmentStatus.UPLOADING.value
     attachment.uploaded_at = now()
     _flush(session)
@@ -287,7 +306,11 @@ def finalize_upload(
         return locked
 
     store = get_media_store()
-    if locked.status == AttachmentStatus.PENDING.value and supports_signed_upload(store):
+    if (
+        locked.status == AttachmentStatus.PENDING.value
+        and locked.media_type != MediaType.DOCUMENT
+        and supports_signed_upload(store)
+    ):
         if not store.exists(storage_key_for(locked)):
             raise ConflictError(
                 "The upload has not been transferred.",
@@ -303,7 +326,14 @@ def finalize_upload(
         )
 
     locked.status = AttachmentStatus.VALIDATING.value
-    queue.enqueue(session, ATTACHMENT_VALIDATION, {"attachmentId": str(locked.id)})
+    kind = (
+        ATTACHMENT_AUDIO_VALIDATION
+        if locked.media_type == MediaType.AUDIO
+        else ATTACHMENT_VIDEO_VALIDATION
+        if locked.media_type == MediaType.VIDEO
+        else ATTACHMENT_VALIDATION
+    )
+    queue.enqueue(session, kind, {"attachmentId": str(locked.id)})
     _flush(session)
     return locked
 
@@ -349,11 +379,11 @@ def get_attachment(
     context: AuthorizationContext,
     attachment_id: UUID | str,
 ) -> Attachment:
-    """Read metadata under the same two-stage rule as attachment content.
+    """Read metadata under the two-stage attachment privacy rule.
 
     A bound attachment is readable by anyone who may read its parent. An
-    unbound attachment is readable only by its owner during the binding window.
-    Applying a weaker rule here would make the metadata endpoint a bypass.
+    unbound attachment is readable only by its owner, including when the
+    owner polls PDF validation before binding the file to a Plan.
     """
     from eimir.attachments import binding
 
@@ -386,10 +416,13 @@ def authorize_read(
     from eimir.attachments import binding
 
     attachment = _load_in_space(session, context, attachment_id)
+    actual_parent = binding.parent_of(session, attachment.id)
+    if attachment.media_type == MediaType.DOCUMENT and (
+        actual_parent is None or actual_parent[0] != "PLAN"
+    ):
+        raise Attachment.privacy_absence.error()
     if attachment.status != AttachmentStatus.READY.value:
         raise _not_ready()
-
-    actual_parent = binding.parent_of(session, attachment.id)
 
     if actual_parent is None:
         # Unbound: owner only and only during the binding window (M2-D20/D24).
@@ -432,13 +465,23 @@ def _require_readable_parent(
     from eimir.heart_moments.models import HeartMoment
     from eimir.memories.models import Memory
     from eimir.people.models import RelatedPerson
+    from eimir.plans.models import Plan
 
+    if parent_type == "HEART_HUNT_ROUND":
+        # Exactly the two partners of the round, never decided by the uploader alone.
+        from eimir.heart_hunt import service as heart_hunt
+
+        if not heart_hunt.can_read_photo(session, context, parent_id):
+            raise Attachment.privacy_absence.error()
+        return
     if parent_type == "MEMORY":
-        model: type[Memory] | type[HeartMoment] | type[RelatedPerson] = Memory
+        model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan] = Memory
     elif parent_type == "HEART_MOMENT":
         model = HeartMoment
     elif parent_type == "RELATED_PERSON":
         model = RelatedPerson
+    elif parent_type == "PLAN":
+        model = Plan
     else:
         raise Attachment.privacy_absence.error()
     try:
@@ -479,6 +522,7 @@ def delete_attachment(
 
 
 def mark_for_deletion(session: Session, attachment: Attachment) -> None:
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     attachment.status = AttachmentStatus.DELETING.value
 
 
@@ -488,6 +532,8 @@ def purge(session: Session, attachment: Attachment) -> bool:
     Storage failure must not reverse domain-visible deletion. On failure the row
     remains DELETE_FAILED for retry and never becomes visible again.
     """
+    # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:
@@ -524,7 +570,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
         return
 
     rule = rule_for(attachment.declared_mime_type)
-    if rule is None or not rule.supported:
+    if rule is None or not is_supported(rule):
         _fail(attachment, ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
         return
 
@@ -536,7 +582,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
 
     try:
         with store.open(storage_key) as source:
-            raw = source.read()
+            raw = source.read(rule.max_size + 1)
     except PlaintextRejectedError:
         # A client that received a presigned upload URL before encryption became
         # mandatory can still complete it, leaving plaintext at the provider.
@@ -549,13 +595,33 @@ def validate(session: Session, attachment_id: UUID) -> None:
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)
         return
 
+    if attachment.media_type == MediaType.DOCUMENT:
+        if not documents.is_pdf(raw):
+            _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
+            return
+        attachment.mime_type = PDF_MIME_TYPE
+        attachment.size = len(raw)
+        attachment.status = AttachmentStatus.READY.value
+        attachment.ready_at = now()
+        attachment.failure_code = None
+        return
+
+    from eimir.attachments import photo_locations
+
+    extract_location, location_version = photo_locations.extraction_preference(session, attachment)
     try:
-        processed = images.process(raw, rule)
+        processed = images.process(
+            raw,
+            rule,
+            extract_location=extract_location,
+            preserve_metadata=attachment.payload.preserve_metadata,
+        )
     except images.ImageRejectedError as error:
         _fail(attachment, error.code)
         return
 
     store.put(storage_key, io.BytesIO(processed.content), processed.mime_type)
+    photo_locations.stage(session, attachment, processed.coordinates, location_version)
 
     attachment.mime_type = processed.mime_type
     attachment.size = len(processed.content)
@@ -563,6 +629,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
     attachment.height = processed.height
     attachment.payload = AttachmentPayload(
         original_name=attachment.payload.original_name,
+        is_sensitive=attachment.payload.is_sensitive,
         captured_at=processed.captured_at,
         orientation=processed.orientation,
     )

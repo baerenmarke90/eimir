@@ -21,6 +21,7 @@ class CommentTarget(StrEnum):
     MEMORY = "MEMORY"
     HEART_MOMENT = "HEART_MOMENT"
     MILESTONE = "MILESTONE"
+    PLAN = "PLAN"
 
 
 class CommentPayload(ProtectedPayload):
@@ -52,7 +53,7 @@ class Comment(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base)
             name="privacy_is_space_shared",
         ),
         CheckConstraint(
-            "target_type IN ('MEMORY', 'HEART_MOMENT', 'MILESTONE')",
+            "target_type IN ('MEMORY', 'HEART_MOMENT', 'MILESTONE', 'PLAN')",
             name="comment_target_type_allowed",
         ),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),

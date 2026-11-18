@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import httpx
 
+from tests.support.s3_reads import object_read
+
 
 class PrivateS3:
     def __init__(self) -> None:
@@ -16,12 +18,8 @@ class PrivateS3:
             self.objects[key] = request.content
             self.content_types[key] = request.headers.get("content-type", "")
             return httpx.Response(200)
-        if request.method == "HEAD":
-            return httpx.Response(200 if key in self.objects else 404)
-        if request.method == "GET":
-            if key not in self.objects:
-                return httpx.Response(404)
-            return httpx.Response(200, content=self.objects[key])
+        if request.method in {"HEAD", "GET"}:
+            return object_read(request, self.objects)
         if request.method == "DELETE":
             self.objects.pop(key, None)
             return httpx.Response(204)

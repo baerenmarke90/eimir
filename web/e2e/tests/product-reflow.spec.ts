@@ -1,8 +1,12 @@
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -77,6 +81,8 @@ async function installApiMocks(page: Page): Promise<string[]> {
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -86,6 +92,16 @@ async function installApiMocks(page: Page): Promise<string[]> {
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -413,6 +429,8 @@ async function installApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -578,17 +596,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-test('representative layout families keep their accepted normal viewport reflow', async ({
-  page,
-}) => {
-  test.setTimeout(120_000);
-  const unexpectedRequests = await installApiMocks(page);
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.goto('/today');
-  await signIn(page);
-
-  for (const width of [320, 390, 1440, 1920]) {
+// Each viewport journey owns the existing bounded budget. All 32 route visits
+// must complete; they must not compete for one aggregate deadline.
+for (const width of [320, 390, 1440, 1920]) {
+  test(`representative layout families keep their accepted normal viewport reflow at ${width}px`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const unexpectedRequests = await installApiMocks(page);
     await page.setViewportSize({ width, height: 1024 });
+    await page.goto('/today');
+    await signIn(page);
+
     for (const path of [
       '/today',
       '/story',
@@ -608,13 +627,12 @@ test('representative layout families keep their accepted normal viewport reflow'
             name: m5s5.dashboard.storySummaryTitle,
             level: 2,
           }),
-        ).toBeVisible();
+        ).toHaveCount(0);
       }
     }
-  }
-
-  expect(unexpectedRequests).toEqual([]);
-});
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
 
 test('400 percent reflow keeps keyboard-reachable controls inside the viewport', async ({
   page,

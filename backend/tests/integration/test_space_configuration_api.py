@@ -13,7 +13,14 @@ from sqlalchemy.orm import Session
 from eimir.core.ids import new_id
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import SpaceConfiguration
-from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.conftest import (
+    auth,
+    make_account,
+    make_space,
+    make_space_without_daily_context,
+    requires_database,
+    sign_in,
+)
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -32,9 +39,10 @@ def pair(session: Session):  # type: ignore[no-untyped-def]
     partner = make_account(session, "Partner")
     outsider = make_account(session, "Outsider")
 
-    space = make_space(session, manager)
+    # Configuration mechanics start from the stored state existing Spaces keep.
+    space = make_space_without_daily_context(session, manager)
     relationship_service.add_member(session, space.id, partner)
-    outsider_space = make_space(session, outsider)
+    outsider_space = make_space_without_daily_context(session, outsider)
     session.flush()
 
     return {

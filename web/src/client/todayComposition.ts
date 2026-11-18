@@ -22,17 +22,12 @@ export const MONTHLY_STRIP_MAX_ITEMS = 3;
  * The kinds of module the single `Gerade bei euch` slot can hold, in the
  * order they take precedence.
  */
-export type LivingModuleKind =
-  | 'partner_signal'
-  | 'retrospective'
-  | 'wish'
-  | 'plan'
-  | 'milestone';
+export type LivingModuleKind = 'partner_signal' | 'wish' | 'plan' | 'milestone';
 
 export type LivingModule =
   | { kind: 'partner_signal'; activityItem: ActivityItem }
   | {
-      kind: 'retrospective' | 'wish' | 'plan' | 'milestone';
+      kind: 'wish' | 'plan' | 'milestone';
       item: DashboardItem;
     };
 
@@ -78,11 +73,8 @@ export function selectTodayFocalItem({
  * Exactly one module is shown, never a stack. The chain is ordered by how
  * *current* and how *mutual* each candidate is:
  *
- * 1. a genuine partner interaction (the partner commented on shared content) —
- *    the only candidate that represents the partner acting today;
- * 2. the server-curated retrospective (`Weißt du noch?`) — date-specific, so it
- *    is only ever offered on the day it actually applies;
- * 3. a shared wish, then a shared plan, then a shared milestone — stable shared
+ * 1. a genuine partner interaction (the partner commented on shared content);
+ * 2. a shared wish, then a shared plan, then a shared milestone — stable shared
  *    content that keeps the slot meaningful on a quiet day.
  *
  * `excludeItemIds` keeps the slot from repeating something the page already
@@ -98,14 +90,12 @@ export function selectTodayFocalItem({
 export function selectLivingModule({
   partnerId,
   activityItems,
-  retrospective,
   recentShared,
   excludeItemIds,
   suppressPlanningFallback = false,
 }: {
   partnerId: string | null | undefined;
   activityItems: readonly ActivityItem[] | undefined;
-  retrospective: DashboardItem | null | undefined;
   recentShared: readonly DashboardItem[];
   excludeItemIds?: readonly string[];
   suppressPlanningFallback?: boolean;
@@ -131,10 +121,6 @@ export function selectLivingModule({
       : undefined;
   if (partnerSignal) {
     return { kind: 'partner_signal', activityItem: partnerSignal };
-  }
-
-  if (retrospective && !excluded.has(retrospective.id)) {
-    return { kind: 'retrospective', item: retrospective };
   }
 
   const firstOfType = (type: DashboardItem['type']) =>
@@ -246,4 +232,28 @@ export function selectMonthlyStrip({
       return calendar.year === year && calendar.month === month;
     })
     .slice(0, MONTHLY_STRIP_MAX_ITEMS);
+}
+
+/** Current-month story highlights, including text-only moments; never a total. */
+export function selectMonthlyNotes({
+  recentShared,
+  now,
+  excludeItemIds = [],
+}: {
+  recentShared: readonly DashboardItem[];
+  now: Date;
+  excludeItemIds?: readonly string[];
+}): DashboardItem[] {
+  const excluded = new Set(excludeItemIds);
+  return recentShared
+    .filter((item) => {
+      const calendar = itemCalendarMonth(item);
+      return (
+        FOCAL_SHARED_TYPES.has(item.type) &&
+        !excluded.has(item.id) &&
+        calendar?.year === now.getFullYear() &&
+        calendar.month === now.getMonth()
+      );
+    })
+    .slice(0, 4);
 }

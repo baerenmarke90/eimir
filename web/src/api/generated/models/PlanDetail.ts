@@ -27,6 +27,34 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { PlanFileSummary } from './PlanFileSummary';
+import {
+    PlanFileSummaryFromJSON,
+    PlanFileSummaryFromJSONTyped,
+    PlanFileSummaryToJSON,
+    PlanFileSummaryToJSONTyped,
+} from './PlanFileSummary';
+import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
+import {
+    OrderedAttachmentSummaryFromJSON,
+    OrderedAttachmentSummaryFromJSONTyped,
+    OrderedAttachmentSummaryToJSON,
+    OrderedAttachmentSummaryToJSONTyped,
+} from './OrderedAttachmentSummary';
+import type { AttachmentSummary } from './AttachmentSummary';
+import {
+    AttachmentSummaryFromJSON,
+    AttachmentSummaryFromJSONTyped,
+    AttachmentSummaryToJSON,
+    AttachmentSummaryToJSONTyped,
+} from './AttachmentSummary';
+import type { DiscreetTitleMode } from './DiscreetTitleMode';
+import {
+    DiscreetTitleModeFromJSON,
+    DiscreetTitleModeFromJSONTyped,
+    DiscreetTitleModeToJSON,
+    DiscreetTitleModeToJSONTyped,
+} from './DiscreetTitleMode';
 import type { PlanStatus } from './PlanStatus';
 import {
     PlanStatusFromJSON,
@@ -43,10 +71,28 @@ import {
 export interface PlanDetail {
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanDetail
+     */
+    anticipationEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<OrderedAttachmentSummary>}
+     * @memberof PlanDetail
+     */
+    attachments?: Array<OrderedAttachmentSummary>;
+    /**
+     * 
      * @type {ResourceCapabilities}
      * @memberof PlanDetail
      */
     capabilities: ResourceCapabilities;
+    /**
+     * 
+     * @type {AttachmentSummary}
+     * @memberof PlanDetail
+     */
+    coverAttachment?: AttachmentSummary | null;
     /**
      * 
      * @type {Date}
@@ -73,10 +119,28 @@ export interface PlanDetail {
     description: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanDetail
+     */
+    discreet?: boolean;
+    /**
+     * 
+     * @type {DiscreetTitleMode}
+     * @memberof PlanDetail
+     */
+    discreetTitleMode?: DiscreetTitleMode;
+    /**
+     * 
      * @type {Date}
      * @memberof PlanDetail
      */
     experiencedOn: Date | null;
+    /**
+     * 
+     * @type {Array<PlanFileSummary>}
+     * @memberof PlanDetail
+     */
+    fileAttachments?: Array<PlanFileSummary>;
     /**
      * 
      * @type {string}
@@ -109,6 +173,24 @@ export interface PlanDetail {
     plannedStart: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof PlanDetail
+     */
+    plannedUntil?: Date | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanDetail
+     */
+    previewTitle?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanDetail
+     */
+    selectedCoverAttachmentId?: string | null;
+    /**
+     * 
      * @type {string}
      * @memberof PlanDetail
      */
@@ -125,6 +207,12 @@ export interface PlanDetail {
      * @memberof PlanDetail
      */
     status: PlanStatus;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PlanDetail
+     */
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -180,20 +268,30 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
+        'coverAttachment': json['coverAttachment'] === undefined ? undefined : json['coverAttachment'] === null ? null : AttachmentSummaryFromJSON(json['coverAttachment']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'],
+        'discreet': json['discreet'] == null ? undefined : json['discreet'],
+        'discreetTitleMode': json['discreetTitleMode'] == null ? undefined : DiscreetTitleModeFromJSON(json['discreetTitleMode']),
         'experiencedOn': (json['experiencedOn'] == null ? null : new Date(json['experiencedOn'])),
+        'fileAttachments': json['fileAttachments'] == null ? undefined : ((json['fileAttachments'] as Array<any>).map(PlanFileSummaryFromJSON)),
         'id': json['id'],
         'placeId': json['placeId'],
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
         'plannedOn': json['plannedOn'] === undefined ? undefined : json['plannedOn'] === null ? null : (new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
+        'plannedUntil': json['plannedUntil'] === undefined ? undefined : json['plannedUntil'] === null ? null : (new Date(json['plannedUntil'])),
+        'previewTitle': json['previewTitle'] === undefined ? undefined : json['previewTitle'] === null ? null : json['previewTitle'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'sourceWishId': json['sourceWishId'],
         'spaceId': json['spaceId'],
         'status': PlanStatusFromJSON(json['status']),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -211,20 +309,30 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
 
     return {
         
+        'anticipationEnabled': value['anticipationEnabled'],
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
+        'coverAttachment': AttachmentSummaryToJSON(value['coverAttachment']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'discreet': value['discreet'],
+        'discreetTitleMode': DiscreetTitleModeToJSON(value['discreetTitleMode']),
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
+        'fileAttachments': value['fileAttachments'] == null ? undefined : ((value['fileAttachments'] as Array<any>).map(PlanFileSummaryToJSON)),
         'id': value['id'],
         'placeId': value['placeId'],
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'plannedUntil': value['plannedUntil'] == null ? value['plannedUntil'] : value['plannedUntil'].toISOString().substring(0,10),
+        'previewTitle': value['previewTitle'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'sourceWishId': value['sourceWishId'],
         'spaceId': value['spaceId'],
         'status': PlanStatusToJSON(value['status']),
+        'tags': value['tags'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

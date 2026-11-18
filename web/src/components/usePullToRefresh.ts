@@ -97,6 +97,7 @@ export function usePullToRefresh({
     let tracking = false;
     let startX: number | null = null;
     let startY: number | null = null;
+    let suppressClick = false;
 
     const cancelGesture = () => {
       tracking = false;
@@ -106,22 +107,45 @@ export function usePullToRefresh({
     };
 
     const onTouchStart = (event: TouchEvent) => {
+      suppressClick = false;
       const target = event.target;
       const interactiveTarget =
         target instanceof Element
           ? target.closest(
-              'a, button, input, textarea, select, [contenteditable="true"], dialog, [role="dialog"], [data-pull-to-refresh-block="true"]',
+              'form, input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog, [role="dialog"], [role="slider"], [role="switch"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, [data-pull-to-refresh-block="true"]',
             )
           : null;
       if (
         event.touches.length !== 1 ||
         interactiveTarget ||
+        window.getSelection()?.isCollapsed === false ||
+        document.body.style.overflow === 'hidden' ||
+        document.querySelector(
+          'dialog[open], [aria-modal="true"], [role="menu"]',
+        ) ||
         blockedRef.current ||
         refreshInFlightRef.current ||
         !isAtDocumentTop()
       ) {
         cancelGesture();
         return;
+      }
+      // Nested scrollers and drag surfaces keep ownership of their gestures.
+      for (
+        let node = target instanceof Element ? target : null;
+        node && node !== document.body;
+        node = node.parentElement
+      ) {
+        const style = window.getComputedStyle(node);
+        if (
+          style.touchAction === 'none' ||
+          style.touchAction === 'pan-x' ||
+          (/(auto|scroll)/.test(style.overflowY) &&
+            node.scrollHeight > node.clientHeight + 1)
+        ) {
+          cancelGesture();
+          return;
+        }
       }
       tracking = true;
       startX = event.touches[0]?.clientX ?? null;
@@ -140,6 +164,7 @@ export function usePullToRefresh({
       if (
         blockedRef.current ||
         refreshInFlightRef.current ||
+        window.getSelection()?.isCollapsed === false ||
         !isAtDocumentTop()
       ) {
         cancelGesture();
@@ -167,6 +192,7 @@ export function usePullToRefresh({
       // Once the gesture is clearly a downward pull at the document top,
       // keep the browser's own pull-to-refresh from competing with the app.
       event.preventDefault();
+      suppressClick = true;
       setPullDistance(Math.min(MAX_PULL_DISTANCE, deltaY * 0.5));
       const thresholdReached = deltaY >= threshold;
       readyRef.current = thresholdReached;
@@ -187,12 +213,26 @@ export function usePullToRefresh({
       if (shouldRefresh) void runRefresh();
     };
 
-    const onTouchCancel = () => cancelGesture();
+    const onTouchCancel = () => {
+      suppressClick = false;
+      cancelGesture();
+    };
+    const onClick = (event: MouseEvent) => {
+      if (!suppressClick || event.detail === 0) return;
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const onPointerDown = () => {
+      suppressClick = false;
+    };
 
     document.addEventListener('touchstart', onTouchStart, { passive: true });
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onTouchEnd, { passive: true });
     document.addEventListener('touchcancel', onTouchCancel, { passive: true });
+    document.addEventListener('click', onClick, true);
+    document.addEventListener('pointerdown', onPointerDown, true);
 
     return () => {
       root.classList.remove('app-pull-refresh-enabled');
@@ -200,6 +240,8 @@ export function usePullToRefresh({
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('touchcancel', onTouchCancel);
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('pointerdown', onPointerDown, true);
       resetPull();
     };
   }, [enabled, resetPull, runRefresh, threshold]);

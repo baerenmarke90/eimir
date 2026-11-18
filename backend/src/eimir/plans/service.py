@@ -29,7 +29,7 @@ path converts a calendar date into a fabricated midnight/noon timestamp.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -46,8 +46,9 @@ from eimir.authorization import (
     require_writable,
     require_writable_locked,
 )
+from eimir.core import clock
 from eimir.core import cursor as cursor_codec
-from eimir.core.clock import today_in
+from eimir.core.clock import now, today_in
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
@@ -55,7 +56,16 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
-from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
+from eimir.plans.files import change_files, clear_files
+from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, select_cover
+from eimir.plans.models import (
+    DiscreetTitleMode,
+    Plan,
+    PlanPayload,
+    PlanStatus,
+    shared_privacy,
+)
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import Wish, WishStatus
@@ -95,6 +105,10 @@ class WishToPlanResult:
     created: bool
 
 
+PlanScheduleValues = tuple[date | None, datetime | None, datetime | None, date | None]
+"""``(planned_on, planned_start, planned_end, planned_until)`` of one schedule."""
+
+
 @dataclass(frozen=True)
 class PlanCreateResult:
     plan: Plan
@@ -116,6 +130,12 @@ def _normalize_title(value: str) -> str:
     return cleaned
 
 
+def _normalize_preview_title(value: str | None) -> str | None:
+    """Blank preview titles fall back to the client's neutral list title."""
+    cleaned = (value or "").strip()
+    return cleaned or None
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -134,8 +154,18 @@ def _ensure_expected_version(plan: Plan, expected_version: int) -> None:
         )
 
 
-def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType) -> None:
+def _record(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    event_type: EventType,
+    *,
+    due_at: datetime | None = None,
+    notify_partner: bool = True,
+) -> None:
     """Record an event without plan title or description (M3-D13)."""
+    if event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}:
+        due_at = _schedule_deadline(session, plan, actor_id)
     outbox_service.record(
         session,
         DomainEvent(
@@ -145,8 +175,78 @@ def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType)
             subject_type=_PLAN_SUBJECT_TYPE,
             subject_id=plan.id,
             resource_version=plan.version,
-            payload=PublicEventPayload(),
+            payload=PublicEventPayload(
+                recipient_id=session.scalar(
+                    select(Membership.account_id)
+                    .where(
+                        Membership.space_id == plan.space_id,
+                        Membership.account_id != actor_id,
+                        Membership.status == MembershipStatus.ACTIVE.value,
+                    )
+                    .limit(1)
+                )
+                if notify_partner
+                and event_type
+                in {
+                    EventType.PLAN_CREATED,
+                    EventType.PLAN_SCHEDULED,
+                    EventType.PLAN_ATTENDANCE_CHANGED,
+                    EventType.PLAN_CANCELLED,
+                }
+                else None,
+                due_at=due_at,
+            ),
         ),
+    )
+
+
+def _schedule_deadline(session: Session, plan: Plan, actor_id: UUID) -> datetime | None:
+    if plan.planned_start is not None:
+        return clock.ensure_utc(plan.planned_start)
+    if plan.planned_on is not None:
+        actor = session.get(Account, actor_id)
+        # Date-only Plans remain relevant through their last local calendar day.
+        return clock.resolve_local(
+            (plan.planned_until or plan.planned_on) + timedelta(days=1),
+            time.min,
+            clock.resolve_zone(actor.timezone if actor else "UTC"),
+        )
+    return None
+
+
+def _attendance_changed(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    previous: tuple[date | None, datetime | None, datetime | None, UUID | None],
+    deadline: datetime | None,
+    *,
+    cancelled: bool = False,
+) -> None:
+    if plan.status == PlanStatus.COMPLETED.value:
+        return
+    current = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    if not cancelled and current == previous:
+        return
+    if not cancelled and previous[0] is None and previous[1] is None:
+        if plan.planned_on is not None or plan.planned_start is not None:
+            _record(session, plan, actor_id, EventType.PLAN_SCHEDULED)
+        return
+    cancelled = cancelled or (plan.planned_on is None and plan.planned_start is None)
+    instant = now()
+    deadlines = [
+        value
+        for value in (deadline, _schedule_deadline(session, plan, actor_id))
+        if value is not None and instant < value <= instant + timedelta(hours=48)
+    ]
+    if not deadlines:
+        return
+    _record(
+        session,
+        plan,
+        actor_id,
+        EventType.PLAN_CANCELLED if cancelled else EventType.PLAN_ATTENDANCE_CHANGED,
+        due_at=max(deadlines),
     )
 
 
@@ -183,6 +283,7 @@ def _validate_schedule(
     planned_on: date | None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> None:
     if planned_on is None and planned_start is None:
         raise ValidationError(
@@ -209,16 +310,32 @@ def _validate_schedule(
             "A plan cannot end before it starts.",
             PLAN_DATE_RANGE_INVALID,
         )
+    if planned_until is not None and planned_on is None:
+        raise ValidationError(
+            "A last calendar day requires a date-only plan.",
+            PLAN_SCHEDULE_CONFLICT,
+        )
+    if planned_until is not None and planned_on is not None and planned_until < planned_on:
+        raise ValidationError(
+            "A plan cannot end before it starts.",
+            PLAN_DATE_RANGE_INVALID,
+        )
 
 
 def _initial_schedule_status(
     planned_on: date | None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> PlanStatus:
-    if planned_on is None and planned_start is None and planned_end is None:
+    if (
+        planned_on is None
+        and planned_start is None
+        and planned_end is None
+        and planned_until is None
+    ):
         return PlanStatus.IDEA
-    _validate_schedule(planned_on, planned_start, planned_end)
+    _validate_schedule(planned_on, planned_start, planned_end, planned_until)
     return PlanStatus.PLANNED
 
 
@@ -248,9 +365,16 @@ def create_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
+    file_attachment_ids: list[UUID] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
+    tags: list[str] | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
-    status = _initial_schedule_status(planned_on, planned_start, planned_end)
+    status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
     plan = Plan(
         space_id=context.space_id,
         owner_id=context.account_id,
@@ -261,9 +385,20 @@ def create_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
-        payload=PlanPayload(title=_normalize_title(title), description=description),
+        planned_until=planned_until,
+        payload=PlanPayload(
+            title=_normalize_title(title), description=description, tags=tags or []
+        ),
     )
     session.add(plan)
+    _flush(session)
+    if photos is not None:
+        replace_photos(session, context, plan, photos)
+    else:
+        replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
+    select_cover(session, plan, selected_cover_attachment_id)
+    if file_attachment_ids:
+        change_files(session, context, plan, add=file_attachment_ids)
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
@@ -283,6 +418,13 @@ def create_plan_once(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
+    file_attachment_ids: list[UUID] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
+    tags: list[str] | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -296,11 +438,18 @@ def create_plan_once(
             session,
             context,
             title=title,
+            tags=tags,
             description=description,
             place_id=place_id,
             planned_on=planned_on,
             planned_start=planned_start,
             planned_end=planned_end,
+            planned_until=planned_until,
+            cover_attachment_id=cover_attachment_id,
+            cover_is_sensitive=cover_is_sensitive,
+            photos=photos,
+            file_attachment_ids=file_attachment_ids,
+            selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return PlanCreateResult(plan, created=True)
 
@@ -309,11 +458,37 @@ def create_plan_once(
         _RECEIPT_RESOURCE_TYPE,
         {
             "title": normalized_title,
+            **({"tags": tags} if tags else {}),
+            **(
+                {"selected_cover_attachment_id": str(selected_cover_attachment_id)}
+                if selected_cover_attachment_id
+                else {}
+            ),
             "description": description,
+            **(
+                {"file_attachment_ids": [str(identifier) for identifier in file_attachment_ids]}
+                if file_attachment_ids
+                else {}
+            ),
+            **(
+                {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
+                if photos is not None
+                else {}
+            ),
+            **(
+                {
+                    "cover_attachment_id": str(cover_attachment_id),
+                    "cover_is_sensitive": bool(cover_is_sensitive),
+                }
+                if cover_attachment_id
+                else {}
+            ),
             "place_id": str(place_id) if place_id is not None else None,
             "planned_on": planned_on.isoformat() if planned_on else None,
             "planned_start": planned_start.isoformat() if planned_start else None,
             "planned_end": planned_end.isoformat() if planned_end else None,
+            # Absent for single-day Plans so receipts claimed before #1895 still replay.
+            **({"planned_until": planned_until.isoformat()} if planned_until else {}),
         },
     )
     receipt_id = create_receipts.claim(
@@ -342,11 +517,18 @@ def create_plan_once(
         session,
         context,
         title=normalized_title,
+        tags=tags,
         description=description,
         place_id=place_id,
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
+        cover_attachment_id=cover_attachment_id,
+        cover_is_sensitive=cover_is_sensitive,
+        photos=photos,
+        file_attachment_ids=file_attachment_ids,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, plan.id)
     return PlanCreateResult(plan, created=True)
@@ -382,7 +564,15 @@ def _lock_plan_and_source_wish(
     probe = require_writable(session, Plan, context, plan_id)
     source_wish_id = probe.source_wish_id
     if source_wish_id is None:
-        return _lock_plan(session, context, plan_id), None
+        plan = _lock_plan(session, context, plan_id)
+        if plan.source_wish_id is not None:
+            # A late Wish link changed the lock set. Do not acquire a Wish
+            # lock after the Plan or complete/delete only half the lifecycle.
+            raise ConflictError(
+                "The resource was changed since it was loaded.",
+                ErrorCode.RESOURCE_VERSION_CONFLICT,
+            )
+        return plan, None
 
     wish = wish_service.lock(session, context, source_wish_id)
     plan = _lock_plan(session, context, plan_id)
@@ -405,17 +595,88 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
+    anticipation_enabled: bool | None = None,
+    discreet: bool | None = None,
+    discreet_title_mode: DiscreetTitleMode | None = None,
+    preview_title: str | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
+    photo_replacements: dict[UUID, UUID] | None = None,
+    add_file_attachment_ids: list[UUID] | None = None,
+    remove_file_attachment_ids: list[UUID] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
+    schedule_values: PlanScheduleValues | None = None,
+    tags: list[str] | None = None,
 ) -> Plan:
-    """Correct plan content without changing lifecycle status (M3-D04)."""
+    """Correct content, cover and schedule atomically; completion stays explicit."""
     next_place_id = (
         _resolve_place(session, context, place_id) if "place_id" in changed_fields else None
     )
 
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
+    if "attachments" in changed_fields:
+        assert photos is not None
+        replace_photos(session, context, plan, photos, replacements=photo_replacements)
+        plan.updated_at = now()
+    elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
+        replace_cover(
+            session,
+            context,
+            plan,
+            cover_attachment_id
+            if "cover_attachment_id" in changed_fields
+            else plan.cover_attachment_id,
+            is_sensitive=cover_is_sensitive,
+        )
+        plan.updated_at = now()
+    if "selected_cover_attachment_id" in changed_fields:
+        select_cover(session, plan, selected_cover_attachment_id)
+    if (add_file_attachment_ids or remove_file_attachment_ids) and change_files(
+        session,
+        context,
+        plan,
+        add=add_file_attachment_ids or (),
+        remove=remove_file_attachment_ids or (),
+    ):
+        plan.updated_at = now()
+    if "schedule" in changed_fields:
+        if plan.status == PlanStatus.COMPLETED.value:
+            raise ConflictError(
+                "A completed plan cannot be scheduled.", PLAN_STATUS_TRANSITION_INVALID
+            )
+        planned_on, planned_start, planned_end, planned_until = schedule_values or (
+            None,
+            None,
+            None,
+            None,
+        )
+        plan.status = _initial_schedule_status(
+            planned_on, planned_start, planned_end, planned_until
+        ).value
+        plan.planned_on, plan.planned_start, plan.planned_end, plan.planned_until = (
+            planned_on,
+            planned_start,
+            planned_end,
+            planned_until,
+        )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
+    if "anticipation_enabled" in changed_fields:
+        assert anticipation_enabled is not None
+        plan.anticipation_enabled = anticipation_enabled
+    # Discreet presentation is shared state on the entry: either partner may
+    # set or clear it, exactly like any other collaborative Plan field.
+    if "discreet" in changed_fields:
+        assert discreet is not None
+        plan.discreet = discreet
+    if "discreet_title_mode" in changed_fields:
+        assert discreet_title_mode is not None
+        plan.discreet_title_mode = discreet_title_mode.value
 
     next_title = plan.payload.title
     next_description = plan.payload.description
@@ -432,12 +693,26 @@ def update_plan(
             )
         plan.experienced_on = _validate_experienced_on(session, context, experienced_on)
 
-    if "title" in changed_fields or "description" in changed_fields:
-        plan.payload = PlanPayload(title=next_title, description=next_description)
+    if {"title", "description", "tags", "preview_title"} & changed_fields:
+        plan.payload = plan.payload.model_copy(
+            update={
+                "title": next_title,
+                "description": next_description,
+                "tags": tags
+                if "tags" in changed_fields and tags is not None
+                else plan.payload.tags,
+                "preview_title": _normalize_preview_title(preview_title)
+                if "preview_title" in changed_fields
+                else plan.payload.preview_title,
+            }
+        )
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
+    if "schedule" in changed_fields:
+        reminder_runtime.reconcile_space(session, context.space_id)
     return plan
 
 
@@ -450,10 +725,13 @@ def schedule_plan(
     planned_on: date | None = None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> Plan:
     """Apply ``IDEA -> PLANNED`` or replace a ``PLANNED`` schedule."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status == PlanStatus.COMPLETED.value:
         raise ConflictError(
@@ -461,14 +739,16 @@ def schedule_plan(
             PLAN_STATUS_TRANSITION_INVALID,
         )
 
-    _validate_schedule(planned_on, planned_start, planned_end)
+    _validate_schedule(planned_on, planned_start, planned_end, planned_until)
     plan.planned_on = planned_on
     plan.planned_start = planned_start
     plan.planned_end = planned_end
+    plan.planned_until = planned_until
     plan.status = PlanStatus.PLANNED.value
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -484,6 +764,8 @@ def unschedule_plan(
     """Apply ``PLANNED -> IDEA`` and discard either schedule representation."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status != PlanStatus.PLANNED.value:
         raise ConflictError(
@@ -494,10 +776,12 @@ def unschedule_plan(
     plan.planned_on = None
     plan.planned_start = None
     plan.planned_end = None
+    plan.planned_until = None
     plan.status = PlanStatus.IDEA.value
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -562,6 +846,16 @@ def return_to_wish(
 
     removed_plan_id = plan.id
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
+    clear_files(session, plan)
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
@@ -590,11 +884,63 @@ def delete_plan(
         )
 
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
+    clear_files(session, plan)
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
+
+
+def link_wish_to_plan(
+    session: Session,
+    context: AuthorizationContext,
+    plan_id: UUID | str,
+    *,
+    wish_id: UUID | str,
+    expected_version: int,
+    expected_wish_version: int,
+) -> WishToPlanResult:
+    """Let an existing direct Plan adopt one open Wish atomically.
+
+    Wish -> Plan is the same lock order used by conversion/completion. An
+    exact replay is harmless; it cannot relink a Wish or overwrite Plan prose.
+    """
+    wish = wish_service.lock(session, context, wish_id)
+    plan = _lock_plan(session, context, plan_id)
+    if plan.source_wish_id == wish.id:
+        if wish.status not in (WishStatus.PLANNED.value, WishStatus.COMPLETED.value):
+            raise ConflictError(
+                "The Wish lifecycle is inconsistent.", wish_service.WISH_PLAN_STATE_CONFLICT
+            )
+        return WishToPlanResult(wish=wish, plan=plan, created=False)
+    _ensure_expected_version(plan, expected_version)
+    _ensure_wish_version(wish, expected_wish_version)
+    if plan.source_wish_id is not None:
+        raise ConflictError("This Plan already has a source Wish.", PLAN_HAS_SOURCE_WISH)
+    if plan.status == PlanStatus.COMPLETED.value:
+        raise ConflictError("A completed Plan cannot adopt a Wish.", PLAN_STATUS_TRANSITION_INVALID)
+    if wish.status != WishStatus.OPEN.value:
+        raise ConflictError("This Wish is no longer open.", wish_service.WISH_HAS_ACTIVE_PLAN)
+    existing = session.execute(
+        select(Plan.id).where(Plan.source_wish_id == wish.id)
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ConflictError("This Wish already has a Plan.", wish_service.WISH_HAS_ACTIVE_PLAN)
+    plan.source_wish_id = wish.id
+    _flush(session)
+    _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    wish_service.plan_created(session, wish, context.account_id)
+    return WishToPlanResult(wish=wish, plan=plan, created=False)
 
 
 def convert_wish_to_plan(
@@ -609,10 +955,12 @@ def convert_wish_to_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
+    accepted_proposal_id: UUID | None = None,
 ) -> WishToPlanResult:
     """Convert one wish into exactly one Plan atomically and idempotently."""
     resolved_place_id = _resolve_place(session, context, place_id)
-    status = _initial_schedule_status(planned_on, planned_start, planned_end)
+    status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
 
     wish = wish_service.lock(session, context, wish_id)
     existing = session.execute(
@@ -651,9 +999,11 @@ def convert_wish_to_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
         payload=PlanPayload(
             title=_normalize_title(title if title is not None else wish.payload.title),
             description=description,
+            tags=wish.payload.tags,
         ),
     )
     session.add(plan)
@@ -665,10 +1015,18 @@ def convert_wish_to_plan(
             wish_service.WISH_HAS_ACTIVE_PLAN,
         ) from error
 
-    _record(session, plan, context.account_id, EventType.PLAN_CREATED)
+    _record(
+        session,
+        plan,
+        context.account_id,
+        EventType.PLAN_CREATED,
+        notify_partner=accepted_proposal_id is None,
+    )
     _flush(session)
 
-    wish_service.plan_created(session, wish, context.account_id)
+    wish_service.plan_created(
+        session, wish, context.account_id, accepted_proposal_id=accepted_proposal_id
+    )
     if status == PlanStatus.PLANNED:
         reminder_runtime.reconcile_space(session, context.space_id)
     return WishToPlanResult(wish=wish, plan=plan, created=True)
@@ -756,8 +1114,15 @@ def list_plans(
     cursor: str | None,
     limit: int,
     status: PlanStatus | None,
+    overview_scope: str | None = None,
 ) -> PlanPageResult:
     """List newest plans first, ordered by metadata like wishes."""
+    if overview_scope is not None:
+        if status is not None or overview_scope not in {"OPEN", "COMPLETED"}:
+            raise ValidationError("Choose one Plan browse scope.", "PLAN_BROWSE_SCOPE_CONFLICT")
+        from eimir.plans.browse import list_overview
+
+        return list_overview(session, context, scope=overview_scope, cursor=cursor, limit=limit)
     statement = readable(Plan, context)
     if status is not None:
         statement = statement.where(Plan.status == status.value)

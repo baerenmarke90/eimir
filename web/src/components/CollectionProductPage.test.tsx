@@ -99,8 +99,27 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
+
+/** Sorting starts from the list menu (#1808). */
+function startSorting() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.menu.open') }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
+  );
+}
 
 describe('CollectionProductPage', () => {
   function renderReorderCollection(
@@ -135,6 +154,7 @@ describe('CollectionProductPage', () => {
         client.setQueryData(key, initial);
       },
     );
+    startSorting();
     const order = () =>
       Array.from(document.querySelectorAll('[data-sortable-item-id]')).map(
         (element) => element.getAttribute('data-sortable-item-id'),
@@ -333,7 +353,7 @@ describe('CollectionProductPage', () => {
     await waitFor(() =>
       expect(fixture.order()).toEqual(['item-1', 'item-2', 'item-3']),
     );
-    expect(screen.getByDisplayValue('Passport and visa')).toBeDefined();
+    expect(screen.getByText('Passport and visa')).toBeDefined();
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('common.retry') }),
     );
@@ -721,9 +741,7 @@ describe('CollectionProductPage', () => {
           fixture.key,
         )?.items[0],
       ).toEqual(newer);
-      await waitFor(() =>
-        expect(screen.getByDisplayValue(newer.title)).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByText(newer.title)).toBeDefined());
     },
   );
 
@@ -1009,6 +1027,7 @@ describe('CollectionProductPage', () => {
             }),
         );
       const fixture = renderToggleCollection(vi.fn(), true, reorder);
+      startSorting();
       fireEvent.keyDown(
         screen.getByRole('button', {
           name: i18n.t('m5s3.collection.reorderItem', { title: 'Tickets' }),
@@ -1041,6 +1060,7 @@ describe('CollectionProductPage', () => {
         .click(screen.getByRole('link', { name: 'Switch collection' }));
       await screen.findByRole('heading', { name: nextCollection.title });
       expect(screen.queryByRole('status')).toBeNull();
+      startSorting();
       const nextHandle = screen.getByRole('button', {
         name: i18n.t('m5s3.collection.reorderItem', { title: 'Coffee' }),
       });
@@ -1152,8 +1172,12 @@ describe('CollectionProductPage', () => {
     expect(screen.getByRole('status').textContent).toContain(
       i18n.t('m5s3.common.saving'),
     );
-    expect(toggle.hasAttribute('disabled')).toBe(true);
-    fireEvent.click(toggle);
+    // The checked entry moves into the tray, so its button is a new element.
+    const checked = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.markOpen', { title: 'Passport' }),
+    });
+    expect(checked.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(checked);
     expect(updateCollectionItem).toHaveBeenCalledTimes(1);
     expect(updateCollectionItem).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1656,7 +1680,7 @@ describe('CollectionProductPage', () => {
         moduleKey: 'pinned_collection',
         spaceId: 'space-1',
         dashboardModulePreferenceUpdate: {
-          selectedCollectionId: 'collection-1',
+          selectedCollectionIds: ['collection-1'],
           visible: true,
         },
       }),
@@ -1749,7 +1773,7 @@ describe('CollectionProductPage', () => {
       moduleKey: 'pinned_collection',
       spaceId: 'space-1',
       dashboardModulePreferenceUpdate: {
-        selectedCollectionId: 'collection-1',
+        selectedCollectionIds: ['collection-1'],
         visible: true,
       },
     });
@@ -1762,7 +1786,7 @@ describe('CollectionProductPage', () => {
       true,
       (queryClient) => {
         queryClient.setQueryData(
-          authorSummaryQueryKeys.collections('space-1'),
+          authorSummaryQueryKeys.collectionOverview('space-1', 'OPEN'),
           {
             pages: [
               {

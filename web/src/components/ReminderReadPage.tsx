@@ -1,0 +1,193 @@
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { RemindersApi } from '../api/generated/apis/RemindersApi';
+import { WishesApi } from '../api/generated/apis/WishesApi';
+import type { Schedule } from '../api/generated/models/Schedule';
+import { Configuration } from '../client/apiConfiguration';
+import { authorDisplayName } from '../client/authorPresentation';
+import { normalizeClientError } from '../client/problemDetails';
+import { MORE_NOTIFICATIONS_ROUTE, wishDetailPath } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { PageHeader } from './PageHeader';
+import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
+import { UiState } from './UiState';
+import { WishOriginMark } from './WishJourney';
+import './ReminderReadPage.css';
+import './StoryDetailContentFirst.css';
+
+export function ReminderReadPage({
+  apiBaseUrl,
+  accessToken,
+  accountId,
+  spaceId,
+  timeZone,
+}: {
+  apiBaseUrl: string;
+  accessToken: string;
+  accountId: string;
+  spaceId: string;
+  timeZone?: string;
+}) {
+  const { t } = useTranslation();
+  const { reminderId = '' } = useParams();
+  const location = useLocation();
+  const { requestReturn } = useTaskOrigin();
+  const api = useMemo(
+    () =>
+      new RemindersApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, accessToken],
+  );
+  const query = useQuery({
+    queryKey: ['reminder-detail', apiBaseUrl, accountId, spaceId, reminderId],
+    queryFn: async ({ signal }) => {
+      try {
+        return await api.getReminder({ spaceId, reminderId }, { signal });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    retry: false,
+    refetchOnMount: 'always',
+  });
+  const originWish = query.data?.originWish ?? null;
+  // The reminder carries only the Wish's ID; its title comes from the Wish API,
+  // which applies the Wish's own access rules. Without it the line stays generic.
+  const wishApi = useMemo(
+    () =>
+      new WishesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, accessToken],
+  );
+  const originWishQuery = useQuery({
+    queryKey: [
+      'reminder-origin-wish',
+      apiBaseUrl,
+      accountId,
+      spaceId,
+      originWish?.wishId,
+    ],
+    queryFn: async ({ signal }) => {
+      try {
+        return await wishApi.getWish(
+          { spaceId, wishId: originWish?.wishId ?? '' },
+          { signal },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(originWish),
+    retry: false,
+  });
+  const returnToInbox = () =>
+    requestReturn(
+      (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
+      MORE_NOTIFICATIONS_ROUTE,
+    );
+  const back = (
+    <TaskBackButton type="button" onClick={returnToInbox}>
+      {t('m5s5.reminderDetail.back')}
+    </TaskBackButton>
+  );
+  // A denied revalidation hides any earlier cached title as well.
+  if (query.isError)
+    return (
+      <div className="page">
+        {back}
+        <ProblemState
+          error={query.error}
+          onRetry={() => {
+            void query.refetch();
+          }}
+        />
+      </div>
+    );
+  if (!query.data)
+    return (
+      <div className="page">
+        {back}
+        <UiState kind="loading" title={t('m5s5.reminderDetail.loading')} />
+      </div>
+    );
+  const reminder = query.data;
+  function scheduleLabel(schedule: Schedule): string {
+    const locale = resolvedLocale();
+    if (schedule.type === 'ONCE')
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: 'long',
+        timeStyle: 'short',
+        timeZone,
+      }).format(schedule.at);
+    const [hour, minute] = schedule.localTime.split(':').map(Number);
+    const time = new Intl.DateTimeFormat(locale, {
+      timeStyle: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+    if (schedule.type === 'ANNUAL')
+      return t('m5s5.reminderDetail.annual', {
+        date: new Intl.DateTimeFormat(locale, {
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(Date.UTC(2000, schedule.month - 1, schedule.day))),
+        time,
+      });
+    return t('m5s5.reminderDetail.dayCount', {
+      count: schedule.dayCount,
+      time,
+      days: new Intl.NumberFormat(locale).format(schedule.dayCount),
+    });
+  }
+  return (
+    <div className="page product-detail-page reminder-read-page">
+      {back}
+      <PageHeader
+        title={reminder.title}
+        itemLabel={t('m5s5.reminderDetail.title')}
+      />
+      <article className="reminder-read-content">
+        {reminder.originWish ? (
+          <Link
+            className="reminder-read-origin"
+            to={wishDetailPath(reminder.originWish.wishId)}
+          >
+            <WishOriginMark trailing>
+              {originWishQuery.data
+                ? reminder.originWish.seriesPosition > 1
+                  ? t('wishRepeat.reminder.fromWishTitledNth', {
+                      title: originWishQuery.data.title,
+                      position: reminder.originWish.seriesPosition,
+                    })
+                  : t('wishRepeat.reminder.fromWishTitled', {
+                      title: originWishQuery.data.title,
+                    })
+                : t('wishRepeat.reminder.fromWish')}
+            </WishOriginMark>
+          </Link>
+        ) : null}
+        <p>{scheduleLabel(reminder.schedule)}</p>
+        {reminder.description ? (
+          <p className="story-body">{reminder.description}</p>
+        ) : null}
+        <p className="reminder-read-attribution">
+          {t('m5s5.reminderDetail.createdBy', {
+            name: authorDisplayName(reminder.creator),
+          })}
+        </p>
+        {reminder.muted ? <p>{t('m5s5.reminderDetail.muted')}</p> : null}
+      </article>
+    </div>
+  );
+}

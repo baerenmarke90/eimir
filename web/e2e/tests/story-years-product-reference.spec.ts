@@ -1,7 +1,7 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Locator,
@@ -61,6 +61,7 @@ function annualItems2025() {
             mediaType: 'IMAGE',
             mimeType: 'image/png',
             hasThumbnail: true,
+            isSensitive: false,
             width: 1200,
             height: 750,
             size: 1024,

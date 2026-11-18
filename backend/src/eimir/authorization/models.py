@@ -39,6 +39,7 @@ class PrivateResource(Protocol):
 
     privacy_absence: ClassVar[ResourceAbsence]
     shared_write: ClassVar[SharedWrite]
+    shared_edit: ClassVar[bool]
 
 
 class PrivateResourceMixin:
@@ -60,6 +61,9 @@ class PrivateResourceMixin:
     same resource cannot gradually acquire different absence responses whose
     differences reveal information.
     """
+
+    shared_edit: ClassVar[bool] = False
+    """Allow partner content edits without granting deletion or privacy changes."""
 
     shared_write: ClassVar[SharedWrite] = SharedWrite.AUTHOR_ONLY
     """Who may modify shared rows in this domain.

@@ -1,16 +1,17 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, afterEach } from 'vitest';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  cleanup,
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
-  cleanup,
 } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { RelationshipSettingsSection } from './ProfilePageBase';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import { RelationshipSettingsSection } from './ProfilePageBase';
 
 afterEach(() => {
   cleanup();
@@ -23,7 +24,7 @@ function createMockSpacesApi(
     version: 1,
     relationshipStartedOn: new Date('2022-06-14T00:00:00.000Z'),
     showRelationshipDuration: true,
-    durationDisplayMode: 'YEARS_MONTHS',
+    durationDisplayMode: 'DAYS',
     relationshipYears: 3,
     relationshipMonths: 2,
     relationshipDays: null,
@@ -117,6 +118,7 @@ describe('RelationshipSettingsSection', () => {
           ifMatch: '1',
           spaceProfileUpdate: expect.objectContaining({
             showRelationshipDuration: false,
+            durationDisplayMode: 'DAYS',
           }),
         }),
       );
@@ -137,7 +139,7 @@ describe('RelationshipSettingsSection', () => {
     expect(screen.queryByText('✓ Gespeichert')).toBeNull();
   });
 
-  it('renders preview card and notification link', async () => {
+  it('renders the preview card without a reminder shortcut', async () => {
     const spacesApi = createMockSpacesApi();
     renderSection(spacesApi);
 
@@ -145,13 +147,18 @@ describe('RelationshipSettingsSection', () => {
       expect(screen.getByLabelText(/Zusammen seit/i)).toBeDefined();
     });
 
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(document.getElementById('relationship-duration-mode')).toBeNull();
+    expect(
+      screen.getByRole('checkbox', { name: /Gemeinsame Zeit anzeigen/i }),
+    ).toBeDefined();
     expect(screen.getByText(/Vorschau/i)).toBeDefined();
     expect(screen.getByText(/Aktuell/i)).toBeDefined();
     expect(screen.getByText(/Nächster Jahrestag/i)).toBeDefined();
 
-    const notifLink = screen.getByRole('link', {
-      name: /Jahrestag-Erinnerungen/,
-    });
-    expect(notifLink.getAttribute('href')).toBe('/more/settings/notifications');
+    // Reminders live in the notification settings, not on this page.
+    expect(
+      screen.queryByRole('link', { name: /Jahrestag-Erinnerungen/ }),
+    ).toBeNull();
   });
 });

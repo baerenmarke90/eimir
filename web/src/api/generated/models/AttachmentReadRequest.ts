@@ -47,6 +47,8 @@ export const AttachmentReadRequestParentTypeEnum = {
     MEMORY: 'MEMORY',
     HEART_MOMENT: 'HEART_MOMENT',
     RELATED_PERSON: 'RELATED_PERSON',
+    PLAN: 'PLAN',
+    HEART_HUNT_ROUND: 'HEART_HUNT_ROUND',
     NONE: 'NONE'
 } as const;
 export type AttachmentReadRequestParentTypeEnum = typeof AttachmentReadRequestParentTypeEnum[keyof typeof AttachmentReadRequestParentTypeEnum];

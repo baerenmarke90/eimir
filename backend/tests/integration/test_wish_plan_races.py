@@ -353,3 +353,81 @@ class TestDeleteAgainstLifecycle:
 
         # A completed Plan may never remain next to an open Wish.
         assert not (plan is not None and wish.status == WishStatus.OPEN.value)
+
+
+class TestExistingPlanWishRaces:
+    def test_link_and_complete_preserve_a_whole_lifecycle(self, production_client):  # type: ignore[no-untyped-def]
+        world = _setup(production_client)
+        maker = world["maker"]
+        with maker.begin() as session:
+            plan = plan_service.create_plan(
+                session, world["anna"], title="Already arranged", description=None, place_id=None
+            )
+            plan_id = plan.id
+
+        def link():  # type: ignore[no-untyped-def]
+            with maker.begin() as session:
+                plan_service.link_wish_to_plan(
+                    session,
+                    world["anna"],
+                    plan_id,
+                    wish_id=world["wish_id"],
+                    expected_version=1,
+                    expected_wish_version=1,
+                )
+                return "LINKED"
+
+        def complete():  # type: ignore[no-untyped-def]
+            with maker.begin() as session:
+                plan_service.complete_plan(
+                    session,
+                    world["ben"],
+                    plan_id,
+                    expected_version=1,
+                    experienced_on=today_in(ZONE) - timedelta(days=1),
+                )
+                return "COMPLETED"
+
+        results = _concurrently(link, complete)
+        assert sum(result in ("LINKED", "COMPLETED") for result in results) == 1
+        with maker() as session:
+            plan = session.get(Plan, plan_id)
+            wish = session.get(Wish, world["wish_id"])
+            assert plan is not None and wish is not None
+            if plan.source_wish_id is None:
+                assert plan.status == "COMPLETED" and wish.status == "OPEN"
+            else:
+                assert plan.source_wish_id == wish.id
+                assert plan.status == "IDEA" and wish.status == "PLANNED"
+
+    def test_link_rollback_restores_both_aggregates(self, production_client, monkeypatch):  # type: ignore[no-untyped-def]
+        world = _setup(production_client)
+        maker = world["maker"]
+        with maker.begin() as session:
+            plan = plan_service.create_plan(
+                session, world["anna"], title="Existing plan", description=None, place_id=None
+            )
+            plan_id = plan.id
+
+        def fail(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("Failure before Wish transition")
+
+        monkeypatch.setattr(wish_service, "plan_created", fail)
+        with (
+            pytest.raises(RuntimeError, match="Failure before Wish transition"),
+            maker.begin() as session,
+        ):
+            plan_service.link_wish_to_plan(
+                session,
+                world["anna"],
+                plan_id,
+                wish_id=world["wish_id"],
+                expected_version=1,
+                expected_wish_version=1,
+            )
+        with maker() as session:
+            plan = session.get(Plan, plan_id)
+            wish = session.get(Wish, world["wish_id"])
+            assert plan is not None and wish is not None
+            assert plan.source_wish_id is None and plan.version == 1
+            assert wish.status == "OPEN" and wish.version == 1

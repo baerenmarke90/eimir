@@ -967,10 +967,9 @@ def grant_server_admin_space_entitlement(
 ) -> ServerAdminSpaceEntitlementView:
     """Record a manual Premium grant for a Space (V1 launch entitlement source).
 
-    This is the only entitlement source implemented for the first launch;
-    Google Play/Stripe/Self-Hosted-license adapters are deliberately out of
-    scope until a real launch channel requires them (docs/m6/
-    ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized
+    The operator path for beta testers, support and promotions. Paid Google
+    Play purchases arrive through the store adapter in `eimir.billing`
+    instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
 
@@ -1068,23 +1067,19 @@ def list_server_admin_accounts(
     statement = select(Account)
     normalized_query = (query or "").strip().lower()
     if normalized_query:
+        # Names are protected content and cannot be matched in SQL (#797). An
+        # account is found by its e-mail address or by the complete account ID,
+        # which a person can copy from the More page.
         like = f"%{normalized_query}%"
-        display_name_match = func.lower(Account.display_name).like(like)
         email_match = exists().where(
             AccountEmail.account_id == Account.id,
             AccountEmail.email.like(like),
         )
         account_id_match = parse_id(normalized_query)
         if account_id_match is None:
-            statement = statement.where(or_(display_name_match, email_match))
+            statement = statement.where(email_match)
         else:
-            statement = statement.where(
-                or_(
-                    display_name_match,
-                    email_match,
-                    Account.id == account_id_match,
-                )
-            )
+            statement = statement.where(or_(email_match, Account.id == account_id_match))
     if account_status == "active":
         statement = statement.where(Account.disabled_at.is_(None))
     elif account_status == "suspended":

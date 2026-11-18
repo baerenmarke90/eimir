@@ -1,30 +1,52 @@
 import { useEffect } from 'react';
 import { App } from '@capacitor/app';
+import { focusManager } from '@tanstack/react-query';
 import { isCapacitorNative } from './pwa';
+
+/**
+ * Marks the document as running inside the native app so platform
+ * conventions (such as hidden touch scrollbars) follow the runtime platform,
+ * never the viewport width. Browsers keep their own scrollbar behavior.
+ */
+export function markNativeRuntime(
+  root: HTMLElement = document.documentElement,
+  isNative: boolean = isCapacitorNative(),
+): void {
+  if (isNative) root.dataset.runtime = 'native';
+  else delete root.dataset.runtime;
+}
 
 export function handleNativeBackButton(canGoBack: boolean): void {
   if (canGoBack) {
     window.history.back();
   } else {
-    void App.exitApp();
+    // Root Back follows Android task behavior and retains the live WebView.
+    void App.minimizeApp();
   }
 }
 
 export function useCapacitorShell(): void {
   useEffect(() => {
     if (!isCapacitorNative()) return;
+    let disposed = false;
 
     const backSub = App.addListener('backButton', ({ canGoBack }) => {
+      if (disposed) return;
       handleNativeBackButton(canGoBack);
     });
 
     const stateSub = App.addListener('appStateChange', ({ isActive }) => {
+      if (disposed) return;
       if (isActive) {
+        // Session refresh still consumes focus; Query v5 uses its focus manager.
         window.dispatchEvent(new Event('focus'));
       }
+      focusManager.setFocused(isActive);
     });
 
     return () => {
+      disposed = true;
+      focusManager.setFocused(undefined);
       void backSub.then((sub) => sub.remove());
       void stateSub.then((sub) => sub.remove());
     };

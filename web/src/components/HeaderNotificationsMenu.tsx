@@ -7,7 +7,7 @@ import { ProfilesApi } from '../client/mediaApis';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
-import { engagementTargetPath, opaqueNextCursor } from '../client/m4Product';
+import { notificationPath, opaqueNextCursor } from '../client/m4Product';
 import { notificationsListQueryKey } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { beginNotificationRead } from '../client/notificationRead';
@@ -98,7 +98,7 @@ export function HeaderNotificationsMenu({
       : t('navigation.notifications');
 
   async function handleNotificationClick(item: NotificationItem) {
-    const path = engagementTargetPath(item.targetType, item.targetId);
+    const path = notificationPath(item);
 
     if (!item.readAt) {
       const attempt = beginNotificationRead(queryClient, spaceId, item.id);

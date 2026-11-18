@@ -67,16 +67,35 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
   `docs/INFORMATION-ARCHITECTURE.md`,
   `decisions/0009-games-primary-navigation-and-premium-capability.md`, and
   `decisions/0010-games-secondary-navigation-under-more.md`.
-- Search and Activity are not primary destinations. Search is a global utility
-  in the header/app bar; Activity lives underneath the personal account
-  navigation (`/today/activity`).
+- Search and Activity are not primary destinations. The [2026-10-29 PO decision](product/design/mobile-header-more.md) places global search, notifications and account functions under More; Compact/Medium has no persistent global header. Activity retains `/today/activity` but highlights More and falls back to More (#1907 A2). Expanded keeps horizontal top navigation. Unread notifications produce a static dot and accessible count on More, cleared by existing read-state updates.
 - The active destination is identifiable through shape, color, and text state,
   never through color alone.
+- On touch input, a horizontal swipe on a primary root can select its adjacent
+  destination in the visible navigation order, without wrapping (#1521). It is
+  an additional shortcut: labeled navigation links remain available and both
+  inputs share the same history and default-root navigation contract. Explicit
+  primary selection opens the canonical default at the top (#1682). Detail/task
+  Back retains its bounded account/Space-scoped originating context.
+  Vertical scrolling, galleries, horizontal content scrollers, controls, editing,
+  text selection, modal/menu layers and system edge gestures retain ownership.
+  Details, editors and secondary destinations do not swipe between primary tabs.
+  The swipe behaves like a pager (as in the RWN Messenger's tab host): the
+  current page follows the finger one to one while the adjacent destination
+  travels in beside it at the reading position it was left in. Release past the
+  distance/velocity threshold settles both pages and then selects the
+  destination; a shorter release settles back. The first and last destination
+  give only a small resisted offset and never reveal a neighbour. A touch during
+  the settle catches it. With reduced motion the pages do not move and a
+  qualifying swipe selects the destination immediately.
 - Badge counts are used only for current, actionable information.
 - On Web, every primary function is keyboard-accessible and focus remains
   visible.
 - Back navigation stays inside the current workflow rather than unexpectedly
   returning to the start.
+- Switching a scope or status filter on a secondary destination (for example
+  Activity, Places, Lists) replaces the current history entry and keeps its
+  originating context: system Back leaves the destination instead of stepping
+  back through earlier selections (#1907 A2).
 
 ## 3. Canonical interaction patterns
 

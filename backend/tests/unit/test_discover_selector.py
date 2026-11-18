@@ -10,6 +10,7 @@ from eimir.story.discover_service import (
     Candidate,
     CandidateIntent,
     StoryRef,
+    select_alternatives,
     select_candidates,
 )
 from eimir.story.service import StoryKind
@@ -129,3 +130,28 @@ def test_only_one_affinity_candidate_can_materially_influence_order() -> None:
     decision = select_candidates(candidates, CONTEXT, TODAY)
 
     assert decision.affinity_influenced_ref in {None, candidates[5].ref}
+
+
+def test_renewal_prefers_unseen_sources_even_over_an_old_exact_date_lead() -> None:
+    candidates = [candidate(index) for index in range(1, 18)]
+    candidates[0].intents = {CandidateIntent.EXACT_DATE}
+    previous = {item.ref for item in candidates[:8]}
+    selected = select_alternatives(
+        candidates, previous, CONTEXT, TODAY, algorithm_version="renewed-seed"
+    )
+    assert len(selected) == 8
+    assert not previous.intersection(selected)
+
+
+def test_sparse_renewal_keeps_every_source_once_with_new_entries_first() -> None:
+    candidates = [candidate(index) for index in range(1, 5)]
+    selected = select_alternatives(
+        candidates,
+        {item.ref for item in candidates[:3]},
+        CONTEXT,
+        TODAY,
+        algorithm_version="renewed-seed",
+    )
+    assert selected[0] == candidates[3].ref
+    assert set(selected) == {item.ref for item in candidates}
+    assert len(selected) == 4

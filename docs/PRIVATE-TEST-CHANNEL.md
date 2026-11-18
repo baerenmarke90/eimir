@@ -8,33 +8,66 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`:
+After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
+are triggered by successful completions of the required main workflows:
 
-1. Runs the channel contracts. Publication additionally requires the repository
+1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Waits up to one hour for the exact revision's newest push runs of CI, Web
-   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard and Self-Hosted Recovery.
+2. Checks once for the exact revision's newest push runs of CI, Web
+   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
-   A newer `main` stops a waiting candidate.
+   An unfinished candidate exits without building; the next required workflow
+   completion retries it. No runner waits for other workflows. Completion events
+   must originate from an owning-repository main push and match the exact checkout;
+   PRs, forks, other branches and superseded revisions cannot admit publication.
+   A revision already selected on the channel is not rebuilt on duplicate events.
+   Completion queues are separated by source revision and event origin, so a late
+   older or fork completion cannot evict the current candidate. Final publication
+   retains pending candidates, remains globally serialized, and rechecks current
+   main and all required checks before it can advance the channel.
    Browser QA therefore runs for every main push, including backend-only and
    operator changes; pull-request browser path filters remain unchanged.
-3. Reuses Release Evidence with Android excluded: build-once runtime archives,
-   hashes, SPDX SBOMs and verified attestations. Nothing builds on the Docker host.
-4. Loads both archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web packages and checks the exact registry manifests and
-   pulled-back image identities.
-5. Publishes one generated commit on `deploy/eimir-test` after both images exist.
+3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
+   build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   The private test channel additionally includes the restricted `media-runtime`
+   derivative, built from that exact backend image, with its own archive, SPDX
+   SBOM, provenance and offline verification. Release Evidence requires a fresh
+   codec advisory check before building the derivative. An unreviewed finding or
+   a failed feed check keeps the previous channel in place. Nothing builds on the
+   Docker host.
+4. Loads all three archives, verifies source/version/platform labels, publishes to the
+   existing GHCR backend/Web/media packages and checks the exact registry manifests and
+   pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
+   provenance indexes are not deployment references. The single registry
+   manifest's config digest must match the exact config bytes in the verified
+   build archive and a fresh pull-back save archive. Docker image IDs are not
+   used as config digests because their meaning depends on the image store.
+   Original evidence archives, SBOMs and GitHub attestations remain intact.
+5. Publishes one generated commit on `deploy/eimir-test` after all three images exist.
    Current `main` and CI are rechecked before promotion. Ref updates are never
    forced, so a concurrent writer is refused.
 6. Arcane Git Sync picks up that commit and redeploys the whole project.
 
 `channel.json` binds the source SHA, root Compose hash, evidence run, archive/SBOM
-hashes and both OCI references. Generated `compose.yaml` is JSON (valid YAML and
+hashes and all three OCI references. Generated `compose.yaml` is JSON (valid YAML and
 Compose), exported from the canonical root Cloud profile. Only instance wiring
 changes: existing resources, secret expressions, proxy aliases and image digests.
+The FCM opt-in mount comes from the small canonical operator fragment and is
+compiled inline; the generated channel still consists of the same three files.
 No second maintained topology, bootstrap/reset service, database container or
 public host port is added. Canonical migration/readiness dependencies are retained.
+
+The 2026-11-02 video completion request authorizes the private test rollout.
+The exporter includes canonical `cloud-video-worker`, pins its independently
+verified image and enables new video admission in the API and worker roles only
+after all exact-source media checks succeed. Publication refuses missing media
+evidence and preserves the previous channel when any image fails. The media role
+receives only its database/media configuration and keys; no SMTP, FCM sender mount
+or personal photo-provider credential is passed. Its canonical read-only root,
+private tmpfs, CPU/memory/PID limits and migration dependency remain intact.
+General Cloud/Self-Hosted production admission still defaults off; this private
+channel selection does not approve a public/store or general production rollout.
 
 ## One-time GitHub setup
 
@@ -43,7 +76,7 @@ Merge the implementation PR through ordinary required checks. Then:
 1. Under repository **Settings → Secrets and variables → Actions → Variables**,
    add `EIMIR_TEST_CHANNEL_ENABLED` with value `true`. It is not a secret.
 2. Set the variable before merging to let the first main push publish the channel.
-   For an immediate retry, run **Actions → Publish Immutable Release → Run workflow**,
+   To retry after checks finish, run **Actions → Publish Immutable Release → Run workflow**,
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
    jobs; the placeholder version is unused. Subsequent main pushes are automatic.
@@ -114,6 +147,124 @@ loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
 
+## Optional HeartMoment voice notes
+
+With the verified same-revision media image selected, the generated API, general
+worker and restricted media worker retain the instance-local
+`EIMIR_AUDIO_UPLOAD_ENABLED` expression. It defaults to `false`; publishing never
+freezes the runner's value. Without the reviewed media role, audio admission
+remains disabled even if a source or operator setting requests it.
+
+To enable the accepted Free/Core voice-note feature, append or update only
+`EIMIR_AUDIO_UPLOAD_ENABLED=true` in the existing `eimir-test` Arcane environment,
+sync the corrected channel, and redeploy the existing project. Confirm the
+restricted `cloud-video-worker` is running; it processes audio and video jobs.
+Do not replace the existing environment or change any credentials or stores.
+
+After restarting the app, the authenticated `/api/v1/auth/capabilities` response
+must report `audioProcessingEnabled: true`. Existing test.50 already contains the
+UI: **+ → HeartMoment → Voice note**, then record or choose an audio file and
+save. No new APK is required. Verify upload, processing, saved playback and
+parent visibility on the actual instance. Turning the setting off preserves
+authorized reads, deletion and essential export. See
+[the audio processing contract](operations/video-uploads.md#heartmoment-voice-intake-1671).
+
+## Optional personal photo sources
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_PHOTO_SOURCES_ENABLED` (default true), `EIMIR_GOOGLE_PHOTOS_CLIENT_ID`
+and `EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET` (both empty by default). Publishing never
+reads or freezes these operator values into Git. Existing local picking and
+source disconnect remain available when new source tasks are disabled.
+
+Append the existing approved Google Web OAuth app values to the existing Arcane
+environment, without replacing any current key or setting. Register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/photo-sources/google/callback` redirect (one slash).
+This is the product callback; the older standalone probe callback is separate.
+Google stays hidden until configured and still requires the operator's appropriate
+testing audience/verification. Personal Immich requires no shared operator key.
+See [the source contract](product/integrations/1444-photo-source-delivery.md).
+
+Google import remains blocked by the application gate (#1467). The only path past it is the
+private-test eligibility: `EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS` is a JSON list of at most ten
+verified Account email addresses (empty by default). An Account may use the Google import only when
+one of its **verified** addresses is listed and photo sources, required encryption, an HTTPS public
+address and a valid Google OAuth configuration are all in place; the `integration.external_sync`
+entitlement and every ownership check still apply, and demo instances never qualify. Emptying the
+list stops polling and reading immediately; cancelling and cleanup keep working. The list is
+operator-local, never committed, and not a production enablement: independent review and the
+remaining acceptance in #1467 are still required before the gate itself changes.
+
+Operator notes: list only addresses that the intended tester has already registered and verified,
+because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
+addresses as verified). Settings are cached per process, so a change to the list takes effect after the
+API is restarted or redeployed.
+## Optional calendar sync
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_CALENDAR_SYNC_ENABLED` (default true), `EIMIR_GOOGLE_CALENDAR_CLIENT_ID`
+and `EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET` (both empty by default). CalDAV needs no
+operator value. Private CalDAV hosts are a Self-Hosted option and are never passed
+to this Cloud-profile channel.
+
+To offer Google Calendar, append the Google Web OAuth client values to the existing
+Arcane environment without replacing any current key, register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/calendar-sync/google/callback` redirect, enable the
+Google Calendar API and add the `calendar.calendarlist.readonly` and `calendar.events`
+scopes. The Google Photos client may be reused when both redirects are registered.
+Redeploy so API and worker read the values. While the Google app is in testing,
+only listed test users can consent and Google expires their grants after seven days.
+See [calendar sync operations](product/integrations/1895-calendar-sync.md).
+
+## Configure the selected live FCM transport
+
+The Product Owner selected FCM-only operation on 2026-11-01, superseding the
+earlier dual-transport rollout plan. The `eimir-test` channel explicitly requires
+FCM configuration. Generic canonical Cloud/Self-Hosted remains default-off; this selected
+instance must not appear push-ready merely because an APK contains Firebase.
+Append these operator inputs to its existing local environment:
+
+```text
+EIMIR_PUSH_FCM_PROJECT_ID=eimir-production
+EIMIR_PUSH_FCM_ANDROID_PACKAGE=de.eimir.app
+EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/sender.json
+```
+
+The operator-owned Firebase project is `eimir-production`, configured under the
+business account on 2026-11-01. Its public project number/sender ID is
+`742745449123`; the approved new
+Android package is `de.eimir.app`. This new installation does not imply deleting
+an old app or its data.
+
+Install the dedicated Google sender credential through the authorized private
+operator channel. It must be a regular private host file outside the checkout/Git
+Sync directory. The generated Compose maps that host source read-only to
+`/run/secrets/eimir-fcm-sender.json` in **cloud-api and cloud-worker only**, fixes the
+application `EIMIR_PUSH_FCM_CREDENTIALS_FILE` to that container path, and refuses to
+create a missing host source. Web and migrate receive neither the file nor FCM
+settings. The host-path input is not an application environment variable.
+
+UID **10001** must be able to read the file; verify effective ownership and a
+restricted file/group mode without printing bytes. Do not make it world-readable.
+Never paste credential JSON into `.env`, Compose, Git, terminal arguments,
+screenshots, issues, container images, CI logs or artifacts. The same sender file
+is accessible to API and worker as an explicit operating boundary, although only
+the worker sends. API registration and configuration reads perform no Google call.
+
+The current adapter accepts a validated service-account credential file and does
+not discover ambient ADC. The repository contains no evidenced ready-to-use WIF
+setup for this host. A renewable host identity would require an explicitly reviewed
+external-account configuration/loader path; GitHub workflow OIDC does not supply a
+continuous Arcane runtime credential. The service account must belong to the
+configured project; do not use a general Owner/Editor identity or a user's local ADC.
+
+Keep **Sync Files off**. The publisher exports only unresolved operator expressions
+and the compiled safe mount; it never reads a sender file or requires an adjacent
+credential/helper file on `deploy/eimir-test`. Do not append the optional source
+fragment again to this generated channel. If installation or authorization is not
+complete, retain the last known running instance and leave rollout pending;
+publication is not evidence that push is configured or delivered.
+
 ## Connect Arcane once
 
 Follow the upstream [Git Sync documentation](https://getarcane.app/docs/docker/git-sync)
@@ -125,7 +276,8 @@ for the installed Arcane version:
    the **existing eimir-test project**, not a new project.
 3. Branch: **deploy/eimir-test**. Compose path: **compose.yaml**.
 4. **Sync Files: off**. This runtime needs no adjacent file or lifecycle hook;
-   its local `.env` remains editable and is never published by this channel.
+   its local `.env` and separately installed private host credential remain outside
+   the sync and are never published by this channel.
 5. **Auto Sync: on**, interval **5 minutes**. **Redeploy After Sync: on**.
 6. Save and inspect the first deployment. Connect only after the preserved
    environment and exact trusted proxy setting are ready.
@@ -171,6 +323,23 @@ container logs and public smoke establish that boundary. Partial/stale builds or
 branch races cannot advance a partial pair. Registry outage may prevent pulls;
 the server never rebuilds source.
 
+Push acceptance additionally requires the selected signed `de.eimir.app` APK and
+real FCM end-to-end evidence through an existing notification-producing action.
+Distinguish configured transport, accepted provider request, received wake and
+displayed/tapped notification. Record exact source/image/APK/signing identity,
+transport/distributor, Android version and scenario; never include raw FIDs,
+subscriptions, activation IDs or credentials. Cover background/process restore,
+target refresh, Account/API/provider change, permission denial/re-enable,
+disable/signout, stale/duplicate wake, Quiet Hours/digest, privacy/membership
+rechecks, provider failure and recovery. No force-stop or 100% delivery promise.
+
+For sender rotation, install replacement authority, recreate API/worker to replace
+cached credentials, verify auth and actual delivery, then revoke the old authority.
+Keep the encryption keyring and existing stores untouched. Urgent revocation may
+cause sanitized send failures while in-app notifications remain accessible;
+restoring authority does not require a database reset. FCM and UP reuse the same
+queue/policy and do not imply new events, analytics or a public Cloud launch.
+
 Plain Compose redeploy may stop the old app before a failed migration is reported.
 No zero-downtime or automatic database rollback/restore is promised. Pause Auto
 Sync before recovery. Previous channel commits retain exact image references;
@@ -190,3 +359,14 @@ GitHub; runtime data and secrets stay local to the operator.
 No business/freemium impact: no Free/Core or Premium classification, entitlement,
 quota, ownership, export or downgrade behavior changes. No end-user provider
 setup is added. Released Self-Hosted/Production contracts remain unchanged.
+
+
+## Optional automatic recap wording
+
+The application channel forwards the optional `EIMIR_RECAP_AI_URL`,
+`EIMIR_RECAP_AI_MODEL` and `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and
+worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
+so an application Git Sync update does not remove an operator-added service.
+The complete CPU-only setup, model download commands, fallback and disable path
+are in [Local recap AI](LOCAL-RECAP-AI.md). No public model port or paid API is
+required; existing application image/digest admission remains unchanged.

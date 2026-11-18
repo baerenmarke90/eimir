@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -39,14 +40,85 @@ class ActivityKind(StrEnum):
     CHAPTER_CREATED = "CHAPTER_CREATED"
     COLLECTION_CREATED = "COLLECTION_CREATED"
     COMMENT_CREATED = "COMMENT_CREATED"
+    # #1969: a shared note was written or changed. A feed entry names the note
+    # and its author; it never carries or exposes the note's text.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
 
 
 class NotificationKind(StrEnum):
+    ONCE_MESSAGE_RECEIVED = "ONCE_MESSAGE_RECEIVED"
+    GENTLE_PROMPT = "GENTLE_PROMPT"
+    REMINDER_CREATED = "REMINDER_CREATED"
+    TRANSFER_READY = "TRANSFER_READY"
+    TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
+    TRANSFER_FAILED = "TRANSFER_FAILED"
+    VIDEO_PROCESSING_FAILED = "VIDEO_PROCESSING_FAILED"
+    PLAN_CREATED = "PLAN_CREATED"
+    PLAN_CHANGED = "PLAN_CHANGED"
+    PLAN_CANCELLED = "PLAN_CANCELLED"
+    WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
+    WISH_SELECTION_READY = "WISH_SELECTION_READY"
+    WISH_SELECTION_RANDOM_REQUESTED = "WISH_SELECTION_RANDOM_REQUESTED"
+    WISH_SELECTION_RANDOM_ACCEPTED = "WISH_SELECTION_RANDOM_ACCEPTED"
+    WISH_SELECTION_RANDOM_DECLINED = "WISH_SELECTION_RANDOM_DECLINED"
+    HEART_HUNT_HIDDEN = "HEART_HUNT_HIDDEN"
+    HEART_HUNT_FOUND = "HEART_HUNT_FOUND"
+    PHOTO_REACTION = "PHOTO_REACTION"
+    PARTNER_JOINED = "PARTNER_JOINED"
+    COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
     COMMENT_CREATED = "COMMENT_CREATED"
     THINKING_OF_YOU = "THINKING_OF_YOU"
     PARTNER_KISS = "PARTNER_KISS"
     PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
+    WISH_REMINDER_DUE = "WISH_REMINDER_DUE"
+    WISH_DATE_PROPOSED = "WISH_DATE_PROPOSED"
+    WISH_DATE_COUNTERED = "WISH_DATE_COUNTERED"
+    WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
+    COLLECTION_SENT = "COLLECTION_SENT"
+    PICTURE_PING_PONG_TURN = "PICTURE_PING_PONG_TURN"
+    # #1969: a partner wrote or changed a shared note. Content-free references only.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
+    GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
+    # #1744: a retained recap is ready, or a retained recap got a newer version.
+    # Both partners get the identical notice; it names only the period.
+    RECAP_READY = "RECAP_READY"
+    RECAP_GREW = "RECAP_GREW"
+
+
+WISH_DATE_NOTICE_KINDS = frozenset(
+    {
+        NotificationKind.WISH_DATE_PROPOSED,
+        NotificationKind.WISH_DATE_COUNTERED,
+        NotificationKind.WISH_DATE_ACCEPTED,
+    }
+)
+
+
+# Consent-based random pick of a revealed wish-selection round (#1907 J1).
+WISH_SELECTION_RANDOM_KINDS = frozenset(
+    {
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.WISH_SELECTION_RANDOM_DECLINED,
+    }
+)
+# One current notice per recipient, kind and target; a newer event replaces it.
+COALESCED_NOTIFICATION_KINDS = (
+    "PHOTO_REACTION",
+    "WISH_SELECTION_SHARED",
+    "WISH_SELECTION_READY",
+    "WISH_SELECTION_RANDOM_REQUESTED",
+    "WISH_SELECTION_RANDOM_ACCEPTED",
+    "WISH_SELECTION_RANDOM_DECLINED",
+    "COLLECTION_SENT",
+    "PICTURE_PING_PONG_TURN",
+    # Several edits of one note leave one current notice, not a stack of them.
+    "SHARED_NOTE_CHANGED",
+    "GARDEN_SEED_ARRIVED",
+)
 
 
 class NotificationChannel(StrEnum):
@@ -61,6 +133,11 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    ONCE_MESSAGE = "ONCE_MESSAGE"
+    REMINDER = "REMINDER"
+    TRANSFER_EXPORT = "TRANSFER_EXPORT"
+    TRANSFER_IMPORT = "TRANSFER_IMPORT"
+    WISH_SELECTION = "WISH_SELECTION"
     MEMORY = "MEMORY"
     HEART_MOMENT = "HEART_MOMENT"
     MILESTONE = "MILESTONE"
@@ -69,6 +146,11 @@ class EngagementTarget(StrEnum):
     PLACE = "PLACE"
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
+    PICTURE_GAME = "PICTURE_GAME"
+    SHARED_NOTE = "SHARED_NOTE"
+    GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
+    RECAP = "RECAP"
 
 
 class PushDeliveryStatus(StrEnum):
@@ -94,6 +176,82 @@ _SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in Support
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
 _EMAIL_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in EmailDeliveryStatus)
+
+
+class GentleProfile(Base):
+    """Private bounded observations; one recipient budget across every Space."""
+
+    __tablename__ = "gentle_profiles"
+
+    account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True
+    )
+    space_id: Mapped[UUID | None] = mapped_column(ForeignKey("spaces.id", ondelete="SET NULL"))
+    observations: Mapped[list[dict[str, object]]] = mapped_column(
+        postgresql.JSONB, nullable=False, default=list
+    )
+    last_use_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_save_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    interval_days: Mapped[float | None] = mapped_column(Float)
+    windows: Mapped[list[int]] = mapped_column(postgresql.JSONB, nullable=False, default=list)
+    attempts_since_use: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_check_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "jsonb_typeof(observations) = 'array' AND jsonb_array_length(observations) <= 8",
+            name="gentle_observations_bounded",
+        ),
+        CheckConstraint("attempts_since_use BETWEEN 0 AND 3", name="gentle_attempts_bounded"),
+        Index("ix_gentle_profiles_next_check", "next_check_at", "account_id"),
+    )
+
+
+class GentleOccasion(IdMixin, Base):
+    """One bounded candidate, never a second inbox or unread ledger."""
+
+    __tablename__ = "gentle_occasions"
+
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
+    space_id: Mapped[UUID] = mapped_column(ForeignKey("spaces.id", ondelete="CASCADE"))
+    occasion_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    memory_id: Mapped[UUID | None] = mapped_column(ForeignKey("memories.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    baseline_use_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submission_token: Mapped[UUID | None] = mapped_column(postgresql.UUID(as_uuid=True))
+    notification_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("notifications.id", ondelete="SET NULL")
+    )
+
+    __table_args__ = (
+        UniqueConstraint("account_id", "occasion_key", name="uq_gentle_account_occasion"),
+        CheckConstraint("kind IN ('WRITING', 'MEMORY')", name="gentle_occasion_kind"),
+        CheckConstraint("kind = 'MEMORY' OR memory_id IS NULL", name="gentle_source_kind"),
+        Index("ix_gentle_occasions_account_attempted", "account_id", "attempted_at"),
+        Index("ix_gentle_occasions_created", "created_at", "id"),
+        Index("ix_gentle_occasions_memory_created", "account_id", "memory_id", "created_at"),
+    )
+
+
+class GentleMemoryExclusion(Base):
+    __tablename__ = "gentle_memory_exclusions"
+
+    account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True
+    )
+    memory_id: Mapped[UUID] = mapped_column(
+        ForeignKey("memories.id", ondelete="CASCADE"), primary_key=True
+    )
+    space_id: Mapped[UUID] = mapped_column(ForeignKey("spaces.id", ondelete="CASCADE"))
 
 
 class Activity(IdMixin, Base):
@@ -138,6 +296,19 @@ class Activity(IdMixin, Base):
             unique=True,
             postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
         ),
+        # One feed entry per note and kind: repeated edits move the single
+        # "changed" entry forward instead of stacking one entry per save.
+        Index(
+            "uq_activities_shared_note_target_kind",
+            "space_id",
+            "target_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') "
+                "AND target_type = 'SHARED_NOTE'"
+            ),
+        ),
     )
 
 
@@ -168,6 +339,7 @@ class Notification(IdMixin, Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     in_app_visible: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
@@ -190,6 +362,18 @@ class Notification(IdMixin, Base):
             "source_event_id",
             "kind",
             name="uq_notifications_recipient_source_kind",
+        ),
+        Index(
+            "uq_notifications_coalesced_target",
+            "recipient_account_id",
+            "space_id",
+            "kind",
+            "target_type",
+            "target_id",
+            unique=True,
+            postgresql_where=text(
+                "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
+            ),
         ),
         Index(
             "ix_notifications_recipient_space_created_id",
@@ -351,6 +535,12 @@ class PushEndpoint(IdMixin, Base):
         ForeignKey("accounts.id", ondelete="CASCADE"),
         nullable=False,
     )
+    device_session_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     provider_key: Mapped[str] = mapped_column(String(64), nullable=False)
     endpoint_value: Mapped[str] = mapped_column(String(2048), nullable=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -367,6 +557,12 @@ class PushEndpoint(IdMixin, Base):
             name="uq_push_endpoints_account_provider_fingerprint",
         ),
         Index("ix_push_endpoints_account_active", "account_id", "disabled_at"),
+        Index(
+            "ix_push_endpoints_active_destination",
+            "provider_key",
+            "fingerprint",
+            postgresql_where=text("disabled_at IS NULL AND provider_key IN ('apns', 'webpush')"),
+        ),
     )
 
 
@@ -399,6 +595,44 @@ class PushEndpointSecret(IdMixin, Base):
     )
 
     __table_args__ = (CheckConstraint("crypto_version >= 0", name="endpoint_secret_crypto_valid"),)
+
+
+class PushPreviewKeyPayload(ProtectedPayload):
+    key: str
+
+
+class PushPreviewSecret(IdMixin, Base):
+    """Optional encrypted preview capability; legacy registrations remain unchanged."""
+
+    __tablename__ = "push_preview_secrets"
+    push_endpoint_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("push_endpoints.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    device_session_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    preview_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=1, server_default=text("1")
+    )
+    neutral_reference: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")
+    )
+    payload: Mapped[PushPreviewKeyPayload] = mapped_column(
+        ProtectedPayloadJSON(PushPreviewKeyPayload), nullable=False
+    )
+    __table_args__ = (
+        CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),
+        CheckConstraint("preview_version IN (1, 2)", name="preview_protocol_version_valid"),
+    )
 
 
 class PushDelivery(IdMixin, Base):

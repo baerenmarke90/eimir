@@ -35,6 +35,12 @@ IMAGE_MAX_SIZE = 25 * MEBIBYTE
 IMAGE_MAX_PIXELS = 40_000_000
 IMAGE_MAX_EDGE = 12_000
 
+PDF_MIME_TYPE = "application/pdf"
+DOCUMENT_MAX_SIZE = 25 * MEBIBYTE
+
+AUDIO_MAX_SIZE = 20 * MEBIBYTE
+AUDIO_MAX_DURATION_SECONDS = 180
+
 VIDEO_MAX_SIZE = 250 * MEBIBYTE
 VIDEO_MAX_DURATION_SECONDS = 180
 VIDEO_MAX_EDGE = 3840
@@ -69,6 +75,24 @@ RULES: dict[str, MediaRule] = {
         _image("image/webp"),
         _image("image/heic"),
         _image("image/heif"),
+        MediaRule(PDF_MIME_TYPE, MediaType.DOCUMENT, DOCUMENT_MAX_SIZE),
+        *(
+            MediaRule(
+                mime,
+                MediaType.AUDIO,
+                AUDIO_MAX_SIZE,
+                max_duration_seconds=AUDIO_MAX_DURATION_SECONDS,
+                supported=False,
+            )
+            for mime in (
+                "audio/ogg",
+                "audio/webm",
+                "audio/mp4",
+                "audio/mpeg",
+                "audio/wav",
+                "audio/aac",
+            )
+        ),
         _video("video/mp4"),
         _video("video/quicktime"),
     )
@@ -87,7 +111,18 @@ def rule_for(mime_type: str) -> MediaRule | None:
 
 def supported_mime_types() -> frozenset[str]:
     """MIME types the current server release actually accepts."""
-    return frozenset(mime for mime, rule in RULES.items() if rule.supported)
+    return frozenset(mime for mime, rule in RULES.items() if is_supported(rule))
+
+
+def is_supported(rule: MediaRule) -> bool:
+    if rule.supported:
+        return True
+    from eimir.config import get_settings
+
+    settings = get_settings()
+    return (rule.media_type is MediaType.VIDEO and settings.video_upload_enabled) or (
+        rule.media_type is MediaType.AUDIO and settings.audio_upload_enabled
+    )
 
 
 def contracted_mime_types() -> frozenset[str]:

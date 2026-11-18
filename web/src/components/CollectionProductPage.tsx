@@ -1,18 +1,33 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import './FreeComposer.css';
 import {
-  type ButtonHTMLAttributes,
+  onlineManager,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
-import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import {
+  type CollectionDetail,
+  CollectionDetailFromJSON,
+  CollectionDetailToJSON,
+} from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { captureCollectionOrder } from '../client/collectionOrder';
+import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
+import {
+  authorSummaryQueryKeys,
+  invalidateCollectionConsumers,
+} from '../client/authorSummaryConsumers';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
@@ -20,21 +35,39 @@ import {
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { usePartnerNickname } from '../client/partnerNickname';
+import { firstNameFromDisplayName } from '../client/personalName';
+import { personRoleResolver } from '../client/personColours';
 import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
 import {
-  captureAuthorizedQuery,
-  captureQueryIdentity,
-} from '../client/queryIdentity';
+  deleteCollectionOutbox,
+  deleteProductReadCacheEntry,
+  loadProductWithReadCache,
+} from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import { sharedAchievementKind } from '../client/sharedAchievements';
+import {
+  knownPersonName,
+  listPeople,
+  summarizeSharedList,
+} from '../client/sharedListSummary';
 import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { visibleSuggestions } from '../client/shoppingSuggestions';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { ChecklistToggle } from './ChecklistToggle';
+import { AddActionButton } from './AddAction';
+import {
+  CART_TARGET_ATTRIBUTE,
+  type CartFlight,
+  flyIntoCart,
+} from './cartFlight';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -42,17 +75,50 @@ import {
   usePlanningEditorLifecycle,
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
+import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { SharedContentSheet } from './SharedContentSheet';
+import { SharedListCartBar } from './SharedListCartBar';
+import {
+  type FinishBlock,
+  FinishTripButton,
+  SharedListTripEnd,
+  type TripEnd,
+} from './SharedListFinish';
+import { SharedListSuggestions } from './SharedListSuggestions';
+import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
+import { useCollectionOutbox } from './useCollectionOutbox';
 import { useCollectionPin } from './useCollectionPin';
 import { useTransientFlag } from './useTransientFlag';
 import './SharedPlanningPages.css';
+import './SharedContentPages.css';
 
 type Props = {
-  apis: SharedPlanningApis;
+  apis: Pick<SharedPlanningApis, 'collections'>;
   spaceId: string;
   dashboardApi?: DashboardApi;
   accountId?: string;
+  collectionId?: string;
+  embedded?: boolean;
+  /**
+   * The list shown inside a Wir sheet (#1808): the sheet owns the title and
+   * the way out, so the page has no heading or back control of its own.
+   */
+  inSheet?: boolean;
+  /** Ask for the entry field once, without going through router state. */
+  focusAddOnOpen?: boolean;
+  onPendingChange?: (pending: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
+/**
+ * How often an open list asks for its partner's changes (#1808). It runs only
+ * while the page is visible and online; coming back to the app refetches once
+ * the saved copy is older than `LIST_RETURN_STALE_MS`.
+ */
+const LIST_POLL_INTERVAL_MS = 12_000;
+const LIST_RETURN_STALE_MS = 10_000;
+/** How long a checked entry waits for the cart to be on screen before it flies. */
+const FLIGHT_WAIT_MS = 800;
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -63,127 +129,14 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-function CollectionItemRow({
-  item,
-  collection,
-  activeItemId,
-  handleProps,
-  onUpdateTitle,
-  onToggleComplete,
-  onDelete,
-  isUpdating,
-  isTogglePending,
-  isDeleting,
-}: {
-  item: CollectionItemDetail;
-  collection: CollectionDetail;
-  activeItemId: string | null;
-  handleProps: (id: string) => ButtonHTMLAttributes<HTMLButtonElement>;
-  onUpdateTitle: (item: CollectionItemDetail, title: string) => void;
-  onToggleComplete: (item: CollectionItemDetail) => void;
-  onDelete: (item: CollectionItemDetail) => void;
-  isUpdating: boolean;
-  isTogglePending: boolean;
-  isDeleting: boolean;
-}) {
-  const { t } = useTranslation();
-  const [draft, setDraft] = useState(item.title);
-
-  useEffect(() => {
-    setDraft(item.title);
-  }, [item.title]);
-
-  function commit() {
-    const trimmed = draft.trim();
-    if (trimmed.length > 0 && trimmed !== item.title) {
-      onUpdateTitle(item, trimmed);
-    } else if (trimmed.length === 0) {
-      setDraft(item.title);
-    }
-  }
-
-  return (
-    <li
-      data-sortable-item-id={item.id}
-      className={[
-        item.completed ? 'planning-item-completed' : null,
-        activeItemId === item.id ? 'list-entry-dragging' : null,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <ChecklistToggle
-        completed={item.completed}
-        label={
-          item.completed
-            ? t('m5s3.collection.markOpen', { title: item.title })
-            : t('m5s3.collection.markDone', { title: item.title })
-        }
-        onToggle={() => onToggleComplete(item)}
-        disabled={!item.capabilities.canEdit || isUpdating}
-      />
-      <div className="planning-item-title-form planning-collection-item-title-form">
-        <label className="sr-only" htmlFor={`collection-item-${item.id}`}>
-          {t('m5s3.collection.itemTitle')}
-        </label>
-        <input
-          id={`collection-item-${item.id}`}
-          name="title"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commit();
-              e.currentTarget.blur();
-            }
-          }}
-          required
-          maxLength={200}
-          disabled={!item.capabilities.canEdit || isUpdating}
-        />
-        {isTogglePending ? (
-          <small className="planning-collection-item-pending" role="status">
-            {t('m5s3.common.saving')}
-          </small>
-        ) : null}
-      </div>
-      {collection.capabilities.canEdit || item.capabilities.canDelete ? (
-        <div className="planning-collection-item-actions">
-          {collection.capabilities.canEdit ? (
-            <ListEntryIconButton
-              icon="reorder"
-              className="tertiary"
-              label={t('m5s3.collection.reorderItem', {
-                title: item.title,
-              })}
-              {...handleProps(item.id)}
-            />
-          ) : null}
-          {item.capabilities.canDelete ? (
-            <ListEntryIconButton
-              icon="delete"
-              className="tertiary"
-              label={t('m5s3.collection.deleteItem', {
-                title: item.title,
-              })}
-              onClick={() => onDelete(item)}
-              disabled={isDeleting}
-            />
-          ) : null}
-        </div>
-      ) : null}
-    </li>
-  );
-}
-
 export function CollectionProductPage(props: Props) {
-  const { collectionId } = useParams();
+  const { collectionId: routeId } = useParams();
+  const collectionId = props.collectionId ?? routeId;
   return (
     <CollectionProductDetail
       key={`${props.accountId ?? ''}:${props.spaceId}:${collectionId}`}
       {...props}
+      collectionId={collectionId}
     />
   );
 }
@@ -193,13 +146,75 @@ function CollectionProductDetail({
   spaceId,
   dashboardApi,
   accountId,
+  collectionId,
+  embedded = false,
+  inSheet = false,
+  focusAddOnOpen = false,
+  onPendingChange,
+  onDirtyChange,
 }: Props) {
   const { t } = useTranslation();
-  const { collectionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { resolveOrigin, requestReturn } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const origin = resolveOrigin(originKey);
+  // A Wir tile's add link asks for the entry field; opening the tile itself
+  // must not raise the keyboard (#1808).
+  const focusAddRequested = focusAddOnOpen;
+  const focusAddDoneRef = useRef(false);
+  const rawScope = origin
+    ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
+    : null;
+  const overviewScope =
+    rawScope === 'COMPLETED' || rawScope === 'ALL' ? rawScope : 'OPEN';
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSorting, setIsSorting] = useState(false);
+  const createItemInFlightRef = useRef(false);
+  const refocusAddRef = useRef(false);
+  const refocusToggleRef = useRef<{ id: string; completed: boolean } | null>(
+    null,
+  );
+  const [menuOpen, setMenuOpen] = useState(false);
+  // The menu's second step asks before sending the list to the partner (#1907 E2).
+  const [sendStep, setSendStep] = useState(false);
+  const [showSent, showSentForFeedbackWindow] = useTransientFlag(4000);
+  const { state: partnerState, nicknameFor } = usePartnerNickname();
+  const partnerId = partnerState?.partnerId ?? null;
+  // The entry that was just checked or put back arrives in its new place with
+  // a short glide; the rest of the list does not move (#1808).
+  const [arrivingId, setArrivingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!arrivingId) return;
+    const timer = window.setTimeout(() => setArrivingId(null), 700);
+    return () => window.clearTimeout(timer);
+  }, [arrivingId]);
+  // A checked entry flies from its row into the cart (#1808). The flight is
+  // started after the render that shows the cart, so even the first entry of a
+  // trip, which makes the cart bar appear, has a place to fly to.
+  const flightRef = useRef<(CartFlight & { at: number }) | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after every render on purpose
+  useLayoutEffect(() => {
+    const flight = flightRef.current;
+    if (!flight) return;
+    if (performance.now() - flight.at > FLIGHT_WAIT_MS) {
+      flightRef.current = null;
+      return;
+    }
+    if (flyIntoCart(flight)) flightRef.current = null;
+  });
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  // Refreshing under the person's hands would fight an edit in progress.
+  const pollPausedRef = useRef(false);
+  const addInputRef = useRef<HTMLInputElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const deleteFocusRef = useRef<{ removedId: string; nextId?: string } | null>(
+    null,
+  );
   const [titleDraft, setTitleDraft] = useState('');
   const [showTitleSaved, showTitleSavedForFeedbackWindow] =
     useTransientFlag(2500);
@@ -219,18 +234,132 @@ function CollectionProductDetail({
 
   const collectionQuery = useQuery({
     queryKey: key,
-    queryFn: () => {
+    queryFn: async () => {
       if (!collectionId) throw new Error('Missing Collection route parameter.');
-      return apiCall(() =>
-        apis.collections.getCollection({ spaceId, collectionId }),
-      );
+      const load = () =>
+        apiCall(() =>
+          apis.collections.getCollection({ spaceId, collectionId }),
+        );
+      if (!accountId) return load();
+      // A list opens from its last saved copy when there is no connection, so
+      // a shopping list still works after the app was closed in a store.
+      const read = await loadProductWithReadCache({
+        accountId,
+        spaceId,
+        kind: 'collection',
+        resourceId: collectionId,
+        load,
+        // A saved copy is an extra: if it cannot be written, reading still works.
+        serialize: (value) => {
+          try {
+            return CollectionDetailToJSON(value);
+          } catch {
+            return null;
+          }
+        },
+        deserialize: (payload) => CollectionDetailFromJSON(payload),
+      });
+      return read.value;
     },
     enabled: Boolean(collectionId),
+    // A read that knows it is offline must still resolve its saved copy.
+    networkMode: 'always',
+    retry: false,
+    staleTime: embedded ? undefined : LIST_RETURN_STALE_MS,
+    refetchInterval: () =>
+      embedded || pollPausedRef.current || !onlineManager.isOnline()
+        ? false
+        : LIST_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  });
+
+  // Shopping lists keep their changes on the device while there is no
+  // connection and send them later (#1808).
+  const outbox = useCollectionOutbox({
+    apis,
+    queryClient,
+    queryKey: key,
+    accountId,
+    spaceId,
+    collectionId,
+    enabled: collectionQuery.data?.kind === 'SHOPPING',
+  });
+  const viewed = collectionQuery.data
+    ? outbox.apply(collectionQuery.data, {
+        id: accountId ?? '',
+        displayName: knownPersonName(collectionQuery.data, accountId),
+      })
+    : undefined;
+  const online =
+    useSyncExternalStore(
+      (listener) => onlineManager.subscribe(listener),
+      () => onlineManager.isOnline(),
+      () => true,
+    ) && navigator.onLine !== false;
+
+  useEffect(() => {
+    const target = deleteFocusRef.current;
+    if (
+      !target ||
+      !collectionQuery.data ||
+      collectionQuery.data.items.some((item) => item.id === target.removedId)
+    )
+      return;
+    deleteFocusRef.current = null;
+    const row = Array.from(
+      itemsRef.current?.querySelectorAll<HTMLElement>(
+        '[data-sortable-item-id]',
+      ) ?? [],
+    ).find((element) => element.dataset.sortableItemId === target.nextId);
+    (
+      row?.querySelector<HTMLButtonElement>('button') ?? addButtonRef.current
+    )?.focus();
+  }, [collectionQuery.data]);
+
+  const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
+
+  // The partner's name for the send wording: a chosen nickname, or someone the
+  // list already shows; only when neither is known does one Dashboard read ask.
+  const partnerNickname = nicknameFor(partnerId);
+  const knownPartnerName =
+    partnerNickname ||
+    (collectionQuery.data
+      ? knownPersonName(collectionQuery.data, partnerId ?? undefined)
+      : '');
+  const partnerNameQuery = useQuery({
+    queryKey: ['collection-send-partner-name', spaceId, partnerId],
+    queryFn: async () => {
+      if (!dashboardApi) return '';
+      const view = await apiCall(() => dashboardApi.getDashboard({ spaceId }));
+      return view.space.partner?.displayName ?? '';
+    },
+    enabled: Boolean(
+      dashboardApi && partnerId && !knownPartnerName && !embedded,
+    ),
+    staleTime: 10 * 60_000,
     retry: false,
   });
 
-  const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
-  const pinnedCollectionId = pinCollection.selectedCollectionId;
+  // A deliberate gesture: one request notifies the partner and puts the list on
+  // their Wir. Nothing is queued offline, so a send never replays by surprise.
+  const sendToPartner = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: () => {
+      assertOnlineWrite();
+      return apiCall(() =>
+        apis.collections.sendCollectionToPartner({
+          spaceId,
+          collectionId: collectionId ?? '',
+        }),
+      );
+    },
+    onSuccess: () => {
+      setMenuOpen(false);
+      setSendStep(false);
+      showSentForFeedbackWindow();
+    },
+  });
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -245,10 +374,7 @@ function CollectionProductDetail({
   const commitCollection = async (collection: CollectionDetail) => {
     queryClient.setQueryData(key, collection);
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-        refetchType: isClientOnline() ? 'active' : 'none',
-      }),
+      invalidateCollectionConsumers(queryClient, spaceId),
       queryClient.invalidateQueries({
         queryKey: key,
         refetchType: isClientOnline() ? 'active' : 'none',
@@ -281,27 +407,161 @@ function CollectionProductDetail({
   });
 
   const createItem = useMutation({
+    onSettled: () => {
+      createItemInFlightRef.current = false;
+    },
+    networkMode: 'always',
     mutationFn: ({
       collection,
       title,
+      quantity,
     }: {
       collection: CollectionDetail;
       title: string;
+      quantity?: string;
     }) =>
-      apiCall(() =>
-        apis.collections.createCollectionItem({
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.collections.createCollectionItem({
           spaceId,
           collectionId: collection.id,
-          collectionItemCreate: { title },
-        }),
-      ),
+          collectionItemCreate: quantity ? { title, quantity } : { title },
+        });
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
+
+  // Suggestions from earlier trips and finishing the trip (#1808).
+  const isShopping = collectionQuery.data?.kind === 'SHOPPING';
+  const suggestionsKey = [
+    'm5-s3',
+    'collection-suggestions',
+    spaceId,
+    collectionId,
+  ] as const;
+  const suggestionsQuery = useQuery({
+    queryKey: suggestionsKey,
+    queryFn: async () =>
+      (
+        await apiCall(() =>
+          apis.collections.listCollectionSuggestions({
+            spaceId,
+            collectionId: collectionId ?? '',
+          }),
+        )
+      ).items,
+    enabled: Boolean(collectionId) && isShopping && !embedded,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const removeSuggestion = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (suggestion: CollectionSuggestion) => {
+      assertOnlineWrite();
+      return apiCall(() =>
+        apis.collections.deleteCollectionSuggestion({
+          spaceId,
+          collectionId: collectionId ?? '',
+          suggestionId: suggestion.id,
+        }),
+      );
+    },
+    onMutate: async (suggestion) => {
+      await queryClient.cancelQueries({ queryKey: suggestionsKey });
+      const previous =
+        queryClient.getQueryData<CollectionSuggestion[]>(suggestionsKey);
+      queryClient.setQueryData<CollectionSuggestion[]>(suggestionsKey, (all) =>
+        (all ?? []).filter((entry) => entry.id !== suggestion.id),
+      );
+      return { previous };
+    },
+    onError: (_error, _suggestion, context) => {
+      if (context?.previous)
+        queryClient.setQueryData(suggestionsKey, context.previous);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: suggestionsKey }),
+  });
+  const [tripEnd, setTripEnd] = useState<TripEnd | null>(null);
+  const finishTrip = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async ({
+      itemIds,
+    }: {
+      itemIds: string[];
+      shares: TripEnd['shares'];
+    }) => {
+      assertOnlineWrite();
+      const response = await apiCall(() =>
+        apis.collections.finishCollectionShoppingRaw({
+          spaceId,
+          collectionId: collectionId ?? '',
+          collectionFinish: { itemIds },
+        }),
+      );
+      return {
+        result: await response.value(),
+        celebrate:
+          sharedAchievementKind(response.raw) === 'collection-completed',
+      };
+    },
+    onSuccess: async ({ result, celebrate }, variables) => {
+      await commitCollection(result.collection);
+      await queryClient.invalidateQueries({ queryKey: suggestionsKey });
+      if (result.finishedCount > 0)
+        setTripEnd({
+          finishedCount: result.finishedCount,
+          shares: variables.shares,
+          celebrate,
+        });
+    },
+  });
+
+  // Checking an entry moves it into the tray, which mounts a new button. Focus
+  // follows the entry so keyboard and screen-reader users keep their place.
+  useEffect(() => {
+    const target = refocusToggleRef.current;
+    if (!target) return;
+    const { id, completed } = target;
+    const toggle = Array.from(
+      itemsRef.current?.querySelectorAll<HTMLElement>(
+        '[data-sortable-item-id]',
+      ) ?? [],
+    )
+      .find((row) => row.dataset.sortableItemId === id)
+      ?.querySelector<HTMLButtonElement>('.checklist-toggle');
+    // Wait until the entry shows its new state: it is mounted again there.
+    if (
+      !toggle ||
+      toggle.disabled ||
+      toggle.getAttribute('aria-pressed') !== String(completed)
+    )
+      return;
+    refocusToggleRef.current = null;
+    if (!document.activeElement || document.activeElement === document.body)
+      toggle.focus();
+  });
+
+  useEffect(() => {
+    if (!focusAddRequested || focusAddDoneRef.current) return;
+    const input = addInputRef.current;
+    if (!input || input.disabled) return;
+    focusAddDoneRef.current = true;
+    input.focus();
+  });
+
+  // The input is disabled while an entry is being saved, so focus goes back
+  // to it once saving has finished and the next entry can be typed (#1808).
+  useEffect(() => {
+    if (createItem.isPending || !refocusAddRef.current) return;
+    refocusAddRef.current = false;
+    addInputRef.current?.focus();
+  }, [createItem.isPending]);
 
   const updateItem = useMutation({
     networkMode: 'always',
@@ -339,14 +599,20 @@ function CollectionProductDetail({
         { title, completed },
       ),
     onError: (_error, _variables, context) => context?.rollback(),
-    onSuccess: async (updatedItem, _variables, context) => {
+    onSuccess: async (updatedItem, variables, context) => {
       if (!context?.isCurrentQuery()) return;
       context.confirm(updatedItem);
-      await queryClient.invalidateQueries({
-        queryKey: context.key,
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
+        }),
+        invalidateCollectionConsumers(
+          queryClient,
+          variables.collection.spaceId,
+        ),
+      ]);
     },
     onSettled: () => {
       itemUpdateInFlightRef.current = false;
@@ -359,9 +625,13 @@ function CollectionProductDetail({
     title?: string;
     completed?: boolean;
   }) => {
-    if (itemUpdateInFlightRef.current || hasCurrentReorder()) return;
+    if (itemUpdateInFlightRef.current || hasCurrentReorder())
+      return Promise.resolve(false);
     itemUpdateInFlightRef.current = true;
-    updateItem.mutate(variables);
+    return updateItem.mutateAsync(variables).then(
+      () => true,
+      () => false,
+    );
   };
 
   const retryItemUpdate = () => {
@@ -388,6 +658,7 @@ function CollectionProductDetail({
   };
 
   const deleteItem = useMutation({
+    networkMode: 'always',
     mutationFn: ({
       collection,
       item,
@@ -395,19 +666,18 @@ function CollectionProductDetail({
       collection: CollectionDetail;
       item: CollectionItemDetail;
     }) =>
-      apiCall(() =>
-        apis.collections.deleteCollectionItem({
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.collections.deleteCollectionItem({
           spaceId,
           collectionId: collection.id,
           itemId: item.id,
           ifMatch: planningIfMatch(item),
-        }),
-      ),
+        });
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
 
@@ -430,15 +700,13 @@ function CollectionProductDetail({
         collection.spaceId,
         collection.id,
       );
-      const listKey = authorSummaryQueryKeys.collections(collection.spaceId);
-      const isCurrentList = captureQueryIdentity(queryClient, listKey);
       const order = await captureCollectionOrder<CollectionDetail>(
         queryClient,
         key,
         collection.version,
         itemIds,
       );
-      return { ...order, listKey, isCurrentList };
+      return order;
     },
     onError: async (error, _variables, context) => {
       if (!context?.isCurrentQuery()) return;
@@ -460,13 +728,7 @@ function CollectionProductDetail({
           exact: true,
           refetchType: isClientOnline() ? 'active' : 'none',
         }),
-        context.isCurrentList()
-          ? queryClient.invalidateQueries({
-              queryKey: context.listKey,
-              exact: true,
-              refetchType: isClientOnline() ? 'active' : 'none',
-            })
-          : Promise.resolve(),
+        invalidateCollectionConsumers(queryClient, spaceId),
       ]);
     },
     onSettled: (_data, _error, variables) => {
@@ -532,25 +794,38 @@ function CollectionProductDetail({
     onMutate: (collection) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
         queryClient.getQueryData<InfiniteItemsData<CollectionDetail>>(
-          authorSummaryQueryKeys.collections(spaceId),
+          authorSummaryQueryKeys.collectionOverview(spaceId, overviewScope),
         ),
         collection.id,
       ),
     }),
-    onSuccess: async (_result, _collection, context) => {
+    onSuccess: async (_result, deleted, context) => {
       queryClient.removeQueries({ queryKey: key });
+      if (accountId) {
+        // The list is gone: its saved copy and unsent changes go with it.
+        void deleteProductReadCacheEntry(
+          accountId,
+          spaceId,
+          'collection',
+          deleted.id,
+        );
+        void deleteCollectionOutbox(accountId, spaceId, deleted.id);
+      }
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['m5-s3', 'collections', spaceId],
-        }),
+        invalidateCollectionConsumers(queryClient, spaceId),
         queryClient.invalidateQueries({
           queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
         }),
       ]);
-      navigate(MORE_COLLECTIONS_ROUTE, {
+      if (origin && !origin.to.startsWith(MORE_COLLECTIONS_ROUTE)) {
+        requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
+        return;
+      }
+      navigate(origin?.to ?? MORE_COLLECTIONS_ROUTE, {
         replace: true,
         state: {
           [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+          taskReturnKey: originKey,
         },
       });
     },
@@ -585,13 +860,24 @@ function CollectionProductDetail({
     }
   }, [confirmDelete]);
 
-  const baseItemIds = [...(collectionQuery.data?.items ?? [])]
+  const embeddedPending =
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    isReordering;
+  useEffect(() => {
+    onPendingChange?.(embeddedPending);
+    return () => onPendingChange?.(false);
+  }, [embeddedPending, onPendingChange]);
+
+  const baseItemIds = [...(viewed?.collection.items ?? [])]
     .sort((left, right) => left.position - right.position)
     .map((item) => item.id);
   const reorder = useListItemReorder({
     itemIds: baseItemIds,
     disabled:
       !collectionQuery.data?.capabilities.canEdit ||
+      outbox.pendingCount > 0 ||
       isReordering ||
       updateItem.isPending ||
       createItem.isPending ||
@@ -614,7 +900,24 @@ function CollectionProductDetail({
     );
   if (collectionQuery.isLoading)
     return <UiState kind="loading" title={t('m5s3.collection.loading')} />;
-  if (collectionQuery.error)
+  pollPausedRef.current =
+    isSorting ||
+    isEditing ||
+    outbox.pendingCount > 0 ||
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    reorderItems.isPending ||
+    updateCollection.isPending ||
+    finishTrip.isPending;
+
+  if (
+    collectionQuery.error &&
+    (!collectionQuery.data ||
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(collectionQuery.error),
+      ))
+  )
     return (
       <ProblemState
         error={collectionQuery.error}
@@ -623,10 +926,118 @@ function CollectionProductDetail({
     );
   const collection = collectionQuery.data;
   if (!collection) return null;
-  const itemById = new Map(collection.items.map((item) => [item.id, item]));
+  const shown = viewed?.collection ?? collection;
+  const itemById = new Map(shown.items.map((item) => [item.id, item]));
   const items = reorder.orderedItemIds
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
+  const shopping = collection.kind === 'SHOPPING';
+  const roleOf = personRoleResolver(accountId);
+  const summary = summarizeSharedList(items, roleOf);
+  const markerFor = (item: CollectionItemDetail) => {
+    const finisher = item.completed ? item.completer : null;
+    const person = finisher ?? item.creator;
+    if (!person) return undefined;
+    const name =
+      person.displayName ||
+      (person.id === accountId ? t('m5s3.collection.you') : '');
+    return {
+      name,
+      role: roleOf(person.id),
+      caption: name
+        ? t(
+            finisher
+              ? shopping
+                ? 'm5s3.collection.completedByShopping'
+                : 'm5s3.collection.completedByGeneric'
+              : 'm5s3.collection.addedBy',
+            { name },
+          )
+        : '',
+    };
+  };
+  const openItems = items.filter((item) => !item.completed);
+  const doneItems = items.filter((item) => item.completed);
+  const canFinish = shopping && !embedded && collection.capabilities.canEdit;
+  const finishBlock: FinishBlock = !online
+    ? 'offline'
+    : outbox.pendingCount > 0
+      ? 'waiting'
+      : null;
+  const finishControl = canFinish ? (
+    <FinishTripButton
+      pending={finishTrip.isPending}
+      blocked={finishBlock}
+      failed={finishTrip.isError}
+      onFinish={() => {
+        setTripEnd(null);
+        finishTrip.mutate({
+          itemIds: doneItems.map((entry) => entry.id),
+          shares: summarizeSharedList(doneItems, roleOf).shares,
+        });
+      }}
+    />
+  ) : null;
+  // The list's menu (#1808): sorting lives here instead of in the page. Without
+  // a page header (the Wir sheet) the button sits in the list's toolbar.
+  const canSort = collection.capabilities.canEdit && items.length > 1;
+  const canSend = Boolean(partnerId) && Boolean(accountId);
+  const hasListMenu = !embedded && !isSorting && (canSort || canSend);
+  const partnerLabel =
+    partnerNickname ||
+    firstNameFromDisplayName(
+      knownPartnerName || partnerNameQuery.data,
+      t('m5s3.collection.menu.partnerFallback'),
+    );
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setSendStep(false);
+    sendToPartner.reset();
+  };
+  const listMenuButton = hasListMenu ? (
+    <ListEntryIconButton
+      ref={menuTriggerRef}
+      icon="more"
+      className="tertiary"
+      label={t('m5s3.collection.menu.open')}
+      aria-haspopup="dialog"
+      aria-expanded={menuOpen}
+      onClick={() => setMenuOpen(true)}
+    />
+  ) : null;
+  const suggestionsShown =
+    shopping && !embedded && !isSorting && collection.capabilities.canEdit
+      ? visibleSuggestions(suggestionsQuery.data ?? [], items)
+      : [];
+  const addSuggestion = (suggestion: CollectionSuggestion) => {
+    const title = suggestion.title;
+    const quantity = suggestion.quantity ?? null;
+    if (outbox.active) {
+      void outbox.addItem({ title, quantity });
+      return;
+    }
+    if (createItemInFlightRef.current || hasCurrentReorder()) return;
+    createItemInFlightRef.current = true;
+    createItem.mutate({
+      collection,
+      title,
+      quantity: quantity ?? undefined,
+    });
+  };
+  const groups = isSorting
+    ? [{ key: 'all', title: null, list: items }]
+    : [
+        { key: 'open', title: null, list: openItems },
+        {
+          key: 'done',
+          title: t(
+            shopping
+              ? 'm5s3.collection.trayShopping'
+              : 'm5s3.collection.trayGeneric',
+          ),
+          list: doneItems,
+        },
+      ].filter((group) => group.list.length > 0);
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -638,14 +1049,70 @@ function CollectionProductDetail({
     });
   }
 
+  function toggleItem(targetItem: CollectionItemDetail) {
+    if (!collection) return;
+    refocusToggleRef.current = {
+      id: targetItem.id,
+      completed: !targetItem.completed,
+    };
+    setArrivingId(targetItem.id);
+    const row =
+      collection.kind === 'SHOPPING' && !targetItem.completed
+        ? document.querySelector<HTMLElement>(
+            `[data-sortable-item-id="${CSS.escape(targetItem.id)}"]`,
+          )
+        : null;
+    flightRef.current = row
+      ? {
+          from: row.getBoundingClientRect(),
+          label: targetItem.title,
+          role: roleOf(accountId),
+          at: performance.now(),
+        }
+      : null;
+    if (outbox.active)
+      void outbox.setCompleted(targetItem.id, !targetItem.completed);
+    else
+      submitItemUpdate({
+        collection,
+        item: targetItem,
+        completed: !targetItem.completed,
+      });
+  }
+
   function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!collection || hasCurrentReorder()) return;
+    if (!collection || hasCurrentReorder() || createItemInFlightRef.current)
+      return;
     const form = event.currentTarget;
     const data = new FormData(form);
+    if (outbox.active) {
+      // Kept on the device first, then sent when a connection is there.
+      const title = String(data.get('title')).trim();
+      if (!title) return;
+      const quantity = String(data.get('quantity') ?? '').trim() || null;
+      void outbox.addItem({ title, quantity }).then((kept) => {
+        if (!kept) return;
+        form.reset();
+        onDirtyChange?.(false);
+        addInputRef.current?.focus();
+      });
+      return;
+    }
+    createItemInFlightRef.current = true;
     createItem.mutate(
-      { collection, title: String(data.get('title')).trim() },
-      { onSuccess: () => form.reset() },
+      {
+        collection,
+        title: String(data.get('title')).trim(),
+        quantity: String(data.get('quantity') ?? '').trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          onDirtyChange?.(false);
+          refocusAddRef.current = true;
+        },
+      },
     );
   }
 
@@ -665,150 +1132,177 @@ function CollectionProductDetail({
     createItem.error || itemUpdateError || deleteItem.error || reorderError;
 
   return (
-    <div className="page planning-page">
-      <PageHeader
-        className="page-heading-collection"
-        before={
-          <Link className="back-link" to={MORE_COLLECTIONS_ROUTE}>
-            {t('m5s3.common.backToCollections')}
-          </Link>
-        }
-        eyebrow={t('m5s3.collection.detailEyebrow')}
-        title={
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {collection.title}
-            {showTitleSaved ? (
-              <span
-                className="planning-title-saved-hint"
-                role="status"
-                aria-live="polite"
-              >
-                ✓
-              </span>
-            ) : null}
-          </span>
-        }
-        titleAction={
-          collection.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              ref={editTriggerRef}
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => {
-                setTitleDraft(collection.title);
-                setIsEditing(true);
-              }}
-            />
-          ) : undefined
-        }
-        titleEditor={
-          isEditing ? (
-            <form
-              className="planning-collection-title-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitCollection(e);
+    <div
+      className={
+        embedded
+          ? 'shared-list-composer'
+          : inSheet
+            ? 'shared-content-page shared-list-in-sheet'
+            : 'page shared-content-page'
+      }
+    >
+      {!embedded && !inSheet ? (
+        <PageHeader
+          className="shared-authored-heading"
+          itemLabel={t('m5s3.collection.detailEyebrow')}
+          title={
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
               }}
             >
-              <label htmlFor="collection-edit-title" className="sr-only">
-                {t('m5s3.common.title')}
-              </label>
-              <div className="planning-collection-title-row">
-                <input
-                  ref={titleInputRef}
-                  id="collection-edit-title"
-                  name="title"
-                  required
-                  maxLength={200}
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  placeholder={t('m5s3.common.title')}
-                  aria-label={t('m5s3.common.title')}
-                />
-                <ListEntryIconButton
-                  type="submit"
-                  icon="save"
-                  className="tertiary"
-                  label={
-                    updateCollection.isPending
-                      ? t('m5s3.common.saving')
-                      : t('m5s3.common.saveChanges')
-                  }
-                  disabled={
-                    !isTitleDirty ||
-                    updateCollection.isPending ||
-                    deleteCollection.isPending ||
-                    isReordering
-                  }
-                />
-                <button
-                  type="button"
-                  className="button-link secondary-link"
-                  onClick={editorLifecycle.requestClose}
-                  disabled={
-                    updateCollection.isPending || deleteCollection.isPending
-                  }
+              {collection.title}
+              {showTitleSaved ? (
+                <span
+                  className="planning-title-saved-hint"
+                  role="status"
+                  aria-live="polite"
                 >
-                  {t('common.cancel')}
-                </button>
-              </div>
-              {editorLifecycle.showDiscardConfirm ? (
-                <PlanningDiscardConfirmation
-                  onKeepEditing={editorLifecycle.keepEditing}
-                  onDiscard={editorLifecycle.discard}
-                />
+                  ✓
+                </span>
               ) : null}
-              {updateCollection.error ? (
-                <ProblemState
-                  error={updateCollection.error}
-                  onRetry={() => void collectionQuery.refetch()}
-                />
-              ) : null}
-            </form>
-          ) : undefined
-        }
-        description={t('m5s3.collection.itemCount', { count: items.length })}
-      />
+            </span>
+          }
+          titleAction={
+            collection.capabilities.canEdit && !isEditing ? (
+              <ListEntryIconButton
+                ref={editTriggerRef}
+                icon="edit"
+                className="tertiary"
+                label={t('common.edit')}
+                onClick={() => {
+                  setTitleDraft(collection.title);
+                  setIsEditing(true);
+                }}
+              />
+            ) : undefined
+          }
+          titleEditor={
+            isEditing ? (
+              <form
+                className="planning-collection-title-form free-composer"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitCollection(e);
+                }}
+              >
+                <label htmlFor="collection-edit-title" className="sr-only">
+                  {t('m5s3.common.title')}
+                </label>
+                <div className="planning-collection-title-row">
+                  <input
+                    ref={titleInputRef}
+                    id="collection-edit-title"
+                    name="title"
+                    required
+                    maxLength={200}
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    placeholder={t('m5s3.common.title')}
+                    aria-label={t('m5s3.common.title')}
+                  />
+                  <ListEntryIconButton
+                    type="submit"
+                    icon="save"
+                    className="tertiary"
+                    label={
+                      updateCollection.isPending
+                        ? t('m5s3.common.saving')
+                        : t('m5s3.common.saveChanges')
+                    }
+                    disabled={
+                      !isTitleDirty ||
+                      updateCollection.isPending ||
+                      deleteCollection.isPending ||
+                      isReordering
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="button-link secondary-link"
+                    onClick={editorLifecycle.requestClose}
+                    disabled={
+                      updateCollection.isPending || deleteCollection.isPending
+                    }
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+                {editorLifecycle.showDiscardConfirm ? (
+                  <PlanningDiscardConfirmation
+                    onKeepEditing={editorLifecycle.keepEditing}
+                    onDiscard={editorLifecycle.discard}
+                  />
+                ) : null}
+                {updateCollection.error ? (
+                  <ProblemState
+                    error={updateCollection.error}
+                    onRetry={() => void collectionQuery.refetch()}
+                  />
+                ) : null}
+              </form>
+            ) : undefined
+          }
+          action={
+            (dashboardApi && accountId) || listMenuButton ? (
+              <>
+                {dashboardApi && accountId ? (
+                  <div className="planning-collection-dashboard-action">
+                    <button
+                      type="button"
+                      className="button-link secondary-link"
+                      disabled={pinCollection.isBlocked}
+                      aria-pressed={pinCollection.isPinned(collection.id)}
+                      aria-label={t(
+                        pinCollection.isPinned(collection.id)
+                          ? 'm5s3.collection.unpinFromToday'
+                          : 'm5s3.collection.pinToToday',
+                      )}
+                      aria-describedby={
+                        pinCollection.isSaving
+                          ? 'collection-pin-pending'
+                          : undefined
+                      }
+                      onClick={() => pinCollection.toggle(collection.id)}
+                    >
+                      {pinCollection.isPinned(collection.id) ? (
+                        <span aria-hidden="true">✓ </span>
+                      ) : null}
+                      {t('m5s3.collection.pinLabel')}
+                    </button>
+                    {pinCollection.isSaving ? (
+                      <small id="collection-pin-pending" role="status">
+                        {t('common.saving')}
+                      </small>
+                    ) : null}
+                    {pinCollection.error ? (
+                      <ProblemState
+                        error={pinCollection.error}
+                        onRetry={() => void pinCollection.retryRead()}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+                {listMenuButton}
+              </>
+            ) : null
+          }
+        />
+      ) : null}
 
-      {dashboardApi && accountId ? (
-        <div className="planning-collection-dashboard-action">
-          <button
-            type="button"
-            className="button-link secondary-link"
-            disabled={pinCollection.isBlocked}
-            aria-pressed={pinnedCollectionId === collection.id}
-            aria-describedby={
-              pinCollection.isSaving ? 'collection-pin-pending' : undefined
-            }
-            onClick={() =>
-              pinCollection.changeSelection(
-                pinnedCollectionId === collection.id ? null : collection.id,
-              )
-            }
-          >
-            {pinnedCollectionId === collection.id
-              ? t('m5s3.collection.unpinFromToday')
-              : t('m5s3.collection.pinToToday')}
-          </button>
-          {pinCollection.isSaving ? (
-            <small id="collection-pin-pending" role="status">
-              {t('common.saving')}
-            </small>
-          ) : null}
-          {pinCollection.error ? (
-            <ProblemState
-              error={pinCollection.error}
-              onRetry={() => void pinCollection.retryRead()}
-            />
-          ) : null}
-        </div>
+      {collectionQuery.error ? (
+        <ProblemState
+          error={collectionQuery.error}
+          onRetry={() => void collectionQuery.refetch()}
+        />
+      ) : null}
+
+      {showSent ? (
+        <p className="shared-list-sent" role="status" aria-live="polite">
+          {t('m5s3.collection.menu.sendDone', { name: partnerLabel })}
+        </p>
       ) : null}
 
       <section
@@ -819,66 +1313,259 @@ function CollectionProductDetail({
           {t('m5s3.collection.itemsHeading')}
         </h2>
 
-        {collection.capabilities.canEdit ? (
+        {tripEnd ? (
+          <SharedListTripEnd end={tripEnd} onDismiss={() => setTripEnd(null)} />
+        ) : null}
+        {!embedded ? (
+          <SharedListSummary
+            summary={summary}
+            shopping={shopping}
+            people={listPeople(collection, items, roleOf)}
+          />
+        ) : null}
+        <div className="shared-list-toolbar">
+          {embedded ? (
+            <p>
+              {t('composer.sharedListProgress', {
+                count: items.length,
+                completed: doneItems.length,
+              })}
+            </p>
+          ) : null}
+          {!embedded && collection.capabilities.canEdit && isSorting ? (
+            <button
+              type="button"
+              className="tertiary"
+              aria-pressed
+              disabled={isReordering || outbox.pendingCount > 0}
+              onClick={() => setIsSorting(false)}
+            >
+              {t('m5s3.collection.finishSorting')}
+            </button>
+          ) : null}
+          {inSheet && listMenuButton}
+        </div>
+        {outbox.active ? (
+          <>
+            {outbox.pendingCount > 0 ? (
+              <p className="shared-list-outbox" role="status">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  className="shared-list-outbox-icon inline-icon"
+                >
+                  {online ? (
+                    <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+                  ) : (
+                    <>
+                      <path d="M7 18h10a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.3 9.5 4.4 4.4 0 0 0 7 18z" />
+                      <path d="M4 4l16 16" />
+                    </>
+                  )}
+                </svg>
+                {t(
+                  online
+                    ? 'm5s3.collection.outbox.waitingOnline'
+                    : 'm5s3.collection.outbox.waitingOffline',
+                  { count: outbox.pendingCount },
+                )}
+              </p>
+            ) : null}
+            {outbox.storageFailed ? (
+              <p className="shared-list-outbox-warning" role="alert">
+                {t('m5s3.collection.outbox.storageFailed')}
+              </p>
+            ) : null}
+            {outbox.notices.map((notice) => (
+              <p
+                key={notice.id}
+                className="shared-list-outbox-notice"
+                role="status"
+              >
+                <span>
+                  {notice.kind === 'addDropped'
+                    ? t(
+                        notice.reason === 'expired'
+                          ? 'm5s3.collection.outbox.noticeExpired'
+                          : 'm5s3.collection.outbox.noticeRejected',
+                        { title: notice.title },
+                      )
+                    : t(
+                        {
+                          itemGone: 'm5s3.collection.outbox.noticeItemGone',
+                          collectionGone:
+                            'm5s3.collection.outbox.noticeCollectionGone',
+                          full: 'm5s3.collection.outbox.noticeFull',
+                        }[notice.kind],
+                      )}
+                </span>
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => outbox.dismissNotice(notice.id)}
+                >
+                  {t('m5s3.collection.outbox.dismiss')}
+                </button>
+              </p>
+            ))}
+          </>
+        ) : null}
+        {isSorting ? (
+          <p className="planning-meta">{t('m5s3.collection.sortHelp')}</p>
+        ) : null}
+        {collection.capabilities.canEdit && !isSorting ? (
           <form className="planning-inline-create" onSubmit={submitItem}>
             <label className="sr-only" htmlFor="collection-new-item">
               {t('m5s3.collection.newItem')}
             </label>
             <input
+              disabled={createItem.isPending || isReordering}
+              ref={addInputRef}
               id="collection-new-item"
+              className="composer-authored-field"
               name="title"
               required
               maxLength={200}
               placeholder={t('m5s3.collection.newItemPlaceholder')}
-            />
-            <ListEntryIconButton
-              type="submit"
-              icon="add"
-              className="list-entry-add-button"
-              label={
-                createItem.isPending
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.collection.addItem')
+              onChange={(event) =>
+                onDirtyChange?.(Boolean(event.target.value.trim()))
               }
+            />
+            {shopping ? (
+              <>
+                <label className="sr-only" htmlFor="collection-new-quantity">
+                  {t('m5s3.collection.quantityLabel')}
+                </label>
+                <input
+                  disabled={createItem.isPending || isReordering}
+                  id="collection-new-quantity"
+                  className="composer-authored-field shared-list-quantity-field"
+                  name="quantity"
+                  maxLength={40}
+                  placeholder={t('m5s3.collection.quantityPlaceholder')}
+                  autoComplete="off"
+                />
+              </>
+            ) : null}
+            <AddActionButton
+              ref={addButtonRef}
+              type="submit"
+              label={t('m5s3.collection.addItem')}
+              pending={createItem.isPending}
+              pendingLabel={t('m5s3.common.saving')}
               disabled={createItem.isPending || isReordering}
             />
           </form>
         ) : null}
+        {suggestionsShown.length > 0 ? (
+          <SharedListSuggestions
+            suggestions={suggestionsShown}
+            disabled={createItem.isPending || isReordering}
+            onAdd={addSuggestion}
+            onRemove={(suggestion) => removeSuggestion.mutate(suggestion)}
+          />
+        ) : null}
+        {removeSuggestion.error ? (
+          <ProblemState error={removeSuggestion.error} />
+        ) : null}
 
         {items.length > 0 ? (
-          <ol className="planning-collection-items">
-            {items.map((item) => (
-              <CollectionItemRow
-                key={item.id}
-                item={item}
-                collection={collection}
-                activeItemId={reorder.activeItemId}
-                handleProps={reorder.handleProps}
-                onUpdateTitle={(targetItem, title) =>
-                  submitItemUpdate({ collection, item: targetItem, title })
+          <div ref={itemsRef} className="shared-list-groups">
+            {groups.map((group) => (
+              <section
+                key={group.key}
+                className={
+                  shopping && group.key === 'done'
+                    ? 'shared-list-group shared-list-group-cart'
+                    : 'shared-list-group'
                 }
-                onToggleComplete={(targetItem) =>
-                  submitItemUpdate({
-                    collection,
-                    item: targetItem,
-                    completed: !targetItem.completed,
-                  })
-                }
-                onDelete={(targetItem) =>
-                  deleteItem.mutate({ collection, item: targetItem })
-                }
-                isUpdating={updateItem.isPending || isReordering}
-                isTogglePending={
-                  updateItem.isPending &&
-                  updateItem.variables?.completed !== undefined &&
-                  updateItem.variables.item.id === item.id
-                }
-                isDeleting={
-                  deleteItem.isPending || updateItem.isPending || isReordering
-                }
-              />
+                aria-label={group.title ?? undefined}
+                {...(shopping && group.key === 'done'
+                  ? { [CART_TARGET_ATTRIBUTE]: '' }
+                  : {})}
+              >
+                {group.title ? (
+                  <h3 className="shared-list-tray-heading">
+                    {group.title}
+                    <span className="shared-list-tray-count">
+                      {group.list.length}
+                    </span>
+                  </h3>
+                ) : null}
+                <ol className="shared-list-items">
+                  {group.list.map((item) => (
+                    <SharedCollectionItemRow
+                      key={item.id}
+                      item={item}
+                      canSort={collection.capabilities.canEdit}
+                      isSorting={isSorting}
+                      activeItemId={reorder.activeItemId}
+                      handleProps={reorder.handleProps}
+                      onUpdateTitle={(targetItem, title) =>
+                        submitItemUpdate({
+                          collection,
+                          item: targetItem,
+                          title,
+                        })
+                      }
+                      onUpdateQuantity={
+                        outbox.active
+                          ? (targetItem, quantity) =>
+                              outbox.setQuantity(targetItem.id, quantity)
+                          : undefined
+                      }
+                      onToggleComplete={toggleItem}
+                      waiting={viewed?.pendingItemIds.has(item.id)}
+                      marker={markerFor(item)}
+                      arriving={arrivingId === item.id}
+                      onDelete={(targetItem) => {
+                        const index = items.findIndex(
+                          (item) => item.id === targetItem.id,
+                        );
+                        deleteFocusRef.current = {
+                          removedId: targetItem.id,
+                          nextId: items[index + 1]?.id ?? items[index - 1]?.id,
+                        };
+                        return deleteItem
+                          .mutateAsync({ collection, item: targetItem })
+                          .then(
+                            () => true,
+                            () => {
+                              deleteFocusRef.current = null;
+                              return false;
+                            },
+                          );
+                      }}
+                      onRetry={() => {
+                        if (itemUpdateError) retryItemUpdate();
+                        else void collectionQuery.refetch();
+                      }}
+                      error={
+                        updateItem.variables?.item.id === item.id
+                          ? itemUpdateError
+                          : deleteItem.variables?.item.id === item.id
+                            ? deleteItem.error
+                            : null
+                      }
+                      isUpdating={updateItem.isPending || isReordering}
+                      isTogglePending={
+                        updateItem.isPending &&
+                        updateItem.variables?.completed !== undefined &&
+                        updateItem.variables.item.id === item.id
+                      }
+                      isDeleting={
+                        deleteItem.isPending ||
+                        updateItem.isPending ||
+                        isReordering
+                      }
+                    />
+                  ))}
+                </ol>
+                {shopping && group.key === 'done' ? finishControl : null}
+              </section>
             ))}
-          </ol>
+          </div>
         ) : (
           <p className="planning-empty">{t('m5s3.collection.itemsEmpty')}</p>
         )}
@@ -896,6 +1583,88 @@ function CollectionProductDetail({
           />
         ) : null}
       </section>
+
+      <SharedContentSheet
+        open={menuOpen && hasListMenu}
+        title={
+          sendStep
+            ? t('m5s3.collection.menu.sendTitle', { name: partnerLabel })
+            : collection.title
+        }
+        isPending={sendToPartner.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onClose={closeMenu}
+      >
+        {() =>
+          sendStep ? (
+            <div className="shared-content-actions">
+              <p>{t('m5s3.collection.menu.sendBody')}</p>
+              <button
+                type="button"
+                disabled={sendToPartner.isPending}
+                onClick={() => sendToPartner.mutate()}
+              >
+                {sendToPartner.isPending
+                  ? t('m5s3.collection.menu.sendSending')
+                  : t('m5s3.collection.menu.sendConfirm', {
+                      name: partnerLabel,
+                    })}
+              </button>
+              <button
+                type="button"
+                className="tertiary"
+                disabled={sendToPartner.isPending}
+                onClick={closeMenu}
+              >
+                {t('m5s3.collection.menu.sendKeep')}
+              </button>
+              {sendToPartner.error ? (
+                <ProblemState
+                  error={sendToPartner.error}
+                  onRetry={() => sendToPartner.mutate()}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <div className="shared-content-actions">
+              {canSort ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={isReordering || outbox.pendingCount > 0}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setIsSorting(true);
+                  }}
+                >
+                  {t('m5s3.collection.sort')}
+                </button>
+              ) : null}
+              {canSend ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => setSendStep(true)}
+                >
+                  {t('m5s3.collection.menu.send', { name: partnerLabel })}
+                </button>
+              ) : null}
+            </div>
+          )
+        }
+      </SharedContentSheet>
+
+      {shopping && !embedded && !isSorting ? (
+        <SharedListCartBar
+          entries={doneItems.map((entry) => ({
+            item: entry,
+            marker: markerFor(entry),
+          }))}
+          disabled={updateItem.isPending || isReordering}
+          onPutBack={toggleItem}
+          finish={finishControl}
+        />
+      ) : null}
 
       {isEditing && collection.capabilities.canDelete ? (
         <section

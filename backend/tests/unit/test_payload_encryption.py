@@ -24,28 +24,49 @@ DIALECT = postgresql.dialect()
 # every stored row of that type unreadable. A rename must pin the old label by
 # overriding ``crypto_context``; then update this table in the same change.
 PINNED_CONTEXTS = {
+    "accounts": "AccountPayload",
+    "once_messages": "OnceEnvelope",
+    "context_tag_suggestions": "TagSuggestionPayload",
     "attachments": "AttachmentPayload",
     "chapters": "ChapterPayload",
     "collection_items": "CollectionItemPayload",
+    "collection_suggestions": "CollectionSuggestionPayload",
     "collections": "CollectionPayload",
     "comments": "CommentPayload",
     "daily_check_in_vibe_notes": "DailyVibeNotePayload",
+    "daily_check_ins": "DailyCheckInPayload",
     "gift_ideas": "GiftIdeaPayload",
+    "google_account_hints": "GoogleAccountHintPayload",
     "heart_moments": "HeartMomentPayload",
     "important_dates": "ImportantDatePayload",
     "memories": "MemoryPayload",
     "milestones": "MilestonePayload",
     "partner_nicknames": "PartnerNicknamePayload",
+    "photo_source_connections": "PhotoConnectionPayload",
+    "calendar_connections": "CalendarConnectionPayload",
+    "space_calendar_targets": "SpaceCalendarTargetPayload",
+    "calendar_oauth_transactions": "CalendarOAuthPayload",
+    "plan_calendar_links": "PlanCalendarLinkPayload",
+    "photo_location_drafts": "PhotoLocationPayload",
+    "picture_ping_pong": "PicturePayload",
+    "photo_source_selections": "PhotoSelectionPayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",
+    "presence_snapshots": "PresencePositionPayload",
     "push_endpoint_secrets": "PushEndpointSecretPayload",
+    "push_preview_secrets": "PushPreviewKeyPayload",
     "private_collection_items": "PrivateCollectionItemPayload",
     "private_collections": "PrivateCollectionPayload",
     "private_notes": "PrivateNotePayload",
+    "shared_notes": "SharedNotePayload",
     "profile_preferences": "ProfilePreferencePayload",
     "related_persons": "RelatedPersonPayload",
+    "recap_editions": "RecapPayload",
+    "recap_reflections": "RecapReflectionPayload",
     "reminders": "ReminderPayload",
     "wishes": "WishPayload",
+    "wish_selection_rounds": "WishSelectionRoundPayload",
+    "wish_selections": "WishSelectionPayload",
 }
 
 
@@ -129,3 +150,20 @@ def test_key_lifecycle_module_never_logs_or_prints_content() -> None:
     source = inspect.getsource(lifecycle)
     assert "print(" not in source
     assert "logging" not in source
+
+
+def test_only_an_optional_column_accepts_a_missing_payload() -> None:
+    # ``optional`` exists for a payload column added to a table that already has
+    # rows; every other column keeps rejecting a missing payload in both directions.
+    strict = ProtectedPayloadJSON(NotePayload)
+    with pytest.raises(TypeError):
+        strict.process_bind_param(None, DIALECT)
+    with pytest.raises(ValueError, match="missing"):
+        strict.process_result_value(None, DIALECT)
+
+    optional = ProtectedPayloadJSON(NotePayload, optional=True)
+    assert optional.process_bind_param(None, DIALECT) is None
+    assert optional.process_result_value(None, DIALECT) is None
+    # A raw dictionary is still refused; optional only concerns ``None``.
+    with pytest.raises(TypeError):
+        optional.process_bind_param({"title": "x"}, DIALECT)  # type: ignore[arg-type]

@@ -1,0 +1,132 @@
+WORAUF HABT IHR LUST?
+Product concept and isolated mobile prototype, 2026-10-30
+
+Promise
+
+Turn a small set of the couple's existing wishes into a deliberate next Plan.
+The feature supports choosing what to do together, complementing capture,
+anticipation, canonical Memory continuation and the proposed Passport recaps.
+It is optional; ordinary Wish and Plan workflows remain independently usable.
+
+Placement and current-product context
+
+The primary entry belongs inside the existing Planen destination, below the
+nearest upcoming Plan and before undated intentions. It is also available from
+the Wishes peer mode. Preserve the four root destinations Wir, Momente, Planen,
+Mehr and the central creation action. Do not introduce a fifth destination, a
+second calendar, a Games dependency, a feed, or a separate place system.
+
+Baseline references examined in this chat include Product Reference v1, the
+actual SharedPlanningOverviewPage/WishProductPage and the newer journal,
+Places/Lists and Today/composer corrections. Wish content is text-first; the
+proposal does not invent Wish cover images or infer wishes from private data.
+The generated whole-screen reference was prepared before the HTML prototype.
+Its exact prompt is in image-prompts.txt. Generated date labels and navigation
+glyphs are illustrative; the interactive prototype uses the actual four-root
+shell and explicitly dated example Sunday 1 November 2026 instead.
+
+Proposed first coherent release
+
+1. Assemble two to five existing, authorized open shared Wishes. An optional
+   short occasion label such as Unser Wochenende supplies context, not a
+   deadline. A new idea can be explicitly added as a normal shared Wish.
+2. Each person selects any subset privately. Selecting none is valid. A
+   deliberate Share selection action publishes participation in the bounded
+   intersection calculation. Individual yes/no choices are not exposed as full per-person
+   arrays to the other partner or used as a score. No swipe gesture is required.
+3. Show only common favorites after both people explicitly share. Candidate
+   ordering follows the original authored order rather than inferred relevance
+   or a percentage compatibility ranking. A match can be one or several ideas.
+4. If there is no common favorite, offer changing one's own selection or
+   starting a new candidate round. Do not characterize the couple or expose
+   which person rejected a particular idea. No reminder pressure or deadline.
+5. A person may continue from their own favorites before mutual sharing, or
+   after no intersection. Label that path as their own proposal. A resulting
+   shared Plan is never presented as evidence that both agreed to it.
+6. A chosen Wish opens the existing Plan preparation flow with its title.
+   Date and time are optional. The Plan is created only on explicit Save,
+   using the existing canonical Wish-to-Plan transition. Already converted
+   Wishes open the actual Plan instead of creating duplicates. Other Wishes
+   remain open and unmodified. A saved Plan opens its canonical detail and
+   returns to the same Planen context. Later completion reuses the already
+   improved optional Memory capture and then eligible recap source relations.
+
+Privacy and lifecycle decisions for production
+
+Prefer one active optional round per Space initially. Persist the candidate
+Wish IDs, bounded round version, optional occasion and each person's private
+selection/publication state under the existing Space authorization boundary.
+The other partner must never receive private draft or individual decision
+arrays from the server. Shared intersections can nevertheless permit logical
+inferences about particular preferences, so copy must not promise that every
+individual choice remains secret after explicit sharing. Computing an intersection does not authorize access
+to private content. A person may intentionally reveal their own current
+choice in conversation; the UI itself should not enumerate rejected choices.
+
+An individual can amend or withdraw their selection. Starting an amendment
+withdraws their published selection and hides the derived common result until
+they explicitly share again. The prototype demonstrates this conservative
+behavior. A production product decision must confirm this policy and its copy.
+Already created Plans remain ordinary shared Plans, independent of a later
+selection change. Candidate changes start a new version and reset both
+publication states only after an explicit reviewed action; cancelling retains
+the current round. Do not lock shared Wish writes to a transient selection UI.
+
+Revalidate authorization, Wish existence, status, version and existing Plan
+identity when reading, publishing and converting. Handle partner departure,
+round withdrawal, concurrent edits, deleted/converted candidates and expiry
+without leaking hidden choices. Establish retention, cleanup, authorized
+export/deletion and account/Space change behavior before production code.
+No indefinite event log of rejections. No automatic partner notifications in
+the first slice. A completed choice can be closed without deleting its Plan.
+
+Mobile design and behavior
+
+Use existing powder-blue/navy/cobalt tokens, pale rose emphasis, Literata
+headings and Instrument Sans text. Home keeps one familiar next-Plan focal
+point; the entry is secondary to actual upcoming content. Focused selection,
+results and Plan tasks use local Back without competing root navigation.
+Native checkbox lists make all options visible and reversible. Explicit share
+keeps draft and common-result states distinct. Do not autofocus the keyboard.
+Keep targets at least 44 CSS px and support 320/360/390/430 px, large text,
+Light/Dark and keyboard/reduced-motion behavior. Expanded follows the same
+reading order with bounded width, not extra management columns.
+
+Motion acknowledges local selection, the arrival of a shared result and the
+Wish-to-Plan continuation. Use the product's existing 120/180/280 ms roles with
+no artificial success delays, looping decorations, match scores or confetti.
+Reduced motion retains all state and information immediately. Production
+acceptance must verify focus/Back/scroll restoration and draft safety, not just
+screenshots. Initial, empty, sparse, offline, error, conflict, pending and
+confirmed-result states must remain distinct. Offline publication or Plan
+creation never claims success or automatic future synchronization.
+
+Commercial proposal and implementation scope
+
+Proposed classification: Free/Core, extending everyday shared Wish/Plan
+utility. This is a recommendation, not a silent amendment of the authoritative
+feature matrix. Confirm and document the new classification before production
+implementation. No AI, external discovery provider, calendar synchronization
+or new infrastructure is needed for the first release. Reuse existing shared
+Wish/Plan readers and lifecycle, task origins, ShortTaskSheet where appropriate,
+query identity, native controls, generated clients, i18n and semantic tokens.
+
+A production round/selection resource, owner-only reads, atomic publication,
+versioned intersection projection and race-safe Plan conversion need explicit
+contracts. The current APIs must not be described as already supporting them.
+Cloud and Self-Hosted should share the same semantics and Free classification.
+
+Prototype boundary
+
+The inline mobile prototype uses fictional Mila/Jonas wishes and local
+in-memory state only. The outer person selector simulates two separate device
+views for review. It is not a proposed in-app account switch, an authentication
+mechanism or proof of server-side privacy. Individual selections are held in
+one demonstration process; production must enforce separate server reads.
+Plan saving is simulated and explicitly labeled as an example result. Nothing
+is sent, scheduled, deployed, installed or written to real relationship data.
+The prototype demonstrates entry, candidate editing, personal selection,
+explicit publication, common and zero-match results, solo continuation,
+optional scheduling, duplicate avoidance and return to the Plan hub. Backend
+authorization, cross-device sync, persistence, offline writes and release
+readiness are outside this concept. The application repository is unchanged.

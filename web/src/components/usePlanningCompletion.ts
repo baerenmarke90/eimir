@@ -6,9 +6,14 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import { captureQueryIdentity } from '../client/queryIdentity';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
+  dashboardQueryKey,
+  invalidateDashboard,
+} from '../client/dashboardQueries';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -17,6 +22,21 @@ type CompletionContext = {
   scope: string;
   key: QueryKey;
   isCurrentQuery: () => boolean;
+  isStartingDetail: () => boolean;
+};
+
+type CompletionSubmission<TRequest, TResult, TDetail> = {
+  input: TRequest;
+  scope: string;
+  spaceId: string;
+  detailKey: QueryKey;
+  listKey: QueryKey;
+  send: () => Promise<TResult>;
+  detail: (result: TResult) => TDetail;
+  isCurrentDetail: () => boolean;
+  isStartingDetail: () => boolean;
+  isCurrentList: () => boolean;
+  isCurrentDashboard: () => boolean;
 };
 
 type CompletionOutcome<TResult> =
@@ -57,7 +77,9 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
     select: (mutation) => ({
       keyHash: hashKey(mutation.options.mutationKey ?? []),
       status: mutation.state.status,
-      input: mutation.state.variables as TRequest | undefined,
+      submission: mutation.state.variables as
+        | CompletionSubmission<TRequest, TResult, TDetail>
+        | undefined,
       error: mutation.state.error,
       context: mutation.state.context as CompletionContext | undefined,
     }),
@@ -71,40 +93,69 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
   const pending =
     currentCompletions
       .filter((completion) => completion.status === 'pending')
-      .at(-1)?.input ?? null;
+      .at(-1)?.submission?.input ?? null;
   const latestCompletion = currentCompletions.at(-1);
 
-  const mutation = useMutation({
+  const mutation = useMutation<
+    TResult,
+    ClientProblemError,
+    CompletionSubmission<TRequest, TResult, TDetail>,
+    CompletionContext
+  >({
     mutationKey,
     // Fail offline instead of holding an irreversible action for reconnect.
     networkMode: 'always',
     retry: false,
-    mutationFn: async (input: TRequest) => {
+    mutationFn: async (submission) => {
+      // onMutate awaited cancellation: the originating read might now be gone
+      // or denied. Never send its old If-Match after that ownership loss.
+      if (!submission.isCurrentDetail())
+        throw new ClientProblemError('permission');
+      assertOnlineWrite();
       try {
-        return await request(input);
+        return await submission.send();
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async () => {
-      const isCurrentQuery = captureQueryIdentity(queryClient, detailKey);
-      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
-      return { scope, key: detailKey, isCurrentQuery };
+    onMutate: async (submission) => {
+      if (submission.isCurrentDetail())
+        await queryClient.cancelQueries({
+          queryKey: submission.detailKey,
+          exact: true,
+        });
+      return {
+        scope: submission.scope,
+        key: submission.detailKey,
+        isCurrentQuery: submission.isCurrentDetail,
+        isStartingDetail: submission.isStartingDetail,
+      };
     },
-    onSuccess: (result, _input, context) => {
+    onSuccess: (result, submission, context) => {
       if (!context?.isCurrentQuery()) return;
-      queryClient.setQueryData(context.key, detail(result));
-      void queryClient.invalidateQueries({ queryKey: listKey });
-      void queryClient.invalidateQueries({
-        queryKey: context.key,
-        exact: true,
-      });
-      void invalidateDashboard(queryClient, spaceId);
+      // The same Query object may have received a newer authoritative read.
+      // Preserve it instead of replacing it with this older response.
+      const mayConfirm = context.isStartingDetail();
+      if (mayConfirm) {
+        queryClient.setQueryData(context.key, submission.detail(result));
+        if (context.isCurrentQuery())
+          setOutcome({ context, status: 'confirmed', result });
+      }
+      if (submission.isCurrentList())
+        void queryClient.invalidateQueries({
+          queryKey: submission.listKey,
+          exact: true,
+        });
       if (context.isCurrentQuery())
-        setOutcome({ context, status: 'confirmed', result });
+        void queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+        });
+      if (submission.isCurrentDashboard())
+        void invalidateDashboard(queryClient, submission.spaceId);
     },
-    onError: async (error, _input, context) => {
-      if (!context?.isCurrentQuery()) return;
+    onError: async (error, submission, context) => {
+      if (!context?.isCurrentQuery() || !context.isStartingDetail()) return;
       setOutcome({ context, status: 'failed', error });
       if (
         ['conflict', 'notFound', 'permission'].includes(
@@ -112,14 +163,16 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
         )
       ) {
         // Never replay a stale If-Match; the lock remains until this read settles.
-        await queryClient.refetchQueries({
-          queryKey: context.key,
-          exact: true,
-        });
+        // Do not fetch an already replaced or denied Query.
+        if (submission.isCurrentDetail())
+          await queryClient.refetchQueries({
+            queryKey: context.key,
+            exact: true,
+          });
       }
     },
-    onSettled: () => {
-      if (inFlightRef.current === scope) inFlightRef.current = null;
+    onSettled: (_result, _error, submission) => {
+      if (inFlightRef.current === submission.scope) inFlightRef.current = null;
     },
   });
 
@@ -132,9 +185,35 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
 
   function complete(input: TRequest) {
     if (!resourceId || isInFlight()) return;
+    // Snapshot the exact authorized task, APIs and original read at the tap.
+    // Do not derive a write from a later route or Account/Space render.
+    const isCurrentDetail = captureAuthorizedQuery(queryClient, detailKey);
+    if (!isCurrentDetail()) return;
+    const startingDetail = queryClient.getQueryData<TDetail>(detailKey);
+    if (startingDetail === undefined) return;
+    const send = () => request(input);
+    const adaptDetail = detail;
+    const submission: CompletionSubmission<TRequest, TResult, TDetail> = {
+      input,
+      scope,
+      spaceId,
+      detailKey,
+      listKey,
+      send,
+      detail: adaptDetail,
+      isCurrentDetail,
+      isStartingDetail: () =>
+        isCurrentDetail() &&
+        queryClient.getQueryData<TDetail>(detailKey) === startingDetail,
+      isCurrentList: captureAuthorizedQuery(queryClient, listKey),
+      isCurrentDashboard: captureAuthorizedQuery(
+        queryClient,
+        dashboardQueryKey(spaceId),
+      ),
+    };
     inFlightRef.current = scope;
     setOutcome(null);
-    mutation.mutate(input);
+    mutation.mutate(submission);
   }
 
   const current =
@@ -148,7 +227,8 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
   // remains a transient continuation owned by the initiating page.
   const cachedError =
     latestCompletion?.status === 'error' &&
-    latestCompletion.context?.isCurrentQuery()
+    latestCompletion.context?.isCurrentQuery() &&
+    latestCompletion.context.isStartingDetail()
       ? latestCompletion.error
       : null;
   return {

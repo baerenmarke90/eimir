@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -25,13 +27,17 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
     func,
+    or_,
     text,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
+from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.payload import ProtectedPayload
 
 
 class AuthProvider(StrEnum):
@@ -70,16 +76,65 @@ class InstanceBootstrapState(Base):
     __table_args__ = (CheckConstraint("singleton_key = 1", name="singleton_key_is_one"),)
 
 
+class AccountPayload(ProtectedPayload):
+    """What an Account says about the person: their chosen name and their birthday.
+
+    The name was a plain column until the Product Owner decision of 2026-11-16
+    (#797): a database dump listed everyone by name. Operators find an account
+    by its ID or e-mail address instead, which is why the name no longer has to
+    be searchable in SQL.
+
+    The birthday followed by the decision of 2026-11-16. What a dump can still
+    show is the day and month of a birthday reminder, because the server has to
+    know when to remind; the year, and with it the age, is only here.
+    """
+
+    display_name: str = Field(default="", max_length=120)
+    birthday: date | None = None
+
+
 class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     __tablename__ = "accounts"
 
-    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    birthday: Mapped[date | None] = mapped_column(Date)
+    # Legacy plaintext homes of the name and the birthday. New writes keep them
+    # NULL and store both in ``payload``; a row written before that still carries
+    # them here until the column backfill (``eimir.security.column_moves``) has
+    # visited it. Read and assign ``display_name`` and ``birthday`` below, never
+    # these.
+    legacy_display_name: Mapped[str | None] = mapped_column("display_name", String(120))
+    legacy_birthday: Mapped[date | None] = mapped_column("birthday", Date)
+    # The one fact queries still need in SQL: whether a birthday is recorded. It
+    # says nothing about when.
+    has_birthday: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    # NULL only on a row not yet backfilled; see ``ProtectedPayloadJSON.optional``.
+    payload: Mapped[AccountPayload | None] = mapped_column(
+        ProtectedPayloadJSON(AccountPayload, optional=True)
+    )
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
+    language_preference: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="auto", server_default="auto"
+    )
+    language_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Europe/Berlin")
     quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
     quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))
+    gentle_prompts_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    photo_locations_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    photo_locations_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -95,6 +150,65 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     emails: Mapped[list[AccountEmail]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+
+    def __init__(
+        self,
+        *,
+        display_name: str | None = None,
+        birthday: date | None = None,
+        **values: Any,
+    ) -> None:
+        """Accept name and birthday by their own keywords and store them in the payload."""
+        if "payload" not in values and (display_name is not None or birthday is not None):
+            if display_name is None:
+                # A payload hides the legacy column, so the name has to come along.
+                display_name = values.pop("legacy_display_name", None) or ""
+            values["payload"] = AccountPayload(display_name=display_name, birthday=birthday)
+            values.setdefault("has_birthday", birthday is not None)
+        super().__init__(**values)
+
+    @classmethod
+    def with_birthday(cls) -> ColumnElement[bool]:
+        """SQL filter for accounts that have a birthday.
+
+        The flag covers every row the application wrote; the column test covers a
+        row whose birthday is still in the legacy column, before the backfill
+        reached it.
+        """
+        return or_(cls.has_birthday.is_(True), cls.legacy_birthday.is_not(None))
+
+    def _store(self, *, display_name: str, birthday: date | None) -> None:
+        """Write both protected values together and retire their legacy columns.
+
+        Both always move at once: a payload hides the legacy name column, so a
+        write of one value must not leave the other behind in its column.
+        """
+        self.payload = AccountPayload(display_name=display_name, birthday=birthday)
+        self.legacy_display_name = None
+        self.legacy_birthday = None
+        self.has_birthday = birthday is not None
+
+    @property
+    def display_name(self) -> str:
+        """The name, from the protected payload or, for a legacy row, its column."""
+        if self.payload is not None:
+            return self.payload.display_name
+        return self.legacy_display_name or ""
+
+    @display_name.setter
+    def display_name(self, value: str) -> None:
+        self._store(display_name=value, birthday=self.birthday)
+
+    @property
+    def birthday(self) -> date | None:
+        """The birthday, from the protected payload or, for a legacy row, its column."""
+        if self.payload is not None and self.payload.birthday is not None:
+            return self.payload.birthday
+        return self.legacy_birthday
+
+    @birthday.setter
+    def birthday(self, value: date | None) -> None:
+        self._store(display_name=self.display_name, birthday=value)
 
     @property
     def is_active(self) -> bool:
@@ -356,6 +470,8 @@ class SignupProof(IdMixin, OneTimeTokenMixin, Base):
 
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
+    accepted_terms_version: Mapped[str | None] = mapped_column(String(64))
+    """Terms version accepted in the signup form; applied only if an Account is created."""
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_signup_proofs_token_hash"),
@@ -396,6 +512,15 @@ class OidcAuthRequest(IdMixin, Base):
     # Set when an account that does not yet exist is to be onboarded through
     # OIDC via an invitation. Like all bearer proofs, stored only as a hash.
     invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
+
+    # Set when the person asked to create a new Account without an invitation
+    # (Cloud self-service). Only then may the callback create one.
+    allow_signup: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    # The terms-of-use version the person accepted before leaving for the
+    # provider. A callback never invents an acceptance.
+    accepted_terms_version: Mapped[str | None] = mapped_column(String(64))
 
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

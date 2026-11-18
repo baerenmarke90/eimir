@@ -11,6 +11,8 @@ on:
       - "web/package-lock.json"
       - "web/scripts/build-capacitor-web.mjs"
       - "tools/ci/test_release_evidence.py"
+      - "scripts/android_firebase_configuration.py"
+      - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
   workflow_dispatch:
     inputs:
@@ -27,12 +29,21 @@ on:
         description: Backend API base URL baked into Android assets; required only when Android is included.
         required: false
         type: string
+      android_firebase_project_id:
+        description: Firebase project for direct Android FCM; empty builds UnifiedPush only.
+        required: false
+        type: string
       release_version:
         description: SemVer product version without the v prefix.
         required: true
         type: string
   workflow_call:
     inputs:
+      include_video_media:
+        description: Include the same-revision restricted video worker for the private test channel.
+        required: false
+        default: false
+        type: boolean
       include_android:
         description: Build Android APK/AAB evidence for this release channel.
         required: false
@@ -46,10 +57,18 @@ on:
         description: Backend API base URL baked into Android assets; required only when Android is included.
         required: false
         type: string
+      android_firebase_project_id:
+        description: Firebase project for direct Android FCM; empty builds UnifiedPush only.
+        required: false
+        type: string
       release_version:
         description: SemVer product version without the v prefix.
         required: true
         type: string
+    secrets:
+      EIMIR_ANDROID_GOOGLE_SERVICES_JSON:
+        description: Public Firebase Android client configuration; never an FCM server service-account key.
+        required: false
 
 permissions:
   contents: read
@@ -63,6 +82,7 @@ env:
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
   ANDROID_PROJECT_DIR: "android"
   INCLUDE_ANDROID: ${{ github.event_name == 'pull_request' || inputs.include_android }}
+  INCLUDE_VIDEO_MEDIA: ${{ inputs.include_video_media == true }}
   ANDROID_VERSION_CODE: ${{ inputs.android_version_code || (github.event_name == 'pull_request' && 1 || '') }}
   ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || (github.event_name == 'pull_request' && 'https://api.eimir.invalid' || '') }}
   RELEASE_VERSION: ${{ inputs.release_version || (github.event_name == 'pull_request' && '0.1.0' || '') }}
@@ -79,7 +99,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate release-evidence contract
-        run: python3 tools/ci/test_release_evidence.py
+        run: |
+          python3 tools/ci/test_release_evidence.py
+          python3 tools/ci/test_android_firebase_configuration.py
 
       - name: Validate release inputs
         env:
@@ -88,6 +110,7 @@ jobs:
           API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
           VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           VERSION_NAME: ${{ env.RELEASE_VERSION }}
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -130,10 +153,17 @@ jobs:
                       raise SystemExit("Android-inclusive release runs require an explicit, non-test android_api_base_url")
               print(f"Validated Android-inclusive evidence: version={raw_version}, api_base_url={canonical_url}")
           else:
-              if raw_url or raw_version_code:
+              if raw_url or raw_version_code or os.environ.get("ANDROID_FIREBASE_PROJECT_ID", "").strip():
                   raise SystemExit("Android-excluded evidence must not provide Android URL/version inputs")
               print(f"Validated Android-excluded evidence: version={raw_version}")
           PY
+
+      - name: Prepare Firebase Android build configuration
+        if: env.INCLUDE_ANDROID == 'true'
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+          EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ github.event_name != 'pull_request' && inputs.android_firebase_project_id != '' && secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON || '' }}
+        run: python3 scripts/android_firebase_configuration.py prepare
 
       - name: Create evidence directories
         run: mkdir -p release-evidence/android release-evidence/sbom
@@ -153,6 +183,21 @@ jobs:
             --tag "$image" \
             ./backend
           docker image save --output release-evidence/backend-runtime.image.tar "$image"
+
+      - name: Build restricted video worker from the exact backend
+        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        run: |
+          set -euo pipefail
+          python3 tools/media/check-advisories.py
+          image="eimir-media:evidence-$GITHUB_SHA"
+          docker build --file backend/Dockerfile.media \
+            --build-arg "EIMIR_BACKEND_IMAGE=eimir-backend:evidence-$GITHUB_SHA" \
+            --label "org.opencontainers.image.title=eimir restricted video worker" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_VERSION" \
+            --tag "$image" .
+          docker image save --output release-evidence/media-runtime.image.tar "$image"
 
       - name: Build Web runtime image archive
         run: |
@@ -178,14 +223,14 @@ jobs:
 
       - name: Set up JDK 21
         if: env.INCLUDE_ANDROID == 'true'
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
         if: env.INCLUDE_ANDROID == 'true'
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Verify pinned Gradle wrapper JAR
         if: env.INCLUDE_ANDROID == 'true'
@@ -193,7 +238,7 @@ jobs:
         shell: bash
         run: |
           printf '%s  %s\n' \
-            '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98' \
+            '621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
@@ -240,6 +285,19 @@ jobs:
           test -s "$aab"
           cp -- "$apk" ../release-evidence/android/eimir-release-unsigned.apk
           cp -- "$aab" ../release-evidence/android/eimir-release-unsigned.aab
+
+      - name: Verify packaged Firebase Android configuration
+        if: env.INCLUDE_ANDROID == 'true'
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+        run: |
+          python3 scripts/android_firebase_configuration.py verify-apk \
+            release-evidence/android/eimir-release-unsigned.apk \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+
+      - name: Remove Firebase Android build configuration
+        if: always() && env.INCLUDE_ANDROID == 'true'
+        run: rm -f -- android/app/google-services.json
 
       - name: Verify APK and AAB packaging and runtime configuration
         if: env.INCLUDE_ANDROID == 'true'
@@ -289,7 +347,7 @@ jobs:
           aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
           test -x "$aapt"
           badging=$("$aapt" dump badging release-evidence/android/eimir-release-unsigned.apk)
-          echo "$badging" | grep -q "package: name='de.sidebyside.app'"
+          echo "$badging" | grep -q "package: name='de.eimir.app'"
           echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
           echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
           python3 scripts/android_launcher_identity.py release-evidence/android/eimir-release-unsigned.apk \
@@ -320,6 +378,10 @@ jobs:
             -o "spdx-json=release-evidence/sbom/backend-runtime.spdx.json"
           syft scan "docker-archive:release-evidence/web-runtime.image.tar" \
             -o "spdx-json=release-evidence/sbom/web-runtime.spdx.json"
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            syft scan "docker-archive:release-evidence/media-runtime.image.tar" \
+              -o "spdx-json=release-evidence/sbom/media-runtime.spdx.json"
+          fi
           if [ "$INCLUDE_ANDROID" = "true" ]; then
             syft scan "file:release-evidence/android/eimir-release-unsigned.apk" \
               -o "spdx-json=release-evidence/sbom/android-apk.spdx.json"
@@ -349,6 +411,8 @@ jobs:
               ("backend-runtime", root / "backend-runtime.image.tar", root / "sbom/backend-runtime.spdx.json", ["api", "worker", "migrate"]),
               ("web-runtime", root / "web-runtime.image.tar", root / "sbom/web-runtime.spdx.json", ["web"]),
           ]
+          if os.environ["INCLUDE_VIDEO_MEDIA"].lower() == "true":
+              subjects.append(("media-runtime", root / "media-runtime.image.tar", root / "sbom/media-runtime.spdx.json", ["video-worker"]))
           if include_android:
               subjects.extend([
                   ("android-apk", root / "android/eimir-release-unsigned.apk", root / "sbom/android-apk.spdx.json", ["android-apk"]),
@@ -403,7 +467,7 @@ jobs:
               analyzer = Path(os.environ["ANDROID_HOME"]) / "cmdline-tools/latest/bin/apkanalyzer"
               launchable_activity = apk_launcher_identity(apk_path, analyzer)
 
-              if app_id != "de.sidebyside.app":
+              if app_id != "de.eimir.app":
                   raise SystemExit(f"Unexpected Android applicationId: {app_id}")
               if version_code_str != str(os.environ["ANDROID_VERSION_CODE"]):
                   raise SystemExit(f"Android versionCode mismatch: {version_code_str} != {os.environ['ANDROID_VERSION_CODE']}")
@@ -446,6 +510,9 @@ jobs:
               sbom/web-runtime.spdx.json
               evidence-index.json
             )
+            if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+              files+=(media-runtime.image.tar sbom/media-runtime.spdx.json)
+            fi
             if [ "$INCLUDE_ANDROID" = "true" ]; then
               files+=(
                 android/eimir-release-unsigned.apk
@@ -482,7 +549,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download exact evidence set
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-evidence-${{ github.sha }}
           path: release-evidence
@@ -505,6 +572,15 @@ jobs:
           sbom-path: release-evidence/sbom/web-runtime.spdx.json
           bundle-directory: release-evidence/attestations
           bundle-prefix: web-runtime
+
+      - name: Attest restricted video worker
+        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        uses: ./.github/actions/attest-release-artifact
+        with:
+          subject-path: release-evidence/media-runtime.image.tar
+          sbom-path: release-evidence/sbom/media-runtime.spdx.json
+          bundle-directory: release-evidence/attestations
+          bundle-prefix: media-runtime
 
       - name: Attest Android APK
         if: inputs.include_android || github.event_name == 'pull_request'
@@ -551,6 +627,9 @@ jobs:
 
           verify_subject release-evidence/backend-runtime.image.tar backend-runtime
           verify_subject release-evidence/web-runtime.image.tar web-runtime
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            verify_subject release-evidence/media-runtime.image.tar media-runtime
+          fi
           if [ "$INCLUDE_ANDROID" = "true" ]; then
             verify_subject release-evidence/android/eimir-release-unsigned.apk android-apk
             verify_subject release-evidence/android/eimir-release-unsigned.aab android-aab

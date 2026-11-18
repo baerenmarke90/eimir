@@ -36,11 +36,16 @@ export function surfaceRefreshDecision(
     pathname === '/today' ||
     pathname === '/today/activity' ||
     pathname === '/story/years' ||
+    pathname === '/story/happiness' ||
+    pathname === '/story/time-travel' ||
+    pathname === '/story/map' ||
     /^\/story\/years\/[^/]+$/.test(pathname) ||
     pathname === '/plan' ||
     pathname === '/story/chapters' ||
     pathname === '/more/places' ||
     pathname === '/more/collections' ||
+    pathname === '/more/notes' ||
+    matchesDetail(pathname, '/more/notes/') ||
     pathname === '/more/notifications' ||
     matchesDetail(pathname, '/story/memories/') ||
     matchesDetail(pathname, '/story/heart-moments/') ||
@@ -58,6 +63,7 @@ export function surfaceRefreshDecision(
     pathname === '/games' ||
     pathname.startsWith('/games/') ||
     pathname === '/more/people' ||
+    pathname.startsWith('/more/people/') ||
     pathname === '/more/profile' ||
     pathname === '/more/settings' ||
     pathname.startsWith('/more/private') ||

@@ -1,90 +1,41 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import accountSettings from './locales/accountSettings';
-import appIcon from './locales/appIcon';
-import de from './locales/de';
-import taskBoundary from './locales/taskBoundary';
-import taskSheets from './locales/taskSheets';
-import demo from './locales/demo';
-import dailyEnergy from './locales/dailyEnergy';
-import dailyInsights from './locales/dailyInsights';
-import dailyQuote from './locales/dailyQuote';
-import dailyVibe from './locales/dailyVibe';
-import games from './locales/games';
-import importantDates from './locales/importantDates';
-import m5s3 from './locales/m5s3';
-import m5s5 from './locales/m5s5';
-import m5s6 from './locales/m5s6';
-import memoryProduct from './locales/memoryProduct';
-import navigation from './locales/navigation';
-import notificationSettings from './locales/notificationSettings';
-import partnerConnection from './locales/partnerConnection';
-import people from './locales/people';
-import privateArea from './locales/privateArea';
-import profileIdentity from './locales/profileIdentity';
-import profiles from './locales/profiles';
-import productTour from './locales/productTour';
-import serverAdmin from './locales/serverAdmin';
-import snackbar from './locales/snackbar';
-import relationshipComponents from './locales/relationshipComponents';
-import spaceOffboarding from './locales/spaceOffboarding';
-import storyProducts from './locales/storyProducts';
-import contextTags from './locales/contextTags';
-import sharedPhotos from './locales/sharedPhotos';
+import {
+  DEFAULT_LOCALE,
+  initialLanguage,
+  resolveSupportedLocale,
+  SESSION_LANGUAGE_EVENT,
+} from './locale';
+import { localeRegistry, resources, supportedLocales } from './resources';
 
-export const DEFAULT_LOCALE = 'de';
+export { DEFAULT_LOCALE } from './locale';
 
 export function resolvedLocale(): string {
-  return i18n.resolvedLanguage || i18n.language || DEFAULT_LOCALE;
+  return (
+    resolveSupportedLocale(i18n.resolvedLanguage || i18n.language) ||
+    DEFAULT_LOCALE
+  );
 }
 
 function syncDocumentLanguage(): void {
   if (typeof document === 'undefined') return;
-  document.documentElement.lang = resolvedLocale().split('-')[0];
+  const locale = resolvedLocale() as keyof typeof localeRegistry;
+  document.documentElement.lang = locale;
+  document.documentElement.dir = localeRegistry[locale].direction;
+  document.title = i18n.t('brand.pageTitle');
+  for (const meta of document.querySelectorAll(
+    'meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]',
+  )) {
+    meta.setAttribute('content', i18n.t('brand.description'));
+  }
 }
 
 if (!i18n.isInitialized) {
   void i18n.use(initReactI18next).init({
-    resources: {
-      de: {
-        translation: {
-          ...de,
-          taskBoundary,
-          taskSheets,
-          accountSettings,
-          appIcon,
-          navigation: { ...de.navigation, ...navigation },
-          notificationSettings,
-          demo,
-          dailyEnergy,
-          dailyInsights,
-          dailyQuote,
-          dailyVibe,
-          games,
-          importantDates,
-          m5s3,
-          m5s5,
-          ...m5s6,
-          memoryProduct,
-          partnerConnection,
-          people,
-          privateArea,
-          profileIdentity,
-          profiles,
-          productTour,
-          serverAdmin,
-          spaceOffboarding,
-          ...relationshipComponents,
-          ...snackbar,
-          ...storyProducts,
-          contextTags,
-          sharedPhotos,
-        },
-      },
-    },
-    lng: DEFAULT_LOCALE,
+    resources,
+    lng: initialLanguage(),
     fallbackLng: DEFAULT_LOCALE,
-    supportedLngs: [DEFAULT_LOCALE],
+    supportedLngs: supportedLocales,
     initAsync: false,
     interpolation: {
       escapeValue: false,
@@ -94,10 +45,7 @@ if (!i18n.isInitialized) {
   i18n.services.formatter?.add('firstName', (value: unknown) => {
     if (typeof value !== 'string') return String(value ?? '');
     const normalized = value.trim();
-    if (
-      !normalized ||
-      normalized === relationshipComponents.formerMemberLabel
-    ) {
+    if (!normalized || normalized === i18n.t('formerMemberLabel')) {
       return normalized;
     }
     return normalized.split(/\s+/u, 1)[0] || normalized;
@@ -107,5 +55,14 @@ if (!i18n.isInitialized) {
 syncDocumentLanguage();
 i18n.on('languageChanged', syncDocumentLanguage);
 
+if (typeof window !== 'undefined') {
+  const syncSessionLanguage = () => {
+    const locale = initialLanguage();
+    if (locale !== resolvedLocale()) void i18n.changeLanguage(locale);
+  };
+  window.addEventListener(SESSION_LANGUAGE_EVENT, syncSessionLanguage);
+  window.addEventListener('languagechange', syncSessionLanguage);
+}
+
+export { Trans, useTranslation } from 'react-i18next';
 export { i18n };
-export { useTranslation } from 'react-i18next';

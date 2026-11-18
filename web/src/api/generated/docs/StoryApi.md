@@ -4,11 +4,93 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**getMediaGallery**](StoryApi.md#getmediagallery) | **GET** /api/v1/spaces/{spaceId}/media | Get Media Gallery |
 | [**getSharedPhotos**](StoryApi.md#getsharedphotos) | **GET** /api/v1/spaces/{spaceId}/photos | Get Shared Photos |
 | [**getStoryDiscover**](StoryApi.md#getstorydiscover) | **GET** /api/v1/spaces/{spaceId}/discover | Get Story Discover |
 | [**getStoryTimeline**](StoryApi.md#getstorytimeline) | **GET** /api/v1/spaces/{spaceId}/timeline | Get Story Timeline |
 | [**recordStoryView**](StoryApi.md#recordstoryview) | **POST** /api/v1/spaces/{spaceId}/story-views | Record Story View |
+| [**renewStoryDiscover**](StoryApi.md#renewstorydiscover) | **POST** /api/v1/spaces/{spaceId}/discover/renew | Renew Story Discover |
 
+
+
+## getMediaGallery
+
+> MediaGalleryPage getMediaGallery(spaceId, visibility, cursor, limit)
+
+Get Media Gallery
+
+Browse ready media bound to shared entries or to the caller\&#39;s private entries.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  StoryApi,
+} from '';
+import type { GetMediaGalleryRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new StoryApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // ContentVisibility (optional)
+    visibility: ...,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+  } satisfies GetMediaGalleryRequest;
+
+  try {
+    const data = await api.getMediaGallery(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **visibility** | `ContentVisibility` |  | [Optional] [Defaults to `undefined`] [Enum: SHARED, PRIVATE] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `40`] |
+
+### Return type
+
+[**MediaGalleryPage**](MediaGalleryPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getSharedPhotos
@@ -94,7 +176,7 @@ No authorization required
 
 Get Story Discover
 
-Return today\&#39;s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+Return today\&#39;s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Only deliberate renewal changes the selected references during that local day.
 
 ### Example
 
@@ -159,7 +241,7 @@ No authorization required
 
 ## getStoryTimeline
 
-> StoryPage getStoryTimeline(spaceId, type, year, order, cursor, limit)
+> StoryPage getStoryTimeline(spaceId, type, year, order, cursor, limit, includeChapters)
 
 Get Story Timeline
 
@@ -191,6 +273,8 @@ async function example() {
     cursor: cursor_example,
     // number (optional)
     limit: 56,
+    // boolean (optional)
+    includeChapters: true,
   } satisfies GetStoryTimelineRequest;
 
   try {
@@ -216,6 +300,7 @@ example().catch(console.error);
 | **order** | `StoryOrder` |  | [Optional] [Defaults to `undefined`] [Enum: ASC, DESC] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
+| **includeChapters** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 
@@ -312,6 +397,76 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## renewStoryDiscover
+
+> DiscoverSelection renewStoryDiscover(spaceId)
+
+Renew Story Discover
+
+Deliberately renew the caller\&#39;s finite selection; no source content is changed.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  StoryApi,
+} from '';
+import type { RenewStoryDiscoverRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new StoryApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies RenewStoryDiscoverRequest;
+
+  try {
+    const data = await api.renewStoryDiscover(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**DiscoverSelection**](DiscoverSelection.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

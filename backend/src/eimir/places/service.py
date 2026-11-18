@@ -18,13 +18,14 @@ therefore always locked before any Plan or Chapter that references it.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -173,12 +174,13 @@ def create_place(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
-        latitude=coordinates.latitude,
-        longitude=coordinates.longitude,
+        has_coordinates=coordinates.latitude is not None,
         payload=PlacePayload(
             name=_normalize_name(name),
             description=description,
             address=address,
+            latitude=coordinates.latitude,
+            longitude=coordinates.longitude,
         ),
     )
     session.add(place)
@@ -208,6 +210,7 @@ def update_place(
     address: str | None,
     latitude: float | Decimal | None,
     longitude: float | Decimal | None,
+    archived: bool | None = None,
 ) -> Place:
     """Apply a correction to a place.
 
@@ -218,14 +221,35 @@ def update_place(
     place = require_writable_locked(session, Place, context, place_id)
     _ensure_expected_version(place, expected_version)
 
+    if changed_fields - {"archived"}:
+        from eimir.db.locks import lock_subject
+        from eimir.relations.models import PlaceHeartMoment, PlaceMemory
+
+        for relation, target_column in (
+            (PlaceMemory, "memory_id"),
+            (PlaceHeartMoment, "heart_moment_id"),
+        ):
+            table = relation.__table__
+            identifiers = (
+                session.execute(select(table.c[target_column]).where(table.c.place_id == place.id))
+                .scalars()
+                .all()
+            )
+            for target_id in sorted(identifiers, key=str):
+                lock_subject(session, "photo-place-target", str(target_id))
+            session.execute(
+                update(relation).where(table.c.place_id == place.id).values(photo_generated=False)
+            )
+
+    # Read through the properties: a legacy row still has the pair in its columns.
+    next_latitude, next_longitude = place.latitude, place.longitude
     coordinates_touched = bool({"latitude", "longitude"} & changed_fields)
     if coordinates_touched:
         coordinates = normalize_coordinates(
-            latitude if "latitude" in changed_fields else place.latitude,
-            longitude if "longitude" in changed_fields else place.longitude,
+            latitude if "latitude" in changed_fields else next_latitude,
+            longitude if "longitude" in changed_fields else next_longitude,
         )
-        place.latitude = coordinates.latitude
-        place.longitude = coordinates.longitude
+        next_latitude, next_longitude = coordinates.latitude, coordinates.longitude
 
     next_name = place.payload.name
     next_description = place.payload.description
@@ -238,12 +262,26 @@ def update_place(
     if "address" in changed_fields:
         next_address = address
 
-    if {"name", "description", "address"} & changed_fields:
+    if {"name", "description", "address", "latitude", "longitude"} & changed_fields:
+        # Any content write also takes a legacy row's coordinates out of its
+        # plain columns; the payload is their only home from here on.
         place.payload = PlacePayload(
             name=next_name,
             description=next_description,
             address=next_address,
+            geocoding_source=(
+                place.payload.geocoding_source if next_address == place.payload.address else None
+            ),
+            latitude=next_latitude,
+            longitude=next_longitude,
         )
+        place.legacy_latitude = None
+        place.legacy_longitude = None
+        place.has_coordinates = next_latitude is not None
+
+    if "archived" in changed_fields:
+        assert archived is not None
+        place.archived = archived
 
     _flush(session)
     _record(session, place, context.account_id, EventType.PLACE_UPDATED)
@@ -281,8 +319,17 @@ def delete_place(
     _flush(session)
 
 
-def _cursor_binding(context: AuthorizationContext) -> dict[str, Any]:
-    return {"collection": "places", "spaceId": str(context.space_id)}
+def _cursor_binding(
+    context: AuthorizationContext,
+    related_to: tuple[str, UUID] | None = None,
+    scope: str = "ALL",
+) -> dict[str, Any]:
+    binding = {"collection": "places", "spaceId": str(context.space_id)}
+    if related_to is not None:
+        binding.update(targetType=related_to[0], targetId=str(related_to[1]))
+    if scope != "ALL":
+        binding["scope"] = scope
+    return binding
 
 
 def _encode_cursor(
@@ -290,9 +337,11 @@ def _encode_cursor(
     context: AuthorizationContext,
     created_at: datetime,
     place_id: UUID,
+    related_to: tuple[str, UUID] | None = None,
+    scope: str = "ALL",
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context),
+        binding=_cursor_binding(context, related_to, scope),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(place_id),
@@ -300,8 +349,14 @@ def _encode_cursor(
     )
 
 
-def _decode_cursor(token: str, *, context: AuthorizationContext) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context))
+def _decode_cursor(
+    token: str,
+    *,
+    context: AuthorizationContext,
+    related_to: tuple[str, UUID] | None = None,
+    scope: str = "ALL",
+) -> tuple[datetime, UUID]:
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, related_to, scope))
     created_raw = position.get("createdAt")
     place_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(place_raw, str):
@@ -322,8 +377,14 @@ def list_places(
     *,
     cursor: str | None,
     limit: int,
+    related_to: tuple[str, UUID] | None = None,
+    order: Literal["NEWEST", "NAME"] = "NAME",
+    scope: Literal["ACTIVE", "ARCHIVED", "ALL"] = "ALL",
 ) -> PlacePageResult:
-    """Return newest places first.
+    """Return the requested authorized lifecycle scope and order.
+
+    Every unqualified consumer sorts decrypted names within the tenant boundary.
+    A historical consumer can explicitly request NEWEST without changing names.
 
     There is no proximity filter, radius, or distance ordering: that would be
     a geospatial query and needs a deliberate later scope with an appropriate
@@ -331,8 +392,33 @@ def list_places(
     ProtectedPayload boundary.
     """
     statement = readable(Place, context)
+    if related_to is not None:
+        from eimir.relations import service as relations
+
+        kind = relations.kind_for(related_to[0])
+        if kind not in (relations.PLACE_MEMORIES, relations.PLACE_HEART_MOMENTS):
+            raise relations.target_not_found()
+        relations._require_relatable_target(session, context, kind, related_to[1])
+        table = kind.relation.__table__
+        statement = statement.join(table, table.c.place_id == Place.id).where(
+            table.c[kind.target_column] == related_to[1], table.c.space_id == context.space_id
+        )
+    if scope != "ALL":
+        statement = statement.where(Place.archived.is_(scope == "ARCHIVED"))
+    if order == "NAME":
+        return _alphabetical_page(
+            session,
+            context,
+            statement,
+            cursor=cursor,
+            limit=limit,
+            related_to=related_to,
+            scope=scope,
+        )
     if cursor is not None:
-        created_at, place_id = _decode_cursor(cursor, context=context)
+        created_at, place_id = _decode_cursor(
+            cursor, context=context, related_to=related_to, scope=scope
+        )
         statement = statement.where(
             or_(
                 Place.created_at < created_at,
@@ -351,7 +437,49 @@ def list_places(
             context=context,
             created_at=last.created_at,
             place_id=last.id,
+            related_to=related_to,
+            scope=scope,
         )
+    return PlacePageResult(items=items, next_cursor=next_cursor, has_more=has_more)
+
+
+def _alphabetical_page(
+    session: Session,
+    context: AuthorizationContext,
+    statement: Any,
+    *,
+    cursor: str | None,
+    limit: int,
+    related_to: tuple[str, UUID] | None,
+    scope: str,
+) -> PlacePageResult:
+    """Sort authorized protected names in memory; never persist a plaintext index.
+
+    Names remain encrypted at rest. The cursor contains only an authorized Place
+    ID and the filter binding; the continuation key is resolved from that row.
+    Newest-first consumers keep the existing indexed database pagination.
+    """
+
+    def key(place: Place) -> tuple[str, str]:
+        name = unicodedata.normalize("NFKD", place.payload.name.casefold())
+        return "".join(char for char in name if not unicodedata.combining(char)), str(place.id)
+
+    binding = {**_cursor_binding(context, related_to, scope), "order": "NAME"}
+    rows = sorted(session.scalars(statement).all(), key=key)
+    if cursor is not None:
+        position = cursor_codec.decode(cursor, binding=binding)
+        anchor = next((place for place in rows if str(place.id) == position.get("id")), None)
+        if anchor is None:
+            raise cursor_codec.invalid_cursor()
+        anchor_key = key(anchor)
+        rows = [place for place in rows if key(place) > anchor_key]
+    items = rows[:limit]
+    has_more = len(rows) > limit
+    next_cursor = (
+        cursor_codec.encode(binding=binding, position={"id": str(items[-1].id)})
+        if has_more and items
+        else None
+    )
     return PlacePageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 
 

@@ -16,7 +16,8 @@
   min-width: 0;
 }
 
-.product-main > .page {
+.product-main > .page,
+.product-main > .primary-tab-panel > .page {
   container-name: product-content;
   container-type: inline-size;
   min-width: 0;
@@ -55,8 +56,7 @@
     max-width: 6rem;
   }
 
-  .shell-nav,
-  .shell-primary-action {
+  .shell-nav {
     display: none;
   }
 
@@ -65,6 +65,8 @@
   }
 
   .product-shell .product-main {
+    --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+
     width: calc(100% - 2 * var(--page-gutter));
     padding-bottom: var(--shell-content-bottom-clearance);
   }
@@ -157,7 +159,7 @@
     align-self: auto;
     height: 2.5rem;
     padding: 0 var(--space-4);
-    border: 1px solid var(--color-border);
+    border: var(--border-surface-width) solid var(--color-border);
     border-radius: var(--radius-pill);
     background: var(--color-surface-raised, var(--color-surface));
     color: var(--color-text);
@@ -172,7 +174,7 @@
     align-items: stretch;
     gap: var(--space-3);
     background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-surface-width) solid var(--color-border-subtle);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-soft);
     padding: var(--space-4);
@@ -330,8 +332,8 @@
   }
 
   .page-heading-action,
-  .page-heading-action .button-link,
-  .page-heading-action button {
+  .page-heading-action .button-link:not(.add-action),
+  .page-heading-action button:not(.add-action) {
     width: 100%;
   }
 

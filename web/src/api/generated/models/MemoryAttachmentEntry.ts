@@ -27,10 +27,22 @@ export interface MemoryAttachmentEntry {
     attachmentId: string;
     /**
      * 
+     * @type {boolean}
+     * @memberof MemoryAttachmentEntry
+     */
+    isSensitive?: boolean | null;
+    /**
+     * 
      * @type {number}
      * @memberof MemoryAttachmentEntry
      */
     position: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryAttachmentEntry
+     */
+    replacesAttachmentId?: string | null;
 }
 
 /**
@@ -53,7 +65,9 @@ export function MemoryAttachmentEntryFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'attachmentId': json['attachmentId'],
+        'isSensitive': json['isSensitive'] === undefined ? undefined : json['isSensitive'] === null ? null : json['isSensitive'],
         'position': json['position'],
+        'replacesAttachmentId': json['replacesAttachmentId'] === undefined ? undefined : json['replacesAttachmentId'] === null ? null : json['replacesAttachmentId'],
     };
 }
 
@@ -69,7 +83,9 @@ export function MemoryAttachmentEntryToJSONTyped(value?: MemoryAttachmentEntry |
     return {
         
         'attachmentId': value['attachmentId'],
+        'isSensitive': value['isSensitive'],
         'position': value['position'],
+        'replacesAttachmentId': value['replacesAttachmentId'],
     };
 }
 

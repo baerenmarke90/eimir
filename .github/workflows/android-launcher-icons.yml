@@ -5,9 +5,21 @@ on:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
       - 'android/**'
+      - 'scripts/prepare_android_video_fixtures.sh'
+      - 'backend/tests/fixtures/media/**'
+      - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
+      - 'web/capacitor.config.ts'
+      - 'web/public/offline.css'
+      - 'web/public/webview-unsupported.*'
+      - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
       - 'web/src/client/useNativeAppIcon.ts'
       - 'scripts/android_launcher_identity.py'
+      - 'scripts/android_adaptive_icon_resources.py'
+      - 'scripts/test_android_adaptive_icon_resources.py'
+      - 'scripts/test_android_launcher_identity.py'
+      - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
+      - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
   workflow_dispatch:
 
 permissions:
@@ -21,23 +33,41 @@ jobs:
   launcher:
     name: Android launcher API ${{ matrix.api }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       ANDROID_AVD_HOME: /tmp/eimir-launcher-avd
     strategy:
       fail-fast: false
       matrix:
-        api: [28, 36]
+        include:
+          - api: 28
+            image: android-28
+            tag: google_apis
+            memory: 2048
+          - api: 36
+            image: android-36
+            tag: google_apis
+            memory: 4096
+          - api: '37.1'
+            image: android-37.1
+            tag: google_apis_ps16k
+            # The 16K guest killed instrumentation during its boot-time service
+            # burst at 6 GiB; the 16 GiB host retains room for an 8 GiB guest.
+            memory: 8192
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.21.0'
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Validate all Android icon resources and aliases
+        run: |
+          python3 scripts/test_android_launcher_identity.py
+          python3 scripts/test_android_adaptive_icon_resources.py
       - name: Prepare the packaged Web product
         working-directory: web
         env:
@@ -50,28 +80,93 @@ jobs:
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' \
-            'system-images;android-${{ matrix.api }};google_apis;x86_64'
+            'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name eimir-launcher --device pixel_5 \
             --path "$ANDROID_AVD_HOME/eimir-launcher.avd" \
-            --package 'system-images;android-${{ matrix.api }};google_apis;x86_64'
+            --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Headless software rendering saturated the two-core 1080p guest
+            # during cold boot: the Pixel Launcher ANR then covered the photo
+            # input. Keep the same ~392 dp phone viewport with fewer pixels and
+            # allow the guest to use the runner's four cores. No app/system
+            # packages, ANR checks, picker assertions or deadlines are disabled.
+            # https://developer.android.com/studio/run/managing-avds
+            python3 - <<'PYCONFIG'
+          import os
+          from pathlib import Path
+          config = Path(os.environ['ANDROID_AVD_HOME']) / 'eimir-launcher.avd/config.ini'
+          overrides = {
+              'hw.cpu.ncore': '4',
+              'hw.lcd.width': '720',
+              'hw.lcd.height': '1560',
+              'hw.lcd.density': '294',
+          }
+          lines = [line for line in config.read_text().splitlines()
+                   if line.partition('=')[0].strip() not in overrides]
+          config.write_text('\n'.join(lines + [f'{key}={value}' for key, value in overrides.items()]) + '\n')
+          PYCONFIG
+          fi
           sudo setfacl -m "u:$USER:rw" /dev/kvm
+          emulator_binary="$ANDROID_HOME/emulator/emulator"
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Keep the preceding stable host engine while investigating 37.2.13's
+            # repeatable color-buffer/process loss during selected-video playback.
+            # Archive and SHA-256: https://developer.android.com/studio/emulator_archive
+            emulator_archive="$RUNNER_TEMP/emulator-linux_x64-16428233.zip"
+            curl --fail --location --proto '=https' --proto-redir '=https' \
+              --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 240 \
+              --connect-timeout 20 --max-time 180 \
+              https://redirector.gvt1.com/edgedl/android/repository/emulator-linux_x64-16428233.zip \
+              --output "$emulator_archive"
+            printf '%s  %s\n' b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1 "$emulator_archive" \
+              | sha256sum --check --status
+            unzip -q "$emulator_archive" -d "$RUNNER_TEMP/eimir-api36-emulator"
+            emulator_binary="$RUNNER_TEMP/eimir-api36-emulator/emulator/emulator"
+          fi
+          printf 'EIMIR_EMULATOR_BINARY=%s\n' "$emulator_binary" >> "$GITHUB_ENV"
       - name: Build, lint and test the Android adapter
         working-directory: android
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          bash ../scripts/prepare_android_video_fixtures.sh
           ./gradlew --no-daemon --dependency-verification strict \
             :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug :app:testDebugUnitTest
       - name: Boot the emulator and verify every launcher choice
         working-directory: android
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
-          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx eimir-launcher
-          "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
-            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader -memory 2048 -partition-size 2048 \
-            > emulator.log 2>&1 &
+          free -m | tee host-memory.log
+          "$EIMIR_EMULATOR_BINARY" -no-window -version | tee emulator-version.log
+          if [ '${{ matrix.api }}' = '36' ]; then
+            grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
+          fi
+          "$EIMIR_EMULATOR_BINARY" -no-window -list-avds | grep -Fx eimir-launcher
+          emulator_gpu=swiftshader
+          emulator_graphics_args=()
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # API 36 still loses SwiftShader GLES color buffers with Vulkan and
+            # host decoding disabled. Use the supported Mesa software backend;
+            # real byte/frame/play/pause/seek assertions remain unchanged.
+            # https://developer.android.com/studio/run/emulator-acceleration
+            # https://developer.android.com/studio/run/emulator-troubleshooting#cannot-open-webpage-correctly
+            # https://android.googlesource.com/platform/external/qemu/+/emu-master-dev/android/data/advancedFeatures.ini
+            emulator_gpu=lavapipe
+            emulator_graphics_args=(-feature -Vulkan,-HardwareDecoder)
+          fi
+          (
+            set +e
+            "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \
+              -no-audio -no-snapshot -no-boot-anim -gpu "$emulator_gpu" \
+              "${emulator_graphics_args[@]}" \
+              -memory ${{ matrix.memory }} -partition-size 2048 > emulator.log 2>&1
+            emulator_status=$?
+            printf 'Emulator exited with status %s\n' "$emulator_status" > emulator-exit.log
+          ) &
           timeout 180 adb wait-for-device
           for attempt in $(seq 1 120); do
             boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
@@ -79,28 +174,264 @@ jobs:
             sleep 2
           done
           test "$boot" = '1'
+          # Retain device diagnostics even if instrumentation dies before a test starts.
+          adb -e logcat -b all -v threadtime > native-system.log 2>&1 &
+          device_log_pid=$!
+          trap 'kill "$device_log_pid" 2>/dev/null || true' EXIT
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb -e shell cmd uimode night no
+          adb -e shell settings put system font_scale 1.0
+          # Seed under shell's UID: eimir must not own/read this image before selection.
+          external_photo_uri=not-applicable
+          external_video_uri=not-applicable
+          if [ '${{ matrix.api }}' != '28' ]; then
+            adb -e shell mkdir -p /sdcard/DCIM/Camera
+            adb -e push app/src/androidTest/assets/external-gps-camera.jpg /sdcard/DCIM/Camera/external-gps-camera.jpg
+            adb -e shell content insert --uri content://media/external_primary/images/media \
+              --bind _data:s:/storage/emulated/0/DCIM/Camera/external-gps-camera.jpg \
+              --bind _display_name:s:external-gps-camera.jpg --bind mime_type:s:image/jpeg
+            adb -e shell cmd activity broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+              -d file:///storage/emulated/0/DCIM/Camera/external-gps-camera.jpg
+            # Android's content insert command does not print its returned URI.
+            # Resolve the sole synthetic fixture through a shell-owned query.
+            adb -e shell content query --uri content://media/external_primary/images/media \
+              --projection _id:_display_name:owner_package_name | tee external-photo-owner.log
+            external_photo_id=$(grep -F '_display_name=external-gps-camera.jpg' external-photo-owner.log \
+              | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | tr -d '\r')
+            [[ "$external_photo_id" =~ ^[0-9]+$ ]]
+            external_photo_uri="content://media/external_primary/images/media/$external_photo_id"
+            ! grep -F 'owner_package_name=de.eimir.app' external-photo-owner.log
+            adb -e push ../backend/tests/fixtures/media/video-with-metadata.mp4 /sdcard/DCIM/Camera/eimir-native-video.mp4
+            adb -e shell content insert --uri content://media/external_primary/video/media \
+              --bind _data:s:/storage/emulated/0/DCIM/Camera/eimir-native-video.mp4 \
+              --bind _display_name:s:eimir-native-video.mp4 --bind mime_type:s:video/mp4
+            adb -e shell cmd activity broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+              -d file:///storage/emulated/0/DCIM/Camera/eimir-native-video.mp4
+            adb -e shell content query --uri content://media/external_primary/video/media \
+              --projection _id:_display_name:owner_package_name | tee external-video-owner.log
+            external_video_id=$(grep -F '_display_name=eimir-native-video.mp4' external-video-owner.log \
+              | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | tr -d '\r')
+            [[ "$external_video_id" =~ ^[0-9]+$ ]]
+            external_video_uri="content://media/external_primary/video/media/$external_video_id"
+            ! grep -F 'owner_package_name=de.eimir.app' external-video-owner.log
+          fi
+          adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
+          adb -e shell cat /sys/devices/system/cpu/online > guest-cpu-before-tests.log
+          adb -e shell wm size > guest-display-before-tests.log
+          adb -e shell wm density >> guest-display-before-tests.log
+          adb -e shell getprop | tr -d '\r' > guest-properties-before-tests.log
+          if [ '${{ matrix.api }}' = '36' ]; then
+            ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
+              guest-properties-before-tests.log
+          fi
+          # Bound complete launcher, provider lifecycle and contract journeys
+          # independently. The 28-case push aggregate also approached its cap
+          # on a slower API 36 runner after launcher isolation.
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest \
-            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
+            -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
-          grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+          grep -Eq '^OK \(7 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.UnifiedPushAccountReplacementTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(3 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.FcmServiceOwnershipTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(9 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest,de.eimir.app.RecipientLanguageTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(19 tests\)' instrumentation.log
+          # System picker journeys have their own bounded invocation, as do
+          # renderer recovery and notification handoff below. The combined
+          # 46-test process exhausted its 180-second budget on API 36.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e externalPhotoUri "$external_photo_uri" \
+            -e externalVideoUri "$external_video_uri" \
+            -e externalVideoSha256 "$(sha256sum ../backend/tests/fixtures/media/video-with-metadata.mp4 | cut -d' ' -f1)" \
+            -e class de.eimir.app.PhotoFileChooserTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee photo-file-chooser.log
+          grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
+          # Actual staged bytes, ownership revocation and background OS transport.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.BackgroundMediaTransfersTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee background-media-transfers.log
+          grep -Eq '^OK \(8 tests\)' background-media-transfers.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativeVideoPreparationTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee native-video-preparation.log
+          grep -Eq '^OK \(4 tests\)' native-video-preparation.log
+          adb -e exec-out run-as de.eimir.app.debug cat files/native-media-upload-background.png > native-media-upload-background.png
+          test -s native-media-upload-background.png
+          # Voice handoff owns a separate volatile Activity/provider contract.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.VoiceNotesContractTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee voice-notes.log
+          grep -Eq '^OK \(4 tests\)' voice-notes.log
+          # Keep deliberate renderer termination isolated from other WebViews.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.RuntimeRecoveryTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee runtime-recovery.log
+          grep -Eq '^OK \(5 tests\)' runtime-recovery.log
+          # Exercise actual Android notification/PendingIntent and retained bridge
+          # handoff with separate routing and privacy/retirement processes.
+          # All eight cases remain selected once at their existing assertions
+          # and deadlines; their aggregate reached the 180-second process cap.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NotificationOpenTest#aRealSystemNotificationTapRetainsTheActivationScopeAndOpaqueReference,de.eimir.app.NotificationOpenTest#anOldAccountTapCannotBeReassignedToTheCurrentAccount,de.eimir.app.NotificationOpenTest#malformedReferencesFallBackToTheSafeInbox,de.eimir.app.NotificationOpenTest#aLegacyWakeStillOpensTheRecipientInboxWithoutAReference,de.eimir.app.NotificationOpenTest#coldLaunchRetainsTheNotificationUntilTheWebListenerIsReady \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee notification-open.log
+          grep -Eq '^OK \(5 tests\)' notification-open.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NotificationOpenTest#undecryptedWrongAccountAndContentBearingWakesRemainSilent,de.eimir.app.NotificationOpenTest#contextualNoticesKeepIndependentRealPendingIntentsAndRedactTheirPublicVersion,de.eimir.app.NotificationOpenTest#aDuplicateDoesNotReappearAfterDismissalAndRetirementClearsItsReceipt \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a notification-open.log
+          grep -Eq '^OK \(3 tests\)' notification-open.log
+          # Verify sender-produced ciphertext and key lifecycle on every API.
+          timeout 60 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.PushPreviewTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee push-preview.log
+          grep -Eq '^OK \(7 tests\)' push-preview.log
+          if [ '${{ matrix.api }}' != '28' ]; then
+            adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
+            test -s native-photo-picker.png
+          fi
+      - name: Expanded contextual push in Dark with large text
+        if: matrix.api == 36
+        working-directory: android
+        run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          restore_display() {
+            adb -e shell cmd statusbar collapse
+            adb -e shell cmd uimode night no
+            adb -e shell settings put system font_scale 1.0
+          }
+          trap restore_display EXIT
+          adb -e shell cmd uimode night yes
+          adb -e shell settings put system font_scale 1.5
+          timeout 180 adb -e shell am instrument -w -r \
+            -e pushEvidenceFile push-contextual-content-dark-large.png \
+            -e class de.eimir.app.NotificationOpenTest#contextualNoticesKeepIndependentRealPendingIntentsAndRedactTheirPublicVersion \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee notification-open-dark-large.log
+          grep -Eq '^OK \(1 test\)' notification-open-dark-large.log
+      - name: Actual Android File through Web upload, API, worker and shared Place
+        if: matrix.api == 36
+        run: |
+          adb_path="$ANDROID_HOME/platform-tools/adb"
+          "$adb_path" -e exec-out run-as de.eimir.app.debug cat files/native-selected-photo.jpg > android/native-selected-photo.jpg
+          test -s android/native-selected-photo.jpg
+          bash scripts/test_android_photo_pipeline.sh
       - name: Capture native fixture diagnostics
         if: always()
         working-directory: android
         run: |
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
+            > native-crash.log 2>&1 || true
+          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png webview-update-notice.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+            # `test` is a shell builtin, not a run-as executable on these images.
+            if "$ANDROID_HOME/platform-tools/adb" -e shell \
+                "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
+              "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.eimir.app.debug \
+                cat "files/$proof" > "$proof"
+            else
+              rm -f "$proof"
+            fi
+          done
+          test -s renderer-real-crash.png
+          test -s push-contextual-content.png
+          test -s push-contextual-content.xml
+          if [ '${{ matrix.api }}' = '36' ]; then
+            test -s push-contextual-content-dark-large.png
+            test -s push-contextual-content-dark-large.xml
+          fi
+          if [ '${{ matrix.api }}' != '28' ]; then
+            test -s renderer-background-return.png
+          else
+            # Below the WebView floor the update notice replaces the app (#1931).
+            test -s webview-update-notice.png
+          fi
+      - name: Capture failed instrumentation process diagnostics
+        if: failure()
+        working-directory: android
+        run: |
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.eimir.app.debug \
+            > native-exit-info.log 2>&1 || true
+          if [ -d /tmp/android-runner ]; then
+            mkdir -p emulator-crash
+            find /tmp/android-runner -maxdepth 1 -type d -name 'emu-crash-*.db' \
+              -exec cp -R {} emulator-crash/ \;
+          fi
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-launcher-verification-api-${{ matrix.api }}
+          name: android-launcher-verification-api-${{ matrix.api }}-attempt-${{ github.run_attempt }}
           path: |
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/
             android/emulator.log
+            android/emulator-version.log
+            android/emulator-exit.log
+            android/emulator-crash/
+            android/host-memory.log
+            android/guest-memory-before-tests.log
+            android/guest-cpu-before-tests.log
+            android/guest-display-before-tests.log
+            android/guest-properties-before-tests.log
             android/instrumentation.log
+            android/background-media-transfers.log
+            android/native-media-upload-background.png
+            android/native-media-upload-background.xml
+            android/photo-file-chooser.log
+            android/runtime-recovery.log
+            android/renderer-background-return.png
+            android/renderer-real-crash.png
+            android/notification-open.log
+            android/notification-open-dark-large.log
+            android/push-preview.log
+            android/push-contextual-content.png
+            android/push-contextual-content.xml
+            android/push-contextual-content-dark-large.png
+            android/push-contextual-content-dark-large.xml
             android/fixture-logcat.log
+            android/native-crash.log
+            android/native-system.log
+            android/native-exit-info.log
+            android/native-photo-input.png
+            android/native-photo-input.txt
+            android/native-photo-picker.png
+            android/native-photo-picker.txt
+            android/native-photo-result.png
+            android/native-photo-result.txt
+            android/native-selected-photo.jpg
+            android/external-photo-owner.log
+            android/native-photo-pipeline.log
+            android/native-photo-confirmation.png
+            android/native-photo-confirmation.txt
+            android/native-photo-permission.png
+            android/native-photo-permission.txt
+            android/native-photo-after-back.png
+            android/native-photo-after-back.txt
+            android/native-photo-dom.png
+            android/native-photo-dom.txt
+            android/native-photo-location-consent.png
+            android/native-photo-location-consent.txt
+            android/native-video-*
+            android/native-selected-video.mp4
+            android/external-video-owner.log
           if-no-files-found: ignore

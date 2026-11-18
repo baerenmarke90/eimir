@@ -8,18 +8,20 @@ trying to enumerate accounts.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
+from pydantic import Field
 
 from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.auth import cloud, local, oidc, passkey_abuse, passkeys, sessions
+from eimir.auth import cloud, local, oidc, passkey_abuse, passkeys, sessions, sign_in_methods
 from eimir.auth.local import SignedIn
 from eimir.auth.policy import AuthPolicy
 from eimir.config import get_settings
+from eimir.i18n import request_locale
 from eimir.mail import MailSender, sender
 
 router = APIRouter(tags=["auth"])
@@ -73,6 +75,15 @@ class EmailRequest(ApiModel):
 class SignupEmailRequest(EmailRequest):
     invitation_token: str | None = None
     """Bound to the mailed proof as a hash; validated when the proof is redeemed."""
+    accepted_terms_version: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Terms-of-use version the person accepted in the signup form, as published by "
+            "`GET /instance/status`. Bound to the mailed proof and recorded only if the "
+            "proof creates a new Account."
+        ),
+    )
 
 
 class MagicLinkConsumeRequest(ApiModel):
@@ -85,6 +96,15 @@ class SignupConsumeRequest(ApiModel):
     token: str
     display_name: str | None = None
     """Used only when the proof creates a new Account; ignored for an existing one."""
+    accepted_terms_version: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Terms-of-use acceptance given while redeeming. Needed only after "
+            "`TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account but carries no "
+            "acceptance of the current version."
+        ),
+    )
     device_name: str = ""
     platform: str = ""
 
@@ -110,8 +130,43 @@ class PasskeyView(ApiModel):
     created_at: datetime
 
 
+class LinkedProviderView(ApiModel):
+    connection_id: str
+    linked_at: datetime
+
+
+class SignInMethodsView(ApiModel):
+    """The ways this Account can currently sign in, beyond what it signed in with."""
+
+    passkeys: list[PasskeyView]
+    oidc: list[LinkedProviderView]
+    email_link: bool = Field(
+        description="A mailed link can sign this Account in: a verified address and mail here."
+    )
+    local_password: bool
+
+
 class OidcStartRequest(ApiModel):
     invitation_token: str | None = None
+    signup: bool = Field(
+        default=False,
+        description=(
+            "Create a new Account if this identity has none and no invitation applies. Only "
+            "Cloud offers this, and it requires `acceptedTermsVersion`."
+        ),
+    )
+    accepted_terms_version: str | None = Field(
+        default=None,
+        description="Terms-of-use version the person accepted before leaving for the provider.",
+    )
+    client: Literal["web", "android"] = Field(
+        default="web",
+        description="Which registered callback to use: the web page or the native Android app.",
+    )
+
+
+class OidcLinkRequest(ApiModel):
+    client: Literal["web", "android"] = "web"
 
 
 class OidcCallbackRequest(ApiModel):
@@ -137,6 +192,10 @@ class RecoveryConsumeRequest(ApiModel):
 class AccountView(ApiModel):
     id: UUID
     display_name: str
+    gentle_prompts_enabled: bool = False
+    language_preference: str = "auto"
+    locale: str = "de"
+    language_version: int = 0
 
 
 class TokenView(ApiModel):
@@ -165,7 +224,14 @@ class SignupSessionView(SessionView):
 
 def _view(result: SignedIn | cloud.SignedIn | oidc.SignedIn | passkeys.SignedIn) -> SessionView:
     return SessionView(
-        account=AccountView(id=result.account.id, display_name=result.account.display_name),
+        account=AccountView(
+            id=result.account.id,
+            display_name=result.account.display_name,
+            gentle_prompts_enabled=result.account.gentle_prompts_enabled,
+            language_preference=result.account.language_preference,
+            locale=result.account.locale,
+            language_version=result.account.language_version,
+        ),
         tokens=TokenView(
             access_token=result.tokens.access_token,
             refresh_token=result.tokens.refresh_token,
@@ -272,7 +338,14 @@ def change_password(
     responses=problem_responses(401),
 )
 def me(account: CurrentAccount) -> AccountView:
-    return AccountView(id=account.id, display_name=account.display_name)
+    return AccountView(
+        id=account.id,
+        display_name=account.display_name,
+        gentle_prompts_enabled=account.gentle_prompts_enabled,
+        language_preference=account.language_preference,
+        locale=account.locale,
+        language_version=account.language_version,
+    )
 
 
 @router.post(
@@ -291,7 +364,13 @@ def request_magic_link(
     sign-in. The response never discloses whether the address has an Account.
     """
     client_host = request.client.host if request.client is not None else None
-    cloud.request_magic_link(session, email=body.email, mail=mail, client_host=client_host)
+    cloud.request_magic_link(
+        session,
+        email=body.email,
+        mail=mail,
+        client_host=client_host,
+        requested_locale=request_locale(request.headers.get("accept-language")),
+    )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
@@ -316,7 +395,19 @@ def consume_magic_link(body: MagicLinkConsumeRequest, session: DbSession) -> Ses
     "/auth/signup/request",
     status_code=status.HTTP_202_ACCEPTED,
     response_class=Response,
-    responses=problem_responses(403, 422, 429, 503),
+    responses=problem_responses(
+        403,
+        409,
+        422,
+        429,
+        503,
+        descriptions={
+            409: (
+                "`TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the version currently "
+                "published by `GET /instance/status`. No proof was issued."
+            ),
+        },
+    ),
 )
 def request_signup(
     body: SignupEmailRequest, request: Request, session: DbSession, mail: Mail
@@ -336,6 +427,8 @@ def request_signup(
         mail=mail,
         client_host=client_host,
         invitation_token=body.invitation_token,
+        accepted_terms_version=body.accepted_terms_version,
+        requested_locale=request_locale(request.headers.get("accept-language")),
     )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
@@ -356,6 +449,12 @@ def request_signup(
                 "`AUTH_METHOD_DISABLED` on deployments without self-service signup, or "
                 "`REGISTRATION_DISABLED` when the proof would create a new Account while the "
                 "administrator does not admit new Accounts. Nothing was created."
+            ),
+            409: (
+                "`TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account without an "
+                "acceptance of the current terms of use. Nothing was created and the proof stays "
+                "redeemable: redeem it again with `acceptedTermsVersion`. "
+                "`TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the current version."
             ),
             503: "`MAINTENANCE_MODE`: no new Account is created during maintenance.",
         },
@@ -381,6 +480,7 @@ def consume_signup(
         display_name=body.display_name,
         device_name=body.device_name[:MAX_DEVICE_NAME],
         platform=body.platform,
+        accepted_terms_version=body.accepted_terms_version,
     )
     view = _view(SignedIn(account=result.account, tokens=result.tokens))
     return SignupSessionView(
@@ -473,10 +573,14 @@ def start_oidc(
     receives only the authorization URL and state. Any invitation remains
     bound server-side and is never forwarded to the provider.
     """
+    request = body if body is not None else OidcStartRequest()
     started = oidc.start(
         session,
         connection_id,
-        invitation_token=body.invitation_token if body is not None else None,
+        invitation_token=request.invitation_token,
+        allow_signup=request.signup,
+        accepted_terms_version=request.accepted_terms_version,
+        native=request.client == "android",
     )
     return OidcStartView(authorization_url=started.authorization_url, state=started.state)
 
@@ -491,9 +595,11 @@ def link_oidc(
     account: CurrentAccount,
     session: DbSession,
     connection_id: Annotated[str, Path(alias="connectionId")],
+    body: OidcLinkRequest | None = None,
 ) -> OidcStartView:
     """Link an external identity to the authenticated account."""
-    started = oidc.start(session, connection_id, account_id=account.id)
+    native = body is not None and body.client == "android"
+    started = oidc.start(session, connection_id, account_id=account.id, native=native)
     return OidcStartView(authorization_url=started.authorization_url, state=started.state)
 
 
@@ -519,6 +625,58 @@ def complete_oidc(
             platform=body.platform,
         )
     )
+
+
+@router.get(
+    "/auth/sign-in-methods",
+    response_model=SignInMethodsView,
+    responses=problem_responses(401),
+)
+def list_sign_in_methods(account: CurrentAccount, session: DbSession) -> SignInMethodsView:
+    """List the passkeys and linked providers of the authenticated account."""
+    current = sign_in_methods.methods(session, account)
+    return SignInMethodsView(
+        passkeys=[
+            PasskeyView(id=item.id, name=item.name, created_at=item.created_at)
+            for item in current.passkeys
+        ],
+        oidc=[
+            LinkedProviderView(connection_id=item.connection_id or "", linked_at=item.created_at)
+            for item in current.oidc
+        ],
+        email_link=current.email_link,
+        local_password=current.local_password,
+    )
+
+
+@router.delete(
+    "/auth/passkeys/{passkeyId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses=problem_responses(401, 404, 409),
+)
+def remove_passkey(
+    account: CurrentAccount,
+    session: DbSession,
+    passkey_id: Annotated[UUID, Path(alias="passkeyId")],
+) -> None:
+    """Remove one passkey, unless it is the account's only way to sign in."""
+    sign_in_methods.remove_passkey(session, account, passkey_id)
+
+
+@router.delete(
+    "/auth/oidc/{connectionId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses=problem_responses(401, 404, 409),
+)
+def unlink_oidc(
+    account: CurrentAccount,
+    session: DbSession,
+    connection_id: Annotated[str, Path(alias="connectionId")],
+) -> None:
+    """Unlink an external provider, unless it is the account's only way to sign in."""
+    sign_in_methods.remove_oidc(session, account, connection_id)
 
 
 @router.post(

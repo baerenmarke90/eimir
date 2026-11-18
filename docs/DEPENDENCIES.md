@@ -4,7 +4,67 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-25
+As of: 2026-10-20
+
+## Client-sealed temporary messages (2026-11-06, #1672)
+
+`jose` **6.2.13**, [panva/jose](https://github.com/panva/jose), MIT license,
+provides standard General JWE RSA-OAEP-256/A256GCM framing through Web Crypto.
+The exact npm package and integrity are pinned in the Web lockfile. It runs
+locally in the canonical Web/Capacitor UI; no provider, account, service fee,
+network request, API key or hoster setting is added. The server only receives
+public keys and opaque, bounded ciphertext. Existing server-side `joserfc`
+Push previews remain a separate operator-keyed boundary. Native MediaRecorder,
+IndexedDB, canvas export and the shared HeartMoment voice primitives own capture,
+non-extractable device-key persistence and display. No cryptographic primitive
+is implemented in application code. No recovery/forward-secrecy or independently
+audited product-wide E2EE claim follows from this bounded transport.
+
+The generated #1672 UI reference in `product/design/references/once-messages/`
+was created with the built-in imagegen tool using fictional people and generated
+woodland imagery. Prompts, corrections and baseline are recorded alongside it.
+It is a product reference, not a runtime asset or third-party photograph.
+
+## Optional video processor (2026-11-05)
+
+FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,
+is built from the checksum-pinned official archive only in `backend/Dockerfile.media`.
+License: LGPL-2.1-or-later for this restricted build; GPL, nonfree, autodetected
+libraries and network protocols are disabled. Corresponding source, license,
+configuration and the local MOV, codec-context and HDR serialization hardening
+patches ship with the image. No external media provider or new Python/npm
+dependency is introduced. The optional role statically links these source-built
+normalization dependencies (no GPL/nonfree components):
+
+| Component | Source/version | License |
+| --- | --- | --- |
+| OpenH264 encoder | [Cisco 2.7.0](https://github.com/cisco/openh264/tree/1bca62311e447fd9c39fc93de2c4b96cd5ce971c), archive SHA-256 `2238d3e5956ef0d288dd43842a0220015cf72c4327d98684e8bc47ffa7cf5308` | BSD-2-Clause |
+| zimg color conversion | [3.0.6](https://github.com/sekrit-twc/zimg/tree/f819b14e8f39d1282400b0d9543e8ef73c1b2bbd), archive SHA-256 `4dc9faba466bce429226f0f5454cb7948ec2b70f6b5b6de383898227b38e51da` | WTFPL-2.0 |
+
+`tools/media/build-video-dependencies.sh` verifies both archives; complete
+corresponding source, licenses and shared build helpers ship under
+`/opt/eimir-media/share/ffmpeg`. FFmpeg does not enable the OpenH264 decoder.
+OpenH264 source builds are not covered by an assumed Cisco binary patent grant;
+OSS source/attribution obligations and codec-patent distribution/operation review
+are distinct. The build never fetches a Cisco binary or adds a user/provider
+account. Both hosting modes use the same bounded optional role.
+The synthetic blue H.264/AAC fixture in `backend/tests/fixtures/media/` was
+created for #88 using FFmpeg color/anullsrc generators; it contains no third-party
+imagery, personal data or audio recording. The additional #1649 fixtures use
+FFmpeg-generated test colors and a 440 Hz tone, reproduced by
+`tools/media/generate-video-fixtures.sh`; they cover HEVC SDR/Main10/HLG/PQ,
+rotation, silence, H.264 High10/PCM and H.264/MP3. Their deliberately synthetic metadata
+is only a stripping-test input. The #1710 quality fixtures are generated from
+explicit linear-light neutral steps and seeded FFmpeg `testsrc2`/noise by
+`tools/media/generate-video-quality-fixtures.py` (also called by the shell
+generator). They contain no third-party footage, private recording or audio.
+They cover PQ highlights, first-frame MaxCLL, HLG, and moving 1080p detail;
+generation uses system FFmpeg 6.1.1 and test-only x264/x265 encoders, neither of
+which is shipped in the media role. Their visual evidence has the same synthetic
+provenance. The media role additionally enables the existing LGPL `setparams`
+filter; source pins, patches and license obligations are unchanged.
+See [operations and security review](operations/video-uploads.md)
+and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
 
 ## Reproducibility and verification
 
@@ -16,8 +76,13 @@ container installations run exclusively in frozen/locked mode;
 
 `web/package-lock.json` is the binding npm resolution for the thin M2-S8 Web
 reference flow. Direct versions are pinned exactly in `web/package.json`, CI
-installs exclusively with `npm ci`, and `npm audit --audit-level=high` blocks
-known vulnerabilities at high severity and above. The Node CI and Web build
+installs exclusively with `npm ci`, and `scripts/audit-gate.mjs` blocks
+known vulnerabilities at high severity and above. It runs `npm audit` and
+accepts an advisory only if `web/audit-allowlist.json` names its exact id with
+a reason, marks it as a development-only dependency and gives an expiry date.
+The gate still fails for any other advisory, for an expired entry and for an
+allowlisted advisory that appears in the production tree
+(`npm audit --omit=dev`). The Node CI and Web build
 image is additionally pinned by digest. The static production build runs in
 an unprivileged Nginx image that is also pinned by digest.
 
@@ -29,7 +94,7 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+9.9.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
 9.4.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
@@ -94,6 +159,15 @@ avoids custom RFC 8291 cryptography. The application supplies a restricted
 HTTPS transport for destination validation and connection pinning; it does not
 modify the upstream package.
 
+`google-auth[requests]` supplies the official service-account OAuth credentials,
+token state and refresh transport for the FCM HTTP-v1 adapter. The existing
+`httpx` client sends one bounded generic wake request per DB-worker attempt;
+no JWT/OAuth grant implementation or second notification pipeline is added.
+The maintained source is
+[google-cloud-python/packages/google-auth](https://github.com/googleapis/google-cloud-python/tree/main/packages/google-auth);
+the former standalone repository is archived. Sender credentials are operator
+files, not package assets, environment JSON or client APK material.
+
 `cbor2` is development-only: the virtual Authenticator in tests constructs
 `attestationObject` and COSE keys itself so the suite verifies real signatures
 instead of recorded example data.
@@ -106,15 +180,25 @@ the product's largest attack surfaces. `pillow-heif` brings libheif and thus
 HEIC/HEIF, which are part of the M2-D04 allowlist; it registers as a Pillow
 plugin and is not called separately.
 
-Both are deliberately the only additions in this slice. Video and the ffmpeg
-invocation it requires are a separate later step under M2-D23 because a system
-binary affects the container image and installation instructions and falls
-outside the `uv audit` gate.
+Both remain the only Python additions in that image slice. The separate #88
+video delivery now supplies the optional restricted FFmpeg image documented
+above. Its system binary has a distinct source/advisory/license gate because
+it falls outside `uv audit`; the common API/general-worker image is unchanged.
 
 Media parsers are an explicit attack surface. They therefore receive special
 attention under the existing policy: no known security finding in the lock,
 Dependabot updates are not left unresolved, and processing runs exclusively
 in a background job under resource limits — never in the request path.
+
+`google-auth-oauthlib` is the official maintained Web OAuth client for the
+optional Google Photos Picker (#1444, 2026-10-27). It supplies PKCE/state and
+OAuth protocol handling instead of a custom token-flow implementation. Its
+Apache-2.0 license is recorded below using the package metadata spelling so the
+inventory gate can verify it exactly. The adopted Google auth, requests-oauthlib
+and OAuthLib stack remains in `backend/uv.lock`. OAuthLib now has an explicit
+`>=4.0.1,<5` security floor and its installed version/license is recorded below.
+No upstream server code or Immich SDK is bundled. The application requests online
+Picker-only access and bounds transport without persisting refresh tokens.
 
 ## Backend — Runtime
 
@@ -129,13 +213,25 @@ in a background job under resource limits — never in the request path.
 | pydantic-settings | 2.15.0 | PyPI | MIT |
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
-| httpx | 0.28.1 | PyPI | BSD-3-Clause |
+| httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
+| google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
+| joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| defusedxml | 0.7.1 | PyPI | PSFL |
+
+`defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
+entity expansion, external entities or DTD retrieval. It has no runtime
+dependencies, sends no data and is replaceable by a hardened stdlib parser.
+
+The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
+`hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
 
 ## Backend — Development
 
@@ -158,6 +254,32 @@ in a background job under resource limits — never in the request path.
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
+| maplibre-gl | 6.18.0 | npm / MapLibre | BSD-3-Clause |
+| mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
+
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
+on-device SDR MP4/MOV preparation (#1713, replacing #1647's optional optimization). It supplies container handling around
+native WebCodecs; no software codec, WASM runtime, remote converter or provider
+is added. Its two transitive dependencies are Web API type declarations, recorded
+with integrity hashes in the npm lock. The MPL notice and source location ship
+in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
+it. Cloud and Self-Hosted use the same bundled code without provider fees or
+additional user setup. Only an explicitly verified compatible original may bypass
+encoding; unsupported, failed or oversized conversion preserves the selection
+and fails visibly, without sending an unprepared original to server compression.
+
+AndroidX Media3 `media3-transformer` and `media3-effect` **1.11.1** (including
+same-version common, container, decoder, datasource, extractor, muxer and
+ExoPlayer internals) come from [Google Maven](https://maven.google.com/web/index.html#androidx.media3)
+and [the official source](https://github.com/androidx/media), Apache-2.0.
+They reuse local Android MediaCodec/OpenGL/MediaMuxer facilities; no separate
+FFmpeg/native codec binary, network source, Google account, Play Services,
+provider fee or hoster configuration is added. The artifact checksums belong in
+Android's existing strict Gradle verification metadata. Native preparation uses
+explicit HDR-to-SDR tone mapping, disables platform editing metrics and retains
+the existing private/no-backup/session-owned staging lifecycle. Cloud/Self-Hosted
+behavior is identical. Unsupported device/browser preparation fails visibly;
+server-side lossy encoding is not a fallback. See [operations](operations/on-device-video-preparation.md).
 
 ## Web — M2-S8 Development
 
@@ -180,6 +302,16 @@ development dependency so the test does not rely on a transitive package. The ex
 compared with the previous compiler-API result over all 262 sources (2450 keys, identical lines).
 
 ### October 2026 audit maintenance
+
+The 2026-10-20 frozen audit identified the compromised emSign trust-root advisory
+[GHSA-6q48-6c7w-9gw2](https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2)
+in transitive `certifi` 2026.7.22. The lock now selects 2026.10.19 (upstream's
+first patched release is 2026.10.18). This trust-bundle update also protects the
+new Google OAuth/FCM HTTPS path; certificate verification remains enabled.
+The same audit exposed nine findings in existing Pillow 12.3.0, fixed in 13.0.0.
+The direct minimum and lock are updated to 13.0.0 and validated with the existing
+image/media tests. These are targeted security updates, with no audit exclusions;
+the resulting frozen audit reports no known vulnerabilities or adverse status.
 
 The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
@@ -217,6 +349,33 @@ pull M5 functionality such as persistent Offline Caches, complete navigation,
 or Client Parity forward. The generated `typescript-fetch` code remains free
 of additional runtime dependencies and uses the browser Fetch API.
 
+### Explicit place map selection (2026-10-29, basemap replaced 2026-11-12)
+
+MapLibre GL JS is loaded only inside the deliberately opened map task. It reuses
+GPU vector rendering, animated zoom, pinch/keyboard handling and attribution
+instead of implementing a map engine. It replaces Leaflet with 256 px OpenStreetMap
+raster tiles: those jumped between integer zoom levels, showed grey gaps while
+tiles loaded and could not be restyled. The Memory map is a Pro capability and
+needs a smooth, recognizable map; the earlier "bounded choice task" argument
+against a vector stack no longer holds.
+
+Vector tiles, glyphs and sprites come from OpenFreeMap (`tiles.openfreemap.org`):
+OpenStreetMap data, no API key, no account, no billing and no usage cap, with
+visible OpenFreeMap, OpenMapTiles and OpenStreetMap attribution. It is
+self-hostable, so an operator can replace the origin. The OpenFreeMap "liberty"
+style is recolored client-side (`placeMapStyle.ts`) to a calmer palette; unknown
+layers keep their upstream colors. Google Maps (key and billing) and CARTO tiles
+(commercial-use terms unclear) were reviewed and not selected. Tile URLs are
+versioned and served with ten-year caching; the production service worker also
+keeps basemap responses in a bounded cache (1,500 entries, oldest first) so
+revisited areas load without the network. There is no prefetching and no bulk or
+offline download. The native app prefers the WebView HTTP cache for the public
+versioned tiles. Style and TileJSON follow HTTP freshness rules. Photon search
+reuses the existing backend provider normalization and operator-controlled
+origin. It adds no Python dependency, end-user key or paid account. Existing
+places and manual coordinates survive provider outages. The original preflight
+is recorded in `docs/product/design/plan-images-and-map-picker.md`.
+
 ## Web — Browser QA Development
 
 | Package | Version | Source | License |
@@ -237,7 +396,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 | Component | Version | Source | License |
 |---|---|---|---|
 | Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.6, `sha256:e44b470e571b20d935336bfb9f8277c1468d15e1e4d105a12ab5609d0b4682cb` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| nginx-unprivileged | 1.31.8, `sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;
@@ -250,20 +409,31 @@ registry or uses a hoster-controlled mirror.
 
 The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
-bundle. A small native bridge handles UnifiedPush registration, wake events,
+bundle. A small native bridge handles FCM/UnifiedPush registration, wake events,
 and content-free system notifications. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
-| @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
+| @capacitor/android (native bridge) | 8.6.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
+| com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.2.0 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.2 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials | 1.5.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials-play-services-auth (passkeys on Android 13 and older) | 1.5.0 | Google Maven | Apache-2.0 |
+| com.google.android.gms:play-services-auth, -auth-base, -auth-api-phone, -auth-blockstore, -fido, -identity-credentials (via credentials-play-services-auth) | 21.1.1 / 18.0.10 / 18.0.2 / 16.4.0 / 21.0.0 / 16.0.0-alpha02 | Google Maven | Android Software Development Kit License |
+| com.google.android.libraries.identity.googleid:googleid (via credentials-play-services-auth) | 1.1.0 | Google Maven | Apache-2.0 |
+| androidx.biometric:biometric (via credentials) | 1.1.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
 The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
@@ -273,23 +443,65 @@ using Android Keystore, standard AES/GCM and AtomicFile through the bounded
 `NativeSessionStorage` Capacitor adapter (#1357). No dependency is added. Web/PWA
 credentials remain sessionStorage-only, and the existing Web session facade owns
 credential rotation, logout and expiry.
-The UnifiedPush bridge remembers only the active Account ID for distributor
-callbacks; the authenticated Web client registers and revokes the server endpoint.
+The shared push bridge binds native work to an opaque activation ID and a local
+Account/API-instance snapshot; FCM's installation ID is a transport target, never
+the Account identity. The authenticated Web client owns registration/revocation.
+Firebase Messaging and Installations provide Android registration, target cleanup
+and data-only wakes. No Firebase Analytics, Crashlytics, Firebase Auth, Firestore,
+Storage or independent product UI is added. Google receives transport/installation
+metadata under the provider terms/privacy review in #565; the backend and normal
+notification API retain content/policy authority. Upstream SDK binaries and POMs
+are resolved from Google Maven under the existing strict checksum verification.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
-`google-services.json` is intentionally absent, so the Google Services plugin
-stays inactive until a separate Firebase slice is configured.
+`google-services.json` is public Android Firebase application configuration; it
+contains no server sender private key. The Google Services plugin activates only
+when that configured build input is present. Official distribution and Firebase
+project/package alignment are separate from server credential installation.
+
+### Store billing (2026-11-15, #1525)
+
+`@capgo/native-purchases` is used unmodified as the native store sheet bridge:
+Google Play Billing Library 9.1.0 on Android and StoreKit 2 on iOS (prepared,
+not yet connected). It was selected over a hand-written plugin, RevenueCat and
+`cordova-plugin-purchase` because it covers both stores behind one Capacitor
+interface, lets the backend acknowledge purchases
+(`autoAcknowledgePurchases: false`) and sends nothing to a third-party billing
+service. Only the opaque purchase reference (`appAccountToken`, sent to Google
+as the obfuscated account ID) and the selected base plan reach the store. The
+MPL notice and source location ship in
+`web/public/licenses/capgo-native-purchases-NOTICE.txt`; the complete license
+is the existing `mediabunny-MPL-2.0.txt` text. The Play Billing Library is a
+Google SDK component distributed under the Android SDK license; its artifacts
+are pinned in the strict Gradle verification metadata. Purchase verification
+runs on the eimir. Cloud backend with the already adopted `google-auth` and
+`httpx`; no new backend dependency is added.
+
+## iOS — Capacitor wrapper runtime
+
+The official Capacitor iOS runtime and Swift Package Manager template (8.6.2,
+MIT) wrap the same React product. The existing Capacitor App and Browser packages
+provide platform integration. Apple Security and UserNotifications supply Keychain
+storage and remote notifications without another SDK.
 
 ## Android — Wrapper test and build
 
 | Package / tool | Version | Source | License |
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
-| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
+| Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.6.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
+| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.1 | Google Maven | Apache-2.0 |
+
+UI Automator provides bounded native-control stability checks and genuine
+cross-app touches in the selected-media instrumentation fixture. It is an
+`androidTestImplementation` dependency and is absent from the shipped app.
+Its Android shell artifacts and Gradle module metadata are included in strict
+dependency verification; the downloaded AAR hashes match Google Maven's
+published module metadata.
 
 The Android release evidence job uses JDK 21, installs SDK Platform 36 and Build
 Tools 36.0.0, builds the unsigned release APK/AAB, and verifies package
@@ -341,10 +553,26 @@ This assessment is not legal advice.
 
 ## Assets
 
+The #1693 preflight at
+`docs/product/design/references/1693-people-polish/generated-reference.png` was
+generated with OpenAI's built-in image tool on 2026-11-07 from the current empty
+People editor screenshot. It contains synthetic initials and text, no private
+photos, third-party imagery or predecessor assets. It is design guidance, not
+runtime evidence, with no separate public license grant. The adjacent README
+records the baseline, scope and intended preserved capabilities.
+
+The #1471 Android photo-location preflight at `docs/product/design/references/android-photo-location-import/compact-permission-reference.png` is an original ImageGen workflow asset generated on 2026-10-27 from the existing #1444 diary composition. It guides permission-layer placement only, with no separate public license grant; illustrative OEM wording is not runtime product copy. The embedded cabin image retains the existing Darkmoon_Art/Pixabay 3374201 CC0 provenance. Exact prompt and scope are recorded beside the image.
+
+The automatic photo places preflight `docs/product/design/references/1459/compact-current.png` is an original image generated through the eimir. project ImageGen workflow on 2026-10-27. It is a project asset with no separate public license grant; its illustrative photo is generated, not a third-party stock image. See the adjacent README and prompt for scope and provenance.
+
+The actual browser renders `docs/product/design/references/1459/evidence/1459-*.png` use synthetic account/content fixtures and the existing cabin/lake photograph by Darkmoon_Art (Pixabay 3374201). UI screenshots are project assets with no separate public license grant; the embedded photograph is CC0 1.0 Universal as recorded in `backend/demo_assets/manifest.json`. The evidence README names the runtime source and validation limits.
+
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The product images
-are explicitly mockups, not screenshots of an already finished application.
+third-party or predecessor origin continue to be excluded. The README preview
+images are real runtime screenshots of the current Web client with synthetic
+demo data; the earlier AI-generated store mockups were removed. Further runtime
+QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -352,16 +580,10 @@ decision for the project's own source code.
 
 | Asset | Origin | Creator | License |
 |---|---|---|---|
-| `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-02-heute.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-03-story.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-04-wuensche.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-05-plan.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-06-discovery.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-07-einkauf.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-08-privacy.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
+| `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
+| `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
+| `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
+| `backend/src/eimir/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
@@ -382,3 +604,48 @@ build separately.
 
 New assets are documented here in the same change. If origin, license, or
 creator is unclear, the asset is not admitted until Provenance is resolved.
+
+The native-continuity/passport and unified Plan/map preflight PNGs in
+`docs/product/design/references/native-continuity/` were generated with ImageGen
+on 2026-10-29 against the recorded repository baseline. They are project assets
+with no separate public license grant; exact prompts are adjacent. Evidence
+PNGs in its `evidence/` directory are actual browser renders with synthetic
+couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
+as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
+browser evidence are a test fixture, not a third-party cartographic screenshot.
+
+## Optional local recap inference and reference assets (#1528)
+
+| Component / asset | Version / origin | License / use |
+| --- | --- | --- |
+| Ollama, optional operator container | `ollama/ollama:0.40.12@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b`, [upstream](https://github.com/ollama/ollama) | MIT; local CPU inference; no runtime package dependency added to API/worker |
+| Qwen3 1.7B quantized model | Operator download `qwen3:1.7b-q4_K_M`, [model card](https://huggingface.co/Qwen/Qwen3-1.7B) / [distribution](https://ollama.com/library/qwen3:1.7b-q4_K_M) | Apache-2.0; not bundled in application releases; downloaded into the operator's model volume |
+| `docs/product/design/references/automatic-relationship-recaps/compact-reference.png` | eimir. workflow, built-in ImageGen, 2026-10-30; exact prompt alongside | Project-owned illustrative UI reference; not production user content |
+| `web/e2e/fixtures/recap-lake.webp` | eimir. workflow, built-in ImageGen, 2026-10-30; illustrative empty lake/jetty photograph | Project-owned test fixture only; no claimed user location/person/event; no production fallback photograph |
+| `docs/product/design/references/automatic-relationship-recaps/evidence/*.png` | Playwright screenshots of the real eimir. UI using explicitly synthetic fixtures | Project validation evidence; no real couple data |
+
+The optional model is not assumed immutable from its tag alone. Operators can
+record `ollama list`'s model identifier after download, and should review model
+updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
+privacy, fallback and deployment behavior. No paid remote model provider is used.
+
+`joserfc` and Nimbus JOSE+JWT implement RFC 7516 compact JWE for bounded
+per-activation device previews (`dir` / `A256GCM`). Names and titles are encrypted
+before FCM delivery; no protocol or cryptographic primitive is implemented here.
+The per-activation key is registered over authenticated HTTPS, protected by the
+existing server endpoint encryption and wrapped by AndroidKeyStore on the device.
+No key is shipped in source or APK. See the #565 contextual-push preflight.
+
+Nimbus 10.10 embeds Gson 2.14.0 (Apache-2.0). The unchanged upstream Nimbus
+copyright header, Apache-2.0 license and Gson license are packaged under
+`android/app/src/main/assets/licenses/`. Backend wheel license metadata remains
+in the installed distribution. No additional provider account or terms are introduced.
+
+### HeartMoment audio processing
+
+#1671 extends the existing LGPL FFmpeg media role, not the application's dependency
+stack. Its reviewed build adds Ogg, Matroska/WebM, MP3, WAV and AAC demuxers,
+Opus/Vorbis decoders/parsers, and WAV output for bounded PCM frame-count validation.
+The existing AAC encoder and MP4 muxer provide sanitized playback. No external
+codec/speech SDK or provider is added. See the [voice contract](product/design/heart-voice-notes.md)
+and [operator delivery](operations/video-uploads.md#heartmoment-voice-intake-1671).

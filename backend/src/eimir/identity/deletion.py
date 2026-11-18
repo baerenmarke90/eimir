@@ -24,6 +24,7 @@ from eimir.administration.models import AdministrationAction
 from eimir.appearance.models import AppIconPreference
 from eimir.auth import sessions
 from eimir.authorization.retention import hard_delete_owner_only
+from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.core.clock import now
 from eimir.engagement.models import Notification, PushEndpoint, ThinkingOfYouRequest
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
@@ -37,6 +38,8 @@ from eimir.identity.models import (
     WebAuthnChallenge,
     WebAuthnCredential,
 )
+from eimir.legal.models import TermsAcceptance
+from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
 from eimir.profiles.models import PartnerProfile
 from eimir.relationship.models import Invitation, Membership, MembershipStatus
 from eimir.relationship.service import (
@@ -243,13 +246,27 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     # Account rows are pseudonymized rather than necessarily hard-deleted, so
     # their ON DELETE cascade is not the lifecycle authority for behavior data.
     from eimir.create_receipts import service as shared_create_receipts
+    from eimir.engagement import gentle
     from eimir.memories import create_receipts
     from eimir.story import view_service
 
+    gentle.purge_account(session, account_id)
+    account.gentle_prompts_enabled = False
     view_service.purge_viewer(session, viewer_account_id=account_id)
     create_receipts.purge_account(session, account_id=account_id)
     shared_create_receipts.purge_account(session, account_id=account_id)
     _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
+    _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
+    _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
+    _delete_account_rows(session, GoogleAccountHint, account_id, GoogleAccountHint.account_id)
+    # Calendar credentials go with the Account; sponsored Space targets cascade.
+    _delete_account_rows(session, CalendarConnection, account_id, CalendarConnection.account_id)
+    _delete_account_rows(
+        session, CalendarOAuthTransaction, account_id, CalendarOAuthTransaction.account_id
+    )
+    from eimir.attachments.photo_locations import discard_owner
+
+    discard_owner(session, account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.
@@ -299,6 +316,8 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     )
     _delete_account_rows(session, AuthIdentity, account_id, AuthIdentity.account_id)
     _delete_account_rows(session, AccountEmail, account_id, AccountEmail.account_id)
+    # Contract evidence ends with the contract; it holds no shared history.
+    _delete_account_rows(session, TermsAcceptance, account_id, TermsAcceptance.account_id)
 
     account.display_name = DELETED_ACCOUNT_DISPLAY_NAME
     account.birthday = None

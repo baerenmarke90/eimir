@@ -1,0 +1,462 @@
+/* Personal compositions share one content/interaction tree. Colours, heading
+   family and backdrop come from the design's token file (design/designs/);
+   the open layout (Geborgen) only arranges: larger portraits, open rhythm and
+   a full-bleed keepsake. Classic keeps the baseline. */
+.today-page[data-wir-layout="open"] {
+  position: relative;
+  /* Paint the full-bleed ground on the page itself. An isolated backdrop
+     traps the hero's Energy/gesture overlays beneath the fixed navigation. */
+  width: calc(100% + 2 * var(--page-gutter));
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding-inline: var(--page-gutter);
+  margin-block: calc(-1 * var(--space-8));
+  padding-block: var(--space-8);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      var(--design-backdrop-glow),
+      transparent 32rem
+    ),
+    var(--color-background);
+}
+.today-page[data-wir-layout="open"] .today-hero.couple-presence-card {
+  padding-block: var(--space-5) var(--space-3);
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    var(--color-surface) 20%,
+    var(--color-brand-glow) 65%,
+    transparent 72%
+  );
+  background-size: min(100%, 23rem) 13rem;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+.today-page[data-wir-layout="open"]
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar {
+  width: clamp(5.5rem, 26vw, 7rem);
+  height: clamp(5.5rem, 26vw, 7rem);
+  font-size: 1.75rem;
+  box-shadow:
+    0 0 0 var(--space-1) var(--color-surface),
+    var(--shadow-soft);
+}
+.today-page[data-wir-layout="open"]
+  .today-hero.couple-presence-card
+  .couple-presence-main {
+  gap: var(--space-4);
+}
+.couple-presence-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.06em;
+}
+.today-page[data-wir-layout="open"] .today-hero .couple-presence-title {
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+}
+.today-page[data-wir-layout="open"] .today-moment-figure {
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+}
+.wir-design-settings {
+  display: grid;
+  gap: var(--space-3);
+}
+.wir-design-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.wir-design-summary > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.wir-design-summary > button {
+  margin-inline-start: auto;
+}
+.wir-design-options {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: var(--space-4) 0;
+  border: 0;
+  min-width: 0;
+}
+.wir-design-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+.wir-design-option.is-selected {
+  border-color: var(--color-focus);
+  background: var(--color-brand-surface);
+}
+.wir-design-option:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.wir-design-option input {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--color-brand);
+}
+.wir-design-copy {
+  display: grid;
+  flex: 1 1 10rem;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wir-design-copy strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.wir-design-copy > span,
+.wir-design-personal {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.wir-design-tier {
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+}
+.wir-design-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.wir-design-footer p {
+  margin: 0;
+}
+.wir-design-footer > button {
+  min-height: 44px;
+  width: 100%;
+}
+.wir-design-preview {
+  display: grid;
+  flex-shrink: 0;
+  gap: 3px;
+  width: 3.5rem;
+  height: 5.25rem;
+  padding: 5px;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  box-shadow: inset 0 0 0 var(--border-surface-width) var(--color-border-subtle);
+}
+.wir-design-preview-hero {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+.wir-design-preview-portraits {
+  display: flex;
+  justify-content: center;
+}
+.wir-design-preview-portraits i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-glow);
+  border: 1px solid var(--color-surface);
+}
+.wir-design-preview-portraits i + i {
+  margin-inline-start: -3px;
+  background: var(--color-brand-surface);
+}
+.wir-design-preview-names {
+  width: 65%;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-muted);
+}
+.wir-design-preview-vibes {
+  display: grid;
+  gap: 2px;
+}
+.wir-design-preview-vibes i {
+  display: block;
+  min-height: 5px;
+  background: var(--color-surface);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-quote {
+  min-height: 8px;
+  background: var(--color-brand-glow);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-moment {
+  min-height: 14px;
+  background: var(--color-brand-surface);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-open {
+  background: var(--color-background);
+}
+.wir-design-preview-open .wir-design-preview-hero {
+  border-radius: var(--radius-pill) var(--radius-pill) var(--radius-medium)
+    var(--radius-medium);
+  background: var(--color-brand-glow);
+}
+.wir-design-preview-open .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-open .wir-design-preview-vibes i,
+.wir-design-preview-open .wir-design-preview-quote {
+  background: transparent;
+  box-shadow: inset 0 -1px var(--color-border-subtle);
+}
+/* Verbunden: two portraits apart, joined by a line. */
+.wir-design-preview-connected .wir-design-preview-portraits {
+  position: relative;
+  width: 100%;
+  justify-content: space-between;
+}
+.wir-design-preview-connected .wir-design-preview-portraits::before {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  left: 14px;
+  height: 1px;
+  background: var(--color-brand-text);
+  content: "";
+}
+.wir-design-preview-connected .wir-design-preview-portraits i {
+  width: 14px;
+  height: 14px;
+}
+.wir-design-preview-connected .wir-design-preview-portraits i + i {
+  margin-inline-start: 0;
+}
+.wir-design-preview-connected .wir-design-preview-names {
+  width: 100%;
+  background: transparent;
+  box-shadow:
+    inset 14px 0 var(--color-text-muted),
+    inset -14px 0 var(--color-text-muted);
+}
+.wir-design-preview-connected .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-connected .wir-design-preview-quote {
+  background: transparent;
+  box-shadow: inset 0 -1px var(--color-border-subtle);
+}
+.wir-design-preview-compact .wir-design-preview-hero {
+  display: flex;
+  align-items: center;
+}
+.wir-design-preview-compact .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-compact .wir-design-preview-quote {
+  background: var(--color-shared-surface);
+}
+.wir-design-preview-classic .wir-design-preview-portraits i {
+  width: 17px;
+  height: 17px;
+}
+.wir-design-preview-classic .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+/* Names: no portraits, the two names as heavy lines. */
+.wir-design-preview-names .wir-design-preview-portraits {
+  display: none;
+}
+.wir-design-preview-names .wir-design-preview-hero {
+  justify-items: start;
+}
+.wir-design-preview-names .wir-design-preview-names {
+  width: 80%;
+  height: 5px;
+  background: var(--color-text);
+  box-shadow: 6px 7px 0 -1px var(--color-text);
+  margin-block-end: 7px;
+}
+.wir-design-preview-names .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+/* Note: a compact header and a tinted note card. */
+.wir-design-preview-note .wir-design-preview-portraits {
+  display: none;
+}
+.wir-design-preview-note .wir-design-preview-quote {
+  min-height: 18px;
+  background: var(--color-brand-surface);
+}
+.wir-design-preview-note .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 359px) {
+  .wir-design-option {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+  .wir-design-option .wir-design-preview {
+    width: 2.75rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wir-design-option {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .wir-design-option.is-selected {
+    border-color: Highlight;
+  }
+}
+
+/* Editorial: a compact couple introduction followed by a full-width keepsake. */
+.today-page[data-wir-layout="open"] .today-section-moment {
+  margin-inline: calc(-1 * var(--page-gutter));
+}
+.today-page[data-wir-layout="open"]
+  .today-section-moment
+  .today-section-header {
+  padding-inline: var(--page-gutter);
+}
+.today-page[data-wir-layout="open"] .today-moment-figure {
+  border-radius: 0;
+  box-shadow: none;
+}
+.today-page[data-wir-layout="open"] .today-moment-media .story-media-preview,
+.today-page[data-wir-layout="open"] .today-moment-media .story-media-skeleton,
+.today-page[data-wir-layout="open"]
+  .today-moment-media
+  .story-media-placeholder {
+  aspect-ratio: 4 / 3;
+  max-height: none;
+}
+.today-page[data-wir-layout="open"] .today-moment-caption {
+  padding-inline: var(--page-gutter);
+  padding-block: var(--space-4);
+  background: transparent;
+}
+
+/* Compact layout (Klar & modern): horizontal identity, concise supporting
+   content and a panoramic photo. */
+.today-page[data-wir-layout="compact"] .today-hero.couple-presence-card {
+  padding-block: var(--space-3);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.today-page[data-wir-layout="compact"]
+  .today-hero.couple-presence-card
+  .couple-presence-main {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  text-align: start;
+}
+.today-page[data-wir-layout="compact"]
+  .today-hero.couple-presence-card
+  .couple-presence-details {
+  flex: 1 1 10rem;
+  width: auto;
+  align-items: flex-start;
+}
+.today-page[data-wir-layout="compact"]
+  .today-hero.couple-presence-card
+  .couple-presence-meta {
+  justify-content: flex-start;
+  text-align: start;
+}
+.today-page[data-wir-layout="compact"]
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar {
+  width: var(--space-16);
+  height: var(--space-16);
+  font-size: var(--space-5);
+  box-shadow: none;
+}
+.today-page[data-wir-layout="compact"] .today-hero .couple-presence-title {
+  font: var(--font-content-heading);
+  font-family: var(--font-ui);
+  text-align: start;
+}
+.today-page[data-wir-layout="compact"] .today-hero-action-container {
+  justify-content: flex-start;
+}
+.today-page[data-wir-layout="compact"] .today-moment-media .story-media-preview,
+.today-page[data-wir-layout="compact"]
+  .today-moment-media
+  .story-media-skeleton,
+.today-page[data-wir-layout="compact"]
+  .today-moment-media
+  .story-media-placeholder {
+  aspect-ratio: 16 / 9;
+}
+.today-page[data-wir-layout="compact"] .today-stream-recent {
+  gap: var(--space-2);
+}
+.wir-design-preview-compact .wir-design-preview-hero {
+  display: flex;
+}
+@media (min-width: 840px) {
+  .today-page[data-wir-layout="open"] .today-moment-media .story-media-preview {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+.wir-design-preview-rows {
+  background: var(--color-background);
+  grid-template-rows: 25px 1fr 6px 19px;
+}
+.wir-design-preview-rows .wir-design-preview-hero {
+  justify-items: stretch;
+  gap: 1px;
+}
+.wir-design-preview-person {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 3px;
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+.wir-design-preview-person i {
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+.wir-design-preview-person + .wir-design-preview-person i {
+  background: var(--design-decoration-icon, var(--color-brand-text));
+}
+.wir-design-preview-person b {
+  width: 70%;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-secondary);
+}
+.wir-design-preview-rows .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-rows .wir-design-preview-quote {
+  min-height: 0;
+  background: var(--color-surface-subtle);
+}
+.wir-design-preview-rows .wir-design-preview-moment {
+  background: linear-gradient(
+    var(--color-border) 72%,
+    var(--design-decoration, var(--color-text)) 72%
+  );
+}

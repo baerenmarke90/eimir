@@ -1,10 +1,19 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { captureR3Evidence } from './r3-evidence';
+import { captureScreenshot } from '../support/storyTimelineFixture';
+import { expectLabeledAddAction } from '../support/addAction';
+import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import experiences from '../../src/i18n/locales/experiences';
+import importantDates from '../../src/i18n/locales/importantDates';
+import memoryMap from '../../src/i18n/locales/memoryMap';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -41,6 +50,8 @@ async function installMocks(
 ): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -197,7 +208,8 @@ async function installMocks(
       }
       const requestedStatus = new URL(request.url()).searchParams.get('status');
       const items =
-        requestedStatus === 'PLANNED'
+        requestedStatus === 'PLANNED' ||
+        new URL(request.url()).searchParams.get('overviewScope') === 'OPEN'
           ? [
               {
                 capabilities: {
@@ -258,10 +270,10 @@ async function installMocks(
     }
 
     if (
-      method === 'POST' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/schedule`
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
-      const body = request.postDataJSON() as Record<string, unknown>;
+      const body = request.postDataJSON().schedule as Record<string, unknown>;
       options.onSchedule?.(body);
       await fulfillJson({
         capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -317,7 +329,10 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(page, testInfo, `r3-plan-detail-range-${name}.png`);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(page, testInfo, `r3-plan-detail-range-${name}.png`, {
+    fullPage: true,
+  });
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -341,11 +356,17 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishe
   await plansTab.focus();
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addPlan, exact: true }),
+  );
 
   await page.keyboard.press('ArrowRight');
   await expect(wishesTab).toHaveAttribute('aria-selected', 'true');
   await expect(wishesTab).toBeFocused();
   await expect(page.getByText(WISH_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addWish, exact: true }),
+  );
 
   await page.keyboard.press('ArrowLeft');
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');
@@ -365,7 +386,7 @@ test('clicking the focal Plan navigates from the Planning overview to the read-f
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: taskBoundary.back }),
@@ -413,8 +434,8 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
-  await page.getByText(m5s3.plan.actionsHeading).click();
-
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  const scheduleTask = await showPlanSchedule(page);
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
@@ -424,11 +445,14 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await expect(endTime).toBeVisible();
   await endTime.fill('13:30');
   await expect(page.getByText(m5s3.plan.endMustFollowStart)).toBeVisible();
-  await page.getByRole('button', { name: m5s3.plan.reschedule }).click();
+  await scheduleTask
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   expect(scheduleBody).toBeNull();
 
   await endTime.fill('16:30');
-  await page.getByRole('button', { name: m5s3.plan.reschedule }).click();
+  await closePlanSchedule(page);
+  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect.poll(() => scheduleBody).not.toBeNull();
   expect(scheduleBody).toMatchObject({
     plannedStart: '2099-09-14T14:00:00.000Z',
@@ -495,8 +519,10 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '320-cross-day-light');
 
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await showPlanSchedule(page);
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
+  await closePlanSchedule(page);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByText(crossDayRange)).toBeVisible();
@@ -522,7 +548,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       colorScheme,
     );
     await expect(
-      page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+      page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
     ).toBeVisible();
 
     const result = await new AxeBuilder({ page })
@@ -538,3 +564,223 @@ for (const colorScheme of ['light', 'dark'] as const) {
     expect(result.violations).toEqual([]);
   });
 }
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`an existing Plan adopts an open Wish without duplication (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await installMocks(page);
+    let reads = 0;
+    const writes: unknown[] = [];
+    let plan = {
+      id: PLAN_ID,
+      spaceId: SPACE_ID,
+      title: PLAN_TITLE,
+      description: 'Keep the existing arrangement.',
+      status: 'PLANNED',
+      version: 3,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      capabilities: { canEdit: true, canDelete: true, canComment: false },
+      sourceWishId: null as string | null,
+      placeId: null,
+      plannedStart: PLAN_START,
+      plannedEnd: null,
+      plannedOn: null,
+      experiencedOn: null,
+    };
+    let wish = {
+      id: WISH_ID,
+      spaceId: SPACE_ID,
+      title: WISH_TITLE,
+      description: null,
+      status: 'OPEN',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      capabilities: { canEdit: true, canDelete: true, canComment: false },
+    };
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
+      const request = route.request();
+      const url = new URL(request.url());
+      const base = `/api/v1/spaces/${SPACE_ID}`;
+      const json = (value: unknown) =>
+        route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify(value),
+        });
+      if (
+        url.pathname === `${base}/plans/${PLAN_ID}` &&
+        request.method() === 'GET'
+      )
+        return json(plan);
+      if (url.pathname === `${base}/wishes` && request.method() === 'GET') {
+        reads++;
+        expect(url.searchParams.get('status')).toBe('OPEN');
+        return json({
+          items: wish.status === 'OPEN' ? [wish] : [],
+          hasMore: false,
+          nextCursor: null,
+        });
+      }
+      if (
+        url.pathname === `${base}/plans/${PLAN_ID}/wish` &&
+        request.method() === 'POST'
+      ) {
+        writes.push(request.postDataJSON());
+        expect(request.headers()['if-match']).toBe('3');
+        expect(request.postDataJSON()).toEqual({
+          wishId: WISH_ID,
+          wishVersion: 1,
+        });
+        plan = {
+          ...plan,
+          sourceWishId: WISH_ID,
+          version: 4,
+          capabilities: { ...plan.capabilities, canDelete: false },
+        };
+        wish = { ...wish, status: 'PLANNED', version: 2 };
+        return json({ plan, wish });
+      }
+      if (
+        url.pathname === `${base}/wishes/${WISH_ID}` &&
+        request.method() === 'GET'
+      )
+        return json(wish);
+      return route.fallback();
+    });
+    await signIn(page);
+    await page.goto(`/plan/plans/${PLAN_ID}`);
+    await expect(
+      page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
+    ).toBeVisible();
+    expect(reads).toBe(0);
+    const trigger = page.locator('.plan-wish-link').getByRole('button', {
+      name: m5s3.plan.linkWish,
+      exact: true,
+    });
+    await expect(trigger).toHaveCount(0);
+    await page
+      .getByRole('button', { name: m5s3.common.edit, exact: true })
+      .click();
+    await trigger.click();
+    const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
+    await sheet.getByRole('radio', { name: WISH_TITLE }).check();
+    expect(writes).toHaveLength(0);
+    await page.screenshot({
+      path: testInfo.outputPath(`wish-link-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await page.keyboard.press('Escape');
+    await expect(sheet).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+    expect(writes).toHaveLength(0);
+    await trigger.click();
+    await sheet.getByRole('radio', { name: WISH_TITLE }).check();
+    await sheet
+      .getByRole('button', { name: m5s3.plan.confirmWishLink })
+      .click();
+    const source = page.getByRole('link', { name: m5s3.plan.openWish });
+    await expect(source).toBeVisible();
+    await expect(sheet).not.toBeVisible();
+    await expect(source).toBeFocused();
+    expect(writes).toHaveLength(1);
+    await expect(
+      page.getByRole('textbox', { name: m5s3.common.description, exact: true }),
+    ).toHaveValue(plan.description);
+    await page.reload();
+    // #1790 F2: the read view presents the source wish above the Plan title.
+    const origin = page.getByRole('link', { name: wishJourney.fromWish });
+    await expect(origin).toBeVisible();
+    await origin.click();
+    await expect(
+      page.getByRole('heading', { name: WISH_TITLE, exact: true }),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(
+      page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
+    ).toBeVisible();
+    expect(writes).toHaveLength(1);
+  });
+}
+
+test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await installMocks(page);
+  await signIn(page);
+
+  // expect.poll aborts on the first thrown error instead of retrying, so a view
+  // that re-renders between resolving the element and measuring it (the map
+  // tab settling into its error state) must count as "not centered yet".
+  const offCenter = async (selector: string) => {
+    const box = await page.locator(`${selector}:visible`).first().boundingBox();
+    if (!box) return Number.POSITIVE_INFINITY;
+    return Math.abs(box.x + box.width / 2 - 960);
+  };
+  const expectCentered = async (selector: string) => {
+    await expect
+      .poll(() => offCenter(selector), {
+        message: `${selector} is laid out and centered in the window`,
+      })
+      .toBeLessThanOrEqual(1);
+  };
+  const shot = (name: string) =>
+    captureScreenshot(page, testInfo, `expanded-centered-${name}.png`);
+
+  await page.goto('/plan');
+  for (const name of [
+    null,
+    m5s3.overview.segmentWishes,
+    importantDates.heading,
+  ]) {
+    if (name) await page.getByRole('tab', { name }).click();
+    await expectCentered('.planen-segmented');
+    await expectCentered('.page.planen-overview');
+    const column = await page.locator('.page.planen-overview').boundingBox();
+    expect(column?.width).toBeLessThanOrEqual(720);
+  }
+  await shot('plan');
+
+  await page.goto('/story');
+  await expectCentered('.story-view-tabs');
+  await shot('story');
+  await page.getByRole('tab', { name: de.story.tabTimeline }).click();
+  await expectCentered('.story-view-tabs');
+  await page.getByRole('tab', { name: memoryMap.entry }).click();
+  await expectCentered('.story-view-tabs');
+
+  for (const [path, selector] of [
+    ['/today', '.new-space-experience'],
+    ['/story/our-story', '.page.relationship-story-page'],
+    ['/search', '.page.m4-product-page'],
+  ] as const) {
+    await page.goto(path);
+    await expectCentered(selector);
+  }
+
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});

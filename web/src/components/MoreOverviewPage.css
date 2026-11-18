@@ -11,6 +11,133 @@
   gap: var(--space-8);
 }
 
+.more-search-entry {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.more-search-entry > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.more-search-entry:focus-visible,
+.more-logout:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.more-profile-label {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.more-destination-subtitle {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.more-destination-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.more-unread-count {
+  min-width: 1.5rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.more-footer {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.more-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-error-surface);
+  color: var(--color-error);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: center;
+}
+
+.more-account-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Deliberately quiet: a support aid, not a destination or an action to notice. */
+.more-account-id {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.more-account-id-action {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  cursor: pointer;
+}
+
+.more-account-id-action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.more-account-id-fallback {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+}
+
+.more-account-id-fallback code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
 .more-group {
   display: grid;
   gap: var(--space-2);
@@ -29,7 +156,25 @@
 .more-destinations {
   margin: 0;
   padding: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
   list-style: none;
+}
+
+.more-destinations > li + li {
+  border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+.more-group-separated .more-destinations {
+  display: grid;
+  gap: var(--space-3);
+  background: transparent;
+}
+
+.more-group-separated .more-destinations > li {
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
 }
 
 .more-destinations > li {
@@ -42,21 +187,13 @@
   grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
   color: var(--color-text);
   text-decoration: none;
   transition:
     color var(--duration-feedback) var(--easing-standard),
     background var(--duration-feedback) var(--easing-standard);
-}
-
-.more-destination-button {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .more-destination:focus-visible {
@@ -78,13 +215,22 @@
 .more-destination-icon > .person-identity {
   display: inline-flex;
 }
+.more-destination.more-profile-destination {
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+}
+.more-profile-avatar,
+.more-profile-avatar > .person-identity {
+  display: inline-flex;
+}
+.more-profile-avatar .person-identity-avatar {
+  border: 0;
+}
 
 .more-destination-icon svg {
   width: 1.35rem;
   height: 1.35rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -133,6 +279,12 @@
   }
 }
 
+.more-destination:is(:active, [data-control-pressed]) {
+  color: var(--color-brand-text);
+  background: var(--color-surface-subtle);
+  transition: none;
+}
+
 @media (max-width: 389px) {
   .more-groups {
     gap: var(--space-6);
@@ -153,4 +305,92 @@
   .more-destination {
     transition: none;
   }
+}
+
+.more-logout svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.more-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-block: var(--space-2);
+  font: var(--font-supporting-copy);
+}
+
+.more-legal a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
+.more-brand-signature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-block: var(--space-2) var(--space-6);
+}
+.more-brand-signature::before,
+.more-brand-signature::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--color-border-subtle);
+}
+
+/* More owns one shared surface language for all of its child routes. */
+.product-main[data-area="more"] > .page {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+/* Secondary titles use the shared subpage title role (#1907 C4); other More
+   headings keep the UI face. */
+.product-main[data-area="more"]
+  .page-heading:not(.page-heading-root, .page-heading-secondary)
+  h1 {
+  font-family: var(--font-ui);
+  overflow-wrap: anywhere;
+}
+.product-main[data-area="more"] .settings-category-list {
+  display: grid;
+  gap: var(--space-3);
+  border: 0;
+}
+.product-main[data-area="more"] .settings-category-link {
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+/* On the settings overview a group is one raised surface; its rows are
+   separated by hairlines instead of each being its own card. */
+.product-main[data-area="more"] .settings-index .settings-category-list {
+  display: grid;
+  overflow: hidden;
+  gap: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+.product-main[data-area="more"]
+  .settings-index
+  .settings-category-list
+  > li
+  + li {
+  border-top: 1px solid var(--color-border-subtle);
+}
+.product-main[data-area="more"] .settings-index .settings-category-link {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0;
+  background: transparent;
+}
+.product-main[data-area="more"] .settings-category-content > .settings-section,
+.product-main[data-area="more"] .settings-category-content > .form-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
 }

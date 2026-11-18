@@ -1,0 +1,102 @@
+{
+  "productionSource": "02398cab5d71f45d4e7747b5dec50ead3c266172",
+  "validationHead": "610ba86aaa2256f2ed2573721e3fd296e178843a",
+  "base": "f334067cff7b2c7638571a3fd50db52ddcaf8633",
+  "captures": [
+    {
+      "file": "shell-soft-composer-360-light.png",
+      "journey": "media-planning-corrections-2b3fb-sible-composer-at-360-light-chromium",
+      "sha256": "e8429f4e11f1ed74e701547607c154d2935ad50416b9fadcf1070cb6cd3e7f28"
+    },
+    {
+      "file": "shell-unified-source-choice-360-light.png",
+      "journey": "media-planning-corrections-2b3fb-sible-composer-at-360-light-chromium",
+      "sha256": "d0225da6b6f438de1c519f5062bfaba1cf6414a2eb0d44ebd742dc42494698f9"
+    },
+    {
+      "file": "shell-soft-composer-390-dark.png",
+      "journey": "media-planning-corrections-1d287-ssible-composer-at-390-dark-chromium",
+      "sha256": "5e24fa0b6c7f27ecba6154395340fdc073f1e96f94d0c063ed6dc12ae8172d37"
+    },
+    {
+      "file": "shell-unified-source-choice-390-dark.png",
+      "journey": "media-planning-corrections-1d287-ssible-composer-at-390-dark-chromium",
+      "sha256": "3075f575049720adcf3db1908320f26e070dc964022ff08f6cd9f34bbf6ca4c6"
+    },
+    {
+      "file": "shell-soft-composer-430-light.png",
+      "journey": "media-planning-corrections-9793a-sible-composer-at-430-light-chromium",
+      "sha256": "9bfd30991eb29dd4bf3ffc25532cbaae295a5c499861368a4f68a04c44b58212"
+    },
+    {
+      "file": "shell-unified-source-choice-430-light.png",
+      "journey": "media-planning-corrections-9793a-sible-composer-at-430-light-chromium",
+      "sha256": "28460f76e11e5c0594ff128042962320e5c2a0532ab6f1fa57acfc09497d4485"
+    },
+    {
+      "file": "shell-soft-composer-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "32b8b9178b110ed72d97eb84717168c961ba068991bad5ab94e1a760a506fb32"
+    },
+    {
+      "file": "shell-unified-source-choice-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "a85574b22159315f7b60810ea86492835d4e25a224deb4fb58b0abda3896a1c1"
+    },
+    {
+      "file": "shell-soft-composer-320-light.png",
+      "journey": "media-planning-corrections-8db8f-sible-composer-at-320-light-chromium",
+      "sha256": "1ec86face1e1a74060e7e05380bb7acac4b11bca0fc968e338b5f999e465c390"
+    },
+    {
+      "file": "shell-unified-source-choice-320-light.png",
+      "journey": "media-planning-corrections-8db8f-sible-composer-at-320-light-chromium",
+      "sha256": "5f7822bb7e4d07f690be5ac783007717604babaf7c50b2ffce78cd2361d8e4ea"
+    },
+    {
+      "file": "shell-heart-moment-create-reference-390-light.png",
+      "journey": "heart-moment-create-produc-7a093--Compact-composition-light--chromium",
+      "sha256": "d8a4ff3c3c0440d1b349340fbd73efc78a02a0d77ed683318778b2513619aade"
+    },
+    {
+      "file": "shell-heart-moment-create-reference-390-dark.png",
+      "journey": "heart-moment-create-produc-5df13-7-Compact-composition-dark--chromium",
+      "sha256": "af4729a1031d10e7ac6ba4624be13b30abbc5c58e664a6f5175d5763499593ac"
+    },
+    {
+      "file": "shell-composer-media-390-dark.png",
+      "journey": "media-planning-corrections-7ef2d-d-cover-through-save-at-390-chromium",
+      "sha256": "c4ee76d0555290f183985eb41ffcae5d8e01655e031039517db34e1437b270a8"
+    },
+    {
+      "file": "shell-composer-media-1280-light.png",
+      "journey": "media-planning-corrections-6f1fd--cover-through-save-at-1280-chromium",
+      "sha256": "58e2d424b03530eba3d01b4dc477ef86f2feab1c8a8538494e7720a0af44aea4"
+    },
+    {
+      "file": "shell-soft-composer-plan-create-430-light.png",
+      "journey": "media-planning-corrections-9793a-sible-composer-at-430-light-chromium",
+      "sha256": "ab73c34e692586f3fdbba233a549bf6b3f033426a7a468fe35d4773f044a9b7b"
+    },
+    {
+      "file": "shell-soft-composer-plan-edit-390-dark.png",
+      "journey": "media-planning-corrections-1d287-ssible-composer-at-390-dark-chromium",
+      "sha256": "583cf1a57996b5b4bfc3de75fc49c7830b92286944ccc088d1dc1578d1a5cc20"
+    },
+    {
+      "file": "shell-soft-composer-memory-edit-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "65bff4c259424b90185a06fe6c4e97f252188af8ff8fc80363c3c54bfd648bcf"
+    },
+    {
+      "file": "arrange-390-light.png",
+      "journey": "memory-experiences / period, independent cover and arrange-save-return at 390 light (scroll synchronization correction)",
+      "sha256": "b0c2ebde1a9ac879dbbc8577451f24a2f58a1ef1047150f8b8c392b4f81b18e3"
+    },
+    {
+      "file": "arrange-390-dark.png",
+      "journey": "memory-experiences / period, independent cover and arrange-save-return at 390 dark (20 photos, six-thumbnail disclosure)",
+      "sha256": "e1d0f4499ddadae91df7a83b637bfd12af56fc56b3fb1610405e059d609f7d21"
+    }
+  ]
+}

@@ -22,6 +22,7 @@
  * @export
  */
 export const DailyVibe = {
+    VERY_GOOD: 'VERY_GOOD',
     GOOD: 'GOOD',
     OKAY: 'OKAY',
     STRESSED: 'STRESSED',

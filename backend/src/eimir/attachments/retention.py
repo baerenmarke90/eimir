@@ -14,6 +14,7 @@ from eimir.authorization import PrivacyClass
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.people.models import RelatedPerson
+from eimir.plans.models import Plan
 
 
 class OwnerAttachmentBinding(StrEnum):
@@ -29,7 +30,7 @@ class OwnerAttachmentBinding(StrEnum):
 def _resource_binding(
     session: Session,
     *,
-    model: type[Memory] | type[HeartMoment] | type[RelatedPerson],
+    model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan],
     parent_id: UUID,
     account_id: UUID,
     attachment_space_id: UUID | None,
@@ -78,6 +79,18 @@ def classify_owner_attachment(
         return OwnerAttachmentBinding.UNBOUND
 
     parent_type, parent_id = parent
+    if parent_type == "HEART_HUNT_ROUND":
+        # The hider's round photo is deleted with the hider's account.
+        from eimir.heart_hunt.models import HeartHuntRound
+
+        hider_id = session.scalar(
+            select(HeartHuntRound.hider_id).where(HeartHuntRound.id == parent_id)
+        )
+        return (
+            OwnerAttachmentBinding.OWNER_PRIVATE
+            if hider_id == account_id
+            else OwnerAttachmentBinding.INCONSISTENT
+        )
     if parent_type == "ACCOUNT_PROFILE":
         return (
             OwnerAttachmentBinding.ACCOUNT_PROFILE
@@ -96,6 +109,14 @@ def classify_owner_attachment(
         return _resource_binding(
             session,
             model=HeartMoment,
+            parent_id=parent_id,
+            account_id=account_id,
+            attachment_space_id=attachment.space_id,
+        )
+    if parent_type == "PLAN":
+        return _resource_binding(
+            session,
+            model=Plan,
             parent_id=parent_id,
             account_id=account_id,
             attachment_space_id=attachment.space_id,

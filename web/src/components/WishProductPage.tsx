@@ -1,20 +1,35 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import './FreeComposer.css';
+import './PageComposerDetail.css';
 import {
+  onlineManager,
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { WishUpdate } from '../api/generated/models/WishUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import {
   appRoutePath,
   MEMORY_CREATE_ROUTE,
   planDetailPath,
+  wishDetailPath,
 } from '../client/routes';
 import {
   loadAllPlaces,
@@ -22,14 +37,30 @@ import {
   planScheduleFromInputs,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
+import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { ContextTagList } from './ContextTagList';
+import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
+import {
+  PlanningDiscardSheet,
+  usePlanningEditorLifecycle,
+} from './PlanningEditorLifecycle';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useWishCompletion } from './useWishCompletion';
+import { WishComposer } from './WishComposer';
+import { WishDateProposalAction } from './WishDateProposalAction';
+import { WishJourneyPath } from './WishJourney';
+import { WishReminderAction } from './WishReminderAction';
+import { WishRepeatSheet } from './WishRepeatSheet';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -42,9 +73,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 }
 
 export function WishProductPage({
+  accountId,
+  apiBaseUrl,
   apis,
   spaceId,
 }: {
+  accountId?: string;
+  apiBaseUrl?: string;
   apis: SharedPlanningApis;
   spaceId: string;
 }) {
@@ -57,12 +92,45 @@ export function WishProductPage({
   const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const [repeatOpen, setRepeatOpen] = useState(false);
+  const repeatTrigger = useRef<HTMLButtonElement>(null);
+  const [editSnapshot, setEditingWish] = useState<WishDetail | null>(null);
+  const editingWish =
+    editSnapshot &&
+    editSnapshot.id === wishId &&
+    editSnapshot.spaceId === spaceId
+      ? editSnapshot
+      : null;
+  const isEditing = editingWish !== null;
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [tagDraftDirty, setTagDraftDirty] = useState(false);
+  const tagEditor = useRef<ContextTagEditorHandle>(null);
+  const editFocus = useRef<HTMLDivElement>(null);
+  const editTrigger = useRef<HTMLButtonElement>(null);
   const [dismissedCompletion, setDismissedCompletion] =
     useState<WishDetail | null>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const backLinkRef = useRef<HTMLButtonElement>(null);
+  // "Plan now" on a date idea that is already a Wish opens this canonical
+  // conversion with the idea's editable plan title; nothing is saved before
+  // the couple confirms.
+  const [convertDraft] = useState(
+    () => resolveOrigin(originKey)?.planningConvertDraft,
+  );
+  const convertHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (convertDraft)
+      convertHeadingRef.current?.scrollIntoView({ block: 'start' });
+  }, [convertDraft]);
   const key = authorSummaryQueryKeys.wishDetail(spaceId, wishId);
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    isClientOnline,
+    () => true,
+  );
 
   const wishWriteKey = ['wish-write', spaceId, wishId] as const;
   const otherWritePending =
@@ -72,10 +140,30 @@ export function WishProductPage({
   const showCompletionContinuation =
     completion.confirmedResult !== null &&
     completion.confirmedResult !== dismissedCompletion;
+  const editDirty = Boolean(
+    editingWish &&
+      (editTitle !== editingWish.title ||
+        editDescription !== (editingWish.description ?? '') ||
+        tagDraftDirty ||
+        editTags.length !== (editingWish.tags?.length ?? 0) ||
+        editTags.some((tag, index) => tag !== editingWish.tags?.[index])),
+  );
+  const editorLifecycle = usePlanningEditorLifecycle({
+    isActive: isEditing,
+    isDirty: editDirty,
+    isPending: writesPending,
+    initialFocusRef: editFocus,
+    restoreFocusRef: editTrigger,
+    onEscape: () => Boolean(document.querySelector('dialog[open]')),
+    onClose: () => {
+      setEditingWish(null);
+      setConfirmDelete(false);
+    },
+  });
 
   useEffect(() => {
     if (!completion.confirmedResult) return;
-    setIsEditing(false);
+    setEditingWish(null);
     setConfirmDelete(false);
   }, [completion.confirmedResult]);
 
@@ -104,22 +192,33 @@ export function WishProductPage({
 
   const updateMutation = useMutation({
     mutationKey: wishWriteKey,
-    mutationFn: ({ wish, title }: { wish: WishDetail; title: string }) =>
-      apiCall(() =>
+    networkMode: 'always',
+    mutationFn: ({
+      wish,
+      update,
+    }: {
+      wish: WishDetail;
+      update: WishUpdate;
+    }) => {
+      assertOnlineWrite();
+      return apiCall(() =>
         apis.wishes.updateWish({
           spaceId,
           wishId: wish.id,
           ifMatch: planningIfMatch(wish),
-          wishUpdate: { title },
+          wishUpdate: update,
         }),
-      ),
+      );
+    },
     onSuccess: async (wish) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['context-tags', spaceId],
+      });
       queryClient.setQueryData(key, wish);
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
       });
-      setIsEditing(false);
-      setConfirmDelete(false);
+      editorLifecycle.closeConfirmed();
     },
   });
 
@@ -173,20 +272,30 @@ export function WishProductPage({
 
   const deleteMutation = useMutation({
     mutationKey: wishWriteKey,
-    mutationFn: (wish: WishDetail) =>
-      apiCall(() =>
+    networkMode: 'always',
+    mutationFn: (wish: WishDetail) => {
+      assertOnlineWrite();
+      return apiCall(() =>
         apis.wishes.deleteWish({
           spaceId,
           wishId: wish.id,
           ifMatch: planningIfMatch(wish),
         }),
-      ),
+      );
+    },
     onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: key });
+      await queryClient.invalidateQueries({
+        queryKey: ['context-tags', spaceId],
+      });
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
       });
-      navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+      deleteSheet.current?.closeForNavigation(() => {
+        editorLifecycle.closeConfirmed(() => {
+          queryClient.removeQueries({ queryKey: key });
+          navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+        });
+      });
     },
   });
 
@@ -219,11 +328,24 @@ export function WishProductPage({
   }
   const wish = wishQuery.data;
   if (!wish) return null;
+
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!wish || isWishWritePending()) return;
-    const data = new FormData(event.currentTarget);
-    updateMutation.mutate({ wish, title: String(data.get('title')).trim() });
+    const title = editTitle.trim();
+    if (!editingWish || !title || isWishWritePending()) return;
+    const tags = tagEditor.current?.commitDraft();
+    if (!tags) return;
+    const description = editDescription.trim() || null;
+    updateMutation.mutate({
+      wish: editingWish,
+      update: {
+        title,
+        tags,
+        ...(description !== (editingWish.description ?? null)
+          ? { description }
+          : {}),
+      },
+    });
   }
 
   function submitConvert(event: FormEvent<HTMLFormElement>) {
@@ -264,20 +386,115 @@ export function WishProductPage({
     setDismissedCompletion(completion.confirmedResult);
   }
 
-  return (
-    <div className="page planning-page wish-detail">
-      {isEditing ? (
-        <form
-          id="wish-edit-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitEdit(e);
-          }}
+  if (editingWish) {
+    return (
+      <WishComposer
+        key={editingWish.id}
+        wishId={editingWish.id}
+        title={editTitle}
+        description={editDescription}
+        tags={editTags}
+        tagEditorRef={tagEditor}
+        focusRef={editFocus}
+        disabled={writesPending}
+        saving={updateMutation.isPending}
+        onTitleChange={setEditTitle}
+        onDescriptionChange={setEditDescription}
+        onTagsChange={setEditTags}
+        onTagDraftChange={setTagDraftDirty}
+        onSubmit={submitEdit}
+        onClose={editorLifecycle.requestClose}
+      >
+        {updateMutation.error ? (
+          <ProblemState
+            error={updateMutation.error}
+            onRetry={
+              clientProblemKind(updateMutation.error) === 'conflict'
+                ? () => {
+                    void wishQuery.refetch().then(({ data, error }) => {
+                      if (data && !error) {
+                        setEditingWish((current) =>
+                          current === editingWish
+                            ? { ...editingWish, version: data.version }
+                            : current,
+                        );
+                      }
+                    });
+                  }
+                : undefined
+            }
+          />
+        ) : null}
+        {wish.capabilities.canDelete ? (
+          <div>
+            <button
+              type="button"
+              className="tertiary"
+              disabled={writesPending}
+              onClick={() => {
+                if (isWishWritePending()) return;
+                deleteMutation.reset();
+                setConfirmDelete(true);
+              }}
+            >
+              {t('m5s3.common.delete')}
+            </button>
+          </div>
+        ) : null}
+        <ShortTaskSheet
+          ref={deleteSheet}
+          open={confirmDelete}
+          title={t('m5s3.common.deleteHeading')}
+          role="alertdialog"
+          isCloseBlocked={writesPending}
+          onClose={() => setConfirmDelete(false)}
+        >
+          <p>{t('m5s3.wish.deleteConsequence')}</p>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={writesPending}
+              onClick={() => deleteSheet.current?.requestClose()}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              className="danger"
+              disabled={writesPending}
+              onClick={() => {
+                if (!isWishWritePending()) deleteMutation.mutate(wish);
+              }}
+            >
+              {deleteMutation.isPending
+                ? t('m5s3.common.deleting')
+                : t('m5s3.common.confirmDelete')}
+            </button>
+          </div>
+          {deleteMutation.error ? (
+            <ProblemState
+              error={deleteMutation.error}
+              onRetry={() => void wishQuery.refetch()}
+            />
+          ) : null}
+        </ShortTaskSheet>
+        <PlanningDiscardSheet
+          open={editorLifecycle.showDiscardConfirm}
+          onKeepEditing={editorLifecycle.keepEditing}
+          onDiscard={editorLifecycle.discard}
         />
-      ) : null}
+      </WishComposer>
+    );
+  }
+
+  return (
+    <div className="page planning-page wish-detail page-composer-detail">
       <PageHeader
+        variant="composer"
         before={
-          <button
+          <TaskBackButton
+            inline
             type="button"
             ref={backLinkRef}
             className="back-link tertiary"
@@ -290,38 +507,50 @@ export function WishProductPage({
                 ? 'taskBoundary.back'
                 : 'm5s3.common.back',
             )}
-          </button>
+          </TaskBackButton>
         }
-        eyebrow={t('m5s3.wish.detailEyebrow')}
-        title={wish.title}
-        titleEditor={
-          isEditing ? (
-            <input
-              form="wish-edit-form"
-              name="title"
-              required
-              maxLength={200}
-              defaultValue={wish.title}
-              readOnly={writesPending}
-              aria-label={t('m5s3.common.title')}
-            />
-          ) : undefined
-        }
-        description={t(`m5s3.wish.status.${wish.status}`)}
-        titleAction={
-          wish.capabilities.canEdit && !isEditing ? (
+        title={t('m5s3.wish.detailEyebrow')}
+        action={
+          wish.capabilities.canEdit ? (
             <ListEntryIconButton
+              ref={editTrigger}
               icon="edit"
-              className="tertiary"
+              className="tertiary composer-detail-edit"
               label={t('common.edit')}
               onClick={() => {
-                if (!isWishWritePending()) setIsEditing(true);
+                if (isWishWritePending()) return;
+                updateMutation.reset();
+                setEditTitle(wish.title);
+                setEditDescription(wish.description ?? '');
+                setEditTags(wish.tags ?? []);
+                setTagDraftDirty(false);
+                setEditingWish(wish);
               }}
               disabled={writesPending}
             />
           ) : undefined
         }
       />
+      <h2 className="detail-content-title">{wish.title}</h2>
+
+      <WishJourneyPath
+        className="wish-detail-journey"
+        stage={wishJourneyStage(wish)}
+        advancing={showCompletionContinuation}
+      />
+      {wish.status === 'PLANNED' && wish.plan ? (
+        <Link
+          className="button-link button-link-primary wish-detail-plan-action"
+          to={planDetailPath(wish.plan.id)}
+        >
+          {(() => {
+            const date = wishPlanDateLabel(wish.plan);
+            return date
+              ? t('wishJourney.openPlanOn', { date })
+              : t('wishJourney.openPlan');
+          })()}
+        </Link>
+      ) : null}
 
       {completion.pendingRequest ? (
         <p className="planen-detail-pending" role="status">
@@ -329,6 +558,48 @@ export function WishProductPage({
         </p>
       ) : null}
 
+      {wish.description ? (
+        <div className="page-reading planen-section planen-section-content">
+          <ExpandableDescription
+            text={wish.description}
+            previewApi={apis.linkPreviews}
+            spaceId={spaceId}
+            scope={JSON.stringify([apiBaseUrl, accountId, wish.id])}
+            offline={!online}
+          />
+        </div>
+      ) : null}
+      <ContextTagList tags={wish.tags} />
+      {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+        <WishReminderAction
+          key={`${apiBaseUrl}:${accountId}:${spaceId}:${wish.id}`}
+          accountId={accountId}
+          apiBaseUrl={apiBaseUrl}
+          spaceId={spaceId}
+          wishId={wish.id}
+          api={apis.wishes}
+        />
+      ) : null}
+      {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+        <WishDateProposalAction
+          key={JSON.stringify([apiBaseUrl, accountId, spaceId, wish.id])}
+          accountId={accountId}
+          apiBaseUrl={apiBaseUrl}
+          api={apis.wishes}
+          online={online}
+          spaceId={spaceId}
+          wishId={wish.id}
+          writesPending={writesPending}
+          onAccept={(planId) =>
+            navigate(planDetailPath(planId), {
+              replace: true,
+              state: resolveOrigin(originKey)
+                ? { taskOriginKey: originKey }
+                : undefined,
+            })
+          }
+        />
+      ) : null}
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
           <section
@@ -359,104 +630,50 @@ export function WishProductPage({
         ) : null}
 
         {wish.status === 'COMPLETED' && !showCompletionContinuation ? (
-          <section className="planning-subsection">
+          <section className="planning-subsection wish-completed-section">
             <p>{t('m5s3.wish.completedBody')}</p>
-          </section>
-        ) : null}
-
-        {isEditing ? (
-          <section className="planning-subsection">
-            <h2>{t('m5s3.common.edit')}</h2>
-            <div className="form-grid">
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                <button
-                  form="wish-edit-form"
-                  type="submit"
+            {wish.capabilities.canEdit ? (
+              <>
+                <AddActionButton
+                  ref={repeatTrigger}
+                  className="wish-repeat-action"
+                  label={t('wishRepeat.action')}
+                  icon="sparkle"
                   disabled={writesPending}
-                >
-                  {updateMutation.isPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.common.saveChanges')}
-                </button>
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setConfirmDelete(false);
-                  }}
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-              {updateMutation.error ? (
-                <ProblemState
-                  error={updateMutation.error}
-                  onRetry={() => void wishQuery.refetch()}
+                  onClick={() => setRepeatOpen(true)}
                 />
-              ) : null}
-            </div>
-
-            {wish.capabilities.canDelete ? (
-              <div style={{ marginTop: 'var(--space-8)' }}>
-                {!confirmDelete ? (
-                  <button
-                    type="button"
-                    className="button-link danger-link"
-                    onClick={() => {
-                      if (!isWishWritePending()) setConfirmDelete(true);
-                    }}
-                    disabled={writesPending}
-                  >
-                    {t('m5s3.common.delete')}
-                  </button>
-                ) : (
-                  <section
-                    className="planning-danger-zone"
-                    aria-labelledby="wish-delete-heading"
-                  >
-                    <h2 id="wish-delete-heading">
-                      {t('m5s3.common.deleteHeading')}
-                    </h2>
-                    <p>{t('m5s3.wish.deleteConsequence')}</p>
-                    <div className="planning-confirm-row">
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => {
-                          if (!isWishWritePending())
-                            deleteMutation.mutate(wish);
-                        }}
-                        disabled={writesPending}
-                      >
-                        {deleteMutation.isPending
-                          ? t('m5s3.common.deleting')
-                          : t('m5s3.common.confirmDelete')}
-                      </button>
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => setConfirmDelete(false)}
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                    {deleteMutation.error ? (
-                      <ProblemState
-                        error={deleteMutation.error}
-                        onRetry={() => void wishQuery.refetch()}
-                      />
-                    ) : null}
-                  </section>
-                )}
-              </div>
+                <WishRepeatSheet
+                  key={wish.id}
+                  apis={apis}
+                  spaceId={spaceId}
+                  source={wish}
+                  open={repeatOpen}
+                  restoreFocusRef={repeatTrigger}
+                  onClose={() => setRepeatOpen(false)}
+                  onDone={(result, handle) =>
+                    handle.closeForNavigation(() => {
+                      setRepeatOpen(false);
+                      navigate(
+                        result.planId
+                          ? planDetailPath(result.planId)
+                          : wishDetailPath(result.wish.id),
+                      );
+                    })
+                  }
+                />
+              </>
             ) : null}
           </section>
         ) : null}
 
         {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
-          <details className="planen-operations wish-operations">
-            <summary>{t('m5s3.wish.actionsHeading')}</summary>
+          <details
+            className="planen-operations wish-operations"
+            open={convertDraft ? true : undefined}
+          >
+            <summary className="button-link">
+              {t('m5s3.wish.actionsHeading')}
+            </summary>
             <section className="planning-subsection">
               <h2>{t('m5s3.wish.completeHeading')}</h2>
               <p>{t('m5s3.wish.completeIntro')}</p>
@@ -480,9 +697,12 @@ export function WishProductPage({
               ) : null}
             </section>
             <section className="planning-subsection">
-              <h2>{t('m5s3.wish.convertHeading')}</h2>
+              <h2 ref={convertHeadingRef}>{t('m5s3.wish.convertHeading')}</h2>
               <p>{t('m5s3.wish.convertIntro')}</p>
-              <form className="form-grid" onSubmit={submitConvert}>
+              <form
+                className="form-grid free-composer"
+                onSubmit={submitConvert}
+              >
                 <fieldset
                   className="planen-lifecycle-fieldset"
                   disabled={writesPending}
@@ -495,6 +715,7 @@ export function WishProductPage({
                     name="title"
                     maxLength={200}
                     placeholder={wish.title}
+                    defaultValue={convertDraft?.title}
                   />
                   <label htmlFor="wish-plan-description">
                     {t('m5s3.common.description')}
@@ -503,6 +724,7 @@ export function WishProductPage({
                     id="wish-plan-description"
                     name="description"
                     rows={4}
+                    defaultValue={convertDraft?.description}
                   />
                   <label htmlFor="wish-plan-place">
                     {t('m5s3.common.place')}

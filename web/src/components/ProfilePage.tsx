@@ -1,3 +1,5 @@
+import { Navigate, useLocation } from 'react-router-dom';
+import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useMemo, useState } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -20,6 +22,7 @@ export interface ProfilePageProps {
 
 export function ProfilePage(props: ProfilePageProps) {
   const { t } = useTranslation();
+  const location = useLocation();
   const [displayName, setDisplayName] = useState(props.account.displayName);
   const currentAccount = useMemo(
     () => ({ ...props.account, displayName }),
@@ -43,19 +46,12 @@ export function ProfilePage(props: ProfilePageProps) {
     [configuration],
   );
 
+  if (location.hash === '#profile-premium')
+    return <Navigate replace to={PRO_INFORMATION_ROUTE} />;
+
   return (
     <div className="page profile-page">
-      <PageHeader
-        eyebrow={t('profiles.eyebrow')}
-        title={t('profiles.title')}
-        description={t('profiles.intro')}
-      />
-
-      {/* Relationship compact badge/row (if anniversary date is configured) */}
-      <RelationshipSummarySection
-        spacesApi={spacesApi}
-        spaceId={props.spaceId}
-      />
+      <PageHeader title={t('profiles.title')} />
 
       {/* 1. Identity panel for current user */}
       <ProfileIdentityPanel
@@ -65,36 +61,14 @@ export function ProfilePage(props: ProfilePageProps) {
         }}
       />
 
+      {/* Relationship compact badge/row (if anniversary date is configured) */}
+      <RelationshipSummarySection
+        spacesApi={spacesApi}
+        spaceId={props.spaceId}
+      />
+
       {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
       <ProfilePreferencesSection {...currentProps} />
-
-      {/* 3. Account-level Premium information stays factual and secondary. */}
-      <section
-        id="profile-premium"
-        className="profile-premium-section"
-        aria-labelledby="profile-premium-title"
-      >
-        <p className="eyebrow">{t('profiles.premium.eyebrow')}</p>
-        <div className="profile-premium-title-row">
-          <h2 id="profile-premium-title">{t('profiles.premium.title')}</h2>
-          <span className="profile-premium-badge">
-            {t('profiles.premium.badge')}
-          </span>
-        </div>
-        <p className="profile-premium-lead">
-          {t('profiles.premium.gamesTitle')}
-        </p>
-        <p className="profile-section-intro">
-          {t('profiles.premium.gamesBody')}
-        </p>
-        <details className="profile-premium-details">
-          <summary>{t('profiles.premium.action')}</summary>
-          <div className="profile-premium-details-copy">
-            <strong>{t('profiles.premium.detailsTitle')}</strong>
-            <p>{t('profiles.premium.detailsBody')}</p>
-          </div>
-        </details>
-      </section>
     </div>
   );
 }

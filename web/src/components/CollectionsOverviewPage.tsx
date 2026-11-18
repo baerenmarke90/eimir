@@ -1,23 +1,42 @@
-import { type FormEvent, useEffect, useRef } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
+import type { CollectionScope } from '../api/generated/models/CollectionScope';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import type { CollectionKind } from '../api/generated/models/CollectionKind';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type DeleteFocusTarget,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
-import { normalizeClientError } from '../client/problemDetails';
-import { appRoutePath, collectionDetailPath } from '../client/routes';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DefaultShoppingListCard } from './DefaultShoppingListCard';
+import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
+import { StatusScope } from './StatusScope';
 import './SharedPlanningPages.css';
+import './SharedContentPages.css';
 
 const PAGE_SIZE = 20;
 
@@ -38,23 +57,44 @@ function nextCursor<T>(page: PageShape<T>): string | undefined {
 export function CollectionsOverviewPage({
   apis,
   spaceId,
+  initialCreate = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  initialCreate?: boolean;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope: CollectionScope =
+    searchParams.get('scope') === 'COMPLETED'
+      ? 'COMPLETED'
+      : searchParams.get('scope') === 'ALL'
+        ? 'ALL'
+        : 'OPEN';
+  const createInFlightRef = useRef(false);
+  const openingCreatedRef = useRef(false);
+  const [createOpen, setCreateOpen] = useState(initialCreate);
+  const { requestReturn, captureOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const [createDirty, setCreateDirty] = useState(false);
+  const [createKind, setCreateKind] = useState<CollectionKind>('GENERIC');
+  const createSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const createActionRef = useRef<HTMLElement>(null);
+  const createActionRef = useRef<HTMLButtonElement>(null);
   const collectionRefs = useRef(new Map<string, HTMLAnchorElement>());
   const restoredDeleteFocusRef = useRef(false);
 
-  const collections = useInfiniteQuery({
-    queryKey: ['m5-s3', 'collections', spaceId],
+  const collections = useWarmInfiniteQuery({
+    queryKey: authorSummaryQueryKeys.collectionOverview(spaceId, scope),
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.collections.listCollections({
           spaceId,
+          scope,
           cursor: pageParam,
           limit: PAGE_SIZE,
         }),
@@ -65,13 +105,19 @@ export function CollectionsOverviewPage({
   });
 
   const createCollection = useMutation({
-    mutationFn: (title: string) =>
-      apiCall(() =>
-        apis.collections.createCollection({
+    onSettled: () => {
+      createInFlightRef.current = false;
+    },
+    networkMode: 'always',
+    mutationFn: ({ title, kind }: { title: string; kind: CollectionKind }) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.collections.createCollection({
           spaceId,
-          collectionCreate: { title },
-        }),
-      ),
+          // A plain list sends no kind, exactly as before shopping lists.
+          collectionCreate: kind === 'SHOPPING' ? { title, kind } : { title },
+        });
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'collections', spaceId],
@@ -98,24 +144,98 @@ export function CollectionsOverviewPage({
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createInFlightRef.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    createCollection.mutate(String(data.get('title')).trim(), {
-      onSuccess: () => form.reset(),
-    });
+    const isCurrentQuery = captureQueryIdentity(
+      queryClient,
+      authorSummaryQueryKeys.collectionOverview(spaceId, scope),
+    );
+    createInFlightRef.current = true;
+    createCollection.mutate(
+      { title: String(data.get('title')).trim(), kind: createKind },
+      {
+        onSuccess: (created) => {
+          if (
+            !isCurrentQuery() ||
+            ['unauthorized', 'permission', 'notFound'].includes(
+              clientProblemKind(
+                queryClient.getQueryState(
+                  authorSummaryQueryKeys.collectionOverview(spaceId, scope),
+                )?.error,
+              ),
+            )
+          )
+            return;
+          form.reset();
+          setCreateDirty(false);
+          queryClient.setQueryData(
+            authorSummaryQueryKeys.collectionDetail(spaceId, created.id),
+            created,
+          );
+          openingCreatedRef.current = true;
+          createSheetRef.current?.closeForNavigation(() =>
+            navigate(collectionDetailPath(created.id), {
+              state: initialCreate
+                ? location.state
+                : { taskOriginKey: captureOrigin() },
+              replace: initialCreate,
+            }),
+          );
+        },
+      },
+    );
   }
 
   return (
-    <div className="page planning-page planning-sanctuary">
+    <div className="page shared-content-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('more')}>
-            {t('m5s3.common.backToMore')}
-          </Link>
+        className="content-overview-heading"
+        title={t('m5s3.collection.overviewHeading')}
+        action={
+          <AddActionButton
+            floating
+            label={t('m5s3.collection.create')}
+            icon="listen"
+            ref={createActionRef}
+            id="collection-title"
+            onClick={() => {
+              createCollection.reset();
+              setCreateKind('GENERIC');
+              setCreateOpen(true);
+            }}
+          />
         }
-        eyebrow={t('navigation.more')}
-        title={t('m5s3.collection.heading')}
-        description={t('m5s3.collection.intro')}
+      />
+
+      <DefaultShoppingListCard
+        apis={apis}
+        spaceId={spaceId}
+        onCreated={(created) =>
+          navigate(collectionDetailPath(created.id), {
+            state: { taskOriginKey: captureOrigin() },
+          })
+        }
+      />
+
+      <StatusScope<CollectionScope>
+        label={t('m5s3.collection.scopeLabel')}
+        value={scope}
+        options={(['OPEN', 'COMPLETED', 'ALL'] as const).map((value) => ({
+          value,
+          label: t(`m5s3.collection.scope.${value}`),
+        }))}
+        onChange={(next) =>
+          setSearchParams(
+            (previous) => {
+              const params = new URLSearchParams(previous);
+              if (next === 'OPEN') params.delete('scope');
+              else params.set('scope', next);
+              return params;
+            },
+            { replace: true },
+          )
+        }
       />
 
       <section className="planning-subsection">
@@ -132,9 +252,9 @@ export function CollectionsOverviewPage({
         {collectionItems.length === 0 &&
         !collections.isLoading &&
         !collections.error ? (
-          <p className="planning-empty">{t('m5s3.collection.emptyOverview')}</p>
+          <p className="planning-empty">{t('m5s3.collection.emptyScope')}</p>
         ) : (
-          <ul className="planning-list">
+          <ul className="content-overview-list content-overview-lists">
             {collectionItems.map((collection) => (
               <li className="planning-card-item" key={collection.id}>
                 <Link
@@ -143,12 +263,51 @@ export function CollectionsOverviewPage({
                       collectionRefs.current.set(collection.id, element);
                     else collectionRefs.current.delete(collection.id);
                   }}
-                  className="planning-card planning-card-link"
+                  className="content-overview-row"
                   to={collectionDetailPath(collection.id)}
+                  onClick={(event) => {
+                    if (
+                      event.button ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.altKey ||
+                      event.shiftKey
+                    )
+                      return;
+                    event.preventDefault();
+                    void navigate(collectionDetailPath(collection.id), {
+                      state: {
+                        taskOriginKey: captureOrigin({
+                          selectedKey: collection.id,
+                        }),
+                      },
+                    });
+                  }}
                 >
-                  <div className="planning-card-copy">
-                    <h3>{collection.title}</h3>
+                  <span className="content-overview-icon">
+                    <DestinationIcon icon="collections" />
+                  </span>
+                  <div className="content-overview-copy">
+                    <h2>{collection.title}</h2>
+                    <p>
+                      {t('m5s3.collection.progress', {
+                        count: collection.items.length,
+                        completed: collection.items.filter(
+                          (item) => item.completed,
+                        ).length,
+                      })}
+                    </p>
+                    {collection.items.length ? (
+                      <p className="content-overview-preview">
+                        {[...collection.items]
+                          .sort((a, b) => a.position - b.position)
+                          .slice(0, 3)
+                          .map((item) => item.title)
+                          .join(' · ')}
+                      </p>
+                    ) : null}
                   </div>
+                  <ContentChevron />
                 </Link>
               </li>
             ))}
@@ -156,45 +315,87 @@ export function CollectionsOverviewPage({
         )}
 
         {collections.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={collections}
             className="tertiary compact-action"
-            onClick={() => void collections.fetchNextPage()}
-            disabled={collections.isFetchingNextPage}
+            blocked={collections.isFetchingNextPage}
           >
             {collections.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
 
-        <details className="planning-create" id="collection-create-details">
-          <summary ref={createActionRef} id="collection-title">
-            {t('m5s3.collection.create')}
-          </summary>
-          <form
-            onSubmit={submitCollection}
-            className="form-grid planning-create-form"
-          >
-            <label htmlFor="create-collection-title">
-              {t('m5s3.common.title')}
-            </label>
-            <input
-              id="create-collection-title"
-              name="title"
-              required
-              maxLength={200}
-            />
-            <button type="submit" disabled={createCollection.isPending}>
-              {createCollection.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
-            </button>
-            {createCollection.error ? (
-              <ProblemState error={createCollection.error} />
-            ) : null}
-          </form>
-        </details>
+        <SharedContentSheet
+          open={createOpen}
+          title={t('m5s3.collection.create')}
+          isDirty={createDirty}
+          isPending={createCollection.isPending}
+          initialFocusRef={nameInputRef}
+          restoreFocusRef={createActionRef}
+          sheetRef={createSheetRef}
+          onClose={() => {
+            setCreateOpen(false);
+            setCreateDirty(false);
+            if (initialCreate && !openingCreatedRef.current)
+              requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
+          }}
+        >
+          {(requestClose) => (
+            <form
+              onSubmit={submitCollection}
+              className="form-grid planning-create-form free-composer"
+              onChange={(event) =>
+                setCreateDirty(
+                  Array.from(new FormData(event.currentTarget).values()).some(
+                    (value) => String(value).length > 0,
+                  ),
+                )
+              }
+            >
+              <fieldset
+                className="form-grid shared-content-fields"
+                disabled={createCollection.isPending}
+              >
+                <StatusScope<CollectionKind>
+                  label={t('m5s3.collection.kindLabel')}
+                  value={createKind}
+                  options={(['GENERIC', 'SHOPPING'] as const).map((value) => ({
+                    value,
+                    label: t(`m5s3.collection.kind.${value}`),
+                  }))}
+                  onChange={setCreateKind}
+                />
+                <label htmlFor="create-collection-title">
+                  {t('m5s3.common.title')}
+                </label>
+                <input
+                  ref={nameInputRef}
+                  id="create-collection-title"
+                  name="title"
+                  required
+                  maxLength={200}
+                />
+                <button type="submit" disabled={createCollection.isPending}>
+                  {createCollection.isPending
+                    ? t('m5s3.common.saving')
+                    : t('m5s3.common.save')}
+                </button>
+                {createCollection.error ? (
+                  <ProblemState error={createCollection.error} />
+                ) : null}
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={createCollection.isPending}
+                  onClick={requestClose}
+                >
+                  {t('common.cancel')}
+                </button>
+              </fieldset>
+            </form>
+          )}
+        </SharedContentSheet>
       </section>
     </div>
   );

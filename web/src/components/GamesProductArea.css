@@ -18,7 +18,7 @@
   align-items: center;
   gap: var(--space-4);
   min-height: 7rem;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-5);
   background: var(--color-surface-raised);
@@ -96,6 +96,12 @@
   cursor: pointer;
 }
 
+/* Shelf cards keep their hit area fixed at rounded edges and after reflow. */
+.games-entry-button:hover:not(:disabled),
+.games-entry-button:active:not(:disabled) {
+  transform: none;
+}
+
 .games-entry-link:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -134,7 +140,7 @@
   display: grid;
   gap: var(--space-4);
   overflow-wrap: anywhere;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 6vw, var(--space-8));
   background: var(--color-surface-raised);
@@ -193,7 +199,7 @@
   place-items: center;
   align-content: center;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-4);
   background: var(--color-surface-subtle);
@@ -539,5 +545,62 @@
   .who-of-us-reveal-person {
     animation: none;
     transform: none;
+  }
+}
+
+.games-entry {
+  border: 0;
+  box-shadow: none;
+  background: var(--color-surface);
+}
+.games-entry:nth-child(even) {
+  margin-left: 0;
+}
+.games-entry:first-child {
+  min-height: 11rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-shared-surface),
+    var(--color-brand-surface)
+  );
+  padding-block: var(--space-6);
+}
+.games-entry:first-child .games-entry-index {
+  width: 4rem;
+  height: 4rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+.games-entry:first-child h2 {
+  font-size: 1.75rem;
+}
+.games-entry-index {
+  color: var(--color-brand-text);
+  background: var(--color-shared-surface);
+}
+.games-entry-link {
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.local-couple-session {
+  min-height: 20rem;
+  align-content: start;
+  background: linear-gradient(
+    150deg,
+    var(--color-surface),
+    var(--color-brand-surface)
+  );
+  border: 0;
+  box-shadow: none;
+}
+.local-couple-session h2 {
+  font: var(--font-personal-heading);
+  overflow-wrap: anywhere;
+}
+.local-couple-session .who-of-us-actions {
+  margin-top: var(--space-5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .games-entry-link {
+    transition: none;
   }
 }

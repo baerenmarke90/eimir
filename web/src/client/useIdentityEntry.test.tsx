@@ -69,7 +69,7 @@ describe('trusted external identity URLs', () => {
     'http://instance.example/auth/signup?token=proof',
     'https://instance.example:444/auth/signup?token=proof',
     'https://user:password@instance.example/auth/signup?token=proof',
-    'de.sidebyside.app://recent-authentication/oidc?token=proof',
+    'de.eimir.app://recent-authentication/oidc?token=proof',
     'javascript:alert(1)',
     '/auth/signup?token=proof',
     `${ORIGIN}/story?token=proof`,
@@ -93,6 +93,46 @@ describe('trusted external identity URLs', () => {
       kind: 'signup',
       token: 'proof',
     });
+  });
+});
+
+describe('provider return delivered as an App Link', () => {
+  it('accepts the provider return with the parameters a provider adds', () => {
+    expect(
+      readIdentityEntryUrl(
+        `${ORIGIN}/auth/oidc/google?code=c&state=s&scope=openid&authuser=0&prompt=none`,
+        ORIGIN,
+        true,
+      ),
+    ).toEqual({
+      kind: 'oidc',
+      token: 's',
+      connectionId: 'google',
+      code: 'c',
+      providerError: false,
+    });
+  });
+  it('accepts a declined sign-in', () => {
+    expect(
+      readIdentityEntryUrl(
+        `${ORIGIN}/auth/oidc/google?error=access_denied&state=s`,
+        ORIGIN,
+        true,
+      ),
+    ).toMatchObject({ kind: 'oidc', providerError: true, code: null });
+  });
+  it.each([
+    'https://other.example/auth/oidc/google?code=c&state=s',
+    'http://instance.example/auth/oidc/google?code=c&state=s',
+    'https://user:pw@instance.example/auth/oidc/google?code=c&state=s',
+    'https://instance.example/auth/oidc/google?code=c&state=s#frag',
+    'https://instance.example/auth/oidc/google?code=c&state=s&returnTo=x',
+    'https://instance.example/auth/oidc/google?code=c&state=s&state=t',
+    'https://instance.example/auth/oidc/google?code=c&code=d&state=s',
+    'https://instance.example/auth/oidc/google?code=c',
+    'https://instance.example/auth/oidc/a/b?code=c&state=s',
+  ])('ignores an untrusted provider return: %s', (url) => {
+    expect(readIdentityEntryUrl(url, ORIGIN, true)).toBeNull();
   });
 });
 

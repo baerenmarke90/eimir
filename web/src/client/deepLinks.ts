@@ -12,25 +12,28 @@ import {
   appRoutePath,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  chapterDetailPath,
+  collectionDetailPath,
+  GAMES_GARDEN_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
+  heartMomentDetailPath,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
-  PLAN_DETAIL_ROUTE_PATTERN,
-  PLACE_DETAIL_ROUTE_PATTERN,
-  SEARCH_ROUTE,
-  WISH_DETAIL_ROUTE_PATTERN,
-  chapterDetailPath,
-  collectionDetailPath,
-  heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
-  planDetailPath,
+  PLACE_DETAIL_ROUTE_PATTERN,
+  PLAN_DETAIL_ROUTE_PATTERN,
   placeDetailPath,
+  planDetailPath,
+  REMINDER_DETAIL_ROUTE_PATTERN,
+  SEARCH_ROUTE,
+  WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
 } from './routes';
 
@@ -61,6 +64,7 @@ export const SETTINGS_AUTH_RETURN_HASHES = [
 ] as const;
 
 const CANONICAL_RETURN_PATTERNS = [
+  REMINDER_DETAIL_ROUTE_PATTERN,
   appRoutePath('today'),
   ACTIVITY_ROUTE,
   appRoutePath('story'),
@@ -78,9 +82,14 @@ const CANONICAL_RETURN_PATTERNS = [
   COLLECTION_DETAIL_ROUTE_PATTERN,
   appRoutePath('games'),
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
+  GAMES_GARDEN_ROUTE,
   SEARCH_ROUTE,
   appRoutePath('more'),
   MORE_PEOPLE_ROUTE,
+  `${MORE_PEOPLE_ROUTE}/new`,
+  `${MORE_PEOPLE_ROUTE}/:personId`,
+  `${MORE_PEOPLE_ROUTE}/:personId/edit`,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
@@ -157,8 +166,11 @@ export function validateAppRelativeReturnTarget(target: string): string | null {
   if (canonicalTarget !== target) return null;
   if (
     parsed.hash &&
-    (parsed.pathname !== MORE_SETTINGS_ROUTE ||
-      !SETTINGS_AUTH_RETURN_HASHES.some((hash) => hash === parsed.hash))
+    !(
+      (parsed.pathname === MORE_SETTINGS_ROUTE &&
+        SETTINGS_AUTH_RETURN_HASHES.some((hash) => hash === parsed.hash)) ||
+      (parsed.pathname === appRoutePath('plan') && parsed.hash === '#dates')
+    )
   ) {
     return null;
   }

@@ -1,12 +1,19 @@
-import { authorDisplayName } from './authorPresentation';
-import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { TFunction } from 'i18next';
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import { authorDisplayName } from './authorPresentation';
+import { recapNoticeTitle } from './recaps';
 
 export function getNotificationItemTitle(
   item: NotificationItem,
   t: TFunction,
   currentAccountId?: string,
 ): string {
+  if (item.kind === 'ONCE_MESSAGE_RECEIVED')
+    return t('onceMessages.notification');
+  if (item.kind === 'WISH_REMINDER_DUE')
+    return t('m5s3.wish.reminder.notification');
+  if (item.kind === 'RECAP_READY' || item.kind === 'RECAP_GREW')
+    return recapNoticeTitle(item, t);
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
@@ -16,6 +23,72 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  // A garden bouquet reuses the seed notice with its own text (#1907 H3).
+  if (
+    item.kind === 'GARDEN_SEED_ARRIVED' &&
+    item.targetType === 'GARDEN_BOUQUET'
+  ) {
+    return t('coupleExperiences.notifications.GARDEN_BOUQUET', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+  if (
+    item.kind === 'WISH_DATE_PROPOSED' ||
+    item.kind === 'WISH_DATE_COUNTERED' ||
+    item.kind === 'WISH_DATE_ACCEPTED'
+  ) {
+    return t(`m5s5.notificationAction.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+  if (item.kind === 'REMINDER_CREATED') {
+    return t(
+      targetTitle
+        ? 'm5s5.notificationAction.REMINDER_CREATED_WITH_TARGET'
+        : 'm5s5.notificationAction.REMINDER_CREATED',
+      {
+        name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+        target: targetTitle,
+      },
+    );
+  }
+  if (
+    [
+      'PLAN_CREATED',
+      'PLAN_CHANGED',
+      'PLAN_CANCELLED',
+      'WISH_SELECTION_SHARED',
+      'WISH_SELECTION_READY',
+      'WISH_SELECTION_RANDOM_REQUESTED',
+      'WISH_SELECTION_RANDOM_ACCEPTED',
+      'WISH_SELECTION_RANDOM_DECLINED',
+      'HEART_HUNT_HIDDEN',
+      'HEART_HUNT_FOUND',
+      'PICTURE_PING_PONG_TURN',
+      'PHOTO_REACTION',
+      'PARTNER_JOINED',
+      'COLLECTION_SENT',
+      'GARDEN_SEED_ARRIVED',
+      'TRANSFER_READY',
+      'TRANSFER_COMPLETED',
+      'TRANSFER_FAILED',
+      'VIDEO_PROCESSING_FAILED',
+    ].includes(item.kind)
+  ) {
+    return t(`coupleExperiences.notifications.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+
+  // The notice never carries the note's words: it only says who did what.
+  if (
+    item.kind === 'SHARED_NOTE_CREATED' ||
+    item.kind === 'SHARED_NOTE_CHANGED'
+  ) {
+    return t(`sharedNotes.notification.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
 
   if (item.kind === 'COMMENT_CREATED') {
     if (actorName && targetTitle) {
@@ -34,6 +107,11 @@ export function getNotificationItemTitle(
     }
     return t('m5s5.notificationKind.COMMENT_CREATED');
   }
+
+  if (item.kind === 'COUPLE_EXPERIENCE_SHARED')
+    return t('coupleExperiences.notification', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
 
   if (item.kind === 'THINKING_OF_YOU') {
     return actorName

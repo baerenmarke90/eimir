@@ -24,6 +24,16 @@ import {
     CollectionDetailToJSON,
 } from '../models/CollectionDetail';
 import {
+    type CollectionFinish,
+    CollectionFinishFromJSON,
+    CollectionFinishToJSON,
+} from '../models/CollectionFinish';
+import {
+    type CollectionFinishResult,
+    CollectionFinishResultFromJSON,
+    CollectionFinishResultToJSON,
+} from '../models/CollectionFinishResult';
+import {
     type CollectionItemCreate,
     CollectionItemCreateFromJSON,
     CollectionItemCreateToJSON,
@@ -39,6 +49,11 @@ import {
     CollectionItemUpdateToJSON,
 } from '../models/CollectionItemUpdate';
 import {
+    type CollectionKind,
+    CollectionKindFromJSON,
+    CollectionKindToJSON,
+} from '../models/CollectionKind';
+import {
     type CollectionOrder,
     CollectionOrderFromJSON,
     CollectionOrderToJSON,
@@ -48,6 +63,16 @@ import {
     CollectionPageFromJSON,
     CollectionPageToJSON,
 } from '../models/CollectionPage';
+import {
+    type CollectionScope,
+    CollectionScopeFromJSON,
+    CollectionScopeToJSON,
+} from '../models/CollectionScope';
+import {
+    type CollectionSuggestionList,
+    CollectionSuggestionListFromJSON,
+    CollectionSuggestionListToJSON,
+} from '../models/CollectionSuggestionList';
 import {
     type CollectionUpdate,
     CollectionUpdateFromJSON,
@@ -68,6 +93,7 @@ export interface CreateCollectionItemRequest {
     collectionId: string;
     spaceId: string;
     collectionItemCreate: CollectionItemCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteCollectionRequest {
@@ -83,7 +109,24 @@ export interface DeleteCollectionItemRequest {
     ifMatch: string;
 }
 
+export interface DeleteCollectionSuggestionRequest {
+    collectionId: string;
+    suggestionId: string;
+    spaceId: string;
+}
+
+export interface FinishCollectionShoppingRequest {
+    collectionId: string;
+    spaceId: string;
+    collectionFinish: CollectionFinish;
+}
+
 export interface GetCollectionRequest {
+    collectionId: string;
+    spaceId: string;
+}
+
+export interface ListCollectionSuggestionsRequest {
     collectionId: string;
     spaceId: string;
 }
@@ -92,6 +135,9 @@ export interface ListCollectionsRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+    scope?: CollectionScope;
+    ids?: Array<string> | null;
+    kind?: CollectionKind | null;
 }
 
 export interface ReorderCollectionItemsRequest {
@@ -99,6 +145,11 @@ export interface ReorderCollectionItemsRequest {
     spaceId: string;
     ifMatch: string;
     collectionOrder: CollectionOrder;
+}
+
+export interface SendCollectionToPartnerRequest {
+    collectionId: string;
+    spaceId: string;
 }
 
 export interface UpdateCollectionRequest {
@@ -206,6 +257,10 @@ export class CollectionsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/items`;
@@ -374,6 +429,129 @@ export class CollectionsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for deleteCollectionSuggestion without sending the request
+     */
+    async deleteCollectionSuggestionRequestOpts(requestParameters: DeleteCollectionSuggestionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling deleteCollectionSuggestion().'
+            );
+        }
+
+        if (requestParameters['suggestionId'] == null) {
+            throw new runtime.RequiredError(
+                'suggestionId',
+                'Required parameter "suggestionId" was null or undefined when calling deleteCollectionSuggestion().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling deleteCollectionSuggestion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}`;
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{suggestionId}', encodeURIComponent(String(requestParameters['suggestionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete Collection Suggestion
+     */
+    async deleteCollectionSuggestionRaw(requestParameters: DeleteCollectionSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.deleteCollectionSuggestionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete Collection Suggestion
+     */
+    async deleteCollectionSuggestion(requestParameters: DeleteCollectionSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteCollectionSuggestionRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for finishCollectionShopping without sending the request
+     */
+    async finishCollectionShoppingRequestOpts(requestParameters: FinishCollectionShoppingRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling finishCollectionShopping().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling finishCollectionShopping().'
+            );
+        }
+
+        if (requestParameters['collectionFinish'] == null) {
+            throw new runtime.RequiredError(
+                'collectionFinish',
+                'Required parameter "collectionFinish" was null or undefined when calling finishCollectionShopping().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/finish`;
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: CollectionFinishToJSON(requestParameters['collectionFinish']),
+        };
+    }
+
+    /**
+     * Finish Collection Shopping
+     */
+    async finishCollectionShoppingRaw(requestParameters: FinishCollectionShoppingRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CollectionFinishResult>> {
+        const requestOptions = await this.finishCollectionShoppingRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CollectionFinishResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Finish Collection Shopping
+     */
+    async finishCollectionShopping(requestParameters: FinishCollectionShoppingRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CollectionFinishResult> {
+        const response = await this.finishCollectionShoppingRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getCollection without sending the request
      */
     async getCollectionRequestOpts(requestParameters: GetCollectionRequest): Promise<runtime.RequestOpts> {
@@ -427,6 +605,59 @@ export class CollectionsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for listCollectionSuggestions without sending the request
+     */
+    async listCollectionSuggestionsRequestOpts(requestParameters: ListCollectionSuggestionsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling listCollectionSuggestions().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listCollectionSuggestions().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions`;
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Collection Suggestions
+     */
+    async listCollectionSuggestionsRaw(requestParameters: ListCollectionSuggestionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CollectionSuggestionList>> {
+        const requestOptions = await this.listCollectionSuggestionsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CollectionSuggestionListFromJSON(jsonValue));
+    }
+
+    /**
+     * List Collection Suggestions
+     */
+    async listCollectionSuggestions(requestParameters: ListCollectionSuggestionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CollectionSuggestionList> {
+        const response = await this.listCollectionSuggestionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for listCollections without sending the request
      */
     async listCollectionsRequestOpts(requestParameters: ListCollectionsRequest): Promise<runtime.RequestOpts> {
@@ -445,6 +676,18 @@ export class CollectionsApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
+        }
+
+        if (requestParameters['ids'] != null) {
+            queryParameters['ids'] = requestParameters['ids'];
+        }
+
+        if (requestParameters['kind'] != null) {
+            queryParameters['kind'] = requestParameters['kind'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -551,6 +794,60 @@ export class CollectionsApi extends runtime.BaseAPI {
     async reorderCollectionItems(requestParameters: ReorderCollectionItemsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CollectionDetail> {
         const response = await this.reorderCollectionItemsRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for sendCollectionToPartner without sending the request
+     */
+    async sendCollectionToPartnerRequestOpts(requestParameters: SendCollectionToPartnerRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling sendCollectionToPartner().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling sendCollectionToPartner().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/send`;
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.
+     * Send a shared list to the partner
+     */
+    async sendCollectionToPartnerRaw(requestParameters: SendCollectionToPartnerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.sendCollectionToPartnerRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.
+     * Send a shared list to the partner
+     */
+    async sendCollectionToPartner(requestParameters: SendCollectionToPartnerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.sendCollectionToPartnerRaw(requestParameters, initOverrides);
     }
 
     /**

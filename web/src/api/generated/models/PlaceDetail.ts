@@ -42,6 +42,12 @@ export interface PlaceDetail {
     address: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlaceDetail
+     */
+    archived?: boolean;
+    /**
+     * 
      * @type {ResourceCapabilities}
      * @memberof PlaceDetail
      */
@@ -70,6 +76,12 @@ export interface PlaceDetail {
      * @memberof PlaceDetail
      */
     description: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlaceDetail
+     */
+    geocodingSource?: string | null;
     /**
      * 
      * @type {string}
@@ -145,11 +157,13 @@ export function PlaceDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'address': json['address'],
+        'archived': json['archived'] == null ? undefined : json['archived'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'],
+        'geocodingSource': json['geocodingSource'] === undefined ? undefined : json['geocodingSource'] === null ? null : json['geocodingSource'],
         'id': json['id'],
         'latitude': json['latitude'],
         'longitude': json['longitude'],
@@ -172,11 +186,13 @@ export function PlaceDetailToJSONTyped(value?: PlaceDetail | null, ignoreDiscrim
     return {
         
         'address': value['address'],
+        'archived': value['archived'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'geocodingSource': value['geocodingSource'],
         'id': value['id'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],

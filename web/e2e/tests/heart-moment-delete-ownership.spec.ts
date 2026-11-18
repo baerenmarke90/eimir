@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -9,14 +9,15 @@ import {
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -102,11 +103,16 @@ async function openJourney(
     // Owner-only content must never be manufactured into the shared Timeline.
     await expect(page.locator(`a[href="${detailPath}"]`)).toHaveCount(0);
     await page.goto(detailPath);
-    await expect(
-      page.getByText(copy.commentsPrivate, { exact: true }),
-    ).toBeVisible();
+    await expect(page.locator('.visibility-private')).toBeVisible();
+    await expect(page.locator('.visibility-private')).toHaveAccessibleName(
+      copy.visibilityPrivate,
+    );
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
   } else {
-    await page.getByRole('link', { name: /Thinking of you/ }).click();
+    await page
+      .locator('#momente-diary')
+      .getByRole('link', { name: /Thinking of you/ })
+      .click();
   }
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   await expect(
@@ -158,19 +164,22 @@ async function inspect(page: Page, info: TestInfo, name: string) {
         overflow: document.documentElement.scrollWidth - innerWidth,
         controls: [
           ...root.querySelectorAll(
-            '.form-grid textarea, .form-grid input:not([type="file"]):not([type="checkbox"]):not([type="radio"]), .file-picker, .file-picker strong, .form-actions > *, .memory-delete-confirmation, .memory-delete-confirmation button',
+            '.composer-header button, .composer-header a, .form-grid textarea, .form-grid input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([aria-hidden="true"]), .file-picker, .file-picker strong, .form-actions > *, .memory-delete-confirmation, .memory-delete-confirmation button',
           ),
-        ].map((element) => {
-          const box = element.getBoundingClientRect();
-          return {
-            left: box.left - bounds.left,
-            right: bounds.right - box.right,
-            height: box.height,
-            interactive: element.matches(
-              'button,input,textarea,.button-link,.file-picker',
-            ),
-          };
-        }),
+        ]
+          // Empty tag inputs stay mounted while their disclosure is closed.
+          .filter((element) => element.getClientRects().length > 0)
+          .map((element) => {
+            const box = element.getBoundingClientRect();
+            return {
+              left: box.left - bounds.left,
+              right: bounds.right - box.right,
+              height: box.height,
+              interactive: element.matches(
+                'button,a,input,textarea,.button-link,.file-picker',
+              ),
+            };
+          }),
       };
     });
   expect(geometry.overflow).toBeLessThanOrEqual(1);
@@ -245,12 +254,14 @@ for (const profile of [
     );
     if ('returnPending' in profile) {
       await page
-        .getByRole('link', { name: copy.backToHeartMoment, exact: true })
+        .getByRole('link', { name: taskBoundary.back, exact: true })
         .click();
+      await expect(page.locator('.visibility-shared')).toBeVisible();
       await expect(
         page.getByRole('button', { name: copy.makePrivate, exact: true }),
-      ).toBeDisabled();
+      ).toHaveCount(0);
       await page.getByRole('link', { name: copy.edit, exact: true }).click();
+      await expect(page.locator('.composer-audience > button')).toBeDisabled();
       await expect(
         page.getByRole('button', { name: copy.deleting, exact: true }),
       ).toBeDisabled();
@@ -259,6 +270,10 @@ for (const profile of [
       ).toBeDisabled();
       await inspect(page, info, 'heart-delete-return-pending-390-light');
     }
+    await page
+      .getByRole('link', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${detailPath}$`));
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
@@ -326,7 +341,8 @@ for (const theme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: copy.deleting, exact: true }),
     ).toBeDisabled();
     await state.respond(204);
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(
       page.getByRole('heading', { name: de.story.timelineTitle, exact: true }),
     ).toBeVisible();

@@ -15,7 +15,12 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
-from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.schema import (
+    ApiModel,
+    AuthorSummary,
+    ResourceCapabilities,
+    story_resource_capabilities,
+)
 from eimir.milestones import service
 from eimir.milestones.models import Milestone
 
@@ -100,7 +105,6 @@ def _milestone_detail(
 ) -> MilestoneDetail:
     if author is None:
         author = resolve_author_summary(session, milestone.owner_id, resource="Milestone author")
-    is_author = milestone.owner_id == authorization.account_id
     return MilestoneDetail(
         id=milestone.id,
         space_id=milestone.space_id,
@@ -112,11 +116,8 @@ def _milestone_detail(
         created_at=milestone.created_at,
         updated_at=milestone.updated_at,
         author=author,
-        capabilities=ResourceCapabilities(
-            # M2-D25: shared readability does not grant write authority.
-            can_edit=is_author,
-            can_delete=is_author,
-            can_comment=True,
+        capabilities=story_resource_capabilities(
+            milestone, authorization.account_id, can_comment=True
         ),
     )
 

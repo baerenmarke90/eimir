@@ -7,7 +7,6 @@ import {
   resolveStoryKindLabel,
   storyAuthorLabel,
   storyItemPresentation,
-  tapestryItemRole,
   tapestryRoleWeight,
 } from './storyPresentation';
 
@@ -124,6 +123,7 @@ describe('storyItemPresentation', () => {
     ).toEqual({
       kindLabel: 'Erinnerung',
       title: 'Am See',
+      titleIsDate: false,
       author: 'Anna',
       mediaCount: 2,
       mediaLabel: '2 Fotos',
@@ -180,6 +180,7 @@ describe('storyItemPresentation', () => {
       memory: {
         id: 'm-full-name',
         title: 'Am See',
+        titleIsDate: false,
         author: { id: 'author-3', displayName: 'Alex Winter' },
         attachments: [],
       },
@@ -195,21 +196,6 @@ describe('storyItemPresentation', () => {
     expect(resolveStoryKindLabel('milestone', i18n.t)).toBe('Meilenstein');
     expect(resolveStoryKindLabel('memory', i18n.t)).toBe('Erinnerung');
     expect(resolveStoryKindLabel('heartMoment', i18n.t)).toBe('Herzmoment');
-  });
-});
-
-describe('tapestryItemRole', () => {
-  it('gives Memory + media, Heart Moment, Milestone, and text-only Memory distinct roles (#790)', () => {
-    expect(tapestryItemRole(memory('m-1', '2026-08-26', 'Am See', 1))).toBe(
-      'media',
-    );
-    expect(tapestryItemRole(memory('m-2', '2026-08-26', 'Notiz', 0))).toBe(
-      'text',
-    );
-    expect(tapestryItemRole(heart('h-1', '2026-08-12'))).toBe('note');
-    expect(
-      tapestryItemRole(milestone('ms-1', '2026-08-01', 'Eingezogen')),
-    ).toBe('milestone');
   });
 });
 

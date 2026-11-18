@@ -1,8 +1,23 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
+import de from '../i18n/locales/de';
 import { StoryList } from './StoryList';
+
+/** StoryList reads the couple's occasions through Query (#1907 F2). */
+function StoryListProviders({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 const loadMemoryImage = async () => 'blob:test-image';
 const loadHeartMomentImage = async () => 'blob:test-heart-image';
@@ -27,13 +42,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
     expect(html).toContain('<ol');
     expect(html).toContain('aria-label="Gemeinsame Story"');
@@ -73,13 +88,13 @@ describe('StoryList', () => {
     } as unknown as StoryItem;
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[heartMoment, milestone]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('href="/story/heart-moments/heart-1"');
@@ -92,7 +107,7 @@ describe('StoryList', () => {
     expect(html).not.toContain('Meilenstein öffnen');
   });
 
-  it('renders date and an accessible author avatar in the shared card footer (#1064)', () => {
+  it('renders the date without an author avatar in the Diary overview', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -111,25 +126,25 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #1064 removes redundant author prose while retaining avatar semantics.
+    // The PO requests overview identity only in the canonical detail.
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('class="sr-only"');
-    expect(html).toContain('role="img" aria-label="Alex"');
+    expect(html).not.toContain('role="img" aria-label="Alex"');
   });
 
-  it('keeps the full author identity accessible without visible Timeline attribution (#1064)', () => {
+  it('leaves author identity to the canonical detail', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -148,18 +163,18 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('>Alex Winter</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders large image-led card when attachment exists and text-first card when absent (#860)', () => {
@@ -175,6 +190,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -210,13 +226,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[memoryWithImage, memoryWithoutImage]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('story-card-memory has-image');
@@ -249,6 +265,7 @@ describe('StoryList', () => {
           mediaType: 'IMAGE',
           mimeType: 'image/jpeg',
           hasThumbnail: true,
+          isSensitive: false,
           width: 800,
           height: 800,
           size: 1024,
@@ -258,13 +275,13 @@ describe('StoryList', () => {
     });
 
     const html = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[heartMoment]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(html).toContain('story-card-heart-moment has-image');
@@ -285,6 +302,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -303,23 +321,23 @@ describe('StoryList', () => {
     });
 
     const progressiveHtml = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
           progressiveReveal
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
     const sharedHtml = renderToStaticMarkup(
-      <MemoryRouter>
+      <StoryListProviders>
         <StoryList
           items={[item]}
           loadMemoryImage={loadMemoryImage}
           loadHeartMomentImage={loadHeartMomentImage}
         />
-      </MemoryRouter>,
+      </StoryListProviders>,
     );
 
     expect(progressiveHtml).toContain('story-timeline-progressive-reveal');
@@ -331,13 +349,15 @@ describe('StoryList', () => {
 
   it('announces an empty story as a status', () => {
     const html = renderToStaticMarkup(
-      <StoryList
-        items={[]}
-        loadMemoryImage={loadMemoryImage}
-        loadHeartMomentImage={loadHeartMomentImage}
-      />,
+      <StoryListProviders>
+        <StoryList
+          items={[]}
+          loadMemoryImage={loadMemoryImage}
+          loadHeartMomentImage={loadHeartMomentImage}
+        />
+      </StoryListProviders>,
     );
     expect(html).toContain('role="status"');
-    expect(html).toContain('Eure Story beginnt hier.');
+    expect(html).toContain(de.story.emptyTitle);
   });
 });

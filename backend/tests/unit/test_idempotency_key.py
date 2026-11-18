@@ -62,3 +62,16 @@ def test_the_fingerprint_is_stable_and_content_free() -> None:
 def test_every_request_field_changes_the_fingerprint(changed: dict[str, object]) -> None:
     base = {"title": "Titel", "body": "Text", "happened_on": date(2025, 6, 13)}
     assert fingerprint(**base) != fingerprint(**{**base, **changed})  # type: ignore[arg-type]
+
+
+def test_optional_manual_place_preserves_old_receipts_but_binds_new_replays() -> None:
+    from uuid import uuid4
+
+    values = {"title": "Photo-free", "body": "Together", "happened_on": date(2025, 6, 13)}
+    original = fingerprint(**values)  # type: ignore[arg-type]
+    assert original == fingerprint(**values, place_id=None)  # type: ignore[arg-type]
+    first, second = uuid4(), uuid4()
+    selected = fingerprint(**values, place_id=first)  # type: ignore[arg-type]
+    assert selected != original
+    assert selected == fingerprint(**values, place_id=first)  # type: ignore[arg-type]
+    assert selected != fingerprint(**values, place_id=second)  # type: ignore[arg-type]

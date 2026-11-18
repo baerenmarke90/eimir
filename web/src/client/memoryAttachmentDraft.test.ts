@@ -1,12 +1,14 @@
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
+import { i18n } from '../i18n';
+import * as backgroundVideoUploads from './backgroundVideoUploads';
 import {
   completeMemoryAttachmentBinding,
   createMemoryWithReadyAttachments,
   MemoryAttachmentBindingError,
   uploadMemoryDraftAttachment,
 } from './memoryAttachmentDraft';
-import { waitUntilAttachmentReady, type ReferenceApis } from './referenceFlow';
-import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import { type ReferenceApis, waitUntilAttachmentReady } from './referenceFlow';
 
 function uploadingAttachment() {
   return {
@@ -14,6 +16,7 @@ function uploadingAttachment() {
     createdAt: new Date('2026-08-29T20:00:00Z'),
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: null,
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
@@ -24,7 +27,122 @@ function uploadingAttachment() {
   };
 }
 
+const prepareVideo = vi.hoisted(() => vi.fn(async (file: File) => file));
+vi.mock('./videoCompression', () => ({ compressVideoForUpload: prepareVideo }));
+
 describe('uploadMemoryDraftAttachment', () => {
+  it.each(['de', 'en'])(
+    'reports rejected video admission with localized video recovery in %s',
+    async (locale) => {
+      const language = i18n.language;
+      const admission = vi
+        .spyOn(backgroundVideoUploads, 'startBackgroundVideoTransfer')
+        .mockRejectedValueOnce(new Error('Private native transport details'));
+      const file = new File(['video bytes'], 'selected.mp4', {
+        type: 'video/mp4',
+      });
+      const descriptor = { attachment: { id: 'video', version: 1 } };
+      const apis = {
+        attachments: {
+          createAttachmentUpload: vi.fn().mockResolvedValue(descriptor),
+          finalizeAttachmentUpload: vi.fn(),
+        },
+      } as unknown as ReferenceApis;
+      try {
+        await i18n.changeLanguage(locale);
+        await expect(
+          uploadMemoryDraftAttachment(
+            apis,
+            'https://api.example.invalid',
+            'synthetic',
+            'space',
+            file,
+            undefined,
+            vi.fn(),
+            { accountId: 'owner' },
+          ),
+        ).rejects.toThrow(i18n.t('video.startFailed'));
+        expect(admission).toHaveBeenCalledWith(
+          expect.objectContaining({ file, descriptor }),
+        );
+        expect(
+          apis.attachments.finalizeAttachmentUpload,
+        ).not.toHaveBeenCalled();
+      } finally {
+        admission.mockRestore();
+        await i18n.changeLanguage(language);
+      }
+    },
+  );
+
+  it('prepares before admission and reserves/transfers only the actual prepared bytes', async () => {
+    const original = new File(['original recording'], 'recording.mov', {
+      type: 'video/quicktime',
+    });
+    const compressed = new File(['encoded'], 'recording.mp4', {
+      type: 'video/mp4',
+    });
+    prepareVideo.mockResolvedValueOnce(compressed);
+    const descriptor = { attachment: { id: 'video', version: 1 } };
+    const create = vi.fn().mockResolvedValue(descriptor);
+    const admission = vi
+      .spyOn(backgroundVideoUploads, 'startBackgroundVideoTransfer')
+      .mockResolvedValueOnce();
+    const phases = vi.fn();
+    try {
+      await uploadMemoryDraftAttachment(
+        {
+          attachments: { createAttachmentUpload: create },
+        } as unknown as ReferenceApis,
+        'https://api.example.invalid',
+        'synthetic',
+        'space',
+        original,
+        phases,
+        vi.fn(),
+        { accountId: 'owner' },
+      );
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachmentUploadCreate: expect.objectContaining({
+            expectedSize: compressed.size,
+            expectedMimeType: 'video/mp4',
+            originalName: compressed.name,
+          }),
+        }),
+      );
+      expect(admission).toHaveBeenCalledWith(
+        expect.objectContaining({ file: compressed }),
+      );
+      expect(phases.mock.calls.map(([phase]) => phase)).toEqual([
+        'preparing',
+        'uploading',
+      ]);
+    } finally {
+      admission.mockRestore();
+    }
+  });
+
+  it('retains the selection without reserving or uploading after preparation failure', async () => {
+    prepareVideo.mockRejectedValueOnce(new Error('Codec unavailable'));
+    const create = vi.fn();
+    await expect(
+      uploadMemoryDraftAttachment(
+        {
+          attachments: { createAttachmentUpload: create },
+        } as unknown as ReferenceApis,
+        'https://api.example.invalid',
+        'synthetic',
+        'space',
+        new File(['video'], 'recording.mp4', { type: 'video/mp4' }),
+        undefined,
+        vi.fn(),
+        { accountId: 'owner' },
+      ),
+    ).rejects.toThrow(i18n.t('video.preparationFailed'));
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('cancels a pending validation read without leaving polling timers behind', async () => {
     vi.useFakeTimers();
     try {
@@ -152,97 +270,125 @@ describe('uploadMemoryDraftAttachment', () => {
     }
   });
 
-  it('starts upload immediately, exposes validation, and resolves only after READY', async () => {
-    const phases: string[] = [];
-    const attachment = uploadingAttachment();
-    const apis = {
-      auth: {},
-      memories: {},
-      attachments: {
-        createAttachmentUpload: vi.fn(async () => ({
-          attachment,
-          method: UploadDescriptorMethodEnum.STREAM,
-          requiredHeaders: { 'Content-Type': 'image/jpeg' },
-          uploadUrl: '/api/v1/spaces/space-1/attachments/attachment-1/content',
-        })),
-        finalizeAttachmentUpload: vi.fn(async () => ({
-          ...attachment,
-          status: 'PROCESSING',
-        })),
-        getAttachment: vi.fn(async () => ({ ...attachment, status: 'READY' })),
-      },
-      story: {},
-    } as unknown as ReferenceApis;
-    const fetchApi = vi.fn(
-      async () => new Response(null, { status: 204 }),
-    ) as unknown as typeof fetch;
+  it.each([true, undefined])(
+    'starts upload immediately with metadata preservation %s, exposes validation, and resolves only after READY',
+    async (preserveMetadata) => {
+      const phases: string[] = [];
+      const attachment = uploadingAttachment();
+      const apis = {
+        auth: {},
+        memories: {},
+        attachments: {
+          createAttachmentUpload: vi.fn(async () => ({
+            attachment,
+            method: UploadDescriptorMethodEnum.STREAM,
+            requiredHeaders: { 'Content-Type': 'image/jpeg' },
+            uploadUrl:
+              '/api/v1/spaces/space-1/attachments/attachment-1/content',
+          })),
+          finalizeAttachmentUpload: vi.fn(async () => ({
+            ...attachment,
+            status: 'PROCESSING',
+          })),
+          getAttachment: vi.fn(async () => ({
+            ...attachment,
+            status: 'READY',
+          })),
+        },
+        story: {},
+      } as unknown as ReferenceApis;
+      const fetchApi = vi.fn(
+        async () => new Response(null, { status: 204 }),
+      ) as unknown as typeof fetch;
 
-    const result = await uploadMemoryDraftAttachment(
-      apis,
-      'https://api.example.invalid',
-      'token',
-      'space-1',
-      new File(['image'], 'test.jpg', { type: 'image/jpeg' }),
-      (phase) => phases.push(phase),
-      fetchApi,
-    );
-
-    expect(phases).toEqual(['uploading', 'validating']);
-    expect(result).toEqual({ attachmentId: 'attachment-1' });
-    expect(apis.attachments.finalizeAttachmentUpload).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      attachmentId: 'attachment-1',
-      body: {},
-    });
-    expect(apis.attachments.getAttachment).toHaveBeenCalledWith(
-      {
-        spaceId: 'space-1',
-        attachmentId: 'attachment-1',
-      },
-      { signal: undefined },
-    );
-  });
-
-  it('fails when server-side validation rejects the uploaded image', async () => {
-    const phases: string[] = [];
-    const attachment = uploadingAttachment();
-    const apis = {
-      auth: {},
-      memories: {},
-      attachments: {
-        createAttachmentUpload: vi.fn(async () => ({
-          attachment,
-          method: UploadDescriptorMethodEnum.STREAM,
-          requiredHeaders: { 'Content-Type': 'image/jpeg' },
-          uploadUrl: '/api/v1/spaces/space-1/attachments/attachment-1/content',
-        })),
-        finalizeAttachmentUpload: vi.fn(async () => ({
-          ...attachment,
-          status: 'PROCESSING',
-        })),
-        getAttachment: vi.fn(async () => ({ ...attachment, status: 'FAILED' })),
-      },
-      story: {},
-    } as unknown as ReferenceApis;
-    const fetchApi = vi.fn(
-      async () => new Response(null, { status: 204 }),
-    ) as unknown as typeof fetch;
-
-    await expect(
-      uploadMemoryDraftAttachment(
+      const result = await uploadMemoryDraftAttachment(
         apis,
         'https://api.example.invalid',
         'token',
         'space-1',
-        new File(['image'], 'invalid.jpg', { type: 'image/jpeg' }),
+        new File(['image'], 'test.jpg', { type: 'image/jpeg' }),
         (phase) => phases.push(phase),
         fetchApi,
-      ),
-    ).rejects.toThrow();
+        { preserveMetadata },
+      );
 
-    expect(phases).toEqual(['uploading', 'validating']);
-    expect(apis.attachments.getAttachment).toHaveBeenCalledTimes(1);
-  });
+      expect(phases).toEqual(['uploading', 'validating']);
+      expect(result).toEqual({ attachmentId: 'attachment-1' });
+      expect(apis.attachments.createAttachmentUpload).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        attachmentUploadCreate: expect.objectContaining({
+          preserveMetadata: preserveMetadata ?? false,
+        }),
+      });
+      expect(apis.attachments.finalizeAttachmentUpload).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        attachmentId: 'attachment-1',
+        body: {},
+      });
+      expect(apis.attachments.getAttachment).toHaveBeenCalledWith(
+        {
+          spaceId: 'space-1',
+          attachmentId: 'attachment-1',
+        },
+        { signal: undefined },
+      );
+    },
+  );
+
+  it.each([
+    ['IMAGE_UNREADABLE', 'flow.imageUnreadable'],
+    ['IMAGE_TOO_LARGE', 'flow.imageTooLarge'],
+    ['IMAGE_TYPE_MISMATCH', 'flow.imageTypeMismatch'],
+    ['IMAGE_NOT_SANITIZABLE', 'flow.imageNotSanitizable'],
+    ['UNKNOWN_FUTURE_CODE', 'flow.processingStatus'],
+  ])(
+    'localizes validation failure %s without exposing a raw status',
+    async (failureCode, key) => {
+      const phases: string[] = [];
+      const attachment = uploadingAttachment();
+      const apis = {
+        auth: {},
+        memories: {},
+        attachments: {
+          createAttachmentUpload: vi.fn(async () => ({
+            attachment,
+            method: UploadDescriptorMethodEnum.STREAM,
+            requiredHeaders: { 'Content-Type': 'image/jpeg' },
+            uploadUrl:
+              '/api/v1/spaces/space-1/attachments/attachment-1/content',
+          })),
+          finalizeAttachmentUpload: vi.fn(async () => ({
+            ...attachment,
+            status: 'PROCESSING',
+          })),
+          getAttachment: vi.fn(async () => ({
+            ...attachment,
+            status: 'FAILED',
+            failureCode,
+          })),
+        },
+        story: {},
+      } as unknown as ReferenceApis;
+      const fetchApi = vi.fn(
+        async () => new Response(null, { status: 204 }),
+      ) as unknown as typeof fetch;
+
+      await expect(
+        uploadMemoryDraftAttachment(
+          apis,
+          'https://api.example.invalid',
+          'token',
+          'space-1',
+          new File(['image'], 'invalid.jpg', { type: 'image/jpeg' }),
+          (phase) => phases.push(phase),
+          fetchApi,
+        ),
+      ).rejects.toThrow(i18n.t(key));
+
+      expect(phases).toEqual(['uploading', 'validating']);
+      expect(apis.attachments.getAttachment).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe('createMemoryWithReadyAttachments', () => {
@@ -555,4 +701,111 @@ describe('createMemoryWithReadyAttachments', () => {
     expect(apis.memories.createMemory).toHaveBeenCalledTimes(1);
     expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
   });
+});
+
+it('binds the exact submitted classification with the initial shared gallery and preserves it on failure', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const failure = new Error('write failed');
+  const apis = {
+    memories: { replaceMemoryAttachments: vi.fn().mockRejectedValue(failure) },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], false, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ attachmentSensitivity: [true], cause: failure });
+  expect(apis.memories.replaceMemoryAttachments).toHaveBeenCalledWith({
+    spaceId: 'space',
+    memoryId: 'confirmed',
+    ifMatch: '1',
+    memoryAttachmentSet: {
+      attachments: [{ attachmentId: 'photo', position: 0, isSensitive: true }],
+    },
+  });
+});
+
+it('does not report a completed bind when its classification differs after a lost response', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const apis = {
+    memories: {
+      getMemory: vi.fn().mockResolvedValue({
+        ...memory,
+        version: 2,
+        attachments: [{ id: 'photo', position: 0, isSensitive: false }],
+      }),
+      replaceMemoryAttachments: vi.fn(),
+    },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], true, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ cause: { kind: 'conflict' } });
+  expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
+});
+
+it('uploads the prepared video and returns after finalize without readiness polling', async () => {
+  vi.stubGlobal('XMLHttpRequest', undefined);
+  try {
+    const attachment = { ...uploadingAttachment(), mediaType: 'VIDEO' };
+    const createAttachmentUpload = vi.fn(async () => ({
+      attachment,
+      method: UploadDescriptorMethodEnum.STREAM,
+      requiredHeaders: {},
+      uploadUrl: '/upload',
+    }));
+    const getAttachment = vi.fn();
+    const apis = {
+      attachments: {
+        createAttachmentUpload,
+        finalizeAttachmentUpload: vi.fn(async () => ({
+          ...attachment,
+          status: 'PROCESSING',
+        })),
+        getAttachment,
+      },
+    } as unknown as ReferenceApis;
+    const phases: string[] = [];
+    const file = new File(['selected-original'], 'holiday.mov', {
+      type: 'video/quicktime',
+    });
+    const fetchApi = vi.fn(async () => new Response(null, { status: 204 }));
+    const result = await uploadMemoryDraftAttachment(
+      apis,
+      'https://api.example.invalid',
+      'token',
+      'space',
+      file,
+      (phase) => phases.push(phase),
+      fetchApi,
+    );
+    expect(result).toMatchObject({
+      attachmentId: 'attachment-1',
+      processing: true,
+      hasThumbnail: false,
+    });
+    expect(phases).toEqual(['preparing', 'uploading', 'validating']);
+    expect(getAttachment).not.toHaveBeenCalled();
+    expect(createAttachmentUpload).toHaveBeenCalledWith({
+      spaceId: 'space',
+      attachmentUploadCreate: expect.objectContaining({
+        expectedSize: file.size,
+        expectedMimeType: file.type,
+      }),
+    });
+    expect(fetchApi).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ body: file }),
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

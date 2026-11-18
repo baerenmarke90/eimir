@@ -2,6 +2,48 @@
 
 These rules apply to AI-assisted and human implementation work in this repository.
 
+## Task continuity and delivery evidence
+
+- **Establish the current baseline.** Before implementation or release work, inspect
+  current `main`, the working branch, relevant Issues/PRs and comments, dependencies,
+  and applicable checks. Refresh affected assumptions after dependent merges or when
+  resuming work. Follow [Status Sources and Drift Rules](docs/STATUS-SOURCES.md);
+  chat history and remembered SHAs are orientation, not proof of current state.
+- **Make the requested outcome traceable.** Translate requests, screenshots, and
+  follow-up corrections into proportionate acceptance criteria in the existing
+  Issue or PR. Preserve agreed scope and authorization across follow-ups. Use one
+  coherent work record for related implementation and fixes; do not require the
+  Product Owner to repeat requirements in multiple tools.
+- **Verify execution readiness for the actual scope.** Confirm the checkout/ref,
+  required dependencies, commands, services, and access before claiming that an
+  environment can build or test the change. Repository connectivity or an available
+  terminal alone does not establish readiness. Reuse an existing project setup;
+  documentation-only work does not require a full application or Android build.
+  State concrete missing capabilities and continue work that does not depend on them.
+- **Coordinate parallel work and handoffs.** Give independent changes separate
+  branches/worktrees and explicit dependencies. Related work should continue in its
+  owning task/PR where practical. A handoff records the exact revision, completed
+  validation, unresolved findings, and next action. Preserve other contributors'
+  work and check the integration baseline before combining dependent changes.
+- **Report observed delivery states.** Distinguish implemented, validated, merged,
+  and published. Bind validation to the tested revision and relevant environment,
+  naming failed or unperformed checks and product/device acceptance still outstanding.
+  Confirm a merge against the actual target branch. Confirm publication through the
+  release/version, source revision, successful publishing run, and available expected
+  artifacts; include the relevant PR, run, release, and download links in the result.
+  A requested release is complete only when its published result is verified.
+- **Make background continuation verifiable.** Claim that cloud work continues only
+  when an actual task/workflow is running or a follow-up process has been configured.
+  Record its reference and the mechanism responsible for reviewing completion and
+  handling failures; starting a build alone does not establish that follow-up.
+  Report a pause or missing continuation explicitly instead of implying unattended
+  progress after a completed response.
+
+Use the existing Issue/PR validation sections and authoritative status sources for
+this evidence. This contract adds no parallel status document, unconditional test
+suite, or additional approval gate. Reuse authorization already given for the task;
+merge and publication still require authorization and all applicable protections.
+
 ## Mandatory sources
 
 Before relevant work, read at least these documents:
@@ -167,6 +209,14 @@ The Product Owner decision in `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 
 - Screen Templates (`docs/SCREEN-TEMPLATES.md`) are subordinate to this invariant: when a template's wording conflicts with it, the invariant wins. Correct the template, or document the conflict in the issue/PR, rather than following the template literally.
 - `Reuse before build` remains mandatory, but reuse is not a design justification by itself. No agent may argue "I reused the existing table/list component, therefore the design is correct" — an existing pattern that produces the wrong UX for the task is a design-system gap to close (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 17), not a pattern to keep reusing.
 
+### Browser-only controls must be hidden in the native app
+
+The Product Owner decision of 2026-11-10 confirms mobile-first delivery and requires
+buttons intended exclusively for browser use to be hidden in the native app,
+including its Capacitor WebView. Determine visibility from the runtime platform,
+not the viewport width. Apply this rule when adding or changing browser-only
+controls; a client change that exposes them in the native app is not merge-ready.
+
 ### Motion is required behavior
 
 Every material interaction must deliberately decide whether motion or feedback is needed. Reuse motion tokens and platform capabilities. State changes, reordering, sheets/panes, success feedback, and emotionally meaningful actions should not feel like abrupt DOM/data replacement.
@@ -180,6 +230,26 @@ A PR that changes couple-facing UI must include visual evidence sufficient to re
 A user-facing PR is not merge-ready when it is functionally correct but violates Product Reference v1 or the partner-app experience standard. Validate **Open → interact → save/complete → observe result → return**, including draft safety and restored context where applicable; screenshots alone cannot establish behavioral acceptance. Cover relevant ~360/~390/~430 px, sparse/dense, Light/Dark, and reduced-motion states alongside existing accessibility/reflow and native-device gates.
 
 ## Semantic design tokens
+
+Standalone create/add task entry points must remain visibly filled buttons in
+empty and populated views. Apply the binding [Button contract](docs/COMPONENT-CONTRACTS.md#31-button)
+rather than styling an icon/text or tertiary action as the main creation control
+(Product Owner correction #1688). Preserve the single-primary-action hierarchy.
+All create/add entry points reuse the shared `AddActionButton`, `AddActionLink`
+or `AddActionContent` presentation: a filled pill in the active design's action
+colour (Verbunden: the canonical blue; Product Owner decision 2026-11-17) with
+the shared contextual icon (defaulting to the plus) and a visible localized
+action label, as in Planning. The Product Owner correction #1724 uses photo, photo-library,
+Place, list and tag motifs for the corresponding enrichment actions. This includes
+People, important days, authored tags, media and inline insertion controls.
+The Product Owner correction #1697 supersedes #1693's icon-only circular
+interpretation for inline and heading actions. The #1740 contextual creation
+follow-up uses the shared icon-only floating variant above Compact navigation
+with the localized accessible name, size and shape from the Button contract.
+The later #1726 correction uses one soft media entry inside composers and
+shared full-width device/external choices in its source sheet. The Button
+contract describes this exception. Keep native task/link/input lifecycles and
+use the shared presentation for locally arranged actions.
 
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.
 
@@ -234,11 +304,44 @@ For client work in particular, user-facing text, date/number formatting, and plu
 
 Normal couples must not need to configure technical infrastructure. API keys, technical URLs, provider selection, tokens, and server details belong in the backend or hoster/admin layer.
 
+The Product Owner decision for #1444 (2026-10-27) permits a narrow exception: a Pro user may link their own Immich HTTPS service address. The personal, revocable read-only credential required by Immich is handled in the dedicated consent/setup task, never as a shared operator credential or general infrastructure settings surface. See `docs/product/integrations/1444-photo-source-delivery.md`. Other integrations retain the rule above.
+
 ## Do not weaken existing gates
 
 Reuse, business-model, product-design, or cross-cutting decisions must never weaken Clean-Room, security, privacy, tenant-isolation, provenance, licensing, or engineering-language rules.
 
 ## Pull requests
+
+### CI preflight, consolidated fixes, and targeted retries
+
+This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor CI procedure](CONTRIBUTING.md#retrying-failed-ci-jobs). The goal is informed convergence to merge readiness, not repeated speculative pushes or reruns.
+
+- Before implementation and the initial PR push, inspect the applicable Actions workflows, event/path filters and classifiers, required checks, base/dependency context, and PR-body, documentation, and design-evidence gates. Prepare a proportionate validation plan and complete required metadata/evidence before requesting final review.
+- Run cheap relevant preflight checks before pushing; run independent checks in parallel where supported. Broader suites need a relevant risk or required gate, not an automatic all-suites rule for every small change.
+- Collect available failures and diagnostics from useful independent jobs/shards on the current revision. Distinguish root causes, dependent symptoms, transient infrastructure failures, and unrelated baseline issues. Start diagnosis immediately, but normally let still-useful independent checks finish before a correction push.
+- Resolve known related causes and predictable follow-on errors as one coherent validated batch. Several meaningful local commits are fine; do not trigger another remote cycle for each isolated red message while known failures remain untreated. Do not bundle unrelated changes or wait indefinitely for hung/unavailable jobs.
+- Retry an unchanged revision only for a diagnosed, plausibly transient failure, using **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs. Repeated failure requires further diagnosis; do not use speculative rerun-all, empty commits, close/reopen loops, or artificial draft/ready transitions.
+- Code, test, or workflow fixes require a new commit and fresh applicable checks. Confirm the final head and relevant integration/merge context; older success is not evidence for changed source. For PR-metadata failures, correct the actual body/evidence and use the supported fresh event if rerunning would retain stale event data.
+- Cancel only demonstrably obsolete or diagnosed-hung runs owned by the current work, after preserving useful diagnostics. A shared PR does not authorize cancelling another contributor's work; required merge/deployment checks and missing evidence must not be treated as successful.
+- When changing workflows, keep independent expensive checks separately retryable where practical and retain `fail-fast: false` for independent matrix jobs. Required aggregates must reject failed, cancelled, or unexpectedly skipped required work. Do not weaken checks, assertions, coverage, protections, or required context names to shorten the cycle.
+- Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
+- Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
+
+### Mandatory Web browser test selection
+
+For Web product, browser-test and browser-CI work, the [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) is binding for human contributors and coding agents.
+
+- Use the shared validated plan: the always-run cross-surface core plus complete affected feature/reference specs. Do not restore an unconditional growing feature suite for every unrelated Web PR.
+- New or changed browser journeys must have reviewed ownership in both `web/e2e/test-groups.json` and `web/e2e/test-impact.json`. Include all relevant production entry roots and cross-surface destinations; a historical filename is not evidence of ownership. Revisit roots when journeys or source paths change.
+- Feature-specific acceptance evidence and broad viewport/theme variants must not automatically become global always-run work. An addition to, or material expansion of, the always-run core needs a concrete cross-surface contract and a traceable rationale in the PR, including overlap with existing coverage and the collected selection impact.
+- Prefer equivalent deterministic lower-level coverage for pure invariants. Delete browser cases only after proving redundancy, obsolescence or an equivalent committed replacement; retain real-browser layout, focus, navigation, privacy and accessibility protection where required.
+- Shared foundations, unknown/unmapped changes and incomplete dependency analysis must remain conservative. Preserve validation of complete PR-file responses, revision binding, changed surviving specs, disjoint execution groups and rejection of malformed/empty plans or unexpectedly skipped required work.
+- Preserve full automatic regression on `main` and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
+- Before pushing browser-selection changes, run the planning regressions and inventory checks and document actual Playwright collection counts and relevant measured runtime when available. Historical baselines and target durations do not establish current coverage or justify weaker assertions.
+
+The recorded test counts are measurements, not permanent quotas. Change the core deliberately as product contracts evolve; do not allow unrelated feature additions to silently recreate a large unconditional PR suite. Follow the [contributor procedure](CONTRIBUTING.md#web-browser-test-selection).
+
+### Required reviews
 
 A relevant pull request without a traceable reuse review is not merge-ready. Pure domain changes may mark the review as `not relevant` with a short rationale.
 

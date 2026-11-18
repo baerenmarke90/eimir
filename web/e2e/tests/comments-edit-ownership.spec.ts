@@ -1,7 +1,8 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
   DETAIL_COMMENTS,
@@ -54,6 +55,10 @@ async function openJourney(
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = DETAIL_COMMENTS.map((item) => ({ ...item }));
   if (secondOwn)
     comments.push({
@@ -135,7 +140,10 @@ async function openJourney(
     await route.fulfill({ json: updated });
   });
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByText('Still smiling about this.', { exact: true }),
@@ -148,9 +156,9 @@ async function edit(panel: Locator, body: string) {
   const card = panel
     .locator('.comment-card')
     .filter({ has: panel.page().getByText(body, { exact: true }) });
-  await card.locator('.comment-menu-trigger').click();
+  await card.getByLabel(copy.moreActions, { exact: true }).click();
   await card.getByRole('button', { name: copy.edit, exact: true }).click();
-  return panel.getByRole('textbox');
+  return panel.locator('.comment-edit-form').getByRole('textbox');
 }
 
 async function accessible(page: Page) {
@@ -236,7 +244,9 @@ for (const scenario of cases) {
       await state.panel
         .getByRole('button', { name: copy.save, exact: true })
         .click();
-      await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+      await expect(
+        state.panel.locator('.comment-edit-form').getByRole('textbox'),
+      ).toHaveCount(0);
       await expect(
         state.panel.getByText('A later thought stays with me.', {
           exact: true,
@@ -260,7 +270,9 @@ for (const scenario of cases) {
       await page.goBack();
       await expect(page).toHaveURL(/\/story\?tab=timeline$/);
       await expect(
-        page.getByRole('link', { name: new RegExp(scenario.title) }),
+        page
+          .locator('#momente-diary')
+          .getByRole('link', { name: new RegExp(scenario.title) }),
       ).toBeVisible();
       expect(state.unknown).toEqual([]);
     });
@@ -297,7 +309,9 @@ test('confirmed comment edit retains a newer draft when its refresh fails', asyn
   await state.panel
     .getByRole('button', { name: copy.save, exact: true })
     .click();
-  await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+  await expect(
+    state.panel.locator('.comment-edit-form').getByRole('textbox'),
+  ).toHaveCount(0);
   await expect(
     state.panel.getByText('Keep this after the failed refresh.', {
       exact: true,

@@ -18,6 +18,11 @@
  * @export
  */
 export const EngagementTarget = {
+    ONCE_MESSAGE: 'ONCE_MESSAGE',
+    REMINDER: 'REMINDER',
+    TRANSFER_EXPORT: 'TRANSFER_EXPORT',
+    TRANSFER_IMPORT: 'TRANSFER_IMPORT',
+    WISH_SELECTION: 'WISH_SELECTION',
     MEMORY: 'MEMORY',
     HEART_MOMENT: 'HEART_MOMENT',
     MILESTONE: 'MILESTONE',
@@ -25,7 +30,12 @@ export const EngagementTarget = {
     PLAN: 'PLAN',
     PLACE: 'PLACE',
     CHAPTER: 'CHAPTER',
-    COLLECTION: 'COLLECTION'
+    COLLECTION: 'COLLECTION',
+    PICTURE_GAME: 'PICTURE_GAME',
+    SHARED_NOTE: 'SHARED_NOTE',
+    GARDEN_SEED: 'GARDEN_SEED',
+    GARDEN_BOUQUET: 'GARDEN_BOUQUET',
+    RECAP: 'RECAP'
 } as const;
 export type EngagementTarget = typeof EngagementTarget[keyof typeof EngagementTarget];
 

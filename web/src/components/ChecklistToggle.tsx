@@ -25,17 +25,27 @@ export function ChecklistToggle({
       <span className="checklist-toggle-indicator" aria-hidden="true">
         {completed ? (
           <svg
+            className="inline-icon"
             viewBox="0 0 24 24"
             aria-hidden="true"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.25"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
             <path d="m6 12 4 4 8-9" />
           </svg>
-        ) : null}
+        ) : (
+          <svg
+            className="inline-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+        )}
       </span>
     </button>
   );

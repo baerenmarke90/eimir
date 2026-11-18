@@ -1,0 +1,102 @@
+.weekly-review {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-subtle);
+  overflow-wrap: anywhere;
+}
+.weekly-review h2 {
+  font-family: var(--font-display);
+}
+.weekly-review h2,
+.weekly-review h3,
+.weekly-review h4,
+.weekly-review p {
+  margin: 0;
+}
+.weekly-review-intro,
+.weekly-review-result {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.weekly-review-eyebrow {
+  color: var(--color-brand-text);
+}
+.weekly-review-source,
+.weekly-review small {
+  color: var(--color-text-secondary);
+}
+.weekly-review-facts,
+.weekly-review-recommendations,
+.weekly-review-preferences {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.weekly-review-recommendations > li {
+  display: grid;
+  gap: var(--space-2);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border-subtle);
+}
+.weekly-review-feedback,
+.weekly-review-preferences li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.weekly-review button,
+.weekly-review summary {
+  min-height: var(--touch-target-web);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  white-space: normal;
+  max-width: 100%;
+}
+.weekly-review button[aria-pressed="true"] {
+  border-color: var(--color-brand-text);
+  color: var(--color-brand-text);
+}
+.weekly-review button:disabled {
+  cursor: wait;
+}
+.weekly-review button:focus-visible,
+.weekly-review summary:focus-visible {
+  outline: 2px solid var(--color-brand-text);
+  outline-offset: var(--space-1);
+}
+.weekly-review-generate {
+  justify-self: start;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .weekly-review-result {
+    animation: weekly-review-appear var(--duration-transition)
+      var(--easing-enter);
+  }
+  @keyframes weekly-review-appear {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+.weekly-review-feedback {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}

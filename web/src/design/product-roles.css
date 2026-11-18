@@ -3,20 +3,67 @@
  * Import after theme.css. Canonical motion roles are consumed directly by production styles.
  */
 :root {
+  --font-media-caption:
+    600 0.8125rem / 1.4 "Instrument Sans", "Arial", sans-serif;
+  --tracking-media-caption: 0em;
+  --font-story-summary: 600 1.3125rem / 1.4 "Literata", "Georgia", serif;
+  --tracking-story-summary: 0em;
+  --font-story-total: 600 1.875rem / 1.4 "Literata", "Georgia", serif;
+  --tracking-story-total: 0em;
+  --font-story-category:
+    400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
+  --tracking-story-category: 0em;
+  --space-media-mosaic-gap: 0.375rem;
+  --space-story-summary-inset: 1.125rem;
+  --space-story-category-gap: 0.625rem;
+  --space-story-bar-gap: 0.1875rem;
+  --space-story-lifeline-dot: 0.75rem;
+  --space-story-lifeline-step: 0.875rem;
+  --space-story-lifeline-band: 5.75rem;
+  --space-story-lifeline-preview-media: 3.5rem;
+  --space-story-lifeline-row-media: 2.25rem;
+  --opacity-story-chip-fill: 16%;
+  --opacity-story-chip-fill-active: 26%;
+  --color-story-memory: #3055b8;
+  --color-story-heart-moment: #9b2f6a;
+  --color-story-milestone: #2e7d45;
+  --color-story-surface: #f3f5fc;
+  --color-story-paper: #fffdf9;
+  --color-story-paper-line: #e4dce6;
   --font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif;
   --tracking-page-heading: -0.015em;
   --font-personal-heading: 600 1.75rem / 1.2 "Literata", "Georgia", serif;
   --tracking-personal-heading: -0.01em;
+  --font-subpage-title: 700 1.75rem / 1.2 "Literata", "Georgia", serif;
+  --tracking-subpage-title: -0.01em;
   --font-content-heading: 600 1.375rem / 1.25 "Literata", "Georgia", serif;
   --tracking-content-heading: 0em;
   --font-utility-heading:
     600 1.75rem / 1.2 "Instrument Sans", "Arial", sans-serif;
   --tracking-utility-heading: -0.01em;
+  --font-memory-detail-heading:
+    500 1.5625rem / 1.25 "Instrument Sans", "Arial", sans-serif;
+  --tracking-memory-detail-heading: -0.024em;
   --font-section-heading:
     600 1.375rem / 1.25 "Instrument Sans", "Arial", sans-serif;
   --tracking-section-heading: 0em;
   --font-reading-body: 400 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-reading-body: 0em;
+  --font-composer-title: 600 1.6875rem / 1.2 "Literata", "Georgia", serif;
+  --tracking-composer-title: 0em;
+  --font-composer-lead: 600 1.5625rem / 1.2 "Literata", "Georgia", serif;
+  --tracking-composer-lead: 0em;
+  --font-composer-prose:
+    400 1.0625rem / 1.55 "Instrument Sans", "Arial", sans-serif;
+  --tracking-composer-prose: 0em;
+  --font-composer-context:
+    400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
+  --tracking-composer-context: 0em;
+  --composer-detail-media-height: 18.75rem;
+  --composer-media-height: 13.375rem;
+  --composer-media-compact-height: 11rem;
+  --composer-thumbnail-size: 3.5rem;
+  --composer-intake-height: 10.75rem;
   --font-supporting-copy:
     400 0.875rem / 1.45 "Instrument Sans", "Arial", sans-serif;
   --tracking-supporting-copy: 0em;
@@ -25,31 +72,110 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
+  --font-add-action-label:
+    600 0.875rem / 1.45 "Instrument Sans", "Arial", sans-serif;
+  --tracking-add-action-label: 0em;
+  --media-overlay-surface: #140c1299;
+  --media-overlay-surface-hover: #140c12b8;
+  --media-overlay-edge: #ffffff59;
+  --media-overlay-foreground: #ffffff;
+  --media-overlay-backdrop-blur: 8px;
+  --photo-mark-white: #ffffff;
+  --photo-mark-black: #1d2433;
+  --photo-mark-rose: #e8789a;
+  --photo-mark-blue: #3f73d1;
+  --photo-mark-yellow: #f6c445;
+  --navigation-surface-opacity: 72%;
+  --navigation-backdrop-blur: 24px;
+  --map-dark-tile-filter: invert(1) hue-rotate(180deg) brightness(0.85)
+    saturate(0.7);
+  --map-paper-tile-filter: saturate(0.6) contrast(0.97) brightness(1.04);
+  --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
+  --radius-floating-create: 16px;
+  --border-surface-width: 0px;
+  --border-control-width: 0px;
+  --border-authored-width: 1px;
+  --border-divider-width: 1px;
+  --composer-max: 680px;
+  --touch-target-web: 44px;
+  --touch-target-comfortable: 48px;
+  --touch-target-floating-create: 60px;
+  --icon-size-standard: 24px;
+  --icon-size-large: 32px;
+  --add-action-icon: 20px;
+  --media-action-icon: 20px;
+  --media-action-inset: 8px;
   --space-content-group: 0.75rem;
   --space-section: 2rem;
   --page-gutter-narrow: 16px;
   --page-gutter-comfortable: 20px;
   --page-gutter: var(--page-gutter-narrow);
   --duration-feedback: 120ms;
+  --control-pressed-scale: 0.98;
+  --control-pressed-scale-emphasis: 0.96;
+  --control-pressed-brightness: 0.96;
   --duration-transition: 180ms;
   --duration-context: 280ms;
+  --duration-map-camera: 1100ms;
+  --duration-map-stack: 600ms;
+  --duration-controls-return: 480ms;
+  --duration-sequence-beat: 200ms;
+  --duration-send-flight: 560ms;
+  --duration-gesture-moment: 900ms;
+  --duration-gesture-sequence: 1800ms;
+  --duration-connection-draw: 700ms;
+  --duration-connection-beat: 450ms;
+  --duration-connection-travel: 3200ms;
+  --duration-connection-travel-far: 6000ms;
+  --duration-story-slide: 5000ms;
+  --duration-story-ken-burns: 9000ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --easing-playback: cubic-bezier(0, 0, 1, 1);
+  --easing-travel: cubic-bezier(0.45, 0, 0.55, 1);
+  --easing-settle: cubic-bezier(0.34, 1.4, 0.64, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
+  --color-action-primary: #3055b8;
+  --color-on-action-primary: #ffffff;
+  --color-action-emphasis: #3055b8;
+  --color-on-action-emphasis: #ffffff;
+  --memory-detail-background: #f7f8fc;
 }
 
 :root[data-theme="dark"] {
+  --color-story-memory: #b7c8ff;
+  --color-story-heart-moment: #f6c9e1;
+  --color-story-milestone: #86db9c;
+  --color-story-surface: #303751;
+  --color-story-paper: #35303d;
+  --color-story-paper-line: #4d4757;
   --color-link-text: #b7c8ff;
+  --color-action-primary: #354778;
+  --color-on-action-primary: #ffffff;
+  --color-action-emphasis: #b7c8ff;
+  --color-on-action-emphasis: #171b2f;
+  --memory-detail-background: #151a28;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+    --color-story-memory: #b7c8ff;
+    --color-story-heart-moment: #f6c9e1;
+    --color-story-milestone: #86db9c;
+    --color-story-surface: #303751;
+    --color-story-paper: #35303d;
+    --color-story-paper-line: #4d4757;
     --color-link-text: #b7c8ff;
+    --color-action-primary: #354778;
+    --color-on-action-primary: #ffffff;
+    --color-action-emphasis: #b7c8ff;
+    --color-on-action-emphasis: #171b2f;
+    --memory-detail-background: #151a28;
   }
 }
 
@@ -79,5 +205,24 @@
     --duration-feedback: 0ms;
     --duration-transition: 0ms;
     --duration-context: 0ms;
+    --duration-map-camera: 0ms;
+    --duration-map-stack: 0ms;
+    --duration-controls-return: 0ms;
+    --duration-sequence-beat: 0ms;
+    --duration-send-flight: 0ms;
+    --duration-gesture-moment: 0ms;
+    --duration-gesture-sequence: 0ms;
+    --duration-connection-draw: 0ms;
+    --duration-connection-beat: 0ms;
+    --duration-connection-travel: 0ms;
+    --duration-connection-travel-far: 0ms;
+    --duration-story-ken-burns: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border-surface-width: 1px;
+    --border-control-width: 1px;
   }
 }

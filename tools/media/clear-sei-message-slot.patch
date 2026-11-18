@@ -1,0 +1,15 @@
+CVE-2026-125269. Backport FFmpeg commit 2c515eea07df719379e7f73deeeb7ccb8768433f.
+--- a/libavcodec/cbs_sei.c
++++ b/libavcodec/cbs_sei.c
+@@ -280,10 +280,7 @@ int ff_cbs_sei_list_add(SEIRawMessageList *list)
+         list->messages = ptr;
+         list->nb_messages_allocated = new_count;
+-
+-        // Zero the newly-added entries.
+-        memset(list->messages + old_count, 0,
+-               (new_count - old_count) * sizeof(*list->messages));
+     }
++    memset(&list->messages[list->nb_messages], 0, sizeof(*list->messages));
+     ++list->nb_messages;
+     return 0;
+ }

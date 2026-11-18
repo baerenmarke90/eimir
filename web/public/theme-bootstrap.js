@@ -48,6 +48,6 @@
   if (favicon)
     favicon.href =
       theme === 'dark'
-        ? '/identity/app-icon-dark.png'
-        : '/identity/app-icon-light.png';
+        ? '/identity/favicon/dark.png'
+        : '/identity/favicon/light.png';
 })();

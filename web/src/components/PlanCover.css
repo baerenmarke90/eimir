@@ -1,0 +1,94 @@
+.plan-cover {
+  --plan-cover-max-height: min(60svh, 28rem);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 48rem;
+  max-height: var(--plan-cover-max-height);
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: var(--radius-content);
+  background: var(--color-surface-subtle);
+}
+.plan-cover img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--plan-cover-max-height);
+  object-fit: contain;
+}
+.plan-cover > .sensitive-media-cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.plan-cover--preview {
+  --plan-cover-max-height: none;
+  aspect-ratio: 1;
+  width: var(--space-16);
+  max-width: none;
+  align-self: start;
+  margin: 0;
+  border-radius: var(--radius-medium);
+}
+.plan-cover--preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.plan-cover--preview > .sensitive-media-cover {
+  position: absolute;
+  inset: 0;
+}
+.plan-cover .sensitive-media-control {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-3);
+}
+.plan-cover-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: min(12rem, var(--plan-cover-max-height));
+  padding: var(--space-4);
+}
+.plan-cover--preview .plan-cover-placeholder {
+  min-height: 0;
+  padding: var(--space-2);
+}
+
+/* Loading is a quiet shimmer; the words stay for assistive technology only. */
+.plan-cover-placeholder.is-loading {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    var(--color-shimmer-base) 30%,
+    var(--color-shimmer-highlight) 50%,
+    var(--color-shimmer-base) 70%
+  );
+  background-size: 220% 100%;
+  animation: plan-cover-shimmer 1400ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-cover-placeholder.is-loading {
+    animation: none;
+  }
+}
+
+@keyframes plan-cover-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}

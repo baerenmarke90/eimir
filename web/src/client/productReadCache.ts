@@ -1,16 +1,31 @@
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
+import {
+  deviceMediaKey,
+  openJson,
+  type SealedJson,
+  sealJson,
+  sealsDeviceMedia,
+} from './deviceMediaSeal';
 import {
   type ClientProblemError,
   type ClientProblemKind,
   normalizeClientError,
 } from './problemDetails';
-import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 
 export type ProductCacheKind =
   | 'memory'
   | 'heartMoment'
   | 'milestone'
   | 'story'
-  | 'story-discover';
+  | 'story-discover'
+  | 'dashboard-overview'
+  | 'plans-overview'
+  | 'shared-list'
+  // A shared Collection detail (#1808), so a shopping list opens without a
+  // connection from its last saved copy.
+  | 'collection'
+  // Changes to one shopping list that are waiting to be sent (#1808).
+  | 'collection-outbox';
 export type ProductReadSource = 'network' | 'cache';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 
@@ -19,6 +34,7 @@ interface ProductCacheContext {
   accountId: string;
   spaceId: string;
   generation: string;
+  listGeneration?: string;
 }
 
 interface ProductCacheRecord {
@@ -48,6 +64,11 @@ export interface ProductReadCacheStorage {
   read(key: string): Promise<unknown>;
   write(record: unknown): Promise<void>;
   remove(key: string): Promise<void>;
+  removeKind?(
+    accountId: string,
+    spaceId: string,
+    kind: ProductCacheKind,
+  ): Promise<void>;
   clear(): Promise<void>;
   /** Discard the whole store when `clear` cannot complete.
    *
@@ -66,7 +87,8 @@ export const PRODUCT_READ_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 // IndexedDB names are persistent browser identity. Keep the established
 // database so an upgrade does not strand cached rows in an unreachable store.
 const DATABASE_NAME = 'sidebyside-web-read-cache';
-const DATABASE_VERSION = 3;
+// Version 4 drops the plaintext rows a sealing device must not keep.
+const DATABASE_VERSION = 4;
 const STORE_NAME = 'product-details';
 const CONTEXT_STORAGE_KEY = 'eimir-web-read-cache-context-v3';
 const LEGACY_CONTEXT_STORAGE_KEYS = [
@@ -123,6 +145,7 @@ let persistedRowsAwaitingPurge = false;
  * unchanged from when its read started.
  */
 const resourceRevocationStamps = new Map<string, number>();
+const kindRevocationStamps = new Map<string, number>();
 let nextResourceRevocationStamp = 1;
 
 function resourceIdentityKey(
@@ -140,10 +163,11 @@ function currentResourceRevocationStamp(
   kind: ProductCacheKind,
   resourceId: string,
 ): number {
-  return (
+  return Math.max(
+    kindRevocationStamps.get(JSON.stringify([accountId, spaceId, kind])) ?? 0,
     resourceRevocationStamps.get(
       resourceIdentityKey(accountId, spaceId, kind, resourceId),
-    ) ?? 0
+    ) ?? 0,
   );
 }
 
@@ -231,7 +255,11 @@ function isCacheContext(value: unknown): value is ProductCacheContext {
     typeof candidate.spaceId === 'string' &&
     candidate.spaceId.length > 0 &&
     typeof candidate.generation === 'string' &&
-    candidate.generation.length > 0
+    candidate.generation.length > 0 &&
+    (candidate.listGeneration === undefined ||
+      (typeof candidate.listGeneration === 'string' &&
+        candidate.listGeneration.length > 0 &&
+        candidate.listGeneration.length <= 64))
   );
 }
 
@@ -306,7 +334,11 @@ function writeCacheContextMarker(context: ProductCacheContext): boolean {
   }
 
   const marker = readCacheContextMarker();
-  return marker.available && contextsEqual(marker.context, context);
+  return (
+    marker.available &&
+    contextsEqual(marker.context, context) &&
+    marker.context?.listGeneration === context.listGeneration
+  );
 }
 
 /** Make the persisted marker unable to name any generation, and verify it.
@@ -350,6 +382,18 @@ function isLeaseCurrent(lease: ProductCacheContext): boolean {
   return contextsEqual(marker.context, lease);
 }
 
+function isSharedListLeaseCurrent(lease: ProductCacheContext): boolean {
+  if (
+    !isLeaseCurrent(lease) ||
+    activeContext?.listGeneration !== lease.listGeneration
+  )
+    return false;
+  const marker = readCacheContextMarker();
+  return (
+    !marker.available || marker.context?.listGeneration === lease.listGeneration
+  );
+}
+
 function enqueueCacheMutation<T>(operation: () => Promise<T>): Promise<T> {
   const run = cacheMutationTail.then(operation);
   cacheMutationTail = run.then(
@@ -365,7 +409,11 @@ function cacheKey(
   kind: ProductCacheKind,
   resourceId: string,
 ): string {
-  return `${context.generation}:${context.accountId}:${context.spaceId}:${privacyScope}:${kind}:${resourceId}`;
+  const resource =
+    kind === 'shared-list'
+      ? `${context.listGeneration ?? 'initial'}:${resourceId}`
+      : resourceId;
+  return `${context.generation}:${context.accountId}:${context.spaceId}:${privacyScope}:${kind}:${resource}`;
 }
 
 function openCacheDatabase(): Promise<IDBDatabase | null> {
@@ -484,11 +532,67 @@ const indexedDbStorage: ProductReadCacheStorage = {
   read: readCacheStoreRecord,
   write: (record) => mutateCacheStore((store) => store.put(record)),
   remove: (key) => mutateCacheStore((store) => store.delete(key)),
+  removeKind: (accountId, spaceId, kind) =>
+    mutateCacheStore((store) => {
+      const request = store.openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const record = cursor.value as Partial<ProductCacheRecord>;
+        if (
+          record.accountId === accountId &&
+          record.spaceId === spaceId &&
+          record.kind === kind
+        )
+          cursor.delete();
+        cursor.continue();
+      };
+    }),
   clear: () => mutateCacheStore((store) => store.clear()),
   destroy: deleteCacheDatabase,
 };
 
 let cacheStorage: ProductReadCacheStorage = indexedDbStorage;
+
+// A stored row that must be discarded: truthy, and never an expected record.
+const UNREADABLE_ROW: Readonly<Record<string, never>> = Object.freeze({});
+
+/**
+ * The Android app keeps cached content sealed under the per-login device key
+ * (`deviceMediaSeal.ts`): routing fields stay readable so rows can be found
+ * and purged, the payload does not. A sealing device never writes plaintext;
+ * without a key it writes nothing.
+ */
+async function persistRecord(record: ProductCacheRecord): Promise<void> {
+  if (!sealsDeviceMedia()) {
+    await cacheStorage.write(record);
+    return;
+  }
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) throw new Error('The device key is unavailable.');
+  const { payload, ...routing } = record;
+  await cacheStorage.write({
+    ...routing,
+    sealed: await sealJson(cryptoKey, record.key, payload),
+  });
+}
+
+/** Read one stored row, opened on a sealing device. */
+async function loadStoredRecord(key: string): Promise<unknown> {
+  const row = await cacheStorage.read(key);
+  if (!sealsDeviceMedia() || !row || typeof row !== 'object') return row;
+  const { sealed, ...routing } = row as { sealed?: SealedJson };
+  // A plaintext row predates sealing and is not kept.
+  if (!sealed || 'payload' in routing) return UNREADABLE_ROW;
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) return null;
+  try {
+    return { ...routing, payload: await openJson(cryptoKey, key, sealed) };
+  } catch {
+    // Sealed under an earlier login's key, or damaged.
+    return UNREADABLE_ROW;
+  }
+}
 
 /** Destroy every persisted row, escalating past a store that cannot clear.
  *
@@ -536,6 +640,10 @@ function captureCacheLease(
   ) {
     if (!contextsEqual(activeContext, persistedContext)) {
       invalidateContext(activeContext);
+      activeContext = persistedContext;
+    } else if (
+      activeContext?.listGeneration !== persistedContext.listGeneration
+    ) {
       activeContext = persistedContext;
     }
     return persistedContext;
@@ -602,9 +710,94 @@ export function canPersistProductReadPayload(
   kind: ProductCacheKind,
   payload: unknown,
 ): boolean {
+  if (kind === 'shared-list') {
+    if (!payload || typeof payload !== 'object') return false;
+    const data = payload as { pages?: unknown[]; pageParams?: unknown[] };
+    if (
+      !Array.isArray(data.pages) ||
+      !Array.isArray(data.pageParams) ||
+      data.pages.length > 12 ||
+      data.pages.length !== data.pageParams.length
+    )
+      return false;
+    // Only explicitly shared consumers use this kind. Keep a second guard
+    // against accidental migration of a mixed/private query in future work.
+    try {
+      const encoded = JSON.stringify(payload);
+      return (
+        encoded.length <= 256 * 1024 &&
+        !/"(?:visibility|privacyClass)":"(?:PRIVATE|OWNER_ONLY)"/.test(encoded)
+      );
+    } catch {
+      return false;
+    }
+  }
+  if (kind === 'collection' || kind === 'collection-outbox') {
+    if (!payload || typeof payload !== 'object') return false;
+    try {
+      // Bounded like the other shared snapshots; a Collection is always
+      // space-shared, and a snapshot that says otherwise is refused.
+      const encoded = JSON.stringify(payload);
+      return (
+        encoded.length <= 256 * 1024 &&
+        !/"(?:visibility|privacyClass)":"(?:PRIVATE|OWNER_ONLY)"/.test(encoded)
+      );
+    } catch {
+      return false;
+    }
+  }
+  if (kind === 'dashboard-overview' || kind === 'plans-overview') {
+    try {
+      // Overview snapshots are an optimization, never an unbounded archive.
+      return JSON.stringify(payload).length <= 256 * 1024;
+    } catch {
+      return false;
+    }
+  }
   if (kind !== 'heartMoment') return true;
   if (!payload || typeof payload !== 'object') return false;
   return (payload as { visibility?: unknown }).visibility === 'SHARED';
+}
+
+/** Only approved shared overviews may paint before their background read.
+ * Callers mount after Account and Space authorization and keep writes gated.
+ */
+export async function readWarmOverviewCache<T>({
+  accountId,
+  spaceId,
+  kind,
+  resourceId,
+  deserialize,
+}: {
+  accountId: string;
+  spaceId: string;
+  kind: 'dashboard-overview' | 'plans-overview' | 'shared-list';
+  resourceId: string;
+  deserialize: (payload: unknown) => T;
+}): Promise<ProductReadResult<T> | undefined> {
+  const lease = captureCacheLease(accountId, spaceId);
+  const cached = await readRecord(
+    {
+      key: cacheKey(lease, SHARED_SCOPE, kind, resourceId),
+      accountId,
+      spaceId,
+      generation: lease.generation,
+      kind,
+      resourceId,
+    },
+    lease,
+  );
+  if (!cached || !isLeaseCurrent(lease)) return undefined;
+  try {
+    return {
+      value: deserialize(cached.payload),
+      source: 'cache',
+      refreshedAt: new Date(cached.refreshedAt),
+    };
+  } catch {
+    await deleteRecordByKey(cached.key, lease);
+    return undefined;
+  }
 }
 
 function isExpectedRecord(
@@ -657,12 +850,16 @@ async function readRecord(
 ): Promise<ProductCacheRecord | null> {
   let record: unknown;
   try {
-    record = await cacheStorage.read(expected.key);
+    record = await loadStoredRecord(expected.key);
   } catch {
     return null;
   }
 
-  if (!isLeaseCurrent(lease)) return null;
+  if (
+    !isLeaseCurrent(lease) ||
+    (expected.kind === 'shared-list' && !isSharedListLeaseCurrent(lease))
+  )
+    return null;
   if (!isExpectedRecord(record, expected)) {
     if (record) await deleteRecordByKey(expected.key, lease);
     return null;
@@ -679,9 +876,13 @@ async function writeRecord(
   lease: ProductCacheContext,
 ): Promise<void> {
   await enqueueCacheMutation(async () => {
-    if (!isLeaseCurrent(lease)) return;
+    if (
+      !isLeaseCurrent(lease) ||
+      (record.kind === 'shared-list' && !isSharedListLeaseCurrent(lease))
+    )
+      return;
     try {
-      await cacheStorage.write(record);
+      await persistRecord(record);
     } catch {
       // Ordinary cache writes remain best effort.
     }
@@ -742,6 +943,36 @@ async function saveProductReadCacheEntryForLease<T>(
     },
     lease,
   );
+}
+
+/** Capture before a shared-list network read; namespace changes retire late results. */
+export function captureSharedListCacheWrite(
+  accountId: string,
+  spaceId: string,
+  resourceId?: string,
+): () => boolean {
+  const lease = currentCacheLease(accountId, spaceId);
+  const stamp =
+    resourceId === undefined
+      ? 0
+      : currentResourceRevocationStamp(
+          accountId,
+          spaceId,
+          'shared-list',
+          resourceId,
+        );
+  return () =>
+    Boolean(
+      lease &&
+        isSharedListLeaseCurrent(lease) &&
+        (resourceId === undefined ||
+          currentResourceRevocationStamp(
+            accountId,
+            spaceId,
+            'shared-list',
+            resourceId,
+          ) === stamp),
+    );
 }
 
 export async function saveProductReadCacheEntry<T>({
@@ -809,7 +1040,12 @@ export async function loadProductWithReadCache<T>({
       // a snapshot already known to be unauthorized or absent.
       await deleteProductReadCacheEntry(accountId, spaceId, kind, resourceId);
     }
-    if (!mayUseOfflineProductCache(normalized) || !isLeaseCurrent(lease)) {
+    if (
+      !mayUseOfflineProductCache(normalized) ||
+      !isLeaseCurrent(lease) ||
+      revocationStampAtStart !==
+        currentResourceRevocationStamp(accountId, spaceId, kind, resourceId)
+    ) {
       throw normalized;
     }
 
@@ -825,7 +1061,8 @@ export async function loadProductWithReadCache<T>({
       lease,
     );
     if (!cached || !isLeaseCurrent(lease)) throw normalized;
-    emitCacheEvent(PRODUCT_CACHE_FALLBACK_EVENT, cached.refreshedAt);
+    if (kind !== 'dashboard-overview' && kind !== 'plans-overview')
+      emitCacheEvent(PRODUCT_CACHE_FALLBACK_EVENT, cached.refreshedAt);
     return {
       value: deserialize(cached.payload),
       source: 'cache',
@@ -853,7 +1090,11 @@ export async function loadProductWithReadCache<T>({
       refreshedAt,
     });
   }
-  if (isLeaseCurrent(lease)) {
+  if (
+    isLeaseCurrent(lease) &&
+    kind !== 'dashboard-overview' &&
+    kind !== 'plans-overview'
+  ) {
     emitCacheEvent(PRODUCT_CACHE_NETWORK_EVENT, refreshedAt.toISOString());
   }
   return { value, source: 'network', refreshedAt };
@@ -875,6 +1116,26 @@ export async function deleteProductReadCacheEntry(
     cacheKey(lease, SHARED_SCOPE, kind, resourceId),
     lease,
   );
+}
+
+/** Revoke derived collection snapshots, including reads already in flight. */
+export async function deleteProductReadCacheKind(
+  accountId: string,
+  spaceId: string,
+  kind: ProductCacheKind,
+): Promise<void> {
+  kindRevocationStamps.set(
+    JSON.stringify([accountId, spaceId, kind]),
+    nextResourceRevocationStamp++,
+  );
+  const lease = currentCacheLease(accountId, spaceId);
+  if (!lease) return;
+  await enqueueCacheMutation(async () => {
+    if (!isLeaseCurrent(lease)) return;
+    if (cacheStorage.removeKind)
+      await cacheStorage.removeKind(accountId, spaceId, kind);
+    else await cacheStorage.clear();
+  });
 }
 
 /** Invalidate everything this browser persisted, durably.
@@ -906,6 +1167,23 @@ export function clearProductReadCache(): Promise<void> {
   return enqueueCacheMutation(purgeCacheStore);
 }
 
+/** Revoke all loaded-list snapshots without discarding authorized photo bytes. */
+export function revokeSharedListCache(spaceId: string): void {
+  const marker = readCacheContextMarker();
+  const context = marker.context ?? activeContext;
+  if (!context || context.spaceId !== spaceId || isContextInvalidated(context))
+    return;
+  const next = { ...context, listGeneration: createCacheGeneration() };
+  activeContext = next;
+  if (!writeCacheContextMarker(next)) {
+    clearProductReadCacheInBackground();
+    return;
+  }
+  void enqueueCacheMutation(async () => {
+    await cacheStorage.removeKind?.(context.accountId, spaceId, 'shared-list');
+  }).catch(() => undefined);
+}
+
 /** Start a wipe from a lifecycle that cannot await it.
  *
  * Logout, Account and Space changes invalidate synchronously and navigate on;
@@ -916,6 +1194,84 @@ export function clearProductReadCache(): Promise<void> {
  */
 export function clearProductReadCacheInBackground(): void {
   void clearProductReadCache().catch(() => undefined);
+}
+
+/** Read the changes of one shopping list that are waiting to be sent (#1808).
+ *
+ * They live in the same store and generation as the cached reads, so every
+ * lifecycle that wipes the cache (sign-out, leaving the Space, Account
+ * deletion, an import) wipes them too and a new generation cannot reach them.
+ */
+export async function readCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<unknown | null> {
+  const lease = captureCacheLease(accountId, spaceId);
+  const record = await readRecord(
+    {
+      key: cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+      accountId,
+      spaceId,
+      generation: lease.generation,
+      kind: 'collection-outbox',
+      resourceId: collectionId,
+    },
+    lease,
+  );
+  return record ? record.payload : null;
+}
+
+/** Store the waiting changes of one shopping list and say whether it worked.
+ *
+ * Unlike a cache write this reports failure: a change that was only kept in
+ * memory must not look as if it survived a restart. Returns `false` when the
+ * payload is not allowed, the cache context is no longer current, or the
+ * storage refused it.
+ */
+export async function writeCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+  payload: unknown,
+): Promise<boolean> {
+  const lease = captureCacheLease(accountId, spaceId);
+  if (!canPersistProductReadPayload('collection-outbox', payload)) return false;
+  const key = cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId);
+  try {
+    await enqueueCacheMutation(async () => {
+      if (!isLeaseCurrent(lease)) throw new Error('The cache context changed.');
+      await persistRecord({
+        schemaVersion: 3,
+        key,
+        accountId,
+        spaceId,
+        generation: lease.generation,
+        privacyScope: SHARED_SCOPE,
+        kind: 'collection-outbox',
+        resourceId: collectionId,
+        payload,
+        refreshedAt: new Date().toISOString(),
+      });
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Remove the waiting changes of one shopping list once nothing is left to send. */
+export async function deleteCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<void> {
+  const lease = currentCacheLease(accountId, spaceId);
+  if (!lease) return;
+  await deleteRecordByKey(
+    cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+    lease,
+  );
 }
 
 export function __setProductReadCacheStorageForTests(
@@ -936,6 +1292,7 @@ export function __resetProductReadCacheStateForTests(): void {
   persistedMarkerUntrusted = false;
   persistedRowsAwaitingPurge = false;
   resourceRevocationStamps.clear();
+  kindRevocationStamps.clear();
   nextResourceRevocationStamp = 1;
 }
 

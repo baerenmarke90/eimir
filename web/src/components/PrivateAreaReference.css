@@ -1,23 +1,3 @@
-.private-area-reference-overview {
-  display: grid;
-  gap: clamp(var(--space-5), 5vw, var(--space-8));
-}
-
-.private-area-page:has(> .private-area-reference-overview)
-  > .private-area-context,
-body.theme-vault
-  .private-area-page:has(> .private-area-reference-overview)
-  > .private-area-context,
-:root[data-theme="dark"]
-  body.theme-vault
-  .private-area-page:has(> .private-area-reference-overview)
-  > .private-area-context {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
 .private-area-title-row {
   margin: 0;
   font-family: var(--font-display);
@@ -44,14 +24,13 @@ body.theme-vault
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   border-radius: var(--radius-medium);
   background: var(--color-brand-surface);
   color: var(--color-text);
 }
 
-.private-area-privacy-banner-icon,
-.private-area-destination-icon {
+.private-area-privacy-banner-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -78,120 +57,6 @@ body.theme-vault
   margin: 0;
   color: var(--color-text-secondary);
   line-height: 1.5;
-}
-
-.private-area-destination-nav ul {
-  display: grid;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.private-area-destination-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 5.75rem;
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
-  color: inherit;
-  text-decoration: none;
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    border-color var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard);
-}
-
-.private-area-destination-card:hover {
-  transform: translateY(-1px);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-card);
-}
-
-.private-area-destination-card:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-.private-area-destination-icon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-medium);
-  background: var(--color-brand-surface);
-  color: var(--color-brand-text);
-}
-
-.private-area-destination-icon svg {
-  width: 1.45rem;
-  height: 1.45rem;
-}
-
-.private-area-destination-copy {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.private-area-destination-copy strong {
-  font-size: 1.05rem;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.private-area-destination-copy > span {
-  color: var(--color-text-secondary);
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.private-area-destination-chevron {
-  color: var(--color-text-secondary);
-  font-size: 1.75rem;
-  line-height: 1;
-}
-
-@media (max-width: 480px) {
-  .private-area-reference-overview {
-    gap: var(--space-5);
-  }
-
-  .private-area-destination-card {
-    gap: var(--space-3);
-    min-height: 5.5rem;
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .private-area-destination-icon {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-}
-
-@media (max-width: 340px) {
-  .private-area-destination-card {
-    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
-    padding-inline: var(--space-3);
-  }
-
-  .private-area-destination-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .private-area-destination-card {
-    transition: none;
-  }
-
-  .private-area-destination-card:hover {
-    transform: none;
-  }
 }
 
 .private-collection-item-title {
@@ -246,5 +111,107 @@ body.theme-vault
   .private-collection-items .planning-item-title-form {
     flex-basis: 100%;
     width: 100%;
+  }
+}
+
+.private-gift-composer {
+  --color-action-emphasis: var(--private-action-color);
+  --color-on-action-emphasis: var(--color-on-accent);
+  --color-focus: var(--private-action-color);
+
+  inline-size: 100%;
+  max-inline-size: var(--composer-max);
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+.private-gift-composer > .composer-header.page-heading {
+  position: sticky;
+  inset-block-start: var(--shell-header-safe-top, 0px);
+  z-index: 55;
+  isolation: isolate;
+  padding-block: var(--space-2);
+}
+
+.private-gift-composer > .composer-header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--shell-header-safe-top, 0px)) 0 0;
+  background: color-mix(
+    in srgb,
+    var(--color-background) 55%,
+    var(--color-surface-subtle)
+  );
+  pointer-events: none;
+}
+
+@media (max-width: 839px) {
+  .private-gift-composer > .composer-header::before {
+    inset-inline: calc(-1 * var(--page-gutter));
+  }
+}
+
+.private-gift-audience {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.private-gift-audience .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  color: var(--private-action-color);
+}
+
+.private-gift-form,
+.private-gift-form .page-composer-writing {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+.page.private-area-page
+  :is(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+    textarea,
+    select
+  ) {
+  --color-focus: var(--private-action-color);
+
+  min-inline-size: 0;
+  border: var(--border-authored-width) solid var(--color-text-muted);
+  background-color: var(--color-surface);
+}
+
+.page.private-area-page :is(input, textarea)::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.private-gift-form input[name="title"] {
+  font: var(--font-composer-title);
+}
+
+.form-grid.private-gift-form > .private-area-check {
+  display: inline-flex;
+  margin: 0;
+}
+
+.private-gift-composer + .private-area-nav {
+  inline-size: 100%;
+  max-inline-size: var(--composer-max);
+  margin-inline: auto;
+}
+
+.private-gift-form .private-area-field-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container product-content (min-width: 21rem) {
+  .private-gift-form .private-area-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

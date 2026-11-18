@@ -80,7 +80,7 @@ product version -> commit SHA -> backend/Web/Android artifacts -> SBOM/attestati
 
 Delivered #194 freezes:
 
-- application ID `de.sidebyside.app`;
+- application ID `de.eimir.app`;
 - debug application ID separation;
 - `versionName` as product version;
 - monotonic publisher-supplied `versionCode`;
@@ -103,7 +103,7 @@ Delivered #1008 (Slice B) migrates Android release packaging, signing, and publi
 - Gradle project properties `eimirVersionCode` (with deprecated `sbs*` compatibility fallback) and `eimirVersionName`;
 - release signing credentials reading `eimirRelease*` (with deprecated `sbs*` fallbacks) materialized ephemerally in `$RUNNER_TEMP`;
 - strict dependency verification (`gradle/verification-metadata.xml`) and verified Gradle wrapper checksums;
-- verification of offline web assets, runtime security (`CapacitorHttp`), and dynamic badging (`de.sidebyside.app` / `de.eimir.app.MainActivity`);
+- verification of offline web assets, runtime security (`CapacitorHttp`), and dynamic badging (`de.eimir.app` / `de.eimir.app.MainActivity`);
 - the legacy Kotlin/Compose client was removed in #1009; `android/` is the single Android Gradle project.
 
 ## 6. Promotion contract
@@ -255,3 +255,38 @@ This contract does not introduce:
 - Android product-feature changes;
 - payment-provider logic;
 - automatic destructive database rollback.
+
+## 14. Optional Firebase Android release input (#565)
+
+`release-evidence.yml` and `release-publish.yml` accept the optional string input
+`android_firebase_project_id`. Leave it empty for an Android build without direct
+FCM; UnifiedPush remains available. Pull-request builds use this unconfigured
+path and do not receive Firebase configuration. Android-excluded release runs
+must also leave this input empty.
+
+For direct FCM, select the expected Firebase project explicitly, for example
+`eimir-test`, and provide `EIMIR_ANDROID_GOOGLE_SERVICES_JSON` through the
+publishing environment. This is the public Android client `google-services.json`
+for package `de.eimir.app`. It must not contain a server service-account key,
+private key, refresh token, or signing material. The reusable evidence workflow
+declares only this optional named input secret; the publisher passes it
+explicitly instead of inheriting unrelated secrets.
+
+Both the unsigned evidence build and the final signed build run the same
+`scripts/android_firebase_configuration.py` preparation before Gradle. It checks
+the expected project, project number, Android app ID, package and public API key,
+rejects server credentials and existing configuration files, and creates the
+ignored `android/app/google-services.json` with mode `0600`. Google Services
+Gradle Plugin processes this normal build input. Missing or mismatched input
+fails before Android compilation; the workflow does not silently publish a
+requested FCM build without Firebase configuration.
+
+After building, the shared helper uses `apkanalyzer` to compare the packaged APK's
+`google_app_id`, `gcm_defaultSenderId`, `project_id` and `google_api_key` with the
+validated client configuration. It does not print their values. An always-run
+cleanup removes the temporary input, including when build verification fails.
+This verifies build identity and compiled configuration, not Google API-key
+restrictions, server sender permission, device registration, or actual delivery.
+Those remain part of the real-instance/device acceptance for #565. FCM server
+credentials stay on the operator's server and are never a GitHub Android build
+input.

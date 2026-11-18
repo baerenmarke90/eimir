@@ -1,0 +1,20 @@
+{
+  "algorithm": "sha256",
+  "main": "9bb7bd4673ffbc19965baffbbf07ce6c4ef21d4a",
+  "dependency_pr": 1619,
+  "dependency_head": "977f9c9d07e52c21b6ddd635a5a026173cf85758",
+  "files": {
+    "web/src/App.tsx": "0ba1548bc88c299a25705274002d178092b5e3a70583da71702c418f7e30d145",
+    "web/src/client/gentlePrompts.ts": "4b033287ae0d9ac33fe7342b1ebd770507ec09c86c1e03127206c37c8bc66164",
+    "web/src/client/sessionPersistence.ts": "15ce5f93e784bb7e569e94574581047a84ffaffc2a5892d15b1e5503108d5cd4",
+    "web/src/client/m4Product.ts": "5afeca1ee8ceccfe896013ad6d309e3f28799024591805f3f2bc01fac4cee1f6",
+    "web/src/components/TodayPage.tsx": "21f5a227c5de4c524f33c1ab9edb2cf4212315c95a87a6aad7c855f716d15f48",
+    "web/src/components/GentleSuggestionCard.tsx": "7dbf6eba1a4d129710999dba0cfde4a29bee7a1845a3e9c268f199ff46f2939f",
+    "web/src/components/GentleSuggestionCard.css": "e9b4f4cf302a7d290e2afe26077c7ba4bf5704c1ff34c05ae6170d5ebf25647c",
+    "web/src/components/GentleSuggestionCard.test.tsx": "4b2d748e2a9adb06b88c0e85ccb2b8b2162fa4fb17bcafc3617f892d166ae501",
+    "web/src/components/NotificationSettingsPanel.tsx": "896157fd90cdf4a47ad8a476292ee6b499a9f20cf3c23c9aa97b3d1697983221",
+    "web/src/components/NotificationSettingsPanel.test.tsx": "674fab1214b780171f5acd3f86d14cf15b9268024314e342ad06054d0f116b07",
+    "web/src/i18n/locales/gentlePrompts.ts": "79ed1f03c01f5c6e98cc7f778c48d34a12d9a02a634a99926ab064802e331b10",
+    "web/e2e/tests/product-accessibility.spec.ts": "550b5ba9500365e293bcff76448f17e8526d3803485b4f02203ea3a19ef58dff"
+  }
+}

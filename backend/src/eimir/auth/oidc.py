@@ -37,7 +37,9 @@ if TYPE_CHECKING:
     from sqlalchemy import CursorResult
 from sqlalchemy.orm import Session
 
+from eimir.administration import service as administration
 from eimir.auth import rate_limit, sessions
+from eimir.auth.policy import ensure_oidc_signup_supported
 from eimir.auth.sessions import IssuedTokens
 from eimir.auth.tokens import generate_token, hash_token
 from eimir.config import OidcConnection, get_settings
@@ -52,6 +54,8 @@ from eimir.db.locks import lock_subject
 from eimir.db.session import schedule_after_rollback
 from eimir.identity import service as accounts
 from eimir.identity.models import Account, AuthIdentity, OidcAuthRequest
+from eimir.legal import terms
+from eimir.legal.models import TermsAcceptanceOrigin
 from eimir.relationship import invitations
 from eimir.relationship.invitations import InvitationErrorCode
 
@@ -98,6 +102,16 @@ class OidcErrorCode:
     PROVIDER_UNREACHABLE = "OIDC_PROVIDER_UNREACHABLE"
     INVALID_TOKEN = "OIDC_TOKEN_INVALID"
     NO_ACCOUNT = "OIDC_NO_ACCOUNT"
+    EMAIL_NOT_VERIFIED = "OIDC_EMAIL_NOT_VERIFIED"
+    """Signup needs an address the provider explicitly confirms as verified."""
+    ADDRESS_ALREADY_REGISTERED = "OIDC_ADDRESS_ALREADY_REGISTERED"
+    """The verified address already has an Account.
+
+    The provider has just asserted control of that address, so naming the
+    situation to this person discloses nothing a mailed proof for the same
+    address would not. The identity is deliberately not merged into the existing
+    Account; the person signs in another way and links the provider there.
+    """
     IDENTITY_ALREADY_LINKED = "OIDC_IDENTITY_ALREADY_LINKED"
     """A link flow returned an identity that belongs to a different account.
 
@@ -247,6 +261,9 @@ def start(
     *,
     account_id: UUID | None = None,
     invitation_token: str | None = None,
+    allow_signup: bool = False,
+    accepted_terms_version: str | None = None,
+    native: bool = False,
 ) -> StartedFlow:
     """Start an OIDC authentication flow.
 
@@ -258,8 +275,27 @@ def start(
     exactly that already-authenticated account. An optional invitation token is
     bound to the short-lived request only as a hash; it appears neither in the
     provider URL nor as plaintext in the database.
+
+    ``allow_signup`` states that the person wants to create a new Account
+    without an invitation (Cloud self-service). It is refused where that is not
+    offered, and it requires the acceptance of the current terms of use, which is
+    stored with the request because the callback must not invent one. A terms
+    acceptance sent with an invitation is stored the same way. ``native`` selects
+    the connection's registered native-app callback instead of the web one.
     """
     configured = connection(connection_id)
+    redirect_uri = configured.redirect_uri
+    if native:
+        if configured.android_redirect_uri is None:
+            raise ValidationError(
+                "This sign-in method is not available.", OidcErrorCode.UNKNOWN_CONNECTION
+            )
+        redirect_uri = configured.android_redirect_uri
+    if allow_signup:
+        ensure_oidc_signup_supported()
+    accepted_terms_version = terms.ensure_current_version(accepted_terms_version)
+    if allow_signup and accepted_terms_version is None:
+        raise terms.acceptance_required_error()
     rate_limit.check(session, ACTION_OIDC_START, configured.id, OIDC_START)
     rate_limit.record_attempt(session, ACTION_OIDC_START, configured.id)
 
@@ -275,9 +311,11 @@ def start(
             state_hash=hash_token(state),
             nonce=nonce,
             code_verifier=verifier,
-            redirect_uri=configured.redirect_uri,
+            redirect_uri=redirect_uri,
             account_id=account_id,
             invitation_token_hash=(hash_token(invitation_token) if invitation_token else None),
+            allow_signup=allow_signup,
+            accepted_terms_version=accepted_terms_version,
             expires_at=now() + AUTH_REQUEST_LIFETIME,
         )
     )
@@ -286,7 +324,7 @@ def start(
     parameters = {
         "response_type": "code",
         "client_id": configured.client_id,
-        "redirect_uri": configured.redirect_uri,
+        "redirect_uri": redirect_uri,
         "scope": configured.scopes,
         "state": state,
         "nonce": nonce,
@@ -462,11 +500,18 @@ def _onboard_with_invitation(
     subject: str,
     connection_id: str,
 ) -> Account:
-    """Atomically create account, OIDC identity, and membership from an invitation."""
+    """Atomically create account, OIDC identity, and membership from an invitation.
+
+    Where new Accounts must accept the eimir. Cloud terms of use, the acceptance
+    must have been given before the redirect and is recorded with the Account.
+    """
     if request.invitation_token_hash is None:
         raise UnauthenticatedError(
             "This identity is not linked to an account.", OidcErrorCode.NO_ACCOUNT
         )
+    required = terms.required_terms_version()
+    if required is not None and request.accepted_terms_version != required:
+        raise terms.acceptance_required_error()
 
     def create_account() -> Account:
         account = accounts.create_oidc_account(
@@ -482,6 +527,13 @@ def _onboard_with_invitation(
             connection_id=connection_id,
         )
         identity.last_used_at = now()
+        if required is not None:
+            terms.record_acceptance(
+                session,
+                account_id=account.id,
+                version=required,
+                origin=TermsAcceptanceOrigin.OIDC_SIGNUP,
+            )
         return account
 
     try:
@@ -494,6 +546,62 @@ def _onboard_with_invitation(
                 "This identity is not linked to an account.", OidcErrorCode.NO_ACCOUNT
             ) from error
         raise
+    return account
+
+
+def _signup_without_invitation(
+    session: Session,
+    *,
+    request: OidcAuthRequest,
+    claims: dict[str, Any],
+    issuer: str,
+    subject: str,
+    connection_id: str,
+) -> Account:
+    """Create a Cloud Account from an external identity the person asked to sign up with.
+
+    The mailed signup proof proves control of an address before an Account
+    exists. This path asks the provider for the same proof: it must explicitly
+    mark the address as verified. Creation also needs the administrator to admit
+    new Accounts and the terms acceptance stored with the request. An address that
+    already has an Account is refused and never merged, because merging on a
+    claimed address is how an account is taken over.
+    """
+    ensure_oidc_signup_supported()
+    administration.ensure_new_account_registration_allowed(session)
+    required = terms.required_terms_version()
+    if required is None or request.accepted_terms_version != required:
+        raise terms.acceptance_required_error()
+
+    claimed = _verified_email(claims)
+    address: str | None = None
+    if claimed is not None:
+        try:
+            address = accounts.validate_email(claimed)
+        except ValidationError:
+            address = None
+    if address is None:
+        raise ValidationError(
+            "The provider did not confirm an email address.", OidcErrorCode.EMAIL_NOT_VERIFIED
+        )
+    if accounts.find_by_email(session, address) is not None:
+        raise ConflictError(
+            "An account already exists for this address.", OidcErrorCode.ADDRESS_ALREADY_REGISTERED
+        )
+
+    account = accounts.create_oidc_account(
+        session, display_name=_display_name(claims), verified_email=address
+    )
+    identity = accounts.add_oidc_identity(
+        session, account, issuer=issuer, subject=subject, connection_id=connection_id
+    )
+    identity.last_used_at = now()
+    terms.record_acceptance(
+        session,
+        account_id=account.id,
+        version=required,
+        origin=TermsAcceptanceOrigin.OIDC_SIGNUP,
+    )
     return account
 
 
@@ -622,8 +730,21 @@ def complete(
         )
     elif identity is not None:
         account = session.get(Account, identity.account_id)
+        if account is not None and account.is_active and request.invitation_token_hash is not None:
+            # A returning person who opened an invitation joins the Space in the
+            # same transaction as the sign-in, as a mailed signup proof would.
+            invitations.accept_by_hash(session, request.invitation_token_hash, account)
     elif request.invitation_token_hash is not None:
         account = _onboard_with_invitation(
+            session,
+            request=request,
+            claims=claims,
+            issuer=discovery.issuer,
+            subject=subject,
+            connection_id=configured.id,
+        )
+    elif request.allow_signup:
+        account = _signup_without_invitation(
             session,
             request=request,
             claims=claims,

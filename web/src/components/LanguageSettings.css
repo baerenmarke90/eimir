@@ -1,0 +1,11 @@
+.language-settings-control {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  flex-wrap: wrap;
+}
+
+.language-settings-control select {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: var(--touch-target-web);
+}

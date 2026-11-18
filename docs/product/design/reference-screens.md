@@ -17,7 +17,7 @@ The following contract applies to every reference, together with its specific co
 | --- | --- |
 | Compact is normative | Design one human task and one dominant action first. At 360/390/430 px preserve the same hierarchy and body size, with wrapping labels and content-driven heights |
 | D7 gutters | Approximately 16 px below approximately 390 px; 20 px at/above approximately 390 px through Compact, except a deliberate edge-to-edge composition |
-| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The central plus is an action, not a fifth destination. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
+| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The contextual Compact plus floats above the bar on eligible views. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
 | Thumb reach / keyboard | Important actions remain reachable with one hand; Web targets at least 44 × 44 CSS px, Android at least 48 × 48 dp. Reserve measured navigation height and safe-area clearance. A completion footer never obscures focused input or content |
 | Task boundary | Browsing/reading, capture/edit and confirmation are distinct. Focused capture replaces competing root chrome. Visible Back/Close and platform Back agree on task ownership |
 | Reading before editing | Personal content opens its canonical read detail; editing and destructive operations are deliberate contextual actions. Full-surface navigation has proper semantics and no nested interactive targets |
@@ -131,6 +131,17 @@ Light and Dark both retain clear dates, scope and readable prose. Dark photos ke
 
 **Acceptance journey:** choose a year/type in Timeline, load/open an older text/photo item and return to the same scope/position; switch to unfiltered Discover and back to restored Timeline; create, observe and find a result; test no-match, paging error, long text and private exclusion.
 
+### Product Owner follow-up #1570
+
+Memories, Diary and Map are three peer modes with one shared selector. The canonical
+map route retains non-sensitive Diary filters through selection and source return.
+Place the Diary filter action beside its first visible month, with an empty/loading
+fallback. Overview cards omit author avatars; canonical details retain authorship.
+Map markers show authorized photo previews and memory-count badges, with equivalent
+photo/source browsing below. Conceal sensitive media and retain text-only/error
+fallbacks and provider attribution. The shared resolved appearance controls map
+pixels and controls; there is no separate map preference.
+
 ## R3 — Planen
 
 ### Human outcome and hierarchy
@@ -189,7 +200,7 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
-| 1 | Quiet shared root header | Search and notifications remain recognizable utilities |
+| 1 | Content begins below the safe top inset | Per [PO decision #1507](mobile-header-more.md), Compact/Medium has no global header; global search and notifications are named More destinations with unread state on More |
 | 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
 | 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
@@ -198,6 +209,22 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 | 7 | Grouped story summary | Quiet closing reflection with truthful counts and correct destinations |
 
 Preserve the accepted Today orchestration and selection/preferences. A feature does not earn a permanent slot because it exists. Irrelevant modules disappear. Current, next and rediscovery have different shapes and weights; no equal widgets, dashboard builder or placeholder grid. The existing Account-and-Space-scoped Settings preference may reorder or hide supported modules without changing the partner's view; hidden modules keep their place and new modules receive a stable default place. This does not turn the Today reading surface into a widget editor. Optional Vibe/Energy and Daily Quote follow their own configuration and entitlement contracts; they do not change the default order of the supported modules.
+
+**PO follow-up #1570:** The existing rediscovery slot is eligible daily when
+shared historic content exists. Prefer exact anniversaries; otherwise rotate a
+bounded authorized pool with one stable Space/day choice. This explicit request
+supersedes the former one-weekday fallback and partner-signal-first priority for
+that slot. Preserve personal visibility/dismissal, privacy and source navigation;
+avoid duplicating the selected source in the focal region or monthly highlights.
+Do not add a second widget stack or infer an engagement score.
+
+**PO follow-up #1574:** Daily rediscovery is an independent `retrospective`
+module, with its own “Weißt du noch?” section heading and personal visibility
+and ordering. It no longer occupies “Gerade bei euch”; an eligible partner
+signal can appear alongside it. Keep the source out of the focal, contextual,
+monthly and activity selections, including when the module is hidden. The
+existing daily dismissal and canonical source/return contract remain. Its
+“Erinnerung ansehen” destination uses the shared filled blue action.
 
 ### Mobile interaction contract and continuity
 
@@ -238,15 +265,20 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Surface | Compact hierarchy and behavior |
 | --- | --- |
 | More | Compact person/profile entry → clearly private area → grouped shared destinations → named Settings, Notifications and Activity destinations → appropriately placed product-account entry |
-| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences → separate explicitly private partner-note entry |
+| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences |
 | Profile editing | One deliberate Edit entry reveals supported name/photo operations; personal content is not a permanent field stack |
 | Preference | Read category/value first; contextual short edit only for the authorized owner; no forbidden partner-edit controls |
-| Private partner notes | Explicit owner-only context before sensitive content, readable preview and dedicated writing task; never mixed into the shared profile |
+| Private partner notes | More → the private area → partner notes; explicit owner-only context before sensitive content, readable preview and the existing private preference editor |
 | Settings index | Predictable categories leading to focused pages, including existing relationship, notifications, Today visibility, appearance, transfer and account functions |
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |
 
-The avatar remains a shortcut. Named Profile and Settings links under More remove dependence on discovering an avatar menu (D6). Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
+PO refinement [#1655](https://github.com/baerenmarke90/eimir/issues/1655)
+(2026-11-05): private partner notes belong under the private area rather than
+Profile. Preserve the existing owner-only preference records and write lifecycle;
+this changes their navigation, not their audience or storage.
+
+Per [PO decision #1507](mobile-header-more.md), More groups global search, the current-user avatar/name and named Profile, Notifications, Activity and Settings entries, capability-gated administration, safe sign-out and a quiet brand footer. Compact/Medium has no persistent global header; Expanded retains top navigation. An unread dot and accessible label on More use the existing recipient count; entering More does not mark notifications read. This replaces the former avatar-menu shortcut while preserving D6. Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
 
 ### Mobile interaction contract and continuity
 
@@ -277,10 +309,41 @@ Light/Dark use neutral rows, clear grouping and restrained privacy indication; a
 
 **Acceptance journey:** find profile and appearance settings through More without the avatar shortcut; edit and save a real supported value; return category → index → More; identify which note is private; verify delayed/failing edits preserve work, legacy entry links resolve, and dangerous-operation safeguards remain intact.
 
+### People profiles and occasions (#1683)
+
+PO refinement (2026-11-06): People is a portrait-led overview under More. A name
+opens a profile; the photograph opens the whole authorized image. Editing is a
+deliberate focused task. People are collaborative content for the existing Space
+members, with no audience selector, grouping, badge or explanatory hint.
+Birthdays remain optional profile data. Planning has an occasions mode beside
+Plans and Wishes: projected person/partner birthdays plus independent dates,
+read before edit. Independent dates retain their existing privacy contracts.
+See the [preflight and implementation evidence](references/people-profiles/README.md).
+
 ## Review and propagation boundary
+
+### Contextual creation (#1679)
+
+The Moments view tabs have one labeled local capture entry in every peer view,
+including the map. Its bounded choice opens the existing Memory, HeartMoment or
+Milestone task with the current return context. The global plus retains its
+cross-product scope. Partner-avatar actions also open the existing one-time
+message composer, preserving Pro sending eligibility and explicit reception
+consent. Action rows use defined shared radius tokens. The
+[preflight and acceptance record](references/contextual-create/README.md) binds
+the generated references, responsive composition and complete return journeys.
+
+### Shared acceptance
 
 Each reference's composition must remain complete with sparse content and understandable without a tutorial. Reviewers must reject metadata-led, permanent-edit, card-wall or desktop-first interpretations even if functionally correct. Equally, they must not remove useful depth or replace personal richness with empty space.
 
 These references preserve existing product entities, authorization, Free/Core/Premium boundaries, data ownership and Cloud/Self-Hosted behavior. Privacy, accessibility, recovery and essential export remain non-paywallable. Durable drafts, new media types/derivatives, new reminder channels and unsupported native features need separate owning scope and resource/privacy review.
 
 After F1/F2, the accepted sequence is R1 → R2 → R3 → R4 → R5, followed by bounded propagation and retirement in the [roadmap](implementation-roadmap.md). Historical audit trust findings remain gates until resolved; approving these references does not declare runtime compliance or complete final product audit #946.
+
+### Pro information destination (#1570)
+
+Pro information belongs to Settings > App and Account. Profile remains personal.
+Current capability groups and the shared Space entitlement are explained there;
+Pro discovery links and the old Profile anchor resolve to the same destination.
+This is information placement, not a new capability or billing surface.

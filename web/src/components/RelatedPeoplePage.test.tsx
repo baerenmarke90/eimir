@@ -1,5 +1,4 @@
-// @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   cleanup,
   fireEvent,
@@ -9,15 +8,16 @@ import {
   within,
 } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+// @vitest-environment jsdom
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
-import de from '../i18n/locales/de';
 import people from '../i18n/locales/people';
-import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import {
   DeleteRelatedPersonDialogContent,
   RelatedPeoplePage,
@@ -106,496 +106,415 @@ describe('RelatedPerson delete dialog', () => {
   });
 });
 
-describe('RelatedPeoplePage mobile-first surface', () => {
-  function createMockPeopleApi(
-    initialPeople: RelatedPersonView[] = [person],
-  ): PeopleApi {
-    return {
-      listRelatedPersonsApiV1SpacesSpaceIdRelatedPersonsGet: vi
-        .fn()
-        .mockResolvedValue(initialPeople),
-      createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost: vi
-        .fn()
-        .mockImplementation(({ relatedPersonFields }) =>
-          Promise.resolve({
-            id: 'person-new',
-            ...relatedPersonFields,
-            version: 1,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }),
-        ),
-      updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut: vi
-        .fn()
-        .mockImplementation(({ personId, relatedPersonFields }) =>
-          Promise.resolve({
-            id: personId,
-            ...relatedPersonFields,
-            version: 2,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }),
-        ),
-      deleteRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdDelete: vi
-        .fn()
-        .mockResolvedValue(undefined),
-      listImportantDatesApiV1SpacesSpaceIdImportantDatesGet: vi
-        .fn()
-        .mockResolvedValue([]),
-    } as unknown as PeopleApi;
-  }
-
-  function renderRelatedPeoplePage(peopleApi = createMockPeopleApi()) {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+  if (!globalThis.CSS)
+    Object.defineProperty(globalThis, 'CSS', {
+      value: { escape: (value: string) => value },
+      configurable: true,
     });
-    return render(
+});
+
+describe('shared People profiles and focused tasks', () => {
+  function fixture(
+    initial: RelatedPersonView[] = [person],
+    path = '/more/people',
+  ) {
+    let rows = initial.slice();
+    const api = {
+      listRelatedPersonsApiV1SpacesSpaceIdRelatedPersonsGet: vi.fn(
+        async () => rows,
+      ),
+      getRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdGet: vi.fn(
+        async ({ personId }: { personId: string }) =>
+          rows.find((p) => p.id === personId),
+      ),
+      createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost: vi.fn(
+        async ({
+          relatedPersonFields,
+        }: {
+          relatedPersonFields: Record<string, unknown>;
+        }) => {
+          const saved = {
+            ...person,
+            ...relatedPersonFields,
+            id: 'person-new',
+            version: 1,
+          } as RelatedPersonView;
+          rows = [...rows, saved];
+          return saved;
+        },
+      ),
+      updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut: vi.fn(
+        async ({
+          personId,
+          relatedPersonFields,
+        }: {
+          personId: string;
+          relatedPersonFields: Record<string, unknown>;
+        }) => {
+          const saved = {
+            ...person,
+            ...rows.find((p) => p.id === personId),
+            ...relatedPersonFields,
+            id: personId,
+            version: 4,
+          } as RelatedPersonView;
+          rows = rows.map((p) => (p.id === personId ? saved : p));
+          return saved;
+        },
+      ),
+      deleteRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdDelete: vi.fn(
+        async ({ personId }: { personId: string }) => {
+          rows = rows.filter((p) => p.id !== personId);
+        },
+      ),
+      listImportantDatesApiV1SpacesSpaceIdImportantDatesGet: vi.fn(
+        async () => [],
+      ),
+    };
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const result = render(
       <QueryClientProvider client={queryClient}>
-        <RelatedPeoplePage peopleApi={peopleApi} spaceId="space-1" />
+        <MemoryRouter initialEntries={[path]}>
+          <RelatedPeoplePage
+            peopleApi={api as unknown as PeopleApi}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
+    return { ...result, api };
+  }
+  async function openProfile(name = 'Lisa') {
+    fireEvent.click(
+      await screen.findByRole('link', { name: new RegExp(`^${name}`) }),
+    );
+    await screen.findByRole('heading', { name });
+  }
+  async function editProfile() {
+    fireEvent.click(screen.getByRole('link', { name: people.edit }));
+    await screen.findByLabelText(people.nameLabel);
+  }
+  async function create() {
+    fireEvent.click(
+      await screen.findByRole('link', {
+        name: people.addPersonAction,
+      }),
+    );
+    await screen.findByLabelText(people.nameLabel);
+  }
+  function fillBirthday(year = '') {
+    const summary = screen.getByText(people.birthdayLabel, {
+      selector: 'summary',
+    });
+    fireEvent.click(summary);
+    fireEvent.change(screen.getByLabelText(people.birthdayDayLabel), {
+      target: { value: '29' },
+    });
+    fireEvent.change(screen.getByLabelText(people.birthdayMonthLabel), {
+      target: { value: '2' },
+    });
+    if (year)
+      fireEvent.change(screen.getByLabelText(people.optionalYear), {
+        target: { value: year },
+      });
+  }
+  async function save() {
+    const form = screen
+      .getByRole('button', { name: people.saveChanges })
+      .closest('form');
+    if (!form) throw new Error('Person save form is missing');
+    fireEvent.submit(form);
   }
 
-  it('protects W08 by keeping the avatar-led people overview without a side rail', async () => {
-    const { container } = renderRelatedPeoplePage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-
-    expect(container.querySelector('.layout-rail')).toBeNull();
-    expect(container.querySelector('.layout-split')).toBeNull();
-
-    const card = container.querySelector('.people-card');
-    expect(card).not.toBeNull();
-    expect(card?.textContent).toContain(people.relationship.FRIEND);
-    expect(card?.textContent).toContain(people.visibility.SHARED);
-    expect(card?.textContent).toContain('LI');
+  it('shows portrait destinations without nested cards, audience copy or unrelated dates', async () => {
+    const { container, api } = fixture();
+    await screen.findByRole('link', { name: /^Lisa/ });
+    expect(container.querySelector('.people-portrait-list')).not.toBeNull();
+    expect(container.querySelector('.story-surface')).toBeNull();
+    expect(screen.queryByText(people.visibility.SHARED)).toBeNull();
+    expect(screen.queryByText(people.visibility.PRIVATE)).toBeNull();
+    expect(
+      api.listImportantDatesApiV1SpacesSpaceIdImportantDatesGet,
+    ).not.toHaveBeenCalled();
   });
-
-  it('opens W54 as a focused sheet with identity first and optional birthday disclosure', async () => {
-    const { container } = renderRelatedPeoplePage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-
-    const addButton = screen.getByRole('button', {
-      name: new RegExp(people.addPersonAction, 'i'),
-    });
-    addButton.focus();
-    fireEvent.click(addButton);
-
-    const dialog = screen.getByRole('dialog');
-    expect(dialog.classList.contains('focused-editor-sheet')).toBe(true);
+  it('opens a reader before editing and preserves the birthday source link', async () => {
+    fixture();
+    await openProfile();
+    expect(screen.queryByRole('textbox')).toBeNull();
     expect(
-      screen.getByRole('heading', { name: people.createTitle }),
-    ).not.toBeNull();
+      screen.getByRole('link', { name: /12.*Mai.*1995/ }).getAttribute('href'),
+    ).toBe('/plan#dates');
+    expect(screen.queryByRole('button', { name: people.delete })).toBeNull();
+  });
+  it('supports a direct profile URL with authoritative retrieval', async () => {
+    const { api } = fixture([person], '/more/people/person-1');
+    await screen.findByRole('heading', { name: 'Lisa' });
     expect(
-      screen.getByRole('heading', { name: people.identitySectionTitle }),
-    ).not.toBeNull();
-
-    const nameInput = screen.getByLabelText(
-      people.nameLabel,
-    ) as HTMLInputElement;
-    expect(nameInput).toBe(document.activeElement);
-    expect(nameInput.required).toBe(true);
-    expect(nameInput.maxLength).toBe(120);
-
-    const birthdayDisclosure = container.querySelector(
-      '.focused-editor-disclosure',
-    ) as HTMLDetailsElement | null;
-    expect(birthdayDisclosure).not.toBeNull();
-    expect(birthdayDisclosure?.open).toBe(false);
-
-    expect(
-      within(dialog).getByRole('combobox', { name: people.visibilityLabel }),
-    ).not.toBeNull();
-    expect(
-      within(dialog).getByRole('button', { name: people.create }),
-    ).not.toBeNull();
-
-    fireEvent.keyDown(dialog, { key: 'Escape' });
+      api.getRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdGet,
+    ).toHaveBeenCalledWith({ personId: 'person-1', spaceId: 'space-1' });
+  });
+  it('creates in a focused page without an audience field or automatic text focus', async () => {
+    fixture();
+    await create();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(addButton).toBe(document.activeElement);
+    expect(screen.queryByLabelText(people.visibilityLabel)).toBeNull();
+    expect(document.activeElement).not.toBe(
+      screen.getByLabelText(people.nameLabel),
+    );
   });
-
-  it('confirms dirty Escape and keeps or discards the person draft explicitly', async () => {
-    renderRelatedPeoplePage();
-    await screen.findByRole('heading', { name: 'Lisa' });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(people.addPersonAction, 'i'),
-      }),
-    );
-    const dialog = screen.getByRole('dialog');
-    const nameInput = screen.getByLabelText(
-      people.nameLabel,
-    ) as HTMLInputElement;
-    fireEvent.change(nameInput, { target: { value: 'Draft name' } });
-
-    fireEvent.keyDown(dialog, { key: 'Escape' });
-    expect(screen.getByText(people.discardTitle)).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
-    expect(nameInput.value).toBe('Draft name');
-
-    fireEvent.keyDown(dialog, { key: 'Escape' });
-    fireEvent.click(
-      screen.getByRole('button', { name: people.discardConfirm }),
-    );
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('confirms dirty backdrop dismissal for relationship and privacy changes', async () => {
-    const { container } = renderRelatedPeoplePage();
-    await screen.findByRole('heading', { name: 'Lisa' });
-    const personCard = screen
-      .getByRole('heading', { name: 'Lisa' })
-      .closest('.people-card');
-    if (!personCard) throw new Error('person card not found');
-    fireEvent.click(personCard);
-    fireEvent.change(screen.getByLabelText(people.relationshipLabel), {
-      target: { value: PersonRelationship.PARENT },
-    });
-    const visibility = screen.getByRole('combobox', {
-      name: people.visibilityLabel,
-    }) as HTMLSelectElement;
-    fireEvent.change(visibility, {
-      target: { value: ContentVisibility.PRIVATE },
-    });
-
-    const backdrop = container.querySelector('.focused-editor-backdrop');
-    if (!backdrop) throw new Error('editor backdrop not found');
-    fireEvent.click(backdrop);
-
-    expect(screen.getByText(people.discardTitle)).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
-    expect(visibility.value).toBe(ContentVisibility.PRIVATE);
-  });
-
-  it('uses Browser Back to close a clean person editor', async () => {
-    renderRelatedPeoplePage();
-    await screen.findByRole('heading', { name: 'Lisa' });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(people.addPersonAction, 'i'),
-      }),
-    );
-    await waitFor(() =>
-      expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
-    );
-
-    window.history.back();
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('uses Browser Back to protect a dirty birthday draft', async () => {
-    const { container } = renderRelatedPeoplePage();
-    await screen.findByRole('heading', { name: 'Lisa' });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(people.addPersonAction, 'i'),
-      }),
-    );
-    await waitFor(() =>
-      expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
-    );
-    const disclosure = container.querySelector(
-      '.focused-editor-disclosure',
-    ) as HTMLDetailsElement;
-    fireEvent.click(within(disclosure).getByText(people.birthdayLabel));
-    const birthdayInput = screen.getByLabelText(
-      people.birthdayDateLabel,
-    ) as HTMLInputElement;
-    fireEvent.change(birthdayInput, { target: { value: '1990-06-15' } });
-
-    window.history.back();
-
-    await screen.findByText(people.discardTitle);
-    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
-    expect(birthdayInput.value).toBe('1990-06-15');
-    expect(screen.getByRole('dialog')).not.toBeNull();
-
-    window.history.back();
-    await screen.findByText(people.discardTitle);
-    fireEvent.click(
-      screen.getByRole('button', { name: people.discardConfirm }),
-    );
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('opens W55 from the full person card and keeps destructive lifecycle separate', async () => {
-    renderRelatedPeoplePage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-
-    const card = screen
-      .getByRole('heading', { name: 'Lisa' })
-      .closest('.people-card');
-    if (!card) throw new Error('card not found');
-    (card as HTMLElement).focus();
-    fireEvent.click(card);
-
-    const editDialog = screen.getByRole('dialog');
-    expect(editDialog.classList.contains('related-person-editor')).toBe(true);
-    expect(
-      screen.getByRole('heading', { name: people.editTitle }),
-    ).not.toBeNull();
-    expect(screen.getByDisplayValue('Lisa')).not.toBeNull();
-
-    const deleteButton = screen.getByRole('button', { name: people.delete });
-    expect(deleteButton.closest('.focused-editor-danger-zone')).not.toBeNull();
-    expect(
-      within(editDialog).getByRole('button', { name: people.saveChanges }),
-    ).not.toBeNull();
-
-    fireEvent.click(deleteButton);
-    expect(
-      screen.getByRole('heading', { name: people.deleteTitle }),
-    ).not.toBeNull();
-    expect(
-      screen.getByText(new RegExp(people.deletePreserveTitle, 'i')),
-    ).not.toBeNull();
-
-    const cancelButton = screen.getByRole('button', { name: de.common.cancel });
-    fireEvent.click(cancelButton);
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('keeps the Dashboard-visibility toggle conditional on a birthday', async () => {
-    const { container } = renderRelatedPeoplePage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(people.addPersonAction, 'i'),
-      }),
-    );
-
-    expect(screen.queryByLabelText(people.birthdayShowOnDashboard)).toBeNull();
-
-    const disclosure = container.querySelector(
-      '.focused-editor-disclosure',
-    ) as HTMLDetailsElement;
-    fireEvent.click(within(disclosure).getByText(people.birthdayLabel));
-
-    const birthdayInput = container.querySelector<HTMLInputElement>(
-      '#related-person-birthday',
-    );
-    if (!birthdayInput) throw new Error('birthday input not found');
-    fireEvent.change(birthdayInput, { target: { value: '1990-06-15' } });
-
-    const toggle = screen.getByLabelText(
-      people.birthdayShowOnDashboard,
-    ) as HTMLInputElement;
-    expect(toggle.checked).toBe(false);
-  });
-
-  it('submits the enabled Dashboard-visibility toggle for a new person', async () => {
-    const peopleApi = createMockPeopleApi();
-    const { container } = renderRelatedPeoplePage(peopleApi);
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(people.addPersonAction, 'i'),
-      }),
-    );
-
+  it('saves an unknown-year leap birthday as shared and opens the actual created person', async () => {
+    const { api } = fixture();
+    await create();
     fireEvent.change(screen.getByLabelText(people.nameLabel), {
-      target: { value: 'Nina' },
+      target: { value: 'New person' },
     });
-    const birthdayInput = container.querySelector<HTMLInputElement>(
-      '#related-person-birthday',
+    fillBirthday();
+    await save();
+    await screen.findByRole('heading', { name: 'New person' });
+    const fields =
+      api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost.mock
+        .calls[0][0].relatedPersonFields;
+    expect(fields.visibility).toBe(ContentVisibility.SHARED);
+    expect(fields.birthdayYearKnown).toBe(false);
+    expect((fields.birthday as Date).toISOString().slice(5, 10)).toBe('02-29');
+    expect(screen.queryByLabelText(people.nameLabel)).toBeNull();
+  });
+  it('preserves a known optional birth year', async () => {
+    const { api } = fixture();
+    await openProfile();
+    await editProfile();
+    await save();
+    await screen.findByRole('heading', { name: 'Lisa' });
+    const fields =
+      api.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut.mock
+        .calls[0][0].relatedPersonFields;
+    expect(fields.birthdayYearKnown).toBe(true);
+    expect((fields.birthday as Date).toISOString().slice(0, 10)).toBe(
+      '1995-05-12',
     );
-    if (!birthdayInput) throw new Error('birthday input not found');
-    fireEvent.change(birthdayInput, { target: { value: '1990-06-15' } });
-    fireEvent.click(screen.getByLabelText(people.birthdayShowOnDashboard));
-
-    fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
-        name: people.create,
-      }),
-    );
-
-    await waitFor(() => {
-      expect(
-        peopleApi.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost,
-      ).toHaveBeenCalledTimes(1);
-    });
-    const call = (
-      peopleApi.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost as ReturnType<
-        typeof vi.fn
-      >
-    ).mock.calls[0][0];
-    expect(call.relatedPersonFields.showBirthdayOnDashboard).toBe(true);
   });
 
-  it('reflects and persists the existing person Dashboard-visibility state on edit', async () => {
-    const shownPerson: RelatedPersonView = {
-      ...person,
-      showBirthdayOnDashboard: true,
-    };
-    const peopleApi = createMockPeopleApi([shownPerson]);
-    renderRelatedPeoplePage(peopleApi);
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
+  it('saves a concrete relationship and a plain-text note in the actual profile', async () => {
+    const { api } = fixture();
+    await create();
+    fireEvent.change(screen.getByLabelText(people.nameLabel), {
+      target: { value: 'Emma' },
     });
-    const card = screen
-      .getByRole('heading', { name: 'Lisa' })
-      .closest('.people-card');
-    if (!card) throw new Error('card not found');
-    (card as HTMLElement).focus();
-    fireEvent.click(card);
+    fireEvent.change(screen.getByLabelText(people.relationshipLabel), {
+      target: { value: PersonRelationship.DAUGHTER },
+    });
+    const note = '<b>Likes the sea.</b>\nRemember the cake.';
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: note },
+    });
+    await save();
+    await screen.findByRole('heading', { name: 'Emma' });
+    expect(screen.getByText(people.relationship.DAUGHTER)).toBeDefined();
+    const reader = screen.getByRole('heading', {
+      name: people.noteTitle,
+    }).parentElement;
+    expect(reader?.textContent).toContain(note);
+    expect(reader?.querySelector('b')).toBeNull();
+    expect(
+      api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost.mock
+        .calls[0][0].relatedPersonFields,
+    ).toMatchObject({ note, relationship: PersonRelationship.DAUGHTER });
+    await editProfile();
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe(note);
+  });
 
+  it('retains a legacy relationship and guards a note-only dirty draft', async () => {
+    const legacy = { ...person, relationship: PersonRelationship.SIBLING };
+    fixture([legacy]);
+    await openProfile();
+    await editProfile();
+    expect(
+      (screen.getByLabelText(people.relationshipLabel) as HTMLSelectElement)
+        .value,
+    ).toBe(PersonRelationship.SIBLING);
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: 'A note-only change' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    expect(screen.getByText(people.discardTitle)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe('A note-only change');
+  });
+  it('keeps dashboard opt-in conditional and persists deliberate enabling', async () => {
+    const { api } = fixture();
+    await create();
+    expect(screen.queryByLabelText(people.birthdayShowOnDashboard)).toBeNull();
+    fireEvent.change(screen.getByLabelText(people.nameLabel), {
+      target: { value: 'Birthday person' },
+    });
+    fillBirthday('2000');
+    fireEvent.click(screen.getByLabelText(people.birthdayShowOnDashboard));
+    await save();
+    await screen.findByRole('heading', { name: 'Birthday person' });
+    expect(
+      api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost.mock
+        .calls[0][0].relatedPersonFields.showBirthdayOnDashboard,
+    ).toBe(true);
+  });
+  it('allows either member to edit existing dashboard preferences without changing the name', async () => {
+    const { api } = fixture([{ ...person, showBirthdayOnDashboard: true }]);
+    await openProfile();
+    await editProfile();
     const toggle = screen.getByLabelText(
       people.birthdayShowOnDashboard,
     ) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
-
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole('button', { name: people.saveChanges }));
-
-    await waitFor(() => {
-      expect(
-        peopleApi.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut,
-      ).toHaveBeenCalledTimes(1);
-    });
-    await waitFor(() => expect(document.activeElement).toBe(card));
-    const call = (
-      peopleApi.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut as ReturnType<
-        typeof vi.fn
-      >
-    ).mock.calls[0][0];
-    expect(call.relatedPersonFields.showBirthdayOnDashboard).toBe(false);
+    await save();
+    await screen.findByRole('heading', { name: 'Lisa' });
+    expect(
+      api.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut.mock
+        .calls[0][0].relatedPersonFields.showBirthdayOnDashboard,
+    ).toBe(false);
   });
-
-  it('preserves long names in the editor without changing the stored value', async () => {
-    const longName =
-      'Alexandra Maximiliane Example-Surname With An Exceptionally Long Display Name';
-    const longPerson = { ...person, displayName: longName };
-    renderRelatedPeoplePage(createMockPeopleApi([longPerson]));
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: longName })).not.toBeNull();
+  it('protects a dirty Escape and lets the user keep or discard input', async () => {
+    fixture();
+    await create();
+    fireEvent.change(screen.getByLabelText(people.nameLabel), {
+      target: { value: 'Draft' },
     });
-    const card = screen
-      .getByRole('heading', { name: longName })
-      .closest('.people-card');
-    if (!card) throw new Error('card not found');
-    fireEvent.click(card);
-
-    expect(screen.getByDisplayValue(longName)).not.toBeNull();
-  });
-
-  it('manages body scroll lock and revokes avatar object URLs on replacement and unmount', async () => {
-    document.body.style.overflow = 'visible';
-    const originalCreate = URL.createObjectURL;
-    const originalRevoke = URL.revokeObjectURL;
-    const createObjectURLSpy = vi.fn().mockReturnValue('blob:test-avatar-1');
-    const revokeObjectURLSpy = vi.fn();
-    URL.createObjectURL = createObjectURLSpy;
-    URL.revokeObjectURL = revokeObjectURLSpy;
-
-    renderRelatedPeoplePage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Lisa' })).not.toBeNull();
-    });
-
-    const addButton = screen.getByRole('button', {
-      name: new RegExp(people.addPersonAction, 'i'),
-    });
-    fireEvent.click(addButton);
-
-    expect(document.body.style.overflow).toBe('hidden');
-
-    const fileInput = screen.getByLabelText(people.avatarLabel);
-    const file1 = new File(['image1'], 'avatar1.png', { type: 'image/png' });
-    fireEvent.change(fileInput, { target: { files: [file1] } });
-    expect(createObjectURLSpy).toHaveBeenCalledWith(file1);
-
-    createObjectURLSpy.mockReturnValue('blob:test-avatar-2');
-    const file2 = new File(['image2'], 'avatar2.png', { type: 'image/png' });
-    fireEvent.change(fileInput, { target: { files: [file2] } });
-    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:test-avatar-1');
-
-    fireEvent.click(
-      screen.getByRole('button', { name: people.closeDialogAria }),
+    fireEvent.keyDown(
+      screen.getByRole('region', { name: people.formRailAria }),
+      { key: 'Escape' },
     );
-
     expect(screen.getByText(people.discardTitle)).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
+    expect(
+      (screen.getByLabelText(people.nameLabel) as HTMLInputElement).value,
+    ).toBe('Draft');
+    fireEvent.keyDown(
+      screen.getByRole('region', { name: people.formRailAria }),
+      { key: 'Escape' },
+    );
     fireEvent.click(
       screen.getByRole('button', { name: people.discardConfirm }),
     );
-
-    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:test-avatar-2');
-    expect(document.body.style.overflow).toBe('visible');
-
-    URL.createObjectURL = originalCreate;
-    URL.revokeObjectURL = originalRevoke;
+    await screen.findByRole('heading', { name: people.title });
   });
-
-  async function expectFocusAfterDelete(
-    peopleList: RelatedPersonView[],
-    deletedName: string,
-    expectedName: string | RegExp,
-  ) {
-    renderRelatedPeoplePage(createMockPeopleApi(peopleList));
-    const deletedCard = await screen.findByRole('button', {
-      name: new RegExp(deletedName, 'i'),
+  it('preserves long names in the focused editor', async () => {
+    const name =
+      'Alexandra Maximiliane Example-Surname With An Exceptionally Long Display Name';
+    fixture([{ ...person, displayName: name }]);
+    await openProfile(name);
+    await editProfile();
+    expect(
+      (screen.getByLabelText(people.nameLabel) as HTMLInputElement).value,
+    ).toBe(name);
+  });
+  it('retains a failed save draft and never creates a replacement person', async () => {
+    const { api } = fixture();
+    await openProfile();
+    await editProfile();
+    api.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut.mockRejectedValueOnce(
+      new Error('Temporary save failure'),
+    );
+    fireEvent.change(screen.getByLabelText(people.nameLabel), {
+      target: { value: 'Retained name' },
     });
-    fireEvent.click(deletedCard);
-    fireEvent.click(screen.getByRole('button', { name: people.delete }));
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: 'Retained note' },
+    });
+    await save();
+    await waitFor(() =>
+      expect(
+        api.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut,
+      ).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      (screen.getByLabelText(people.nameLabel) as HTMLInputElement).value,
+    ).toBe('Retained name');
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe('Retained note');
+    expect(
+      api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost,
+    ).not.toHaveBeenCalled();
+  });
+  it('keeps destructive policy and its second confirmation outside the editor', async () => {
+    const { api } = fixture();
+    await openProfile();
+    fireEvent.click(screen.getByRole('button', { name: people.moreActions }));
     fireEvent.click(
-      screen.getByRole('radio', {
-        name: new RegExp(people.deletePreserveTitle, 'i'),
-      }),
+      await screen.findByRole('button', { name: people.lifecycleTitle }),
     );
-    fireEvent.click(screen.getByRole('button', { name: people.deleteConfirm }));
-
-    const expectedTarget = await screen.findByRole('button', {
-      name: expectedName,
+    const dialog = await screen.findByRole('dialog', {
+      name: people.deleteTitle,
     });
-    await waitFor(() => expect(document.activeElement).toBe(expectedTarget));
+    expect(
+      within(dialog)
+        .getByRole('button', { name: people.deleteConfirm })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    fireEvent.click(
+      within(dialog).getByLabelText(new RegExp(people.deleteCascadeTitle)),
+    );
+    expect(
+      within(dialog)
+        .getByRole('button', { name: people.deleteConfirm })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    expect(
+      api.deleteRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdDelete,
+    ).not.toHaveBeenCalled();
+  });
+  for (const [removeId, expected] of [
+    ['b', 'c'],
+    ['c', 'b'],
+    ['only', 'create'],
+  ] as const) {
+    it(`restores focus after removing ${removeId}`, async () => {
+      const rows =
+        removeId === 'only'
+          ? [relatedPerson('only', 'Only')]
+          : [
+              relatedPerson('a', 'Alpha'),
+              relatedPerson('b', 'Beta'),
+              relatedPerson('c', 'Charlie'),
+            ];
+      fixture(rows);
+      await openProfile(rows.find((p) => p.id === removeId)?.displayName);
+      fireEvent.click(screen.getByRole('button', { name: people.moreActions }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: people.lifecycleTitle }),
+      );
+      const dialog = await screen.findByRole('dialog', {
+        name: people.deleteTitle,
+      });
+      fireEvent.click(
+        within(dialog).getByLabelText(new RegExp(people.deletePreserveTitle)),
+      );
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: people.deleteConfirm }),
+      );
+      await screen.findByRole('heading', { name: people.title });
+      await waitFor(() => {
+        const target =
+          expected === 'create'
+            ? document.getElementById('people-add-person')
+            : document.querySelector(`[data-person-link="${expected}"]`);
+        expect(document.activeElement).toBe(target);
+      });
+    });
   }
-
-  it('focuses the next person after deleting a middle item', async () => {
-    await expectFocusAfterDelete(
-      [
-        relatedPerson('person-first', 'First person'),
-        relatedPerson('person-middle', 'Middle person'),
-        relatedPerson('person-last', 'Last person'),
-      ],
-      'Middle person',
-      /Last person/i,
-    );
-  });
-
-  it('focuses the previous person after deleting the last item', async () => {
-    await expectFocusAfterDelete(
-      [
-        relatedPerson('person-first', 'First person'),
-        relatedPerson('person-last', 'Last person'),
-      ],
-      'Last person',
-      /First person/i,
-    );
-  });
-
-  it('focuses the create action after deleting the only person', async () => {
-    await expectFocusAfterDelete(
-      [relatedPerson('person-only', 'Only person')],
-      'Only person',
-      new RegExp(people.addPersonAction, 'i'),
-    );
-  });
 });

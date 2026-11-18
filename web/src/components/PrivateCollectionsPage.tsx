@@ -1,44 +1,48 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { captureCollectionOrder } from '../client/collectionOrder';
-import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
-import { captureQueryIdentity } from '../client/queryIdentity';
-import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
+import { useReturnTo } from '../client/historyEntries';
 import {
-  PRIVATE_COLLECTIONS_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_COLLECTIONS_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateCollectionPath,
 } from '../client/privateArea';
-import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { clientProblemKind } from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { AddActionButton, AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import './SharedPlanningPages.css';
 import {
-  LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemPrivacy,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
-import { useTransientFlag } from './useTransientFlag';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
+import { useTransientFlag } from './useTransientFlag';
 
 const PAGE_SIZE = 20;
 
@@ -135,14 +139,16 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         eyebrow={t('privateArea.privacyLabel')}
         title={t('privateArea.collections.title')}
         description={t('privateArea.collections.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_COLLECTIONS_PATH}/new`}>
-            {t('privateArea.collections.add')}
-          </Link>
+          <AddActionLink
+            floating
+            label={t('privateArea.collections.add')}
+            icon="listen"
+            to={`${PRIVATE_COLLECTIONS_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -173,18 +179,13 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
                   <div className="private-area-card-heading">
                     <h2>{collection.title}</h2>
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}
           </ul>
-          <LoadMoreButton
-            hasMore={Boolean(query.hasNextPage)}
-            loading={query.isFetchingNextPage}
-            onLoadMore={() => void query.fetchNextPage()}
-          />
+          <AutoLoadMore query={query} className="secondary">
+            {t('privateArea.loadMore')}
+          </AutoLoadMore>
         </section>
       ) : null}
     </>
@@ -233,6 +234,7 @@ export function PrivateCollectionCreatePage({
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -257,14 +259,18 @@ export function PrivateCollectionCreatePage({
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.collections.detailBack')}
-          </button>
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.collections.detailBack',
+            )}
+          </TaskBackButton>
         }
         title={t('privateArea.collections.createTitle')}
         description={t('privateArea.collections.intro')}
@@ -786,15 +792,11 @@ function CollectionItems({
             placeholder={t('privateArea.collections.itemTitleLabel')}
             disabled={pending || readBlocked}
           />
-          <ListEntryIconButton
+          <AddActionButton
             type="submit"
-            icon="add"
-            className="list-entry-add-button is-private"
-            label={
-              createMutation.isPending
-                ? t('common.saving')
-                : t('privateArea.collections.addItem')
-            }
+            label={t('privateArea.collections.addItem')}
+            pending={createMutation.isPending}
+            pendingLabel={t('common.saving')}
             disabled={pending || readBlocked}
           />
         </form>
@@ -1023,7 +1025,7 @@ export function PrivateCollectionDetailPage({
         className="page-heading-collection"
         before={
           isEditing ? (
-            <button
+            <TaskBackButton
               type="button"
               className="back-link tertiary"
               onClick={requestCollectionEditClose}
@@ -1034,7 +1036,7 @@ export function PrivateCollectionDetailPage({
               }
             >
               {t('common.cancel')}
-            </button>
+            </TaskBackButton>
           ) : (
             <PrivateAreaDetailBack
               fallbackPath={PRIVATE_COLLECTIONS_PATH}
@@ -1042,7 +1044,12 @@ export function PrivateCollectionDetailPage({
             />
           )
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.collections.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={
           <span
             style={{
@@ -1227,6 +1234,7 @@ export function PrivateCollectionDetailPage({
 export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
@@ -1265,8 +1273,7 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateCollectionPath(collection.id), {
-          replace: true,
+        returnTo(privateCollectionPath(collection.id), {
           state: navigationState,
         });
       });
@@ -1332,14 +1339,14 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.collections.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.collections.editTitle')}
         description={t('privateArea.collections.intro')}

@@ -1,13 +1,21 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '../support/axe';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { waitForSettledMotion } from '../support/settledMotion';
 import {
-  ME,
   captureScreenshot,
   installMocks,
+  ME,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const SELF_ATTRIBUTION = de.story.byAuthor.replace(
   '{{author}}',
@@ -18,18 +26,36 @@ const ME_ATTRIBUTION = de.story.byAuthor.replace(
   ME.displayName.replace(/ .*/u, ''),
 );
 
+async function openDiaryOptions(page: Page) {
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
+  const sheet = page.getByRole('dialog', {
+    name: storyProducts.storyFilters.aria,
+    exact: true,
+  });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
 async function expectCompactCommentHandoff(page: Page): Promise<void> {
   const panel = page.locator('.comments-panel-compact');
   await expect(panel.locator('.comment-card')).toHaveCount(2);
 
   const finalBody = panel.locator('.comment-card').last().locator('p');
   const trigger = panel.locator('.comment-compose-trigger');
+  const composer = panel.locator('form.comment-form');
+  const inline = await composer.isVisible();
+  const handoff = inline ? composer : trigger;
   await expect(finalBody).toBeVisible();
-  await expect(trigger).toBeVisible();
+  await expect(handoff).toBeVisible();
 
   const [bodyBox, triggerBox, rowGap] = await Promise.all([
     finalBody.boundingBox(),
-    trigger.boundingBox(),
+    handoff.boundingBox(),
     panel.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).rowGap),
     ),
@@ -54,15 +80,31 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
   }
   expect(panelHasHorizontalOverflow).toBe(false);
 
-  await trigger.click();
-  const textarea = panel.locator('.comment-form-compact textarea');
-  const cancelButton = panel.getByRole('button', { name: 'Abbrechen' });
+  if (!inline) await trigger.click();
+  const textarea = composer.getByRole('textbox', {
+    name: storyProducts.comments.inputLabel,
+    exact: true,
+  });
+  const cancelButton = panel.getByRole('button', {
+    name: storyProducts.comments.cancel,
+    exact: true,
+  });
+  const action = inline
+    ? composer.getByRole('button', {
+        name: storyProducts.comments.send,
+        exact: true,
+      })
+    : cancelButton;
   await expect(textarea).toBeVisible();
-  await expect(cancelButton).toBeVisible();
+  await expect(action).toBeVisible();
+  if (inline) {
+    await expect(textarea).not.toBeFocused();
+    await expect(cancelButton).toHaveCount(0);
+  }
 
   const [textareaBox, cancelBox] = await Promise.all([
     textarea.boundingBox(),
-    cancelButton.boundingBox(),
+    action.boundingBox(),
   ]);
   if (!textareaBox || !cancelBox) {
     throw new Error('Comment composer reflow geometry is unavailable.');
@@ -72,8 +114,17 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
     expect(box.x + box.width).toBeLessThanOrEqual(viewportWidth + 1);
   }
 
-  await cancelButton.click();
-  await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
+  if (inline) {
+    await textarea.fill('An unsent reply');
+    await expect(textarea).toHaveValue('An unsent reply');
+    await expect(textarea).toBeFocused();
+    await textarea.clear();
+    await expect(textarea).toBeVisible();
+    await expect(textarea).toHaveValue('');
+  } else {
+    await cancelButton.click();
+    await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
+  }
 }
 
 test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
@@ -89,7 +140,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: 'Momente', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
 
     const markers = page.locator('.story-timeline-marker');
     await expect(markers).toHaveCount(5);
@@ -135,35 +187,30 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(compactAuthor).toHaveCount(0);
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveCount(0);
     await expect(
       compactAuthor.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
-    const browseShell = page.locator('.momente-browse-links');
-    const browseLink = page.locator('.momente-browse-link').first();
-    const browseShape = await browseShell.evaluate((element) => {
-      const style = getComputedStyle(element);
-      const root = getComputedStyle(document.documentElement);
-      return {
-        radius: style.borderRadius,
-        expectedRadius: root.getPropertyValue('--radius-card').trim(),
-        shadow: style.boxShadow,
-      };
-    });
-    const browseLinkShape = await browseLink.evaluate((element) => {
-      const style = getComputedStyle(element);
-      const root = getComputedStyle(document.documentElement);
-      return {
-        radius: style.borderRadius,
-        expectedRadius: root.getPropertyValue('--radius-large').trim(),
-      };
-    });
-    expect(browseShape.radius).toBe(browseShape.expectedRadius);
-    expect(browseShape.shadow).not.toBe('none');
-    expect(browseLinkShape.radius).toBe(browseLinkShape.expectedRadius);
+    // The Diary filter replaces the removed structural browse strip.
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    const modes = page.getByRole('tablist', { name: de.story.viewToggleAria });
+    await expect(modes.getByRole('tab')).toHaveCount(3);
+    await expect(
+      modes.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-390-light.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     const compactEmotion = heartMomentCard.locator(
       '.heart-emotion-badge--compact',
@@ -295,26 +342,36 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     expect(hasHorizontalOverflow).toBe(false);
 
-    const browseLinks = page.locator('.momente-browse-link');
-    await expect(browseLinks).toHaveCount(4);
-    expect(
-      await browseLinks.evaluateAll((links) =>
-        links.map((link) => link.getAttribute('href')),
-      ),
-    ).toEqual([
-      '/story/photos',
-      '/story?tab=timeline&type=MILESTONE',
-      '/story/chapters',
-      '/story/years',
-    ]);
-    for (const link of await browseLinks.all()) {
-      const box = await link.boundingBox();
-      if (!box) throw new Error('Expected a visible Momente browse link');
-      expect(box.width).toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(320);
-    }
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    const filter = page.getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    });
+    await expect(filter).toBeVisible();
+    // Match the existing filter-refresh journey: measure the target after
+    // its month heading and the enclosing tab intro have finished moving,
+    // not a translated DOMRect (#1660).
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
+    await waitForSettledMotion(page);
+    const filterBox = await filter.boundingBox();
+    if (!filterBox) throw new Error('Expected a visible Diary filter');
+    expect(filterBox.width).toBeGreaterThanOrEqual(44);
+    expect(filterBox.height).toBeGreaterThanOrEqual(44);
+    expect(filterBox.x).toBeGreaterThanOrEqual(0);
+    expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(320);
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-320-reflow.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
@@ -369,10 +426,23 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'rgba(0, 0, 0, 0)',
     );
     await expect(page.locator('.story-card-author')).toHaveCount(0);
-    const browseWidth = await page
-      .locator('.momente-browse-links')
-      .evaluate((element) => element.getBoundingClientRect().width);
-    expect(browseWidth).toBeLessThan(700);
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', {
+        name: storyProducts.storyFilters.toggleButton,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-1440-expanded.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     await captureScreenshot(
       page,
@@ -466,7 +536,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
-    await expect(page.getByText('Thinking of you')).toBeVisible();
+    await expect(page.locator('.heart-moment-detail-text')).toHaveText(
+      'Thinking of you',
+    );
     const detailEmotion = page.locator('.heart-emotion-badge--detail');
     await expect(detailEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(detailEmotion.locator('.heart-emotion-label')).toBeVisible();
@@ -510,7 +582,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
     await expect(
-      page.getByRole('heading', { name: 'Two years together', level: 1 }),
+      page.getByRole('heading', { name: 'Two years together', level: 2 }),
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();
@@ -556,7 +628,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     }
   });
 
-  test('Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)', async ({
+  test('Timeline omits partner identity while detail keeps first-name provenance', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -565,12 +637,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta.locator('.sr-only')).toHaveCount(0);
+    const authorMeta = page.locator('.momente-author-meta');
+    await expect(authorMeta).toHaveCount(0);
     await expect(page.locator('.story-card-author')).toHaveCount(0);
     await expect(
       authorMeta.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     const timelineText = await page
       .locator('.story-timeline')
       .allTextContents();
@@ -613,9 +685,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       await expectCompactCommentHandoff(page);
       const commentAuthors = page.locator('.comment-author');
       await expect(commentAuthors).toHaveCount(2);
-      await expect(commentAuthors.nth(0)).toHaveText(
-        `Lea · ${storyProducts.comments.authorSelf}`,
-      );
+      await expect(commentAuthors.nth(0)).toHaveText('Lea');
       await expect(commentAuthors.nth(1)).toHaveText('Alex');
       await expect(page.locator('.comment-list')).not.toContainText(
         ME.displayName,
@@ -678,7 +748,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',
@@ -686,11 +757,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(discoverAuthor).toHaveCount(0);
     await expect(
       discoverAuthor.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
-    await expect(discoverAuthor).not.toContainText(SELF_ATTRIBUTION);
+    ).toHaveCount(0);
+    await expect(page.locator('.momente-hero-highlight')).not.toContainText(
+      SELF_ATTRIBUTION,
+    );
 
     await captureScreenshot(
       page,
@@ -719,6 +792,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
         colorScheme,
       );
 
+      await waitForSettledMotion(page);
       const result = await new AxeBuilder({ page })
         .withTags([
           'wcag2a',

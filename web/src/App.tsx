@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -8,68 +8,77 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import type { AccountView } from './api/generated/models/AccountView';
-import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
-import type { SpaceView } from './api/generated/models/SpaceView';
-import type { TokenView } from './api/generated/models/TokenView';
 import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from './client/mediaApis';
+import { GamesApi } from './api/generated/apis/GamesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
+import type { AccountView } from './api/generated/models/AccountView';
+import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
+import type { SpaceView } from './api/generated/models/SpaceView';
+import type { TokenView } from './api/generated/models/TokenView';
 import { Configuration } from './client/apiConfiguration';
-import { loadReferenceClientConfig } from './client/config';
-import {
-  ActiveAccountMismatchError,
-  revokeUnacceptedSession,
-} from './client/identityFlow';
-import { useSessionRefresh } from './client/useSessionRefresh';
-import { useIdentityEntry } from './client/useIdentityEntry';
-import { createM4ProductApis } from './client/m4Product';
-import { createPeopleApi } from './client/peopleApi';
-import { createPrivateAreaApi } from './client/privateArea';
-import { invalidateDashboard } from './client/dashboardQueries';
-import {
-  clientProblemKind,
-  normalizeClientError,
-} from './client/problemDetails';
-import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
-import { clearProductReadCacheInBackground } from './client/productReadCache';
+import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
+import {
+  stopBrowserPushForSignedOutAccount,
+  useBrowserPush,
+} from './client/browserPush';
+import { loadReferenceClientConfig } from './client/config';
+import { invalidateDashboard } from './client/dashboardQueries';
 import {
   rememberCurrentAuthReturnTarget,
   restoreAuthReturnTarget,
 } from './client/deepLinks';
 import {
-  clearStoredSession,
-  isAccessTokenValid,
-  loadStoredSession,
-  refreshSessionTokens,
-  storeSession,
-} from './client/sessionPersistence';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-  loadAuthorizedMedia,
-} from './client/referenceFlow';
-import { loadInstanceAccessStatus } from './client/instanceStatus';
-import {
   stopNativePushForSignedOutAccount,
-  useUnifiedPush,
-} from './client/unifiedPush';
-import { signOutSession } from './client/signOutSession';
-import { createServerAdminApis } from './client/serverAdmin';
+  useDevicePush,
+} from './client/devicePush';
+import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import { useHistoryEntryTracker } from './client/historyEntries';
+import {
+  ActiveAccountMismatchError,
+  revokeUnacceptedSession,
+} from './client/identityFlow';
+import { loadInstanceAccessStatus } from './client/instanceStatus';
+import { createM4ProductApis } from './client/m4Product';
+import { ProfilesApi } from './client/mediaApis';
+import {
+  ONCE_CREATE_ROUTE,
+  ONCE_ROUTE,
+  OnceMessagesProvider,
+} from './client/onceMessages';
+import { createPartnerLocationApi } from './client/partnerLocation';
+import { PartnerNicknameProvider } from './client/partnerNickname';
+import { createPeopleApi } from './client/peopleApi';
+import { PersonColoursProvider } from './client/personColoursContext';
+import { createPrivateAreaApi } from './client/privateArea';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from './client/problemDetails';
+import { clearProductReadCacheInBackground } from './client/productReadCache';
+import { createReferenceApis } from './client/referenceFlow';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
+  COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  NOTE_CREATE_ROUTE,
+  NOTE_DETAIL_ROUTE_PATTERN,
+  NOTE_EDIT_ROUTE_PATTERN,
+  DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  HAPPINESS_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
@@ -77,72 +86,130 @@ import {
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
+  MEMORY_MAP_ROUTE,
   MILESTONE_CREATE_ROUTE,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
+  MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
-  MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
+  PARTNER_LOCATION_MAP_ROUTE,
+  PARTNER_LOCATION_SETTINGS_ROUTE,
+  PLACE_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
-  PLACE_DETAIL_ROUTE_PATTERN,
+  PRO_PAYWALL_ROUTE,
+  RECAP_DETAIL_ROUTE_PATTERN,
+  REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
-  STORY_PHOTOS_ROUTE,
-  WISH_DETAIL_ROUTE_PATTERN,
+  settingsCategoryPath,
+  TIME_TRAVEL_ROUTE,
   WISH_CREATE_ROUTE,
+  WISH_DETAIL_ROUTE_PATTERN,
+  WISH_SELECTION_ROUTE,
 } from './client/routes';
+import { createServerAdminApis } from './client/serverAdmin';
+import {
+  clearStoredSession,
+  isAccessTokenValid,
+  loadStoredSession,
+  refreshSessionTokens,
+  storeSession,
+} from './client/sessionPersistence';
 import { createSharedPlanningApis } from './client/sharedPlanning';
+import { signOutSession } from './client/signOutSession';
 import { postSnackbar } from './client/snackbar';
 import {
+  canReuseMembershipsAfterRefreshFailure,
   loadAuthorizedMemberships,
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
+import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
+import { useAccountLanguage } from './client/useAccountLanguage';
+import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
+import { useIdentityEntry } from './client/useIdentityEntry';
+import { useSessionRefresh } from './client/useSessionRefresh';
+import { useSystemTimeZone } from './client/useSystemTimeZone';
+import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
+import { VideoProcessingContext } from './client/video';
+import { AudioProcessingContext } from './client/voiceNotes';
+import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
-import { SharedPhotosPage } from './components/SharedPhotosPage';
 import { Brand } from './components/Brand';
+import { BrandedStartup } from './components/BrandedStartup';
 import { ChapterCreatePage } from './components/ChapterCreatePage';
 import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
+import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
+import { SharedNoteReadPage } from './components/SharedNoteReadPage';
+import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
+import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
+import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
+import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { GardenGamePage } from './components/GardenGamePage';
+import { HeartHuntGamePage } from './components/HeartHuntGamePage';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
+import { LegalDocumentPage } from './components/LegalDocumentPage';
 import {
   ActivityProductPage,
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
+import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
+import { MemoryMapPage } from './components/MemoryMapPage';
 import { MemoryProductPage } from './components/MemoryProductPage';
-import { OurMomentsGamePage } from './components/OurMomentsGamePage';
-import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
+import { OnceMessagesPage } from './components/OnceMessages';
+import { OurMomentsGamePage } from './components/OurMomentsGamePage';
+import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
+import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
+import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
+import { PartnerLocationSync } from './components/PartnerLocationSync';
+import { PicturePingPongPage } from './components/PicturePingPongPage';
+import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
-import { PlanProductPage } from './components/PlanProductPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
+import { PlanProductPage } from './components/PlanProductPage';
+import {
+  type PrimaryTabPanel,
+  PrimaryTabPanels,
+} from './components/PrimaryTabPanels';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
+import { ProPaywallPage } from './components/ProPaywallPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
+import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
+import { RelationshipStoryPage } from './components/RelationshipStoryPage';
+import { ReminderReadPage } from './components/ReminderReadPage';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
@@ -157,8 +224,12 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
+import { VoiceShareIngress } from './components/VoiceShareIngress';
+import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
+import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
+import { legalDocumentIdForRoute } from './legal/legalDocuments';
 
 function SpaceContextGate({
   loading,
@@ -170,6 +241,7 @@ function SpaceContextGate({
   onRetry: () => void;
 }) {
   const { t } = useTranslation();
+  if (loading) return <BrandedStartup label={t('states.loading.title')} />;
   return (
     <main className="setup-shell">
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
@@ -244,6 +316,7 @@ function AuthenticatedApp({
   apiBaseUrl,
   spaceId,
   serverAdmin,
+  storyStartupReads,
 }: {
   tokens: TokenView;
   account: AccountView;
@@ -251,11 +324,18 @@ function AuthenticatedApp({
   apiBaseUrl: string;
   spaceId: string;
   serverAdmin: boolean;
+  storyStartupReads?: StoryStartupReads;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
+  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+    scope: '',
+  });
+  const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
+  if (memoryMapViewport.current.scope !== mapScope)
+    memoryMapViewport.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -268,13 +348,37 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
-  const devicePush = useUnifiedPush({
+  useGentleUse({ account, spaceId, api: m4Apis.notifications });
+  useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
+  useVideoTransferNavigation({
+    instance: apiBaseUrl,
+    accountId: account.id,
+    spaceId,
+  });
+  const enableOnboardingPrompts = useCallback(
+    () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
+    [queryClient, m4Apis.notifications, account.id],
+  );
+  // The partner-distance start sheet follows the push start prompt.
+  const [pushPromptSettled, setPushPromptSettled] = useState(false);
+  const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
+  const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
     notificationsApi: m4Apis.notifications,
     queryClient,
     spaceId,
   });
+  const browserPush = useBrowserPush({
+    accountId: account.id,
+    apiBaseUrl,
+    spaceId,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    openNotification: devicePush.openNotification,
+    settingsOpen: location.pathname === settingsCategoryPath('notifications'),
+  });
+  const settingsPush = devicePush.available ? devicePush : browserPush;
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -313,6 +417,10 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const partnerLocationApi = useMemo(
+    () => createPartnerLocationApi(apiBaseUrl, tokens.accessToken),
+    [apiBaseUrl, tokens.accessToken],
+  );
   const dailyCheckInsApi = useMemo(
     () =>
       new DailyCheckInsApi(
@@ -345,11 +453,22 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const gamesApi = useMemo(
+    () =>
+      new GamesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     previousSpaceId.current = spaceId;
   }, [queryClient, spaceId]);
 
@@ -363,34 +482,40 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedImage(
+    (
+      memoryId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
+        'MEMORY',
         memoryId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedMedia(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+      persist?: boolean,
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant, persist },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   async function refreshStory() {
@@ -422,9 +547,91 @@ function AuthenticatedApp({
     currentAccountId: account.id,
   };
   const planningProductProps = {
+    accountId: account.id,
     apis: planningApis,
     spaceId,
+    apiBaseUrl,
+    accessToken: tokens.accessToken,
   };
+
+  const routeErrorFallback = (
+    <UiState
+      kind="error"
+      title={t('states.unexpected.title')}
+      body={t('states.unexpected.body')}
+      action={
+        <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
+          {t('navigation.today')}
+        </Link>
+      }
+    />
+  );
+  // Visited primary tabs stay mounted; their routes above render nothing.
+  const primaryTabPanels: PrimaryTabPanel[] = [
+    {
+      path: appRoutePath('today'),
+      element: (
+        <TodayPage
+          apis={m4Apis}
+          recapMediaApis={apis}
+          apiBaseUrl={apiBaseUrl}
+          spaceId={spaceId}
+          spacesApi={spacesApi}
+          dailyCheckInsApi={dailyCheckInsApi}
+          dailyQuoteApi={dailyQuoteApi}
+          entitlementApi={entitlementApi}
+          collectionsApi={planningApis.collections}
+          sharedNotesApi={planningApis.sharedNotes}
+          loadMemoryImage={loadMemoryImage}
+          profilesApi={profilesApi}
+          account={account}
+          partnerLocationApi={partnerLocationApi}
+          gamesApi={gamesApi}
+        />
+      ),
+    },
+    {
+      path: appRoutePath('story'),
+      element: (
+        <StoryProductPage
+          apis={apis}
+          accountId={account.id}
+          spaceId={spaceId}
+          loadMemoryImage={loadMemoryImage}
+          profilesApi={profilesApi}
+          dashboardApi={m4Apis.dashboard}
+          recapsApi={m4Apis.recaps}
+          startupReads={
+            storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
+          }
+        />
+      ),
+    },
+    {
+      path: appRoutePath('plan'),
+      element: (
+        <SharedPlanningOverviewPage
+          key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          {...planningProductProps}
+          accountId={account.id}
+          apiBaseUrl={apiBaseUrl}
+          peopleApi={peopleApi}
+          profilesApi={profilesApi}
+        />
+      ),
+    },
+    {
+      path: appRoutePath('more'),
+      element: (
+        <MoreOverviewPage
+          apiBaseUrl={apiBaseUrl}
+          accessToken={tokens.accessToken}
+          account={account}
+          spaceId={spaceId}
+        />
+      ),
+    },
+  ];
 
   const relationshipContent = (
     <PartnerNicknameProvider
@@ -439,43 +646,36 @@ function AuthenticatedApp({
         account={account}
         spaceId={spaceId}
         serverAdmin={serverAdmin}
+        openNotification={devicePush.openNotification}
+        primaryTabs={
+          <PrimaryTabPanels
+            panels={primaryTabPanels}
+            fallback={routeErrorFallback}
+          />
+        }
       >
         <AppErrorBoundary
           resetKey={location.pathname}
-          fallback={
-            <UiState
-              kind="error"
-              title={t('states.unexpected.title')}
-              body={t('states.unexpected.body')}
-              action={
-                <Link
-                  className="button-link secondary-link"
-                  to={DEFAULT_APP_ROUTE}
-                >
-                  {t('navigation.today')}
-                </Link>
-              }
-            />
-          }
+          fallback={routeErrorFallback}
         >
           <Routes>
+            <Route
+              path={ONCE_ROUTE}
+              element={<OnceMessagesPage mode="inbox" />}
+            />
+            <Route
+              path={ONCE_CREATE_ROUTE}
+              element={<OnceMessagesPage mode="compose" />}
+            />
+            <Route
+              path={`${ONCE_ROUTE}/:messageId`}
+              element={<OnceMessagesPage mode="read" />}
+            />
             <Route
               path="/"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-            <Route
-              path={appRoutePath('story')}
-              element={
-                <StoryProductPage
-                  apis={apis}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  loadMemoryImage={loadMemoryImage}
-                  profilesApi={profilesApi}
-                  dashboardApi={m4Apis.dashboard}
-                />
-              }
-            />
+            <Route path={appRoutePath('story')} element={null} />
             <Route
               path={STORY_YEARS_ROUTE}
               element={
@@ -485,13 +685,18 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  startupRead={
+                    storyStartupReads?.kind === 'years'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
             <Route
               path={STORY_PHOTOS_ROUTE}
               element={
-                <SharedPhotosPage
+                <MediaOverviewPage
                   key={`${account.id}:${spaceId}`}
                   apis={apis}
                   accountId={account.id}
@@ -508,19 +713,30 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  startupRead={
+                    storyStartupReads?.kind === 'year'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
-            <Route
-              path={appRoutePath('plan')}
-              element={<SharedPlanningOverviewPage {...planningProductProps} />}
-            />
+            <Route path={appRoutePath('plan')} element={null} />
             <Route
               path={PLAN_CREATE_ROUTE}
               element={
                 <PlanningCreatePage kind="plan" {...planningProductProps} />
               }
             />
+            <Route
+              path={WISH_SELECTION_ROUTE}
+              element={<WishSelectionPage {...planningProductProps} />}
+            />
+            <Route
+              path={DATE_IDEAS_ROUTE}
+              element={<DateIdeasPage {...planningProductProps} />}
+            />
+            <Route path={PRO_PAYWALL_ROUTE} element={<ProPaywallPage />} />
             <Route
               path={WISH_CREATE_ROUTE}
               element={
@@ -534,6 +750,17 @@ function AuthenticatedApp({
             <Route
               path={PLAN_DETAIL_ROUTE_PATTERN}
               element={<PlanProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={REMINDER_DETAIL_ROUTE_PATTERN}
+              element={
+                <ReminderReadPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
             />
             <Route
               path={STORY_CHAPTERS_ROUTE}
@@ -552,6 +779,16 @@ function AuthenticatedApp({
               element={<ChapterProductPage {...planningProductProps} />}
             />
             <Route
+              path={MEMORY_MAP_ROUTE}
+              element={
+                <MemoryMapPage
+                  {...planningProductProps}
+                  loadMemoryImage={loadMemoryImage}
+                  sessionViewport={memoryMapViewport.current}
+                />
+              }
+            />
+            <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
             />
@@ -562,6 +799,16 @@ function AuthenticatedApp({
             <Route
               path={PLACE_DETAIL_ROUTE_PATTERN}
               element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={COLLECTION_CREATE_ROUTE}
+              element={
+                <CollectionsOverviewPage
+                  key="create-list"
+                  {...planningProductProps}
+                  initialCreate
+                />
+              }
             />
             <Route
               path={MORE_COLLECTIONS_ROUTE}
@@ -582,22 +829,26 @@ function AuthenticatedApp({
               }
             />
             <Route
-              path={appRoutePath('today')}
+              path={MORE_NOTES_ROUTE}
+              element={<SharedNotesOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_CREATE_ROUTE}
               element={
-                <TodayPage
-                  apis={m4Apis}
-                  spaceId={spaceId}
-                  spacesApi={spacesApi}
-                  dailyCheckInsApi={dailyCheckInsApi}
-                  dailyQuoteApi={dailyQuoteApi}
-                  entitlementApi={entitlementApi}
-                  collectionsApi={planningApis.collections}
-                  loadMemoryImage={loadMemoryImage}
-                  profilesApi={profilesApi}
-                  account={account}
-                />
+                <SharedNoteEditorPage {...planningProductProps} mode="create" />
               }
             />
+            <Route
+              path={NOTE_DETAIL_ROUTE_PATTERN}
+              element={<SharedNoteReadPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_EDIT_ROUTE_PATTERN}
+              element={
+                <SharedNoteEditorPage {...planningProductProps} mode="edit" />
+              }
+            />
+            <Route path={appRoutePath('today')} element={null} />
             <Route
               path={ACTIVITY_ROUTE}
               element={
@@ -613,10 +864,52 @@ function AuthenticatedApp({
               path={SEARCH_ROUTE}
               element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
             />
+            {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
+              ['', '/new'].map((suffix) => (
+                <Route
+                  key={`${kind}${suffix}`}
+                  path={`${kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE}${suffix}`}
+                  element={
+                    <CoupleExperiencePage
+                      key={`${account.id}:${spaceId}:${kind}`}
+                      kind={kind}
+                      onSaved={refreshStory}
+                      apiBaseUrl={apiBaseUrl}
+                      accessToken={tokens.accessToken}
+                      accountId={account.id}
+                      spaceId={spaceId}
+                      profilesApi={profilesApi}
+                    />
+                  }
+                />
+              )),
+            )}
             <Route
               path={GAMES_MOMENTS_ROUTE}
               element={
                 <OurMomentsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_PICTURE_PING_PONG_ROUTE}
+              element={
+                <PicturePingPongPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_GARDEN_ROUTE}
+              element={
+                <GardenGamePage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
                   spaceId={spaceId}
@@ -636,13 +929,28 @@ function AuthenticatedApp({
               }
             />
             <Route
-              path={appRoutePath('more')}
+              path={GAMES_HEART_HUNT_ROUTE}
               element={
-                <MoreOverviewPage
+                <HeartHuntGamePage
                   apiBaseUrl={apiBaseUrl}
                   accessToken={tokens.accessToken}
-                  account={account}
                   spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route path={appRoutePath('more')} element={null} />
+            <Route
+              path={MORE_INSIGHTS_RECAP_ROUTE}
+              element={
+                <Navigate
+                  replace
+                  to={{
+                    pathname: MORE_INSIGHTS_ROUTE,
+                    search: location.search,
+                    hash: '#wochenrueckblick',
+                  }}
+                  state={location.state}
                 />
               }
             />
@@ -650,7 +958,6 @@ function AuthenticatedApp({
               [
                 [MORE_INSIGHTS_ROUTE, 'week'],
                 [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
               ] as const
             ).map(([path, insightView]) => (
               <Route
@@ -658,6 +965,7 @@ function AuthenticatedApp({
                 path={path}
                 element={
                   <DailyInsightsPage
+                    apiBaseUrl={apiBaseUrl}
                     key={`${account.id}:${spaceId}`}
                     view={insightView}
                     spaceId={spaceId}
@@ -666,6 +974,33 @@ function AuthenticatedApp({
                     entitlementApi={entitlementApi}
                     dashboardApi={m4Apis.dashboard}
                     profilesApi={profilesApi}
+                  />
+                }
+              />
+            ))}
+            <Route
+              path={STORY_OURS_ROUTE}
+              element={
+                <RelationshipStoryPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                />
+              }
+            />
+            {[STORY_RECAPS_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <RelationshipRecapsPage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                    mediaApis={apis}
                   />
                 }
               />
@@ -682,7 +1017,7 @@ function AuthenticatedApp({
               }
             />
             <Route
-              path={MORE_PEOPLE_ROUTE}
+              path={`${MORE_PEOPLE_ROUTE}/*`}
               element={
                 <RelatedPeoplePage
                   peopleApi={peopleApi}
@@ -713,7 +1048,30 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
-                  devicePush={devicePush}
+                  devicePush={settingsPush}
+                />
+              }
+            />
+            <Route
+              path={PARTNER_LOCATION_MAP_ROUTE}
+              element={
+                <PartnerLocationMapPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={PARTNER_LOCATION_SETTINGS_ROUTE}
+              element={
+                <PartnerLocationSettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
                 />
               }
             />
@@ -725,7 +1083,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
-                  devicePush={devicePush}
+                  devicePush={settingsPush}
                 />
               }
             />
@@ -734,6 +1092,8 @@ function AuthenticatedApp({
               element={
                 <PrivateAreaProductPage
                   api={privateAreaApi}
+                  profilesApi={profilesApi}
+                  spacesApi={spacesApi}
                   accountId={account.id}
                   spaceId={spaceId}
                 />
@@ -761,7 +1121,15 @@ function AuthenticatedApp({
             <Route
               path={MEMORY_DETAIL_ROUTE_PATTERN}
               element={
-                <MemoryProductPage mode="detail" {...memoryProductProps} />
+                <MemoryProductPage
+                  mode="detail"
+                  {...memoryProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'memory'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
+                />
               }
             />
             <Route
@@ -788,6 +1156,11 @@ function AuthenticatedApp({
                 <HeartMomentProductPage
                   mode="detail"
                   {...heartMomentProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'heartMoment'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -812,6 +1185,11 @@ function AuthenticatedApp({
                 <MilestoneProductPage
                   mode="detail"
                   {...milestoneProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'milestone'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -841,6 +1219,21 @@ function AuthenticatedApp({
           </Routes>
         </AppErrorBoundary>
       </AppShell>
+      <PartnerLocationSync
+        key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+      />
+      <PartnerLocationOnboarding
+        key={`location:${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+        ready={pushPromptSettled}
+      />
     </PartnerNicknameProvider>
   );
   return (
@@ -852,7 +1245,45 @@ function AuthenticatedApp({
       accountId={account.id}
       spaceId={spaceId}
     >
-      {relationshipContent}
+      <WirDesignProvider
+        key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+        api={appearanceApi}
+        entitlementsApi={entitlementApi}
+        instance={apiBaseUrl}
+        accountId={account.id}
+        spaceId={spaceId}
+      >
+        <PersonColoursProvider
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={appearanceApi}
+          entitlementsApi={entitlementApi}
+          instance={apiBaseUrl}
+          accountId={account.id}
+          spaceId={spaceId}
+        >
+          <OnceMessagesProvider
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+          >
+            {relationshipContent}
+          </OnceMessagesProvider>
+          <VoiceShareIngress
+            key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+            scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          />
+
+          <DevicePushOnboarding
+            key={`${apiBaseUrl}:${account.id}`}
+            devicePush={devicePush}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            onEnablePrompts={enableOnboardingPrompts}
+            onSettled={settlePushPrompt}
+          />
+        </PersonColoursProvider>
+      </WirDesignProvider>
     </AppIconProvider>
   );
 }
@@ -861,15 +1292,35 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const config = useMemo(loadReferenceClientConfig, []);
   const location = useLocation();
   const navigate = useNavigate();
+  useHistoryEntryTracker();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
+  useCalendarGoogleAppReturn();
   const [initialStoredSession] = useState(loadStoredSession);
+  const [startupLocation] = useState(() => ({
+    pathname: location.pathname,
+    search: location.search,
+  }));
+  const onStartupRoute =
+    startupLocation.pathname === location.pathname &&
+    startupLocation.search === location.search;
+  const storyStartupReads = useRef<StoryStartupReads | null>(null);
+  const cancelStoryStartupReads = useCallback(() => {
+    storyStartupReads.current?.cancel();
+    storyStartupReads.current = null;
+  }, []);
   const [tokens, setTokens] = useState<TokenView | null>(
     () => initialStoredSession?.tokens ?? null,
   );
   const [account, setAccount] = useState<AccountView | null>(
     () => initialStoredSession?.account ?? null,
+  );
+  useAccountLanguage(
+    config.apiBaseUrl,
+    tokens?.accessToken,
+    account,
+    setAccount,
   );
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),
@@ -890,7 +1341,14 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }, [account, isRestoring]);
 
   const terminateSession = useCallback(() => {
+    cancelStoryStartupReads();
     stopNativePushForSignedOutAccount();
+    const outgoing = loadStoredSession();
+    if (outgoing)
+      stopBrowserPushForSignedOutAccount({
+        accountId: outgoing.account.id,
+        apiBaseUrl: config.apiBaseUrl,
+      });
     const cleared = clearStoredSession();
     setSpaceId(null);
     setAccount(null);
@@ -898,8 +1356,9 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     restoredAuthReturnForAccountId.current = null;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     return cleared;
-  }, [queryClient]);
+  }, [cancelStoryStartupReads, config.apiBaseUrl, queryClient]);
 
   useEffect(() => {
     if (!initialStoredSession) {
@@ -920,10 +1379,27 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           );
         }
 
+        if (
+          cancelled ||
+          loadStoredSession()?.tokens.refreshToken !==
+            currentTokens.refreshToken
+        )
+          return;
+        // A rotated token can authorize membership reads while /me refreshes.
+        setTokens(currentTokens);
+
         const apis = createReferenceApis(
           config.apiBaseUrl,
           currentTokens.accessToken,
         );
+        if (activeSession.spaceId) {
+          storyStartupReads.current = startStoryReads(
+            apis,
+            activeSession.account.id,
+            activeSession.spaceId,
+            startupLocation,
+          );
+        }
         const verifiedAccount = await apis.auth.meApiV1AuthMeGet();
 
         if (
@@ -937,7 +1413,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         storeSession({
           account: verifiedAccount,
           tokens: currentTokens,
-          spaceId: activeSession.spaceId ?? null,
+          // Membership resolution may have selected a Space while /me was pending.
+          spaceId: loadStoredSession()?.spaceId ?? null,
         });
       } catch (error) {
         if (cancelled) return;
@@ -967,8 +1444,15 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
     return () => {
       cancelled = true;
+      cancelStoryStartupReads();
     };
-  }, [config.apiBaseUrl, initialStoredSession, terminateSession]);
+  }, [
+    cancelStoryStartupReads,
+    config.apiBaseUrl,
+    initialStoredSession,
+    startupLocation,
+    terminateSession,
+  ]);
 
   const acceptSessionTokens = useCallback(
     (next: TokenView) => {
@@ -1018,14 +1502,39 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   });
 
   const membershipsQuery = useQuery({
-    queryKey: ['account-memberships'],
+    queryKey: ['account-memberships', config.apiBaseUrl, account?.id],
     queryFn: async () => {
       if (!tokens) return [];
       return loadAuthorizedMemberships(config.apiBaseUrl, tokens.accessToken);
     },
-    enabled: !isRestoring && tokens !== null,
+    // Validate membership alongside /me when a usable access token exists.
+    enabled: tokens !== null && (!isRestoring || isAccessTokenValid(tokens)),
     retry: false,
   });
+
+  useEffect(() => {
+    const startup = storyStartupReads.current;
+    if (!startup) return;
+    if (
+      !onStartupRoute ||
+      (membershipsQuery.error &&
+        !canReuseMembershipsAfterRefreshFailure(
+          membershipsQuery.data,
+          membershipsQuery.error,
+        )) ||
+      (membershipsQuery.data &&
+        !membershipsQuery.data.some(
+          (membership) => membership.spaceId === startup.spaceId,
+        ))
+    ) {
+      cancelStoryStartupReads();
+    }
+  }, [
+    cancelStoryStartupReads,
+    membershipsQuery.data,
+    membershipsQuery.error,
+    onStartupRoute,
+  ]);
 
   const spacesQuery = useQuery({
     queryKey: [
@@ -1085,8 +1594,10 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   function selectSpace(selectedSpaceId: string) {
+    cancelStoryStartupReads();
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     setSpaceId(selectedSpaceId);
     if (account && tokens) {
       storeSession({ account, tokens, spaceId: selectedSpaceId });
@@ -1094,15 +1605,36 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     postSnackbar('snackbar.spaceSwitched');
   }
 
-  if (isRestoring || isSigningOut) {
+  // A current authenticated membership response already authorizes this Space.
+  // Account metadata may finish in the background without blocking its UI.
+  const restoredSpaceAuthorized = Boolean(
+    tokens &&
+      account &&
+      isAccessTokenValid(tokens) &&
+      membershipsQuery.isFetchedAfterMount &&
+      membershipsQuery.isSuccess &&
+      !membershipsQuery.error &&
+      resolveActiveSpaceId(membershipsQuery.data, spaceId),
+  );
+  // Public legal text needs no session; it must stay readable while signed out.
+  const publicLegalDocument = legalDocumentIdForRoute(location.pathname);
+  if (publicLegalDocument && !entryToken) {
     return (
-      <main className="setup-shell">
+      <>
         <ThemeControl />
-        <UiState
-          kind="loading"
-          title={t(isSigningOut ? 'header.logout' : 'spaceContext.loading')}
+        <LegalDocumentPage
+          key={publicLegalDocument}
+          documentId={publicLegalDocument}
         />
-      </main>
+      </>
+    );
+  }
+
+  if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
+    return (
+      <BrandedStartup
+        label={t(isSigningOut ? 'header.logout' : 'states.loading.title')}
+      />
     );
   }
 
@@ -1175,14 +1707,20 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   const memberships = membershipsQuery.data ?? [];
+  const membershipErrorBlocksApp =
+    membershipsQuery.error !== null &&
+    !canReuseMembershipsAfterRefreshFailure(
+      membershipsQuery.data,
+      membershipsQuery.error,
+    );
   if (
     membershipsQuery.isPending ||
-    membershipsQuery.error ||
+    membershipErrorBlocksApp ||
     memberships.length === 0
   ) {
     if (
       !membershipsQuery.isPending &&
-      !membershipsQuery.error &&
+      !membershipErrorBlocksApp &&
       memberships.length === 0
     ) {
       if (instanceStatusQuery.isPending) {
@@ -1220,7 +1758,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         <ThemeControl />
         <SpaceContextGate
           loading={membershipsQuery.isPending}
-          error={membershipsQuery.error}
+          error={membershipErrorBlocksApp ? membershipsQuery.error : null}
           onRetry={() => void membershipsQuery.refetch()}
         />
       </>
@@ -1262,14 +1800,36 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     );
   }
 
+  // Publish the selected Space before mounting its draft/media owners. The
+  // membership effect rotates their local leases when selection changes.
+  if (activeSpaceId !== spaceId) {
+    return <BrandedStartup label={t('states.loading.title')} />;
+  }
+
+  const startup = storyStartupReads.current;
   return (
-    <AuthenticatedApp
-      tokens={tokens}
-      account={account}
-      logout={logout}
-      apiBaseUrl={config.apiBaseUrl}
-      spaceId={activeSpaceId}
-      serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
-    />
+    <AudioProcessingContext.Provider
+      value={capabilitiesQuery.data?.audioProcessingEnabled === true}
+    >
+      <VideoProcessingContext.Provider
+        value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+      >
+        <AuthenticatedApp
+          tokens={tokens}
+          account={account}
+          logout={logout}
+          apiBaseUrl={config.apiBaseUrl}
+          spaceId={activeSpaceId}
+          serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
+          storyStartupReads={
+            onStartupRoute &&
+            startup?.spaceId === activeSpaceId &&
+            startup.accountId === account.id
+              ? startup
+              : undefined
+          }
+        />
+      </VideoProcessingContext.Provider>
+    </AudioProcessingContext.Provider>
   );
 }

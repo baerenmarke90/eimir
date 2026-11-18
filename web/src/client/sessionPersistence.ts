@@ -1,16 +1,26 @@
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
-import { normalizeClientError } from './problemDetails';
+import { SESSION_LANGUAGE_EVENT, SESSION_LANGUAGE_KEY } from '../i18n/locale';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
-import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
-import { createReferenceApis } from './referenceFlow';
+import {
+  clearBackgroundVideoTransfers,
+  hasNativeVideoTransfers,
+  observeNativeVideoTransfers,
+} from './backgroundVideoUploads';
+import { loadReferenceClientConfig } from './config';
+import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
 import {
   isNativeSessionStorageAvailable,
   readNativeSessionSnapshot,
   writeNativeSessionSnapshot,
 } from './nativeSessionStorage';
+import { clearPersonColourPreferences } from './personColoursStore';
+import { normalizeClientError } from './problemDetails';
+import { createReferenceApis } from './referenceFlow';
+import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
+import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
 
-export const SESSION_STORAGE_KEY = 'eimir-session-v1';
+export const SESSION_STORAGE_KEY = SESSION_LANGUAGE_KEY;
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
 
 const inFlightRefreshes = new Map<string, Promise<TokenView>>();
@@ -97,18 +107,11 @@ export async function restoreNativeSession(): Promise<void> {
     return;
   }
   const revision = storageRevision;
-  let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
     await nativeWrites;
-    const raw = await Promise.race([
-      readNativeSessionSnapshot(),
-      new Promise<never>((_resolve, reject) => {
-        deadline = setTimeout(
-          () => reject(new Error('Native session read timed out')),
-          5_000,
-        );
-      }),
-    ]);
+    // The native plugin always resolves/rejects its read. A fixed timer could
+    // discard a valid session on a slow Android Keystore cold start.
+    const raw = await readNativeSessionSnapshot();
     if (revision !== storageRevision || raw === null) return;
     if (raw.length > 16_384) {
       await clearStoredSession();
@@ -119,10 +122,9 @@ export async function restoreNativeSession(): Promise<void> {
     if (!restored || !isRefreshTokenValid(restored.tokens)) {
       await clearStoredSession();
     }
+    window.dispatchEvent?.(new Event(SESSION_LANGUAGE_EVENT));
   } catch {
     // No native credential is usable; never fall back to localStorage.
-  } finally {
-    clearTimeout(deadline);
   }
 }
 
@@ -159,7 +161,22 @@ function parseStoredAccount(raw: unknown): AccountView | null {
   if (typeof obj.id !== 'string' || typeof obj.displayName !== 'string') {
     return null;
   }
-  return { id: obj.id, displayName: obj.displayName };
+  return {
+    id: obj.id,
+    displayName: obj.displayName,
+    ...(typeof obj.gentlePromptsEnabled === 'boolean'
+      ? { gentlePromptsEnabled: obj.gentlePromptsEnabled }
+      : {}),
+    ...(typeof obj.languagePreference === 'string'
+      ? { languagePreference: obj.languagePreference }
+      : {}),
+    ...(typeof obj.locale === 'string' ? { locale: obj.locale } : {}),
+    ...(typeof obj.languageVersion === 'number' &&
+    Number.isSafeInteger(obj.languageVersion) &&
+    obj.languageVersion >= 0
+      ? { languageVersion: obj.languageVersion }
+      : {}),
+  };
 }
 
 export type StoredSession = {
@@ -169,6 +186,22 @@ export type StoredSession = {
 };
 
 export function storeSession(session: StoredSession): Promise<void> {
+  const current = loadStoredSession();
+  if (
+    current?.account.id === session.account.id &&
+    (current.account.languageVersion ?? 0) >
+      (session.account.languageVersion ?? 0)
+  ) {
+    session = {
+      ...session,
+      account: {
+        ...session.account,
+        languagePreference: current.account.languagePreference,
+        languageVersion: current.account.languageVersion,
+        locale: current.account.locale,
+      },
+    };
+  }
   // Space selection or a late verified read can still carry the previous
   // render's tokens. Metadata updates must not roll back a consumed generation.
   if (
@@ -198,6 +231,8 @@ function persistSession(
         sessionOwner.tokens.refreshToken !== rotatedFrom)
     ) {
       clearAuthorizedMediaCache();
+      clearMemoryDiaryDrafts();
+      clearBackgroundVideoTransfers();
     }
     const serialized = JSON.stringify({
       account: session.account,
@@ -216,6 +251,7 @@ function persistSession(
       spaceId: session.spaceId ?? null,
     });
     window.sessionStorage.setItem(SESSION_STORAGE_KEY, serialized);
+    window.dispatchEvent?.(new Event(SESSION_LANGUAGE_EVENT));
     if (
       sessionOwner?.accountId === session.account.id &&
       (sessionOwner.tokens.refreshToken === session.tokens.refreshToken ||
@@ -229,7 +265,20 @@ function persistSession(
     } else {
       sessionOwner = { accountId: session.account.id, tokens: session.tokens };
     }
-    return persistNativeSnapshot(serialized);
+    return persistNativeSnapshot(serialized).then(() => {
+      const current = loadStoredSession();
+      if (
+        hasNativeVideoTransfers() &&
+        current?.account.id === session.account.id &&
+        current.spaceId === session.spaceId &&
+        session.spaceId
+      )
+        observeNativeVideoTransfers({
+          instance: loadReferenceClientConfig().apiBaseUrl,
+          accountId: session.account.id,
+          spaceId: session.spaceId,
+        });
+    });
   } catch {
     // Storage might be disabled or quota exceeded in restrictive environments.
     return Promise.resolve();
@@ -270,13 +319,18 @@ export function loadStoredSession(): StoredSession | null {
 }
 
 export function clearStoredSession(): Promise<void> {
+  clearBackgroundVideoTransfers();
   clearAuthorizedMediaCache();
+  clearWirDesignPreferences();
+  clearPersonColourPreferences();
+  clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;
   try {
     if (typeof window !== 'undefined') {
       window.sessionStorage?.removeItem(SESSION_STORAGE_KEY);
       window.sessionStorage?.removeItem(LEGACY_SESSION_STORAGE_KEY);
+      window.dispatchEvent?.(new Event(SESSION_LANGUAGE_EVENT));
     }
   } catch {
     // Storage might be disabled in restrictive environments.

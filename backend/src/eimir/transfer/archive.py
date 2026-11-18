@@ -46,12 +46,15 @@ _ALLOWED_ROOT_FILES = {
     "places.json",
     "chapters.json",
     "collections.json",
+    "shared-notes.json",
     "reminders.json",
     "rules.json",
+    "recaps.json",
     "media/index.json",
     "private/notes.json",
     "private/gift-ideas.json",
     "private/collections.json",
+    "private/weekly-insight-feedback.json",
 }
 _MEDIA_ENTRY = re.compile(
     r"^media/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(original|thumbnail)$"

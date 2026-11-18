@@ -1,64 +1,104 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Link, useLocation, useNavigationType } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
+import { isAndroidApp } from '../client/config';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
+import { ProPresentationProvider } from '../client/proPresentation';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import {
+  type AppRouteDefinition,
+  activeNavigationArea,
+  appRoutePath,
+  COLLECTION_CREATE_ROUTE,
+  DEFAULT_APP_ROUTE,
+  MEMORY_CREATE_ROUTE,
+  NOTE_CREATE_ROUTE,
+  PARTNER_LOCATION_MAP_ROUTE,
+  PRIMARY_APP_ROUTES,
+} from '../client/routes';
 import {
   captureSessionOwner,
   currentSessionTokens,
   loadStoredSession,
 } from '../client/sessionPersistence';
-import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import {
-  type AppRouteDefinition,
-  activeNavigationArea,
-  appRoutePath,
-  DEFAULT_APP_ROUTE,
-  MEMORY_CREATE_ROUTE,
-  PRIMARY_APP_ROUTES,
-  SEARCH_ROUTE,
-} from '../client/routes';
-import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import { ProductTourProvider } from '../client/productTour';
+  ShellUtilitiesContext,
+  useShellUtilities,
+} from '../client/shellUtilities';
+import { TaskOriginProvider } from '../client/taskOrigin';
+import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
+import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
-import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
-import { HeaderNotificationsMenu } from './HeaderNotificationsMenu';
-import { HeaderProfileMenu } from './HeaderProfileMenu';
+import { LogoutDeviceDataSheet } from './LogoutDeviceDataSheet';
+import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
-import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
+import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
+import { useNavigationMotion } from './useNavigationMotion';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { unreadCount } = useShellUtilities();
+  const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
+  const { destinationFor, navigatePrimary } = usePrimaryNavigation();
 
   return (
     <Link
-      to={route.path}
+      {...destinationFor(route.path)}
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return;
+        event.preventDefault();
+        navigatePrimary(route.path);
+      }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}
+      aria-label={
+        hasUnread
+          ? t('navigation.moreWithUnread', { count: unreadCount })
+          : undefined
+      }
     >
       <span className="shell-nav-icon">
         <DestinationIcon
           icon={route.icon}
           variant={isActive ? 'filled' : 'outline'}
         />
+        {hasUnread ? (
+          <span className="notification-dot" aria-hidden="true" />
+        ) : null}
       </span>
       <span>{t(route.labelKey)}</span>
     </Link>
@@ -115,12 +155,15 @@ function useCachedReadTimestamp(): string | null {
 
 interface AppShellProps {
   children: ReactNode;
+  /** Kept primary tabs; rendered outside the subpage frame so they survive detail routes. */
+  primaryTabs?: ReactNode;
   onLogout: () => void | Promise<void>;
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
   spaceId: string;
   serverAdmin?: boolean;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 }
 
 export function AppShell(props: AppShellProps) {
@@ -128,19 +171,18 @@ export function AppShell(props: AppShellProps) {
     <ApiRuntimeProvider
       apiBaseUrl={props.apiBaseUrl}
       accessToken={props.accessToken}
+      accountId={props.account.id}
+      spaceId={props.spaceId}
     >
-      <TaskOriginProvider
-        key={`${props.account.id}:${props.spaceId}`}
-        accountId={props.account.id}
-        spaceId={props.spaceId}
-      >
-        <ProductTourProvider
+      <ProPresentationProvider>
+        <TaskOriginProvider
+          key={`${props.account.id}:${props.spaceId}`}
           accountId={props.account.id}
           spaceId={props.spaceId}
         >
           <AuthenticatedAppShell {...props} />
-        </ProductTourProvider>
-      </TaskOriginProvider>
+        </TaskOriginProvider>
+      </ProPresentationProvider>
     </ApiRuntimeProvider>
   );
 }
@@ -153,6 +195,8 @@ function AuthenticatedAppShell({
   account,
   spaceId,
   serverAdmin = false,
+  openNotification,
+  primaryTabs,
 }: AppShellProps) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
@@ -177,27 +221,74 @@ function AuthenticatedAppShell({
     });
   }
 
+  // The Android app names what leaves the phone before signing out.
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  function requestLogout(): void {
+    if (isAndroidApp()) setConfirmingLogout(true);
+    else logout();
+  }
+
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const mainRef = useRef<HTMLElement>(null);
+  const pathname = location.pathname.replace(/\/$/, '');
+  const navigationType = useNavigationType();
+  const { navigatePrimary } = usePrimaryNavigation();
+  useNavigationMotion({
+    surfaceRef: mainRef,
+    pathname,
+    routeKey: location.key,
+    skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
+    createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
+    // History Back (button, gesture, system Back) and explicit task returns.
+    returning:
+      navigationType === 'POP' ||
+      Boolean(
+        (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
+      ),
+    onNavigate: navigatePrimary,
+  });
   const isPrivateArea = location.pathname.startsWith('/more/private');
-  const storyDetailMatch =
-    /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
-      location.pathname,
-    );
-  const isStoryDetail = Boolean(
-    storyDetailMatch && storyDetailMatch[1] !== 'new',
-  );
-  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
-    ?.taskOriginKey;
-  const storyDetailBackLabel = t(
-    resolveOrigin(taskOriginKey)
-      ? 'taskBoundary.back'
-      : 'memoryProduct.backToStory',
-  );
+  const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
+    /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
+    /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
+    location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
+    location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
+    location.pathname === '/story/heart-moments/new' ||
+    /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
+    location.pathname === NOTE_CREATE_ROUTE ||
+    /^\/more\/notes\/[^/]+\/edit$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
-    location.pathname === '/plan/wishes/new';
+    location.pathname === '/plan/wishes/new' ||
+    location.pathname === '/plan/chapters/new' ||
+    (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
+    location.pathname === '/plan/choose';
+  const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (isFocusedTask) return;
+    const navigation = bottomNavigationRef.current;
+    if (!navigation || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const measure = (entry?: ResizeObserverEntry) => {
+      // Reserve layout CSS pixels; root zoom already scales the consumer.
+      const height =
+        entry?.borderBoxSize?.[0]?.blockSize ?? navigation.offsetHeight;
+      if (height > 0)
+        root.style.setProperty(
+          '--shell-bottom-nav-measured-height',
+          `${height}px`,
+        );
+      else root.style.removeProperty('--shell-bottom-nav-measured-height');
+    };
+    const observer = new ResizeObserver(([entry]) => measure(entry));
+    observer.observe(navigation, { box: 'border-box' });
+    measure();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--shell-bottom-nav-measured-height');
+    };
+  }, [isFocusedTask]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -227,149 +318,124 @@ function AuthenticatedAppShell({
     refetchOnWindowFocus: 'always',
     enabled: Boolean(spaceId && accessToken),
   });
-  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+  const unreadCount = unreadQuery.data?.unreadCount;
 
   return (
-    <div
-      className="product-shell"
-      data-focused-task={isFocusedTask}
-      data-top-surface={
-        location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
-      }
+    <ShellUtilitiesContext.Provider
+      value={{ unreadCount, serverAdmin, onLogout: requestLogout }}
     >
-      <ThemeControl />
-      <RouteEntryHandoff />
-      <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
-      <a className="skip-link" href="#main-content">
-        {t('navigation.skipToContent')}
-      </a>
+      <LogoutDeviceDataSheet
+        open={confirmingLogout}
+        onCancel={() => setConfirmingLogout(false)}
+        onConfirm={() => {
+          setConfirmingLogout(false);
+          logout();
+        }}
+      />
+      <div
+        className="product-shell"
+        data-focused-task={isFocusedTask}
+        data-top-surface={
+          location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+        }
+      >
+        <ThemeControl />
+        <RouteEntryHandoff />
+        <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
+        <a className="skip-link" href="#main-content">
+          {t('navigation.skipToContent')}
+        </a>
 
-      {!isFocusedTask ? (
-        <header className="app-header product-topbar">
-          {isStoryDetail ? (
-            <button
-              type="button"
-              className="shell-utility-link shell-detail-back"
-              onClick={() => requestReturn(taskOriginKey)}
-              aria-label={storyDetailBackLabel}
-              title={storyDetailBackLabel}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+        {!isFocusedTask ? (
+          <header className="app-header product-topbar">
+            <nav className="shell-nav" aria-label={t('navigation.primary')}>
+              <PrimaryNavigationLinks />
+            </nav>
+            <div className="header-actions">
+              <span
+                className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
-          ) : (
-            <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
-          )}
-          <nav className="shell-nav" aria-label={t('navigation.primary')}>
-            <PrimaryNavigationLinks />
-          </nav>
-          <div className="header-actions">
-            <div className="shell-primary-action">
-              <QuickCreateMenu variant="desktop" />
-            </div>
-            <span
-              className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
-            >
-              {isPrivateArea ? (
-                <>
-                  <span aria-hidden="true">🔒</span>{' '}
-                  {t('privateArea.privacyLabel')}
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true">♥</span> {t('header.sharedArea')}
-                </>
-              )}
-            </span>
-            <NavLink
-              to={SEARCH_ROUTE}
-              className={({ isActive }) =>
-                `shell-utility-link${isActive ? ' shell-utility-link-active' : ''}`
-              }
-              aria-label={t('navigation.search')}
-              title={t('navigation.search')}
-            >
-              <span className="shell-nav-icon" aria-hidden="true">
-                <DestinationIcon icon="search" />
+                {isPrivateArea ? (
+                  <>
+                    <span aria-hidden="true">🔒</span>{' '}
+                    {t('privateArea.privacyLabel')}
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true">♥</span> {t('header.sharedArea')}
+                  </>
+                )}
               </span>
-            </NavLink>
-            <HeaderNotificationsMenu
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              spaceId={spaceId}
-              unreadCount={unreadCount}
-              currentAccountId={account.id}
-            />
-            <HeaderProfileMenu
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              account={account}
-              spaceId={spaceId}
-              serverAdmin={serverAdmin}
-              onLogout={logout}
-            />
+            </div>
+          </header>
+        ) : null}
+
+        {cachedAtLabel ? (
+          <div className="offline-banner" role="status">
+            <span aria-hidden="true">↯</span>
+            <span>
+              {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
+            </span>
           </div>
-        </header>
-      ) : null}
+        ) : !online ? (
+          <div className="offline-banner" role="status">
+            <span aria-hidden="true">↯</span>
+            <span>{t('states.offline.banner')}</span>
+          </div>
+        ) : null}
 
-      {cachedAtLabel ? (
-        <div className="offline-banner" role="status">
-          <span aria-hidden="true">↯</span>
-          <span>
-            {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
-          </span>
-        </div>
-      ) : !online ? (
-        <div className="offline-banner" role="status">
-          <span aria-hidden="true">↯</span>
-          <span>{t('states.offline.banner')}</span>
-        </div>
-      ) : null}
-
-      <div className="product-shell-body">
-        <main
-          key={location.pathname}
-          id="main-content"
-          className="product-main"
-          tabIndex={-1}
-        >
-          <AppSurfacePullToRefresh pathname={location.pathname} />
-          {isGamesHub ? (
-            <GamesProductArea
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              spaceId={spaceId}
-            />
-          ) : (
-            children
-          )}
-        </main>
-      </div>
-
-      {!isFocusedTask ? (
-        <div className="mobile-bottom-shell">
-          <nav
-            className="mobile-bottom-nav"
-            aria-label={t('navigation.primary')}
+        <div className="product-shell-body">
+          <main
+            ref={mainRef}
+            id="main-content"
+            className="product-main"
+            data-area={
+              location.pathname.startsWith('/more') ? 'more' : undefined
+            }
+            tabIndex={-1}
           >
-            <PrimaryNavigationLinks />
-          </nav>
-          <div className="mobile-quick-create">
-            <QuickCreateMenu variant="mobile" />
-          </div>
+            <AppSurfacePullToRefresh pathname={location.pathname} />
+            {primaryTabs}
+            <SubpageNavigation>
+              {isGamesHub ? (
+                <GamesProductArea
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              ) : (
+                children
+              )}
+            </SubpageNavigation>
+          </main>
         </div>
-      ) : null}
 
-      <Snackbar />
-    </div>
+        {!isFocusedTask ? (
+          <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+            <nav
+              className="mobile-bottom-nav"
+              aria-label={t('navigation.primary')}
+            >
+              <PrimaryNavigationLinks />
+            </nav>
+          </div>
+        ) : null}
+
+        {spaceId && accessToken ? (
+          <ForegroundNotificationHost
+            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+            unreadCount={unreadCount}
+            suppressed={isFocusedTask}
+            openNotification={openNotification}
+          />
+        ) : null}
+        <Snackbar />
+      </div>
+    </ShellUtilitiesContext.Provider>
   );
 }

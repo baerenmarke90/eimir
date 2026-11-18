@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -19,6 +20,14 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { PlanProductPage } from './PlanProductPage';
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 afterEach(cleanup);
 
 const SPACE = 'space-1';
@@ -98,9 +107,16 @@ function setup() {
     return write.promise;
   });
   const scheduled = deferred<PlanDetail>();
-  const schedulePlan = vi.fn(() => scheduled.promise);
+  const updatePlan = vi.fn(() => scheduled.promise);
   const apis = {
-    plans: { getPlan, completePlanRaw, schedulePlan },
+    comments: {
+      listPlanComments: vi.fn(async () => ({
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      })),
+    },
+    plans: { getPlan, completePlanRaw, updatePlan },
     places: {
       listPlaces: vi.fn(async () => ({
         items: [],
@@ -128,7 +144,7 @@ function setup() {
     writes,
     getPlan,
     completePlanRaw,
-    schedulePlan,
+    updatePlan,
     view,
     tree,
     setServer: (next: PlanDetail) => {
@@ -138,10 +154,17 @@ function setup() {
 }
 
 const completeButton = () =>
-  screen.getByRole('button', {
+  (screen.queryByRole('dialog')
+    ? within(screen.getByRole('dialog'))
+    : screen
+  ).getByRole('button', {
     name: (name) => name === m5s3.plan.complete || name === m5s3.common.saving,
   });
-const dateField = () => screen.getByLabelText(m5s3.plan.experiencedOn);
+const dateField = () => {
+  if (!screen.queryByLabelText(m5s3.plan.experiencedOn))
+    fireEvent.click(completeButton());
+  return screen.getByLabelText(m5s3.plan.experiencedOn);
+};
 const pendingCopy = () =>
   m5s3.plan.completePending.replace(
     '{{date}}',
@@ -151,7 +174,9 @@ const pendingCopy = () =>
 async function openAndSubmit(h: ReturnType<typeof setup>) {
   await screen.findByText('Picnic in the park');
   fireEvent.change(dateField(), { target: { value: DAY } });
-  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  fireEvent.submit(
+    (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+  );
   await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(1));
 }
 
@@ -159,7 +184,7 @@ it('claims the completion synchronously, names the day in one status and locks c
   const h = setup();
   await screen.findByText('Picnic in the park');
   fireEvent.change(dateField(), { target: { value: DAY } });
-  const form = completeButton().closest('form') as HTMLFormElement;
+  const form = (completeButton() as HTMLButtonElement).form as HTMLFormElement;
   fireEvent.submit(form);
   fireEvent.submit(form);
   fireEvent.click(completeButton());
@@ -180,18 +205,12 @@ it('claims the completion synchronously, names the day in one status and locks c
   expect(completeButton().textContent).toBe(m5s3.common.saving);
   expect((dateField() as HTMLInputElement).readOnly).toBe(true);
   expect((dateField() as HTMLInputElement).value).toBe(DAY);
-  for (const name of [
-    m5s3.plan.reschedule,
-    m5s3.plan.unschedule,
-    de.common.edit,
-  ]) {
-    expect(screen.getByRole('button', { name }).hasAttribute('disabled')).toBe(
-      true,
-    );
-  }
   expect(
-    screen.getByLabelText(m5s3.plan.plannedDate).closest('fieldset')?.disabled,
+    screen
+      .getByRole('button', { name: de.common.edit, hidden: true })
+      .hasAttribute('disabled'),
   ).toBe(true);
+  expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
 
   // Nothing is claimed before the server answers.
   expect(screen.queryByText(m5s3.plan.completedTitle)).toBeNull();
@@ -258,7 +277,9 @@ it('removes the status on failure, keeps the entered day and only retries after 
   expect(screen.queryByText(m5s3.plan.completedTitle)).toBeNull();
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 
-  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  fireEvent.submit(
+    (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+  );
   await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(2));
   expect(screen.queryByText(de.states.server.title)).toBeNull();
   expect(screen.getByRole('status').textContent).toBe(pendingCopy());
@@ -274,12 +295,20 @@ it('recovers a conflict from a fresh read without replaying the stale version', 
   );
 
   await waitFor(() => expect(h.getPlan.mock.calls.length).toBe(reads + 1));
-  // Another member completed it: the confirmed result, no celebration.
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  // Another member completed it: show the authoritative read result without a new capture handoff.
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
-  expect(
-    screen.queryByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeNull();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    expect(screen.queryByRole('button', { name: action })).toBeNull();
+  expect(screen.queryByText(pendingCopy())).toBeNull();
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)).toMatchObject({
+    status: 'COMPLETED',
+    version: 4,
+  });
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 });
 
@@ -298,10 +327,12 @@ it('keeps competing writes locked until a conflict recovery read returns the cur
   expect(completeButton().getAttribute('aria-disabled')).toBe('true');
   expect(
     screen
-      .getByRole('button', { name: m5s3.plan.reschedule })
+      .getByRole('button', { name: de.common.edit, hidden: true })
       .hasAttribute('disabled'),
   ).toBe(true);
-  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  fireEvent.submit(
+    (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+  );
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 
   const recovered = plan({ version: 5 });
@@ -309,44 +340,109 @@ it('keeps competing writes locked until a conflict recovery read returns the cur
   await waitFor(() =>
     expect(completeButton().getAttribute('aria-disabled')).toBe('false'),
   );
-  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  fireEvent.submit(
+    (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+  );
   await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(2));
   expect(h.completePlanRaw.mock.calls[1]).toMatchObject([{ ifMatch: '5' }]);
 });
 
-it.each(['completion', 'schedule'])(
-  'blocks a competing write in the same task when %s is submitted first',
-  async (first) => {
-    const h = setup();
-    await screen.findByText('Picnic in the park');
-    fireEvent.change(dateField(), { target: { value: DAY } });
-    const scheduleDate = screen.getByLabelText(m5s3.plan.plannedDate);
-    fireEvent.change(scheduleDate, { target: { value: DAY } });
-    const completeForm = completeButton().closest('form') as HTMLFormElement;
-    const scheduleForm = scheduleDate.closest('form') as HTMLFormElement;
-    const forms =
-      first === 'completion'
-        ? [completeForm, scheduleForm]
-        : [scheduleForm, completeForm];
+it('prevents opening the unified editor while completion is already claimed', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.change(dateField(), { target: { value: DAY } });
+  act(() => {
+    fireEvent.submit(
+      (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: de.common.edit, hidden: true }),
+    );
+  });
+  await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(1));
+  expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
+  expect(h.updatePlan).not.toHaveBeenCalled();
+});
 
-    act(() => {
-      for (const form of forms) {
-        form.dispatchEvent(
-          new Event('submit', { bubbles: true, cancelable: true }),
-        );
-      }
-    });
-    await waitFor(() =>
-      expect(
-        h.completePlanRaw.mock.calls.length + h.schedulePlan.mock.calls.length,
-      ).toBe(1),
-    );
-    expect(h.completePlanRaw).toHaveBeenCalledTimes(
-      first === 'completion' ? 1 : 0,
-    );
-    expect(h.schedulePlan).toHaveBeenCalledTimes(first === 'schedule' ? 1 : 0);
-  },
-);
+it('admits one editor save and locks inputs and completion until it finishes', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.click(
+    screen.getByRole('button', { name: de.common.edit, hidden: true }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+  );
+  fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
+    target: { value: DAY },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Fertig' }));
+  const form = document.getElementById('plan-edit-form') as HTMLFormElement;
+  act(() => {
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+  });
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(1));
+  expect(h.completePlanRaw).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', { name: m5s3.plan.complete })).toBeNull();
+  expect(
+    (
+      screen.getByRole('button', {
+        name: new RegExp(m5s3.plan.schedule),
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  expect(
+    (form.elements.namedItem('plannedDate') as HTMLInputElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).matches(
+      ':disabled',
+    ),
+  ).toBe(true);
+});
+
+it('keeps a newer authorized Plan read over a late completion response in the same Query', async () => {
+  const h = setup();
+  await openAndSubmit(h);
+  const newer = plan({ title: 'Updated while waiting', version: 7 });
+  h.setServer(newer);
+  act(() => h.queryClient.setQueryData(h.key, newer));
+
+  await act(async () => h.writes[0].resolve(confirmed(true)));
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.version).toBe(7);
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.title).toBe(
+    'Updated while waiting',
+  );
+  expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
+});
+
+it('does not dispatch a Plan completion after its initiating read becomes denied during cancellation', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.change(dateField(), { target: { value: DAY } });
+  const form = (completeButton() as HTMLButtonElement).form as HTMLFormElement;
+  act(() => {
+    fireEvent.submit(form);
+    h.queryClient
+      .getQueryCache()
+      .find({ queryKey: h.key, exact: true })
+      ?.setState({
+        error: new ClientProblemError('permission', 403),
+        status: 'error',
+      });
+  });
+  await waitFor(() =>
+    expect(
+      h.queryClient.isMutating({
+        mutationKey: ['plan-complete', SPACE, PLAN_ID],
+        exact: true,
+      }),
+    ).toBe(0),
+  );
+  expect(h.completePlanRaw).not.toHaveBeenCalled();
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.status).toBe('PLANNED');
+});
 
 it('does not celebrate a late completion after the initiating cache is replaced in the same Space', async () => {
   const h = setup();
@@ -356,10 +452,10 @@ it('does not celebrate a late completion after the initiating cache is replaced 
     h.queryClient.setQueryData(h.key, completedPlan());
   });
   h.view.rerender(h.tree());
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   await act(async () => h.writes[0].resolve(confirmed(true)));
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
-  expect(screen.getByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(screen.getByText(m5s3.plan.completedTitle)).toBeDefined();
 });
 
 it('keeps pending state and the duplicate guard across a remount', async () => {
@@ -370,7 +466,8 @@ it('keeps pending state and the duplicate guard across a remount', async () => {
 
   expect((await screen.findByRole('status')).textContent).toBe(pendingCopy());
   expect(completeButton().getAttribute('aria-disabled')).toBe('true');
-  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  fireEvent.click(completeButton());
+  expect(screen.queryByLabelText(m5s3.plan.experiencedOn)).toBeNull();
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 });
 
@@ -399,7 +496,9 @@ it.each(['pending', 'failed'])(
     );
     expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
     fireEvent.change(dateField(), { target: { value: DAY } });
-    fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+    fireEvent.submit(
+      (completeButton() as HTMLButtonElement).form as HTMLFormElement,
+    );
     await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(2));
     expect(screen.queryByText(de.states.server.title)).toBeNull();
   },
@@ -416,7 +515,7 @@ it('reconciles a late response for an unmounted page without showing a celebrati
     'COMPLETED',
   );
   render(h.tree());
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
 });
 
@@ -435,7 +534,7 @@ it('does not leak pending state into another Space or recreate the cleared Space
   expect(completeButton().getAttribute('aria-disabled')).toBe('false');
   expect(
     screen
-      .getByRole('button', { name: m5s3.plan.reschedule })
+      .getByRole('button', { name: de.common.edit, hidden: true })
       .hasAttribute('disabled'),
   ).toBe(false);
 

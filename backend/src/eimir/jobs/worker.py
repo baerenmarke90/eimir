@@ -7,7 +7,8 @@ inside its own transaction. If one fails, the others are unaffected.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -21,16 +22,23 @@ from eimir.observability import safe_exception_summary, set_correlation_id
 log = logging.getLogger(__name__)
 
 Handler = Callable[[Session, dict[str, Any]], None]
+Preparation = Callable[[Session, dict[str, Any]], dict[str, Any]]
 
 
 class JobRegistry:
     def __init__(self) -> None:
         self._handlers: dict[str, Handler] = {}
+        self._preparations: dict[str, Preparation] = {}
 
-    def register(self, kind: str, handler: Handler) -> None:
+    def register(self, kind: str, handler: Handler, *, prepare: Preparation | None = None) -> None:
         if kind in self._handlers:
             raise ValueError(f"Handler for '{kind}' is already registered.")
         self._handlers[kind] = handler
+        if prepare is not None:
+            self._preparations[kind] = prepare
+
+    def preparation(self, kind: str) -> Preparation | None:
+        return self._preparations.get(kind)
 
     def get(self, kind: str) -> Handler | None:
         return self._handlers.get(kind)
@@ -39,7 +47,14 @@ class JobRegistry:
 registry = JobRegistry()
 
 
-def run_once(worker_name: str, limit: int = 10) -> int:
+def run_once(
+    worker_name: str,
+    limit: int = 10,
+    *,
+    kinds: Collection[str] | None = None,
+    excluded_kinds: Collection[str] = (),
+    lease: timedelta = queue.DEFAULT_LEASE,
+) -> int:
     """Run one round and return the number of processed jobs.
 
     Claiming happens in its own short transaction. Holding the claim lock
@@ -47,7 +62,16 @@ def run_once(worker_name: str, limit: int = 10) -> int:
     queue for everybody.
     """
     with unit_of_work() as session:
-        jobs = list(queue.claim(session, worker_name, limit=limit))
+        jobs = list(
+            queue.claim(
+                session,
+                worker_name,
+                limit=limit,
+                kinds=kinds,
+                excluded_kinds=excluded_kinds,
+                lease=lease,
+            )
+        )
         job_ids = [(job.id, job.kind, dict(job.payload)) for job in jobs]
 
     for job_id, kind, payload in job_ids:
@@ -62,6 +86,20 @@ def _run_job(job_id: Any, kind: str, payload: dict[str, Any]) -> None:
     set_correlation_id(str(correlation_id) if correlation_id else None)
 
     try:
+        preparation = registry.preparation(kind)
+        if preparation is not None:
+            try:
+                # Commit an irreversible submission claim before external I/O.
+                # Only the current invocation receives the transient handoff.
+                with unit_of_work() as preparation_session:
+                    payload = preparation(preparation_session, payload)
+            except Exception as exc:
+                with unit_of_work() as failed_session:
+                    failed_job = failed_session.get(Job, job_id)
+                    if failed_job is not None:
+                        queue.fail(failed_job, safe_exception_summary(exc))
+                log.exception("job preparation failed", extra={"kind": kind})
+                return
         with unit_of_work() as session:
             job = session.get(Job, job_id)
             if job is None:
@@ -83,7 +121,12 @@ def _run_job(job_id: Any, kind: str, payload: dict[str, Any]) -> None:
                 # Controlled retry errors contain a stable technical code only.
                 # The handler transaction remains valid so safe attempt metadata
                 # can commit together with the queue backoff state.
-                queue.fail(job, exc.code)
+                queue.fail(
+                    job,
+                    exc.code,
+                    retry_not_before=exc.retry_not_before,
+                    retry_base=exc.retry_base,
+                )
                 log.warning(
                     "job retry scheduled",
                     extra={"job_id": str(job_id), "kind": kind, "error_code": exc.code},

@@ -14,10 +14,10 @@ ACTION = ROOT / ".github/actions/attest-release-artifact/action.yml"
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1",
-    "actions/setup-java": "de7274f081f381c8f8158605e0321c36c376e2e6",
-    "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
+    "actions/setup-java": "77dd5b2ce225ea11469928ac317850245a74ae78",
+    "gradle/actions/setup-gradle": "8da46b539cd8fe6ab27ca75128919a18d757604c",
     "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
-    "actions/download-artifact": "634f93cb2916e3fdff6788551b99b062d0335ce0",
+    "actions/download-artifact": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
     "actions/attest-build-provenance": "977bb373ede98d70efdf65b84cb5f73e068dcc2a",
     "actions/attest-sbom": "4651f806c01d8637787e274ac3bdf724ef169f34",
 }
@@ -61,9 +61,8 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertNotIn("contents: write", self.workflow)
         self.assertNotIn("packages: write", self.workflow)
 
-    def test_workflow_does_not_consume_signing_or_repository_secrets(self) -> None:
+    def test_workflow_only_accepts_public_client_configuration_without_server_or_signing_keys(self) -> None:
         forbidden = (
-            "${{ secrets.",
             "EIMIR_RELEASE_KEYSTORE",
             "EIMIR_RELEASE_KEYSTORE_PASSWORD",
             "EIMIR_RELEASE_KEY_ALIAS",
@@ -72,6 +71,10 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         for marker in forbidden:
             with self.subTest(marker=marker):
                 self.assertNotIn(marker, self.workflow)
+        self.assertEqual(
+            set(re.findall(r"secrets\.([A-Za-z0-9_]+)", self.workflow)),
+            {"EIMIR_ANDROID_GOOGLE_SERVICES_JSON"},
+        )
 
     def test_all_external_actions_are_immutable_sha_pins(self) -> None:
         seen: dict[str, set[str]] = {}
@@ -149,6 +152,24 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_live_advisories_run_separately_and_gate_media_evidence(self) -> None:
+        check = "python3 tools/media/check-advisories.py"
+        workflow_dir = WORKFLOW.parent
+        media_ci = (workflow_dir / "media-video.yml").read_text(encoding="utf-8")
+        monitor = (workflow_dir / "codec-advisories.yml").read_text(encoding="utf-8")
+        self.assertIn("push:\n    branches: [main]", media_ci)
+        self.assertNotIn(check, media_ci)
+        self.assertIn("  schedule:", monitor)
+        self.assertIn("  workflow_dispatch:", monitor)
+        self.assertIn(f"- run: {check}\n", monitor)
+        self.assertNotIn("continue-on-error", monitor)
+
+        _, media_step = self.workflow.split("- name: Build restricted video worker from the exact backend", 1)
+        media_step = media_step.split("- name:", 1)[0]
+        self.assertIn("if: env.INCLUDE_VIDEO_MEDIA == 'true'", media_step)
+        self.assertIn(f"set -euo pipefail\n          {check}\n", media_step)
+        self.assertLess(media_step.index(check), media_step.index("docker build"))
+
     def test_runtime_images_carry_oci_identity_labels(self) -> None:
         """Each runtime image names its own source revision and release version (#827).
 
@@ -194,7 +215,7 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
 
     def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
         self.assertIn('java-version: "21"', self.workflow)
-        self.assertIn("3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98", self.workflow)
+        self.assertIn("621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8", self.workflow)
         self.assertIn('node-version: "24.21.0"', self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
@@ -211,7 +232,7 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_apk_and_aab_packaging_and_badging_verified(self) -> None:
         self.assertIn("dump badging", self.workflow)
         self.assertIn("build-tools/36.0.0/aapt", self.workflow)
-        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("package: name='de.eimir.app'", self.workflow)
         self.assertIn("scripts/android_launcher_identity.py", self.workflow)
         self.assertIn("cmdline-tools/latest/bin/apkanalyzer", self.workflow)
         self.assertIn("public/index.html", self.workflow)

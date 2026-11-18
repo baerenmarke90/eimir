@@ -3,8 +3,8 @@
 Determines the personal quote of the day for an authenticated caller within a Space:
 - Stable across reloads for the same Account + Space Day.
 - Bound to Space Pro capability (`daily.quote`).
-- Account-scoped personal source and category preferences.
-- Graceful 3-tier fallback when specific preferences yield no quote.
+- Account-scoped personal category preferences across the curated sources.
+- Graceful fallback when selected categories yield no quote.
 - Never blocks Today upon missing timezone or empty pool.
 """
 
@@ -109,30 +109,10 @@ def resolve_daily_quote(
     if not locale_pool:
         locale_pool = active_quotes
 
-    selected_sources = set(preference.selected_source_ids)
     selected_categories = set(preference.selected_category_ids)
-
-    # Step 1: Matching BOTH user selected sources AND categories
-    primary_pool = [
-        q
-        for q in locale_pool
-        if q.source_id in selected_sources
-        and any(cat in selected_categories for cat in q.category_ids)
-    ]
-
-    # Step 2: Fallback 1 - matching either selected source OR category
-    if not primary_pool and (selected_sources or selected_categories):
-        primary_pool = [
-            q
-            for q in locale_pool
-            if q.source_id in selected_sources
-            or any(cat in selected_categories for cat in q.category_ids)
-        ]
-
-    # Step 3: Fallback 2 - defined general curated Pro pool for the locale
-    candidate_pool = primary_pool if primary_pool else locale_pool
-
-    # Step 4: Fallback 3 - neutral No-Quote-State
+    # Legacy source preferences are retained by the preference API for older clients.
+    category_pool = [q for q in locale_pool if not selected_categories.isdisjoint(q.category_ids)]
+    candidate_pool = category_pool or locale_pool
     if not candidate_pool:
         return ResolvedDailyQuote(quote=None, checked_on=checked_on, enabled=True)
 

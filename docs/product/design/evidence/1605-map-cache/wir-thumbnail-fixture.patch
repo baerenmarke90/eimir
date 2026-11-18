@@ -1,0 +1,33 @@
+--- a/web/e2e/tests/today-living-home.spec.ts
++++ b/web/e2e/tests/today-living-home.spec.ts
+@@ -79,0 +80 @@
++    previewHasThumbnail: true,
+@@ -89,0 +91 @@
++    previewHasThumbnail: true,
+@@ -99,0 +102 @@
++    previewHasThumbnail: true,
+@@ -111,0 +115 @@
++  previewHasThumbnail: true,
+@@ -122,0 +127 @@
++  previewHasThumbnail: true,
+@@ -133,0 +139 @@
++  previewHasThumbnail: true,
+@@ -151,0 +158 @@
++  previewHasThumbnail: true,
+@@ -183,0 +191 @@
++    previewHasThumbnail: true,
+@@ -587,0 +596 @@
++      expect(request.postDataJSON().variant).toBe('thumbnail');
+@@ -629,0 +639,8 @@
++  await expect(page.locator('.today-monthly-strip img')).toHaveCount(3);
++  await expect
++    .poll(() => page.locator('.today-monthly-strip img').evaluateAll(
++      images => images.every(image =>
++        (image as HTMLImageElement).complete &&
++        (image as HTMLImageElement).naturalWidth > 0),
++    ))
++    .toBe(true);
+@@ -655,0 +673 @@
++      previewHasThumbnail: true,
+@@ -665,0 +684 @@
++      previewHasThumbnail: true,

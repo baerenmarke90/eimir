@@ -7,11 +7,13 @@
 Name | Type
 ------------ | -------------
 `address` | string
+`archived` | boolean
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
+`geocodingSource` | string
 `id` | string
 `latitude` | number
 `longitude` | number
@@ -28,11 +30,13 @@ import type { PlaceDetail } from ''
 // TODO: Update the object below with actual values
 const example = {
   "address": null,
+  "archived": null,
   "capabilities": null,
   "createdAt": null,
   "createdBy": null,
   "creator": null,
   "description": null,
+  "geocodingSource": null,
   "id": null,
   "latitude": null,
   "longitude": null,

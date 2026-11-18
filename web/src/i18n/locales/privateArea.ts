@@ -36,6 +36,7 @@ const privateArea = {
   },
   notes: {
     title: 'Notizen für mich',
+    itemLabel: 'Notiz',
     intro: 'Gedanken und Notizen, die ausschließlich für dich bestimmt sind.',
     add: 'Notiz für mich hinzufügen',
     createTitle: 'Neue Notiz',
@@ -50,8 +51,13 @@ const privateArea = {
     pinned: 'Angeheftet',
     noBody: 'Keine weiteren Notizen.',
   },
+  partnerNotes: {
+    title: 'Notizen über meinen Partner',
+    shortTitle: 'Partnernotizen',
+  },
   gifts: {
     title: 'Geschenkideen',
+    itemLabel: 'Geschenkidee',
     intro: 'Ideen und Vorbereitungen, die dein Partner nicht sehen kann.',
     add: 'Geschenkidee hinzufügen',
     createTitle: 'Neue Geschenkidee',
@@ -79,6 +85,7 @@ const privateArea = {
   },
   collections: {
     title: 'Meine Listen',
+    itemLabel: 'Meine Liste',
     intro: 'Persönliche Listen mit Reihenfolge und Erledigt-Status.',
     add: 'Liste hinzufügen',
     createTitle: 'Neue Liste',

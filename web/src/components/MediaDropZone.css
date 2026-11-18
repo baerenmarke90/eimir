@@ -1,0 +1,37 @@
+.media-drop-zone {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+
+.media-drop-zone.is-dragging {
+  background: var(--color-brand-surface);
+  outline: var(--border-surface-width) dashed var(--color-focus);
+  outline-offset: var(--space-2);
+}
+
+.media-drop-hint {
+  display: none;
+  margin-block: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.media-drop-zone.is-dragging > .media-drop-hint {
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .media-drop-hint {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-drop-zone {
+    transition: none;
+  }
+}

@@ -5,6 +5,7 @@ import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import accountSettings from '../i18n/locales/accountSettings';
 import dailyQuote from '../i18n/locales/dailyQuote';
 import profileIdentity from '../i18n/locales/profileIdentity';
+import profiles from '../i18n/locales/profiles';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
 
@@ -82,6 +83,15 @@ function renderSettingsPageFixture(route = '/more/settings'): string {
 }
 
 describe('SettingsPage', () => {
+  it('leads from App and Account to the Pro page with one row (#1907 D1)', () => {
+    const html = renderSettingsPageFixture('/more/settings/account');
+    expect(html).toContain(profiles.premium.title);
+    expect(html).toContain(profiles.premium.rowInactive);
+    expect(html).toContain('href="/more/pro"');
+    // Features and prices live on the Pro page only.
+    expect(html).not.toContain('settings-pro-information');
+    expect(html).toContain('settings-account');
+  });
   it('renders a calm category index instead of every settings form at once', () => {
     const html = renderSettingsPageFixture();
 
@@ -93,29 +103,35 @@ describe('SettingsPage', () => {
     expect(html).toContain('href="/more/settings/appearance"');
     expect(html).toContain('href="/more/settings/data"');
     expect(html).toContain('href="/more/settings/account"');
-    expect(html).toContain('href="/more"');
+    expect(html).not.toContain('settings-back-link');
 
     expect(html).not.toContain('name="relationshipStartedOn"');
-    expect(html).not.toContain('anniversary-reminder-form');
+    expect(html).not.toContain('important-date-reminder-card');
     expect(html).not.toContain('name="dashboardUpcomingItemLimit"');
     expect(html).not.toContain('theme-control');
     expect(html).not.toContain('id="data-transfer"');
     expect(html).not.toContain('account-danger-zone');
   });
 
-  it('renders one focused category task at a time with Back to Settings', () => {
+  it('renders one focused category task at a time without a redundant page-local return link', () => {
     const relationship = renderSettingsPageFixture(
       '/more/settings/relationship',
     );
     expect(relationship).toContain('name="relationshipStartedOn"');
-    expect(relationship).toContain('href="/more/settings"');
-    expect(relationship).not.toContain('anniversary-reminder-form');
+    expect(relationship).toContain('occasion-holiday-settings');
+    expect(relationship).toContain('role="switch"');
+    expect(relationship).toContain('Allgemeine Termine anzeigen');
+    expect(relationship).not.toContain('settings-back-link');
+    expect(relationship).not.toContain('important-date-reminder-card');
     expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
 
     const notifications = renderSettingsPageFixture(
       '/more/settings/notifications',
     );
-    expect(notifications).toContain('anniversary-reminder-form');
+    expect(notifications).not.toContain('occasion-holiday-settings');
+    expect(notifications).toContain('important-dates-settings');
+    expect(notifications).toContain('important-date-reminder-card');
+    expect(notifications).toContain(profileIdentity.importantDatesIntro);
     expect(notifications).toContain('href="/more/notifications"');
     expect(notifications).not.toContain('name="relationshipStartedOn"');
     expect(notifications).not.toContain('name="dashboardUpcomingItemLimit"');
@@ -125,7 +141,7 @@ describe('SettingsPage', () => {
     expect(today).toContain(profileIdentity.dashboardUpcomingQuestion);
     expect(today).toContain(dailyQuote.settingsTitle);
     expect(today).toContain('settings-daily-quote');
-    expect(today).not.toContain('anniversary-reminder-form');
+    expect(today).not.toContain('important-date-reminder-card');
     expect(today).not.toContain('id="data-transfer"');
 
     const appearance = renderSettingsPageFixture('/more/settings/appearance');
@@ -144,8 +160,10 @@ describe('SettingsPage', () => {
     expect(html).toContain('settings-sensitive-zone');
     expect(html).toContain('account-settings-panel');
     expect(html).toContain('account-danger-zone');
-    expect(html).toContain('<h3 id="account-settings-title">Account</h3>');
-    expect(html).toContain(`<h4>${accountSettings.dangerTitle}</h4>`);
+    expect(html).toContain(
+      `<h3 id="account-settings-title">${accountSettings.dangerTitle}</h3>`,
+    );
+    expect(html).not.toContain(profileIdentity.settingsSensitiveEyebrow);
     expect(html).toContain(accountSettings.deleteAction);
     expect(html).toContain('space-offboarding-panel');
     expect(html).toContain(spaceOffboarding.action);
@@ -153,6 +171,6 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('id="settings-privacy"');
     expect(html).not.toContain('/more/private');
     expect(html).not.toContain('partner-identity-title');
-    expect(html).not.toContain('anniversary-reminder-form');
+    expect(html).not.toContain('important-date-reminder-card');
   });
 });

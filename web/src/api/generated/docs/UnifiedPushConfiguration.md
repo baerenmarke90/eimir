@@ -6,8 +6,11 @@
 
 Name | Type
 ------------ | -------------
+`localeVersion` | number
+`notificationReferenceVersion` | number
 `providerKey` | string
 `vapidPublicKey` | string
+`wishDatePreviewVersion` | number
 
 ## Example
 
@@ -16,8 +19,11 @@ import type { UnifiedPushConfiguration } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "localeVersion": null,
+  "notificationReferenceVersion": null,
   "providerKey": null,
   "vapidPublicKey": null,
+  "wishDatePreviewVersion": null,
 } satisfies UnifiedPushConfiguration
 
 console.log(example)

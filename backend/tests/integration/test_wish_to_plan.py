@@ -107,6 +107,171 @@ def action(  # type: ignore[no-untyped-def]
     )
 
 
+class TestExistingPlanWishLink:
+    @pytest.mark.parametrize("token_key", ["token_a", "token_b"])
+    def test_link_preserves_plan_and_completes_wish(self, client, pair, session, token_key):  # type: ignore[no-untyped-def]
+        desired = wish(client, pair, title="A weekend away")
+        created = client.post(
+            plans(pair["space"].id),
+            json={
+                "title": "Already arranged",
+                "description": "Keep this prose",
+                "schedule": {"plannedOn": "2026-09-01"},
+            },
+            headers=auth(pair["token_a"]),
+        )
+        original = created.json()
+        linked = action(
+            client,
+            pair,
+            original["id"],
+            "wish",
+            original["version"],
+            {"wishId": desired["id"], "wishVersion": desired["version"]},
+            token_key=token_key,
+        )
+        assert linked.status_code == 200, linked.text
+        plan = linked.json()["plan"]
+        assert plan["sourceWishId"] == desired["id"]
+        assert linked.json()["wish"]["status"] == "PLANNED"
+        assert plan["id"] == original["id"]
+        for field in ("title", "description", "plannedOn", "createdBy", "placeId"):
+            assert plan[field] == original[field]
+        assert plan["version"] > original["version"]
+        assert plan["capabilities"]["canDelete"] is False
+        replay = action(
+            client,
+            pair,
+            plan["id"],
+            "wish",
+            original["version"],
+            {"wishId": desired["id"], "wishVersion": desired["version"]},
+        )
+        assert replay.status_code == 200
+        assert replay.json()["plan"]["version"] == plan["version"]
+        assert replay.json()["wish"]["version"] == linked.json()["wish"]["version"]
+        session.expire_all()
+        assert len(list(session.scalars(select(Plan)))) == 1
+        done = action(
+            client, pair, plan["id"], "complete", plan["version"], {"experiencedOn": yesterday()}
+        )
+        assert done.status_code == 200
+        read_wish = client.get(
+            f"{wishes(pair['space'].id)}/{desired['id']}", headers=auth(pair["token_b"])
+        )
+        assert read_wish.json()["status"] == "COMPLETED"
+
+    @pytest.mark.parametrize("stale_field", ["plan", "wish"])
+    def test_stale_version_has_no_partial_link(self, client, pair, stale_field):  # type: ignore[no-untyped-def]
+        desired = wish(client, pair)
+        plan = client.post(
+            plans(pair["space"].id),
+            json={"title": "Already planned"},
+            headers=auth(pair["token_a"]),
+        ).json()
+        if stale_field == "wish":
+            client.patch(
+                f"{wishes(pair['space'].id)}/{desired['id']}",
+                json={"title": "Changed wish"},
+                headers=if_match(pair["token_a"], 1),
+            )
+        else:
+            client.patch(
+                f"{plans(pair['space'].id)}/{plan['id']}",
+                json={"title": "Changed plan"},
+                headers=if_match(pair["token_a"], 1),
+            )
+        response = action(
+            client, pair, plan["id"], "wish", 1, {"wishId": desired["id"], "wishVersion": 1}
+        )
+        assert response.status_code == 409
+        assert (
+            client.get(
+                f"{plans(pair['space'].id)}/{plan['id']}", headers=auth(pair["token_a"])
+            ).json()["sourceWishId"]
+            is None
+        )
+        assert (
+            client.get(
+                f"{wishes(pair['space'].id)}/{desired['id']}", headers=auth(pair["token_a"])
+            ).json()["status"]
+            == "OPEN"
+        )
+
+    def test_existing_link_cannot_be_replaced_and_return_reopens_original(self, client, pair):  # type: ignore[no-untyped-def]
+        first, second = wish(client, pair), wish(client, pair, title="Another wish")
+        plan = convert(client, pair, first["id"]).json()["plan"]
+        denied = action(
+            client,
+            pair,
+            plan["id"],
+            "wish",
+            plan["version"],
+            {"wishId": second["id"], "wishVersion": 1},
+        )
+        assert denied.status_code == 409
+        returned = action(client, pair, plan["id"], "return-to-wish", plan["version"])
+        assert returned.status_code == 200
+        assert returned.json()["wish"]["id"] == first["id"]
+        assert returned.json()["wish"]["status"] == "OPEN"
+
+    def test_completed_plan_and_already_planned_wish_are_rejected(self, client, pair):  # type: ignore[no-untyped-def]
+        desired = wish(client, pair)
+        convert(client, pair, desired["id"])
+        direct = client.post(
+            plans(pair["space"].id),
+            json={"title": "Independent plan"},
+            headers=auth(pair["token_a"]),
+        ).json()
+        denied = action(
+            client, pair, direct["id"], "wish", 1, {"wishId": desired["id"], "wishVersion": 2}
+        )
+        assert denied.status_code == 409
+        completed = action(
+            client, pair, direct["id"], "complete", 1, {"experiencedOn": yesterday()}
+        ).json()
+        open_wish = wish(client, pair, title="Still open")
+        denied = action(
+            client,
+            pair,
+            direct["id"],
+            "wish",
+            completed["version"],
+            {"wishId": open_wish["id"], "wishVersion": 1},
+        )
+        assert denied.status_code == 409
+
+    @pytest.mark.parametrize("target", ["plan", "wish"])
+    def test_foreign_or_absent_target_is_not_disclosed(self, client, pair, session, target):  # type: ignore[no-untyped-def]
+        desired = wish(client, pair)
+        direct = client.post(
+            plans(pair["space"].id), json={"title": "Own plan"}, headers=auth(pair["token_a"])
+        ).json()
+        outsider = make_account(session, "Another account")
+        other = make_space(session, outsider)
+        token = sign_in(session, outsider)
+        foreign_wish = client.post(
+            wishes(other.id), json={"title": "Foreign wish"}, headers=auth(token)
+        ).json()
+        foreign_plan = client.post(
+            plans(other.id), json={"title": "Foreign plan"}, headers=auth(token)
+        ).json()
+        for foreign_id in (
+            [foreign_plan["id"], str(uuid4())]
+            if target == "plan"
+            else [foreign_wish["id"], str(uuid4())]
+        ):
+            response = action(
+                client,
+                pair,
+                foreign_id if target == "plan" else direct["id"],
+                "wish",
+                1,
+                {"wishId": foreign_id if target == "wish" else desired["id"], "wishVersion": 1},
+            )
+            assert response.status_code == 404
+
+
 class TestRequiredFlow:
     def test_wish_becomes_plan_and_is_completed(  # type: ignore[no-untyped-def]
         self,

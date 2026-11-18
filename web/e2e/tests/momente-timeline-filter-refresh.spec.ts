@@ -1,7 +1,8 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -248,6 +249,13 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
       exact: true,
     });
     await expect(filter).toBeVisible();
+    // Measure the touch target once its month heading and the enclosing tab
+    // intro have finished moving: a fractional translateY on any ancestor
+    // makes a 44 px target measure 43.99998 or 44.00002 (#1660).
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
+    await waitForSettledMotion(page);
     const filterBox = await filter.boundingBox();
     expect(filterBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(filterBox?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -277,6 +285,10 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
         document.documentElement.clientWidth,
     );
     expect(hasLargeTextOverflow).toBe(false);
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
+    await waitForSettledMotion(page);
     const compactFilterBox = await filter.boundingBox();
     expect(compactFilterBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(compactFilterBox?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -368,8 +380,8 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
     await expect(page).toHaveURL(/tab=timeline/);
     await expect(page).toHaveURL(/type=MEMORY/);
     await expect(
-      page.getByRole('tab', { name: de.story.tabTimeline }),
-    ).toHaveAttribute('aria-selected', 'true');
+      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
+    ).toBeVisible();
     await expect(
       page
         .getByRole('button', {

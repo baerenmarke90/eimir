@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface SignupEmailRequest {
     /**
+     * Terms-of-use version the person accepted in the signup form, as published by `GET /instance/status`. Bound to the mailed proof and recorded only if the proof creates a new Account.
+     * @type {string}
+     * @memberof SignupEmailRequest
+     */
+    acceptedTermsVersion?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof SignupEmailRequest
@@ -51,6 +57,7 @@ export function SignupEmailRequestFromJSONTyped(json: any, ignoreDiscriminator: 
     }
     return {
         
+        'acceptedTermsVersion': json['acceptedTermsVersion'] === undefined ? undefined : json['acceptedTermsVersion'] === null ? null : json['acceptedTermsVersion'],
         'email': json['email'],
         'invitationToken': json['invitationToken'] === undefined ? undefined : json['invitationToken'] === null ? null : json['invitationToken'],
     };
@@ -67,6 +74,7 @@ export function SignupEmailRequestToJSONTyped(value?: SignupEmailRequest | null,
 
     return {
         
+        'acceptedTermsVersion': value['acceptedTermsVersion'],
         'email': value['email'],
         'invitationToken': value['invitationToken'],
     };

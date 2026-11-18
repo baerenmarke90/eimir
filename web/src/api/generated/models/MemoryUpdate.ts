@@ -27,10 +27,28 @@ export interface MemoryUpdate {
     body?: string | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof MemoryUpdate
+     */
+    expectedPlaceIds?: Array<string> | null;
+    /**
+     * 
      * @type {Date}
      * @memberof MemoryUpdate
      */
     happenedOn?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof MemoryUpdate
+     */
+    happenedUntil?: Date | null;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof MemoryUpdate
+     */
+    placeIds?: Array<string> | null;
     /**
      * 
      * @type {Array<string>}
@@ -63,7 +81,10 @@ export function MemoryUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return {
         
         'body': json['body'] === undefined ? undefined : json['body'] === null ? null : json['body'],
+        'expectedPlaceIds': json['expectedPlaceIds'] === undefined ? undefined : json['expectedPlaceIds'] === null ? null : json['expectedPlaceIds'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
+        'placeIds': json['placeIds'] === undefined ? undefined : json['placeIds'] === null ? null : json['placeIds'],
         'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'title': json['title'] === undefined ? undefined : json['title'] === null ? null : json['title'],
     };
@@ -81,7 +102,10 @@ export function MemoryUpdateToJSONTyped(value?: MemoryUpdate | null, ignoreDiscr
     return {
         
         'body': value['body'],
+        'expectedPlaceIds': value['expectedPlaceIds'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
+        'placeIds': value['placeIds'],
         'tags': value['tags'],
         'title': value['title'],
     };

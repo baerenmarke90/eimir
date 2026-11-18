@@ -3,17 +3,28 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
 from types import MappingProxyType
-from uuid import UUID, uuid4
+from uuid import uuid4
 
+import httpx
 import pytest
+from google.auth.credentials import TokenState
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
-from eimir.engagement import notification_policy, notification_preferences, push, service, thinking
+from eimir.config import Settings
+from eimir.engagement import (
+    fcm_push,
+    notification_policy,
+    notification_preferences,
+    push,
+    service,
+    thinking,
+)
 from eimir.engagement.models import (
     Activity,
     Notification,
@@ -39,8 +50,11 @@ NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
 
 
 class FakePushProvider:
-    def __init__(self, *, fail_once: bool = False) -> None:
+    def __init__(
+        self, *, fail_once: bool = False, failure: push.PushProviderError | None = None
+    ) -> None:
         self.fail_once = fail_once
+        self.failure = failure
         self.calls: list[dict[str, object]] = []
 
     def accepts_endpoint(self, endpoint: str) -> bool:
@@ -67,7 +81,7 @@ class FakePushProvider:
         )
         if self.fail_once:
             self.fail_once = False
-            raise push.PushProviderError("TEMPORARY_UNAVAILABLE")
+            raise self.failure or push.PushProviderError("TEMPORARY_UNAVAILABLE")
         return push.PushSendResult(provider_message_id="provider-message-1")
 
 
@@ -115,47 +129,13 @@ def _set_support_gestures(client, couple, *, enabled: bool) -> None:  # type: ig
     assert response.json()["supportGesturesEnabled"] is enabled
 
 
-def _comment_digest_receipt(
-    session: Session,
-    couple,
-    endpoint_id: UUID,
-    *,
-    minute: int,
-    target_id: UUID | None = None,
-) -> PushDelivery:  # type: ignore[no-untyped-def]
-    """Create an already queued receipt to exercise provider-time selection."""
-    created_at = NOW + timedelta(minutes=minute)
-    notification = Notification(
-        space_id=couple["space"].id,
-        recipient_account_id=couple["ben"].id,
-        source_event_id=uuid4(),
-        kind=NotificationKind.COMMENT_CREATED.value,
-        actor_id=couple["anna"].id,
-        target_type="HEART_MOMENT" if target_id is not None else None,
-        target_id=target_id,
-        created_at=created_at,
-    )
-    session.add(notification)
-    session.flush()
-    delivery = PushDelivery(
-        notification_id=notification.id,
-        push_endpoint_id=endpoint_id,
-        provider_key="fake",
-        status=PushDeliveryStatus.PENDING.value,
-        attempts=0,
-        created_at=created_at,
-    )
-    session.add(delivery)
-    session.flush()
-    return delivery
-
-
 def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
 
     _set_support_gestures(client, couple, enabled=False)
+    existing_events = set(session.scalars(select(OutboxEvent.id)))
     blocked = client.post(
         _url(couple),
         json={"clientRequestId": str(uuid4())},
@@ -164,7 +144,7 @@ def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     assert blocked.status_code == 403
     assert blocked.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 0
-    assert session.execute(select(func.count(OutboxEvent.id))).scalar_one() == 0
+    assert set(session.scalars(select(OutboxEvent.id))) == existing_events
 
     _set_support_gestures(client, couple, enabled=True)
     allowed = client.post(
@@ -448,6 +428,8 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert not hasattr(delivery, "payload")
     assert not hasattr(delivery, "body")
 
+    couple["ben"].language_preference = "en"
+    session.flush()
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     session.flush()
 
@@ -460,7 +442,8 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert call["presentationKey"] == push.GENERIC_PRESENTATION_KEY
     reference = call["notificationReference"]
     assert isinstance(reference, dict)
-    assert set(reference) == {"id", "kind"}
+    assert set(reference) == {"id", "kind", "locale"}
+    assert reference["locale"] == "en"
     assert reference["kind"] == NotificationKind.THINKING_OF_YOU.value
     assert "Anna" not in repr(call)
     assert "Ben" not in repr(call)
@@ -668,10 +651,10 @@ def test_quiet_hours_preserves_due_reminder_schedule(session: Session, couple, m
     assert len(provider.calls) == 1
 
 
-def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
+def test_comment_push_is_immediate_without_digest_opt_in_and_honors_disable(
     session: Session, couple
 ) -> None:  # type: ignore[no-untyped-def]
-    endpoint = push.register_endpoint(
+    push.register_endpoint(
         session,
         account_id=couple["ben"].id,
         provider_key="fake",
@@ -680,42 +663,43 @@ def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
     provider = FakePushProvider()
     push.providers.register("fake", provider)
 
-    source_event_id = uuid4()
-    notification = Notification(
-        space_id=couple["space"].id,
-        recipient_account_id=couple["ben"].id,
-        source_event_id=source_event_id,
-        kind=NotificationKind.COMMENT_CREATED.value,
-        actor_id=couple["anna"].id,
-        target_type=None,
-        target_id=None,
-        created_at=NOW,
+    def notice():
+        row = Notification(
+            space_id=couple["space"].id,
+            recipient_account_id=couple["ben"].id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.COMMENT_CREATED.value,
+            actor_id=couple["anna"].id,
+            target_type=None,
+            target_id=None,
+            created_at=NOW,
+        )
+        session.add(row)
+        session.flush()
+        push.ensure_deliveries_for_source_event(session, row.source_event_id)
+        return session.scalar(select(PushDelivery).where(PushDelivery.notification_id == row.id))
+
+    first = notice()
+    push.handle_delivery(session, {"deliveryId": str(first.id)})
+    push.handle_delivery(session, {"deliveryId": str(first.id)})
+    assert first.status == PushDeliveryStatus.SUCCEEDED.value
+    assert first.attempts == 1 and len(provider.calls) == 1
+    assert provider.calls[0]["notificationReference"]["kind"] == "COMMENT_CREATED"
+    assert not str(provider.calls[0]["idempotencyKey"]).startswith("digest:")
+    session.add(
+        NotificationPreference(
+            account_id=couple["ben"].id, kind="COMMENT_CREATED", channel="PUSH", enabled=False
+        )
     )
-    session.add(notification)
     session.flush()
-
-    push.ensure_deliveries_for_source_event(session, source_event_id)
-    assert session.execute(select(PushDelivery)).scalars().all() == []
-
-    # A stale manually queued record cannot bypass the explicit opt-in gate.
-    stale_delivery = PushDelivery(
-        notification_id=notification.id,
-        push_endpoint_id=endpoint.id,
-        provider_key="fake",
-        status=PushDeliveryStatus.PENDING.value,
-        attempts=0,
-    )
-    session.add(stale_delivery)
-    session.flush()
-    push.handle_delivery(session, {"deliveryId": str(stale_delivery.id)})
-
-    assert stale_delivery.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert stale_delivery.last_error_code == "PUSH_PREFERENCE_DISABLED"
-    assert stale_delivery.attempts == 0
-    assert provider.calls == []
+    blocked = notice()
+    push.handle_delivery(session, {"deliveryId": str(blocked.id)})
+    assert blocked.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert blocked.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert len(provider.calls) == 1
 
 
-def test_opted_in_comment_batch_sends_one_generic_push_after_window(
+def test_each_partner_comment_delivers_once_without_waiting_for_an_hour(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW + timedelta(minutes=10)]
@@ -758,96 +742,19 @@ def test_opted_in_comment_batch_sends_one_generic_push_after_window(
     )
     assert len(deliveries) == 2
 
-    with pytest.raises(DeferredJobError):
-        push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
-    assert provider.calls == []
-    instant[0] = NOW + timedelta(hours=1, minutes=1)
     push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
     push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
     push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
-    assert deliveries[0].status == PushDeliveryStatus.UNAVAILABLE.value
-    assert deliveries[0].last_error_code == "DIGEST_COALESCED"
-    assert deliveries[1].status == PushDeliveryStatus.SUCCEEDED.value
-    assert len(provider.calls) == 1
-    assert provider.calls[0]["notificationReference"] == {
-        "id": str(notifications[1].id),
-        "kind": NotificationKind.COMMENT_CREATED.value,
-    }
-    assert str(provider.calls[0]["idempotencyKey"]).startswith("digest:")
+    assert all(delivery.status == PushDeliveryStatus.SUCCEEDED.value for delivery in deliveries)
+    assert len(provider.calls) == 2
+    assert [call["notificationReference"]["id"] for call in provider.calls] == [
+        str(row.id) for row in notifications
+    ]
+    assert len({call["idempotencyKey"] for call in provider.calls}) == 2
     assert all(notification.read_at is None for notification in notifications)
 
 
-def test_failed_comment_digest_attempt_closes_hour_for_older_receipts(
-    session: Session, couple, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(push.clock, "now", lambda: NOW + timedelta(hours=1, minutes=1))
-    endpoint = push.register_endpoint(
-        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="failed-digest"
-    )
-    provider = FakePushProvider()
-    push.providers.register("fake", provider)
-    session.add(
-        NotificationPreference(
-            account_id=couple["ben"].id,
-            kind=NotificationKind.COMMENT_CREATED.value,
-            channel=NotificationChannel.PUSH.value,
-            enabled=True,
-        )
-    )
-    session.flush()
-
-    older = _comment_digest_receipt(session, couple, endpoint.id, minute=10)
-    newest = _comment_digest_receipt(session, couple, endpoint.id, minute=20)
-    for attempt in range(push.MAX_PUSH_ATTEMPTS):
-        # A provider can accept a Push and still report a transport error.
-        provider.fail_once = True
-        if attempt < push.MAX_PUSH_ATTEMPTS - 1:
-            with pytest.raises(RetryableJobError):
-                push.handle_delivery(session, {"deliveryId": str(newest.id)})
-        else:
-            push.handle_delivery(session, {"deliveryId": str(newest.id)})
-    assert newest.status == PushDeliveryStatus.FAILED.value
-    assert len(provider.calls) == push.MAX_PUSH_ATTEMPTS
-
-    push.handle_delivery(session, {"deliveryId": str(older.id)})
-    assert older.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert older.last_error_code == "DIGEST_COALESCED"
-    assert len(provider.calls) == push.MAX_PUSH_ATTEMPTS
-    assert len({call["idempotencyKey"] for call in provider.calls}) == 1
-
-
-def test_unavailable_comment_digest_receipt_keeps_older_valid_fallback(
-    session: Session, couple, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(push.clock, "now", lambda: NOW + timedelta(hours=1, minutes=1))
-    endpoint = push.register_endpoint(
-        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="valid-fallback"
-    )
-    provider = FakePushProvider()
-    push.providers.register("fake", provider)
-    session.add(
-        NotificationPreference(
-            account_id=couple["ben"].id,
-            kind=NotificationKind.COMMENT_CREATED.value,
-            channel=NotificationChannel.PUSH.value,
-            enabled=True,
-        )
-    )
-    session.flush()
-
-    older = _comment_digest_receipt(session, couple, endpoint.id, minute=10)
-    newest = _comment_digest_receipt(session, couple, endpoint.id, minute=20, target_id=uuid4())
-    push.handle_delivery(session, {"deliveryId": str(newest.id)})
-    assert newest.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert newest.last_error_code == "PUSH_TARGET_UNAVAILABLE"
-    assert provider.calls == []
-
-    push.handle_delivery(session, {"deliveryId": str(older.id)})
-    assert older.status == PushDeliveryStatus.SUCCEEDED.value
-    assert len(provider.calls) == 1
-
-
-def test_comment_digest_rechecks_opt_in_and_target_privacy(
+def test_immediate_comment_push_rechecks_consent_and_target_privacy(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW + timedelta(minutes=10)]
@@ -941,7 +848,7 @@ def test_comment_digest_rechecks_opt_in_and_target_privacy(
     assert provider.calls == []
 
 
-def test_comment_digest_obeys_current_quiet_hours_and_timezone(
+def test_immediate_comment_push_obeys_current_quiet_hours_and_timezone(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW.replace(hour=21, minute=10)]
@@ -1127,7 +1034,7 @@ def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
     assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=notification.kind
     )
-    assert not notification_preferences.push_enabled(
+    assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
     )
     assert not notification_preferences.digest_push_enabled(
@@ -1411,8 +1318,9 @@ def test_api_revocation_suppresses_queued_push_without_removing_notification(
     assert provider.calls == []
 
 
+@pytest.mark.parametrize("quota", [False, True])
 def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
-    client, session: Session, couple, monkeypatch
+    client, session: Session, couple, monkeypatch, quota: bool
 ) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
     push.register_endpoint(
@@ -1421,7 +1329,12 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
         provider_key="fake",
         endpoint_value="secret-endpoint-token",
     )
-    provider = FakePushProvider(fail_once=True)
+    error = push.PushProviderError(
+        "FCM_QUOTA_EXCEEDED" if quota else "TEMPORARY_UNAVAILABLE",
+        retry_not_before=NOW + timedelta(minutes=3) if quota else None,
+        retry_base=timedelta(seconds=60) if quota else None,
+    )
+    provider = FakePushProvider(fail_once=True, failure=error)
     push.providers.register("fake", provider)
 
     response = client.post(
@@ -1439,10 +1352,12 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
 
     with pytest.raises(RetryableJobError) as retry:
         push.handle_delivery(session, {"deliveryId": str(delivery.id)})
-    assert retry.value.code == "TEMPORARY_UNAVAILABLE"
+    assert retry.value.code == error.code
+    assert retry.value.retry_not_before == error.retry_not_before
+    assert retry.value.retry_base == error.retry_base
     assert delivery.status == PushDeliveryStatus.RETRYING.value
     assert delivery.attempts == 1
-    assert delivery.last_error_code == "TEMPORARY_UNAVAILABLE"
+    assert delivery.last_error_code == error.code
 
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     session.flush()
@@ -1450,6 +1365,87 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
     assert delivery.attempts == 2
     assert len(provider.calls) == 2
     assert provider.calls[0]["idempotencyKey"] == provider.calls[1]["idempotencyKey"]
+
+
+@pytest.mark.parametrize("revoke_old", [False, True])
+def test_fcm_uses_shared_outbox_delivery_and_preserves_queued_activation(
+    client, session: Session, couple, monkeypatch: pytest.MonkeyPatch, revoke_old: bool
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+
+    class Credentials:
+        token_state = TokenState.FRESH
+
+        def apply(self, headers):  # type: ignore[no-untyped-def]
+            headers["authorization"] = "Bearer synthetic-access"
+
+    monkeypatch.setattr(fcm_push, "_load_credentials", lambda _: Credentials())
+    sent: list[dict[str, object]] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, json={"name": "projects/eimir-test/messages/shared-queue"})
+
+    provider = fcm_push.FcmPushProvider(
+        Settings(
+            push_fcm_project_id="eimir-test",
+            push_fcm_android_package="de.eimir.app",
+            push_fcm_credentials_file="/unused/test-fixture.json",
+        ),
+        client=httpx.Client(transport=httpx.MockTransport(capture)),
+    )
+    push.providers.register("fcm", provider)
+    activation = str(uuid4())
+    value = json.dumps({"fid": "c" + "a" * 21, "activationId": activation}, separators=(",", ":"))
+    endpoint = push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fcm",
+        endpoint_value=value,
+        registration_identity=provider.registration_identity(value),
+    )
+    try:
+        response = client.post(
+            _url(couple),
+            json={"clientRequestId": str(uuid4())},
+            headers=auth(couple["anna_token"]),
+        )
+        assert response.status_code == 202
+        request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+        event = session.get(OutboxEvent, request.source_event_id)
+        assert event is not None
+        service.project_event(session, event)
+        session.flush()
+        delivery = session.execute(select(PushDelivery)).scalar_one()
+
+        replacement = json.dumps(
+            {"fid": "c" + "a" * 21, "activationId": str(uuid4())}, separators=(",", ":")
+        )
+        replacement_endpoint = push.register_endpoint(
+            session,
+            account_id=couple["ben"].id,
+            provider_key="fcm",
+            endpoint_value=replacement,
+            registration_identity=provider.registration_identity(replacement),
+        )
+        assert replacement_endpoint.id != endpoint.id
+        if revoke_old:
+            assert push.revoke_endpoint(
+                session, account_id=couple["ben"].id, endpoint_id=endpoint.id
+            )
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+        session.flush()
+        assert delivery.push_endpoint_id == endpoint.id
+        if revoke_old:
+            assert sent == []
+            assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+        else:
+            assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+            assert delivery.provider_message_id == "projects/eimir-test/messages/shared-queue"
+            assert len(sent) == 1
+            assert sent[0]["message"]["data"] == {"type": "wake", "activationId": activation}
+    finally:
+        provider.close()
 
 
 def test_gone_subscription_disables_endpoint_without_retrying(

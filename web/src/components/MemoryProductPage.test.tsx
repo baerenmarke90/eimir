@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -8,12 +9,14 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
+import photoPlaces from '../i18n/locales/photoPlaces';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
@@ -136,18 +139,16 @@ function setup(canEdit: boolean) {
 
 describe('Memory editor return context', () => {
   it.each([
-    { canEdit: true, exit: 'cancel' },
     { canEdit: true, exit: 'back' },
     { canEdit: false, exit: 'back' },
   ])(
     'preserves scoped Timeline origin for edit=$canEdit via $exit',
-    async ({ canEdit, exit }) => {
+    async ({ canEdit }) => {
       setup(canEdit);
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name:
-            exit === 'cancel' ? de.common.cancel : memoryProduct.backToMemory,
+          name: taskBoundary.back,
         }),
       );
       fireEvent.click(
@@ -167,13 +168,16 @@ describe('Memory editor return context', () => {
 });
 
 describe('Memory detail edit action (#1014)', () => {
-  function renderDetail() {
+  function renderDetail(
+    memoryTitle = 'A shared evening',
+    viewer = 'account-1',
+  ) {
     const memory: MemoryDetail = {
       id: 'memory-1',
       spaceId: 'space-1',
       authorId: 'account-1',
       author: { id: 'account-1', displayName: 'Alex' },
-      title: 'A shared evening',
+      title: memoryTitle,
       body: 'Quiet words',
       tags: [],
       attachments: [],
@@ -186,8 +190,8 @@ describe('Memory detail edit action (#1014)', () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
-    client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
-      accountId: 'account-1',
+    client.setQueryData(['profile-identity', 'space-1', viewer], {
+      accountId: viewer,
       displayName: 'Alex',
       profileAttachmentId: null,
       version: 1,
@@ -207,12 +211,12 @@ describe('Memory detail edit action (#1014)', () => {
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/story/memories/memory-1']}>
-          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+          <TaskOriginProvider accountId={viewer} spaceId="space-1">
             <AppShell
               onLogout={() => undefined}
               apiBaseUrl="http://example.test"
               accessToken="test"
-              account={{ id: 'account-1', displayName: 'Alex' }}
+              account={{ id: viewer, displayName: 'Alex' }}
               spaceId="space-1"
             >
               <Routes>
@@ -225,7 +229,7 @@ describe('Memory detail edit action (#1014)', () => {
                       apiBaseUrl="http://example.test"
                       accessToken="test"
                       spaceId="space-1"
-                      currentAccountId="account-1"
+                      currentAccountId={viewer}
                       loadMemoryImage={async () => ''}
                     />
                   }
@@ -238,16 +242,68 @@ describe('Memory detail edit action (#1014)', () => {
     );
   }
 
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+  it('keeps place management behind Edit while retaining partner read access', async () => {
+    const list = vi
+      .spyOn(PlacesApi.prototype, 'listMomentPlaces')
+      .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+    try {
+      renderDetail('Partner-authored memory', 'account-2');
+      await screen.findByRole('link', { name: memoryProduct.edit });
+      expect(
+        screen.queryByRole('button', { name: photoPlaces.add }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: memoryProduct.delete }),
+      ).toBeNull();
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ targetId: 'memory-1', kind: 'memories' }),
+        expect.anything(),
+      );
+    } finally {
+      list.mockRestore();
+    }
+  });
+
+  it('keeps Edit as a labeled text action in the compact type header', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {
       name: memoryProduct.edit,
     });
     expect(editLink.getAttribute('href')).toBe('/story/memories/memory-1/edit');
     // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.textContent?.trim()).toBe(memoryProduct.edit);
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
+  });
+
+  it('keeps the short date above content and an authored display title after media', async () => {
+    renderDetail('Our afternoon outside');
+    await screen.findByRole('heading', {
+      name: 'Our afternoon outside',
+      level: 2,
+    });
+    const type = screen.getByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
+      level: 1,
+    });
+    const date = document.querySelector('time');
+    expect(date?.textContent).toBe('15. September 2025');
+    expect(date?.getAttribute('datetime')).toBe('2025-09-15');
+    expect(type.closest('header')?.querySelector('.eyebrow')).toBeNull();
+  });
+
+  it('shows a generated title date once in the context row', async () => {
+    renderDetail('Erinnerung vom 15.09.2025');
+    await screen.findByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
+      level: 1,
+    });
+    expect(document.querySelectorAll('time')).toHaveLength(1);
+    expect(document.querySelector('time')?.getAttribute('datetime')).toBe(
+      '2025-09-15',
+    );
+    expect(document.querySelector('.moment-date svg')).not.toBeNull();
+    expect(screen.queryByText('Erinnerung vom 15.09.2025')).toBeNull();
   });
 });
 
@@ -357,6 +413,19 @@ describe('Memory view receipt', () => {
     expect(recordStoryViewMock).toHaveBeenCalledWith({
       spaceId: 'space-1',
       storyViewReceipt: { kind: 'MEMORY', itemId: 'memory-1' },
+    });
+  });
+
+  it('records the shared source when a response detail is opened from a notification', async () => {
+    const { recordStoryViewMock, resolveQuery, memory } = setupReceiptTest();
+    memory.experienceKind = 'HAPPINESS';
+    memory.experienceRootId = 'shared-source';
+    resolveQuery(memory);
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MEMORY', itemId: 'shared-source' },
     });
   });
 

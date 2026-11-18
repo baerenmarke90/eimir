@@ -24,7 +24,7 @@ from datetime import UTC, date, datetime, time
 from typing import TYPE_CHECKING, Literal, Protocol, cast
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.orm import Session
 
@@ -32,27 +32,39 @@ from eimir.authorization import (
     AuthorizationContext,
     PrivacyClass,
     PrivateResourceMixin,
+    require_editable_locked,
     require_readable,
     require_readable_shared,
     require_writable_locked,
 )
 from eimir.chapters.models import Chapter
+from eimir.collections.models import Collection
 from eimir.core.errors import DomainError, NotFoundError
 from eimir.db.base import Base
+from eimir.db.locks import lock_subject
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
+from eimir.plans.models import Plan
 from eimir.relations.models import (
     ChapterHeartMoment,
     ChapterMemory,
     ChapterMilestone,
+    HeartMomentPlan,
+    MemoryPlan,
+    MemoryWish,
+    MilestonePlan,
     PlaceHeartMoment,
     PlaceMemory,
     PlaceMilestone,
+    PlanCollection,
+    PlanNote,
 )
+from eimir.shared_notes.models import SharedNote
+from eimir.wishes.models import Wish
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from collections.abc import Sequence
@@ -74,6 +86,7 @@ class RelationParent(Protocol):
     id: UUID
     space_id: UUID
     version: int
+    privacy_class: str
 
 
 RELATION_TARGET_NOT_FOUND = "RELATION_TARGET_NOT_FOUND"
@@ -93,13 +106,104 @@ class RelationKind:
     relation: type[Base]
     parent: type[PrivateResourceMixin]
     parent_column: str
-    subject_type: Literal["place_relation", "chapter_relation"]
+    subject_type: Literal[
+        "place_relation",
+        "chapter_relation",
+        "memory_relation",
+        "plan_relation",
+        "heart_moment_relation",
+        "milestone_relation",
+    ]
     target: type[PrivateResourceMixin]
     target_column: str
-    event_target_type: TargetType
+    event_target_type: Literal[
+        "MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION", "SHARED_NOTE"
+    ]
     linked_event: EventType
     unlinked_event: EventType
     shared_target_only: bool = False
+    shared_parent_only: bool = False
+
+
+PLAN_COLLECTIONS = RelationKind(
+    slug="collections",
+    relation=PlanCollection,
+    parent=Plan,
+    parent_column="plan_id",
+    subject_type="plan_relation",
+    target=Collection,
+    target_column="collection_id",
+    event_target_type="COLLECTION",
+    linked_event=EventType.PLAN_COLLECTION_LINKED,
+    unlinked_event=EventType.PLAN_COLLECTION_UNLINKED,
+)
+
+
+PLAN_NOTES = RelationKind(
+    slug="notes",
+    relation=PlanNote,
+    parent=Plan,
+    parent_column="plan_id",
+    subject_type="plan_relation",
+    target=SharedNote,
+    target_column="note_id",
+    event_target_type="SHARED_NOTE",
+    linked_event=EventType.PLAN_NOTE_LINKED,
+    unlinked_event=EventType.PLAN_NOTE_UNLINKED,
+)
+
+
+MEMORY_PLANS = RelationKind(
+    slug="plans",
+    relation=MemoryPlan,
+    parent=Memory,
+    parent_column="memory_id",
+    subject_type="memory_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.MEMORY_PLAN_LINKED,
+    unlinked_event=EventType.MEMORY_PLAN_UNLINKED,
+)
+MEMORY_WISHES = RelationKind(
+    slug="wishes",
+    relation=MemoryWish,
+    parent=Memory,
+    parent_column="memory_id",
+    subject_type="memory_relation",
+    target=Wish,
+    target_column="wish_id",
+    event_target_type="WISH",
+    linked_event=EventType.MEMORY_WISH_LINKED,
+    unlinked_event=EventType.MEMORY_WISH_UNLINKED,
+)
+
+HEART_MOMENT_PLANS = RelationKind(
+    slug="plans",
+    relation=HeartMomentPlan,
+    parent=HeartMoment,
+    parent_column="heart_moment_id",
+    subject_type="heart_moment_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.HEART_MOMENT_PLAN_LINKED,
+    unlinked_event=EventType.HEART_MOMENT_PLAN_UNLINKED,
+    shared_parent_only=True,
+)
+MILESTONE_PLANS = RelationKind(
+    slug="plans",
+    relation=MilestonePlan,
+    parent=Milestone,
+    parent_column="milestone_id",
+    subject_type="milestone_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.MILESTONE_PLAN_LINKED,
+    unlinked_event=EventType.MILESTONE_PLAN_UNLINKED,
+)
+STORY_PLANNING_KINDS = (MEMORY_PLANS, MEMORY_WISHES, HEART_MOMENT_PLANS, MILESTONE_PLANS)
 
 
 PLACE_MEMORIES = RelationKind(
@@ -263,13 +367,22 @@ def link(
     parent_id: UUID | str,
     target_id: UUID | str,
     kind: RelationKind,
+    *,
+    automatic: bool = False,
 ) -> None:
     """Link parent and target idempotently using Parent -> Target lock order."""
     parent = cast(
         "RelationParent",
-        require_writable_locked(session, kind.parent, context, parent_id),
+        (require_editable_locked if kind in STORY_PLANNING_KINDS else require_writable_locked)(
+            session, kind.parent, context, parent_id
+        ),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        raise target_not_found()
     target = _require_relatable_target(session, context, kind, target_id)
+
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        lock_subject(session, "photo-place-target", str(target.id))
 
     values: dict[str, object] = {
         kind.parent_column: parent.id,
@@ -279,6 +392,10 @@ def link(
     }
     if kind.shared_target_only:
         values["target_privacy_class"] = target.privacy_class
+    if kind.shared_parent_only:
+        values["source_privacy_class"] = parent.privacy_class
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        values["photo_generated"] = automatic
 
     statement = (
         postgres_insert(kind.relation)
@@ -289,6 +406,16 @@ def link(
         .returning(kind.relation.__table__.c[kind.parent_column])
     )
     created = session.execute(statement).first() is not None
+    if not automatic and kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        table = kind.relation.__table__
+        session.execute(
+            update(kind.relation)
+            .where(
+                table.c[kind.parent_column] == parent.id,
+                table.c[kind.target_column] == target.id,
+            )
+            .values(photo_generated=False)
+        )
     _flush(session)
     if created:
         _record(session, kind, parent, target.id, context.account_id, kind.linked_event)
@@ -305,9 +432,15 @@ def unlink(
     """Remove only the link; both original resources remain unchanged."""
     parent = cast(
         "RelationParent",
-        require_writable_locked(session, kind.parent, context, parent_id),
+        (require_editable_locked if kind in STORY_PLANNING_KINDS else require_writable_locked)(
+            session, kind.parent, context, parent_id
+        ),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        raise target_not_found()
     target = _require_relatable_target(session, context, kind, target_id)
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        lock_subject(session, "photo-place-target", str(target.id))
     table = kind.relation.__table__
     removed = session.execute(
         delete(kind.relation)
@@ -335,6 +468,8 @@ def list_targets(
         "RelationParent",
         require_readable(session, kind.parent, context, parent_id),
     )
+    if kind.shared_parent_only and parent.privacy_class != PrivacyClass.SPACE_SHARED.value:
+        return []
     table = kind.relation.__table__
     rows = session.execute(
         select(table.c[kind.target_column])
@@ -423,5 +558,8 @@ def drop_shared_relations_of_heart_moment(session: Session, heart_moment: HeartM
     )
     session.execute(
         delete(ChapterHeartMoment).where(chapter_table.c.heart_moment_id == heart_moment.id)
+    )
+    session.execute(
+        delete(HeartMomentPlan).where(HeartMomentPlan.heart_moment_id == heart_moment.id)
     )
     session.flush()

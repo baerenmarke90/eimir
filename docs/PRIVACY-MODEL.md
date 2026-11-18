@@ -32,6 +32,32 @@ that its recipient can see is not a surprise.
 
 This is enforced server-side in the query, not in presentation logic.
 
+## Shared Story editing (#1603)
+
+The Product Owner explicitly authorized collaborative content editing on
+2026-11-02. This supersedes author-only **Update** for shared Memories,
+HeartMoments and Milestones in the original section 14/M2 baseline; it does not
+supersede private visibility, authorship, Delete or privacy-transition authority.
+
+The same-Space authorization rule distinguishes `EDIT` from destructive `WRITE`.
+Only the three explicitly opted-in Story domains allow partner content edits.
+Owner-only rows still require their owner for every access. Detail and Timeline
+project the same capabilities: `canEdit` may be true for a partner while
+`canDelete` is false. Existing author identity remains immutable, optimistic
+concurrency rejects stale edits, and lost membership revokes access normally.
+
+A partner may attach their own ready, unbound same-Space upload to a shared
+Memory while retaining the original author's photos. They cannot borrow another
+person's unbound upload or delete that person's saved photo by replacing the
+attachment set. A shared HeartMoment retains its single-photo cardinality; a
+partner may fill an empty slot but cannot remove/replace the author's photo.
+Photo sensitivity remains protected metadata: the Story author or the photo's
+owner may change it; another content editor may only retain its current value.
+Editors hide unavailable classification controls while new uploads remain editable.
+Visibility transitions stay author-only and separate from content updates.
+Existing collaborative Plan/Wish/Place semantics and private domains are unchanged.
+No schema, data ownership, entitlement or retention migration is required.
+
 ## Two kinds of profile information
 
 They are strictly separated because confusing them causes direct harm:
@@ -46,6 +72,17 @@ the visible partner profile.
 
 Both describe the same person. Only one may be visible to that person.
 
+## Person colour pair (2026-11-16)
+
+Each person may choose one fixed pair of colours for their own view: their own
+colour first, then their partner's. It is a personal appearance setting stored
+next to the app icon and Wir design, readable only by that account through
+`GET /spaces/{spaceId}/appearance/person-colours`. It is **never shared with the
+partner**, carries **no statement about gender** and is not asked as a gender
+question. Without a choice the clients use blue for yourself and rose for the
+partner. It is part of the personal export, removed with the account and Space
+membership, and never used for analytics, recommendations, copy or push content.
+
 ## Third parties
 
 Children, family members, and friends are not accounts. `RelatedPerson`
@@ -59,7 +96,17 @@ often more sensitive than the day itself.
 
 ## Location
 
-Location features are **off** by default. They require explicit opt-in.
+Live location, presence and external location history are **off** by default
+and require explicit opt-in. Selected-photo Place association is the scoped
+default-on exception approved in #1459/#1465: an account may disable it in
+Settings → Memories. It does not request live location or track a device.
+
+Selected moment primary photos may retain readable EXIF/ICC, including GPS,
+capture time and device information, under [ADR 0014](decisions/0014-moment-photo-metadata-preservation.md).
+Authorized readers of the primary file can receive that metadata. Disabling
+automatic Place association or removing a Place relation does not scrub the
+file. Thumbnails and unrelated uploads keep their metadata removal policy;
+generic API projections, logs, events and indexes do not expose retained EXIF.
 
 Four concepts are kept strictly separate:
 
@@ -75,7 +122,47 @@ Server-side location data uses the minimum required precision, short retention,
 no location data in normal logs, and can be revoked at any time.
 
 Optional partner distance remains off until deliberately enabled and does not
-create a persistent history.
+create a persistent history. Its runtime contract — sharing levels, recipient
+binding, snapped precision, 24-hour snapshot expiry, energy rules and the
+Premium boundary — is [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) (#1792).
+Sharing is approximate by default. Each person may instead choose **precise**
+sharing (Product Owner, 2026-11-17): the device then rounds its position to
+about 100 m before anything is sent, the Android precise-location permission is
+requested only after that choice, and the choice is stored with the person's own
+consent and never revealed to the partner. Precise location is never requested
+in the background and never for any other feature.
+
+### Selected-photo places and readable addresses (#1459 / #1478)
+
+The later Product Owner decision for #1459 makes selected-photo Place association
+default ON under an account-wide revocable preference; it does not enable device
+tracking, LocationHistory, Presence or inference. #1478 additionally permits
+asynchronous reverse lookup of canonical shared photo coordinates, including
+untouched historical automatic Places. Private HeartMoments never enter this path.
+
+The backend Photon adapter sends only the saved coordinate pair and a language
+code to the configured origin. By default this is `https://photon.komoot.io`; the
+service sees these coordinates and the backend IP. No photograph, EXIF blob,
+Memory title, account/Space identity or authorization credential is transmitted.
+This is a concrete third-party data flow, not an anonymous or on-device claim.
+The existing setting explains the flow; operators may replace the origin with
+their own Photon instance or disable lookup with an empty value. An operator
+must review its own recipient/privacy and availability obligations before a
+managed launch; the public demo has no SLA.
+
+The job holds current owner/Membership, preference, Place and shared-target
+authorization against concurrent changes before egress. Manual correction,
+unlink, private transitions, disabled Accounts and ended Memberships stop later
+work. OFF prevents pending lookups and future extraction; it preserves previously
+saved history and cannot retract a lookup already delivered to the service.
+The ordinary job payload contains canonical IDs only. No cross-couple location
+cache is created. Lookup results live in the existing protected Place payload,
+including OSM source attribution, with the same encryption, export, backup and
+deletion boundary. Provider failure retains the original coordinate/map action.
+
+Opening an external map remains a separate deliberate action. Its destination
+receives the original saved coordinates, with no account token or referrer. The
+browser makes no map, geocoder, tile or preview request merely to read a Memory.
 
 ## Notifications
 
@@ -86,6 +173,43 @@ Push notifications contain **no** sensitive text by default.
 instead of the original private text. A notification can appear on a locked
 screen that other people may see — possibly the partner for whom a surprise is
 intended.
+
+### Device push delivery (#565)
+
+Device push is off until the person activates it in notification settings and
+grants the OS permission. That screen discloses that the delivery provider gets
+an installation identifier and connection metadata. Firebase Messaging auto-init
+is disabled; this integration adds no Analytics, advertising, Crashlytics or
+notification-content analytics SDK. Reading availability does not create an FID.
+
+An FCM-capable Android build uses the operator's matching Firebase project;
+otherwise a configured UnifiedPush distributor can be used. An active provider
+is retained until explicitly disabled, without silent dual registration.
+Google receives the Firebase installation ID (FID), the random per-activation
+identifier, delivery timing and technical connection/service metadata (including
+the network address needed for the connection). Neither provider receives an
+Account/Space identifier, name, message text, domain object, route or URL in the
+wake payload. The FCM data payload is exactly `type= wake` plus `activationId`;
+UnifiedPush keeps its encrypted wake payload. Private notifications are fetched
+through the existing authenticated API after the wake.
+
+The backend protects the endpoint value at rest and binds it to the authenticated
+Account. Android binds callbacks and OS notification taps to Account, API origin,
+provider and a random activation. Disable, sign-out or replacement invalidates
+local ownership and pending OS notifications immediately, revokes the owned
+backend endpoint while authenticated, and retires the FCM registration and FID.
+Failed provider cleanup remains pending and blocks a new FCM activation until
+it succeeds; it must not restore local delivery permission.
+
+Provider deletion is asynchronous. Google documents FID retention until deletion
+is requested, followed by removal from live and backup systems within 180 days.
+This is not an immediate erasure or EU-only processing promise. Operators must
+include their chosen push provider and international processing in their actual
+service privacy notice. This delivery implementation does not complete the
+separate public Cloud launch/privacy gate.
+
+Sources checked 2026-10-20: [Firebase privacy information](https://firebase.google.com/support/privacy),
+[installation deletion](https://firebase.google.com/docs/projects/manage-installations#delete_a_firebase_installation).
 
 ## Analytics
 

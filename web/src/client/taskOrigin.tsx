@@ -8,10 +8,22 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { DateIdeasFilterState } from './dateIdeas';
+import { previousEntryIs } from './historyEntries';
+import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
+  DATE_IDEAS_ROUTE,
+  MEMORY_MAP_ROUTE,
+  MORE_COLLECTIONS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PLACES_ROUTE,
+  MORE_PRIVATE_ROUTE,
+  PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
@@ -19,15 +31,42 @@ const MAX_ORIGINS = 12;
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 export interface TaskOriginMetadata {
-  focusTarget?: 'quick-create';
   selectedKey?: string;
   selectedOffset?: number;
   loadedPageCount?: number;
   /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
   searchQuery?: string;
   searchKind?: string;
-  /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
-  planningSegment?: 'plans' | 'wishes';
+  /** Restores the Shared Notes overview search; never published in the URL. */
+  sharedNotesSearch?: string;
+  /** Restores the Planning peer mode without publishing it in the URL. */
+  planningSegment?: 'plans' | 'wishes' | 'dates';
+  planningWishStatus?: 'OPEN' | 'PLANNED' | 'COMPLETED';
+  planningPlanStatus?: 'OPEN' | 'COMPLETED';
+  planningPlanSearch?: string;
+  planningWishSearch?: string;
+  /** Date-only default for a new Plan started from a shared occasion. */
+  planningCreateDate?: string;
+  /**
+   * Editable catalog text that prefills a new Wish or Plan started from a
+   * curated date idea; the idea ID is only the in-session link, never sent.
+   */
+  planningCreateDraft?: {
+    title: string;
+    description?: string;
+    dateIdeaId?: string;
+  };
+  /** Editable prefill for converting a known Wish into a Plan. */
+  planningConvertDraft?: { title: string; description?: string };
+  /** Restores the date inspiration filters; catalog keys only, never content. */
+  dateIdeasFilter?: DateIdeasFilterState;
+  /** Bounded, account/Space-scoped map return context; never persisted or logged. */
+  memoryMap?: {
+    placeId: string | null;
+    memoryId?: string;
+    viewport?: { latitude: number; longitude: number; zoom: number };
+    fullscreen: boolean;
+  };
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -39,6 +78,7 @@ export interface TaskOrigin extends TaskOriginMetadata {
 interface StoredOrigin extends TaskOrigin {
   capturedAt: number;
   historyIndex: number | null;
+  taskOriginKey?: string;
 }
 
 interface OriginStore {
@@ -48,11 +88,16 @@ interface OriginStore {
   metadata: { path: string; value: TaskOriginMetadata } | null;
 }
 
+export interface PrimaryDestination {
+  to: string;
+}
+
 interface TaskOriginContract {
   captureOrigin: (metadata?: TaskOriginMetadata) => string | null;
   resolveOrigin: (key: unknown) => TaskOrigin | null;
   requestReturn: (key: unknown, fallback?: string) => void;
   registerOriginMetadata: (metadata: TaskOriginMetadata) => () => void;
+  primaryDestination: (root: string) => PrimaryDestination;
 }
 
 const TaskOriginContext = createContext<TaskOriginContract | null>(null);
@@ -62,27 +107,106 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  // The private overview contains only destinations. Private lists, records
+  // and query data stay outside the task origin.
+  if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
+    return MORE_PRIVATE_ROUTE;
+
   const planningDetail = /^\/plan\/(plans|wishes)\/(?!new$)[^/]+$/.test(
     pathname,
   );
   const secondaryDetail = /^\/plan\/(places|chapters)\/(?!new$)[^/]+$/.test(
     pathname,
   );
+  const momentDetail =
+    /^\/story\/(memories|heart-moments)\/(?!new$)[^/]+$/.test(pathname);
+  // Shared Memory location editing returns to its owning editor, without query data.
+  const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
+    pathname,
+  );
+  // A shared note read page is a return target for its editor (#1969).
+  const sharedNoteDetail = /^\/more\/notes\/(?!new$)[^/]+$/.test(pathname);
+  const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
+  const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
+    !recapReader &&
+    !sharedNoteDetail &&
+    !storyYear &&
+    !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
+    !momentDetail &&
     ![
       '/today',
       '/story',
+      '/story/chapters',
+      '/story/years',
+      '/story/happiness',
+      '/story/time-travel',
       STORY_PHOTOS_ROUTE,
+      MEMORY_MAP_ROUTE,
+      MORE_COLLECTIONS_ROUTE,
+      MORE_NOTES_ROUTE,
+      MORE_PLACES_ROUTE,
       '/plan',
+      WISH_SELECTION_ROUTE,
+      DATE_IDEAS_ROUTE,
       '/more',
+      STORY_RECAPS_ROUTE,
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
     ].includes(pathname)
   )
     return null;
+  if (recapReader || pathname === STORY_RECAPS_ROUTE) {
+    const input = new URLSearchParams(search);
+    const safe = new URLSearchParams();
+    if (input.get('tab') === 'years') safe.set('tab', 'years');
+    if (
+      pathname === STORY_RECAPS_ROUTE &&
+      input.get('details') === 'relationship'
+    )
+      safe.set('details', 'relationship');
+    const page = Number(input.get('page'));
+    if (recapReader && Number.isInteger(page) && page > 0 && page <= 13)
+      safe.set('page', String(page));
+    return safe.size ? `${pathname}?${safe}` : pathname;
+  }
+  if (pathname === MORE_PLACES_ROUTE) {
+    const scope = new URLSearchParams(search).get('scope');
+    return scope === 'ARCHIVED' || scope === 'ALL'
+      ? `${pathname}?scope=${scope}`
+      : pathname;
+  }
+  if (pathname === MORE_COLLECTIONS_ROUTE) {
+    const scope = new URLSearchParams(search).get('scope');
+    return scope === 'COMPLETED' || scope === 'ALL'
+      ? `${pathname}?scope=${scope}`
+      : pathname;
+  }
+  if (pathname === MORE_NOTES_ROUTE) {
+    return new URLSearchParams(search).get('scope') === 'PINNED'
+      ? `${pathname}?scope=PINNED`
+      : pathname;
+  }
+  if (pathname === ACTIVITY_ROUTE) {
+    return new URLSearchParams(search).get('scope') === 'own'
+      ? `${pathname}?scope=own`
+      : pathname;
+  }
+  if (pathname === STORY_PHOTOS_ROUTE) {
+    return new URLSearchParams(search).get('visibility') === 'private'
+      ? `${pathname}?visibility=private`
+      : pathname;
+  }
+  if (pathname === MEMORY_MAP_ROUTE) {
+    const input = new URLSearchParams(search);
+    const safe = storyFiltersToSearch(parseStoryFilters(input));
+    const place = input.get('place') ?? '';
+    if (parseMapPlace(place)) safe.set('place', place);
+    return safe.size ? `${pathname}?${safe}` : pathname;
+  }
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);
   const safe = storyFiltersToSearch(parseStoryFilters(input));
@@ -150,6 +274,7 @@ export function TaskOriginProvider({
       };
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
+      const parentKey = currentState?.usr?.taskOriginKey;
       const origin: StoredOrigin = {
         to: path,
         scrollY: Math.max(0, window.scrollY),
@@ -158,12 +283,22 @@ export function TaskOriginProvider({
           (snapshot.loadedPageCount ?? 0) > 0
             ? (snapshot.loadedPageCount ?? 1)
             : 1,
-        focusTarget: snapshot.focusTarget,
         selectedKey: snapshot.selectedKey,
         selectedOffset: snapshot.selectedOffset,
         searchQuery: snapshot.searchQuery,
         searchKind: snapshot.searchKind,
+        sharedNotesSearch: snapshot.sharedNotesSearch,
         planningSegment: snapshot.planningSegment,
+        planningWishStatus: snapshot.planningWishStatus,
+        planningPlanStatus: snapshot.planningPlanStatus,
+        planningPlanSearch: snapshot.planningPlanSearch,
+        planningWishSearch: snapshot.planningWishSearch,
+        planningCreateDate: snapshot.planningCreateDate,
+        planningCreateDraft: snapshot.planningCreateDraft,
+        planningConvertDraft: snapshot.planningConvertDraft,
+        dateIdeasFilter: snapshot.dateIdeasFilter,
+        memoryMap: snapshot.memoryMap,
+        taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,
@@ -186,7 +321,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation],
+    [path, generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -196,6 +331,7 @@ export function TaskOriginProvider({
       const {
         capturedAt: _capturedAt,
         historyIndex: _historyIndex,
+        taskOriginKey: _taskOriginKey,
         ...rest
       } = origin;
       return rest;
@@ -208,7 +344,10 @@ export function TaskOriginProvider({
       if (!generation.active || storeRef.current !== generation) return;
       const origin = resolveStored(key);
       if (!origin) {
-        void navigate(fallback, { replace: true });
+        // Without a captured origin, a parent directly below is still the
+        // natural Back target; replacing would leave it in history twice.
+        if (previousEntryIs(fallback)) void navigate(-1);
+        else void navigate(fallback, { replace: true });
         return;
       }
       if (
@@ -220,11 +359,22 @@ export function TaskOriginProvider({
       }
       void navigate(origin.to, {
         replace: true,
-        state: { taskReturnKey: key },
+        state: {
+          taskReturnKey: key,
+          ...(resolveStored(origin.taskOriginKey)
+            ? { taskOriginKey: origin.taskOriginKey }
+            : {}),
+        },
       });
     },
     [navigate, resolveStored, generation],
   );
+
+  const primaryDestination = useCallback((root: string): PrimaryDestination => {
+    if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
+      return { to: '/today' };
+    return { to: root };
+  }, []);
 
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
@@ -254,8 +404,45 @@ export function TaskOriginProvider({
       resolveOrigin,
       requestReturn,
       registerOriginMetadata,
+      primaryDestination,
     }),
-    [captureOrigin, resolveOrigin, requestReturn, registerOriginMetadata],
+    [
+      captureOrigin,
+      resolveOrigin,
+      requestReturn,
+      registerOriginMetadata,
+      primaryDestination,
+    ],
+  );
+  return (
+    <TaskOriginContext.Provider value={value}>
+      {children}
+    </TaskOriginContext.Provider>
+  );
+}
+
+/**
+ * A kept, hidden primary tab must not publish return metadata or capture an
+ * origin for the destination that is currently visible.
+ */
+export function PrimaryTabTaskOriginScope({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  const context = useContext(TaskOriginContext);
+  const value = useMemo<TaskOriginContract | null>(
+    () =>
+      context && !active
+        ? {
+            ...context,
+            captureOrigin: () => null,
+            registerOriginMetadata: () => () => {},
+          }
+        : context,
+    [active, context],
   );
   return (
     <TaskOriginContext.Provider value={value}>
@@ -276,6 +463,7 @@ export function useTaskOrigin(): TaskOriginContract {
         void navigate(fallback, { replace: true });
       },
       registerOriginMetadata: () => () => {},
+      primaryDestination: (root) => ({ to: root }),
     }),
     [navigate],
   );

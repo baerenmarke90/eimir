@@ -1,10 +1,24 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
+import {
+  closeComposerDate,
+  closeContextTags,
+  expectComposerDate,
+  showComposerDate,
+  showContextSuggestions,
+  showContextTags,
+  showMemoryDetails,
+} from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -15,11 +29,8 @@ const MEMORY_TITLE = 'Ein ruhiger Sonntagmorgen';
 const MEMORY_BODY =
   'Wir haben lange geschlafen und dann gemeinsam Pfannkuchen gemacht.';
 
-// Covers the initials the drop cap must stay visually controlled for: a
-// narrow letter (S), and the widest common German-copy letters (W, M) plus
-// one more (A) — the width-consistency regression the real drop-cap element
-// exists to fix.
-const DROP_CAP_CASES = [
+// Representative authored prose remains intact at each reading width.
+const PROSE_CASES = [
   {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     title: 'S wie Anfang',
@@ -40,6 +51,11 @@ const DROP_CAP_CASES = [
     title: 'M wie Anfang',
     body: 'Mitten in der Nacht sind wir aufgewacht, weil es draußen so heftig gewittert hat.',
   },
+  {
+    id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    title: 'Kleiner Anfang',
+    body: 'we enjoyed the morning together.\n\nLater we went for a walk.',
+  },
 ] as const;
 
 function localToday(): string {
@@ -55,18 +71,48 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const elements = await page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .map((element) => {
+          const box = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            tag: element.tagName,
+            className: element.className.toString(),
+            id: element.id,
+            left: box.left,
+            right: box.right,
+            width: box.width,
+            position: style.position,
+            inlineSize: style.inlineSize,
+            minInlineSize: style.minInlineSize,
+            overflow: style.overflow,
+          };
+        })
+        .filter(
+          (element) => element.right > innerWidth + 1 && element.width > 0,
+        )
+        .slice(0, 30),
+    );
+    await test.info().attach('horizontal-overflow-geometry', {
+      body: JSON.stringify({ dimensions, elements }, null, 2),
+      contentType: 'application/json',
+    });
+  }
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
 /**
  * A focused mock harness for the create-surface visual regression checks:
- * the inline shared-visibility metadata on Memory Create, the local "today"
- * date default on HeartMoment/Milestone Create, and the Memory Detail drop
- * cap.
+ * the focused Memory Create composition, the local "today"
+ * date default on HeartMoment/Milestone Create, and readable Memory Detail prose.
  */
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -185,7 +231,7 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
-    for (const memoryCase of DROP_CAP_CASES) {
+    for (const memoryCase of PROSE_CASES) {
       if (
         method === 'GET' &&
         pathname === `/api/v1/spaces/${SPACE_ID}/memories/${memoryCase.id}`
@@ -245,56 +291,24 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-async function expectSharingMetadataAligned(page: Page): Promise<void> {
-  const note = page.locator('.immersive-sharing-note');
-  await expect(note).toBeVisible();
-  await expect(note).toHaveAttribute('role', 'note');
+async function expectFocusedMemoryCapture(page: Page): Promise<void> {
+  // #1614 explicitly retires the redundant fixed-audience block. Keep its
+  // absence covered instead of requiring the removed heart and caption.
+  await expect(page.locator('.immersive-sharing-note')).toHaveCount(0);
   await expect(
-    note.getByText(de.memory.sharedTitle, { exact: true }),
+    page.getByText(de.memory.sharedTitle, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(de.memory.sharedBody, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeVisible();
+  await expect(
+    page.locator('.immersive-create-narrative textarea'),
   ).toBeVisible();
-  await expect(
-    note.getByText(de.memory.sharedBody, { exact: true }),
-  ).toBeHidden();
-
-  const icon = note.locator('.sharing-icon');
-  const svg = icon.locator('svg');
-  const path = svg.locator('path').first();
-  await expect(icon).toBeVisible();
-  await expect(svg).toBeVisible();
-  await expect(path).toBeVisible();
-
-  const [iconBox, svgBox, noteLayout, maskImage] = await Promise.all([
-    icon.boundingBox(),
-    svg.boundingBox(),
-    note.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { display: style.display, alignItems: style.alignItems };
-    }),
-    svg.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return style.maskImage || style.getPropertyValue('-webkit-mask-image');
-    }),
-  ]);
-  if (!iconBox || !svgBox) throw new Error('Sharing icon did not render.');
-
-  expect(noteLayout.display).toBe('flex');
-  expect(noteLayout.alignItems).toBe('center');
-  expect(maskImage === 'none' || maskImage === '').toBe(true);
-
-  const iconCenterX = iconBox.x + iconBox.width / 2;
-  const svgCenterX = svgBox.x + svgBox.width / 2;
-  const iconCenterY = iconBox.y + iconBox.height / 2;
-  const svgCenterY = svgBox.y + svgBox.height / 2;
-
-  // 2.5px is the #855 ceiling for the retained 16px SVG geometry. It absorbs
-  // sub-pixel/runner quantization while still detecting the old several-pixel
-  // left/top displacement that motivated the original heart-centering test.
-  expect(Math.abs(iconCenterX - svgCenterX)).toBeLessThanOrEqual(2.5);
-  expect(Math.abs(iconCenterY - svgCenterY)).toBeLessThanOrEqual(2.5);
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Create aligns the inline shared-visibility metadata (${colorScheme})`, async ({
+  test(`Memory Create preserves focused capture without the retired sharing block (${colorScheme})`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme });
@@ -308,7 +322,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
 
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -318,7 +332,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`shell-memory-create-390-${colorScheme}.png`),
@@ -326,7 +340,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 390, height: 667 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -336,7 +350,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 320, height: 568 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -349,7 +363,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '24px';
     });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -361,7 +375,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '';
     });
 
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showMemoryDetails(page);
+    await showContextTags(page);
+    await showContextSuggestions(page);
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     });
@@ -404,12 +420,22 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.keyboard.press('Space');
     await expect(homeTag).not.toBeChecked();
 
+    const tagAxeResult = await new AxeBuilder({ page })
+      .include('dialog.composer-tag-sheet')
+      .withTags([
+        'wcag2a',
+        'wcag2aa',
+        'wcag21a',
+        'wcag21aa',
+        'wcag22a',
+        'wcag22aa',
+      ])
+      .analyze();
+    expect(tagAxeResult.violations).toEqual([]);
+    await closeContextTags(page);
+
     const axeResult = await new AxeBuilder({ page })
-      .include('.immersive-sharing-note')
-      .include('.memory-tag-choices')
-      .include('.immersive-create-narrative')
-      .include('.immersive-create-title-field')
-      .include('.immersive-create-date-field')
+      .include('.page-composer')
       .withTags([
         'wcag2a',
         'wcag2aa',
@@ -424,10 +450,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
 }
 
 for (const width of [390, 320] as const) {
-  test(`Memory Create keeps sharing and the empty photo picker compact at ${width}px (#855)`, async ({
+  test(`Memory Create keeps Place tools and the media-first intake bounded at ${width}px (#1730)`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width, height: 844 },
@@ -443,190 +470,123 @@ for (const width of [390, 320] as const) {
         page.getByRole('heading', { name: de.memory.heading }),
       ).toBeVisible();
 
-      await expectSharingMetadataAligned(page);
+      await expectFocusedMemoryCapture(page);
+
+      await showMemoryDetails(page);
 
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
-      const picker = media.locator('.file-picker');
+      const mediaGroup = media.locator('.media-action-group');
+      const picker = media.locator('.media-intake-device');
+      await expectMediaIntakeAction(picker, 'foto');
+      const fileInputs = media.locator('input[type="file"]');
+      await expect(fileInputs).toHaveCount(2);
+      expect(
+        await fileInputs.evaluateAll(
+          (inputs) => new Set(inputs.map((input) => input.id)).size,
+        ),
+      ).toBe(2);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
-      const dateField = page.locator('.immersive-create-date-field');
-      const dateSummary = dateField.locator('.immersive-create-date-summary');
-      const note = page.locator('.immersive-sharing-note');
-      const actions = page.locator('.form-actions');
+      const dateTrigger = page.locator('.composer-date-trigger');
+      const places = page
+        .locator('.composer-tool-row button')
+        .filter({ has: page.locator('.eimir-icon-orte') });
+      await expectLabeledComposerTool(places, 'orte');
+      // #1790 D1: Place and Tag remain; the on-page intake is the photo entry.
+      await expect(page.locator('.composer-tool-row button')).toHaveCount(2);
+      await expect(
+        page.locator('.composer-tool-row .eimir-icon-foto'),
+      ).toHaveCount(0);
       const saveButton = page.getByRole('button', { name: de.memory.save });
-      const quickCreateTrigger = page.locator(
-        '.mobile-quick-create .quick-create-trigger',
-      );
-
-      const domOrder = await page.evaluate(() => {
-        const form = document.querySelector('.immersive-create-form');
-        if (!form) return null;
-        // F2's disabled fieldset is a semantic wrapper with display:contents.
-        // Assert content order independently of that task ownership boundary.
-        const children = Array.from(
-          form.querySelectorAll(
-            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .immersive-sharing-note, .form-actions',
-          ),
-        );
-        return {
-          mediaIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-media'),
-          ),
-          narrativeIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-narrative'),
-          ),
-          titleFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-title-field'),
-          ),
-          dateFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-date-field'),
-          ),
-          noteIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-sharing-note'),
-          ),
-          actionsIndex: children.findIndex((el) =>
-            el.classList.contains('form-actions'),
-          ),
-        };
-      });
-      if (!domOrder) {
-        throw new Error('Memory Create form children not found.');
-      }
-      expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.narrativeIndex);
-      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.titleFieldIndex);
-      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.noteIndex);
-      expect(domOrder.noteIndex).toBeLessThan(domOrder.actionsIndex);
-
+      const form = page.locator('.immersive-create-form');
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+      await expect(saveButton).toHaveCount(1);
+      await expect(saveButton).toHaveAttribute('type', 'submit');
+      expect(
+        await saveButton.evaluate(
+          (button: HTMLButtonElement) => button.form?.id,
+        ),
+      ).toBe(await form.getAttribute('id'));
+      await expect(saveButton).toBeInViewport();
       const [
-        noteBox,
+        placesBox,
         mediaBox,
         pickerBox,
         narrativeBox,
         titleFieldBox,
-        dateFieldBox,
-        actionsBox,
+        dateBox,
         saveBox,
-        mediaBorder,
-        pickerBorder,
       ] = await Promise.all([
-        note.boundingBox(),
+        places.boundingBox(),
         media.boundingBox(),
         picker.boundingBox(),
         narrative.boundingBox(),
         titleField.boundingBox(),
-        dateField.boundingBox(),
-        actions.boundingBox(),
+        dateTrigger.boundingBox(),
         saveButton.boundingBox(),
-        media.evaluate((element) => getComputedStyle(element).borderTopStyle),
-        picker.evaluate((element) => getComputedStyle(element).borderTopStyle),
       ]);
       if (
-        !noteBox ||
+        !placesBox ||
         !mediaBox ||
         !pickerBox ||
         !narrativeBox ||
         !titleFieldBox ||
-        !dateFieldBox ||
-        !actionsBox ||
+        !dateBox ||
         !saveBox
-      ) {
-        throw new Error('Memory Create composition did not render.');
-      }
+      )
+        throw new Error('The compact capture composition did not render.');
 
-      // 1. Authored content (photo, narrative, title, date) precedes the visibility cue
-      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(noteBox.y);
-      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
-        noteBox.y,
-      );
+      // #1730 keeps native completion in the header and media before writing.
+      expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(dateBox.y);
+      expect(dateBox.y + dateBox.height).toBeLessThanOrEqual(mediaBox.y);
+      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleFieldBox.y);
       expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
-        noteBox.y,
+        narrativeBox.y,
       );
-      expect(dateFieldBox.y + dateFieldBox.height).toBeLessThanOrEqual(
-        noteBox.y,
+      expect(narrativeBox.y).toBeLessThan(placesBox.y);
+      expect(saveBox.height).toBeGreaterThanOrEqual(48);
+      expect(dateBox.height).toBeGreaterThanOrEqual(44);
+      expect(titleFieldBox.x).toBeGreaterThanOrEqual(0);
+      expect(placesBox.height).toBeLessThan(125);
+      await expect(places.getByRole('listitem')).toHaveCount(0);
+      const addPlaceBox = await places.boundingBox();
+      if (!addPlaceBox) throw new Error('Add Place did not render.');
+      expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
+
+      // #1790 D1: the intake is the one diary entry. Without an external
+      // source it opens the device picker directly; no separate source link.
+      await expect(mediaGroup).toHaveCSS('border-top-width', '0px');
+      await expect(
+        page.locator('.composer-content .media-action-group'),
+      ).toHaveCount(1);
+      await expect(media.locator('.media-gallery')).toHaveCount(0);
+      await expect(
+        media.getByRole('button', { name: photoSources.more, exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        media.getByRole('button', { name: composer.addPhotos, exact: true }),
+      ).not.toHaveAttribute('aria-haspopup', 'dialog');
+      await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
+        0,
       );
-
-      // 2. Visibility cue precedes the primary form action area and Save button
-      expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(actionsBox.y);
-      expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(saveBox.y);
-
-      // 3. Spacing above (from the date field) and below (to actions) is intentional and balanced
-      const spacingAbove = noteBox.y - (dateFieldBox.y + dateFieldBox.height);
-      const spacingBelow = actionsBox.y - (noteBox.y + noteBox.height);
-      expect(spacingAbove).toBeGreaterThanOrEqual(10);
-      expect(spacingBelow).toBeGreaterThanOrEqual(10);
-
-      // 4. Inline metadata remains a single quiet, compact row
-      expect(noteBox.height).toBeLessThan(40);
-
-      // 5. Media picker remains compact with solid boundaries
-      expect(mediaBorder).toBe('solid');
-      expect(pickerBorder).toBe('solid');
-      expect(mediaBox.height).toBeLessThan(125);
-      expect(pickerBox.height).toBeLessThan(80);
+      await expect(mediaGroup).toHaveCSS(
+        'background-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      expect(mediaBox.height).toBeGreaterThanOrEqual(pickerBox.height);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
-
-      // 6. Date summary is a calm rounded secondary control that reveals the
-      // editable date input on demand (#964 replacement for the retired
-      // generic optional-details disclosure).
-      const dateValue = dateField.locator('#happenedOn-summary-value');
-      const dateChange = dateField.locator('#happenedOn-summary-change');
-
-      await expect(dateSummary).toBeVisible();
-      await expect(dateValue).toBeVisible();
-      await expect(dateChange).toHaveText(de.memory.dateChangeAction);
-
-      const summaryBox = await dateSummary.boundingBox();
-      if (!summaryBox) throw new Error('Date summary did not render.');
-      // Mobile touch target: minimum 44px height
-      // Browser transform geometry can differ by a fraction of a CSS pixel.
-      expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
-      // Fill the content region independently of responsive page gutters.
-      expect(summaryBox.width).toBeGreaterThanOrEqual(44);
-      expect(summaryBox.x).toBeCloseTo(dateFieldBox.x, 1);
-      expect(summaryBox.width).toBeCloseTo(dateFieldBox.width, 1);
-
-      // Verify tap-to-open/tap-away-to-close and stable resting material
-      // (#964 replacement for the retired native details open/close (#888))
-      const closedBg = await dateSummary.evaluate(
-        (el) => window.getComputedStyle(el).backgroundColor,
-      );
-      const dateInput = dateField.locator('#happenedOn');
-      await expect(dateInput).toHaveCount(0);
-      await dateSummary.tap();
-      await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-      if (width === 390) {
-        await page.screenshot({
-          path: testInfo.outputPath('shell-memory-create-date-open-390.png'),
-        });
-      }
+      await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+      const dateInput = await showComposerDate(page);
+      await expect(dateInput).toHaveAttribute('type', 'date');
+      const nativeBox = await dateInput.boundingBox();
+      if (!nativeBox) throw new Error('The native date task did not render.');
+      expect(nativeBox.height + 0.001).toBeGreaterThanOrEqual(44);
+      expect(nativeBox.width).toBeGreaterThanOrEqual(44);
+      await dateInput.fill('2025-12-24');
+      await closeComposerDate(page);
       await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate(
-            (el) => window.getComputedStyle(el).backgroundColor,
-          ),
-        )
-        .toBe(closedBg);
-
-      // 7. Floating global Quick Create FAB does not collide with the visibility note
-      if (await quickCreateTrigger.isVisible()) {
-        const fabBox = await quickCreateTrigger.boundingBox();
-        if (fabBox) {
-          const overlapsHorizontally =
-            noteBox.x < fabBox.x + fabBox.width &&
-            noteBox.x + noteBox.width > fabBox.x;
-          const overlapsVertically =
-            noteBox.y < fabBox.y + fabBox.height &&
-            noteBox.y + noteBox.height > fabBox.y;
-          expect(overlapsHorizontally && overlapsVertically).toBe(false);
-        }
-      }
+      await expectComposerDate(page, '2025-12-24');
 
       await expectNoHorizontalOverflow(page);
       await page.screenshot({
@@ -640,10 +600,11 @@ for (const width of [390, 320] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Create keeps date-summary resting material stable when opened (${colorScheme}) (#964)`, async ({
+  test(`Memory Create native date stays editable and stable (${colorScheme})`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width: 390, height: 844 },
@@ -654,135 +615,43 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await installApiMocks(page);
       await page.goto('/today');
       await signIn(page);
-
       await page.goto('/story/memories/new');
-      await expect(
-        page.getByRole('heading', { name: de.memory.heading }),
-      ).toBeVisible();
-
-      const dateField = page.locator('.immersive-create-date-field');
-      const dateSummary = dateField.locator('.immersive-create-date-summary');
-      const dateInput = dateField.locator('#happenedOn');
-      const title = page.getByLabel(de.memory.titleLabelOptional);
-
-      await expect(dateSummary).toBeVisible();
-      await expect(dateInput).toHaveCount(0);
-
-      // Verify touch target >= 44 CSS px
-      const summaryBox = await dateSummary.boundingBox();
-      if (!summaryBox) throw new Error('Date summary did not render.');
-      // Browser transform geometry can differ by a fraction of a CSS pixel.
-      expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
-
+      const date = await showComposerDate(page);
+      await expect(date).toHaveValue(localToday());
+      await expect(date).toHaveAttribute('type', 'date');
+      await expect(page.locator('.composer-date-trigger')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      const before = await date.evaluate(
+        (el) => getComputedStyle(el).backgroundColor,
+      );
+      await date.fill('2025-12-24');
+      await closeComposerDate(page);
+      await page.getByLabel(de.memory.bodyLabel, { exact: true }).tap();
+      await showComposerDate(page);
+      await expect(date).toHaveValue('2025-12-24');
+      expect(
+        await date.evaluate((el) => getComputedStyle(el).backgroundColor),
+      ).toBe(before);
+      await date.focus();
+      await expect(date).toBeFocused();
       await expectNoHorizontalOverflow(page);
-
-      // 1. Capture computed resting visual properties while CLOSED
-      const closedStyles = await dateSummary.evaluate((el) => {
-        const cs = window.getComputedStyle(el);
-        return {
-          backgroundColor: cs.backgroundColor,
-          color: cs.color,
-          borderTopColor: cs.borderTopColor,
-          borderTopWidth: cs.borderTopWidth,
-          borderTopStyle: cs.borderTopStyle,
-        };
-      });
-
       await page.screenshot({
-        path: testInfo.outputPath(
-          `shell-memory-create-date-390-${colorScheme}-closed.png`,
-        ),
+        path: testInfo.outputPath(`native-date-390-${colorScheme}.png`),
+        fullPage: true,
       });
-
-      // 2. Open the date editor via tap on touch device
-      // No artificial mouse.move(0, 0) or blur()!
-      await dateSummary.tap();
-      await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-
-      await expectNoHorizontalOverflow(page);
-
-      await page.screenshot({
-        path: testInfo.outputPath(
-          `shell-memory-create-date-390-${colorScheme}-open.png`,
-        ),
-      });
-
-      // 3. Tap elsewhere to blur and close again: the summary control's
-      // resting material remains identical (no sticky hover/active state)
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
-
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate((el) => {
-            const cs = window.getComputedStyle(el);
-            return {
-              backgroundColor: cs.backgroundColor,
-              color: cs.color,
-              borderTopColor: cs.borderTopColor,
-              borderTopWidth: cs.borderTopWidth,
-              borderTopStyle: cs.borderTopStyle,
-            };
-          }),
-        )
-        .toEqual({
-          backgroundColor: closedStyles.backgroundColor,
-          color: closedStyles.color,
-          borderTopColor: closedStyles.borderTopColor,
-          borderTopWidth: closedStyles.borderTopWidth,
-          borderTopStyle: closedStyles.borderTopStyle,
-        });
-
-      // 4. Tap to open again: material remains identical once re-closed
-      await dateSummary.tap();
-      await expect(dateInput).toBeVisible();
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate((el) => {
-            const cs = window.getComputedStyle(el);
-            return {
-              backgroundColor: cs.backgroundColor,
-              color: cs.color,
-              borderTopColor: cs.borderTopColor,
-            };
-          }),
-        )
-        .toEqual({
-          backgroundColor: closedStyles.backgroundColor,
-          color: closedStyles.color,
-          borderTopColor: closedStyles.borderTopColor,
-        });
-
-      // 5. Keyboard operation: Space/Enter open the editor and move focus
-      // straight to the date input (no separate toggle step, since the
-      // control isn't a persistent open/close disclosure)
-      await dateSummary.focus();
-      await page.keyboard.press('Space');
-      await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-
-      // Moving focus elsewhere blurs and closes it, restoring the resting
-      // summary. (Tab alone cycles the native date input's internal
-      // day/month/year segments rather than leaving the control, so we move
-      // focus explicitly instead.)
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
     } finally {
       await context.close();
     }
   });
 }
 
-test('Memory Create date summary stays stable under 320px reflow, reduced motion, and forced colors (#964)', async ({
+test('Memory Create native date supports 320px large text, reduced motion and forced colors', async ({
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 320, height: 568 },
@@ -792,154 +661,45 @@ test('Memory Create date summary stays stable under 320px reflow, reduced motion
     await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-
     await page.goto('/story/memories/new');
-    await expect(
-      page.getByRole('heading', { name: de.memory.heading }),
-    ).toBeVisible();
-
-    const dateField = page.locator('.immersive-create-date-field');
-    const dateSummary = dateField.locator('.immersive-create-date-summary');
-    const dateInput = dateField.locator('#happenedOn');
-    const title = page.getByLabel(de.memory.titleLabelOptional);
-
-    // --- 320px Reflow with Touch ---
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    const date = await showComposerDate(page);
+    await date.fill('2025-12-24');
+    await expect(date).toHaveValue('2025-12-24');
     await expectNoHorizontalOverflow(page);
-
-    const closedStyles320 = await dateSummary.evaluate((el) => {
-      const cs = window.getComputedStyle(el);
-      return {
-        backgroundColor: cs.backgroundColor,
-        color: cs.color,
-        borderTopColor: cs.borderTopColor,
-      };
-    });
-
-    // Measure the summary control while it's still mounted: unlike the old
-    // native <details>/<summary>, this control unmounts on open (swapped for
-    // the <input>), so its box must be captured before tapping it open.
-    const summaryBox320 = await dateSummary.boundingBox();
-    if (!summaryBox320)
-      throw new Error('Date summary did not render at 320px.');
-    expect(summaryBox320.height + 0.001).toBeGreaterThanOrEqual(44);
-
-    await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-date-320-reflow-closed.png',
-      ),
-    });
-
-    // Tap to open without artificial mouse/blur cleanup
-    await dateSummary.tap();
-    await expect(dateInput).toBeVisible();
-
-    await expectNoHorizontalOverflow(page);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-320-reflow-open.png'),
-    });
-
-    // Tap elsewhere to close again: material remains identical
-    await title.tap();
-    await expect(dateInput).toHaveCount(0);
-    await expect
-      .poll(async () =>
-        dateSummary.evaluate((el) => {
-          const cs = window.getComputedStyle(el);
-          return {
-            backgroundColor: cs.backgroundColor,
-            color: cs.color,
-            borderTopColor: cs.borderTopColor,
-          };
-        }),
-      )
-      .toEqual({
-        backgroundColor: closedStyles320.backgroundColor,
-        color: closedStyles320.color,
-        borderTopColor: closedStyles320.borderTopColor,
+    const box = await date.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    for (const forcedColors of ['none', 'active'] as const) {
+      await page.emulateMedia({ reducedMotion: 'reduce', forcedColors });
+      await expect(date).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`native-date-320-large-${forcedColors}.png`),
+        fullPage: true,
       });
-
-    // --- Reduced Motion ---
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-
-    const summaryTransition = await dateSummary.evaluate(
-      (el) => window.getComputedStyle(el).transitionDuration,
-    );
-    expect(summaryTransition === '0s' || summaryTransition === '').toBe(true);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-reduced-motion.png'),
-      fullPage: true,
-    });
-
-    // --- Forced Colors / High Contrast ---
-    await page.emulateMedia({
-      forcedColors: 'active',
-      reducedMotion: 'no-preference',
-    });
-    await expect(dateSummary).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-forced-colors.png'),
-      fullPage: true,
-    });
+    }
   } finally {
     await context.close();
   }
 });
 
-test('Memory Create date summary provides hover feedback on desktop fine pointer (#964)', async ({
+test('Memory Create native date keeps desktop keyboard focus and calendar semantics', async ({
   page,
 }) => {
   await installApiMocks(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/today');
   await signIn(page);
-
   await page.goto('/story/memories/new');
-  await expect(
-    page.getByRole('heading', { name: de.memory.heading }),
-  ).toBeVisible();
-
-  const dateField = page.locator('.immersive-create-date-field');
-  const dateSummary = dateField.locator('.immersive-create-date-summary');
-
-  await expect(dateSummary).toBeVisible();
-
-  // 1. Resting state (no hover)
-  await page.mouse.move(0, 0);
-  const restingBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-
-  // 2. Hover with mouse
-  await dateSummary.hover();
-  await expect
-    .poll(async () =>
-      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
-    )
-    .not.toBe(restingBg);
-  const hoveredBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-
-  // On desktop fine pointer, hover changes the surface background
-  expect(hoveredBg).not.toBe(restingBg);
-
-  // 3. Move mouse away -> returns to resting
-  await page.mouse.move(0, 0);
-  await expect
-    .poll(async () =>
-      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
-    )
-    .toBe(restingBg);
-  const unhoveredBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-  expect(unhoveredBg).toBe(restingBg);
-  expect(unhoveredBg).not.toBe(hoveredBg);
+  const date = await showComposerDate(page);
+  await date.focus();
+  await expect(date).toBeFocused();
+  await date.fill('2025-12-24');
+  await expect(date).toHaveValue('2025-12-24');
+  await expect(date).toHaveCSS('font-weight', '400');
+  await expectNoHorizontalOverflow(page);
 });
 
 test('HeartMoment Create defaults the date to local today and stays typeable', async ({
@@ -950,14 +710,17 @@ test('HeartMoment Create defaults the date to local today and stays typeable', a
   await signIn(page);
 
   await page.goto('/story/heart-moments/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.heartMomentProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
-
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
 });
 
 test('Milestone Create defaults the date to local today and stays typeable', async ({
@@ -968,18 +731,19 @@ test('Milestone Create defaults the date to local today and stays typeable', asy
   await signIn(page);
 
   await page.goto('/story/milestones/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.milestoneProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
 
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(page, storyProducts.milestoneProduct.happenedOnLabel);
 });
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Detail keeps an inline, enlarged drop cap on the body paragraph (${colorScheme})`, async ({
+  test(`Memory Detail keeps authored prose readable with the restored initial (${colorScheme})`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme });
@@ -993,35 +757,28 @@ for (const colorScheme of ['light', 'dark'] as const) {
     ).toBeVisible();
 
     const body = page.locator('.memory-detail-body');
-    const letter = body.locator('.drop-cap-letter');
     await expect(body).toBeVisible();
-    await expect(letter).toBeVisible();
-    await expect(letter).toHaveText('W');
-    // The rest of the paragraph's real text must be unaffected — the split
-    // is purely visual, not a rewording or duplication of the content.
     await expect(body).toHaveText(MEMORY_BODY);
-
-    const [bodyFontSize, letterStyle] = await Promise.all([
-      body.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize)),
-      letter.evaluate((el) => {
-        const style = getComputedStyle(el);
-        return {
-          float: style.float,
-          display: style.display,
-          fontSize: Number.parseFloat(style.fontSize),
-        };
-      }),
-    ]);
-    // Deliberately not a classic floated drop cap: it stays part of the
-    // normal inline text flow (no reserved column, no text wrapping around
-    // it) so the word it starts always reads as one unit.
-    expect(letterStyle.float).toBe('none');
-    expect(letterStyle.display).toBe('inline');
-    expect(letterStyle.fontSize).toBeGreaterThan(bodyFontSize * 1.2);
-    expect(letterStyle.fontSize).toBeLessThan(bodyFontSize * 2);
+    const initial = body.locator('.drop-cap-letter');
+    await expect(initial).toHaveText('W');
+    const fontSize = await body.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    );
+    expect(fontSize).toBeGreaterThanOrEqual(16);
+    const initialStyle = await initial.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        fontSize: Number.parseFloat(style.fontSize),
+        textTransform: style.textTransform,
+        float: style.float,
+      };
+    });
+    expect(initialStyle.fontSize).toBeGreaterThan(fontSize);
+    expect(initialStyle.textTransform).toBe('uppercase');
+    expect(initialStyle.float).toBe('none');
 
     await page.screenshot({
-      path: testInfo.outputPath(`memory-detail-drop-cap-${colorScheme}.png`),
+      path: testInfo.outputPath(`memory-detail-prose-${colorScheme}.png`),
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1046,7 +803,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('link', { name: memoryProduct.edit }).click();
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextTags(page);
+    await showContextSuggestions(page);
     await expect(
       page.getByRole('checkbox', { name: de.memory.tagLabels.home }),
     ).toBeChecked();
@@ -1060,73 +818,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-/**
- * Measures the drop-cap letter's box and the immediately following text's
- * position for one memory, at whatever viewport is currently set.
- */
-async function measureDropCapGap(
-  page: Page,
-  memoryCase: (typeof DROP_CAP_CASES)[number],
-): Promise<{ letterBox: { x: number; width: number }; restX: number }> {
-  await page.goto(`/story/memories/${memoryCase.id}`);
-  await expect(
-    page.getByRole('heading', { name: memoryCase.title }),
-  ).toBeVisible();
-
-  const letter = page.locator('.drop-cap-letter');
-  await expect(letter).toHaveText(memoryCase.body[0]);
-
-  const [letterBox, restRect] = await Promise.all([
-    letter.boundingBox(),
-    page.locator('.memory-detail-body').evaluate((el) => {
-      // The rest of the text is a plain text node right after the letter
-      // span; measure its first character via a Range so we can compare
-      // its left edge against the drop cap's right edge.
-      const range = document.createRange();
-      const textNode = Array.from(el.childNodes).find(
-        (node) => node.nodeType === Node.TEXT_NODE,
-      );
-      if (!textNode) return null;
-      range.setStart(textNode, 0);
-      range.setEnd(textNode, 1);
-      const rect = range.getBoundingClientRect();
-      return { x: rect.x };
-    }),
-  ]);
-  if (!letterBox || !restRect) {
-    throw new Error(
-      `Drop cap or body text did not render for ${memoryCase.title}.`,
-    );
-  }
-  return { letterBox, restX: restRect.x };
-}
-
-// Desktop and mobile deliberately share the same inline drop-cap logic (see
-// MemoryProductPage.css) — only the font-size scales between them — so one
-// parametrized check covers both: the letter must stay flush against the
-// rest of its word ("Mitten", not "M itten") at every breakpoint.
-for (const viewport of [
-  { name: 'desktop 1440px', width: 1440, height: 900 },
-  { name: 'desktop 1920px', width: 1920, height: 1080 },
-  { name: 'mobile 390px', width: 390, height: 844 },
-] as const) {
-  test(`Memory Detail drop cap stays flush against the rest of its word for S/W/A/M initials (${viewport.name})`, async ({
+for (const width of [390, 1440]) {
+  test(`Memory Detail preserves complete prose at ${width}px`, async ({
     page,
   }) => {
     await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.setViewportSize(viewport);
-
-    for (const memoryCase of DROP_CAP_CASES) {
-      const { letterBox, restX } = await measureDropCapGap(page, memoryCase);
-      // The following text must start at or after the drop cap's right
-      // edge (never underneath/overlapping it), and the gap itself must
-      // read as normal inline text spacing, not the initial standing apart
-      // from the rest of its own word as a separate character.
-      const gap = restX - (letterBox.x + letterBox.width);
-      expect(gap).toBeGreaterThanOrEqual(-1);
-      expect(gap).toBeLessThanOrEqual(3);
+    await page.setViewportSize({ width, height: 900 });
+    for (const memoryCase of PROSE_CASES) {
+      await page.goto(`/story/memories/${memoryCase.id}`);
+      await expect(page.locator('.memory-detail-body')).toHaveText(
+        memoryCase.body.split(/\n\n/),
+      );
+      const initial = page.locator('.drop-cap-letter');
+      await expect(initial).toHaveCount(1);
+      await expect(initial).toHaveText(memoryCase.body[0]);
+      await expect(initial).toHaveCSS('text-transform', 'uppercase');
       await expectNoHorizontalOverflow(page);
     }
   });

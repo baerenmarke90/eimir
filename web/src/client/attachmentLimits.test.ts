@@ -33,4 +33,13 @@ describe('MAX_MEMORY_ATTACHMENTS parity with the backend (#701)', () => {
     const backendValue = Number(match[1]);
     expect(MAX_MEMORY_ATTACHMENTS).toBe(backendValue);
   });
+
+  it('also matches the published Plan create and update gallery limits', () => {
+    const contract = JSON.parse(readSource('../../../backend/openapi.json'));
+    for (const name of ['PlanCreate', 'PlanUpdate']) {
+      expect(
+        contract.components.schemas[name].properties.attachments.maxItems,
+      ).toBe(MAX_MEMORY_ATTACHMENTS);
+    }
+  });
 });

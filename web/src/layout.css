@@ -23,6 +23,18 @@
 }
 
 /*
+ * Expanded: text and list pages that would otherwise run the full content
+ * width with their copy at the leading edge sit in a centered reading column.
+ */
+@media (min-width: 840px) {
+  .page.relationship-story-page,
+  .page.m4-product-page {
+    width: min(100%, var(--reading-max));
+    margin-inline: auto;
+  }
+}
+
+/*
  * Long-form reading and single-intent editors stay in a reading column.
  * Detail bodies, creation forms, and confirmation flows use this variant.
  */
@@ -122,7 +134,7 @@
   display: grid;
   gap: var(--space-4);
   align-content: start;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 2.5vw, var(--space-6));
   background: var(--color-surface-panel);
@@ -184,6 +196,36 @@
   min-width: 0;
 }
 
+.page-heading.content-overview-heading {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page-heading.content-overview-heading > div:first-child {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+}
+
+.content-overview-heading .page-heading-title-container {
+  margin-block-end: 0;
+}
+
+.page-heading.content-overview-heading .page-heading-action {
+  display: flex;
+  flex: 1 1 8rem;
+  justify-content: flex-end;
+  width: auto;
+  min-inline-size: min(100%, 8rem);
+  max-inline-size: 100%;
+  margin-inline-start: auto;
+}
+
+.content-overview-heading .page-heading-action > * {
+  max-inline-size: 100%;
+}
+
 .page-heading h1,
 .page-heading-title-container {
   margin-bottom: var(--space-2);
@@ -206,6 +248,21 @@
   margin: 0;
 }
 
+.page-heading-has-title-action > div:first-child {
+  flex: 1;
+}
+
+.page-heading-has-title-action .page-heading-title-container {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.page-heading-has-title-action .page-heading-title-container h1 {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .page-heading > p:last-child,
 .page-heading > div > p:last-child {
   max-width: var(--reading-max);
@@ -225,12 +282,23 @@
 
 /*
  * Primary navigation destinations share one orientation rhythm. This variant
- * keeps the same PageHeader semantics while giving Momente, Planen and Mehr a
+ * keeps the same PageHeader semantics while giving all four destinations a
  * single title scale and one header-to-content spacing contract.
  */
 .page-heading-root {
+  align-items: center;
+  /* One header band for Wir, Momente, Planen and Mehr, so the title sits at the
+     same height and position whatever action or tabs follow it. */
+  min-block-size: var(--touch-target-comfortable);
   margin-bottom: var(--space-section);
   padding-bottom: 0;
+}
+
+@media (max-width: 839px) {
+  /* One taller band on Compact, shared by all root destinations. */
+  .page-heading-root {
+    min-block-size: calc(var(--touch-target-comfortable) + var(--space-1));
+  }
 }
 
 .page-heading-root .page-heading-title-container {
@@ -270,7 +338,7 @@
 .layout-metric {
   display: grid;
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface);
@@ -368,8 +436,8 @@
   }
 
   .layout-section-action,
-  .layout-section-action > .button-link,
-  .layout-section-action > button {
+  .layout-section-action > .button-link:not(.add-action),
+  .layout-section-action > button:not(.add-action) {
     width: 100%;
   }
 
@@ -381,5 +449,124 @@
   .layout-action-list > button {
     justify-content: center;
     text-align: center;
+  }
+}
+
+/*
+ * The root tabs Momente, Planen and Mehr drop their visible page
+ * title, like Wir. The bottom bar names the place and the view switch directly below
+ * names the content. The heading stays in the accessibility tree; the
+ * floating create action in the header is unaffected.
+ */
+.story-page-unified
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.planen-overview
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.more-page
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.memory-map-page
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.story-page-unified > .page-heading-root.content-overview-heading,
+.planen-overview > .page-heading-root.content-overview-heading,
+.more-page > .page-heading-root.content-overview-heading,
+.memory-map-page > .page-heading-root.content-overview-heading {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * From Expanded on, the add action sits in the Momente header instead of
+ * floating. The map view has no such action but shares the view switch, so
+ * its header reserves the same row and the switch does not jump between views.
+ */
+@media (min-width: 840px) {
+  .memory-map-page > .page-heading-root.content-overview-heading {
+    min-height: var(--touch-target-comfortable);
+  }
+}
+
+/*
+ * Momente, Planen and Mehr open with the same short rise as the
+ * modules on Wir, once per page load. The header is left out because it holds
+ * the floating create action, which must stay fixed to the viewport. The fill
+ * only covers the wait, so no transform lingers afterwards.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .page[data-root-intro] > :not(.page-heading) {
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0);
+    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) var(--root-intro-delay) backwards;
+  }
+
+  .page[data-root-intro] > :nth-child(2) {
+    --root-intro-delay: 60ms;
+  }
+
+  .page[data-root-intro] > :nth-child(3) {
+    --root-intro-delay: 120ms;
+  }
+
+  .page[data-root-intro] > :nth-child(4) {
+    --root-intro-delay: 180ms;
+  }
+
+  .page[data-root-intro] > :nth-child(5) {
+    --root-intro-delay: 240ms;
+  }
+
+  .page[data-root-intro] > :nth-child(6) {
+    --root-intro-delay: 300ms;
+  }
+
+  .page[data-root-intro] > :nth-child(7) {
+    --root-intro-delay: 360ms;
+  }
+
+  .page[data-root-intro] > :nth-child(8) {
+    --root-intro-delay: 420ms;
+  }
+
+  /*
+   * A detail page fades in instead of replacing the list abruptly. It must not
+   * move: a transformed page becomes the containing block of its fixed
+   * controls, and the composer toolbar and the add action would jump.
+   */
+  .product-main > .page {
+    animation: detail-page-open var(--duration-context) var(--easing-enter);
+  }
+}
+
+@keyframes root-tab-intro {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes detail-page-open {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }

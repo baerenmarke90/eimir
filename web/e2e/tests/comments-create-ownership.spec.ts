@@ -1,6 +1,7 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
   DETAIL_COMMENTS,
@@ -52,6 +53,10 @@ async function openJourney(
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = holdInitial
     ? []
     : DETAIL_COMMENTS.map((item) => ({ ...item }));
@@ -103,7 +108,10 @@ async function openJourney(
     },
   );
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByRole('button', { name: copy.send, exact: true }),
@@ -126,10 +134,20 @@ async function openJourney(
 
 async function compose(page: Page, body: string) {
   const panel = page.locator('.comments-panel');
-  await panel.getByRole('button', { name: copy.send, exact: true }).click();
-  const field = panel.getByRole('textbox');
+  const form = panel.locator('form.comment-form');
+  const field = form.getByRole('textbox');
+  const trigger = panel.locator('.comment-compose-trigger');
+  await expect(field.or(trigger)).toBeVisible();
+  if (await trigger.isVisible()) await trigger.click();
   await field.fill(body);
   return field;
+}
+
+async function expectSubmittedDraftCleared(page: Page) {
+  const field = page
+    .locator('.comments-panel form.comment-form')
+    .getByRole('textbox');
+  await expect(field).toHaveValue('');
 }
 
 async function accessible(page: Page) {
@@ -166,7 +184,7 @@ for (const scenario of cases) {
       state.panel.getByRole('button', { name: copy.sending }),
     ).toBeDisabled();
     state.release();
-    await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+    await expectSubmittedDraftCleared(page);
     await expect(
       state.panel.getByText('The first submitted thought.', { exact: true }),
     ).toHaveCount(1);
@@ -187,7 +205,10 @@ for (const scenario of cases) {
     await expect.poll(() => state.writes.length).toBe(1);
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
-    await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+    await page
+      .locator('#momente-diary')
+      .getByRole('link', { name: new RegExp(scenario.title) })
+      .click();
     const next = await compose(page, 'A new visit keeps its own words.');
     await expect(
       state.panel.getByRole('button', { name: copy.sending }),
@@ -243,7 +264,7 @@ for (const scenario of cases) {
     await state.panel
       .getByRole('button', { name: copy.send, exact: true })
       .click();
-    await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+    await expectSubmittedDraftCleared(page);
     await expect(
       state.panel.getByText('A new visit keeps its own words.', {
         exact: true,
@@ -254,7 +275,9 @@ for (const scenario of cases) {
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(
-      page.getByRole('link', { name: new RegExp(scenario.title) }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: new RegExp(scenario.title) }),
     ).toBeVisible();
     expect(state.unknown).toEqual([]);
   });
@@ -294,7 +317,7 @@ test('comment create replaces the pending initial read without erasing later wor
   await state.panel
     .getByRole('button', { name: copy.send, exact: true })
     .click();
-  await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+  await expectSubmittedDraftCleared(page);
   await expect(
     state.panel.getByText('Later words stay in this task.', { exact: true }),
   ).toBeVisible();

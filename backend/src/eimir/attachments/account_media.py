@@ -81,6 +81,11 @@ def adopt(session: Session, attachment: Attachment) -> bool:
     away from bytes that still exist.
     """
     origin_space_id = attachment.space_id
+    from eimir.attachments.models import PhotoLocationDraft
+
+    draft = session.get(PhotoLocationDraft, attachment.id)
+    if draft is not None:
+        session.delete(draft)
     if origin_space_id is None:
         return False
 

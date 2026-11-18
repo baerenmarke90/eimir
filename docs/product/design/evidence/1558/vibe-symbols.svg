@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+<title>Six Vibe symbols from the production component, isolated Light and Dark proof</title>
+<rect x="0" width="450" height="560" fill="#E6EBFA"/>
+<text x="28" y="38" font-family="DejaVu Sans" font-size="18" fill="#19233E">Light · production SVG geometry</text>
+<text x="28" y="66" font-family="DejaVu Sans" font-size="12" fill="#19233E">18.4 px actual size + 48 px inspection size</text>
+<text x="28" y="130" font-family="DejaVu Sans" font-size="16" fill="#19233E">Relaxed</text>
+<g transform="translate(236 115) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M7.5 10.5q1.5-2 3 0m3 0q1.5-2 3 0M8.5 14q3.5 4 7 0" />
+        </g>
+<g transform="translate(316 101) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M7.5 10.5q1.5-2 3 0m3 0q1.5-2 3 0M8.5 14q3.5 4 7 0" />
+        </g>
+<text x="28" y="200" font-family="DejaVu Sans" font-size="16" fill="#19233E">Okay</text>
+<g transform="translate(236 185) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <path d="M9 15h6" />
+        </g>
+<g transform="translate(316 171) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <path d="M9 15h6" />
+        </g>
+<text x="28" y="270" font-family="DejaVu Sans" font-size="16" fill="#19233E">Stressed</text>
+<g transform="translate(236 255) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8 9.5 2 1-2 1m8-2-2 1 2 1M8 15q1-2 2 0t2 0 2 0 2 0" />
+        </g>
+<g transform="translate(316 241) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8 9.5 2 1-2 1m8-2-2 1 2 1M8 15q1-2 2 0t2 0 2 0 2 0" />
+        </g>
+<text x="28" y="340" font-family="DejaVu Sans" font-size="16" fill="#19233E">Low</text>
+<g transform="translate(236 325) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <path d="M8.5 16q3.5-4 7 0" />
+        </g>
+<g transform="translate(316 311) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#3055B8" stroke="none" />
+          <path d="M8.5 16q3.5-4 7 0" />
+        </g>
+<text x="28" y="410" font-family="DejaVu Sans" font-size="16" fill="#19233E">Connection</text>
+<g transform="translate(236 395) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z" /></g>
+<g transform="translate(316 381) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z" /></g>
+<text x="28" y="480" font-family="DejaVu Sans" font-size="16" fill="#19233E">Quiet</text>
+<g transform="translate(236 465) scale(0.76666667)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5a8.6 8.6 0 1 0 9.7 9.7Z" /></g>
+<g transform="translate(316 451) scale(2)" fill="none" stroke="#3055B8" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5a8.6 8.6 0 1 0 9.7 9.7Z" /></g>
+<rect x="450" width="450" height="560" fill="#171B2F"/>
+<text x="478" y="38" font-family="DejaVu Sans" font-size="18" fill="#F6F7FF">Dark · production SVG geometry</text>
+<text x="478" y="66" font-family="DejaVu Sans" font-size="12" fill="#F6F7FF">18.4 px actual size + 48 px inspection size</text>
+<text x="478" y="130" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Relaxed</text>
+<g transform="translate(686 115) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M7.5 10.5q1.5-2 3 0m3 0q1.5-2 3 0M8.5 14q3.5 4 7 0" />
+        </g>
+<g transform="translate(766 101) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M7.5 10.5q1.5-2 3 0m3 0q1.5-2 3 0M8.5 14q3.5 4 7 0" />
+        </g>
+<text x="478" y="200" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Okay</text>
+<g transform="translate(686 185) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <path d="M9 15h6" />
+        </g>
+<g transform="translate(766 171) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <path d="M9 15h6" />
+        </g>
+<text x="478" y="270" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Stressed</text>
+<g transform="translate(686 255) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8 9.5 2 1-2 1m8-2-2 1 2 1M8 15q1-2 2 0t2 0 2 0 2 0" />
+        </g>
+<g transform="translate(766 241) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m8 9.5 2 1-2 1m8-2-2 1 2 1M8 15q1-2 2 0t2 0 2 0 2 0" />
+        </g>
+<text x="478" y="340" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Low</text>
+<g transform="translate(686 325) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <path d="M8.5 16q3.5-4 7 0" />
+        </g>
+<g transform="translate(766 311) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="9" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <circle cx="15" cy="10" r=".6" fill="#B7C8FF" stroke="none" />
+          <path d="M8.5 16q3.5-4 7 0" />
+        </g>
+<text x="478" y="410" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Connection</text>
+<g transform="translate(686 395) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z" /></g>
+<g transform="translate(766 381) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z" /></g>
+<text x="478" y="480" font-family="DejaVu Sans" font-size="16" fill="#F6F7FF">Quiet</text>
+<g transform="translate(686 465) scale(0.76666667)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5a8.6 8.6 0 1 0 9.7 9.7Z" /></g>
+<g transform="translate(766 451) scale(2)" fill="none" stroke="#B7C8FF" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5a8.6 8.6 0 1 0 9.7 9.7Z" /></g>
+</svg>

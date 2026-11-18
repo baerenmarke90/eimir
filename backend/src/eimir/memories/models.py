@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -26,8 +27,26 @@ from eimir.authorization import PrivacyClass, PrivateResourceMixin, ResourceAbse
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.experiences import ExperienceKind
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
 from eimir.memories.tags import MemoryTags, unique_tags
+
+
+class PhotoReaction(StrEnum):
+    LOVE = "LOVE"
+    LAUGH = "LAUGH"
+    SURPRISE = "SURPRISE"
+    SAD = "SAD"
+    CELEBRATE = "CELEBRATE"
+    LIKE = "LIKE"
+
+
+class MemoryPhotoReaction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    attachment_id: UUID
+    account_id: UUID
+    reaction: PhotoReaction
 
 
 class MemoryPayload(ProtectedPayload):
@@ -41,8 +60,24 @@ class MemoryPayload(ProtectedPayload):
     title: str
     body: str
     tags: MemoryTags = Field(default_factory=list)
+    photo_reactions: list[MemoryPhotoReaction] = Field(default_factory=list, max_length=40)
+    selected_cover_attachment_id: UUID | None = None
+    place_order: list[UUID] = Field(default_factory=list, max_length=20)
+    # Editorial daily-question key of a guided experience; protected like the
+    # question wording itself so the operator cannot see which prompt was used.
+    experience_question_id: str | None = Field(default=None, max_length=64)
 
     _unique_tags = field_validator("tags")(unique_tags)
+
+    @field_validator("photo_reactions")
+    @classmethod
+    def _unique_photo_reactions(
+        cls, values: list[MemoryPhotoReaction]
+    ) -> list[MemoryPhotoReaction]:
+        keys = [(value.attachment_id, value.account_id) for value in values]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Each account may react once per photo.")
+        return values
 
 
 class Memory(
@@ -52,15 +87,22 @@ class Memory(
     PrivateResourceMixin,
     Base,
 ):
-    """A memory readable by both active partners and editable by its author."""
+    """A memory readable and content-editable by both active partners."""
 
     __tablename__ = "memories"
+    shared_edit: ClassVar[bool] = True
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Memory not found.", "RESOURCE_NOT_FOUND"
     )
 
     happened_on: Mapped[date | None] = mapped_column(Date)
+    happened_until: Mapped[date | None] = mapped_column(Date)
+    experience_kind: Mapped[str | None] = mapped_column(String(16))
+    experience_root_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("memories.id", ondelete="SET NULL", name="fk_memories_experience_root"),
+    )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,
         nullable=False,
@@ -73,6 +115,38 @@ class Memory(
     )
 
     __table_args__ = (
+        Index("ix_memories_space_experience_root", "space_id", "experience_root_id"),
+        Index(
+            "ix_memories_ungrouped_experience",
+            "space_id",
+            postgresql_where=text("experience_kind IS NOT NULL AND experience_root_id IS NULL"),
+        ),
+        CheckConstraint(
+            "happened_until IS NULL OR (happened_on IS NOT NULL AND happened_until >= happened_on)",
+            name="memory_period_valid",
+        ),
+        CheckConstraint(
+            "experience_kind IS NULL OR experience_kind IN ("
+            + ", ".join(f"'{kind.value}'" for kind in ExperienceKind)
+            + ")",
+            name="memory_experience_kind_allowed",
+        ),
+        Index(
+            "ix_memories_space_experience_created_id",
+            "space_id",
+            "experience_kind",
+            "created_at",
+            "id",
+            postgresql_where=text("experience_kind IS NOT NULL"),
+        ),
+        Index(
+            "ix_memories_space_experience_author_created_id",
+            "space_id",
+            "owner_id",
+            "created_at",
+            "id",
+            postgresql_where=text("experience_kind IS NOT NULL"),
+        ),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # Supports the composite foreign key used by place-memory relations.
@@ -114,7 +188,7 @@ class MemoryCreateReceipt(IdMixin, Base):
     # the Memory has been deleted.
     memory_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
-        ForeignKey("memories.id", ondelete="SET NULL"),
+        ForeignKey("memories.id", ondelete="SET NULL", name="fk_memories_experience_root"),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

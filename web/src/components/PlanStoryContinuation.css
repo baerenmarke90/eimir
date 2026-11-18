@@ -1,5 +1,8 @@
 .plan-story-continuation {
   align-content: start;
+  min-inline-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 .plan-story-actions {
@@ -8,13 +11,45 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.planen-detail .planning-detail-grid > .plan-story-saved {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.plan-story-saved h2 {
+  margin: 0;
+  font: var(--font-section-heading);
+}
+
 .plan-story-actions > button {
   width: 100%;
+  min-inline-size: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-height: 48px;
 }
 
 @media (max-width: 520px) {
   .plan-story-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 24rem) {
+  .plan-story-continuation {
+    padding-inline: var(--space-3);
+  }
+
+  .plan-story-actions > button {
+    padding-inline: var(--space-2);
+  }
+
+  .plan-story-continuation.plan-completed-celebration h2 {
+    font: var(--font-section-heading);
   }
 }

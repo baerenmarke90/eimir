@@ -1,43 +1,49 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
-import { StoryOrder } from '../api/generated/models/StoryOrder';
 import {
+  type StoryPage,
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
+import { groupDiaryEntries } from '../client/diaryEntries';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import type { ReferenceApis } from '../client/referenceFlow';
-import {
-  appRoutePath,
-  STORY_YEARS_ROUTE,
-  storyYearPath,
-} from '../client/routes';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { STORY_RECAPS_ROUTE, storyYearPath } from '../client/routes';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
+  parseStoryYear,
   storyCacheResourceId,
+  storyItemKey,
   storyRequest,
-  type StoryFilters,
+  storyYearFilters,
+  storyYearsIndexRequest,
 } from '../client/storyProduct';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DestinationIcon } from './DestinationIcon';
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
+import { DiaryList } from './DiaryList';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { StoryList } from './StoryList';
-import { groupStoryItems } from './storyPresentation';
+import { TaskOriginLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import './StoryYearsPage.css';
 
-const INDEX_RESOURCE_ID = 'years:index';
-const MIN_YEAR = 1900;
-const MAX_YEAR = 2100;
+const INDEX_RESOURCE_ID = 'years:diary-v2';
 
 interface StoryYearsProps {
   apis: ReferenceApis;
@@ -47,17 +53,38 @@ interface StoryYearsProps {
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
+  startupRead?: () => Promise<StoryPage> | undefined;
 }
 
-function parseYear(raw: string | undefined): number | null {
-  if (!raw || !/^\d{4}$/.test(raw)) return null;
-  const year = Number(raw);
-  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    return null;
-  }
-  return year;
+/**
+ * #1790 E1: Mehr opens years and recaps through one destination, so the
+ * years index offers the recaps as a quiet next step instead of a second row.
+ */
+function RecapsEntry() {
+  const { t } = useTranslation();
+  const hideProMarks = useHideProFeatureMarks();
+  return (
+    <TaskOriginLink
+      to={STORY_RECAPS_ROUTE}
+      className="story-years-recaps-entry"
+    >
+      <span className="story-years-recaps-icon" aria-hidden="true">
+        <DestinationIcon icon="chapter" />
+      </span>
+      <span className="story-years-recaps-copy">
+        <span className="story-years-recaps-title">
+          <strong>{t('storyYears.recapsEntryTitle')}</strong>
+          {hideProMarks ? null : (
+            <span className="story-years-recaps-badge">{t('recaps.pro')}</span>
+          )}
+        </span>
+        <span>{t('storyYears.recapsEntryHint')}</span>
+      </span>
+      <EimirIcon name="chevron-right" className="story-years-recaps-chevron" />
+    </TaskOriginLink>
+  );
 }
 
 function EmptyYearsState() {
@@ -69,9 +96,6 @@ function EmptyYearsState() {
     >
       <h2 id="story-years-empty-title">{t('storyYears.emptyTitle')}</h2>
       <p>{t('storyYears.emptyBody')}</p>
-      <Link className="button-link secondary-link" to={appRoutePath('story')}>
-        {t('storyYears.backToMoments')}
-      </Link>
     </section>
   );
 }
@@ -80,6 +104,7 @@ export function StoryYearsIndexPage({
   apis,
   accountId,
   spaceId,
+  startupRead,
 }: StoryYearsProps) {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
@@ -94,11 +119,8 @@ export function StoryYearsIndexPage({
         kind: 'story',
         resourceId: INDEX_RESOURCE_ID,
         load: () =>
-          apis.story.getStoryTimeline({
-            spaceId,
-            order: StoryOrder.DESC,
-            limit: 1,
-          }),
+          startupRead?.() ??
+          apis.story.getStoryTimeline(storyYearsIndexRequest(spaceId)),
         serialize: StoryPageToJSON,
         deserialize: StoryPageFromJSON,
       }),
@@ -123,16 +145,9 @@ export function StoryYearsIndexPage({
 
   return (
     <div className="page page-reading story-years-page">
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('storyYears.backToMoments')}
-          </Link>
-        }
-        eyebrow={t('storyYears.eyebrow')}
-        title={t('storyYears.title')}
-        description={t('storyYears.intro')}
-      />
+      <PageHeader title={t('storyYears.title')} />
+
+      <RecapsEntry />
 
       {offline ? (
         <div className="inline-message" role="status">
@@ -159,10 +174,10 @@ export function StoryYearsIndexPage({
             const isCurrent = year === currentYear;
             return (
               <li key={year}>
-                <Link
+                <TaskOriginLink
                   to={storyYearPath(year)}
                   className={`story-year-link ${isCurrent ? 'is-current' : ''}`}
-                  aria-label={t('storyYears.openYear', { year })}
+                  ariaLabel={t('storyYears.openYear', { year })}
                 >
                   <span className="story-year-number">{year}</span>
                   <span className="story-year-copy">
@@ -177,10 +192,7 @@ export function StoryYearsIndexPage({
                         : t('storyYears.pastYearHint')}
                     </span>
                   </span>
-                  <span className="story-year-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </Link>
+                </TaskOriginLink>
               </li>
             );
           })}
@@ -196,19 +208,15 @@ export function StoryYearDetailPage({
   spaceId,
   loadMemoryImage,
   profilesApi,
+  startupRead,
 }: StoryYearsProps) {
   const { t } = useTranslation();
   const { year: yearParam } = useParams<{ year: string }>();
-  const year = parseYear(yearParam);
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  const year = parseStoryYear(yearParam);
   const currentYear = new Date().getFullYear();
-  const filters = useMemo<StoryFilters>(
-    () => ({
-      kind: null,
-      year,
-      order: StoryOrder.ASC,
-    }),
-    [year],
-  );
+  const filters = useMemo(() => storyYearFilters(year), [year]);
   const cacheResourceId = useMemo(
     () => storyCacheResourceId(filters),
     [filters],
@@ -228,6 +236,7 @@ export function StoryYearDetailPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupRead?.() ??
             apis.story.getStoryTimeline(storyRequest(spaceId, filters, null)),
           serialize: StoryPageToJSON,
           deserialize: StoryPageFromJSON,
@@ -279,24 +288,53 @@ export function StoryYearDetailPage({
   ]);
 
   const loadHeartMomentImage = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedStoryImage(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+      persist?: boolean,
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );
 
+  useTaskListReturn({
+    ready: Boolean(combinedStory),
+    busy: storyQuery.isFetching,
+    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+    canLoadMore:
+      Boolean(storyQuery.hasNextPage) && !storyQuery.isError && !offline,
+    loadMore: storyQuery.fetchNextPage,
+  });
   const items = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
   const locale = resolvedLocale();
   const monthGroups = useMemo(
-    () => groupStoryItems(items, locale),
-    [items, locale],
+    () =>
+      groupDiaryEntries(
+        items,
+        combinedStory?.chapterMarkers ?? [],
+        locale,
+        combinedStory?.chapterPeriods ?? [],
+        year,
+      ),
+    [
+      items,
+      combinedStory?.chapterMarkers,
+      combinedStory?.chapterPeriods,
+      locale,
+      year,
+    ],
   );
+  const entryCount =
+    items.length + (combinedStory?.chapterMarkers?.length ?? 0);
   const availableYears = combinedStory?.availableYears ?? [];
   const isAvailable = year !== null && availableYears.includes(year);
   const title =
@@ -313,12 +351,6 @@ export function StoryYearDetailPage({
   return (
     <div className="page page-reading story-year-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
-        }
-        eyebrow={t('storyYears.eyebrow')}
         title={title}
         description={description}
         className="story-year-header"
@@ -331,9 +363,6 @@ export function StoryYearDetailPage({
         >
           <h2 id="story-year-invalid-title">{t('storyYears.invalidTitle')}</h2>
           <p>{t('storyYears.invalidBody')}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
         </section>
       ) : null}
 
@@ -352,7 +381,11 @@ export function StoryYearDetailPage({
         />
       ) : null}
 
-      {year !== null && combinedStory && !isAvailable && items.length === 0 ? (
+      {year !== null &&
+      combinedStory &&
+      !isAvailable &&
+      entryCount === 0 &&
+      monthGroups.length === 0 ? (
         <section
           className="story-years-empty"
           aria-labelledby="story-year-unavailable-title"
@@ -361,13 +394,10 @@ export function StoryYearDetailPage({
             {t('storyYears.unavailableTitle')}
           </h2>
           <p>{t('storyYears.unavailableBody', { year })}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
         </section>
       ) : null}
 
-      {year !== null && items.length > 0 ? (
+      {year !== null && monthGroups.length > 0 ? (
         <div className="story-year-months">
           {monthGroups.map((group) => (
             <section
@@ -378,8 +408,51 @@ export function StoryYearDetailPage({
               <header className="story-year-month-header">
                 <h2 id={`story-year-month-${group.key}`}>{group.label}</h2>
               </header>
-              <StoryList
-                items={group.items}
+              <DiaryChapterPeriods
+                chapters={group.periods}
+                month={group.key}
+                loadedPageCount={storyQuery.data?.pages.length ?? 1}
+              />
+              <DiaryList
+                entries={group.entries}
+                onOpenChapter={(event, chapter, to) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin({
+                    selectedKey: `chapter-${chapter.id}`,
+                    selectedOffset:
+                      event.currentTarget.getBoundingClientRect().top,
+                    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+                  });
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(to, { state: { taskOriginKey } });
+                }}
+                onOpenItem={(event, item, to) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin({
+                    selectedKey: storyItemKey(item),
+                    selectedOffset:
+                      event.currentTarget.getBoundingClientRect().top,
+                    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+                  });
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(to, { state: { taskOriginKey } });
+                }}
                 loadMemoryImage={loadMemoryImage}
                 loadHeartMomentImage={loadHeartMomentImage}
                 profilesApi={profilesApi}
@@ -391,16 +464,15 @@ export function StoryYearDetailPage({
 
           {storyQuery.hasNextPage ? (
             <div className="story-year-pagination">
-              <button
-                type="button"
+              <AutoLoadMore
+                query={storyQuery}
                 className="secondary"
-                onClick={() => void storyQuery.fetchNextPage()}
-                disabled={storyQuery.isFetchingNextPage}
+                blocked={storyQuery.isFetchingNextPage}
               >
                 {storyQuery.isFetchingNextPage
                   ? t('storyYears.loadingMore')
                   : t('storyYears.loadMore')}
-              </button>
+              </AutoLoadMore>
             </div>
           ) : null}
         </div>

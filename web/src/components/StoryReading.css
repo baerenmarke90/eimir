@@ -1,0 +1,24 @@
+.story-reading {
+  inline-size: 100%;
+  max-inline-size: var(--reading-max);
+  margin-inline: auto;
+  min-inline-size: 0;
+}
+
+.story-reading .product-detail-card {
+  gap: var(--space-5);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.story-reading :is(.memory-detail-body, .heart-moment-detail-text) {
+  inline-size: 100%;
+  max-inline-size: 60ch;
+  margin: 0;
+  font: var(--font-reading-body);
+  line-height: 1.65;
+}

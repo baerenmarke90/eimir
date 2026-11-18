@@ -180,6 +180,22 @@ class TestLifecycle:
 
 
 class TestFailClosed:
+    def test_camera_mpo_primary_becomes_ready_as_jpeg(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        buffer = io.BytesIO()
+        Image.new("RGB", (32, 24), "red").save(
+            buffer, "MPO", save_all=True, append_images=[Image.new("RGB", (16, 12), "blue")]
+        )
+        _, attachment_id = upload_and_finalize(client, couple, data=buffer.getvalue())
+        attachment = process_attachment(session, attachment_id)
+        assert attachment.status == AttachmentStatus.READY.value
+        assert attachment.mime_type == "image/jpeg"
+        assert (attachment.width, attachment.height) == (32, 24)
+        assert attachment.has_thumbnail
+        detail = client.get(
+            f"{path(couple['space'].id)}/{attachment_id}", headers=auth(couple["token_a"])
+        )
+        assert detail.json()["failureCode"] is None
+
     def test_video_is_rejected_until_video_slice(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         "M2-D23: the contract allows video, but this delivery slice does not."
         response = client.post(
@@ -215,6 +231,11 @@ class TestFailClosed:
         assert attachment.status == AttachmentStatus.FAILED.value
         assert attachment.failure_code is not None
         assert attachment.ready_at is None
+        failed = client.get(
+            f"{path(couple['space'].id)}/{attachment_id}", headers=auth(couple["token_a"])
+        )
+        assert failed.json()["failureCode"] == attachment.failure_code
+        assert failed.json()["failureCode"].startswith("IMAGE_")
 
     def test_png_declared_as_jpeg_fails(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
         buffer = io.BytesIO()

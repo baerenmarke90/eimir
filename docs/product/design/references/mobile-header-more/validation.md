@@ -1,0 +1,48 @@
+# Mobile header / More validation
+
+Runtime source: `0d2e147b73c3eefd434a861c92821c09bd946d43`, based on main `f35f82dbab2465fe337850a1e8db147f4eb3942a`. [Source hashes](source-sha256.json) identify the runtime and browser-case files. Generated composition and exact prompt were published in #1507 before UI implementation.
+
+## Completed checks
+
+- Full Web test command: **2,259 passed, 2 existing skips**, 246 passing files and 2 skipped files. Token/PWA checks pass.
+- Production build: passed, including TypeScript. Existing dependency module-directive and bundle-size warnings remain.
+- Final source's dedicated browser suite: **5 passed** without retries. It covers More discovery and search, authoritative unread count, failed then successful mark-all, Light/Dark/Expanded, 320px at 200% text, reduced motion, safe-area consumption, Story return, authorized administration, real sign-out and reload.
+- Separate introduction and partner-account replacement browser cases: **2 passed** without retries.
+- Related run: 15 individual passes covering the changed root navigation/heading/surface contracts, pending sign-out ownership, private create/save followed by real sign-out at 390/1280px, and shell accessibility in Light/Dark. That runner ended with SIGTERM before its final quote case; the remaining quote case is included in the completed two-case run above. This is not a claim that the complete browser regression ran.
+- Browser inventory and whitespace checks pass. Component coverage also verifies current-user fallback, conditional administrator access, shared unread projection and safe logout callback.
+
+Early failures identified duplicate responsive Back controls and stale header/sign-out test expectations. Back now renders once inside the detail page at every width; the complete final Web run passes. Multi-route shell tests navigate through actual primary links rather than repeatedly rebuilding the document. Final dedicated browser checks were run after the last runtime source commit.
+
+## Visual evidence
+
+- [390px Light, unread](evidence/more-390-light-unread.png), [read](evidence/more-390-light-read.png)
+- [360px Light](evidence/more-360-light.png), [390px Dark](evidence/more-390-dark.png), [430px Light](evidence/more-430-light.png)
+- [320px Dark at 200% text](evidence/more-320-dark-large-text.png)
+- [Expanded Light](evidence/more-1280-light.png), [Expanded Dark](evidence/more-1280-dark.png)
+- [Compact footer / account actions](evidence/more-footer-390-dark.png)
+- [Contextual Story return](evidence/memory-390-headerless-return.png)
+- [Today without global header](evidence/01-today-without-global-header.png), [demo-banner adaptation](evidence/02-today-shared-surface-with-demo-banner.png)
+
+The light grouped surfaces were explicitly selected by the Product Owner after reviewing the generated reference. Dark uses existing raised-surface tokens. Axe checks cover More and the active primary navigation; keyboard/focus, growing rows, footer reachability and horizontal reflow are exercised by the browser cases.
+
+## Limits and isolation
+
+Browser API fixtures use fictional identities and exercise the real React product and session cleanup. Top/bottom safe-area values are simulated; no physical handset/native-wrapper acceptance is claimed. No wrapper, backend, database, entitlement or deployment configuration changed.
+
+All work used `/tmp/eimir-mobile-header-more`, branch `fix/mobile-header-more`, copied dependencies and explicit strict preview ports. The shared working checkout and other chats' source changes were not edited. An interrupted runner's identified orphaned preview was stopped; no unrelated processes were targeted. Publication is a reviewable PR, not a production deployment or merge.
+
+## Merge follow-up: native modal background target
+
+The retained F2 native-modality proof now uses the real bottom More link rather than the retired header brand. It still cycles keyboard focus, rejects programmatic focus behind the native dialog, clicks the background navigation destination through the backdrop, and requires the complete original URL to stay unchanged. An explicit geometry assertion proves the click is outside the floating sheet. The focused Chromium case passes without retries. This is a test compatibility repair; runtime sources remain unchanged.
+
+## Merge follow-up: anchored photo privacy controls
+
+The headerless layout exposed a retained preview-centering failure: the global button hover lift applied `matrix(1, 0, 0, 1, 0, -1)` to an otherwise centered privacy control. The unchanged strict <1px center assertion failed twice on the original 390px Dark case; explicit hover reproduces the same cause. Scope hover/active transforms to `none` for the anchored preview control only; existing overlay background feedback remains. The browser proof now deliberately hovers and attaches actual frame/target/transform geometry before keeping the original center, size, privacy, focus and navigation assertions. All four 360/390/430/1280px Light/Dark cases pass without retries. The 47 focused privacy/preview/shell tests also pass.
+
+## Merge follow-up: stable game-entry hit areas
+
+The retained perspective keyboard/contrast round trip exposed an actual hover loop after changing from Compact to Expanded. A 100-frame geometry capture alternated the same game entry between y=543.46875px with a -1px hover transform and y=544.46875px without hover; no animation or scrolling was active. At the rounded edge, the global lift repeatedly moved the target out from under the pointer. Keep game-entry button transforms fixed for hover/press, retaining the existing border/shadow feedback. The browser test explicitly hovers and requires the hit area to remain anchored before its original start, contrast, focus, keyboard return and fresh-session checks. All 12 perspective cases pass without retries, including Light/Dark Back at 320/360/390/430/1280px and 200% text; all six game-component tests pass.
+
+## Integration of concurrent main changes
+
+Integrated main `f4ea8e40` after #1503 merged, retaining its four isolated CI runners and existing test synchronization repairs. The only conflicting account-quote test keeps the new More sign-out entry and also waits for main's document-navigation cleanup before signing in again. All three focused combined-source checks pass: Compact/short/200% shell reflow, Daily Quote composition, and partner-account quote isolation. All 12 photo-place checks pass without retries. Browser inventory validates 72 specs (640 baseline tests; 454 PR-critical baseline tests). No other chat checkout was edited.

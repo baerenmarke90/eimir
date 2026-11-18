@@ -19,6 +19,9 @@ from eimir.authorization import (
 )
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.outbox import service as outbox_service
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.reminders.models import (
     Reminder,
@@ -235,6 +238,28 @@ def create_reminder(
     _replace_offsets(session, reminder, normalized_offsets)
     _flush(session)
     reminder_runtime.reconcile_reminder(session, reminder.id)
+    outbox_service.record(
+        session,
+        DomainEvent(
+            type=EventType.REMINDER_CREATED,
+            space_id=context.space_id,
+            actor_id=context.account_id,
+            subject_type="REMINDER",
+            subject_id=reminder.id,
+            resource_version=reminder.version,
+            payload=PublicEventPayload(
+                recipient_id=session.scalar(
+                    select(Membership.account_id)
+                    .where(
+                        Membership.space_id == context.space_id,
+                        Membership.account_id != context.account_id,
+                        Membership.status == MembershipStatus.ACTIVE.value,
+                    )
+                    .limit(1)
+                )
+            ),
+        ),
+    )
     return ReminderView(reminder=reminder, offsets=normalized_offsets, muted=False)
 
 

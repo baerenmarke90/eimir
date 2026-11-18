@@ -40,11 +40,36 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | ordinary state transition | `motion.duration.standard` | 180 ms | `--duration-transition` |
 | spatial/contextual enter | `motion.duration.emphasized` | 280 ms | `--duration-context` |
 | normal upper guardrail | `motion.duration.maximum` | 320 ms | no default alias; not a routine duration |
+| explicit map camera journey | `motion.duration.mapCamera` | 1100 ms | `--duration-map-camera` |
+| map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
+| overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
+| one beat of a staged opening sequence (#1861) | `motion.duration.sequenceBeat` | 200 ms | `--duration-sequence-beat` |
+| one item flying across the screen between a sheet or avatar and its badge or target: the own check-in values into the own badge, the partner's shared day into the partner badge, a sent gesture to the partner avatar | `motion.duration.sendFlight` | 560 ms | `--duration-send-flight` |
+| one expressive beat of a partner gesture, received (#455) or landing after it was sent | `motion.duration.gestureMoment` | 900 ms | `--duration-gesture-moment` |
+| the whole one-shot partner gesture choreography (#455) | `motion.duration.gestureSequence` | 1800 ms | `--duration-gesture-sequence` |
+| the map connection drawing in between the partner avatars (#1907 H1) | `motion.duration.connectionDraw` | 700 ms | `--duration-connection-draw` |
+| one heartbeat of the nearby map connection (#1907 H1) | `motion.duration.connectionBeat` | 450 ms | `--duration-connection-beat` |
+| one round trip of the glow on a regional map connection (#1907 H1) | `motion.duration.connectionTravel` | 3200 ms | `--duration-connection-travel` |
+| one round trip of the glow on a far map connection (#1907 H1) | `motion.duration.connectionTravelFar` | 6000 ms | `--duration-connection-travel-far` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |
+| a decorative point travelling between two ends and back (#1907 H1) | `motion.easing.travel` | 0.45, 0, 0.55, 1 | `--easing-travel` |
 
 The 320 ms token is a guardrail, not a fourth default speed. Continuous loading indicators may have a longer visual cycle when the cycle itself does not delay interaction or state and is removed for reduced motion.
+
+The PO's 2026-11-09 map correction deliberately uses longer, map-specific
+durations: camera travel and the existing photo stack need time to convey their
+spatial relationship. These are interruptible presentation durations, never a
+delay before filtering, navigation or publication. Reduced motion remains
+immediate. Do not apply these roles to ordinary controls, sheets or routes.
+
+The Product Owner approved the partner map connection (#1907 H1, 2026-11-15)
+as a decorative, self-ending motion: the arc draws in once, the glow makes
+three round trips and then rests, and a longer trip expresses a greater
+distance. It never delays interaction and is absent with reduced motion.
+
+The Product Owner approved the flights of the own check-in and its siblings (Dein Tag send, the partner's shared day arriving on Wir, a gesture flying to the partner avatar; 2026-11-16/17). The own check-in send flight (Dein Tag): after "Fertig", the chosen feeling, the battery and the note fly together to the own avatar badge while the sheet closes. 560 ms is a deliberate departure from the 320 ms guardrail because the items cross the screen from the sheet to the badge; the flight is presentation only (it never delays saving, closing or the next action, and a failed save returns the item instead), and it is absent with reduced motion.
 
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 

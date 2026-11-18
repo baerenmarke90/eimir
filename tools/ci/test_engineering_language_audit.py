@@ -17,6 +17,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/capacitor-cordova-android-plugins/build.gradle",
             "web/e2e/fixtures/locales/de.ts",
             "web/src/api/generated/models/index.ts",
+            "web/public/offline-language.js",
+            "web/public/webview-unsupported.js",
+            "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
         for handwritten in (
@@ -26,6 +29,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/app/src/main/res/values/strings.xml",
             "web/e2e/fixtures/product-reference-foundations.tsx",
             "web/e2e/tests/product-reference-foundations.spec.ts",
+            "backend/src/eimir/i18n/__init__.py",
+            "backend/src/eimir/i18n/locales/runtime.py",
+            "web/public/other-language.js",
         ):
             self.assertFalse(_is_excluded_platform_path(Path(handwritten)), handwritten)
 
@@ -76,6 +82,72 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(check_file(path), [])
+
+    def test_contextual_push_copy_does_not_exempt_surrounding_engineering_prose(
+        self,
+    ) -> None:
+        for suffix, product_copy in (
+            (
+                ".json",
+                '"de": "Dein Video konnte nicht verarbeitet werden."',
+            ),
+            (
+                ".xml",
+                '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_title">Video wird hochgeladen</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>',
+            ),
+            (
+                ".json",
+                '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
+            ),
+            (
+                ".xml",
+                '<string name="push_gentle_writing">Wenn du magst: Halte einen Moment fest.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_proposed">%1$s schlägt einen Termin vor</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_countered">%1$s schlägt einen anderen Termin vor</string>',
+            ),
+            (
+                ".java",
+                'assertEquals("Alex hat die Erinnerung „Einkaufen“ erstellt.", body);',
+            ),
+            (
+                ".tsx",
+                "screen.getByRole('button', { name: 'Zurück zu den Benachrichtigungen' });",
+            ),
+        ):
+            with (
+                self.subTest(suffix=suffix),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / f"example{suffix}"
+                path.write_text(product_copy + "\n", encoding="utf-8")
+                self.assertEqual(check_file(path), [])
+                path.write_text(
+                    product_copy + "\n// Die Entscheidung wird im Client getroffen.\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(len(check_file(path)), 1)
 
     def test_common_english_article_is_not_a_german_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -201,6 +273,10 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
         for logical_path in (
+            Path("docs/product/design/1661-wir-wording-proposal.md"),
+            Path("docs/product/integrations/1467-google-enablement-design.md"),
+            Path("docs/design/eimir/565-fcm/evidence/review-results.json"),
+            Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"),
             Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),
             Path("docs/product/design/references/508/plan-completion-generation.md"),
             Path("docs/product/design/references/508/wish-completion-generation.md"),

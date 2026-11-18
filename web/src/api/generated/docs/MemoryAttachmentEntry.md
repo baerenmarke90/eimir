@@ -7,7 +7,9 @@
 Name | Type
 ------------ | -------------
 `attachmentId` | string
+`isSensitive` | boolean
 `position` | number
+`replacesAttachmentId` | string
 
 ## Example
 
@@ -17,7 +19,9 @@ import type { MemoryAttachmentEntry } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachmentId": null,
+  "isSensitive": null,
   "position": null,
+  "replacesAttachmentId": null,
 } satisfies MemoryAttachmentEntry
 
 console.log(example)

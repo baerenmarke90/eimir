@@ -19,6 +19,10 @@ import {
 import { normalizeClientError } from '../client/problemDetails';
 import { clearProductReadCache } from '../client/productReadCache';
 import { clearStoredSession } from '../client/sessionPersistence';
+import {
+  releaseEditorHistoryForDocumentNavigation,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
@@ -82,6 +86,9 @@ export function AccountSettingsPanel({
       }
     },
     onSuccess: async () => {
+      // The dialog's history entry must not run a Back that competes with
+      // the document navigation that follows.
+      await releaseEditorHistoryForDocumentNavigation();
       setStep(null);
       setConfirmation('');
       setPassword('');
@@ -155,6 +162,15 @@ export function AccountSettingsPanel({
     recentAuthenticationMutation.reset();
   }
 
+  // System Back closes the dialog like Cancel; it stays while work is pending.
+  const releaseDialog = useEditorHistoryEntry({
+    isActive: step !== null,
+    isDirty: false,
+    isCloseBlocked: busy,
+    onClose: () => closeDialog(),
+    onDiscardRequested: () => closeDialog(),
+  });
+
   function closeDialog() {
     if (busy) return;
     setStep(null);
@@ -165,12 +181,16 @@ export function AccountSettingsPanel({
 
   function goToDataExport() {
     if (busy) return;
-    closeDialog();
-    if (onOpenDataExport) {
-      onOpenDataExport();
-      return;
-    }
-    window.location.hash = 'settings-data';
+    // Release the dialog's history entry first so its Back cannot undo the
+    // navigation to the data export.
+    releaseDialog(() => {
+      closeDialog();
+      if (onOpenDataExport) {
+        onOpenDataExport();
+        return;
+      }
+      window.location.hash = 'settings-data';
+    });
   }
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -219,14 +239,11 @@ export function AccountSettingsPanel({
         className="form-card account-settings-panel"
         aria-labelledby="account-settings-title"
       >
-        <p className="eyebrow">{t('accountSettings.title')}</p>
-        <h3 id="account-settings-title">{t('accountSettings.title')}</h3>
-        <p>{t('accountSettings.intro')}</p>
-
         <div className="account-danger-zone">
           <div className="account-danger-copy">
-            <p className="eyebrow">{t('accountSettings.dangerEyebrow')}</p>
-            <h4>{t('accountSettings.dangerTitle')}</h4>
+            <h3 id="account-settings-title">
+              {t('accountSettings.dangerTitle')}
+            </h3>
             <p>{t('accountSettings.dangerIntro')}</p>
           </div>
 

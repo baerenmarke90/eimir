@@ -1,7 +1,7 @@
 /* Brand, icon and navigation composition for the selected #1225 identity. */
 .brand-mark {
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 0.9rem;
   background: var(--color-surface-raised);
   box-shadow: 0 4px 16px var(--color-shadow-soft);
@@ -48,7 +48,6 @@
 .shell-nav-icon svg.eimir-icon {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.65;
 }
 .shell-nav-link-active .shell-nav-icon {
   color: var(--color-brand-text);

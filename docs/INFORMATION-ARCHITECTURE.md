@@ -62,10 +62,9 @@ their route IDs are not.
 
 - **Android app:** renders the Web shell below (Capacitor wrapper). The retired Compose client's at-every-size Bottom Navigation is recorded in the historical
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
-- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with icon and text label.
+- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Web persistent header:** global utilities and the current-user account
-  affordance live top-right rather than consuming primary navigation slots.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation; the 2026-11-14 Product Owner correction removed the cross-area create shortcut from the browser header. On Expanded, the Planen column and the Planen/Momente view switches are centered like the diary reading column. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 
@@ -99,8 +98,9 @@ eimir.
 │   │   └── media and notes
 │   └── Einkauf (later, feature-controlled)
 └── Mehr
+    ├── Unser Jahr (annual shared history; canonical route `/story/years`)
     ├── Spielen (relationship-native games; canonical route `/games`)
-    ├── Menschen (related people and important dates)
+    ├── Menschen (shared people and their profiles)
     ├── Orte (shared places and destinations)
     ├── Gemeinsame Listen (collections)
     ├── Für mich (owner-only area)
@@ -109,13 +109,14 @@ eimir.
     ├── data export and account deletion
     └── help, legal, and app information
 
-Web persistent utilities / account tree
-├── Search
-├── Notifications
-└── Avatar / Profil
-    ├── Profil
-    ├── Aktivität
-    └── centralized settings
+More utilities / account group
+├── Search (global scope)
+├── Current-user avatar, name and Profile
+├── Notifications (unread count; dot on More)
+├── Activity and centralized settings
+├── Server administration (authorized operators only)
+├── Sign out
+└── eimir. brand footer
 ```
 
 The utility/account tree is not an additional primary-navigation level. Its
@@ -162,42 +163,40 @@ Links. IDs are opaque, stable identifiers.
 | Planen hub | `/plan` |
 | Wishes | `/plan/wishes` |
 | Open wish | `/plan/wishes/:wishId` |
+| Discover date ideas (Pro, from Wishes) | `/plan/ideas` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
+| Open an authorized reminder | `/plan/reminders/:reminderId` |
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |
+| eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
 | Collections (Mehr) | `/plan/collections` |
 | Open collection | `/plan/collections/:collectionId` |
 | Space and partner | `/more/space` |
-| Related people and important dates | `/more/people` |
+| Shared people and profiles | `/more/people` |
+| Important dates and derived birthdays | `/plan#dates` |
 | Owner-only area (Für mich) | `/more/private` |
 | Privacy | `/more/privacy` |
 | Notifications | `/more/notifications` |
 | Profile | `/more/profile` |
 | Settings | `/more/settings` |
 | Data and account | `/more/data-account` |
+| Terms of use (public, no session; linked in the More footer on eimir. Cloud) | `/legal/terms` |
 | Search | `/search` |
 
-### Web utility and account placement
+### Utility and account placement
 
-Search, Notifications, Profile and Activity are **not** left-primary
-destinations.
+The [2026-10-29 Product Owner decision](product/design/mobile-header-more.md), tracked in #1507, replaces the earlier header utilities/account tree:
 
-- Search is a global utility reachable through an icon-only magnifying-glass
-  control in the top-right Web header and opens `/search`.
-- Notifications is a global utility reachable through an icon-only bell in the
-  top-right Web header and opens `/more/notifications`.
-- The current-user avatar/profile affordance is top-right and uses the profile
-  photo or deterministic initials fallback from the centralized profile
-  identity model. It opens the personal account tree.
-- Profile (`/more/profile`) and Activity (`/today/activity`) are entries inside
-  that account tree. Their route placement remains stable for compatibility and
-  domain ownership; shell placement does not redefine the route.
-- Search, Notifications, Profile and Activity must not be duplicated as
-  standalone left-primary entries.
+- Below 840 px there is no persistent global header. Content consumes the safe top inset once; contextual Back/Close remains available on task/detail pages.
+- More begins with a full-width labelled global-search entry opening `/search`, followed by the current user's authoritative avatar/name and a named Profile link.
+- Notifications opens `/more/notifications`. Its row shows the authoritative unread count. A static dot on More, with an accessible unread label, remains until read state changes; entering More alone does not mark anything read.
+- Profile, Activity, Settings, capability-gated Server Administration and the existing safe sign-out action are named More destinations/actions. The existing brand is placed quietly in its footer.
+- Expanded retains the horizontal primary navigation and creation action. Utility/account destinations have the same More home on both sizes.
+- Search and Notifications do not acquire extra primary-navigation slots. Search and Activity highlight More, and the shell Back of Activity falls back to More when no originating context is known (#1907 A2). Activity keeps its Today domain ownership and canonical `/today/activity` path; all canonical paths remain compatible.
 
 ### Signed-in landing and Deep-Link return
 
@@ -239,10 +238,7 @@ On small windows, detail replaces the list. On large windows, the list remains
 visible and selected content appears beside it. Back state must survive window
 size changes.
 
-On responsive Web layouts, the header utilities remain reachable through an
-equivalent compact header/account pattern. They are not pushed back into primary
-navigation to solve space constraints. Interactive header targets remain at
-least 44 CSS pixels and preserve keyboard focus order and accessible names.
+More provides the same named utility/account destinations at every width. Compact/Medium has no global header and keeps its bottom navigation; Expanded retains top navigation. Utility entries and contextual return controls preserve at least 44 CSS pixel targets, keyboard focus order and accessible names.
 
 ## 7. Naming and language
 
@@ -294,6 +290,14 @@ or `SPACE_SHARED`. `public` is not a valid value.
 - Switching primary navigation does not create stacked detail history.
 - Opening a Web utility/account destination keeps its canonical history entry;
   closing an account popover itself does not create history.
+
+The 2026-11-03 PO follow-up (#1616) places the existing annual shared-history
+entry under More as **Unser Jahr**. The canonical `/story/years` and year-detail
+routes keep their Story meaning. The Diary uses its existing month/filter
+control instead of a separate browse strip. Shared Photos and Chapters remain
+reachable under More alongside the annual archive. Plans expose **Offen / Erlebt**;
+past uncompleted intentions stay Open, while Experienced contains completed
+Plans only. Wishes retain **Offen / Erfüllt** and the same scope interaction.
 
 ## 10. Open product decisions
 

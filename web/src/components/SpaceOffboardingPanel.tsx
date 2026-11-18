@@ -4,6 +4,10 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { normalizeClientError } from '../client/problemDetails';
 import { clearProductReadCache } from '../client/productReadCache';
 import { loadStoredSession, storeSession } from '../client/sessionPersistence';
+import {
+  releaseEditorHistoryForDocumentNavigation,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
@@ -46,6 +50,9 @@ export function SpaceOffboardingPanel({
       }
     },
     onSuccess: async () => {
+      // The dialog's history entry must not run a Back that competes with
+      // the document navigation that follows.
+      await releaseEditorHistoryForDocumentNavigation();
       setStep(null);
       setConfirmation('');
 
@@ -76,6 +83,15 @@ export function SpaceOffboardingPanel({
     initialFocusRef: cancelButtonRef,
   });
 
+  // System Back closes the dialog like Cancel; it stays while work is pending.
+  const releaseDialog = useEditorHistoryEntry({
+    isActive: step !== null,
+    isDirty: false,
+    isCloseBlocked: mutation.isPending,
+    onClose: () => closeDialog(),
+    onDiscardRequested: () => closeDialog(),
+  });
+
   function closeDialog() {
     if (mutation.isPending) return;
     setStep(null);
@@ -85,12 +101,16 @@ export function SpaceOffboardingPanel({
 
   function goToDataExport() {
     if (mutation.isPending) return;
-    closeDialog();
-    if (onOpenDataExport) {
-      onOpenDataExport();
-      return;
-    }
-    window.location.hash = 'settings-data';
+    // Release the dialog's history entry first so its Back cannot undo the
+    // navigation to the data export.
+    releaseDialog(() => {
+      closeDialog();
+      if (onOpenDataExport) {
+        onOpenDataExport();
+        return;
+      }
+      window.location.hash = 'settings-data';
+    });
   }
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -119,7 +139,6 @@ export function SpaceOffboardingPanel({
         aria-labelledby="space-offboarding-title"
       >
         <div className="space-offboarding-copy">
-          <p className="eyebrow">{t('spaceOffboarding.eyebrow')}</p>
           <h3 id="space-offboarding-title">{t('spaceOffboarding.title')}</h3>
           <p>{t('spaceOffboarding.intro')}</p>
         </div>

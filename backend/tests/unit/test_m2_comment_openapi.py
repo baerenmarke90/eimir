@@ -5,6 +5,8 @@ from __future__ import annotations
 from eimir.main import create_app
 
 COMMENT_OPERATIONS = {
+    ("post", "/api/v1/spaces/{spaceId}/plans/{planId}/comments"): "createPlanComment",
+    ("get", "/api/v1/spaces/{spaceId}/plans/{planId}/comments"): "listPlanComments",
     ("post", "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments"): "createMemoryComment",
     ("get", "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments"): "listMemoryComments",
     (

@@ -1,15 +1,26 @@
 
 # PlanUpdate
 
-Domain correction without changing lifecycle status.  Schedule fields remain owned by ``/schedule`` and ``/unschedule``. ``experiencedOn`` is the one exception: it may be corrected on a completed Plan without reopening it (M3-D04).
+Atomic content, image and optional schedule correction.  Explicit null ``schedule`` removes the date; omission preserves it. ``experiencedOn`` is the one exception: it may be corrected on a completed Plan without reopening it (M3-D04).
 
 ## Properties
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
+`coverAttachmentId` | string
+`coverIsSensitive` | boolean
 `description` | string
+`discreet` | boolean
+`discreetTitleMode` | [DiscreetTitleMode](DiscreetTitleMode.md)
 `experiencedOn` | Date
+`fileAttachmentChanges` | [PlanFileChanges](PlanFileChanges.md)
 `placeId` | string
+`previewTitle` | string
+`schedule` | [PlanSchedule](PlanSchedule.md)
+`selectedCoverAttachmentId` | string
+`tags` | Array&lt;string&gt;
 `title` | string
 
 ## Example
@@ -19,9 +30,20 @@ import type { PlanUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
+  "attachments": null,
+  "coverAttachmentId": null,
+  "coverIsSensitive": null,
   "description": null,
+  "discreet": null,
+  "discreetTitleMode": null,
   "experiencedOn": null,
+  "fileAttachmentChanges": null,
   "placeId": null,
+  "previewTitle": null,
+  "schedule": null,
+  "selectedCoverAttachmentId": null,
+  "tags": null,
   "title": null,
 } satisfies PlanUpdate
 

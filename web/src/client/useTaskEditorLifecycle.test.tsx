@@ -118,6 +118,30 @@ describe('useTaskEditorLifecycle', () => {
     expect(options().isCloseBlocked).toBe(true);
   });
 
+  it('retains a requested destination through discard and clears it when keeping the draft', () => {
+    const destination = vi.fn();
+    const { result } = renderHook(() =>
+      useTaskEditorLifecycle({ isDirty: true, onClose: vi.fn() }),
+    );
+    act(() => result.current.requestClose(destination));
+    expect(history.close).not.toHaveBeenCalled();
+    expect(destination).not.toHaveBeenCalled();
+    act(() => result.current.closeConfirmed());
+    const complete = history.close.mock.calls[0][0];
+    expect(typeof complete).toBe('function');
+    act(() => complete());
+    expect(destination).toHaveBeenCalledTimes(1);
+
+    history.close.mockClear();
+    destination.mockClear();
+    act(() => result.current.requestClose(destination));
+    act(() => result.current.keepEditing());
+    act(() => result.current.requestClose());
+    act(() => result.current.closeConfirmed());
+    expect(history.close).toHaveBeenLastCalledWith(undefined);
+    expect(destination).not.toHaveBeenCalled();
+  });
+
   it('registers beforeunload only while dirty or blocked and removes it on cleanup', () => {
     const { rerender, unmount } = renderHook(
       ({ dirty, blocked }) =>

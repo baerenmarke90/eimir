@@ -22,6 +22,8 @@ export type AppRouteIcon =
   | 'people'
   | 'places'
   | 'collections'
+  | 'notes'
+  | 'media'
   | 'chapter'
   | 'birthday'
   | 'private'
@@ -39,7 +41,11 @@ export interface AppRouteDefinition {
   icon: AppRouteIcon;
   /** False where the destination owns sub-routes and must stay active in them. */
   end: boolean;
+  /** Peer views share the primary surface without a secondary-page boundary. */
+  peerPaths?: readonly string[];
 }
+
+export const MEMORY_MAP_ROUTE = '/story/map';
 
 /** Stable top-level route registry. Primary shell destinations are derived below. */
 export const APP_ROUTES = [
@@ -53,6 +59,7 @@ export const APP_ROUTES = [
   {
     id: 'story',
     path: '/story',
+    peerPaths: [MEMORY_MAP_ROUTE],
     labelKey: 'navigation.story',
     icon: 'story',
     end: false,
@@ -86,6 +93,33 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
 );
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
+export const WISH_SELECTION_ROUTE = '/plan/choose';
+/** Pro date inspiration (#1892); a Planning subpage, not a Wish detail path. */
+export const DATE_IDEAS_ROUTE = '/plan/ideas';
+
+/** Safe direct-entry fallback; existing task origins take precedence. */
+export function subpageParentPath(pathname: string): string {
+  const path = pathname.replace(/\/$/, '');
+  if (/^\/plan\/chapters\/(?:new|[^/]+)$/.test(path)) return '/story/chapters';
+  if (/^\/plan\/places\/(?:new|[^/]+)$/.test(path)) return '/more/places';
+  if (/^\/plan\/collections\/(?:new|[^/]+)$/.test(path))
+    return '/more/collections';
+  if (
+    /^\/story\/(?:memories|heart-moments|milestones)\/(?:new|[^/]+)$/.test(path)
+  )
+    return '/story';
+  if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
+    return '/plan';
+  // Date inspiration belongs to the Wishes peer mode of Planning.
+  if (path === DATE_IDEAS_ROUTE) return '/plan#wishes';
+  if (path.startsWith('/today/only-you')) return '/today';
+  // Activity is a More destination with a Today-owned path (#1907 A2).
+  if (path === ACTIVITY_ROUTE) return '/more';
+  if (path === '/search' || path === '/games' || path === '/server-admin')
+    return '/more';
+  const parent = path.slice(0, path.lastIndexOf('/'));
+  return parent || '/more';
+}
 
 export function appRoutePath(id: AppRouteId): string {
   const route = APP_ROUTES.find((candidate) => candidate.id === id);
@@ -95,30 +129,64 @@ export function appRoutePath(id: AppRouteId): string {
 
 /* Secondary destinations ------------------------------------------------- */
 
-/** A global utility rather than an area; reachable from the Web app bar. */
+/** Global search keeps its canonical path and is discovered under More. */
 export const SEARCH_ROUTE = '/search';
 
 /**
- * Stable Activity route. The Web shell exposes it from the personal account
- * tree; route placement remains under `today` for Deep-Link compatibility and
- * domain ownership.
+ * Stable Activity route. More is its home: it highlights More and its shell
+ * Back falls back to More (#1907 A2). Route placement remains under `today`
+ * for Deep-Link compatibility and domain ownership.
  */
 export const ACTIVITY_ROUTE = '/today/activity';
 
 export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
-/** Existing surface; the Web shell exposes it as the header bell utility. */
+export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
+/** Shared Notes (#1969): free text both partners read and edit. */
+export const MORE_NOTES_ROUTE = '/more/notes';
+export const NOTE_CREATE_ROUTE = '/more/notes/new';
+export const NOTE_DETAIL_ROUTE_PATTERN = '/more/notes/:noteId';
+export const NOTE_EDIT_ROUTE_PATTERN = '/more/notes/:noteId/edit';
+/** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
-/** Existing surface; the Web shell exposes it through the avatar/account tree. */
+/** Named profile destination in the More account group. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
+export const PRO_INFORMATION_ROUTE = `${MORE_SETTINGS_ROUTE}/account#eimir-pro`;
+/** Shared eimir. Pro paywall; the context only selects copy, never access. */
+export const PRO_PAYWALL_ROUTE = '/more/pro';
+export const PRO_PAYWALL_CONTEXTS = [
+  'dateIdeas',
+  'recaps',
+  'memoryMap',
+  'photoSources',
+  'calendar',
+  'games',
+  'general',
+] as const;
+export type ProPaywallContext = (typeof PRO_PAYWALL_CONTEXTS)[number];
+
+export function proPaywallPath(context: ProPaywallContext = 'general'): string {
+  return context === 'general'
+    ? PRO_PAYWALL_ROUTE
+    : `${PRO_PAYWALL_ROUTE}?context=${context}`;
+}
+
+export function proPaywallContext(search: string): ProPaywallContext {
+  const value = new URLSearchParams(search).get('context');
+  return PRO_PAYWALL_CONTEXTS.find((context) => context === value) ?? 'general';
+}
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',
+  'shared',
   'notifications',
   'today',
+  'memories',
   'appearance',
+  'media',
+  'calendar',
   'data',
   'account',
 ] as const;
@@ -129,12 +197,22 @@ export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:set
 
 export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
+  shared: `${MORE_SETTINGS_ROUTE}/shared`,
   notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
   today: `${MORE_SETTINGS_ROUTE}/today`,
+  memories: `${MORE_SETTINGS_ROUTE}/memories`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
+  media: `${MORE_SETTINGS_ROUTE}/media`,
+  calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
 } as const satisfies Record<SettingsCategoryId, string>;
+
+/** Settings › Relationship › Location & distance (#1792). */
+export const PARTNER_LOCATION_SETTINGS_ROUTE = `${SETTINGS_CATEGORY_ROUTES.relationship}/location`;
+
+/** The dedicated "where we are" map task, reached from the Wir distance (#1792). */
+export const PARTNER_LOCATION_MAP_ROUTE = '/today/where-we-are';
 
 export function isSettingsCategoryId(
   value: string | undefined,
@@ -171,17 +249,40 @@ export const MORE_PRIVATE_ROUTE = '/more/private';
  */
 export const SERVER_ADMIN_ROUTE = '/server-admin';
 
+/** Public, login-free reading page for the eimir. Cloud terms of use. */
+export const LEGAL_TERMS_ROUTE = '/legal/terms';
+/** Public, login-free reading page for the eimir. Cloud privacy policy. */
+export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
+
 /* Games content ---------------------------------------------------------- */
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
 export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
+export const GAMES_GARDEN_ROUTE = '/games/garden';
+export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
+export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
 
 /* Story content ---------------------------------------------------------- */
 
 export const STORY_CHAPTERS_ROUTE = '/story/chapters';
 export const STORY_YEARS_ROUTE = '/story/years';
 export const STORY_PHOTOS_ROUTE = '/story/photos';
+export const HAPPINESS_ROUTE = '/story/happiness';
+export const TIME_TRAVEL_ROUTE = '/story/time-travel';
 export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
+/**
+ * Automatic relationship recaps live under Momente so that tab stays active; More
+ * and Wir link to the same library. The former More addresses are rewritten.
+ */
+export const STORY_RECAPS_ROUTE = '/story/recaps';
+/** The couple's own story overview as a page of its own. */
+export const STORY_OURS_ROUTE = '/story/our-story';
+export const RECAP_DETAIL_ROUTE_PATTERN = `${STORY_RECAPS_ROUTE}/:recapId`;
+export function recapDetailPath(recapId: string): string {
+  return `${STORY_RECAPS_ROUTE}/${encodeURIComponent(recapId)}`;
+}
+/** Former home of the library and reader, kept as a legacy rewrite. */
+export const MORE_PASSPORT_ROUTE = '/more/passport';
 export const MEMORY_CREATE_ROUTE = '/story/memories/new';
 export const MEMORY_DETAIL_ROUTE_PATTERN = '/story/memories/:memoryId';
 export const MEMORY_EDIT_ROUTE_PATTERN = '/story/memories/:memoryId/edit';
@@ -201,6 +302,7 @@ export const CHAPTER_DETAIL_ROUTE_PATTERN = '/plan/chapters/:chapterId';
 
 export const WISH_DETAIL_ROUTE_PATTERN = '/plan/wishes/:wishId';
 export const PLAN_DETAIL_ROUTE_PATTERN = '/plan/plans/:planId';
+export const REMINDER_DETAIL_ROUTE_PATTERN = '/plan/reminders/:reminderId';
 export const WISH_CREATE_ROUTE = '/plan/wishes/new';
 export const PLAN_CREATE_ROUTE = '/plan/plans/new';
 
@@ -230,7 +332,14 @@ export const LEGACY_ROUTE_REWRITES = [
   { from: '/memory', to: '/story/memories' },
   { from: '/heart-moment', to: '/story/heart-moments' },
   { from: '/milestone', to: '/story/milestones' },
-] as const satisfies readonly { from: string; to: string }[];
+  // The bare address held the story overview, which has its own page again;
+  // everything below it was a recap reader link and still opens that recap.
+  {
+    from: MORE_PASSPORT_ROUTE,
+    to: STORY_RECAPS_ROUTE,
+    exact: STORY_OURS_ROUTE,
+  },
+] as const satisfies readonly { from: string; to: string; exact?: string }[];
 
 /**
  * Rewrites a legacy path, or returns null when the path is already current.
@@ -238,8 +347,9 @@ export const LEGACY_ROUTE_REWRITES = [
  * mistaken for the `/memory` prefix.
  */
 export function rewriteLegacyPath(pathname: string): string | null {
-  for (const { from, to } of LEGACY_ROUTE_REWRITES) {
-    if (pathname === from) return to;
+  for (const rule of LEGACY_ROUTE_REWRITES) {
+    const { from, to } = rule;
+    if (pathname === from) return 'exact' in rule ? rule.exact : to;
     if (pathname.startsWith(`${from}/`)) {
       return to + pathname.slice(from.length);
     }
@@ -254,6 +364,7 @@ export function rewriteLegacyPath(pathname: string): string | null {
  * while keeping existing deep links stable without URL migrations.
  */
 export function activeNavigationArea(pathname: string): AppRouteId | null {
+  if (pathname === SEARCH_ROUTE || pathname === ACTIVITY_ROUTE) return 'more';
   if (pathname === '/today' || pathname.startsWith('/today/')) return 'today';
   if (
     pathname === '/story' ||
@@ -315,6 +426,29 @@ export function planDetailPath(planId: string): string {
   return `/plan/plans/${encodeURIComponent(planId)}`;
 }
 
+/** Resolve the unpadded, URL-safe Base64 UUID written into synced events. */
+export function planPathFromCalendarLink(pathname: string): string | null {
+  const shortId = /^\/p\/([A-Za-z0-9_-]{22})\/?$/.exec(pathname)?.[1];
+  if (!shortId) return null;
+
+  const bytes = atob(shortId.replaceAll('-', '+').replaceAll('_', '/'));
+  const hex = Array.from(bytes, (byte) =>
+    byte.charCodeAt(0).toString(16).padStart(2, '0'),
+  ).join('');
+  const planId = [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
+  return planDetailPath(planId);
+}
+
+export function reminderDetailPath(reminderId: string): string {
+  return `/plan/reminders/${encodeURIComponent(reminderId)}`;
+}
+
 export function placeDetailPath(placeId: string): string {
   return `/plan/places/${encodeURIComponent(placeId)}`;
 }
@@ -325,6 +459,14 @@ export function chapterDetailPath(chapterId: string): string {
 
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
+}
+
+export function sharedNoteDetailPath(noteId: string): string {
+  return `${MORE_NOTES_ROUTE}/${encodeURIComponent(noteId)}`;
+}
+
+export function sharedNoteEditPath(noteId: string): string {
+  return `${sharedNoteDetailPath(noteId)}/edit`;
 }
 
 /**

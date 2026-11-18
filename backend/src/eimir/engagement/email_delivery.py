@@ -16,13 +16,15 @@ from eimir.core import clock
 from eimir.db.session import unit_of_work
 from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import EmailDelivery, EmailDeliveryStatus, Notification
+from eimir.i18n import account_locale
 from eimir.identity import effects as account_effects
 from eimir.identity.models import AccountEmail
 from eimir.jobs import queue
 from eimir.jobs.errors import DeferredJobError
 from eimir.jobs.worker import registry
-from eimir.mail import MailMessage, MailSender, MailTransportError, MailUnavailableError
+from eimir.mail import MailSender, MailTransportError, MailUnavailableError
 from eimir.mail import sender as configured_mail_sender
+from eimir.mail.account_mail import notification_mail
 from eimir.relationship import configuration as space_configuration
 
 JOB_KIND = "notification-email-delivery"
@@ -292,10 +294,14 @@ def _send_claimed(
         return None
 
     settings = get_settings()
-    subject, body = _neutral_message(accounts[recipient_id].locale, settings.public_base_url)
+    message = notification_mail(
+        to=address,
+        locale=account_locale(accounts[recipient_id]),
+        app_url=settings.public_base_url,
+    )
     try:
         sender = mail if mail is not None else configured_mail_sender()
-        sender.send(MailMessage(to=address, subject=subject, body=body))
+        sender.send(message)
     except (MailTransportError, MailUnavailableError):
         # SMTP acceptance is ambiguous on transport errors: never retry it.
         _finish(delivery, EmailDeliveryStatus.FAILED, "EMAIL_TRANSPORT_FAILED")
@@ -360,14 +366,6 @@ def _digest_superseded(
         .limit(1)
     ).scalar_one_or_none()
     return latest != delivery.id
-
-
-def _neutral_message(locale: str, base_url: str) -> tuple[str, str]:
-    """The generic external presentation reveals no event kind or partner."""
-    url = base_url.rstrip("/")
-    if locale.lower().startswith("de"):
-        return "Neues bei eimir.", f"Bei euch gibt es etwas Neues.\n\nIn eimir. öffnen: {url}"
-    return "Something new in eimir.", f"There is something new for you.\n\nOpen eimir.: {url}"
 
 
 def _finish(delivery: EmailDelivery, status: EmailDeliveryStatus, code: str | None = None) -> None:

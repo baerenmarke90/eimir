@@ -21,6 +21,7 @@ class MemoryStory:
     days_ago: int | None
     asset_ids: tuple[str, ...]
     calendar_years_ago: int | None = None
+    tags: tuple[str, ...] = ()
 
     def date_at(self, reference_date: date) -> date:
         """Preserve true annual anniversaries rather than assuming 365 days."""
@@ -48,7 +49,7 @@ class ChapterStory:
 
     title: str
     description: str
-    start_days_ago: int
+    start_days_ago: int | None
     end_days_ago: int | None
     memory_keys: tuple[str, ...]
     place: DemoPlace | None = None
@@ -78,6 +79,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         days_ago=None,
         calendar_years_ago=1,
         asset_ids=("memory-lake",),
+        tags=("Am See", "Gemeinsame Zeit"),
     ),
     MemoryStory(
         key="breakfast-saarbruecken",
@@ -89,6 +91,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         ),
         days_ago=196,
         asset_ids=("memory-breakfast",),
+        tags=("Frühstück", "Unterwegs"),
     ),
     MemoryStory(
         key="lake-walk",
@@ -97,6 +100,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         body="Eine ruhige Runde am Wasser. Am Ende sind wir doch länger geblieben als geplant.",
         days_ago=173,
         asset_ids=("memory-lake",),
+        tags=("Am See", "Spaziergang"),
     ),
     MemoryStory(
         key="ravioli-evening",
@@ -108,6 +112,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         ),
         days_ago=151,
         asset_ids=("memory-ravioli",),
+        tags=("Kochen", "Zuhause"),
     ),
     MemoryStory(
         key="trier-weekend",
@@ -119,6 +124,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         ),
         days_ago=132,
         asset_ids=("memory-trier",),
+        tags=("Reisen", "Wochenende"),
     ),
     MemoryStory(
         key="movie-night",
@@ -146,6 +152,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         body="Brot, Obst, viel zu viel Käse und endlich ein Nachmittag ohne irgendeinen Termin.",
         days_ago=61,
         asset_ids=("memory-picnic",),
+        tags=("Draußen", "Picknick"),
     ),
     MemoryStory(
         key="day-trip",
@@ -167,6 +174,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         ),
         days_ago=28,
         asset_ids=("memory-concert",),
+        tags=("Musik", "Erlebnisse"),
     ),
     MemoryStory(
         key="weekend-water",
@@ -199,6 +207,7 @@ MEMORIES: tuple[MemoryStory, ...] = (
         body="Kaffee, frische Brötchen und zehn Minuten länger sitzen geblieben als vernünftig.",
         days_ago=1,
         asset_ids=(),
+        tags=("Zuhause", "Alltag"),
     ),
 )
 
@@ -249,5 +258,21 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         end_days_ago=5,
         memory_keys=("lake-walk", "picnic", "day-trip", "weekend-water", "rain-walk"),
         place="lake",
+    ),
+    ChapterStory(
+        title="Abende ohne Uhr",
+        description=(
+            "Kochen, einen Film aussuchen und einfach zusammen bleiben, ohne auf die Uhr zu sehen."
+        ),
+        start_days_ago=None,
+        end_days_ago=None,
+        memory_keys=("ravioli-evening", "movie-night"),
+    ),
+    ChapterStory(
+        title="Unser Anfang",
+        description="Die ersten gemeinsamen Abende, bevor aus zwei Wohnungen ein Zuhause wurde.",
+        start_days_ago=None,
+        end_days_ago=730,
+        memory_keys=("first-evening-together",),
     ),
 )

@@ -79,3 +79,13 @@ claim public signer continuity, a real account login, or physical-device/OEM
 launcher acceptance. Android 28/36 hosted instrumentation runs provide the
 additional legacy/atomic switching regression gate; their live results are on
 PR #1372.
+
+## 2026-10-26 installed-device negative acceptance
+
+The owner supplied a home-screen image where the Lavender choice renders as
+a small rounded poster tile inside Android's own round mask. This supersedes
+any general all-variant visual-acceptance inference from the previous emulator
+captures. The shared adaptive-foreground sizing is corrected for all eleven
+choices on a separate source PR. This evidence report records the regression
+and retains the earlier captures under their original build identities; it
+does not claim revised physical-device acceptance.

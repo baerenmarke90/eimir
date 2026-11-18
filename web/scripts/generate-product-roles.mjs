@@ -58,6 +58,50 @@ function typography(name, source, familyName = 'ui', weight) {
   declare(`tracking-${name}`, type.letterSpacing);
 }
 
+typography('media-caption', 'mediaCaption');
+typography('story-summary', 'storySummary', 'display');
+typography('story-total', 'storyTotal', 'display');
+typography('story-category', 'storyCategory');
+for (const [name, role] of [
+  ['media-mosaic-gap', 'mediaMosaicGap'],
+  ['story-summary-inset', 'storySummaryInset'],
+  ['story-category-gap', 'storyCategoryGap'],
+  ['story-bar-gap', 'storyBarGap'],
+  ['story-lifeline-dot', 'storyLifelineDot'],
+  ['story-lifeline-step', 'storyLifelineStep'],
+  ['story-lifeline-band', 'storyLifelineBand'],
+  ['story-lifeline-preview-media', 'storyLifelinePreviewMedia'],
+  ['story-lifeline-row-media', 'storyLifelineRowMedia'],
+])
+  declare(`space-${name}`, rem(`spacing.${role}`));
+declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);
+declare(
+  'opacity-story-chip-fill-active',
+  `${value('storyChip.activeFillOpacity') * 100}%`,
+);
+const storyColors = [
+  ['memory', 'storyMemory'],
+  ['heart-moment', 'storyHeartMoment'],
+  ['milestone', 'storyMilestone'],
+  ['surface', 'storySurface'],
+  // Discover Fotostory: note slides and stamp keepsakes sit on paper.
+  ['paper', 'storyPaper'],
+  ['paper-line', 'storyPaperLine'],
+];
+function storyColorDeclarations(scheme, indent = '  ') {
+  return storyColors
+    .map(
+      ([name, role]) =>
+        `${indent}--color-story-${name}: ${value(`color.scheme.${scheme}.${role}`).toLowerCase()};`,
+    )
+    .join('\n');
+}
+for (const [name, role] of storyColors) {
+  declare(
+    `color-story-${name}`,
+    value(`color.scheme.light.${role}`).toLowerCase(),
+  );
+}
 typography('page-heading', 'heading1', 'display');
 typography(
   'personal-heading',
@@ -65,26 +109,130 @@ typography(
   'display',
   value('font.weight.semibold'),
 );
+typography('subpage-title', 'heading2', 'display', value('font.weight.bold'));
 typography('content-heading', 'heading3', 'display');
 typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
+typography('memory-detail-heading', 'memoryDetailHeading');
 typography('section-heading', 'heading3');
 typography('reading-body', 'body');
+typography('composer-title', 'composerTitle', 'display');
+typography('composer-lead', 'composerLead', 'display');
+typography('composer-prose', 'composerProse');
+typography('composer-context', 'composerContext');
+for (const [name, source] of Object.entries({
+  'composer-detail-media-height': 'detailMediaHeight',
+  'composer-media-height': 'mediaHeight',
+  'composer-media-compact-height': 'mediaCompactHeight',
+  'composer-thumbnail-size': 'thumbnailSize',
+  'composer-intake-height': 'intakeHeight',
+}))
+  declare(name, rem(`composer.${source}`));
 typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
+typography(
+  'add-action-label',
+  'bodySmall',
+  'ui',
+  value('font.weight.semibold'),
+);
 
+for (const role of [
+  'surface',
+  'surfaceHover',
+  'edge',
+  'foreground',
+  'backdropBlur',
+]) {
+  const name = role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
+}
+
+for (const mark of ['white', 'black', 'rose', 'blue', 'yellow'])
+  declare(`photo-mark-${mark}`, value(`photoMark.${mark}`).toLowerCase());
+
+declare(
+  'navigation-surface-opacity',
+  `${value('navigationGlass.surfaceOpacity') * 100}%`,
+);
+declare('navigation-backdrop-blur', value('navigationGlass.backdropBlur'));
+// CSS function lists wrap between functions, matching the repository formatter.
+const mapFilterLines = ['  --map-dark-tile-filter:'];
+for (const part of value('mapAppearance.darkTileFilter').split(' ')) {
+  const last = mapFilterLines.length - 1;
+  if (`${mapFilterLines[last]} ${part};`.length > 80) {
+    mapFilterLines.push(`    ${part}`);
+  } else mapFilterLines[last] += ` ${part}`;
+}
+declarations.push(`${mapFilterLines.join('\n')};`);
+declare('map-paper-tile-filter', value('mapAppearance.paperTileFilter'));
+
+declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
+declare('radius-floating-create', value('radius.large'));
+declare('border-surface-width', value('border.surfaceFrame'));
+declare('border-control-width', value('border.controlFrame'));
+declare('border-authored-width', value('border.authoredFrame'));
+declare('border-divider-width', value('border.hairline'));
+declare('composer-max', value('layout.composerMax'));
+declare('touch-target-web', value('size.touchTarget.webMinimum'));
+declare('touch-target-comfortable', value('size.control.comfortable'));
+declare(
+  'touch-target-floating-create',
+  value('size.touchTarget.floatingCreate'),
+);
+declare('icon-size-standard', value('size.icon.standard'));
+declare('icon-size-large', value('size.icon.large'));
+declare('add-action-icon', value('size.icon.medium'));
+declare('media-action-icon', value('size.icon.medium'));
+declare('media-action-inset', value('spacing.2'));
 declare('space-content-group', rem('spacing.3'));
 declare('space-section', rem('spacing.8'));
 declare('page-gutter-narrow', value('layout.mobileGutterNarrow'));
 declare('page-gutter-comfortable', value('layout.mobileGutter'));
 declare('page-gutter', 'var(--page-gutter-narrow)');
 declare('duration-feedback', value('motion.duration.fast'));
+declare('control-pressed-scale', value('motion.feedback.pressedScale'));
+declare(
+  'control-pressed-scale-emphasis',
+  value('motion.feedback.emphasizedPressedScale'),
+);
+declare(
+  'control-pressed-brightness',
+  value('motion.feedback.pressedBrightness'),
+);
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
-for (const role of ['standard', 'enter', 'exit']) {
+declare('duration-map-camera', value('motion.duration.mapCamera'));
+declare('duration-map-stack', value('motion.duration.mapStack'));
+declare('duration-controls-return', value('motion.duration.controlsReturn'));
+declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+declare('duration-send-flight', value('motion.duration.sendFlight'));
+declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
+declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
+declare('duration-connection-draw', value('motion.duration.connectionDraw'));
+declare('duration-connection-beat', value('motion.duration.connectionBeat'));
+declare(
+  'duration-connection-travel',
+  value('motion.duration.connectionTravel'),
+);
+declare(
+  'duration-connection-travel-far',
+  value('motion.duration.connectionTravelFar'),
+);
+// Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
+declare('duration-story-slide', value('motion.duration.storySlide'));
+declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
+for (const role of [
+  'standard',
+  'enter',
+  'exit',
+  'playback',
+  'travel',
+  'settle',
+]) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,
@@ -101,6 +249,26 @@ const comfortableMin = px('layout.breakpoint.compactComfortableMin');
 const lightLink = value('color.scheme.light.link').toLowerCase();
 const darkLink = value('color.scheme.dark.link').toLowerCase();
 declare('color-link-text', lightLink);
+declare(
+  'color-action-primary',
+  value('color.scheme.light.brandStrong').toLowerCase(),
+);
+declare(
+  'color-on-action-primary',
+  value('color.scheme.light.onAccent').toLowerCase(),
+);
+declare(
+  'color-action-emphasis',
+  value('color.scheme.light.actionEmphasis').toLowerCase(),
+);
+declare(
+  'color-on-action-emphasis',
+  value('color.scheme.light.onActionEmphasis').toLowerCase(),
+);
+declare(
+  'memory-detail-background',
+  value('color.scheme.light.memoryDetailBackground').toLowerCase(),
+);
 
 const css = `/* Generated by scripts/generate-product-roles.mjs from design/tokens.json.
  * Do not edit. Run npm run tokens:generate after changing the source.
@@ -111,12 +279,24 @@ ${declarations.join('\n')}
 }
 
 :root[data-theme="dark"] {
+${storyColorDeclarations('dark')}
   --color-link-text: ${darkLink};
+  --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
+  --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+  --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+  --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
+  --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+${storyColorDeclarations('dark', '    ')}
     --color-link-text: ${darkLink};
+    --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
+    --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+    --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+    --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
+    --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
   }
 }
 
@@ -146,6 +326,25 @@ ${declarations.join('\n')}
     --duration-feedback: ${value('motion.duration.instant')};
     --duration-transition: ${value('motion.duration.instant')};
     --duration-context: ${value('motion.duration.instant')};
+    --duration-map-camera: ${value('motion.duration.instant')};
+    --duration-map-stack: ${value('motion.duration.instant')};
+    --duration-controls-return: ${value('motion.duration.instant')};
+    --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-send-flight: ${value('motion.duration.instant')};
+    --duration-gesture-moment: ${value('motion.duration.instant')};
+    --duration-gesture-sequence: ${value('motion.duration.instant')};
+    --duration-connection-draw: ${value('motion.duration.instant')};
+    --duration-connection-beat: ${value('motion.duration.instant')};
+    --duration-connection-travel: ${value('motion.duration.instant')};
+    --duration-connection-travel-far: ${value('motion.duration.instant')};
+    --duration-story-ken-burns: ${value('motion.duration.instant')};
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border-surface-width: ${value('border.hairline')};
+    --border-control-width: ${value('border.hairline')};
   }
 }
 `;

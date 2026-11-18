@@ -348,23 +348,101 @@ The canonical dataset is created through normal domain services and currently in
 - shared self-profile preferences for Lea and Alex;
 - private partner notes for both owners;
 - shared and owner-only RelatedPerson / ImportantDate examples;
-- Memories with and without curated local stock photos;
-- shared and owner-only HeartMoments;
+- Memories with and without curated local stock photos, including human-authored context
+  tags (for example, `Frühstück`, `Am See`, and `Kochen`);
+- shared and owner-only HeartMoments with distinct authored tags;
 - Milestones and Comments;
 - Wishes in OPEN, PLANNED, and COMPLETED states;
 - Plans in IDEA, PLANNED, and COMPLETED states, including scheduled examples;
-- Places used by the canonical planning and Chapter examples;
+- Places used by the canonical planning and Chapter examples, including a coordinate-bearing
+  café and deliberately coordinate-free lake;
+- manual Place-to-Memory links for the café breakfast and lake walk (not invented photo GPS);
 - Chapters, including Place-linked content;
 - shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
-- recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
-  and Mutual Reveal enabled so the current privacy interaction is demonstrable;
+- recent Daily Check-in history for both personas with Vibe and Energy/Battery values and intentional gaps,
+  shown with the immediate visibility that new Spaces get by default (#1790);
 - a recent completed shared Plan so completion/achievement surfaces have current content;
 - independent PrivateNote, GiftIdea, and PrivateCollection content for both Accounts;
 - Search-visible shared/private material;
 - Activity and in-app Notification projections;
 - generated M4-C Reminder examples for ImportantDate, birthday, relationship anniversary, and
   planned Plan rules;
-- one manual Reminder plus recipient-specific mute/rule-preference examples.
+- one manual Reminder plus recipient-specific mute/rule-preference examples;
+- recent-feature examples from `backend/src/eimir/demo/feature_examples.py` (see below).
+
+### Recent-feature examples
+
+A new canonical Space and every reset also receive examples for features that
+the original scenario predates. They use ordinary domain services and are
+relative to the reference date:
+
+| Feature | Canonical content |
+| --- | --- |
+| Occasion marks on Moments (#1907 F2) | Both personas have a birthday (Lea's is a few weeks ahead, Alex's a few weeks back). One Memory falls on the last relationship anniversary, one on Alex's last birthday. |
+| Partner distance and map connection on Wir (#1907 H1) | Both personas share distance and map indefinitely with a fictional position in two neighboring cities. A viewer's own distance still needs that viewer's device position and permission; the seed never fabricates it. The partner snapshot ages like any other and is refreshed by the next reset. |
+| Shopping lists (#1808) | One shopping list with a finished earlier trip (so suggestions exist), open entries from both personas and two entries already in the cart. |
+| Multi-day date-only Plans (#1895) | One Plan from a Friday two to three weeks after the reference date through the Sunday. |
+| Date proposal from a Wish (#1911) | Alex proposes a Saturday-morning date for one of his open Wishes; Lea has not answered. The proposal always lies in the future, also for a past reference date. |
+
+Like the story relations, these examples are not backfilled by `ensure`.
+
+These authored tags and Place relations are seeded only for a new canonical Space or
+an intentional reset. The idempotent `ensure` operation never overwrites visitor-edited
+Memories or backfills new story relations. Updating the Demo images alone therefore does
+not immediately add these examples to an existing Space; the next scheduled or explicit
+canonical reset does.
+
+### November device-review and Chapter coverage (#1645)
+
+The operator's recorded pre-update source is `52d2eeda39f11d430d01676de93ebe11c92a6567`.
+The comparison through `0d0ab5f809b61059a862fa2bd97d414684d449e1` contains the delivered
+#1634/#1637 device-review work and #1635/#1636 Chapter experience. Use the following
+coverage map after building the updated images and intentionally resetting the Demo.
+It describes fictional content in ordinary product views, not a separate Demo UI.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Memory links to Plans and Wishes | The spontaneous day-trip Memory links to its completed Plan and Wish; the lake-walk Memory links to the future autumn-hike Plan and Wish; the ravioli evening links to the new-recipe idea. The movie-night Memory remains unlinked. Links never copy or complete sources. |
+| Chapter reader and diary markers | The five original, overlapping dated Chapters retain their explicit Memory links. A new unhurried-evenings Chapter is undated; a new relationship-beginnings Chapter has only an end date. All seven Chapters have authored words and linked content. Only the five authored starts contribute diary markers; neither an end-only nor an undated Chapter invents a diary position/year. |
+| Learned context tags | Existing shared Memory and HeartMoment labels populate ordinary suggestions immediately, including repeated lake/home themes. Lea's private surprise label remains absent for Alex. No generated proposal rows are fabricated; optional local inference uses its ordinary configured worker. |
+| Own and partner comments | The lake-walk Memory has a two-person exchange, so either persona can compare their own contextual actions with the partner's comment alignment. |
+| Alphabetical Places and lifecycle scopes | Four active Places (the mill, cafe, park and lake) and an archived cinema exercise distinct Active/Archived/All results. Names are fictional; new Places have no invented GPS. |
+| Discover, photo layout and removed manual renewal | Existing mixed photo/text Memories, single/multi-image content and untagged examples remain. The ordinary daily authorized Discover selection and reading flow own composition and safe rotation. |
+| Automatic list loading and retained browsing | The same canonical records are used by existing paginated views. Integration acceptance reads real diary and Place projections across small pages, without multiplying filler content or creating a second pagination mechanism. Device/browser acceptance still owns scrolling, offline retention and return behavior. |
+| Native dates, Plan labels and HeartMoment field order | Existing scheduled Plans, complete/open Chapter periods, dated Memories and the shared/private HeartMoments populate the actual forms. Field interaction and keyboard/large-text behavior are client acceptance, not seeded state. |
+| Notification onboarding and Small Invitations | Explicit real visitor/device consent remains required. The seed never enables personal prompt consent or fabricates a registered push device. |
+| System time zone | The current device supplies its actual IANA zone through the normal foreground/resume path. Fictional calendar dates are not shifted to manufacture a demo. |
+| Shared-experience and monthly invitation expiry | Existing fictional source history remains available. The ordinary source/period, entitlement, sharing and receipt rules decide whether an invitation exists. The seed does not invent a partner's current contribution or label an old month as the current month. |
+| Video upload progress and recovery | Requires a real supported short video, the ordinary `media.video_upload` grant and an available operator processor. The seed does not bypass those boundaries, pretend an upload succeeded or enable processing infrastructure. Existing curated photos are unchanged. |
+
+### Integration after #1643 and #1644
+
+The dependency integration baseline is main `107c9db7ac7d9e8bf38aea54311fc9a633b51e01`,
+which contains the regular merges of #1643 and #1644. Neither dependency changes
+the canonical seed or its domain service signatures.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Shared-experience question and full authored answer (#1643) | Visitors can author a guided experience through the normal flow, retaining its title/question and body. No guided-experience entry is pre-seeded. Current source authorization, sharing, expiry and receipt rules decide whether Today presents an incoming experience; do not fabricate a current partner contribution. |
+| Secondary-page Back control and date presentation (#1643) | Existing Memory, Plan, Wish, Chapter and Place records populate the normal detail/editor routes. Browser/native acceptance owns guarded return, retained origin and date typography; no additional seed state is necessary. |
+| Complete native contextual push content (#1644) | The two-person lake comment exchange provides ordinary authored comment sources. A real visitor must register their own device and consent through the normal flow before new actions can generate eligible notifications. Historical seeded comments are not replayed to manufacture previews. Public redaction, encrypted-preview version negotiation, Quiet Hours and source authorization remain normal product behavior. |
+
+No new push endpoint, preview key, personal consent, notification receipt or generated
+AI proposal is seeded for these capabilities. The additive push-preview metadata
+migration runs through the normal migration chain before Demo initialization.
+The existing typed links, source content and curated photos already cover the
+remaining dependency presentation changes.
+
+Both public personas use the same authorized relations, diary and Place read services.
+The regression suite verifies private-label exclusion, typed planning links, source
+retention after unlink, non-destructive ensure, and canonical reset restoration.
+These new examples appear only on a new canonical creation or intentional reset;
+redeploying or running `ensure` must not restore a link that a visitor removed.
+
+For the existing public instance, run the reset in the **`eimir-demo`** Compose project
+after both application images have been updated, using its existing project directory,
+environment and volumes. The independent test instance is outside this lifecycle.
+No repository merge by itself updates a running Demo or proves physical-device acceptance.
 
 The canonical demo ships a hash-pinned set of curated real stock photos under
 `backend/demo_assets/`. They are imported locally through upload registration, normal MediaStore
@@ -395,7 +473,7 @@ The runtime image copies `demo_assets` explicitly and validates it during image 
 
 Reset first validates the local catalog, then detaches all demo bindings and purges every attachment provider object before replacing the verified demo Space. The same local asset ids are re-imported in the same deterministic order, so repeated resets do not accumulate duplicate or orphaned media.
 
-The five album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
+The seven album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
 
 ### Maintainer flow for a new image
 
@@ -424,22 +502,18 @@ exceptions.
 
 ## Freemium / entitlement behavior
 
-The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
-continues to use the same entitlement model as for ordinary users.
+The entitlement service records a space-scoped `TEST_FIXTURE` grant named `canonical-demo-pro`.
+Both Lea and Alex receive the current Pro capability catalog through the same tenant-scoped
+endpoint and server-side checks as any other Pro Space. Self-Hosted filters out the Cloud-only
+storage quota. Operational prerequisites such as a configured provider or media worker, platform
+availability and each person's consent still apply. Daily Quote uses distinct personal preferences
+for both personas through the ordinary preference service.
 
-The canonical dataset records purpose-scoped normalized `TEST_FIXTURE` grants through the ordinary
-entitlement service. One grant exposes `games.couple` for Couple Games; a second exposes
-`daily.insights` and `daily.quote` for the implemented Today Pro capability boundary. The Daily
-Quote preferences are deterministic for both personas and use the same entitlement and preference
-contracts as ordinary Accounts.
-
-All fixture grants are evaluated through the same tenant-scoped entitlement endpoint and server-side
-capability checks as ordinary grants. Production forbids creating `TEST_FIXTURE` grants and excludes
-restored fixture grants from effective Production entitlement evaluation.
-
-Curated media, richer seed content, and reset behavior do not themselves change paywall,
-storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use
-the authoritative capability/entitlement model rather than a client-side or Demo-only bypass.
+After updating the Demo backend image, run `demo-init` to grant Pro to the existing canonical
+Space in place. The normal scheduled reset also grants Pro when it creates the next Space.
+The earlier, narrower test grants are removed with the old Space during that reset.
+Production forbids creating `TEST_FIXTURE` grants and excludes restored fixtures from its
+entitlement evaluation.
 
 ## Practical QA loop
 

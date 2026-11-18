@@ -10,9 +10,12 @@ Name | Type
 `accountCreation` | string
 `auth` | [AuthCapabilities](AuthCapabilities.md)
 `maintenanceMode` | boolean
+`oidcConnections` | [Array&lt;OidcConnectionView&gt;](OidcConnectionView.md)
+`oidcSignupAvailable` | boolean
 `registrationAvailable` | boolean
 `registrationUnavailableReason` | string
 `selfServiceSignupAvailable` | boolean
+`termsOfUseVersion` | string
 
 ## Example
 
@@ -24,9 +27,12 @@ const example = {
   "accountCreation": null,
   "auth": null,
   "maintenanceMode": null,
+  "oidcConnections": null,
+  "oidcSignupAvailable": null,
   "registrationAvailable": null,
   "registrationUnavailableReason": null,
   "selfServiceSignupAvailable": null,
+  "termsOfUseVersion": null,
 } satisfies InstanceAccessStatus
 
 console.log(example)

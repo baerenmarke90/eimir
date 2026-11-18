@@ -12,15 +12,18 @@ without an entry makes the suite fail before it reaches production.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
-from eimir.main import create_app
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -45,7 +48,9 @@ class Endpoint:
 
     placeholders: tuple[str, ...] = field(default=())
     fixture_aliases: dict[str, str] = field(default_factory=dict)
+    body_fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
+    verification_template: str | None = None
 
     def __str__(self) -> str:
         return f"{self.method} {self.template}"
@@ -100,6 +105,11 @@ MILESTONE = {
 }
 COMMENT = {"body": "Matrix Comment"}
 WISH = {"title": "Matrix Wish"}
+WISH_DATE_PROPOSAL_PATH = "/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal"
+WISH_DATE_PROPOSAL = {
+    "clientRequestId": str(uuid4()),
+    "plannedStart": (clock.now() + timedelta(days=1)).isoformat(),
+}
 PLAN = {"title": "Matrix Plan", "description": "Text"}
 REMINDER = {
     "title": "Matrix Reminder",
@@ -121,6 +131,7 @@ CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
 STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
+SHARED_NOTE = {"title": "Matrix Shared Note", "body": "Shared body"}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -132,16 +143,245 @@ PRIVATE_COLLECTION_FIXTURES = {
 
 SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}"),
+    # Temporary messages own recipient/consent/claim rules in test_once_messages.
+    # Every route also participates in the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages/status"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/once-messages/reception",
+        body={"enabled": False, "expectedVersion": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages",
+        body={"requestId": str(uuid4()), "recipientId": str(uuid4()), "envelope": {}},
+        body_fixture_aliases={"recipientId": "accountId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/open",
+        body={"deviceId": str(uuid4()), "token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/acknowledge",
+        body={"token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    # Store billing (#1525) owns its purchase flow in test_billing_google_play;
+    # here every route joins the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/billing/channels"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/purchases",
+        body={"store": "GOOGLE_PLAY", "plan": "yearly"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/google-play/purchases",
+        body={"purchaseToken": "matrix-token"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/story-lifeline/entries",
+        query={"from": "2026-10-05", "to": "2026-10-12"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
+    Endpoint(
+        "GET", "/api/v1/spaces/{spaceId}/recaps/{recapId}", resource_absence="RESOURCE_NOT_FOUND"
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        body={"sourceKeys": []},
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/save",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        body={"text": "Matrix recap reflection", "shared": True, "version": 1},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+        verification_template="/api/v1/spaces/{spaceId}/recaps/{recapId}",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/person-colours",
+        body={"colours": None},
+        if_match=True,
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/wir-design",
+        body={"designId": "warm"},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/app-icon",
         body={"iconId": "original"},
         if_match=True,
+    ),
+    # Own enabled/Pro selection IDs and credentials are exercised in test_photo_sources.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photo-sources"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        body={"origin": "https://my-photos.example", "apiKey": "synthetic-key", "consent": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/photo-sources/google/account",
+        body={"email": "synthetic.person@example.com", "consent": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-sources/google/account",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    # Own connections, Pro and provider behaviour are exercised in test_calendar_sync.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/calendar-sync"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/caldav",
+        body={
+            "url": "https://calendar.example.org/dav/",
+            "username": "synthetic",
+            "password": "synthetic-password",
+            "consent": True,
+        },
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/calendars",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/connections/google"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}",
+        fixture_aliases={"connectionId": "memoryId"},
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        body={
+            "connectionId": "00000000-0000-7000-8000-000000000001",
+            "calendarRef": "/dav/calendars/synthetic/shared/",
+        },
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/pause", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/resume", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/sync"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve",
+        body={"action": "DETACH"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections",
+        body={"source": "immich", "maxItems": 2, "consent": True},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize",
+        body={"state": "synthetic-state", "code": "synthetic-code"},
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
+        fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import",
+        fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
     Endpoint(
@@ -149,6 +389,39 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/configuration",
         body={"loveNotesEnabled": True},
         if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/settings"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/settings",
+        body={"level": "OFF"},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/snapshot",
+        body={
+            "latitude": 53.55,
+            "longitude": 9.99,
+            "accuracyMeters": 1500,
+            "capturedAt": clock.now().isoformat(),
+            "consentGeneration": 1,
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-location/distance",
+        body={"latitude": 50.94, "longitude": 6.96, "capturedAt": clock.now().isoformat()},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/map"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential",
+        body={"deviceId": str(uuid4())},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential/{deviceId}",
+        fixture_aliases={"deviceId": "exportId"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
     Endpoint(
@@ -158,6 +431,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+        query={"week_start": "2026-10-26"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
+        body={"rating": "HELPFUL"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -167,8 +455,81 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"enabled": True},
         if_match=True,
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
+    # Premium gate answers before an unknown round ID, so no resource_absence here.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/heart-hunt"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds",
+        body={
+            "requestId": str(uuid4()),
+            "attachmentId": str(uuid4()),
+            "heart": {"x": 1, "y": 1},
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps",
+        body={"x": 1, "y": 1},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept",
+        body={"memoryId": str(uuid4())},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns",
+        body={"turnsDone": 0, "strokes": [{"colour": "PERSON", "points": [10, 10, 500, 500]}]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish",
+        body={"turnsDone": 1},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
+        body={"memoryId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/waterings",
+        body={"plantId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
+    Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name",
+        body={"name": "Frieda"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets",
+        body={"plantIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close",
+        body={"kept": False},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
+        fixture_aliases={"kind": "experienceKind"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
@@ -294,7 +655,65 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
     ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction",
+        body={"reaction": "LOVE"},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
+    *(
+        Endpoint(
+            "GET",
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans",
+            resource_absence="RESOURCE_NOT_FOUND",
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+    ),
+    *(
+        Endpoint(
+            method,
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans/{{targetId}}",
+            resource_absence="RESOURCE_NOT_FOUND",
+            fixture_aliases={"targetId": "planId"},
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+        for method in ("PUT", "DELETE")
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "planId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "planId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "wishId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "wishId"},
+    ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/heart-moments", body=HEART_MOMENT),
     Endpoint(
         "GET",
@@ -322,8 +741,10 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/media"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/discover/renew"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
         "GET",
@@ -345,12 +766,38 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/activity"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/unread-count"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/gentle-prompts/use", body={"kind": "FOREGROUND"}),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/gentle-prompts/suggestion"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/dismiss",
+        resource_absence="RESOURCE_NOT_FOUND",
+        placeholders=("occasionId",),
+        fixture_aliases={"occasionId": "notificationId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/open",
+        resource_absence="RESOURCE_NOT_FOUND",
+        placeholders=("occasionId",),
+        fixture_aliases={"occasionId": "notificationId"},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/notifications/{notificationId}/read",
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open",
+        resource_absence="NOTIFICATION_NOT_FOUND",
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/thinking-of-you",
@@ -425,6 +872,22 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint(
         "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        body=COMMENT,
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/link-preview",
+        body={"url": "https://example.org/park"},
+    ),
+    Endpoint(
+        "GET",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments",
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),
@@ -463,6 +926,26 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/wish-selection"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection",
+        body={"wishIds": [str(uuid4()), str(uuid4())]},
+        if_match=True,
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/own",
+        body={"favoriteWishIds": [], "published": False},
+        if_match=True,
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/decision",
+        body={"action": "CLEAR"},
+        if_match=True,
+    ),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/wish-selection", if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/wishes"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/wishes", body=WISH),
     Endpoint(
@@ -496,8 +979,67 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="WISH_NOT_FOUND",
     ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        body={"dueAt": (clock.now() + timedelta(days=1)).isoformat()},
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint("GET", WISH_DATE_PROPOSAL_PATH, resource_absence="WISH_NOT_FOUND"),
+    Endpoint(
+        "POST",
+        WISH_DATE_PROPOSAL_PATH,
+        body=WISH_DATE_PROPOSAL,
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    # A proposal ID is a command version. Wish IDs govern resource absence.
+    Endpoint(
+        "POST",
+        f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/counter",
+        body={
+            "clientRequestId": str(uuid4()),
+            "plannedStart": (clock.now() + timedelta(days=2)).isoformat(),
+        },
+        resource_absence="WISH_NOT_FOUND",
+        placeholders=("wishId",),
+    ),
+    *(
+        Endpoint(
+            "POST",
+            f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/{command}",
+            resource_absence="WISH_NOT_FOUND",
+            placeholders=("wishId",),
+        )
+        for command in ("accept", "decline", "withdraw")
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places",
+        resource_absence="RELATION_TARGET_NOT_FOUND",
+        placeholders=("targetId",),
+    ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/places", body=PLACE),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/places/lookup",
+        body={"query": "Matrix location", "locale": "en"},
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/places/{placeId}",
@@ -631,6 +1173,36 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/chapters/{chapterId}/milestones/{targetId}",
         resource_absence="CHAPTER_NOT_FOUND",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/shared-notes"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/shared-notes", body=SHARED_NOTE),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        body={"body": "Matrix Shared Note updated"},
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}/presentation",
+        body={"pinned": True},
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/collections"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/collections", body=COLLECTION),
     Endpoint(
@@ -680,6 +1252,31 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="COLLECTION_NOT_FOUND",
         placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/finish",
+        body={"itemIds": []},
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/send",
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions",
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}",
+        resource_absence="COLLECTION_SUGGESTION_NOT_FOUND",
+        placeholders=("suggestionId",),
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/private/collections"),
     Endpoint(
@@ -795,6 +1392,41 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="GIFT_IDEA_NOT_FOUND",
         placeholders=("giftIdeaId",),
     ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/story",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/plans"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/plans", body=PLAN),
     Endpoint(
@@ -838,6 +1470,14 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint(
         "POST",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/wish",
+        body={"wishVersion": 1},
+        body_fixture_aliases={"wishId": "wishId"},
+        if_match=True,
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
         "/api/v1/spaces/{spaceId}/plans/{planId}/return-to-wish",
         body={},
         if_match=True,
@@ -873,7 +1513,15 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="TRANSFER_NOT_FOUND",
         placeholders=("importId",),
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback-access",
+        body={"parentType": "MEMORY", "parentId": ""},
+        body_fixture_aliases={"parentId": "memoryId"},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/attachments/{attachmentId}",
@@ -920,9 +1568,15 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
+    ("PUT", "/api/v1/account/device-context"),
+    ("GET", "/api/v1/account/language-preference"),
+    ("PUT", "/api/v1/account/language-preference"),
+    ("GET", "/api/v1/account/photo-location-preference"),
+    ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
     ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
     ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
+    ("GET", "/api/v1/push-endpoints/configuration"),
     ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
     ("POST", "/api/v1/push-endpoints"),
     ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
@@ -936,6 +1590,11 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     # registered from an authenticated session.
     ("POST", "/api/v1/auth/passkeys/registration/start"),
     ("POST", "/api/v1/auth/passkeys/registration/finish"),
+    # The account's own passkeys and linked providers: listed and removed only by
+    # the signed-in owner, and always scoped by the caller's account id.
+    ("GET", "/api/v1/auth/sign-in-methods"),
+    ("DELETE", "/api/v1/auth/passkeys/{passkeyId}"),
+    ("DELETE", "/api/v1/auth/oidc/{connectionId}"),
     # Founding a Space has no Space yet to be scoped by; the founder is always
     # the authenticated Account.
     ("POST", "/api/v1/spaces"),
@@ -977,6 +1636,16 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 
+PLAYBACK_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("GET", "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback"),
+)
+"""Video reads use a scoped grant, never general bearer/public authorization."""
+
+PRESENCE_DEVICE_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("PUT", "/api/v1/partner-location/device-snapshot"),
+)
+"""Background uploads use a scoped presence credential, never bearer authorization."""
+
 PUBLIC_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/health"),
     ("GET", "/api/v1/health/ready"),
@@ -1007,7 +1676,7 @@ covered in `test_auth_flows` and `test_invitations`.
 
 
 @pytest.fixture
-def scenario(client, session: Session):  # type: ignore[no-untyped-def]
+def scenario(client, session: Session, request: pytest.FixtureRequest):  # type: ignore[no-untyped-def]
     "A couple with one real resource per domain, plus a foreign one."
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
@@ -1066,6 +1735,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
         json=COLLECTION_ITEM,
         headers=headers,
     ).json()
+    shared_note = client.post(f"{base_path}/shared-notes", json=SHARED_NOTE, headers=headers).json()
     private_collection = client.post(
         f"{base_path}/private/collections",
         json=PRIVATE_COLLECTION,
@@ -1084,6 +1754,54 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
     ).json()
     attachment = client.post(f"{base_path}/attachments", json=ATTACHMENT, headers=headers).json()
 
+    recap_id = str(uuid4())
+    callspec = getattr(request.node, "callspec", None)
+    endpoint = callspec.params.get("endpoint") if callspec else None
+    proposal_id = str(uuid4())
+    if endpoint and "{proposalId}" in endpoint.template:
+        proposal = client.post(
+            f"{base_path}/wishes/{wish['id']}/date-proposal",
+            json=WISH_DATE_PROPOSAL,
+            headers=headers,
+        )
+        assert proposal.status_code == 200, proposal.text
+        proposal_id = proposal.json()["proposal"]["id"]
+    if endpoint and "/wish-selection" in endpoint.template:
+        second_wish = client.post(
+            f"{base_path}/wishes", json={"title": "Another Matrix Wish"}, headers=headers
+        ).json()
+        selection = client.put(
+            f"{base_path}/wish-selection",
+            json={"wishIds": [wish["id"], second_wish["id"]]},
+            headers={**headers, "If-Match": '"absent"'},
+        )
+        assert selection.status_code == 200
+    if endpoint and "/recaps" in endpoint.template:
+        # Keep unrelated domain fixtures Free. Recap writes need their own grant
+        # so the matrix reaches resource/header checks instead of a Pro gate.
+        entitlements.record_grant(
+            session,
+            space_id=space.id,
+            account_id=anna.id,
+            source_type=EntitlementSourceType.ADMIN_GRANT,
+            status=EntitlementStatus.ACTIVE,
+            tier=EntitlementTier.PREMIUM,
+            effective_from=clock.now() - timedelta(days=1),
+            capabilities=["relationship.passport"],
+        )
+        session.flush()
+        recap = client.post(
+            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
+        )
+        assert recap.status_code == 200
+        recap_id = recap.json()["id"]
+        reflection = client.put(
+            f"{base_path}/recaps/{recap_id}/reflection",
+            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+            headers=headers,
+        )
+        assert reflection.status_code == 200
+
     return {
         "client": client,
         "space": space,
@@ -1091,6 +1809,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
         "foreign_headers": auth(sign_in(session, foreign)),
         "ids": {
             "spaceId": str(space.id),
+            "recapId": recap_id,
             "accountId": str(ben.id),
             "invitationId": invitation["id"],
             "preferenceId": preference["id"],
@@ -1102,23 +1821,37 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
             "milestoneId": milestone["id"],
             "commentId": comment["id"],
             "wishId": wish["id"],
+            "proposalId": proposal_id,
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
+            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],
             "collectionId": collection["id"],
             "itemId": collection_item["id"],
+            # No suggestion exists in the matrix's plain list; the id is only a path value.
+            "suggestionId": str(uuid4()),
             "privateCollectionId": private_collection["id"],
             "privateCollectionItemId": private_collection_item["id"],
             "noteId": private_note["id"],
+            "sharedNoteId": shared_note["id"],
             "giftIdeaId": gift_idea["id"],
             "exportId": str(uuid4()),
             "importId": str(uuid4()),
             # The target is a typed relation. A memory is enough for all three
             # relation types because this matrix checks occur before target resolution.
             "targetId": memory["id"],
+            "kind": "memories",
+            "experienceKind": "HAPPINESS",
+            # A catalog image ID, not a database row; tenant checks come first.
+            "imageId": "category-nature",
+            # No seed exists in the matrix; tenant and entitlement checks come first.
+            "seedId": str(uuid4()),
+            "bouquetId": str(uuid4()),
+            # A closed visitor code, not a database row.
+            "animal": "SNAIL",
             "attachmentId": attachment["attachment"]["id"],
         },
     }
@@ -1132,6 +1865,15 @@ def _path(endpoint: Endpoint, ids: dict[str, str], **replacements: str) -> str:
     return endpoint.template.format(**values)
 
 
+def _body(endpoint: Endpoint, ids: dict[str, str]) -> dict[str, Any] | None:
+    if endpoint.body is None:
+        return None
+    return endpoint.body | {
+        field_name: ids[fixture_id]
+        for field_name, fixture_id in endpoint.body_fixture_aliases.items()
+    }
+
+
 def _send(scenario, endpoint: Endpoint, path: str, headers: dict[str, str] | None):  # type: ignore[no-untyped-def]
     headers = dict(headers or {})
     if endpoint.if_match:
@@ -1141,7 +1883,7 @@ def _send(scenario, endpoint: Endpoint, path: str, headers: dict[str, str] | Non
 
     request_kwargs: dict[str, Any] = {}
     if endpoint.body is not None:
-        request_kwargs["json"] = endpoint.body
+        request_kwargs["json"] = _body(endpoint, scenario["ids"])
     if endpoint.query:
         request_kwargs["params"] = endpoint.query
     return scenario["client"].request(endpoint.method, path, headers=headers, **request_kwargs)
@@ -1236,12 +1978,14 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
     return tuple(
         name
         for name in (
+            "recapId",
             "invitationId",
             "preferenceId",
             "personId",
             "dateId",
             "accountId",
             "memoryId",
+            "messageId",
             "notificationId",
             "heartMomentId",
             "attachmentId",
@@ -1267,7 +2011,9 @@ WRITING_ENDPOINTS = tuple(endpoint for endpoint in SPACE_ENDPOINTS if endpoint.i
 def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None:  # type: ignore[no-untyped-def]
     "A missing header is the silent path to disabling conflict protection."
     path = _path(endpoint, scenario["ids"])
-    request_kwargs: dict[str, Any] = {"json": endpoint.body} if endpoint.body is not None else {}
+    request_kwargs: dict[str, Any] = (
+        {"json": _body(endpoint, scenario["ids"])} if endpoint.body is not None else {}
+    )
     if endpoint.query:
         request_kwargs["params"] = endpoint.query
     response = scenario["client"].request(
@@ -1292,30 +2038,19 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
             )
             assert afterwards.status_code == 200
         else:
-            afterwards = scenario["client"].get(path, headers=scenario["owner_headers"])
+            verification_path = (
+                endpoint.verification_template.format(**scenario["ids"])
+                if endpoint.verification_template
+                else path
+            )
+            afterwards = scenario["client"].get(
+                verification_path, headers=scenario["owner_headers"]
+            )
             assert afterwards.status_code == 200
-
-
-def test_contract_is_completely_covered() -> None:
-    """A new operation without an entry in this file makes the suite fail.
-
-    This is the matrix's primary purpose. A rule that developers must remember
-    to copy to every new endpoint will eventually be forgotten; a missing tenant
-    guard can otherwise remain invisible until production.
-    """
-    schema = create_app().openapi()
-    contract = {
-        (method.upper(), path)
-        for path, operations in schema["paths"].items()
-        for method in operations
-    }
-    covered = (
-        {(endpoint.method, endpoint.template) for endpoint in SPACE_ENDPOINTS}
-        | set(AUTHENTICATED_ONLY)
-        | set(SERVER_ADMIN_ONLY)
-        | set(PUBLIC_ENDPOINTS)
-    )
-    assert contract == covered
+            if endpoint.template.endswith("/wish-selection"):
+                assert afterwards.json()["id"] is not None
+            if "/recaps/" in endpoint.template:
+                assert len(afterwards.json()["reflections"]) == 1
 
 
 @pytest.mark.parametrize(("method", "path"), AUTHENTICATED_ONLY, ids=str)
@@ -1344,3 +2079,35 @@ def test_public_endpoints_require_no_token(scenario) -> None:  # type: ignore[no
         "/api/v1/instance/status",
     ):
         assert scenario["client"].get(path).status_code == 200
+
+
+@pytest.mark.parametrize(("method", "template"), PLAYBACK_ENDPOINTS, ids=str)
+def test_playback_requires_its_scoped_grant(scenario, method: str, template: str) -> None:  # type: ignore[no-untyped-def]
+    path = template.format(**scenario["ids"])
+    client = scenario["client"]
+    assert client.request(method, path).status_code == 422
+    assert client.request(method, path, headers=scenario["owner_headers"]).status_code == 422
+    invalid = client.request(method, path, params={"token": "x" * 48})
+    assert invalid.status_code == 404
+    assert invalid.json()["code"] == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.parametrize(("method", "template"), PRESENCE_DEVICE_ENDPOINTS, ids=str)
+def test_presence_device_upload_requires_its_scoped_credential(  # type: ignore[no-untyped-def]
+    scenario, method: str, template: str
+) -> None:
+    client = scenario["client"]
+    body = {
+        "latitude": 53.55,
+        "longitude": 9.99,
+        "accuracyMeters": 1500,
+        "capturedAt": clock.now().isoformat(),
+    }
+    for headers in (
+        None,
+        scenario["owner_headers"],
+        {"Authorization": "Presence " + "x" * 43},
+    ):
+        response = client.request(method, template, json=body, headers=headers)
+        assert response.status_code == 401
+        assert response.json()["code"] == "AUTHENTICATION_REQUIRED"

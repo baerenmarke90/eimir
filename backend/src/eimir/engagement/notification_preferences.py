@@ -10,16 +10,52 @@ from sqlalchemy.orm import Session
 
 from eimir.core.ids import new_id
 from eimir.engagement import notification_policy
-from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
+from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
+    NotificationChannel,
+    NotificationKind,
+    NotificationPreference,
+)
 from eimir.identity import effects as account_effects
+
+# Extend existing recipient choices without adding another settings surface.
+INHERITED_KINDS = {
+    NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.REMINDER_CREATED: NotificationKind.REMINDER_DUE,
+    NotificationKind.WISH_REMINDER_DUE: NotificationKind.REMINDER_DUE,
+    NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
+    NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
+    NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,
+    NotificationKind.VIDEO_PROCESSING_FAILED: NotificationKind.REMINDER_DUE,
+    NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_SHARED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_READY: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_REQUESTED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_HIDDEN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_FOUND: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PICTURE_PING_PONG_TURN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+    # #1969: shared notes are collaborative writing, like comments.
+    NotificationKind.SHARED_NOTE_CREATED: NotificationKind.COMMENT_CREATED,
+    NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
+    # #1744: a newer version of a recap follows the recap switch.
+    NotificationKind.RECAP_GREW: NotificationKind.RECAP_READY,
+    **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
+}
 
 
 def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Intersect the current delivery class with the recipient's PUSH choice.
 
     No override preserves the established immediate-push behavior for an
-    already registered endpoint. A digestible or unknown kind can never be
-    promoted to immediate delivery by an override.
+    already registered endpoint. Preferences cannot promote an unreviewed kind
+    to immediate delivery. Comment Push has an explicit policy override.
     """
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:
@@ -31,7 +67,12 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def digest_push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in for a reviewed digest kind."""
-    if not notification_policy.digest_kind_allowed(kind):
+    policy = notification_policy.for_kind(kind)
+    if (
+        policy is None
+        or policy.push_immediately
+        or not notification_policy.digest_kind_allowed(kind)
+    ):
         return False
     return _explicit_choice_enabled(
         session, account_id=account_id, kind=kind, channel=NotificationChannel.PUSH
@@ -49,8 +90,10 @@ def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in and an immediate reviewed kind."""
+    if not notification_policy.email_choice_allowed(kind):
+        return False
     policy = notification_policy.for_kind(kind)
-    if policy is None or not policy.push_immediately:
+    if policy is None or policy.delivery_class is not notification_policy.DeliveryClass.IMMEDIATE:
         return False
     return _explicit_choice_enabled(
         session, account_id=account_id, kind=kind, channel=NotificationChannel.EMAIL
@@ -84,6 +127,10 @@ def _explicit_choice_enabled(
 def _effective_choice(
     session: Session, *, account_id: UUID, kind: str, channel: NotificationChannel
 ) -> bool:
+    if kind == NotificationKind.GENTLE_PROMPT.value:
+        from eimir.engagement import gentle
+
+        return channel is NotificationChannel.PUSH and gentle.enabled(session, account_id)
     choice = session.execute(
         select(NotificationPreference.enabled).where(
             NotificationPreference.account_id == account_id,
@@ -91,6 +138,14 @@ def _effective_choice(
             NotificationPreference.channel == channel.value,
         )
     ).scalar_one_or_none()
+    parent = INHERITED_KINDS.get(NotificationKind(kind))
+    if choice is None and parent is not None:
+        return _effective_choice(
+            session,
+            account_id=account_id,
+            kind=parent.value,
+            channel=channel,
+        )
     return choice if choice is not None else True
 
 
@@ -103,9 +158,17 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
         )
     ).tuples()
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
+    from eimir.engagement import gentle
+
+    overrides[NotificationKind.GENTLE_PROMPT.value] = gentle.enabled(session, account_id)
     return {
         kind: bool(
-            overrides.get(kind.value, not notification_policy.digest_kind_allowed(kind.value))
+            overrides.get(
+                kind.value,
+                overrides.get(INHERITED_KINDS[kind].value, True)
+                if kind in INHERITED_KINDS
+                else notification_policy.POLICIES[kind].push_immediately,
+            )
         )
         if notification_policy.push_choice_allowed(kind.value)
         else False
@@ -122,7 +185,14 @@ def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[Notificati
         )
     ).tuples()
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
-    return {kind: overrides.get(kind.value, True) for kind in NotificationKind}
+    overrides[NotificationKind.GENTLE_PROMPT.value] = False
+    return {
+        kind: overrides.get(
+            kind.value,
+            overrides.get(INHERITED_KINDS[kind].value, True) if kind in INHERITED_KINDS else True,
+        )
+        for kind in NotificationKind
+    }
 
 
 def own_email_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
@@ -152,6 +222,11 @@ def set_push_enabled(
     """
     if not notification_policy.push_choice_allowed(kind.value):
         raise ValueError("Push is not available for this notification kind.")
+    if kind is NotificationKind.GENTLE_PROMPT:
+        from eimir.engagement import gentle
+
+        gentle.set_enabled(session, account_id, enabled)
+        return
     _set_choice(
         session,
         account_id=account_id,
@@ -165,7 +240,7 @@ def set_in_app_enabled(
     session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
 ) -> None:
     """Serialize the recipient's Center choice with projection and deletion."""
-    if notification_policy.for_kind(kind) is None:
+    if kind is NotificationKind.GENTLE_PROMPT or notification_policy.for_kind(kind) is None:
         raise ValueError("In-app delivery is not available for this notification kind.")
     _set_choice(
         session,

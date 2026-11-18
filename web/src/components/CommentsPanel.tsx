@@ -7,11 +7,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   CommentsApi,
   DeleteCommentRequest,
 } from '../api/generated/apis/CommentsApi';
+import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import { authorFirstName } from '../client/authorPresentation';
 import {
@@ -34,8 +36,11 @@ import {
   captureAuthorizedQuery,
   captureQueryIdentity,
 } from '../client/queryIdentity';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AuthoredText } from './AuthoredText';
+import { AutoLoadMore } from './AutoLoadMore';
 import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -95,6 +100,13 @@ function createComment(
 ) {
   const { spaceId, parentId, commentCreate } = snapshot;
   switch (snapshot.parentKind) {
+    case 'plan':
+      return commentsApi.createPlanComment({
+        spaceId,
+        planId: parentId,
+        commentCreate,
+        idempotencyKey,
+      });
     case 'memory':
       return commentsApi.createMemoryComment({
         spaceId,
@@ -134,6 +146,10 @@ interface CommentsPanelProps {
   currentAccountId: string;
   canComment: boolean;
   offline: boolean;
+  triggerContainer?: HTMLElement | null;
+  labelledComposer?: boolean;
+  inlineComposer?: boolean;
+  linkPreviewsApi?: LinkPreviewsApi;
 }
 
 export function CommentsPanel(props: CommentsPanelProps) {
@@ -158,11 +174,57 @@ function CommentsPanelContent({
   currentAccountId,
   canComment,
   offline,
+  triggerContainer,
+  labelledComposer = false,
+  inlineComposer = false,
+  linkPreviewsApi,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const commentActionRefs = useRef(new Map<string, HTMLElement>());
+  // An open comment menu owns a history entry so system Back closes it
+  // instead of leaving the page.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openMenuIdRef = useRef(openMenuId);
+  openMenuIdRef.current = openMenuId;
+  const closeOpenMenu = useCallback(() => {
+    const current = openMenuIdRef.current;
+    const menu = current
+      ? commentActionRefs.current.get(current)?.closest('details')
+      : null;
+    if (menu) menu.open = false;
+    setOpenMenuId(null);
+  }, []);
+  useEditorHistoryEntry({
+    isActive: openMenuId !== null,
+    isDirty: false,
+    onClose: closeOpenMenu,
+    onDiscardRequested: closeOpenMenu,
+  });
+  // A menu that unmounts while open (editing, a deleted comment, going
+  // offline) gets no toggle event; release its history entry with it.
+  useEffect(() => {
+    if (openMenuId && !commentActionRefs.current.get(openMenuId)?.isConnected)
+      setOpenMenuId(null);
+  });
+  const previousEditingId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousEditingId.current && !editingId)
+      commentActionRefs.current.get(previousEditingId.current)?.focus();
+    previousEditingId.current = editingId;
+  }, [editingId]);
+  const [requestedComposerOpen, setComposerOpen] = useState(false);
+  const composerOpen = inlineComposer || requestedComposerOpen;
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasComposerOpen = useRef(false);
+  useEffect(() => {
+    if (composerOpen && !inlineComposer) inputRef.current?.focus();
+    else if (wasComposerOpen.current)
+      triggerRef.current?.focus({ preventScroll: true });
+    wasComposerOpen.current = composerOpen;
+  }, [composerOpen, inlineComposer]);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
@@ -234,6 +296,16 @@ function CommentsPanelContent({
         commentDraftRef.current = '';
         setCommentDraft('');
         setComposerOpen(false);
+        const input = inputRef.current;
+        const activeElement = document.activeElement;
+        if (
+          inlineComposer &&
+          input?.isConnected &&
+          (activeElement === document.body ||
+            activeElement === document.documentElement ||
+            input.form?.contains(activeElement))
+        )
+          input.focus({ preventScroll: true });
       }
     },
   });
@@ -299,8 +371,12 @@ function CommentsPanelContent({
     });
   }
 
-  const comments =
-    commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const comments = (
+    commentsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  ).sort(
+    (a, b) =>
+      a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+  );
   const canReadComments =
     commentsQuery.data !== undefined &&
     !['unauthorized', 'permission', 'notFound'].includes(
@@ -308,6 +384,45 @@ function CommentsPanelContent({
     );
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
+  const trigger =
+    canComment &&
+    !offline &&
+    (!composerOpen || (inlineComposer && triggerContainer)) ? (
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}${labelledComposer ? ' comment-compose-trigger-labelled' : ''}`}
+        aria-controls={formId}
+        aria-expanded={composerOpen}
+        aria-label={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        title={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        onClick={() => {
+          if (inlineComposer) inputRef.current?.focus();
+          else setComposerOpen(true);
+        }}
+      >
+        <svg
+          className="inline-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        </svg>
+        {labelledComposer ? <span>{t('comments.write')}</span> : null}
+      </button>
+    ) : null;
 
   return (
     <section
@@ -318,7 +433,9 @@ function CommentsPanelContent({
         <h2
           id={headingId}
           className={
-            comments.length === 0 ? 'sr-only' : 'comments-compact-heading'
+            comments.length === 0 && !labelledComposer
+              ? 'sr-only'
+              : 'comments-compact-heading'
           }
         >
           {t('comments.heading')}
@@ -336,7 +453,11 @@ function CommentsPanelContent({
           error={commentsQuery.error}
           onRetry={() => void commentsQuery.refetch()}
         />
-      ) : comments.length === 0 ? null : (
+      ) : comments.length === 0 ? (
+        labelledComposer ? (
+          <p className="muted">{t('comments.planEmpty')}</p>
+        ) : null
+      ) : (
         <ol className="comment-list">
           {comments.map((comment) => {
             const edited =
@@ -347,12 +468,6 @@ function CommentsPanelContent({
                 <div className="comment-head">
                   <span className="comment-author">
                     <strong>{authorFirstName(comment.author)}</strong>
-                    {own ? (
-                      <span className="comment-author-self">
-                        {' · '}
-                        {t('comments.authorSelf')}
-                      </span>
-                    ) : null}
                   </span>
                   <span>
                     <time dateTime={comment.createdAt.toISOString()}>
@@ -360,6 +475,95 @@ function CommentsPanelContent({
                     </time>
                     {edited ? ` · ${t('comments.edited')}` : ''}
                   </span>
+                  {own && !offline && editingId !== comment.id ? (
+                    <details
+                      className="comment-menu"
+                      onToggle={(event) => {
+                        const open = event.currentTarget.open;
+                        setOpenMenuId((current) =>
+                          open
+                            ? comment.id
+                            : current === comment.id
+                              ? null
+                              : current,
+                        );
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          event.preventDefault();
+                          event.currentTarget.open = false;
+                          event.currentTarget.querySelector('summary')?.focus();
+                        }
+                      }}
+                      onBlur={(event) => {
+                        if (
+                          !event.currentTarget.contains(
+                            event.relatedTarget as Node | null,
+                          )
+                        )
+                          event.currentTarget.open = false;
+                      }}
+                    >
+                      <summary
+                        ref={(element) => {
+                          if (element)
+                            commentActionRefs.current.set(comment.id, element);
+                          else commentActionRefs.current.delete(comment.id);
+                        }}
+                        className="comment-menu-trigger"
+                        aria-label={t('comments.moreActions')}
+                        title={t('comments.moreActions')}
+                      >
+                        <svg
+                          className="inline-icon"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="1.5" />
+                          <circle cx="19" cy="12" r="1.5" />
+                          <circle cx="5" cy="12" r="1.5" />
+                        </svg>
+                      </summary>
+                      <div className="comment-menu-dropdown">
+                        <button
+                          type="button"
+                          className="comment-menu-item comment-edit"
+                          onClick={(event) => {
+                            event.currentTarget
+                              .closest('details')
+                              ?.removeAttribute('open');
+                            // The menu unmounts while editing, before its
+                            // toggle event, so release its entry here.
+                            setOpenMenuId(null);
+                            setEditingId(comment.id);
+                          }}
+                        >
+                          {t('comments.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="comment-menu-item comment-delete comment-menu-item-danger"
+                          onClick={(e) => {
+                            const details = (e.target as HTMLElement).closest(
+                              'details',
+                            );
+                            if (details) details.open = false;
+                            setOpenMenuId(null);
+                            removeComment(comment);
+                          }}
+                          disabled={deleting}
+                        >
+                          {t('comments.delete')}
+                        </button>
+                      </div>
+                    </details>
+                  ) : null}
                 </div>
                 {own && editingId === comment.id ? (
                   <CommentEditor
@@ -374,60 +578,18 @@ function CommentsPanelContent({
                   />
                 ) : (
                   <>
-                    <p>{comment.body}</p>
-                    {own && !offline ? (
-                      <details className="comment-menu">
-                        <summary
-                          className="comment-menu-trigger"
-                          aria-label={t('comments.edit')}
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="19" cy="12" r="1.5" />
-                            <circle cx="5" cy="12" r="1.5" />
-                          </svg>
-                        </summary>
-                        <div className="comment-menu-dropdown">
-                          <button
-                            type="button"
-                            className="comment-menu-item comment-edit"
-                            onClick={(e) => {
-                              const details = (e.target as HTMLElement).closest(
-                                'details',
-                              );
-                              if (details) details.open = false;
-                              setEditingId(comment.id);
-                            }}
-                          >
-                            {t('comments.edit')}
-                          </button>
-                          <button
-                            type="button"
-                            className="comment-menu-item comment-delete comment-menu-item-danger"
-                            onClick={(e) => {
-                              const details = (e.target as HTMLElement).closest(
-                                'details',
-                              );
-                              if (details) details.open = false;
-                              removeComment(comment);
-                            }}
-                            disabled={deleting}
-                          >
-                            {t('comments.delete')}
-                          </button>
-                        </div>
-                      </details>
-                    ) : null}
+                    <AuthoredText
+                      text={comment.body}
+                      previewApi={linkPreviewsApi}
+                      spaceId={spaceId}
+                      scope={JSON.stringify([
+                        currentAccountId,
+                        parentKind,
+                        parentId,
+                        comment.id,
+                      ])}
+                      offline={offline}
+                    />
                   </>
                 )}
               </li>
@@ -444,40 +606,18 @@ function CommentsPanelContent({
       ) : null}
 
       {commentsQuery.hasNextPage ? (
-        <button
-          type="button"
+        <AutoLoadMore
+          query={commentsQuery}
           className="secondary"
-          onClick={() => void commentsQuery.fetchNextPage()}
-          disabled={commentsQuery.isFetchingNextPage}
+          blocked={commentsQuery.isFetchingNextPage}
         >
           {commentsQuery.isFetchingNextPage
             ? t('comments.loadingMore')
             : t('comments.loadMore')}
-        </button>
+        </AutoLoadMore>
       ) : null}
 
-      {canComment && !offline && !composerOpen ? (
-        <button
-          type="button"
-          className="comment-compose-trigger tertiary"
-          aria-controls={formId}
-          aria-expanded="false"
-          onClick={() => setComposerOpen(true)}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-          </svg>
-          <span>{t('comments.send')}</span>
-        </button>
-      ) : null}
+      {triggerContainer ? createPortal(trigger, triggerContainer) : trigger}
 
       {canComment && !offline && composerOpen ? (
         <form
@@ -486,15 +626,16 @@ function CommentsPanelContent({
           onSubmit={submit}
         >
           <label
-            className="sr-only"
+            className={inlineComposer ? undefined : 'sr-only'}
             htmlFor={`${parentKind}-${parentId}-comment`}
           >
             {t('comments.inputLabel')}
           </label>
           <textarea
+            ref={inputRef}
             id={`${parentKind}-${parentId}-comment`}
             name="comment"
-            rows={3}
+            rows={2}
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}
@@ -511,6 +652,7 @@ function CommentsPanelContent({
             </button>
             <button
               type="button"
+              hidden={inlineComposer}
               className="tertiary"
               onClick={() => {
                 createMutation.reset();

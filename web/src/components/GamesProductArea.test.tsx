@@ -7,16 +7,19 @@ import { EntitlementStatus } from '../api/generated/models/EntitlementStatus';
 import { EntitlementTier } from '../api/generated/models/EntitlementTier';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import {
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
-import * as whoOfUsSession from '../client/whoOfUsSession';
 import type {
   WhoOfUsParticipant,
   WhoOfUsSession,
 } from '../client/whoOfUsSession';
+import * as whoOfUsSession from '../client/whoOfUsSession';
 import games from '../i18n/locales/games';
 import { GAMES_COUPLE_CAPABILITY, GamesProductArea } from './GamesProductArea';
+import { SubpageNavigation } from './SubpageNavigation';
 
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PARTICIPANTS: readonly [WhoOfUsParticipant, WhoOfUsParticipant] = [
@@ -47,13 +50,16 @@ function renderGames(
   const ui = (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/games']}>
-        <GamesProductArea
-          apiBaseUrl="http://api.example.test"
-          accessToken="test-token"
-          spaceId={SPACE_ID}
-          loadEntitlement={async () => view}
-          loadPerspectiveParticipants={async () => PARTICIPANTS}
-        />
+        <SubpageNavigation>
+          <GamesProductArea
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            accountId="account-a"
+            spaceId={SPACE_ID}
+            loadEntitlement={async () => view}
+            loadPerspectiveParticipants={async () => PARTICIPANTS}
+          />
+        </SubpageNavigation>
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -61,12 +67,13 @@ function renderGames(
   return render(strictMode ? <StrictMode>{ui}</StrictMode> : ui);
 }
 
-function expectFiveGameEntries(): void {
+function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.moments.title)).toBeTruthy();
   expect(screen.getByText(games.entries.wishes.title)).toBeTruthy();
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
-  expect(screen.getByText(games.entries.happiness.title)).toBeTruthy();
-  expect(screen.getByText(games.entries.timeTravel.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.garden.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.heartHunt.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.pingPong.title)).toBeTruthy();
 }
 
 function expectGameStatus(status: string, count: number): void {
@@ -77,12 +84,76 @@ function expectGameStatus(status: string, count: number): void {
 }
 
 describe('GamesProductArea', () => {
+  it('ends the perspective game on system Back instead of leaving Games (#1907)', async () => {
+    renderGames(entitlement([GAMES_COUPLE_CAPABILITY]));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: new RegExp(games.entries.perspective.title),
+      }),
+    );
+    await screen.findByRole('button', { name: games.whoOfUs.back });
+    await waitFor(() =>
+      expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
+    );
+    window.history.back();
+    await waitFor(expectThreeGameEntries);
+  });
+
+  it('keeps one safe upper-left return after finishing the perspective game', async () => {
+    const selection = vi
+      .spyOn(whoOfUsSession, 'selectWhoOfUsQuestions')
+      .mockReturnValue([whoOfUsSession.WHO_OF_US_QUESTION_IDS[0]]);
+    const view = renderGames(entitlement([GAMES_COUPLE_CAPABILITY]));
+    try {
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: new RegExp(games.entries.perspective.title),
+        }),
+      );
+      for (const responder of PARTICIPANTS) {
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: games.whoOfUs.choiceAria
+              .replace('{{responder}}', responder.displayName)
+              .replace('{{choice}}', PARTICIPANTS[0].displayName),
+          }),
+        );
+        if (responder === PARTICIPANTS[0]) {
+          fireEvent.click(
+            await screen.findByRole('button', {
+              name: games.whoOfUs.handoffConfirm.replace(
+                '{{name}}',
+                PARTICIPANTS[1].displayName,
+              ),
+            }),
+          );
+        }
+      }
+      fireEvent.click(
+        screen.getByRole('button', { name: games.whoOfUs.continue }),
+      );
+      await screen.findByRole('heading', { name: games.whoOfUs.finishTitle });
+      expect(
+        view.container.querySelectorAll('.task-back-control'),
+      ).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: games.whoOfUs.back }));
+      // Leaving the game first releases its history entry.
+      await waitFor(expectThreeGameEntries);
+      expect(
+        view.container.querySelectorAll('.task-back-control'),
+      ).toHaveLength(1);
+    } finally {
+      view.unmount();
+      selection.mockRestore();
+    }
+  });
+
   it('keeps the catalog discoverable for a Free Space without a page-level Premium upsell', async () => {
     renderGames(entitlement([]));
 
     await screen.findByText(games.entries.moments.title);
-    expectFiveGameEntries();
-    expectGameStatus(games.status.premium, 5);
+    expectThreeGameEntries();
+    expectGameStatus(games.status.premium, 6);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -103,10 +174,10 @@ describe('GamesProductArea', () => {
     const momentsLink = await screen.findByRole('link', {
       name: new RegExp(games.entries.moments.title),
     });
-    expectFiveGameEntries();
+    expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
-    expectGameStatus(games.status.comingSoon, 2);
-    expectGameStatus(games.status.playNow, 3);
+    expectGameStatus(games.status.comingSoon, 0);
+    expectGameStatus(games.status.playNow, 6);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);
@@ -117,10 +188,21 @@ describe('GamesProductArea', () => {
     expect(wishesLink.textContent).toContain(games.status.playNow);
     expect(wishesLink.getAttribute('href')).toBe(GAMES_WISH_DETECTIVE_ROUTE);
 
+    const heartHuntLink = screen.getByRole('link', {
+      name: new RegExp(games.entries.heartHunt.title),
+    });
+    expect(heartHuntLink.textContent).toContain(games.status.playNow);
+    expect(heartHuntLink.getAttribute('href')).toBe(GAMES_HEART_HUNT_ROUTE);
+
     const perspectiveButton = screen.getByRole('button', {
       name: new RegExp(games.entries.perspective.title),
     });
     expect(perspectiveButton.textContent).toContain(games.status.playNow);
+
+    const gardenLink = screen.getByRole('link', {
+      name: new RegExp(games.entries.garden.title),
+    });
+    expect(gardenLink.getAttribute('href')).toBe(GAMES_GARDEN_ROUTE);
   });
 
   it('starts the perspective game as a hidden-answer handoff flow from the hub under StrictMode', async () => {

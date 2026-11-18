@@ -34,6 +34,13 @@ import {
     HeartEmotionToJSON,
     HeartEmotionToJSONTyped,
 } from './HeartEmotion';
+import type { StoryPlaceSummary } from './StoryPlaceSummary';
+import {
+    StoryPlaceSummaryFromJSON,
+    StoryPlaceSummaryFromJSONTyped,
+    StoryPlaceSummaryToJSON,
+    StoryPlaceSummaryToJSONTyped,
+} from './StoryPlaceSummary';
 import type { AuthorSummary } from './AuthorSummary';
 import {
     AuthorSummaryFromJSON,
@@ -72,6 +79,12 @@ export interface SharedHeartMomentSummary {
     attachment: AttachmentSummary | null;
     /**
      * 
+     * @type {number}
+     * @memberof SharedHeartMomentSummary
+     */
+    attachmentCount?: number;
+    /**
+     * 
      * @type {AuthorSummary}
      * @memberof SharedHeartMomentSummary
      */
@@ -106,6 +119,18 @@ export interface SharedHeartMomentSummary {
      * @memberof SharedHeartMomentSummary
      */
     id: string;
+    /**
+     * 
+     * @type {Array<StoryPlaceSummary>}
+     * @memberof SharedHeartMomentSummary
+     */
+    places?: Array<StoryPlaceSummary>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SharedHeartMomentSummary
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {string}
@@ -149,12 +174,15 @@ export function SharedHeartMomentSummaryFromJSONTyped(json: any, ignoreDiscrimin
     return {
         
         'attachment': AttachmentSummaryFromJSON(json['attachment']),
+        'attachmentCount': json['attachmentCount'] == null ? undefined : json['attachmentCount'],
         'author': AuthorSummaryFromJSON(json['author']),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'places': json['places'] == null ? undefined : ((json['places'] as Array<any>).map(StoryPlaceSummaryFromJSON)),
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'text': json['text'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
     };
@@ -172,12 +200,15 @@ export function SharedHeartMomentSummaryToJSONTyped(value?: SharedHeartMomentSum
     return {
         
         'attachment': AttachmentSummaryToJSON(value['attachment']),
+        'attachmentCount': value['attachmentCount'],
         'author': AuthorSummaryToJSON(value['author']),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'places': value['places'] == null ? undefined : ((value['places'] as Array<any>).map(StoryPlaceSummaryToJSON)),
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'text': value['text'],
         'visibility': ContentVisibilityToJSON(value['visibility']),
     };

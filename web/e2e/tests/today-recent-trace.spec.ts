@@ -1,7 +1,8 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s5 from '../../src/i18n/locales/m5s5';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -45,6 +46,14 @@ const UPCOMING_ITEMS = [
  * enough to reproduce the reported activity-log/left-column/dead-space
  * problem on a real desktop viewport.
  */
+// Current-month text now appears once in monthly highlights. Keep the Memory
+// outside this month so the existing trace layout and focus checks retain it.
+const now = new Date();
+const previousMonthDate = new Date(
+  Date.UTC(now.getFullYear(), now.getMonth() - 1, 2),
+)
+  .toISOString()
+  .slice(0, 10);
 const RECENT_SHARED_ITEMS = [
   {
     id: 'r1',
@@ -56,7 +65,7 @@ const RECENT_SHARED_ITEMS = [
     id: 'r2',
     type: 'MEMORY',
     titleOrText: 'Ein Wochenende am Wasser',
-    occurredOn: daysAgo(2),
+    occurredOn: previousMonthDate,
   },
   {
     id: 'r3',
@@ -78,12 +87,20 @@ const RECENT_SHARED_ITEMS = [
   },
 ];
 
-/*
- * R4 promotes the Heart Moment to the text-first focal role and the Milestone
- * to the single `Gerade bei euch` slot. The trace never repeats content the
- * page already features above it, so three fixtures remain as trace tiles.
- */
+// Activity chronology is independent of content occurrence dates and featured modules.
 const TRACE_TILE_COUNT = 3;
+const ACTIVITY_ITEMS = RECENT_SHARED_ITEMS.map((item, index) => ({
+  id: `activity-${index}`,
+  sourceEventId: `source-${index}`,
+  kind: index === 0 ? 'COMMENT_CREATED' : `${item.type}_CREATED`,
+  actorId: PARTNER_ID,
+  actor: { id: PARTNER_ID, displayName: 'Ben' },
+  occurredAt: daysAgo(index),
+  createdAt: daysAgo(index),
+  targetId: item.id,
+  targetType: item.type,
+  target: { targetId: item.id, targetType: item.type, title: item.titleOrText },
+}));
 
 async function installMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
@@ -167,7 +184,11 @@ async function installMocks(page: Page): Promise<void> {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: ACTIVITY_ITEMS,
+        nextCursor: null,
+      });
       return;
     }
     if (
@@ -204,7 +225,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activity-log cards or a bare text trace, and uses desktop width instead of a narrow left column', async ({
+test('Today event trace keeps compact borderless composition and authoritative order', async ({
   page,
 }) => {
   await installMocks(page);
@@ -223,29 +244,29 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   const tiles = page.locator('.today-recent-tile');
   await expect(tiles).toHaveCount(TRACE_TILE_COUNT);
 
-  // The first eligible shared story item is the deliberate text-first focal
-  // item and is not repeated as a trace tile below it.
+  // The featured story and the authoritative activity trace retain their
+  // distinct purposes, even when an activity refers to the featured target.
   await expect(page.locator('.today-moment-text')).toHaveCount(1);
-  await expect(
-    page.getByText('Danke, dass du heute für mich da warst.'),
-  ).toHaveCount(1);
+  await expect(tiles.first()).toContainText(ACTIVITY_ITEMS[0].target.title);
 
-  // The promoted Milestone appears once, as the contextual module, and is
-  // not duplicated as a trace tile below it.
+  // A promoted Milestone also remains present at its actual activity position.
   await expect(page.locator('.today-living-milestone')).toHaveCount(1);
-  await expect(page.getByText('Ein Jahr in unserer Wohnung')).toHaveCount(1);
+  await expect(tiles.nth(2)).toContainText(ACTIVITY_ITEMS[2].target.title);
 
-  // Each entry is a real, deliberately bordered mini-surface - not a bare,
-  // unstyled line of text (the over-corrected third follow-up) and not a
-  // huge full-width SaaS card. A visible border/background plus a bounded,
-  // compact width is what makes this read as a designed unit.
+  // Tinted backgrounds and rounded corners retain each compact unit while
+  // respecting the Product Owner's borderless surface decision.
   for (const tile of await tiles.all()) {
     const style = await tile.evaluate((el) => {
       const cs = getComputedStyle(el);
-      return { borderWidth: cs.borderTopWidth, borderStyle: cs.borderTopStyle };
+      return {
+        borderWidth: cs.borderTopWidth,
+        background: cs.backgroundColor,
+        radius: cs.borderTopLeftRadius,
+      };
     });
-    expect(style.borderStyle).toBe('solid');
-    expect(Number.parseFloat(style.borderWidth)).toBeGreaterThan(0);
+    expect(style.borderWidth).toBe('0px');
+    expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(Number.parseFloat(style.radius)).toBeGreaterThan(0);
   }
 
   // Compact and bounded, not full-width rows: none should come close to the
@@ -264,7 +285,7 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   // Matches the Shared Planning Horizon ("Demnächst") tile width directly
   // above (#791 fifth follow-up): an earlier round capped these tiles
   // narrower than that reference section, which read as a mismatched,
-  // "worse" rhythm even though both use the same bordered-tile pattern.
+  // "worse" rhythm even though both use the same compact-tile pattern.
   const agendaWidth = await page
     .locator('.today-agenda-row')
     .first()
@@ -286,10 +307,13 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   const truncatedTitles = titleOverflow.filter((t) => t.truncated);
   expect(truncatedTitles).toHaveLength(0);
 
-  // Type is still available to assistive tech, but not as a separate
-  // visible badge next to an already type-specific icon.
-  await expect(page.locator('.today-recent-tile .sr-only').first()).toHaveText(
-    /./,
+  await expect(tiles).toHaveText(
+    ACTIVITY_ITEMS.slice(0, TRACE_TILE_COUNT).map(
+      (item) => new RegExp(item.target.title),
+    ),
+  );
+  await expect(tiles.first()).toContainText(
+    m5s5.activityAction.COMMENT_CREATED,
   );
 
   // Data, order, and navigation are unchanged.
@@ -363,8 +387,9 @@ test('Today "Zuletzt bei euch" mini-tiles are keyboard-focusable in order with a
 
 test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode', async ({
   page,
-}) => {
+}, info) => {
   await installMocks(page);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/today');
   await signIn(page);
@@ -385,11 +410,21 @@ test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode'
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
+  const section = page.locator('.today-section-recent');
+  const heading = await section.locator('h2').boundingBox();
+  const action = await section.locator('.today-section-action a').boundingBox();
+  expect(action?.x).toBeGreaterThan((heading?.x ?? 0) + (heading?.width ?? 0));
+  expect(Math.abs((action?.y ?? 0) - (heading?.y ?? 0))).toBeLessThan(20);
+  await section.screenshot({
+    path: info.outputPath('wir-activity-heading-390-dark.png'),
+  });
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);
 });
 
-test('Today "Zuletzt bei euch" is axe-clean in dark mode', async ({ page }) => {
+test('Today and Activities show the same event titles and order in dark mode', async ({
+  page,
+}) => {
   await installMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -397,6 +432,18 @@ test('Today "Zuletzt bei euch" is axe-clean in dark mode', async ({ page }) => {
   await signIn(page);
   await page.waitForSelector('.today-recent-tile');
 
+  const traceTitles = await page
+    .locator('.today-activity-trace .activity-card-target-title')
+    .allTextContents();
+  expect(traceTitles).toHaveLength(TRACE_TILE_COUNT);
+  await page.getByRole('link', { name: /Alle Aktivitäten ansehen/ }).click();
+  await expect(page).toHaveURL(/\/today\/activity$/);
+  // The kept Today tab is hidden, not discarded.
+  const activityTitles = page.locator('.activity-card-target-title:visible');
+  await expect(activityTitles).toHaveCount(ACTIVITY_ITEMS.length);
+  expect(
+    (await activityTitles.allTextContents()).slice(0, TRACE_TILE_COUNT),
+  ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);
 });

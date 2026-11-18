@@ -1,5 +1,6 @@
 import { InstanceApi } from '../api/generated/apis/InstanceApi';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
+import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type {
   InstanceAccessStatus,
   InstanceAccessStatusAccountCreationEnum,
@@ -35,6 +36,12 @@ export interface InstanceStatusResult {
   selfServiceSignupAvailable: boolean;
   maintenanceMode: boolean;
   registrationAvailable: boolean;
+  /** Terms version a new Account must accept here; null where none applies. */
+  termsOfUseVersion: string | null;
+  /** External sign-in providers configured on this instance. */
+  oidcConnections?: OidcConnectionView[];
+  /** A person may create a new Account through a provider right now. */
+  oidcSignupAvailable?: boolean;
 }
 
 export function isSelfServiceSignupAllowed(
@@ -66,6 +73,9 @@ export async function loadInstanceAccessStatus(
       selfServiceSignupAvailable: Boolean(status.selfServiceSignupAvailable),
       maintenanceMode: status.maintenanceMode,
       registrationAvailable: status.registrationAvailable,
+      termsOfUseVersion: status.termsOfUseVersion ?? null,
+      oidcConnections: status.oidcConnections ?? [],
+      oidcSignupAvailable: Boolean(status.oidcSignupAvailable),
     };
   } catch {
     return {
@@ -75,6 +85,9 @@ export async function loadInstanceAccessStatus(
       selfServiceSignupAvailable: false,
       maintenanceMode: false,
       registrationAvailable: false,
+      termsOfUseVersion: null,
+      oidcConnections: [],
+      oidcSignupAvailable: false,
     };
   }
 }

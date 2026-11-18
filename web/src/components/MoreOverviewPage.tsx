@@ -1,122 +1,225 @@
-import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
+import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
+import { useHideProFeatureMarks } from '../client/proPresentation';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
+  type AppRouteIcon,
   appRoutePath,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
-  type AppRouteIcon,
+  SEARCH_ROUTE,
+  SERVER_ADMIN_ROUTE,
+  STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+  STORY_YEARS_ROUTE,
 } from '../client/routes';
+import { useShellUtilities } from '../client/shellUtilities';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
-import { useProductTour } from '../client/productTour';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
+import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
+import { LegalFooterLinks } from './LegalDocumentLink';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
+import { TaskOriginLink } from './TodayDestinationLink';
 import './MoreOverviewPage.css';
 
 interface MoreDestination {
   path: string;
   icon: AppRouteIcon;
   titleKey: string;
+  /** Short localized line that tells what the destination holds. */
+  subtitleKey?: string;
   badgeKey?: string;
 }
 
-const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: PRIVATE_AREA_ROOT_PATH,
-    icon: 'private',
-    titleKey: 'more.private.title',
-  },
-];
+const PRIVATE_DESTINATION: MoreDestination = {
+  path: PRIVATE_AREA_ROOT_PATH,
+  icon: 'private',
+  titleKey: 'more.private.title',
+};
 
-const SHARED_DESTINATIONS: readonly MoreDestination[] = [
+/**
+ * #1790 E1: years and recaps share one destination. It opens the Free years
+ * index, whose quiet entry leads on to the recaps, so no route is lost.
+ */
+const STORY_DESTINATIONS: readonly MoreDestination[] = [
+  // The couple's own story overview, first in its own group.
+  {
+    path: STORY_OURS_ROUTE,
+    icon: 'story',
+    titleKey: 'relationshipReflections.passport.title',
+    subtitleKey: 'relationshipReflections.passport.intro',
+    badgeKey: 'relationshipReflections.passport.pro',
+  },
+  {
+    path: STORY_PHOTOS_ROUTE,
+    icon: 'media',
+    titleKey: 'more.destinations.media',
+    subtitleKey: 'more.subtitles.media',
+  },
+  {
+    path: STORY_CHAPTERS_ROUTE,
+    icon: 'chapter',
+    titleKey: 'more.destinations.chapters',
+    subtitleKey: 'more.subtitles.chapters',
+  },
+  {
+    path: STORY_YEARS_ROUTE,
+    icon: 'plan',
+    titleKey: 'more.destinations.yearsAndRecaps',
+    subtitleKey: 'more.subtitles.yearsAndRecaps',
+  },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',
-    titleKey: 'dailyInsights.week.title',
+    titleKey: 'more.destinations.insights',
+    subtitleKey: 'more.subtitles.insights',
     badgeKey: 'dailyInsights.pro',
   },
+];
+
+const EVERYDAY_DESTINATIONS: readonly MoreDestination[] = [
   {
-    path: MORE_PEOPLE_ROUTE,
-    icon: 'people',
-    titleKey: 'more.people.title',
+    path: MORE_COLLECTIONS_ROUTE,
+    icon: 'collections',
+    titleKey: 'more.destinations.lists',
+    subtitleKey: 'more.subtitles.lists',
+  },
+  {
+    path: MORE_NOTES_ROUTE,
+    icon: 'notes',
+    titleKey: 'sharedNotes.destination',
+    subtitleKey: 'sharedNotes.destinationSubtitle',
   },
   {
     path: MORE_PLACES_ROUTE,
     icon: 'places',
     titleKey: 'more.places.title',
+    subtitleKey: 'more.subtitles.places',
   },
   {
-    path: MORE_COLLECTIONS_ROUTE,
-    icon: 'collections',
-    titleKey: 'more.collections.title',
+    path: MORE_PEOPLE_ROUTE,
+    icon: 'people',
+    titleKey: 'more.people.title',
+    subtitleKey: 'more.subtitles.people',
   },
   {
     path: appRoutePath('games'),
     icon: 'games',
     titleKey: 'navigation.games',
+    subtitleKey: 'more.subtitles.games',
     badgeKey: 'games.status.premium',
   },
 ];
 
 const UTILITY_DESTINATIONS: readonly MoreDestination[] = [
   {
-    path: MORE_NOTIFICATIONS_ROUTE,
-    icon: 'notifications',
-    titleKey: 'navigation.notifications',
+    path: MORE_SETTINGS_ROUTE,
+    icon: 'settings',
+    titleKey: 'navigation.settings',
   },
   {
     path: ACTIVITY_ROUTE,
     icon: 'activity',
     titleKey: 'navigation.activity',
   },
-  {
-    path: MORE_SETTINGS_ROUTE,
-    icon: 'settings',
-    titleKey: 'navigation.settings',
-  },
 ];
 
 function MoreDestinationRow({
   destination,
   leading,
+  label,
+  subtitle,
+  unreadCount,
 }: {
   destination: MoreDestination;
   leading?: ReactNode;
+  label?: string;
+  subtitle?: string;
+  unreadCount?: number;
 }) {
   const { t } = useTranslation();
+  const hideProMarks = useHideProFeatureMarks();
+  const secondaryLine =
+    subtitle ??
+    (destination.subtitleKey ? t(destination.subtitleKey) : undefined);
+  const rowId = useId();
+  const showBadge = Boolean(destination.badgeKey) && !hideProMarks;
+  // The title (and Pro mark) stay the accessible name; the secondary line
+  // describes the destination instead of lengthening its name (#1790 E1).
+  const describeSecondary = Boolean(secondaryLine) && !leading;
+  const titleId = `${rowId}-title`;
+  const badgeId = `${rowId}-badge`;
+  const subtitleId = `${rowId}-subtitle`;
 
   return (
     <li>
-      <Link className="more-destination" to={destination.path}>
+      <TaskOriginLink
+        className={`more-destination${leading ? ' more-profile-destination' : ''}`}
+        to={destination.path}
+        ariaLabel={
+          (unreadCount ?? 0) > 0
+            ? t('navigation.notificationsWithUnread', { count: unreadCount })
+            : undefined
+        }
+        ariaLabelledBy={
+          describeSecondary
+            ? showBadge
+              ? `${titleId} ${badgeId}`
+              : titleId
+            : undefined
+        }
+        ariaDescribedBy={describeSecondary ? subtitleId : undefined}
+      >
         <span
-          className="more-destination-icon"
-          aria-hidden={leading ? undefined : true}
+          className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
+          aria-hidden="true"
         >
           {leading ?? <DestinationIcon icon={destination.icon} />}
         </span>
         <span className="more-destination-copy">
           <span className="more-destination-title-row">
-            <strong>{t(destination.titleKey)}</strong>
-            {destination.badgeKey ? (
-              <span className="more-destination-badge">
+            <strong id={titleId}>{label ?? t(destination.titleKey)}</strong>
+            {showBadge && destination.badgeKey ? (
+              <span id={badgeId} className="more-destination-badge">
                 {t(destination.badgeKey)}
               </span>
             ) : null}
           </span>
+          {secondaryLine ? (
+            <span
+              id={subtitleId}
+              className={
+                leading ? 'more-profile-label' : 'more-destination-subtitle'
+              }
+            >
+              {secondaryLine}
+            </span>
+          ) : null}
         </span>
-        <span className="more-destination-chevron" aria-hidden="true">
-          ›
+        <span className="more-destination-trailing">
+          {(unreadCount ?? 0) > 0 ? (
+            <span className="more-unread-count" aria-hidden="true">
+              {new Intl.NumberFormat(resolvedLocale()).format(unreadCount ?? 0)}
+            </span>
+          ) : null}
         </span>
-      </Link>
+      </TaskOriginLink>
     </li>
   );
 }
@@ -124,15 +227,73 @@ function MoreDestinationRow({
 function MoreDestinationGroup({
   title,
   children,
+  separate = false,
 }: {
   title: string;
   children: ReactNode;
+  separate?: boolean;
 }) {
   return (
-    <section className="more-group">
+    <section className={`more-group${separate ? ' more-group-separated' : ''}`}>
       <h2 className="more-group-title">{title}</h2>
       <ul className="more-destinations">{children}</ul>
     </section>
+  );
+}
+
+/** How long the confirmation replaces the action label. */
+const ACCOUNT_ID_FEEDBACK_MS = 2400;
+
+/**
+ * A quiet way to hand one's account ID to support. Operators find an account
+ * by this ID, not by a person's name, so the name can stay protected content
+ * (#797). The ID itself is not shown; it only appears, selectable, when the
+ * device cannot copy.
+ */
+function AccountIdCopy({ accountId }: { accountId: string }) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const reset = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(reset.current), []);
+
+  async function copy() {
+    window.clearTimeout(reset.current);
+    try {
+      if (!navigator.clipboard?.writeText)
+        throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(accountId);
+      setState('copied');
+      reset.current = window.setTimeout(
+        () => setState('idle'),
+        ACCOUNT_ID_FEEDBACK_MS,
+      );
+    } catch {
+      setState('failed');
+    }
+  }
+
+  return (
+    <div className="more-account-id">
+      <button
+        type="button"
+        className="more-account-id-action"
+        onClick={() => void copy()}
+      >
+        {t(
+          state === 'copied' ? 'more.accountId.copied' : 'more.accountId.copy',
+        )}
+      </button>
+      <span className="sr-only" role="status">
+        {state === 'copied' ? t('more.accountId.copied') : ''}
+      </span>
+      {state === 'failed' ? (
+        <p className="more-account-id-fallback" role="alert">
+          <span>{t('more.accountId.failed')}</span>
+          <code>{accountId}</code>
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -147,8 +308,15 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
+  const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
-  const { replay } = useProductTour();
+  const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
+  // Shares App's cached public instance status; Self-Hosted publishes no terms.
+  const instanceStatus = useQuery({
+    queryKey: ['instance-status', apiBaseUrl],
+    queryFn: () => loadInstanceAccessStatus(apiBaseUrl),
+    staleTime: 60_000,
+  });
   const { displayName, avatarUrl } = useCurrentProfileIdentity({
     apiBaseUrl,
     accessToken,
@@ -163,18 +331,34 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div className="page more-page">
-      <PageHeader variant="root" title={t('more.title')} />
+    <div
+      className="page more-page"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('more.title')}
+      />
+
+      <Link className="more-search-entry" to={SEARCH_ROUTE}>
+        <span className="shell-nav-icon" aria-hidden="true">
+          <DestinationIcon icon="search" />
+        </span>
+        <span>{t('navigation.searchAll')}</span>
+      </Link>
 
       <div className="more-groups">
-        <MoreDestinationGroup title={t('more.groups.personal')}>
+        <MoreDestinationGroup title={t('more.groups.personal')} separate>
           <MoreDestinationRow
             destination={profileDestination}
+            label={displayName}
+            subtitle={t('navigation.profile')}
             leading={
               <PersonIdentity
                 displayName={displayName}
                 imageUrl={avatarUrl}
-                size="small"
+                size="medium"
                 showName={false}
                 imageAlt={t('profileIdentity.imageAlt', { name: displayName })}
                 fallbackAlt={t('profileIdentity.fallbackAlt', {
@@ -183,7 +367,24 @@ export function MoreOverviewPage({
               />
             }
           />
-          {PERSONAL_DESTINATIONS.map((destination) => (
+          <MoreDestinationRow
+            destination={PRIVATE_DESTINATION}
+            subtitle={t('more.subtitles.private', {
+              visibility: t('more.visibility.onlyYou'),
+            })}
+          />
+          <MoreDestinationRow
+            destination={{
+              path: MORE_NOTIFICATIONS_ROUTE,
+              icon: 'notifications',
+              titleKey: 'navigation.notifications',
+            }}
+            unreadCount={unreadCount}
+          />
+        </MoreDestinationGroup>
+
+        <MoreDestinationGroup title={t('more.groups.moments')}>
+          {STORY_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}
@@ -192,7 +393,7 @@ export function MoreOverviewPage({
         </MoreDestinationGroup>
 
         <MoreDestinationGroup title={t('more.groups.shared')}>
-          {SHARED_DESTINATIONS.map((destination) => (
+          {EVERYDAY_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}
@@ -207,25 +408,36 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
-          <li>
-            <button
-              type="button"
-              className="more-destination more-destination-button"
-              onClick={replay}
-            >
-              <span className="more-destination-icon" aria-hidden="true">
-                <DestinationIcon icon="story" />
-              </span>
-              <span className="more-destination-copy">
-                <strong>{t('productTour.replay')}</strong>
-              </span>
-              <span className="more-destination-chevron" aria-hidden="true">
-                ›
-              </span>
-            </button>
-          </li>
         </MoreDestinationGroup>
+        {serverAdmin ? (
+          <MoreDestinationGroup title={t('navigation.operatorArea')}>
+            <MoreDestinationRow
+              destination={{
+                path: SERVER_ADMIN_ROUTE,
+                icon: 'settings',
+                titleKey: 'serverAdmin.title',
+              }}
+            />
+          </MoreDestinationGroup>
+        ) : null}
       </div>
+      <footer className="more-footer">
+        <div className="more-account-actions">
+          {onLogout ? (
+            <button type="button" className="more-logout" onClick={onLogout}>
+              <EimirIcon name="logout" />
+              <span>{t('header.logout')}</span>
+            </button>
+          ) : null}
+          <AccountIdCopy accountId={account.id} />
+        </div>
+        {cloudLegalDocumentsApply(instanceStatus.data?.termsOfUseVersion) ? (
+          <LegalFooterLinks className="more-legal" />
+        ) : null}
+        <div className="more-brand-signature">
+          <Brand />
+        </div>
+      </footer>
     </div>
   );
 }

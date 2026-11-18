@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
+import {
+  BrowserRouter,
+  MemoryRouter,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   TaskOriginProvider,
@@ -10,12 +15,14 @@ import {
 
 let origin: ReturnType<typeof useTaskOrigin>;
 let currentPath = '';
+let currentState: unknown;
 let navigate: ReturnType<typeof useNavigate>;
 function Probe() {
   origin = useTaskOrigin();
   const location = useLocation();
   navigate = useNavigate();
   currentPath = `${location.pathname}${location.search}`;
+  currentState = location.state;
   return null;
 }
 function Harness({
@@ -51,10 +58,150 @@ afterEach(() => {
 });
 
 describe('task origin privacy and lifetime', () => {
+  it('retains map source/camera context only inside the scoped in-memory origin', async () => {
+    const view = render(<Harness />);
+    await act(async () => navigate('/story/map?place=49%3A7'));
+    const context = {
+      placeId: '49:7',
+      memoryId: 'map-source',
+      viewport: { latitude: 49.1, longitude: 7.2, zoom: 16 },
+      fullscreen: true,
+    };
+    const key = origin.captureOrigin({ memoryMap: context });
+    expect(origin.resolveOrigin(key)).toMatchObject({
+      to: '/story/map?place=49%3A7',
+      memoryMap: context,
+    });
+    expect(JSON.stringify(window.history.state)).not.toMatch(
+      /map-source|latitude|longitude|fullscreen/,
+    );
+    view.rerender(<Harness account="account-b" />);
+    expect(origin.resolveOrigin(key)).toBeNull();
+  });
+  it('restores the upstream context after a nested task replaces itself with its result', async () => {
+    window.history.replaceState(
+      { idx: 0, key: 'planning', usr: null },
+      '',
+      '/plan',
+    );
+    render(
+      <BrowserRouter>
+        <TaskOriginProvider accountId="account-a" spaceId="space-a">
+          <Probe />
+        </TaskOriginProvider>
+      </BrowserRouter>,
+    );
+    const planningKey = origin.captureOrigin({ planningSegment: 'wishes' });
+    await act(async () =>
+      navigate('/plan/choose', { state: { taskOriginKey: planningKey } }),
+    );
+    const selectionKey = origin.captureOrigin();
+    await act(async () =>
+      navigate('/plan/plans/result', {
+        replace: true,
+        state: { taskOriginKey: selectionKey },
+      }),
+    );
+    await act(async () => origin.requestReturn(selectionKey));
+    expect(currentPath).toBe('/plan/choose');
+    expect(currentState).toEqual({
+      taskReturnKey: selectionKey,
+      taskOriginKey: planningKey,
+    });
+    expect(origin.resolveOrigin(planningKey)).toMatchObject({
+      planningSegment: 'wishes',
+    });
+    await act(async () => origin.requestReturn(planningKey));
+    await waitFor(() => expect(currentPath).toBe('/plan'));
+  });
+
+  it('does not restore an untrusted upstream origin from route state', async () => {
+    render(<Harness />);
+    window.history.replaceState(
+      { usr: { taskOriginKey: 'foreign-origin' } },
+      '',
+      '/story',
+    );
+    const key = origin.captureOrigin();
+    await act(async () => navigate('/plan/plans/result'));
+    await act(async () => origin.requestReturn(key));
+    expect(currentState).toEqual({ taskReturnKey: key });
+    expect(origin.resolveOrigin(key)).not.toHaveProperty('taskOriginKey');
+  });
+
+  it('primary selection opens canonical defaults while detail origins retain their full context', async () => {
+    render(<Harness />);
+    const key = origin.captureOrigin({ loadedPageCount: 4 });
+    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
+    expect(origin.resolveOrigin(key)).toMatchObject({
+      to: '/story?type=MEMORY&year=2025&order=ASC&tab=timeline',
+      loadedPageCount: 4,
+    });
+    await act(async () => navigate('/plan'));
+    vi.spyOn(window, 'scrollY', 'get').mockReturnValue(400);
+    const planKey = origin.captureOrigin({ planningSegment: 'wishes' });
+    expect(origin.primaryDestination('/plan')).toEqual({ to: '/plan' });
+    expect(origin.resolveOrigin(planKey)).toMatchObject({
+      planningSegment: 'wishes',
+      scrollY: 400,
+    });
+    expect(origin.primaryDestination('//other.example')).toEqual({
+      to: '/today',
+    });
+    expect(JSON.stringify(window.history.state)).not.toMatch(
+      /private-words|2025/,
+    );
+  });
+
+  it('invalidates retained task callbacks on account or Space replacement', () => {
+    const view = render(<Harness />);
+    const key = origin.captureOrigin();
+    const oldResolve = origin.resolveOrigin;
+    view.rerender(<Harness account="account-b" />);
+    expect(origin.resolveOrigin(key)).toBeNull();
+    expect(oldResolve(key)).toBeNull();
+    const nextKey = origin.captureOrigin();
+    view.rerender(<Harness account="account-b" space="space-b" />);
+    expect(origin.resolveOrigin(nextKey)).toBeNull();
+    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
+  });
+
+  it('keeps Places lifecycle scope on return and excludes authored or unknown query values', () => {
+    expect(taskOriginPath('/more/places', '?scope=ARCHIVED&name=private')).toBe(
+      '/more/places?scope=ARCHIVED',
+    );
+    expect(taskOriginPath('/more/places', '?scope=ALL')).toBe(
+      '/more/places?scope=ALL',
+    );
+    expect(taskOriginPath('/more/places', '?scope=invalid&name=private')).toBe(
+      '/more/places',
+    );
+  });
+
   it('allowlists local primary routes and serializes only non-sensitive Timeline scope', () => {
+    // Shared notes keep the pinned scope and the read page, never the search.
+    expect(taskOriginPath('/more/notes', '?scope=PINNED&q=secret')).toBe(
+      '/more/notes?scope=PINNED',
+    );
+    expect(taskOriginPath('/more/notes', '?scope=other')).toBe('/more/notes');
+    expect(taskOriginPath('/more/notes/note-1', '?x=1')).toBe(
+      '/more/notes/note-1',
+    );
+    expect(taskOriginPath('/more/notes/new', '')).toBeNull();
+    expect(taskOriginPath('/more/notes/note-1/edit', '')).toBeNull();
     expect(taskOriginPath('//other.example', '')).toBeNull();
-    expect(taskOriginPath('/story/memories/secret', '')).toBeNull();
-    expect(taskOriginPath('/more/private', '')).toBeNull();
+    expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(
+      '/story/memories/memory-1',
+    );
+    expect(taskOriginPath('/more/private', '?title=private')).toBe(
+      '/more/private',
+    );
+    expect(taskOriginPath('/more/private/', '')).toBe('/more/private');
+    expect(taskOriginPath('/more/private/notes', '')).toBeNull();
+    expect(taskOriginPath('/more/private/notes/note-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/gift-ideas/gift-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/collections/list-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/partner-notes', '')).toBeNull();
     expect(taskOriginPath('/plan/plans/plan-1', '?title=private')).toBe(
       '/plan/plans/plan-1',
     );
@@ -71,6 +218,18 @@ describe('task origin privacy and lifetime', () => {
     expect(taskOriginPath('/today/activity', '?body=private')).toBe(
       '/today/activity',
     );
+    expect(taskOriginPath('/today/activity', '?scope=own&body=private')).toBe(
+      '/today/activity?scope=own',
+    );
+    expect(taskOriginPath('/today/activity', '?scope=foreign')).toBe(
+      '/today/activity',
+    );
+    expect(
+      taskOriginPath(
+        '/story/map',
+        '?place=49:7&type=MEMORY&year=2025&body=private',
+      ),
+    ).toBe('/story/map?type=MEMORY&year=2025&place=49%3A7');
     expect(taskOriginPath('/more/notifications', '?body=private')).toBe(
       '/more/notifications',
     );
@@ -173,6 +332,40 @@ describe('task origin privacy and lifetime', () => {
     expect(origin.resolveOrigin(recent)).toBeNull();
   });
 
+  it('returns to a shared Memory editor without retaining query payloads or resuming it as a root', async () => {
+    expect(
+      taskOriginPath('/story/memories/memory-1/edit', '?body=private'),
+    ).toBe('/story/memories/memory-1/edit');
+    expect(taskOriginPath('/story/memories/new/edit', '')).toBeNull();
+    expect(taskOriginPath('/story/heart-moments/private/edit', '')).toBeNull();
+    render(<Harness />);
+    const rootKey = origin.captureOrigin();
+    await act(async () => navigate('/story/memories/memory-1/edit'));
+    const editKey = origin.captureOrigin();
+    await act(async () =>
+      navigate('/plan/places/place-1', { state: { taskOriginKey: editKey } }),
+    );
+    await act(async () => origin.requestReturn(editKey));
+    expect(currentPath).toBe('/story/memories/memory-1/edit');
+    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
+    expect(origin.resolveOrigin(rootKey)).not.toBeNull();
+  });
+
+  it('preserves recap tab/page but strips private query input', () => {
+    expect(taskOriginPath('/story/recaps', '?tab=years&text=private')).toBe(
+      '/story/recaps?tab=years',
+    );
+    expect(
+      taskOriginPath(
+        '/story/recaps/edition',
+        '?page=2&tab=years&draft=private',
+      ),
+    ).toBe('/story/recaps/edition?tab=years&page=2');
+    expect(
+      taskOriginPath('/story/recaps/edition', '?page=999&tab=unknown'),
+    ).toBe('/story/recaps/edition');
+  });
+
   it('allowlists /search as a return origin without ever putting its query text in the path', () => {
     expect(taskOriginPath('/search', '?q=secret+words&kind=MEMORY')).toBe(
       '/search',
@@ -208,4 +401,17 @@ describe('task origin privacy and lifetime', () => {
     );
     expect(currentPath).toBe('/story');
   });
+});
+
+it('returns to the selected saved-memory map place without retaining arbitrary query text', () => {
+  expect(taskOriginPath('/story/map', '?place=52.51:13.35&body=private')).toBe(
+    '/story/map?place=52.51%3A13.35',
+  );
+  expect(taskOriginPath('/story/map', '?place=999:13')).toBe('/story/map');
+  expect(taskOriginPath('/story/map', '?place=https://other.example')).toBe(
+    '/story/map',
+  );
+  expect(taskOriginPath('/more/collections', '?title=private')).toBe(
+    '/more/collections',
+  );
 });

@@ -38,7 +38,7 @@ done
 set +f
 
 # The leading space belongs to the template boundary. Without an additional
-# origin, the header remains exactly `connect-src 'self';`.
+# origin, the header remains exactly `connect-src 'self' https://tiles.openfreemap.org;`.
 if [ -n "$eimir_csp_normalized_origins" ]; then
     EIMIR_WEB_CSP_CONNECT_ORIGINS=" $eimir_csp_normalized_origins"
 else

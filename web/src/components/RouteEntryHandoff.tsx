@@ -1,6 +1,9 @@
-import { useEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
+import {
+  applyRouteEntryHandoff,
+  takeSmoothRouteEntry,
+} from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
 /**
@@ -53,38 +56,72 @@ export function RouteEntryHandoff(): null {
   const location = useLocation();
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
+  const previousPath = useRef<string | null>(null);
+  const completedOriginEntry = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const smoothRequested = takeSmoothRouteEntry();
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
+      inPlaceRouteUpdate?: boolean;
+      focusStoryView?: boolean;
     } | null;
+    const samePath = previousPath.current === location.pathname;
+    previousPath.current = location.pathname;
+    // Playback/query state is not a new destination. Preserve its opaque return
+    // context without repeatedly moving focus or scrolling the reader.
+    if (samePath && !location.hash && state?.inPlaceRouteUpdate === true)
+      return undefined;
     const origin = resolveOrigin(state?.taskReturnKey);
     if (
       origin &&
       origin.to === taskOriginPath(location.pathname, location.search)
     ) {
       if (location.pathname === '/story') return undefined;
+      const entry = `${location.key}:${String(state?.taskReturnKey)}`;
+      if (completedOriginEntry.current === entry) return undefined;
       const frame = window.requestAnimationFrame(() => {
+        if (!resolveOrigin(state?.taskReturnKey)) return;
         window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
-        if (origin.focusTarget === 'quick-create') {
-          Array.from(
-            document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-          )
-            .find((element) => element.getClientRects().length > 0)
-            ?.focus({ preventScroll: true });
-        }
+        completedOriginEntry.current = entry;
+        const target = origin.selectedKey
+          ? Array.from(
+              document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
+            ).find(
+              // Kept, hidden primary tabs can render the same item.
+              (element) =>
+                element.dataset.taskItemKey === origin.selectedKey &&
+                !element.closest('[hidden]'),
+            )
+          : null;
+        target?.focus({ preventScroll: true });
       });
       return () => window.cancelAnimationFrame(frame);
     }
     if (navigationType === 'POP' && !location.hash) return undefined;
-    applyRouteEntryHandoff(location.hash);
+    // Tapping the navigation item of the page already shown scrolls it back
+    // to the start; make that a glide rather than a jump.
+    applyRouteEntryHandoff(location.hash, {
+      smooth: samePath && smoothRequested,
+    });
     const cleanup = stabilizePlanRouteEntry(location.hash);
     // `location` (not just `.hash`) is the dependency: a pathname-only
     // change between two hash-less routes must still re-run the handoff.
     const frame = resolveOrigin(state?.taskOriginKey)
       ? window.requestAnimationFrame(() => {
-          const heading = document.querySelector<HTMLElement>('main h1');
+          // Keyboard selection owns focus across the Story/Map route boundary.
+          // Keep its selected peer tab ahead of generic source-reader focus.
+          if (
+            state?.focusStoryView === true &&
+            document.querySelector(
+              '.story-view-tabs [role="tab"][aria-selected="true"]',
+            )
+          )
+            return;
+          const heading = Array.from(
+            document.querySelectorAll<HTMLElement>('main h1'),
+          ).find((candidate) => !candidate.closest('[hidden]'));
           if (heading) {
             heading.tabIndex = -1;
             heading.focus({ preventScroll: true });

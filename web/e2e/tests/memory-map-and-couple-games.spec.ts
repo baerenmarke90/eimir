@@ -1,0 +1,1299 @@
+import { readFileSync } from 'node:fs';
+import { expect, type Page, test } from '@playwright/test';
+import calendarCopy from '../../src/i18n/locales/calendarPlan';
+import experienceCopy from '../../src/i18n/locales/coupleExperiences';
+import de from '../../src/i18n/locales/de';
+import gameCopy from '../../src/i18n/locales/games';
+import mapCopy from '../../src/i18n/locales/memoryMap';
+import taskCopy from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
+import { type MapTileMock, mockMapTiles } from '../support/mapTiles';
+import { storyDetailBack } from '../support/memoryDiary';
+import {
+  ACCOUNT_ID,
+  captureScreenshot,
+  installMocks,
+  PARTNER_ID,
+  SPACE_ID,
+  signIn,
+  TINY_PNG,
+} from '../support/storyTimelineFixture';
+
+function proSettingsRow(page: Page) {
+  return page.locator('.settings-category-link[href="/more/pro"]');
+}
+
+async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
+  const sheet = page.getByRole('dialog', { name: mapCopy.title });
+  const map = sheet.locator('.place-map-viewport');
+  const bounds = await map.boundingBox();
+  if (!bounds) throw new Error('Fullscreen map has no touch bounds');
+  // Markers are anchored to the map, so panning moves them on screen.
+  const anchor = map.locator('.memory-map-marker').first();
+  const beforePan = await anchor.boundingBox();
+  const touch = await page.context().newCDPSession(page);
+  let touching = false;
+  const x = bounds.x + bounds.width * 0.7;
+  const y = bounds.y + bounds.height * 0.2;
+  try {
+    await touch.send('Emulation.setTouchEmulationEnabled', {
+      enabled: true,
+      maxTouchPoints: 2,
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y, id: 1 }],
+    });
+    touching = true;
+    for (const offset of [20, 80, 180]) {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y + offset, id: 1 }],
+      });
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      await expect(sheet).not.toHaveAttribute('data-dragging', 'true');
+    }
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    touching = false;
+    await expect
+      .poll(async () => (await anchor.boundingBox())?.y)
+      .not.toBe(beforePan?.y);
+    await expect(sheet).toBeVisible();
+
+    const beforeZoom = Math.max(...tiles.zooms());
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    for (const [index, spread] of [35, 70, 110].entries()) {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: index === 0 ? 'touchStart' : 'touchMove',
+        touchPoints: [
+          { x: centerX - spread, y: centerY, id: 1 },
+          { x: centerX + spread, y: centerY, id: 2 },
+        ],
+      });
+      touching = true;
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      await expect(sheet).not.toHaveAttribute('data-dragging', 'true');
+    }
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    touching = false;
+    await expect
+      .poll(async () => Math.max(...tiles.zooms()))
+      .toBeGreaterThan(beforeZoom);
+    await expect(sheet).toBeVisible();
+  } finally {
+    if (touching)
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    await touch.detach();
+  }
+}
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`saved memory map at ${width} ${theme}: immediate map, grouped sources and return`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: width === 430 ? 'no-preference' : 'reduce',
+    });
+    await installMocks(page);
+    let thumbnailReads = 0;
+    await page.route('**/attachments/att-canal-1/content*', (route) => {
+      if (
+        new URL(route.request().url()).searchParams.get('variant') ===
+        'thumbnail'
+      )
+        thumbnailReads++;
+      return route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/lake-sunrise.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+    });
+    const tiles = await mockMapTiles(page);
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              memoryId: 'mem-canal',
+              previewAttachmentId: 'att-canal-1',
+              previewIsSensitive: false,
+              previewHasThumbnail: true,
+              title: 'Afternoon by the canal',
+              happenedOn: '2026-10-30',
+              placeId: 'lake',
+              placeName: 'Lake',
+              latitude: 49.45,
+              longitude: 7.16,
+            },
+            {
+              memoryId: 'mem-walk',
+              title: 'One more walk together',
+              happenedOn: '2026-06-12',
+              placeId: 'lake',
+              placeName: 'Lake',
+              latitude: 49.45,
+              longitude: 7.16,
+            },
+          ],
+          nextCursor: null,
+        },
+      }),
+    );
+    await signIn(page);
+    const storyTabs = page.getByRole('tablist', {
+      name: de.story.viewToggleAria,
+    });
+    await expect(storyTabs).toBeVisible();
+    const discoverTab = storyTabs.getByRole('tab', {
+      name: de.story.tabDiscover,
+      exact: true,
+    });
+    await discoverTab.click();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-discover')).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const discoverBounds = await storyTabs.boundingBox();
+    const diaryTab = storyTabs.getByRole('tab', {
+      name: de.story.tabTimeline,
+      exact: true,
+    });
+    await diaryTab.click();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-timeline')).toBeVisible();
+    const diaryBounds = await storyTabs.boundingBox();
+    await page.getByRole('tab', { name: mapCopy.entry }).click();
+    await expect(
+      page.getByRole('tab', { name: mapCopy.entry }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-map')).toBeVisible();
+    const mapBounds = await storyTabs.boundingBox();
+    if (!discoverBounds || !diaryBounds || !mapBounds)
+      throw new Error('All peer-view navigation bounds must be measurable');
+    for (const bounds of [diaryBounds, mapBounds]) {
+      expect(Math.abs(bounds.y - discoverBounds.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(bounds.x - discoverBounds.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(bounds.width - discoverBounds.width)).toBeLessThanOrEqual(
+        1,
+      );
+      expect(
+        Math.abs(bounds.height - discoverBounds.height),
+      ).toBeLessThanOrEqual(1);
+    }
+    const place = page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: 'Lake · 2 Erinnerungen' });
+    await expect(place).toBeVisible();
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-marker-photo img')).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator('.memory-map-marker-photo img')
+          .evaluate(
+            (node: HTMLImageElement) => node.complete && node.naturalWidth > 0,
+          ),
+      )
+      .toBe(true);
+    await expect(page.locator('.memory-map-marker-count')).toHaveText('2');
+    await expect(place.locator('.memory-map-thumbnail img')).toBeVisible();
+    expect(thumbnailReads).toBeGreaterThan(0);
+    // Initial layout/StrictMode admission may cancel a fetch before any body
+    // arrives. Measure return continuity from the first confirmed ready view.
+    const readyThumbnailReads = thumbnailReads;
+    await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
+      0,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `memory-map-places-${width}-${theme}.png`,
+      {
+        fullPage: true,
+      },
+    );
+    await place.hover();
+    if (width !== 430) await expect(place).toHaveCSS('transform', 'none');
+    const expand = page.getByRole('button', {
+      name: mapCopy.fullscreen,
+      exact: true,
+    });
+    await expand.click();
+    const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+    await expect(fullscreen).toBeVisible();
+    await expect
+      .poll(async () => Math.round((await fullscreen.boundingBox())?.y ?? -1))
+      .toBe(0);
+    await expect(page.locator('.maplibregl-map')).toHaveCount(1);
+    // Real vector tiles must use an overview zoom, including single-place maps.
+    await expect
+      .poll(
+        () =>
+          tiles.zooms().length > 0 && tiles.zooms().every((zoom) => zoom <= 11),
+      )
+      .toBe(true);
+    const viewport = await fullscreen
+      .locator('.place-map-viewport')
+      .boundingBox();
+    expect(viewport?.height).toBeGreaterThan(500);
+    const marker = await fullscreen.locator('.memory-map-marker').boundingBox();
+    if (!viewport || !marker)
+      throw new Error('Fullscreen map and marker must be measurable');
+    expect(marker.x).toBeGreaterThanOrEqual(viewport.x);
+    expect(marker.y).toBeGreaterThanOrEqual(viewport.y);
+    expect(marker.x + marker.width).toBeLessThanOrEqual(
+      viewport.x + viewport.width,
+    );
+    expect(marker.y + marker.height).toBeLessThanOrEqual(
+      viewport.y + viewport.height,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `planning-map-fullscreen-${width}-${theme}.png`,
+    );
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-map-fullscreen')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    if (width < 840) await exerciseMapTouchOwnership(page, tiles);
+    await page.keyboard.press('Escape');
+    await expect(fullscreen).toBeHidden();
+    await expect(expand).toBeFocused();
+    await expand.click();
+    await expect(fullscreen).toBeVisible();
+    await page.goBack();
+    await expect(fullscreen).toBeHidden();
+    await expect(page).toHaveURL(/\/story\/map/);
+    await expand.click();
+    await fullscreen.locator('.memory-map-marker').click();
+    await expect(fullscreen).toBeVisible();
+    await expect(
+      fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+    ).toBeVisible();
+    await fullscreen
+      .getByRole('button', { name: mapCopy.closeFullscreen, exact: true })
+      .click();
+    await expect(fullscreen).toBeHidden();
+    const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
+    await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
+    await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
+    expect(thumbnailReads).toBe(readyThumbnailReads);
+    await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
+      'animation-name',
+      width === 430 ? 'eimir-disclosure-reveal' : 'none',
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await captureScreenshot(page, info, `memory-map-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    expect(
+      (await new AxeBuilder({ page }).include('.memory-map-page').analyze())
+        .violations,
+    ).toEqual([]);
+    await memory.click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
+    await storyDetailBack(page).click();
+    await expect(page).toHaveURL(/\/story\/map\?place=/);
+    await expect(
+      page.getByRole('link', { name: /Afternoon by the canal/ }),
+    ).toBeVisible();
+    // #1907 D1: the account settings category leads to the Pro page with one row.
+    await page.goto('/more/settings/account');
+    const proRow = proSettingsRow(page);
+    await expect(proRow).toContainText('eimir. Pro');
+    await expect(page.locator('.settings-pro-information')).toHaveCount(0);
+    await captureScreenshot(page, info, `planning-pro-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    expect(
+      (await new AxeBuilder({ page }).include('.settings-index').analyze())
+        .violations,
+    ).toEqual([]);
+  });
+}
+
+test('failed map tiles keep memories usable at 320px with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installMocks(page);
+  await mockMapTiles(page, { fail: true });
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'A long afternoon together by the canal after our walk',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Our favourite quiet place by the water',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await expect(page.locator('.place-map-canvas [role="status"]')).toBeVisible();
+  await page
+    .getByRole('list', { name: mapCopy.places })
+    .getByRole('button', { name: /Our favourite quiet place by the water/ })
+    .click();
+  await expect(
+    page.getByRole('link', { name: /A long afternoon together/ }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await captureScreenshot(
+    page,
+    info,
+    'memory-map-320-dark-large-tile-error.png',
+    {
+      fullPage: true,
+    },
+  );
+  expect(
+    (await new AxeBuilder({ page }).include('.memory-map-page').analyze())
+      .violations,
+  ).toEqual([]);
+  await page.getByRole('button', { name: mapCopy.allPlaces }).click();
+  await expect(
+    page.getByRole('list', { name: mapCopy.places }).getByRole('button', {
+      name: /Our favourite quiet place by the water/,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: mapCopy.fullscreen, exact: true })
+    .click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+  expect(
+    await fullscreen.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(
+    page,
+    info,
+    'planning-map-fullscreen-320-dark-large.png',
+  );
+  await page.keyboard.press('Escape');
+  await expect(fullscreen).toBeHidden();
+  await page.goto('/more/settings/account');
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  const proRow = proSettingsRow(page);
+  await expect(proRow).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await proRow.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(page, info, 'planning-pro-320-dark-large.png', {
+    fullPage: true,
+  });
+  expect(
+    (await new AxeBuilder({ page }).include('.settings-index').analyze())
+      .violations,
+  ).toEqual([]);
+});
+
+test('map entitlement denial explains Pro without loading external tiles', async ({
+  page,
+}) => {
+  await installMocks(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      status: 403,
+      json: {
+        type: 'about:blank',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Capability required.',
+        code: 'PREMIUM_ENTITLEMENT_REQUIRED',
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect(page.getByText(mapCopy.proTitle)).toBeVisible();
+  await expect(page.locator('.place-map-viewport')).toHaveCount(0);
+});
+
+test('six Pro games retain their existing independent home', async ({
+  page,
+}, info) => {
+  await installMocks(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        spaceId: SPACE_ID,
+        tier: 'PREMIUM',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['games.couple'],
+      },
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}`, (route) =>
+    route.fulfill({
+      json: {
+        id: SPACE_ID,
+        partners: [
+          { id: ACCOUNT_ID, displayName: 'Lea' },
+          { id: PARTNER_ID, displayName: 'Alex' },
+        ],
+      },
+    }),
+  );
+  await signIn(page);
+  await page.goto('/games');
+  await expect(page.locator('.games-entry-status')).toHaveText(
+    Array(6).fill(gameCopy.status.playNow),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await captureScreenshot(page, info, 'games-390-light.png', {
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'games-1280-dark.png', {
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+});
+
+for (const kind of ['happiness', 'timeTravel'] as const) {
+  for (const [width, theme] of [
+    [320, 'light'],
+    [360, 'light'],
+    [390, 'dark'],
+    [430, 'light'],
+    [1280, 'dark'],
+  ] as const) {
+    test(`authored ${kind} at ${width} ${theme} shares once and reveals the saved source to the partner`, async ({
+      page,
+      browser,
+    }, info) => {
+      // Two signed-in partners, five audited states and a reply hand-off.
+      test.slow();
+      type Note = {
+        id: string;
+        title: string;
+        body: string;
+        experienceKind: string;
+        experienceQuestionId?: string;
+        happenedOn: string | null;
+        createdAt: string;
+        updatedAt: string;
+        spaceId: string;
+        authorId: string;
+        author: { id: string; displayName: string };
+        version: number;
+        tags: string[];
+        attachments: never[];
+        capabilities: {
+          canEdit: boolean;
+          canDelete: boolean;
+          canComment: boolean;
+        };
+      };
+      const notes: Note[] = [];
+      const identities = new Map<string, Note>();
+      let loseFirstResponse = kind === 'happiness';
+      async function installExperienceRoutes(target: Page, asPartner = false) {
+        const actor = asPartner ? PARTNER_ID : ACCOUNT_ID;
+        await target.route('**/api/v1/**', async (route) => {
+          const request = route.request();
+          const url = new URL(request.url());
+          const path = url.pathname;
+          if (path.endsWith('/questions') && path.includes('/experiences/')) {
+            const questionIds = Object.keys(
+              experienceCopy.questions[kind],
+            ).slice(0, 3);
+            return route.fulfill({
+              json: {
+                kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
+                localDate: '2026-11-01',
+                refreshAfterSeconds: 3600,
+                questionIds,
+                questionStates: questionIds.map((questionId) => {
+                  const thread = notes.filter(
+                    (note) => note.experienceQuestionId === questionId,
+                  );
+                  return {
+                    questionId,
+                    memoryId: thread[0]?.id ?? null,
+                    answeredByMe: thread.some(
+                      (note) => note.authorId === actor,
+                    ),
+                    answeredByPartner: thread.some(
+                      (note) => note.authorId !== actor,
+                    ),
+                  };
+                }),
+              },
+            });
+          }
+
+          if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
+            return route.fulfill({
+              json: {
+                spaceId: SPACE_ID,
+                tier: 'PREMIUM',
+                status: 'ACTIVE',
+                isInGracePeriod: false,
+                capabilities: ['games.couple'],
+              },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}`)
+            return route.fulfill({
+              json: {
+                id: SPACE_ID,
+                partners: [
+                  { id: ACCOUNT_ID, displayName: 'Lea Sommer' },
+                  { id: PARTNER_ID, displayName: 'Alex' },
+                ],
+              },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}/memories`) {
+            if (request.method() === 'POST') {
+              const snapshot = request.postDataJSON();
+              const identity = request.headers()['idempotency-key'];
+              expect(identity).toBeTruthy();
+              const previous = identities.get(identity);
+              const note =
+                previous ??
+                ({
+                  ...snapshot,
+                  id: `experience-${snapshot.experienceKind.toLowerCase()}`,
+                  spaceId: SPACE_ID,
+                  authorId: actor,
+                  author: {
+                    id: actor,
+                    displayName: asPartner ? 'Alex' : 'Lea Sommer',
+                  },
+                  createdAt: '2026-11-01T09:00:00Z',
+                  updatedAt: '2026-11-01T09:00:00Z',
+                  version: 1,
+                  tags: [],
+                  attachments: [],
+                  capabilities: {
+                    canEdit: true,
+                    canDelete: true,
+                    canComment: true,
+                  },
+                } as Note);
+              if (!previous) {
+                notes.push(note);
+                identities.set(identity, note);
+              }
+              if (loseFirstResponse) {
+                loseFirstResponse = false;
+                return route.abort('failed');
+              }
+              return route.fulfill({
+                status: previous ? 200 : 201,
+                json: note,
+                headers: { ETag: '"1"' },
+              });
+            }
+            return route.fulfill({
+              json: {
+                items: notes.filter(
+                  (note) =>
+                    note.experienceKind ===
+                    url.searchParams.get('experienceKind'),
+                ),
+                hasMore: false,
+                nextCursor: null,
+              },
+            });
+          }
+          if (path.includes('/profiles/'))
+            return route.fulfill({
+              json: {
+                accountId: path.split('/').at(-1),
+                id: 'profile-test',
+                displayName: path.endsWith(ACCOUNT_ID) ? 'Lea Sommer' : 'Alex',
+                birthday: null,
+                preferences: [],
+                profileAttachmentId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+                version: 1,
+              },
+            });
+          if (path.endsWith('/configuration'))
+            return route.fulfill({
+              json: {
+                spaceId: SPACE_ID,
+                version: 1,
+                canManageSpaceConfiguration: true,
+                dailyQuestionsEnabled: false,
+                energyCheckInEnabled: false,
+                vibeCheckEnabled: false,
+                sharedAchievementsEnabled: false,
+                loveNotesEnabled: false,
+                supportGesturesEnabled: false,
+                energyVisibilityMode: 'SHARED',
+                vibeVisibilityMode: 'SHARED',
+                dailyContextTimezone: 'Europe/Berlin',
+              },
+            });
+          if (path.endsWith('/dashboard/preferences'))
+            return route.fulfill({ json: { items: [] } });
+          if (path.endsWith('/activity'))
+            return route.fulfill({
+              json: { items: [], hasMore: false, nextCursor: null },
+            });
+          const note = notes.find(
+            (note) => path === `/api/v1/spaces/${SPACE_ID}/memories/${note.id}`,
+          );
+          if (note)
+            return route.fulfill({
+              json: {
+                ...note,
+                capabilities: {
+                  canEdit: actor === note.authorId,
+                  canDelete: actor === note.authorId,
+                  canComment: true,
+                },
+              },
+              headers: { ETag: '"1"' },
+            });
+          if (
+            path.includes('/memories/experience-') &&
+            path.endsWith('/comments')
+          )
+            return route.fulfill({
+              json: { items: [], hasMore: false, nextCursor: null },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}/dashboard`) {
+            const incoming = notes
+              .filter((note) => note.authorId !== actor)
+              .at(-1);
+            return route.fulfill({
+              json: {
+                space: {
+                  spaceId: SPACE_ID,
+                  partner: {
+                    id: asPartner ? ACCOUNT_ID : PARTNER_ID,
+                    displayName: asPartner ? 'Lea Sommer' : 'Alex',
+                  },
+                },
+                relationshipDuration: {
+                  startedOn: '2023-07-04',
+                  daysTogether: 1216,
+                  displayMode: 'DAYS',
+                },
+                retrospective: null,
+                keepsake: incoming
+                  ? {
+                      type: 'MEMORY',
+                      id: incoming.id,
+                      titleOrText: incoming.title,
+                      occurredOn: incoming.happenedOn,
+                    }
+                  : null,
+                upcoming: [],
+                recentShared: notes.map((note) => ({
+                  type: 'MEMORY',
+                  id: note.id,
+                  titleOrText: note.body,
+                  createdAt: note.createdAt,
+                  occurredOn: note.happenedOn,
+                })),
+                sharedStorySummary: {
+                  memories: notes.length,
+                  heartMoments: 0,
+                  milestones: 0,
+                },
+                thinkingOfYouAvailableAt: null,
+                viewerLocalDate: '2026-11-01',
+                incomingExperience: incoming
+                  ? {
+                      id: incoming.id,
+                      kind: incoming.experienceKind,
+                      text: incoming.body,
+                      prompt: incoming.title,
+                      authorId: incoming.authorId,
+                      happenedOn: incoming.happenedOn,
+                      createdAt: incoming.createdAt,
+                    }
+                  : null,
+              },
+            });
+          }
+          return route.fallback();
+        });
+      }
+      // The authored contribution and viewer day belong to this fixed fixture.
+      // The invitation must be fresh here; expiry is covered separately.
+      await page.clock.install({ time: new Date('2026-11-01T10:00:00Z') });
+      await installMocks(page);
+      await installExperienceRoutes(page);
+      await signIn(page);
+      const partnerContext = await browser.newContext({
+        serviceWorkers: 'block',
+      });
+      const partnerPage = await partnerContext.newPage();
+      await partnerPage.clock.install({
+        time: new Date('2026-11-01T10:00:00Z'),
+      });
+      await installMocks(partnerPage, { asPartner: true });
+      await installExperienceRoutes(partnerPage, true);
+      try {
+        const base =
+          kind === 'happiness' ? '/story/happiness' : '/story/time-travel';
+        await page.goto('/story', { waitUntil: 'domcontentloaded' });
+        await page
+          .getByRole('link', {
+            name: new RegExp(experienceCopy.entries[kind].title),
+          })
+          .click();
+        await expect(page).toHaveURL(new RegExp(base + '$'));
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: 'reduce',
+        });
+        await page.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `${kind}-questions-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
+        const question = Object.values(experienceCopy.questions[kind])[0];
+        await expect(
+          page.locator('.couple-experience-questions a'),
+        ).toHaveCount(3);
+        await page.getByRole('link', { name: question, exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(base + '/new\\?question='));
+        await expect(page.locator('.experience-selected-question')).toHaveText(
+          question,
+        );
+        await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
+        const words =
+          kind === 'happiness'
+            ? 'Your laughter at breakfast made my day brighter.'
+            : 'Do you remember laughing together in the rain by the lake?';
+        await page
+          .getByRole('textbox', { name: experienceCopy.write[kind] })
+          .fill(words);
+        if (kind === 'happiness' && width === 360) {
+          await expect(
+            page.getByText(de.memory.diary.draft.saved, { exact: true }),
+          ).toBeVisible();
+          page.once('dialog', (dialog) => dialog.accept());
+          await page.goto(`${base}/new?prompt=second`, {
+            waitUntil: 'domcontentloaded',
+          });
+          await page
+            .getByRole('button', { name: de.memory.diary.resume, exact: true })
+            .click();
+          await expect(
+            page.getByRole('textbox', { name: experienceCopy.write[kind] }),
+          ).toHaveValue(words);
+          await expect(
+            page.locator('.experience-selected-question'),
+          ).toHaveText(question);
+        }
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: 'reduce',
+        });
+        await page.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `${kind}-compose-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        const composerAxe = await new AxeBuilder({ page })
+          .include('.memory-task-page')
+          .analyze();
+        expect(composerAxe.violations).toEqual([]);
+        await page
+          .getByRole('button', {
+            name: experienceCopy.share.replace('{{name}}', 'Alex'),
+          })
+          .click();
+        if (kind === 'happiness')
+          await page
+            .getByRole('button', { name: taskCopy.verify, exact: true })
+            .click();
+        await expect(page).toHaveURL(/\/story\/memories\/experience-/);
+        await expect(page.getByText(words, { exact: true })).toBeVisible();
+        expect(notes[0].title).toBe(question);
+        expect(notes[0].experienceQuestionId).toBe(
+          Object.keys(experienceCopy.questions[kind])[0],
+        );
+        expect(
+          notes.filter(
+            (note) =>
+              note.experienceKind ===
+              (kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL'),
+          ),
+        ).toHaveLength(1);
+        if (kind === 'happiness' && width === 360)
+          await page.goto(base, { waitUntil: 'domcontentloaded' });
+        else await page.goBack();
+        await expect(page).toHaveURL(new RegExp(base + '$'));
+        await expect(
+          page
+            .locator('.couple-experience-history-entry')
+            .filter({ hasText: words }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator('.couple-experience-history-entry')
+            .locator('.couple-experience-entry-question'),
+        ).toHaveText(question);
+        // The author's own answered question no longer invites a new entry.
+        await expect(
+          page.locator('.couple-experience-questions a').first(),
+        ).toHaveAttribute(
+          'href',
+          new RegExp(`/story/memories/${notes[0].id}$`),
+        );
+        await signIn(partnerPage);
+        await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
+        const reveal = partnerPage.locator('.shared-experience-reveal');
+        await expect(reveal.getByText(words, { exact: true })).toBeVisible();
+        await expect(
+          partnerPage.getByRole('heading', {
+            name: experienceCopy.incoming.from.replace('{{name}}', 'Lea'),
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(reveal.locator('.shared-experience-from')).toHaveText(
+          kind === 'happiness'
+            ? experienceCopy.incoming.happiness
+            : experienceCopy.incoming.timeTravel,
+        );
+        await partnerPage.setViewportSize({ width, height: 900 });
+        await partnerPage.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: width === 430 ? 'no-preference' : 'reduce',
+        });
+        await partnerPage.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        await expect(reveal).toHaveCSS(
+          'animation-name',
+          width === 430 ? 'experience-note-enter' : 'none',
+        );
+        if (width === 430) {
+          // Assert contrast while the entrance is in progress, not after it.
+          await reveal.evaluate((element) => {
+            const entrance = element
+              .getAnimations()
+              .find(
+                (animation) =>
+                  animation instanceof CSSAnimation &&
+                  animation.animationName === 'experience-note-enter',
+              );
+            if (!entrance?.effect)
+              throw new Error('Experience entrance animation is unavailable.');
+            entrance.pause();
+            entrance.currentTime =
+              Number(entrance.effect.getTiming().duration) / 2;
+          });
+          await expect(reveal).toHaveCSS('opacity', '1');
+        }
+        expect(
+          await partnerPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          partnerPage,
+          info,
+          `${kind}-incoming-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        const receiverAxe = await new AxeBuilder({ page: partnerPage })
+          .include('.today-page')
+          .analyze();
+        expect(receiverAxe.violations).toEqual([]);
+        await reveal
+          .getByRole('link', { name: experienceCopy.incoming.open })
+          .click();
+        await expect(
+          partnerPage.getByText(words, { exact: true }),
+        ).toBeVisible();
+        await partnerPage.goBack();
+        await expect(partnerPage).toHaveURL(/\/today$/);
+        await expect(
+          partnerPage.locator('.shared-experience-reveal'),
+        ).toHaveCount(0);
+        // The partner sees the answered question first and replies in its thread.
+        await partnerPage.goto(base, { waitUntil: 'domcontentloaded' });
+        const focus = partnerPage.locator('.experience-question-focus');
+        await expect(focus).toContainText(question);
+        await expect(
+          focus.getByRole('link', { name: experienceCopy.addOwnAnswer }),
+        ).toHaveAttribute(
+          'href',
+          `${base}/new?replyTo=${encodeURIComponent(notes[0].id)}`,
+        );
+        await expect(
+          partnerPage.locator('.couple-experience-questions li a'),
+        ).toHaveCount(2);
+        expect(
+          await partnerPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          partnerPage,
+          info,
+          `${kind}-awaiting-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page: partnerPage })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
+      } finally {
+        await partnerContext.close();
+      }
+    });
+  }
+}
+
+test('dated plan hands off an RFC calendar file without changing the plan', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page);
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/plans/calendar-plan`,
+    (route) =>
+      route.fulfill({
+        json: {
+          id: 'calendar-plan',
+          spaceId: SPACE_ID,
+          title: 'Weekend at the lake',
+          description: 'A quiet day',
+          status: 'PLANNED',
+          plannedOn: '2026-11-14',
+          plannedStart: null,
+          plannedEnd: null,
+          placeId: null,
+          sourceWishId: null,
+          createdBy: ACCOUNT_ID,
+          creator: { id: ACCOUNT_ID, displayName: 'Lea' },
+          createdAt: '2026-10-30T10:00:00Z',
+          updatedAt: '2026-10-31T10:00:00Z',
+          version: 1,
+          capabilities: { canEdit: true, canDelete: true, canComment: false },
+        },
+      }),
+  );
+  await signIn(page);
+  await page.goto('/plan/plans/calendar-plan');
+  // The date opens the calendar sheet with the hand-off.
+  await page.locator('.planen-detail-schedule-action').click();
+  const calendarSheet = page.getByRole('dialog', {
+    name: calendarCopy.sheetTitle,
+  });
+  await expect(
+    calendarSheet.getByRole('link', { name: calendarCopy.add }),
+  ).toBeVisible();
+  const calendar = await calendarSheet
+    .getByRole('link', { name: calendarCopy.add })
+    .getAttribute('href');
+  const content = await page.evaluate(
+    async (url) => await (await fetch(url ?? '')).text(),
+    calendar,
+  );
+  expect(content).toContain('DTSTART;VALUE=DATE:20261114');
+  expect(content).toContain('DTEND;VALUE=DATE:20261115');
+  expect(content).toContain('SUMMARY:Weekend at the lake');
+  await captureScreenshot(page, info, 'calendar-plan-390-light.png', {
+    fullPage: true,
+  });
+});
+
+for (const [width, colorScheme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`place selection zooms and filters the existing map, then restores all places ${width} ${colorScheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const unknown = await installMocks(page, { strict: true });
+    const tiles = await mockMapTiles(page);
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              memoryId: 'mem-canal',
+              title: 'At the lake',
+              happenedOn: '2026-10-30',
+              placeId: 'lake',
+              placeName: 'Lake',
+              latitude: 49.45,
+              longitude: 7.16,
+            },
+            {
+              memoryId: 'mem-zoo',
+              title: 'At the zoo',
+              happenedOn: '2026-10-29',
+              placeId: 'zoo',
+              placeName: 'Zoo',
+              latitude: 51.5,
+              longitude: 8.5,
+            },
+          ],
+          nextCursor: null,
+        },
+      }),
+    );
+    await signIn(page);
+    await page.goto('/story/map');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    await page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: /^Lake/ })
+      .click();
+    await expect(page).toHaveURL(/place=49.45%3A7.16/);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-selection h2')).toHaveText('Lake');
+    await expect
+      .poll(() => {
+        const zooms = tiles.zooms();
+        return zooms.length > 0 && zooms[zooms.length - 1] === 14;
+      })
+      .toBe(true);
+    const filter = page.getByRole('button', {
+      name: mapCopy.filter,
+      exact: true,
+    });
+    await expect(filter.locator('svg')).toHaveCount(1);
+    await expect(filter).toHaveClass(/is-active/);
+    await page.screenshot({
+      path: info.outputPath(`place-focused-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    await filter.click();
+    const choices = page.getByRole('dialog', { name: mapCopy.filter });
+    await expect(
+      choices.getByRole('radio', { name: 'Lake', exact: true }),
+    ).toBeChecked();
+    await page.screenshot({
+      path: info.outputPath(`place-filter-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    await choices.getByRole('radio', { name: 'Zoo', exact: true }).click();
+    await expect(choices).toHaveCount(0);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-selection h2')).toHaveText('Zoo');
+    await filter.click();
+    await choices
+      .getByRole('radio', { name: mapCopy.allPlaces, exact: true })
+      .click();
+    await expect(page).toHaveURL('/story/map');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    await expect(filter).not.toHaveClass(/is-active/);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    expect(unknown).toEqual([]);
+  });
+}
+
+test('fullscreen map uses the whole landscape phone and puts memories beside the map', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect(page.locator('#momente-panel-map')).toBeVisible();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toHaveCount(0);
+  const expand = page.getByRole('button', {
+    name: mapCopy.fullscreen,
+    exact: true,
+  });
+  await expect(expand).toHaveText('');
+  await expand.click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+
+  // Rotating while the map is open must give it the whole screen.
+  await page.setViewportSize({ width: 844, height: 390 });
+  const viewport = fullscreen.locator('.place-map-viewport');
+  await expect
+    .poll(async () => (await viewport.boundingBox())?.height)
+    .toBe(390);
+  expect((await viewport.boundingBox())?.width).toBe(844);
+
+  await fullscreen.locator('.memory-map-marker').click();
+  const selection = fullscreen.locator('.memory-map-selection');
+  await expect(selection).toBeVisible();
+  const [map, side] = await Promise.all([
+    viewport.boundingBox(),
+    selection.boundingBox(),
+  ]);
+  if (!map || !side) throw new Error('Map and selection must be measurable');
+  expect(map.height).toBe(390);
+  expect(map.x + map.width).toBeLessThanOrEqual(side.x + 1);
+  expect(side.y).toBe(0);
+  await expect(
+    fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+  ).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test('map tools step aside while the map is panned and touch screens drop the zoom buttons', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  const tools = page.locator('.memory-map-tools');
+  await expect(tools).toHaveCSS('opacity', '1');
+
+  // The zoom buttons leave the screen but stay reachable by keyboard.
+  const zoom = page.locator('.place-map-zoom');
+  const zoomIn = page.locator('.place-map-zoom-in');
+  expect((await zoom.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+  await zoomIn.focus();
+  await expect(zoomIn).toBeFocused();
+  expect((await zoom.boundingBox())?.width ?? 0).toBeGreaterThan(20);
+  await zoomIn.blur();
+
+  const map = await page.locator('.place-map-viewport').boundingBox();
+  if (!map) throw new Error('The map must be measurable');
+  await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(map.x + map.width / 2 - 60, map.y + map.height / 2, {
+    steps: 6,
+  });
+  await expect(tools).toHaveCSS('opacity', '0');
+  await page.mouse.up();
+  // The tools return once the gesture has rested.
+  await expect(tools).toHaveCSS('opacity', '1', { timeout: 5_000 });
+});

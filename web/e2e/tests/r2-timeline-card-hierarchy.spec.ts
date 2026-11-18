@@ -1,8 +1,7 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Locator,
@@ -11,6 +10,13 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 /**
  * #969: Timeline cards lead with content, not taxonomy. Kind badges, the
@@ -90,6 +96,7 @@ function attachment(id: string, position: number) {
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
     hasThumbnail: true,
+    isSensitive: false,
     width: 800,
     height: 500,
     size: 1,
@@ -369,6 +376,23 @@ function card(page: Page, title: string): Locator {
   return page.locator('.story-card-link', { hasText: title });
 }
 
+async function pinMonthHeading(page: Page, heading: Locator): Promise<number> {
+  const bounds = await heading.boundingBox();
+  if (!bounds) throw new Error('Timeline month heading is missing.');
+  const stickyTop = await heading.evaluate((node) =>
+    Number.parseFloat(getComputedStyle(node).top),
+  );
+  expect(Number.isFinite(stickyTop)).toBe(true);
+  // Reach the chosen month through real input, independent of photo/card height.
+  await page.mouse.wheel(0, bounds.y + 24);
+  await expect
+    .poll(async () =>
+      Math.abs(((await heading.boundingBox())?.y ?? 999) - stickyTop),
+    )
+    .toBeLessThanOrEqual(1);
+  return stickyTop;
+}
+
 /** Every footer child stays inside its card, and no two footer parts overlap. */
 async function expectContainedFooters(page: Page): Promise<void> {
   const problems = await page.evaluate(() => {
@@ -518,11 +542,11 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       await expect(
         coffee.getByRole('img', { name: de.story.shared }),
       ).toHaveCount(1);
-      // #1064 keeps author identity on the avatar without visible prose.
+      // #1568 removes author avatars from overview cards; source readers retain identity.
       await expect(lake.locator('.story-card-author')).toHaveCount(0);
       await expect(
         lake.getByRole('img', { name: PARTNER.displayName }),
-      ).toHaveCount(1);
+      ).toHaveCount(0);
       await expect(lake).not.toContainText(
         de.story.byAuthor.replace('{{author}}', 'Anna-Katharina-Josephine'),
       );
@@ -586,10 +610,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     await expectContainedFooters(page);
   });
 
-  test('month heading pins at the viewport edge after the app header scrolls away', async ({
+  test('month heading pins below the safe area after the app header scrolls away', async ({
     page,
   }, testInfo) => {
-    await openTimeline(page, { width: 390, height: 844 });
+    // Compact cards leave less document height than the former full-photo
+    // layout. A short real viewport provides enough natural scroll range.
+    await openTimeline(page, { width: 390, height: 600 });
     const topbar = page.locator('.product-topbar');
     const august = page.locator('.story-year-month-header').nth(1);
 
@@ -597,14 +623,7 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       'relative',
     );
 
-    await page
-      .locator('.story-timeline-item', {
-        hasText: 'Thinking of our spring picnic',
-      })
-      .evaluate((el) => {
-        window.scrollBy(0, el.getBoundingClientRect().top - 120);
-      });
-    await page.waitForTimeout(150);
+    const stickyTop = await pinMonthHeading(page, august);
 
     expect(
       await topbar.evaluate((el) => el.getBoundingClientRect().bottom),
@@ -613,10 +632,24 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       'sticky',
     );
     const pinned = await august.boundingBox();
-    expect(Math.abs(pinned?.y ?? 999)).toBeLessThanOrEqual(1);
+    expect(Math.abs((pinned?.y ?? 999) - stickyTop)).toBeLessThanOrEqual(1);
     expect(
       await august.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).not.toMatch(/transparent|rgba\([^)]*,\s*0\)$/);
+    ).toBe('rgba(0, 0, 0, 0)');
+    await expect(august.locator('h2')).not.toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => getComputedStyle(el).fontFamily),
+    ).toContain('Instrument Sans');
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ).toBeLessThanOrEqual(16);
 
     await capture(
       page,
@@ -630,14 +663,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
   }, testInfo) => {
     await openTimeline(page, { width: 390, height: 844 });
     const shell = page.locator('.mobile-bottom-shell');
+    const month = page.locator('.story-year-month-header').first();
 
     await expect(shell).toBeVisible();
     expect(await shell.getAttribute('data-hidden')).toBeNull();
 
-    for (let step = 0; step < 9; step += 1) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(40);
-    }
+    const stickyTop = await pinMonthHeading(page, month);
 
     await expect(shell).toBeVisible();
     expect(await shell.getAttribute('data-hidden')).toBeNull();
@@ -647,13 +678,9 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
         .evaluate((el) => el.getBoundingClientRect().bottom),
     ).toBeLessThanOrEqual(0);
 
-    const pinned = await page.evaluate(() => {
-      const boxes = Array.from(
-        document.querySelectorAll('.story-year-month-header'),
-      ).map((el) => el.getBoundingClientRect());
-      return boxes.some((box) => Math.abs(box.top) <= 1);
-    });
-    expect(pinned).toBe(true);
+    expect(
+      Math.abs(((await month.boundingBox())?.y ?? 999) - stickyTop),
+    ).toBeLessThanOrEqual(1);
 
     await page.mouse.wheel(0, -40);
     await expect(shell).toBeVisible();

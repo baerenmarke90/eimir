@@ -19,11 +19,14 @@ view.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from zoneinfo import available_timezones
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.core.errors import ValidationError
+from eimir.core.errors import ConflictError, ValidationError
+from eimir.i18n import detect_locale, supported_locale
 from eimir.identity.models import Account
 from eimir.reminders import runtime as reminder_runtime
 
@@ -129,3 +132,32 @@ def set_preferences(
     if timezone_changed:
         reminder_runtime.reconcile_account(session, account, timezone_name=validated_zone)
     return account
+
+
+def set_language_preference(
+    session: Session,
+    account: Account,
+    *,
+    preference: str,
+    device_languages: Sequence[str],
+    expected_version: int,
+) -> Account:
+    """Serialize personal mode changes without touching dates or time zones."""
+    selected = "auto" if preference == "auto" else supported_locale(normalize_locale(preference))
+    if selected is None:
+        raise ValidationError("Choose a supported language.", PreferenceErrorCode.LOCALE_INVALID)
+    locked = session.scalars(
+        select(Account)
+        .where(Account.id == account.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one()
+    if locked.language_version != expected_version:
+        raise ConflictError("Language preference changed.", "VERSION_CONFLICT")
+    locale = detect_locale(device_languages) if selected == "auto" else selected
+    if locked.language_preference != selected or locked.locale != locale:
+        locked.language_preference = selected
+        set_preferences(session, locked, locale=locale)
+        locked.language_version += 1
+    session.flush()
+    return locked

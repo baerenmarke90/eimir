@@ -1,13 +1,29 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectNaturalTextReflow } from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
+import { addComposerMedia } from '../support/mediaIntake';
+import {
+  closeComposerDate,
+  expectReadableComposerHeader,
+  showComposerDate,
+  showMemoryDetails,
+} from '../support/memoryDiary';
+import {
+  fulfillEmptyMomentPlaces,
+  fulfillUnconfiguredPhotoSources,
+} from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -71,7 +87,11 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     uploadRequests: 0,
     timelineRequests: [] as string[],
     unexpected: [] as string[],
-    saved: null as ReturnType<typeof memory> | null,
+    saved: null as
+      | (ReturnType<typeof memory> & {
+          selectedCoverAttachmentId?: string | null;
+        })
+      | null,
     releaseCreate: () => {},
   };
   const createGate = new Promise<void>((resolve) => {
@@ -91,12 +111,16 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     width: 1200,
     height: 800,
     hasThumbnail: true,
+    isSensitive: false,
     createdAt: NOW,
     updatedAt: NOW,
     position: 0,
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -193,6 +217,19 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       state.saved = {
         ...memory(MEMORY, payload.title, payload.happenedOn),
         body: payload.body,
+        attachments: (payload.attachments ?? []).map(
+          (entry: {
+            attachmentId: string;
+            position: number;
+            isSensitive?: boolean;
+          }) => ({
+            ...attachment,
+            id: entry.attachmentId,
+            position: entry.position,
+            isSensitive: entry.isSensitive ?? false,
+          }),
+        ),
+        selectedCoverAttachmentId: payload.selectedCoverAttachmentId ?? null,
       };
       // Model a committed write followed by a lost response. The browser must
       // not assume that another POST is safe merely because fetch rejected.
@@ -243,6 +280,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       path.endsWith(`/attachments/${ATTACHMENT}`)
     )
       return json(attachment);
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/discover`)
+      return json({ items: [], lead: null, selectionDate: NOW.slice(0, 10) });
     if (path.endsWith('/timeline')) {
       state.timelineRequests.push(url.search);
       if (state.saved && scenario.refreshFailure)
@@ -291,6 +330,17 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/presence`) {
       return json({ state: null });
     }
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/entitlements`) {
+      return json({
+        spaceId: SPACE,
+        tier: 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['core'],
+      });
+    }
+    if (await fulfillNoOccasionSources(route)) return;
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });
@@ -313,17 +363,20 @@ async function signIn(page: Page, destination = ORIGIN) {
 
 async function openMemory(page: Page) {
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
-  await page
-    .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
-    .or(
-      page.getByRole('menuitem', {
-        name: navigation.quickCreateMemory,
-        exact: true,
-      }),
-    )
-    .click();
+  const target = page.getByRole('link', {
+    name: composer.diaryEntry,
+    exact: true,
+  });
+  await target.evaluate(async (node) => {
+    const sheet = node.closest('dialog');
+    if (sheet)
+      await Promise.all(
+        sheet.getAnimations().map((animation) => animation.finished),
+      );
+  });
+  await target.click();
   await expect(
     page.getByRole('heading', { name: de.memory.heading, exact: true }),
   ).toBeVisible();
@@ -331,26 +384,25 @@ async function openMemory(page: Page) {
 }
 
 async function fillMemory(page: Page, withPhoto = false) {
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(TITLE);
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
-    await page.locator('#memory-create-images').setInputFiles({
+    await addComposerMedia(page, {
       name: 'river.jpg',
       mimeType: 'image/jpeg',
       buffer: await readFile(PHOTO),
     });
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
   }
 }
 
-async function openDateEditor(page: Page) {
-  await page
-    .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
-    .click();
+async function expectDateField(page: Page) {
+  return showComposerDate(page);
 }
 
 async function expectNoOverflow(page: Page) {
@@ -376,7 +428,7 @@ async function expectNoOverflow(page: Page) {
 
 test.use({ viewport: { width: 390, height: 844 }, locale: 'de-DE' });
 
-test('Quick Create cancellation and Browser Back return to its trigger', async ({
+test('Moment choice cancellation and Browser Back return to its trigger', async ({
   page,
 }, testInfo) => {
   const historySteps: unknown[] = [];
@@ -396,7 +448,7 @@ test('Quick Create cancellation and Browser Back return to its trigger', async (
   const api = await installProductApi(page);
   await signIn(page);
   const trigger = page.getByRole('button', {
-    name: navigation.newContent,
+    name: de.story.addMoment,
     exact: true,
   });
   await recordHistory('before open');
@@ -430,13 +482,15 @@ test('Quick Create cancellation and Browser Back return to its trigger', async (
   expect(api.unexpected).toEqual([]);
 });
 
-test('Quick Create native modality prevents background focus and activation', async ({
+test('Moment choice native modality prevents background focus and activation', async ({
   page,
 }, testInfo) => {
   await installProductApi(page);
   await signIn(page);
+  const originUrl = page.url();
+  const backgroundMore = page.locator('.mobile-bottom-nav a[href="/more"]');
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -466,12 +520,35 @@ test('Quick Create native modality prevents background focus and activation', as
     body: JSON.stringify(checkpoints, null, 2),
     contentType: 'application/json',
   });
-  const brand = await page.locator('.brand').boundingBox();
-  expect(brand).not.toBeNull();
-  if (!brand) throw new Error('The existing background brand link is missing.');
-  await page.mouse.click(brand.x + brand.width / 2, brand.y + brand.height / 2);
+  await dialog.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished),
+    );
+  });
+  const backgroundBounds = await backgroundMore.boundingBox();
+  const dialogBounds = await dialog.boundingBox();
+  if (!backgroundBounds || !dialogBounds)
+    throw new Error('The modal or background More destination is missing.');
+  // The docked sheet covers the More destination. Its surface receives
+  // the physical click without activating the inert navigation behind it.
+  const clickX = backgroundBounds.x + backgroundBounds.width - 2;
+  const clickY = backgroundBounds.y + backgroundBounds.height / 2;
+  expect(clickY).toBeGreaterThan(dialogBounds.y);
+  expect(clickY).toBeLessThan(dialogBounds.y + dialogBounds.height);
+  expect(
+    await page.evaluate(
+      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('dialog')),
+      { x: clickX, y: clickY },
+    ),
+  ).toBe(true);
+  await page.mouse.click(clickX, clickY);
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(originUrl);
+  await page.mouse.click(4, dialogBounds.y / 2);
   await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/story\?/);
+  await expect(page).toHaveURL(originUrl);
 });
 
 test('content and photo save opens the confirmed canonical Memory and returns to its scope', async ({
@@ -487,10 +564,10 @@ test('content and photo save opens the confirmed canonical Memory and returns to
     page.getByRole('heading', { name: TITLE, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   const savedPhoto = page.locator('.media-gallery-thumb-content');
   await expect(savedPhoto).toBeVisible();
   await expect
@@ -526,13 +603,13 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue('');
-  await page.locator('#memory-create-images').setInputFiles({
+  await addComposerMedia(page, {
     name: 'river.jpg',
     mimeType: 'image/jpeg',
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
 
   const createRequest = page.waitForRequest(
@@ -560,7 +637,7 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     )
     .toBeGreaterThan(0);
   expect(api.createRequests).toBe(1);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
@@ -582,12 +659,10 @@ test('a pending submission retains its draft and cannot create twice or exit', a
     await expect(
       page.getByRole('button', { name: de.memory.saving, exact: true }),
     ).toBeDisabled();
-    await page
-      .getByRole('button', { name: taskBoundary.close, exact: true })
-      .click({ force: true });
-    await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
-      .click({ force: true });
+    await expect(
+      page.getByRole('button', { name: taskBoundary.close, exact: true }),
+    ).toBeDisabled();
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await page.goBack();
     await expect(page).toHaveURL(/\/story\/memories\/new/);
@@ -656,7 +731,14 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  // The sentinel disappears as soon as automatic paging succeeds. The last
+  // loaded content item remains stable throughout that successful transition.
+  await page
+    .getByRole('heading', {
+      name: firstPage[firstPage.length - 1].title,
+      exact: true,
+    })
+    .scrollIntoViewIfNeeded();
   await expect
     .poll(
       () =>
@@ -669,6 +751,10 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   const source = page
     .getByRole('link')
     .filter({ has: page.getByText(older.title, { exact: true }) });
+  // The root tab's opening rise (#1861) moves the rows for a moment. A click on
+  // a moving row is retried with a different scroll alignment, which would
+  // change the position this test compares against.
+  await expect(page.locator('.page[data-root-intro]')).toHaveCount(0);
   await source.scrollIntoViewIfNeeded();
   const before = await source.boundingBox();
   expect(before).not.toBeNull();
@@ -726,7 +812,10 @@ test('failed photo binding retries only binding and never creates a second Memor
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -902,7 +991,7 @@ test('a verified unknown create continues photo association against the same Mem
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   expect(api.createdMemories).toBe(1);
   expect(api.createRequests).toBe(2);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   expect(api.unexpected).toEqual([]);
 });
 
@@ -916,7 +1005,7 @@ test('confirmed create is still a success when a subsequent Timeline refresh fai
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
 });
@@ -1026,7 +1115,10 @@ test('a committed photo bind with a lost response reconciles without another wri
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -1046,7 +1138,10 @@ test('a partial result can open the known Memory with its photo warning', async 
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -1070,13 +1165,13 @@ test('failed uploads retain authored content and can retry before the first crea
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
-  await page.locator('#memory-create-images').setInputFiles({
+  await addComposerMedia(page, {
     name: 'river.jpg',
     mimeType: 'image/jpeg',
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoFailed, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: de.memory.save, exact: true }),
@@ -1086,11 +1181,16 @@ test('failed uploads retain authored content and can retry before the first crea
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   await page
-    .locator('.attachment-draft-item')
+    .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
+    .click();
+  await page
+    .locator('.photo-draft-stage')
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
+  await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
@@ -1131,6 +1231,7 @@ test('authored draft text never enters task history or browser key-value storage
   await signIn(page);
   await openMemory(page);
   const privateDraft = 'Ephemeral private draft 958 for storage exclusion';
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(privateDraft);
@@ -1185,20 +1286,17 @@ test('an unsupported date stays editable and never starts a network save', async
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
-  await openDateEditor(page);
+  const date = await expectDateField(page);
+  await date.fill('10000-01-01');
   await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .fill('10000-01-01');
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+    .getByRole('dialog', { name: de.memory.dateLabel, exact: true })
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(
     page.getByRole('alert').filter({ hasText: taskBoundary.invalidDate }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toHaveAttribute('aria-invalid', 'true');
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toBeFocused();
+  await expect(date).toHaveAttribute('aria-invalid', 'true');
+  await expect(date).toBeFocused();
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toBeEditable();
@@ -1206,15 +1304,14 @@ test('an unsupported date stays editable and never starts a network save', async
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   expect(api.createRequests).toBe(0);
-  await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .fill('2025-09-16');
+  await date.fill('2025-09-16');
+  await closeComposerDate(page);
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   expect(api.createRequests).toBe(1);
 });
 
-test('edit Cancel and explicit Back keep the selected Memory origin', async ({
+test('edit header Back and Browser Back keep the selected Memory origin', async ({
   page,
 }) => {
   const api = await installProductApi(page);
@@ -1226,7 +1323,7 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
   await expect(
     page.getByRole('heading', { name: firstPage[0].title, exact: true }),
   ).toBeVisible();
-  for (const exitLabel of [de.common.cancel, memoryProduct.backToMemory]) {
+  for (const exit of ['header', 'browser']) {
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
@@ -1237,7 +1334,11 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
         level: 1,
       }),
     ).toBeVisible();
-    await page.getByRole('link', { name: exitLabel, exact: true }).click();
+    if (exit === 'header')
+      await page
+        .getByRole('link', { name: taskBoundary.back, exact: true })
+        .click();
+    else await page.goBack();
     await expect(
       page.getByRole('heading', { name: firstPage[0].title, exact: true }),
     ).toBeVisible();
@@ -1254,6 +1355,46 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
   expect(api.unexpected).toEqual([]);
 });
 
+test('leaving the Memory editor reuses the detail entry so Back returns to the origin (#1907)', async ({
+  page,
+}) => {
+  const api = await installProductApi(page);
+  await signIn(page);
+  const source = page.locator('.story-card-link').filter({
+    has: page.getByRole('heading', { name: firstPage[0].title, exact: true }),
+  });
+  await source.click();
+  const detailHeading = page.getByRole('heading', {
+    name: firstPage[0].title,
+    exact: true,
+  });
+  await expect(detailHeading).toBeVisible();
+  const detailIndex = await page.evaluate(() => window.history.state?.idx);
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: memoryProduct.editHeading,
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(detailHeading).toBeVisible();
+  // The editor closed into the existing detail entry instead of a copy of it.
+  expect(await page.evaluate(() => window.history.state?.idx)).toBe(
+    detailIndex,
+  );
+  // System Back therefore leaves the detail at once instead of showing it again.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/story\?.*year=2025/);
+  await expect(source).toBeVisible();
+  expect(api.unexpected).toEqual([]);
+});
+
 test('large text and a short Compact viewport keep task actions reachable', async ({
   page,
 }, testInfo) => {
@@ -1265,13 +1406,31 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
   await page.setViewportSize({ width: 320, height: 844 });
-  await page.locator('.momente-browse-layer').screenshot({
-    path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
-    animations: 'disabled',
+  await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+  await page
+    .getByRole('tablist', { name: de.story.viewToggleAria })
+    .screenshot({
+      path: testInfo.outputPath('f2-story-modes-large-text-320.png'),
+      animations: 'disabled',
+    });
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
+  const diaryOptions = page.getByRole('dialog', {
+    name: storyProducts.storyFilters.aria,
   });
+  await expect(diaryOptions).toBeVisible();
+  await expectNoOverflow(page);
+  await diaryOptions
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await expect(diaryOptions).not.toBeVisible();
   await page.setViewportSize({ width: 320, height: 480 });
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
@@ -1285,8 +1444,15 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(bounds?.height).toBeLessThanOrEqual(480);
   expect(bounds?.width).toBeLessThanOrEqual(320);
   await sheet
-    .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
+    .getByRole('link', { name: composer.diaryEntry, exact: true })
     .click();
+  await expectReadableComposerHeader(page);
+  await expectNaturalTextReflow(
+    page
+      .getByRole('button', { name: composer.addPhotos, exact: true })
+      .locator('.media-intake-label'),
+    2,
+  );
   await fillMemory(page);
   await expectNoOverflow(page);
   const readableLabels = await page
@@ -1307,36 +1473,35 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
       }),
     );
   expect(readableLabels.filter((label) => label.lines > 1)).toEqual([]);
-  await openDateEditor(page);
-  const dateSpace = await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .evaluate((element) => {
-      const style = getComputedStyle(element);
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Cannot measure native date text.');
-      context.font = style.font;
-      const date = new Date(`${(element as HTMLInputElement).value}T00:00:00Z`);
-      const visibleDate = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'UTC',
-      }).format(date);
-      return {
-        available:
-          element.clientWidth -
-          Number.parseFloat(style.paddingLeft) -
-          Number.parseFloat(style.paddingRight),
-        text: context.measureText(visibleDate).width,
-        picker: Number.parseFloat(style.fontSize),
-      };
-    });
+  const date = await expectDateField(page);
+  const dateSpace = await date.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Cannot measure native date text.');
+    context.font = style.font;
+    const date = new Date(`${(element as HTMLInputElement).value}T00:00:00Z`);
+    const visibleDate = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'UTC',
+    }).format(date);
+    return {
+      available:
+        element.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight),
+      text: context.measureText(visibleDate).width,
+      picker: Number.parseFloat(style.fontSize),
+    };
+  });
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
-  // Return to the closed date-summary state before the readability
-  // screenshot, so it reflects what the page renders by default.
+  // Leave the date field before reviewing resting text/controls.
+  await closeComposerDate(page);
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),
@@ -1373,9 +1538,9 @@ for (const width of [320, 360, 390, 430, 1280]) {
       });
       await page.keyboard.press('Escape');
       await page
-        .getByRole('button', { name: navigation.newContent, exact: true })
+        .getByRole('button', { name: de.story.addMoment, exact: true })
         .click();
-      const choices = page.getByRole(width >= 840 ? 'menu' : 'dialog');
+      const choices = page.getByRole('dialog', { name: de.story.addMoment });
       await expect(choices).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath(
@@ -1383,8 +1548,8 @@ for (const width of [320, 360, 390, 430, 1280]) {
         ),
       });
       await choices
-        .getByRole(width >= 840 ? 'menuitem' : 'link', {
-          name: navigation.quickCreateMemory,
+        .getByRole('link', {
+          name: composer.diaryEntry,
           exact: true,
         })
         .click();

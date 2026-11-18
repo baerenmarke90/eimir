@@ -59,11 +59,11 @@ This is stricter than selecting private rows and filtering them in Python/client
 
 | Result type | Searchable fields | Weighting |
 |---|---|---|
-| `MEMORY` | title; body | title A, body B |
+| `MEMORY` | title; body; tags | title A, body/tags B |
 | `HEART_MOMENT` | text | text A |
 | `MILESTONE` | title; body | title A, body B |
-| `WISH` | title | title A |
-| `PLAN` | title; description | title A, description B |
+| `WISH` | title; tags | title A, tags B |
+| `PLAN` | title; description; tags | title A, description/tags B |
 | `PLACE` | name; description; address | name A, description/address B |
 | `CHAPTER` | title; description | title A, description B |
 | `COLLECTION` | title | title A |

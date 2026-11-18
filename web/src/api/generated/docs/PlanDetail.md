@@ -6,20 +6,30 @@
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
+`attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
+`coverAttachment` | [AttachmentSummary](AttachmentSummary.md)
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
+`discreet` | boolean
+`discreetTitleMode` | [DiscreetTitleMode](DiscreetTitleMode.md)
 `experiencedOn` | Date
+`fileAttachments` | [Array&lt;PlanFileSummary&gt;](PlanFileSummary.md)
 `id` | string
 `placeId` | string
 `plannedEnd` | Date
 `plannedOn` | Date
 `plannedStart` | Date
+`plannedUntil` | Date
+`previewTitle` | string
+`selectedCoverAttachmentId` | string
 `sourceWishId` | string
 `spaceId` | string
 `status` | [PlanStatus](PlanStatus.md)
+`tags` | Array&lt;string&gt;
 `title` | string
 `updatedAt` | Date
 `version` | number
@@ -31,20 +41,30 @@ import type { PlanDetail } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
+  "attachments": null,
   "capabilities": null,
+  "coverAttachment": null,
   "createdAt": null,
   "createdBy": null,
   "creator": null,
   "description": null,
+  "discreet": null,
+  "discreetTitleMode": null,
   "experiencedOn": null,
+  "fileAttachments": null,
   "id": null,
   "placeId": null,
   "plannedEnd": null,
   "plannedOn": null,
   "plannedStart": null,
+  "plannedUntil": null,
+  "previewTitle": null,
+  "selectedCoverAttachmentId": null,
   "sourceWishId": null,
   "spaceId": null,
   "status": null,
+  "tags": null,
   "title": null,
   "updatedAt": null,
   "version": null,

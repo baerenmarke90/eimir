@@ -3,6 +3,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adoptObjectUrl } from './objectUrlResource';
 import {
+  acquireMediaObjectUrl,
+  evictMediaObjectUrls,
+} from './sharedMediaObjectUrls';
+import {
+  RevokedObjectUrlError,
   useObjectUrlResource,
   useObjectUrlResources,
 } from './useObjectUrlResources';
@@ -285,5 +290,56 @@ describe('Object URL resource ownership', () => {
     unmount();
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:b');
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:new-c');
+  });
+});
+
+describe('shared object URL revocation', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  beforeEach(() => {
+    let next = 0;
+    URL.createObjectURL = vi.fn(() => `blob:shared-${++next}`);
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    evictMediaObjectUrls();
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
+  it('withdraws a shown resource when its shared URL is revoked, without a new load', async () => {
+    const loader = vi.fn(async () =>
+      acquireMediaObjectUrl(
+        '["scope","space","memory","photo"]',
+        new Blob(['x']),
+      ),
+    );
+    const other = vi.fn(async () =>
+      acquireMediaObjectUrl(
+        '["scope","space","other","photo"]',
+        new Blob(['y']),
+      ),
+    );
+    const shown = renderHook(() =>
+      useObjectUrlResource('kept-tab', 'photo', loader),
+    );
+    const unrelated = renderHook(() =>
+      useObjectUrlResource('kept-tab', 'other', other),
+    );
+    await waitFor(() => expect(shown.result.current.url).toBe('blob:shared-1'));
+    await waitFor(() =>
+      expect(unrelated.result.current.url).toBe('blob:shared-2'),
+    );
+
+    act(() => evictMediaObjectUrls('["scope","space","memory"'));
+
+    expect(shown.result.current.url).toBeNull();
+    expect(shown.result.current.error).toBeInstanceOf(RevokedObjectUrlError);
+    expect(unrelated.result.current.url).toBe('blob:shared-2');
+    expect(loader).toHaveBeenCalledTimes(1);
+    shown.unmount();
+    unrelated.unmount();
   });
 });

@@ -39,6 +39,15 @@ jobs:
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
 
+      - name: Test Google Photos Picker read-only probe
+        run: python3 tools/ci/test_google_photos_picker_probe.py
+
+      - name: Test cloud Google Photos Picker OAuth callback
+        run: python3 tools/ci/test_google_photos_picker_web_probe.py
+
+      - name: Test static eimir.de main site
+        run: python3 tools/ci/test_main_site.py
+
       - name: Audit migrated engineering-language surfaces
         run: |
           python3 tools/ci/test_engineering_language_audit.py
@@ -113,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -209,7 +218,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -354,7 +363,7 @@ jobs:
             -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
           printf '%s\n' "$rendered" \
-            | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
+            | grep -Fq "connect-src 'self' https://tiles.openfreemap.org https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \
@@ -487,7 +496,7 @@ jobs:
           echo "Backend Supply Chain required: $BACKEND_REQUIRED"
           echo "Web Supply Chain required: $WEB_REQUIRED"
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.changes.outputs.supply_chain_backend == 'true'
         with:
           python-version: ${{ env.PYTHON_VERSION }}

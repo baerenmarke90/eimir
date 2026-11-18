@@ -1,0 +1,791 @@
+/* Handmade Diary Timeline (experimental, Compact-first).
+ *
+ * The chronology reads like a scrapbook: photo entries are Polaroids taped to
+ * the page, text keepsakes are lined notes, Heart Moments keep their emotion
+ * surface as a pinned scrap, Milestones are rubber stamps, and a dotted thread
+ * in both partner colours runs through the page. Everything is a presentation
+ * layer over the existing markup; kind, order, links and accessible names are
+ * unchanged. Only semantic tokens are used. The paper edge radius is physical
+ * object geometry, not a UI radius.
+ *
+ * Imported after StoryUnifiedPage.css; the shared prefix keeps specificity
+ * equal to the rules it replaces so import order decides, not escalation.
+ */
+.story-page-unified .momente-diary-section[data-diary-layout="album"] {
+  --story-paper: var(--color-surface-raised);
+  --story-paper-radius: 3px;
+  --story-lift: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 8px 8px var(--color-shadow-soft));
+  --story-lift-high: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 18px 14px var(--color-shadow-overlay));
+  --story-tape-own: color-mix(
+    in srgb,
+    var(--person-own-accent) 58%,
+    transparent
+  );
+  --story-tape-partner: color-mix(
+    in srgb,
+    var(--person-partner-accent) 58%,
+    transparent
+  );
+  --story-tape-both: color-mix(
+    in srgb,
+    var(--color-discovery) 30%,
+    var(--color-discovery-surface)
+  );
+}
+
+/* ---------- the thread ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-list {
+  --story-entry-indent: 0px;
+  gap: var(--space-8);
+  padding: 0;
+}
+
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months {
+  position: relative;
+}
+
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month {
+  position: relative;
+  z-index: 1;
+}
+
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 3rem;
+  margin-inline-start: -1.5rem;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      var(--person-own-accent),
+      var(--person-partner-accent) 50%,
+      var(--person-own-accent)
+    )
+    0 0 / 100% 30rem repeat-y;
+  -webkit-mask:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='240' viewBox='0 0 48 240'><path d='M24 0 C42 40 42 80 24 120 S6 200 24 240' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-dasharray='0.1 9'/></svg>")
+    center top / 3rem 15rem repeat-y;
+  mask:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='240' viewBox='0 0 48 240'><path d='M24 0 C42 40 42 80 24 120 S6 200 24 240' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-dasharray='0.1 9'/></svg>")
+    center top / 3rem 15rem repeat-y;
+}
+
+/* Kind is carried by the paper and tape, so the per-entry rail and dots go.
+   Each marker is aria-hidden; the link's accessible name still states the kind. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item::before,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-marker {
+  display: none;
+}
+
+/* ---------- placement: hand-placed, alternating, slightly crooked ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item {
+  z-index: 1;
+  width: 88%;
+  --story-tape: var(--story-tape-both);
+}
+/* Side alternates per entry and flips with every month, so a month holding a
+   single entry still zig-zags against its neighbours. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month:nth-child(odd)
+  .story-timeline-item:nth-child(odd),
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month:nth-child(even)
+  .story-timeline-item:nth-child(even) {
+  margin-inline-end: auto;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month:nth-child(odd)
+  .story-timeline-item:nth-child(even),
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month:nth-child(even)
+  .story-timeline-item:nth-child(odd) {
+  margin-inline-start: auto;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month {
+  --story-month-tilt: -2.2deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month:nth-child(4n + 2) {
+  --story-month-tilt: 1.8deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month:nth-child(4n + 3) {
+  --story-month-tilt: -1.1deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month:nth-child(4n) {
+  --story-month-tilt: 2.7deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item {
+  --story-tilt: calc(
+    var(--story-month-tilt, -2.2deg) *
+    var(--story-tone-scale, 1)
+  );
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item:nth-child(even) {
+  --story-tilt: calc(
+    var(--story-month-tilt, -2.2deg) *
+    -0.7 *
+    var(--story-tone-scale, 1)
+  );
+}
+
+/* The anchor casts the paper shadow so torn and clipped edges keep it. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link {
+  filter: var(--story-lift);
+  transition: filter var(--duration-context) var(--easing-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .story-page-unified
+    .momente-diary-section[data-diary-layout="album"]
+    .story-timeline
+    .story-card-link:hover {
+    filter: var(--story-lift-high);
+  }
+}
+
+/* ---------- shared card: paper object ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card {
+  position: relative;
+  display: block;
+  padding: var(--space-4);
+  border-radius: var(--story-paper-radius);
+  background: var(--story-paper);
+  box-shadow: none;
+  rotate: var(--story-tilt);
+  transition:
+    rotate var(--duration-context) var(--easing-standard),
+    transform var(--duration-context) var(--easing-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .story-page-unified
+    .momente-diary-section[data-diary-layout="album"]
+    .story-timeline
+    .story-card-link:hover
+    .story-card {
+    rotate: 0deg;
+    box-shadow: none;
+    transform: scale(1.03) translateY(calc(var(--space-1) * -1));
+  }
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link:active
+  .story-card {
+  scale: var(--control-pressed-scale);
+}
+
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card
+  h4 {
+  margin: 0 0 var(--space-2);
+  font: var(--font-story-summary);
+  letter-spacing: var(--tracking-story-summary);
+  font-style: normal;
+  color: var(--color-text);
+}
+
+/* Tape: a decorative strip, never part of the content. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--space-3) * -1);
+  inset-inline-start: 50%;
+  width: 5.75rem;
+  height: 1.75rem;
+  margin-inline-start: -2.875rem;
+  rotate: calc(var(--story-tilt) * -1.4);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
+      transparent 5px 10px
+    ),
+    var(--story-tape);
+  clip-path: polygon(
+    0 0,
+    4% 14%,
+    0 28%,
+    4% 42%,
+    0 57%,
+    4% 71%,
+    0 86%,
+    3% 100%,
+    100% 100%,
+    96% 86%,
+    100% 71%,
+    96% 57%,
+    100% 42%,
+    96% 28%,
+    100% 14%,
+    97% 0
+  );
+  pointer-events: none;
+}
+
+/* ---------- photo entry: Polaroid ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card.has-image {
+  display: block;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-media-preview,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-media-skeleton,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-media-placeholder,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .sensitive-media {
+  display: block;
+  grid-column: auto;
+  grid-row: auto;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 5 / 4;
+  margin: 0 0 var(--space-3);
+  border-radius: 0;
+  box-shadow: none;
+  object-fit: cover;
+  object-position: center;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > h4,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-card-footer,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .heart-emotion-badge {
+  grid-column: auto;
+  padding-inline: var(--space-1);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-card-footer {
+  padding-block-end: var(--space-1);
+}
+
+/* ---------- text keepsake: lined note, torn at the bottom ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-memory.no-image {
+  padding: var(--space-4) var(--space-4) var(--space-8) 2.4rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 1.7rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.7rem
+        1.78rem,
+      transparent 1.78rem
+    ),
+    repeating-linear-gradient(
+      transparent 0 calc(1lh - 1px),
+      var(--color-border) calc(1lh - 1px) 1lh
+    )
+    0 var(--space-4) / 100% 100% no-repeat,
+    var(--story-paper);
+  clip-path: polygon(
+    calc(var(--space-5) * -1) calc(var(--space-8) * -1),
+    calc(100% + var(--space-5)) calc(var(--space-8) * -1),
+    calc(100% + var(--space-5)) 95%,
+    96% 100%,
+    91% 95.5%,
+    85% 100%,
+    79% 95%,
+    72% 100%,
+    66% 95.5%,
+    59% 100%,
+    53% 95%,
+    46% 100%,
+    39% 95.5%,
+    32% 100%,
+    25% 95%,
+    18% 100%,
+    11% 95.5%,
+    5% 100%,
+    0 95.5%,
+    calc(var(--space-5) * -1) 95%
+  );
+}
+
+/* ---------- Heart Moment: scrap keeping its emotion colour, pinned ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-heart-moment {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-radius: 3px 18px 4px 15px / 16px 4px 18px 3px;
+  background: var(--diary-entry-surface, var(--color-brand-surface));
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-heart-moment::before {
+  top: calc(var(--space-2) * -1);
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-start: -0.625rem;
+  border-radius: 50%;
+  rotate: none;
+  clip-path: none;
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      color-mix(in srgb, var(--color-surface-raised) 60%, transparent),
+      transparent 35%
+    ),
+    var(--story-pin, var(--color-text-secondary));
+  box-shadow: 0 var(--space-1) var(--space-1) var(--color-shadow-overlay);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-heart-moment
+  h4 {
+  font: var(--font-composer-lead);
+  letter-spacing: var(--tracking-composer-lead);
+  color: var(--color-story-heart-moment);
+}
+
+/* ---------- Milestone: rubber stamp ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-milestone {
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-background);
+  color: var(--color-text);
+  text-align: center;
+  outline: 3px double var(--color-story-milestone);
+  outline-offset: calc(var(--space-2) * -1);
+  border-radius: var(--radius-medium);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-milestone::before {
+  display: none;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-milestone
+  h4,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-milestone
+  .story-card-footer {
+  color: currentcolor;
+  justify-content: center;
+  text-transform: none;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-milestone
+  h4 {
+  font: var(--font-story-total);
+}
+
+/* ---------- month heading: a paper tag on the thread ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header
+  h2 {
+  position: relative;
+  margin-inline: auto;
+  padding: var(--space-1) var(--space-5) var(--space-2);
+  border-radius: 3px 9px 4px 8px / 8px 4px 9px 3px;
+  background: var(--color-discovery-surface);
+  color: var(--color-discovery);
+  font: var(--font-personal-heading);
+  letter-spacing: var(--tracking-personal-heading);
+  rotate: -1.6deg;
+  filter: var(--story-lift, none);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header
+  h2::before,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header
+  h2::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  width: 2.1rem;
+  height: 0.85rem;
+  background: var(--story-tape-both);
+  clip-path: polygon(
+    0 0,
+    6% 25%,
+    0 50%,
+    6% 75%,
+    0 100%,
+    100% 100%,
+    94% 75%,
+    100% 50%,
+    94% 25%,
+    100% 0
+  );
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header
+  h2::before {
+  inset-inline-start: calc(var(--space-3) * -1);
+  rotate: -32deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header
+  h2::after {
+  inset-inline-end: calc(var(--space-3) * -1);
+  rotate: 32deg;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-year-month-header::after {
+  display: none;
+}
+
+/* ---------- motion: stick on, then develop ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal
+  .story-card {
+  translate: 0 2.4rem;
+  rotate: calc(var(--story-tilt) + 7deg);
+  transition:
+    translate var(--duration-gesture-moment) var(--easing-enter),
+    rotate var(--duration-gesture-moment) var(--easing-enter),
+    transform var(--duration-context) var(--easing-standard);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
+  .story-card,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal:focus-within
+  .story-card {
+  translate: 0 0;
+  rotate: var(--story-tilt);
+}
+@media (hover: hover) and (pointer: fine) {
+  .story-page-unified
+    .momente-diary-section[data-diary-layout="album"]
+    .story-timeline
+    .story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
+    .story-card-link:hover
+    .story-card {
+    rotate: 0deg;
+  }
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal
+  .story-card.has-image
+  > .story-media-preview {
+  filter: brightness(2.2) saturate(0) blur(3px);
+  transition: filter var(--duration-gesture-sequence) var(--easing-enter)
+    var(--duration-sequence-beat);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
+  .story-card.has-image
+  > .story-media-preview,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item.story-timeline-progressive-reveal:focus-within
+  .story-card.has-image
+  > .story-media-preview {
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-page-unified
+    .momente-diary-section[data-diary-layout="album"]
+    .story-timeline
+    .story-timeline-item.story-timeline-progressive-reveal
+    .story-card {
+    translate: 0 0;
+    rotate: var(--story-tilt);
+    transition: none;
+  }
+  .story-page-unified
+    .momente-diary-section[data-diary-layout="album"]
+    .story-timeline
+    .story-timeline-item.story-timeline-progressive-reveal
+    .story-card.has-image
+    > .story-media-preview {
+    filter: none;
+    transition: none;
+  }
+}
+
+/* ---------- fixes and refinements ---------- */
+
+/* A column, not a stretched canvas, on wide screens. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months {
+  max-inline-size: 34rem;
+  margin-inline: auto;
+}
+
+/* The month tag belongs to the thread; it no longer sticks over photos. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline-months
+  > .story-year-month
+  > .story-year-month-header {
+  position: static;
+  margin-block: 0;
+  padding-block: 0;
+}
+
+/* Tape and pins overhang the paper edge instead of being cut off. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card {
+  overflow: visible;
+}
+
+/* Tape colour: the author's partner colour; neutral while it is unknown. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-author-role="own"] {
+  --story-tape: var(--story-tape-own);
+  --story-pin: var(--person-own-accent);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-author-role="partner"] {
+  --story-tape: var(--story-tape-partner);
+  --story-pin: var(--person-partner-accent);
+}
+
+/* Calm entries: nearly straight, no tape, and they settle in without a flourish. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-tone="calm"] {
+  --story-tone-scale: 0.2;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-tone="calm"]
+  .story-card-link
+  .story-card::before {
+  display: none;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-tone="calm"].story-timeline-progressive-reveal
+  .story-card {
+  translate: 0 var(--space-3);
+  rotate: var(--story-tilt);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-tone="calm"].story-timeline-progressive-reveal[data-timeline-revealed="true"]
+  .story-card,
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-tone="calm"].story-timeline-progressive-reveal:focus-within
+  .story-card {
+  translate: 0 0;
+}
+
+/* Entries with shared answers use plain paper: no ruling behind the answers,
+   and the answer is a quiet text block instead of a card inside the card. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-has-answers]
+  .story-card-memory.no-image {
+  padding: var(--space-4);
+  background: var(--story-paper);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-has-answers]
+  .experience-answer {
+  padding: 0 0 0 var(--space-3);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: inset 3px 0 0 var(--color-border);
+}
+
+/* ---------- photo frames follow the real photo shape ---------- */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-photo-shape="portrait"]
+  .story-card.has-image
+  > :is(
+    .story-media-preview,
+    .story-media-skeleton,
+    .story-media-placeholder,
+    .sensitive-media
+  ) {
+  aspect-ratio: 4 / 5;
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-timeline-item[data-photo-shape="square"]
+  .story-card.has-image
+  > :is(
+    .story-media-preview,
+    .story-media-skeleton,
+    .story-media-placeholder,
+    .sensitive-media
+  ) {
+  aspect-ratio: 1 / 1;
+}
+/* If a crop remains, keep faces: faces sit in the upper part of a picture. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card.has-image
+  > .story-media-preview {
+  object-position: 50% 30%;
+}
+
+/* Ruling follows the text: the line spacing of the paper is derived from the
+   note's own line height (the `lh` unit), so text always sits on a line. */
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-link
+  .story-card-memory.no-image {
+  --note-lh: 1.84rem;
+  line-height: var(--note-lh);
+}
+.story-page-unified
+  .momente-diary-section[data-diary-layout="album"]
+  .story-timeline
+  .story-card-memory.no-image
+  :is(h4, .story-preview) {
+  line-height: var(--note-lh);
+}
+
+/* Taped corners and tilted paper may reach into the page gutter, never past the
+   screen edge: clipping (not hiding) keeps sticky headings working and the page
+   from scrolling sideways. */
+.story-page-unified .momente-diary-section[data-diary-layout="album"] {
+  overflow-x: clip;
+  overflow-clip-margin: var(--page-gutter);
+}

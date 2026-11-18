@@ -1,0 +1,26 @@
+{
+  "supported": true,
+  "originalSize": 8395416,
+  "size": 6170,
+  "type": "video/mp4",
+  "videoTracks": 1,
+  "audioTracks": 1,
+  "duration": 1,
+  "progress": [
+    0,
+    2,
+    5,
+    7,
+    9,
+    12,
+    14,
+    16,
+    19,
+    20,
+    40,
+    60,
+    80,
+    100,
+    100
+  ]
+}

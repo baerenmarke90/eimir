@@ -7,21 +7,25 @@ stale copied Dashboard record behind.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from enum import StrEnum
+from hashlib import sha256
+from typing import cast as cast_type
 from uuid import UUID
 
-from sqlalchemy import Date, and_, cast, extract, func, or_, select
+from sqlalchemy import Date, and_, case, cast, exists, extract, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from eimir.attachments.binding import attachments_of_memories
+from eimir.attachments.binding import attachments_of_memories, cover_of
 from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.collections.models import Collection
 from eimir.core import clock
+from eimir.core.errors import ValidationError
 from eimir.engagement import thinking
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
@@ -29,6 +33,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.people.models import DateRepeat, ImportantDate, RelatedPerson
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship.models import (
     DurationDisplayMode,
@@ -36,12 +41,20 @@ from eimir.relationship.models import (
     MembershipStatus,
     SpaceProfile,
 )
+from eimir.story import service as story_service
+from eimir.story.view_models import StoryItemViewAggregate
 from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
+LIFELINE_ENTRIES_LIMIT = 60
+"""The most entries of one lifeline period returned at once."""
+LIFELINE_ENTRIES_MAX_DAYS = 120
+"""The longest period a lifeline column covers: one quarter plus its edge weeks."""
+STORY_LIFELINE_RANGE_INVALID = "STORY_LIFELINE_RANGE_INVALID"
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
+RETROSPECTIVE_SCAN_LIMIT = 50
 
 
 class DashboardItemType(StrEnum):
@@ -78,9 +91,68 @@ class DashboardItem:
     title_or_text: str | None = None
     occurred_on: date | None = None
     scheduled_on: date | None = None
+    scheduled_until: date | None = None
     scheduled_at: datetime | None = None
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
+    preview_is_sensitive: bool = False
+    preview_has_thumbnail: bool = False
+    concealed: bool = False
+    """Only the list title may show: a discreet Plan (#1790 F3)."""
+
+
+@dataclass(frozen=True)
+class DashboardExperience:
+    id: UUID
+    kind: str
+    text: str
+    prompt: str
+    author_id: UUID
+    happened_on: date | None
+    created_at: datetime
+
+
+def read_incoming_experience(
+    session: Session, authorization: AuthorizationContext
+) -> DashboardExperience | None:
+    partner = _partner(session, authorization)
+    if partner is None:
+        return None
+    canonical_id = func.coalesce(Memory.experience_root_id, Memory.id)
+    already_opened = exists().where(
+        StoryItemViewAggregate.space_id == authorization.space_id,
+        StoryItemViewAggregate.viewer_account_id == authorization.account_id,
+        StoryItemViewAggregate.item_kind == "MEMORY",
+        StoryItemViewAggregate.item_id == canonical_id,
+        StoryItemViewAggregate.last_viewed_at >= Memory.updated_at,
+    )
+    memory = session.execute(
+        readable(Memory, authorization)
+        .where(
+            Memory.owner_id == partner.id,
+            Memory.experience_kind.is_not(None),
+            Memory.privacy_class == PrivacyClass.SPACE_SHARED.value,
+            Memory.created_at >= clock.now() - timedelta(days=3),
+            ~already_opened,
+        )
+        .order_by(Memory.created_at.desc(), Memory.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if memory is None:
+        return None
+    return DashboardExperience(
+        id=memory.experience_root_id or memory.id,
+        kind=memory.experience_kind or "",
+        text=(
+            memory.payload.body[:279].rstrip() + "…"
+            if len(memory.payload.body) > 280
+            else memory.payload.body
+        ),
+        prompt=memory.payload.title,
+        author_id=memory.owner_id,
+        happened_on=memory.happened_on,
+        created_at=memory.created_at,
+    )
 
 
 @dataclass(frozen=True)
@@ -94,6 +166,319 @@ class DashboardView:
     upcoming: list[DashboardItem]
     recent_shared: list[DashboardItem]
     thinking_of_you_available_at: datetime | None
+
+
+@dataclass(frozen=True)
+class Anticipation:
+    plan_id: UUID
+    title: str
+    event_on: date
+    days_remaining: int
+    event_at: datetime | None = None
+    concealed: bool = False
+
+
+@dataclass(frozen=True)
+class RelationshipPassport:
+    partner: PartnerSummary | None
+    relationship_duration: RelationshipDuration | None
+    memories: int
+    heart_moments: int
+    milestones: int
+    completed_plans: int
+    places: int
+
+
+@dataclass(frozen=True)
+class LifelineWeek:
+    """One calendar week (starting Monday) of the shared Story."""
+
+    week_start: date
+    memories: int
+    heart_moments: int
+    milestones: int
+    highlight: DashboardItem
+
+
+@dataclass(frozen=True)
+class StoryLifeline:
+    """The relationship lifeline drawn on Wir (#1770)."""
+
+    starts_on: date | None
+    today: date
+    weeks: list[LifelineWeek]
+
+
+@dataclass(frozen=True)
+class StoryLifelineEntries:
+    """The entries behind one lifeline column, oldest first."""
+
+    total: int
+    items: list[DashboardItem]
+
+
+_LIFELINE_HIGHLIGHT_PREFERENCE: dict[story_service.StoryKind, int] = {
+    # Memories are the only Story type with photos, so a week shows one first.
+    story_service.StoryKind.MEMORY: 0,
+    story_service.StoryKind.HEART_MOMENT: 1,
+    story_service.StoryKind.MILESTONE: 2,
+}
+
+
+def read_story_lifeline(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    at: datetime | None = None,
+) -> StoryLifeline:
+    """Bucket the relationship-shared Story by week for the Wir lifeline.
+
+    The weeks cover exactly the `shared_only` Story set up to the viewer's
+    local today, so the per-week counts always add up to the totals that the
+    client shows next to them. Each non-empty week carries one recognizable
+    entry for the scrub preview: its latest Memory when there is one,
+    otherwise its latest entry. Empty weeks are omitted.
+    """
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    today = clock.today_in(account.timezone, at=instant)
+    profile = session.execute(
+        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
+    ).scalar_one_or_none()
+    duration = _relationship_duration(profile, today)
+    starts_on = (
+        duration.started_on if duration is not None and duration.started_on <= today else None
+    )
+
+    buckets: dict[date, list[story_service.StoryRow]] = defaultdict(list)
+    for row in story_service.read_shared_story_rows(session, authorization, through=today):
+        buckets[row.effective_date - timedelta(days=row.effective_date.weekday())].append(row)
+    representatives = {
+        week: max(
+            rows,
+            key=lambda row: (
+                -_LIFELINE_HIGHLIGHT_PREFERENCE[row.kind],
+                row.effective_date,
+                row.created_at,
+                str(row.id),
+            ),
+        )
+        for week, rows in buckets.items()
+    }
+    highlights = _lifeline_highlights(session, authorization, list(representatives.values()))
+
+    weeks: list[LifelineWeek] = []
+    for week in sorted(buckets):
+        rows = buckets[week]
+        representative = representatives[week]
+        weeks.append(
+            LifelineWeek(
+                week_start=week,
+                memories=sum(row.kind == story_service.StoryKind.MEMORY for row in rows),
+                heart_moments=sum(row.kind == story_service.StoryKind.HEART_MOMENT for row in rows),
+                milestones=sum(row.kind == story_service.StoryKind.MILESTONE for row in rows),
+                highlight=highlights.get(representative.id) or _lifeline_fallback(representative),
+            )
+        )
+    return StoryLifeline(starts_on=starts_on, today=today, weeks=weeks)
+
+
+def read_story_lifeline_entries(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    starts_on: date,
+    ends_before: date,
+    at: datetime | None = None,
+) -> StoryLifelineEntries:
+    """Return every entry of one lifeline period, oldest first.
+
+    The lifeline only carries one highlight per week; selecting a column
+    reads its entries lazily. The set is exactly the one `read_story_lifeline`
+    counts (relationship-shared, up to the viewer's local today), narrowed to
+    the half-open range ``[starts_on, ends_before)``, so a column's dots and
+    its entries always agree. At most `LIFELINE_ENTRIES_LIMIT` entries are
+    loaded; `total` tells how many the period holds.
+    """
+    if ends_before <= starts_on:
+        raise ValidationError(
+            "The lifeline range must end after it starts.", STORY_LIFELINE_RANGE_INVALID
+        )
+    if (ends_before - starts_on).days > LIFELINE_ENTRIES_MAX_DAYS:
+        raise ValidationError(
+            "The lifeline range is longer than one period.", STORY_LIFELINE_RANGE_INVALID
+        )
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    today = clock.today_in(account.timezone, at=instant)
+    through = min(today, ends_before - timedelta(days=1))
+    if through < starts_on:
+        return StoryLifelineEntries(total=0, items=[])
+    rows = story_service.read_shared_story_rows(
+        session, authorization, through=through, since=starts_on
+    )
+    shown = rows[:LIFELINE_ENTRIES_LIMIT]
+    loaded = _lifeline_highlights(session, authorization, shown)
+    return StoryLifelineEntries(
+        total=len(rows),
+        items=[loaded.get(row.id) or _lifeline_fallback(row) for row in shown],
+    )
+
+
+def _lifeline_fallback(row: story_service.StoryRow) -> DashboardItem:
+    return DashboardItem(
+        type=DashboardItemType(row.kind.value),
+        id=row.id,
+        occurred_on=row.effective_date,
+        created_at=row.created_at,
+    )
+
+
+def _lifeline_highlights(
+    session: Session,
+    authorization: AuthorizationContext,
+    rows: list[story_service.StoryRow],
+) -> dict[UUID, DashboardItem]:
+    """Load the displayed entries in one batch per Story type."""
+    ids: dict[story_service.StoryKind, list[UUID]] = defaultdict(list)
+    for row in rows:
+        ids[row.kind].append(row.id)
+    highlights: dict[UUID, DashboardItem] = {}
+
+    memory_ids = ids[story_service.StoryKind.MEMORY]
+    if memory_ids:
+        memories = list(
+            session.execute(
+                readable(Memory, authorization).where(Memory.id.in_(memory_ids))
+            ).scalars()
+        )
+        galleries = attachments_of_memories(session, [memory.id for memory in memories])
+        for memory in memories:
+            preview = cover_of(
+                galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
+            )
+            ready = preview is not None and preview.status == AttachmentStatus.READY
+            highlights[memory.id] = DashboardItem(
+                type=DashboardItemType.MEMORY,
+                id=memory.id,
+                title_or_text=_bounded(memory.payload.title),
+                occurred_on=memory.happened_on,
+                created_at=memory.created_at,
+                preview_attachment_id=preview.id if ready and preview is not None else None,
+                preview_is_sensitive=bool(
+                    ready and preview is not None and preview.payload.is_sensitive
+                ),
+                preview_has_thumbnail=bool(ready and preview is not None and preview.has_thumbnail),
+            )
+
+    heart_moment_ids = ids[story_service.StoryKind.HEART_MOMENT]
+    if heart_moment_ids:
+        for heart_moment in session.execute(
+            readable(HeartMoment, authorization).where(
+                HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value,
+                HeartMoment.id.in_(heart_moment_ids),
+            )
+        ).scalars():
+            highlights[heart_moment.id] = DashboardItem(
+                type=DashboardItemType.HEART_MOMENT,
+                id=heart_moment.id,
+                title_or_text=_bounded(heart_moment.payload.text),
+                occurred_on=heart_moment.happened_on,
+                created_at=heart_moment.created_at,
+            )
+
+    milestone_ids = ids[story_service.StoryKind.MILESTONE]
+    if milestone_ids:
+        for milestone in session.execute(
+            readable(Milestone, authorization).where(Milestone.id.in_(milestone_ids))
+        ).scalars():
+            highlights[milestone.id] = DashboardItem(
+                type=DashboardItemType.MILESTONE,
+                id=milestone.id,
+                title_or_text=_bounded(milestone.payload.title),
+                occurred_on=milestone.happened_on,
+                created_at=milestone.created_at,
+            )
+    return highlights
+
+
+def read_anticipation(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    at: datetime | None = None,
+) -> Anticipation | None:
+    """Select one explicitly highlighted Plan independently of agenda limits."""
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    zone = clock.resolve_zone(account.timezone).key
+    today = clock.today_in(zone, at=instant)
+    event_day = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
+    plan = session.execute(
+        readable(Plan, authorization)
+        .where(
+            Plan.anticipation_enabled.is_(True),
+            Plan.status == PlanStatus.PLANNED.value,
+            event_day >= today,
+        )
+        .order_by(event_day, Plan.planned_start.asc().nulls_first(), Plan.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if plan is None:
+        return None
+    day = plan.planned_on
+    if day is None:
+        if plan.planned_start is None:
+            raise RuntimeError("Scheduled anticipation Plan has no start.")
+        day = clock.ensure_utc(plan.planned_start).astimezone(clock.resolve_zone(zone)).date()
+    return Anticipation(
+        plan_id=plan.id,
+        title=_bounded(discreet.list_title(plan)) or "",
+        event_on=day,
+        days_remaining=(day - today).days,
+        event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
+        concealed=plan.discreet,
+    )
+
+
+def read_relationship_passport(
+    session: Session,
+    authorization: AuthorizationContext,
+) -> RelationshipPassport:
+    """Read shared-only lifetime aggregates after the caller's Pro check."""
+    from eimir.story.service import read_shared_story_counts
+
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    profile = session.execute(
+        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
+    ).scalar_one_or_none()
+    story = read_shared_story_counts(session, authorization)
+    completed = readable(Plan, authorization).where(
+        Plan.status == PlanStatus.COMPLETED.value,
+        Plan.privacy_class == PrivacyClass.SPACE_SHARED.value,
+    )
+    places = readable(Place, authorization).where(
+        Place.privacy_class == PrivacyClass.SPACE_SHARED.value
+    )
+    return RelationshipPassport(
+        partner=_partner(session, authorization),
+        relationship_duration=_relationship_duration(profile, clock.today_in(account.timezone)),
+        memories=story.memories,
+        heart_moments=story.heart_moments,
+        milestones=story.milestones,
+        completed_plans=session.execute(
+            select(func.count()).select_from(completed.subquery())
+        ).scalar_one(),
+        places=session.execute(select(func.count()).select_from(places.subquery())).scalar_one(),
+    )
 
 
 def read_dashboard(
@@ -119,7 +504,7 @@ def read_dashboard(
         partner=_partner(session, authorization),
         relationship_duration=_relationship_duration(profile, today),
         retrospective=_retrospective(session, authorization, today, account.timezone),
-        keepsake=_keepsake(session, authorization),
+        keepsake=_keepsake(session, authorization, account.timezone),
         upcoming=_upcoming(
             session,
             authorization,
@@ -128,7 +513,7 @@ def read_dashboard(
             instant,
             account.timezone,
         ),
-        recent_shared=_recent_shared(session, authorization),
+        recent_shared=_recent_shared(session, authorization, account.timezone),
         thinking_of_you_available_at=thinking.available_at(session, authorization),
     )
 
@@ -197,9 +582,9 @@ def _retrospective(
 ) -> DashboardItem | None:
     """Select one authorized historical moment for the existing Today slot.
 
-    An exact calendar-day anniversary always wins. On a Space-stable weekday,
-    the oldest shared Memory can fill an otherwise empty day, provided the
-    event is at least thirty days in the past. The projection is read directly
+    An exact calendar-day anniversary always wins. Otherwise a daily stable
+    rotation selects from a bounded pool of shared historical content at least
+    more than thirty days old. The projection is read directly
     from current authorized rows: deletion/permission changes cannot leave
     persisted copies of relationship content behind.
     """
@@ -295,45 +680,78 @@ def _retrospective(
             ),
         )[1]
     else:
-        # A quiet fallback, not an always-on filler card: exactly one weekday
-        # per Space, independent of the viewer's Account or client platform.
-        if today.weekday() != authorization.space_id.int % 7:
+        cutoff = today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS)
+        for model, day_column, kind in (
+            (Memory, memory_day, DashboardItemType.MEMORY),
+            (Milestone, Milestone.happened_on, DashboardItemType.MILESTONE),
+            (HeartMoment, HeartMoment.happened_on, DashboardItemType.HEART_MOMENT),
+        ):
+            statement = readable(model, authorization).where(day_column < cutoff)
+            if model is HeartMoment:
+                statement = statement.where(
+                    HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value
+                )
+            rows = session.execute(
+                statement.order_by(day_column.desc(), model.id).limit(RETROSPECTIVE_SCAN_LIMIT)
+            ).scalars()
+            for candidate in rows:
+                row = cast_type(Memory | Milestone | HeartMoment, candidate)
+                candidates.append(
+                    (
+                        row.happened_on or row.created_at.date(),
+                        DashboardItem(
+                            type=kind,
+                            id=row.id,
+                            title_or_text=_bounded(
+                                row.payload.text
+                                if isinstance(row, HeartMoment)
+                                else row.payload.title
+                            ),
+                            occurred_on=row.happened_on,
+                            created_at=row.created_at,
+                        ),
+                    )
+                )
+        if not candidates:
             return None
-
-        oldest = session.execute(
-            readable(Memory, authorization)
-            .where(memory_day < today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS))
-            .order_by(memory_day, Memory.id)
-            .limit(1)
-        ).scalar_one_or_none()
-        if oldest is None:
-            return None
-        chosen = DashboardItem(
-            type=DashboardItemType.MEMORY,
-            id=oldest.id,
-            title_or_text=_bounded(oldest.payload.title),
-            occurred_on=oldest.happened_on,
-            created_at=oldest.created_at,
+        candidates.sort(
+            key=lambda candidate: sha256(
+                f"{authorization.space_id}:{candidate[1].type.value}:{candidate[1].id}".encode()
+            ).digest()
         )
+        chosen = candidates[today.toordinal() % len(candidates)][1]
 
     if chosen.type == DashboardItemType.MEMORY:
         galleries = attachments_of_memories(session, [chosen.id])
-        for bound in galleries.get(chosen.id, []):
-            if bound.attachment.status == AttachmentStatus.READY:
-                chosen = replace(chosen, preview_attachment_id=bound.attachment.id)
-                break
+        memory = session.get(Memory, chosen.id)
+        preview = cover_of(
+            galleries.get(chosen.id, []),
+            memory.payload.selected_cover_attachment_id if memory else None,
+        )
+        if preview and preview.status == AttachmentStatus.READY:
+            chosen = replace(
+                chosen,
+                preview_attachment_id=preview.id,
+                preview_is_sensitive=preview.payload.is_sensitive,
+                preview_has_thumbnail=preview.has_thumbnail,
+            )
     return chosen
 
 
 def _keepsake(
     session: Session,
     authorization: AuthorizationContext,
+    timezone_name: str,
 ) -> DashboardItem | None:
     """Find the Today Keepsake: the most recent readable Memory with a READY photo."""
+    timezone_name = clock.resolve_zone(timezone_name).key
     memories = list(
         session.execute(
             readable(Memory, authorization)
-            .order_by(Memory.created_at.desc(), Memory.id)
+            .order_by(
+                *_recent_content_order(Memory.happened_on, Memory.created_at, timezone_name),
+                Memory.id,
+            )
             .limit(KEEPSAKE_SCAN_LIMIT)
         ).scalars()
     )
@@ -343,9 +761,13 @@ def _keepsake(
     galleries = attachments_of_memories(session, [memory.id for memory in memories])
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
+        preview_has_thumbnail = False
         for bound in galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
+                preview_has_thumbnail = bound.attachment.has_thumbnail
                 break
         if preview_id is not None:
             return DashboardItem(
@@ -355,6 +777,8 @@ def _keepsake(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
+                preview_has_thumbnail=preview_has_thumbnail,
             )
     return None
 
@@ -386,7 +810,8 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
                 scheduled_at=clock.ensure_utc(plan.planned_start),
             )
         )
@@ -396,7 +821,8 @@ def _upcoming(
         .where(
             Plan.status == PlanStatus.PLANNED.value,
             Plan.planned_on.is_not(None),
-            Plan.planned_on >= today,
+            # A running multi-day Plan stays on the agenda through its last day.
+            func.coalesce(Plan.planned_until, Plan.planned_on) >= today,
         )
         .order_by(Plan.planned_on, Plan.id)
         .limit(SECTION_LIMIT)
@@ -408,8 +834,10 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
                 scheduled_on=plan.planned_on,
+                scheduled_until=plan.planned_until,
             )
         )
 
@@ -444,7 +872,7 @@ def _upcoming(
     birthdays = session.execute(
         readable(RelatedPerson, authorization).where(
             RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            RelatedPerson.birthday.is_not(None),
+            RelatedPerson.with_birthday(),
             RelatedPerson.show_birthday_on_dashboard.is_(True),
         )
     ).scalars()
@@ -505,16 +933,51 @@ def _upcoming_sort_key(
     return day, timing_rank, wall_clock, item.type.value, str(item.id)
 
 
+def _recent_content_order(
+    day: InstrumentedAttribute[date] | InstrumentedAttribute[date | None],
+    instant: InstrumentedAttribute[datetime] | ColumnElement[datetime],
+    timezone_name: str,
+) -> tuple[ColumnElement[date], ColumnElement[int]]:
+    """Match the combined recency key before each bounded domain query."""
+    return (
+        func.coalesce(day, cast(func.timezone(timezone_name, instant), Date)).desc(),
+        case((day.is_(None), extract("epoch", instant)), else_=0).desc(),
+    )
+
+
+def _recent_item_sort_key(item: DashboardItem, timezone_name: str) -> tuple[int, float, str, str]:
+    """Content dates own recency; creation is a fallback for undated utilities."""
+    instant = item.scheduled_at or item.created_at
+    day = item.occurred_on
+    if day is None:
+        day = (
+            clock.ensure_utc(instant).astimezone(clock.resolve_zone(timezone_name)).date()
+            if instant is not None
+            else date.min
+        )
+    return (
+        -day.toordinal(),
+        -instant.timestamp() if item.occurred_on is None and instant is not None else 0,
+        item.type.value,
+        str(item.id),
+    )
+
+
 def _recent_shared(
     session: Session,
     authorization: AuthorizationContext,
+    timezone_name: str,
 ) -> list[DashboardItem]:
+    timezone_name = clock.resolve_zone(timezone_name).key
     candidates: list[DashboardItem] = []
 
     memories = list(
         session.execute(
             readable(Memory, authorization)
-            .order_by(Memory.created_at.desc(), Memory.id)
+            .order_by(
+                *_recent_content_order(Memory.happened_on, Memory.created_at, timezone_name),
+                Memory.id,
+            )
             .limit(SECTION_LIMIT)
         ).scalars()
     )
@@ -522,10 +985,15 @@ def _recent_shared(
 
     for memory in memories:
         preview_id = None
-        for bound in memory_galleries.get(memory.id, []):
-            if bound.attachment.status == AttachmentStatus.READY:
-                preview_id = bound.attachment.id
-                break
+        preview_sensitive = False
+        preview_has_thumbnail = False
+        preview = cover_of(
+            memory_galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
+        )
+        if preview and preview.status == AttachmentStatus.READY:
+            preview_id = preview.id
+            preview_sensitive = preview.payload.is_sensitive
+            preview_has_thumbnail = preview.has_thumbnail
         candidates.append(
             DashboardItem(
                 type=DashboardItemType.MEMORY,
@@ -534,12 +1002,17 @@ def _recent_shared(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
+                preview_has_thumbnail=preview_has_thumbnail,
             )
         )
 
     for milestone in session.execute(
         readable(Milestone, authorization)
-        .order_by(Milestone.created_at.desc(), Milestone.id)
+        .order_by(
+            *_recent_content_order(Milestone.happened_on, Milestone.created_at, timezone_name),
+            Milestone.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -555,7 +1028,10 @@ def _recent_shared(
     for heart_moment in session.execute(
         readable(HeartMoment, authorization)
         .where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
-        .order_by(HeartMoment.created_at.desc(), HeartMoment.id)
+        .order_by(
+            *_recent_content_order(HeartMoment.happened_on, HeartMoment.created_at, timezone_name),
+            HeartMoment.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -581,13 +1057,25 @@ def _recent_shared(
         )
 
     for plan in session.execute(
-        readable(Plan, authorization).order_by(Plan.created_at.desc(), Plan.id).limit(SECTION_LIMIT)
+        readable(Plan, authorization)
+        .order_by(
+            *_recent_content_order(
+                Plan.planned_on,
+                func.coalesce(Plan.planned_start, Plan.created_at),
+                timezone_name,
+            ),
+            Plan.id,
+        )
+        .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
+                occurred_on=plan.planned_on,
+                scheduled_at=plan.planned_start,
                 created_at=plan.created_at,
             )
         )
@@ -608,7 +1096,10 @@ def _recent_shared(
 
     for chapter in session.execute(
         readable(Chapter, authorization)
-        .order_by(Chapter.created_at.desc(), Chapter.id)
+        .order_by(
+            *_recent_content_order(Chapter.start_on, Chapter.created_at, timezone_name),
+            Chapter.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -635,13 +1126,7 @@ def _recent_shared(
             )
         )
 
-    candidates.sort(
-        key=lambda item: (
-            -(item.created_at.timestamp() if item.created_at is not None else 0),
-            item.type.value,
-            str(item.id),
-        )
-    )
+    candidates.sort(key=lambda item: _recent_item_sort_key(item, timezone_name))
     return candidates[:SECTION_LIMIT]
 
 

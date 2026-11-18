@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +43,139 @@ def successful_runs() -> list[dict]:
         }
         for index, path in enumerate(sorted(channel.REQUIRED_WORKFLOWS), 1)
     ]
+
+
+def completion_event() -> dict:
+    return {"action": "completed", "workflow_run": successful_runs()[0]}
+
+
+class CompletionAdmissionTest(unittest.TestCase):
+    def test_every_required_main_completion_can_retry_the_exact_source(self):
+        for completed in successful_runs():
+            with self.subTest(path=completed["path"]):
+                self.assertTrue(
+                    channel.completion_matches_source(
+                        {"action": "completed", "workflow_run": completed}, SOURCE
+                    )
+                )
+
+    def test_untrusted_or_unrelated_completions_never_query_github(self):
+        for mutation in (
+            {"event": "pull_request"},
+            {"event": "workflow_dispatch"},
+            {"head_branch": "feature"},
+            {"head_sha": PREVIOUS},
+            {"head_repository": {"full_name": "other/eimir"}},
+            {"head_repository": None},
+            {"head_repository": "not-a-repository"},
+            {"path": ".github/workflows/same-name.yml"},
+            {"status": "in_progress"},
+            {"conclusion": "failure"},
+            {"conclusion": "cancelled"},
+            {"conclusion": "skipped"},
+        ):
+            event = completion_event()
+            event["workflow_run"].update(mutation)
+            with self.subTest(mutation=mutation), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+        for event in ({}, [], {"action": "requested", "workflow_run": successful_runs()[0]}):
+            with self.subTest(event=event), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+
+    def test_missing_checks_return_immediately_without_polling(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+            patch.object(channel.time, "sleep") as sleep,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_called_once_with(SOURCE)
+            selected.assert_not_called()
+            sleep.assert_not_called()
+
+    def test_current_checked_source_is_admitted_once_and_manual_retry_is_available(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "channel_already_selected", side_effect=[False, True, False]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_dispatch", {}))
+
+    def test_superseded_source_and_failed_checks_cannot_admit_a_build(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_not_called()
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", side_effect=channel.ChannelError("failed checks")),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.check_for_publication(SOURCE, "workflow_run", completion_event())
+
+    def test_other_trigger_types_cannot_admit_a_build(self):
+        for event_name in ("push", "pull_request", "schedule", ""):
+            with (
+                self.subTest(event_name=event_name),
+                patch.object(channel, "gh_api") as api,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.check_for_publication(SOURCE, event_name, {})
+            api.assert_not_called()
+
+    def test_selected_channel_requires_owned_metadata_and_real_missing_branch(self):
+        identity = {"kind": channel.CHANNEL_KIND, "schemaVersion": 1, "sourceRevision": SOURCE}
+        for current, expected in ((SOURCE, True), (PREVIOUS, False)):
+            identity["sourceRevision"] = current
+            with patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]):
+                self.assertEqual(channel.channel_already_selected(SOURCE), expected)
+        with patch.object(channel, "gh_api", side_effect=channel.GitHubError("missing", missing=True)):
+            self.assertFalse(channel.channel_already_selected(SOURCE))
+        with (
+            patch.object(channel, "gh_api", side_effect=channel.GitHubError("network")),
+            self.assertRaises(channel.GitHubError),
+        ):
+            channel.channel_already_selected(SOURCE)
+        identity["kind"] = "unowned"
+        with (
+            patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.channel_already_selected(SOURCE)
+
+    def test_cli_reads_completion_payload_and_writes_readiness(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            event_path = Path(temporary) / "event.json"
+            output = Path(temporary) / "output"
+            event_path.write_text(json.dumps(completion_event()))
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_run",
+                "GITHUB_EVENT_PATH": str(event_path),
+            }
+            with (
+                patch.dict(os.environ, environment),
+                patch.object(channel, "latest_main", return_value=SOURCE),
+                patch.object(channel, "candidate_ready", return_value=True),
+                patch.object(channel, "channel_already_selected", return_value=False),
+                patch.object(sys, "argv", ["channel", "check", "--revision", SOURCE, "--github-output", str(output)]),
+            ):
+                self.assertEqual(channel.main(), 0)
+            self.assertEqual(output.read_text(), "ready=true\n")
 
 
 class MainCheckTest(unittest.TestCase):
@@ -171,6 +307,30 @@ class EvidenceAndImageTest(unittest.TestCase):
             self.index["artifacts"].append(record)
         self.write_index()
 
+    def write_image_archive(self, path, *, legacy=False, config=None, tag=None):
+        if config is None:
+            config = json.dumps(self.inspect()["Config"]).encode()
+        digest = hashlib.sha256(config).hexdigest()
+        config_path = digest + ".json" if legacy else "blobs/sha256/" + digest
+        manifest = [{"Config": config_path, "RepoTags": [tag] if tag else None}]
+        with tarfile.open(path, mode="w") as archive:
+            for name, content in (
+                ("manifest.json", json.dumps(manifest).encode()),
+                (config_path, config),
+            ):
+                member = tarfile.TarInfo(name)
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        return "sha256:" + digest
+
+    def prepare_image_archive(self, *, legacy=False):
+        self.config_digest = self.write_image_archive(
+            self.root / self.index["artifacts"][0]["path"],
+            legacy=legacy,
+            tag=f"eimir-backend:evidence-{SOURCE}",
+        )
+        self.image_id = self.config_digest if legacy else "sha256:" + "a" * 64
+
     def write_index(self):
         (self.root / "evidence-index.json").write_text(json.dumps(self.index))
 
@@ -180,6 +340,26 @@ class EvidenceAndImageTest(unittest.TestCase):
             {"backend-runtime", "web-runtime"},
         )
         self.index["artifacts"].pop()
+        self.write_index()
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+
+    def test_media_evidence_is_separately_bound_and_tampering_or_wrong_roles_fail_closed(self):
+        record = {
+            "id": "media-runtime", "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json", "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
+        self.assertEqual(set(channel.evidence_records(self.root, SOURCE)), {"backend-runtime", "web-runtime", "media-runtime"})
+        (self.root / record["path"]).write_bytes(b"different-worker")
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+        (self.root / record["path"]).write_bytes(b"restricted-worker-evidence")
+        record["roles"] = ["worker"]
         self.write_index()
         with self.assertRaises(channel.ChannelError):
             channel.evidence_records(self.root, SOURCE)
@@ -212,7 +392,7 @@ class EvidenceAndImageTest(unittest.TestCase):
 
     def inspect(self):
         return {
-            "Id": "sha256:" + "a" * 64,
+            "Id": getattr(self, "image_id", "sha256:" + "a" * 64),
             "Os": "linux",
             "Architecture": "amd64",
             "Config": {
@@ -232,26 +412,46 @@ class EvidenceAndImageTest(unittest.TestCase):
             return "test: digest: sha256:" + "b" * 64 + " size: 1000\n"
         if arguments[1:3] == ["manifest", "inspect"]:
             return json.dumps(
-                {"config": {"digest": self.inspect()["Id"]}, "layers": []}
+                {
+                    "schemaVersion": 2,
+                    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                    "config": {"digest": self.config_digest},
+                    "layers": [],
+                }
             )
+        if arguments[1:3] == ["image", "save"]:
+            self.write_image_archive(Path(arguments[4]))
         return ""
 
     def test_registry_digest_and_pull_back_are_verified(self):
-        with patch.object(channel, "run", side_effect=self.image_run) as run:
-            pinned = channel.publish_image(
-                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
-            )
-            self.assertEqual(
-                pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
-            )
-            self.assertTrue(
-                any(
-                    call.args[0][:2] == ["docker", "pull"]
-                    for call in run.call_args_list
+        for legacy in (False, True):
+            self.prepare_image_archive(legacy=legacy)
+            with (
+                self.subTest(legacy=legacy),
+                patch.object(channel, "run", side_effect=self.image_run) as run,
+            ):
+                pinned = channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
-            )
+                self.assertEqual(
+                    pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
+                )
+                calls = [call.args[0] for call in run.call_args_list]
+                self.assertIn(["docker", "pull", pinned], calls)
+                self.assertTrue(
+                    any(
+                        args[:4] == ["docker", "push", "--platform", "linux/amd64"]
+                        for args in calls
+                    )
+                )
+                self.assertTrue(
+                    any(args[:3] == ["docker", "image", "save"] for args in calls)
+                )
+                # Containerd IDs can identify a manifest/index instead of config.
+                self.assertEqual(self.inspect()["Id"] == self.config_digest, legacy)
 
     def test_wrong_image_source_fails_before_push(self):
+        self.prepare_image_archive()
         inspect = self.inspect()
         inspect["Config"]["Labels"]["org.opencontainers.image.revision"] = PREVIOUS
         with (
@@ -266,9 +466,16 @@ class EvidenceAndImageTest(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
 
     def test_registry_index_or_different_config_is_refused(self):
+        self.prepare_image_archive()
         for manifest in (
+            [],
             {"manifests": []},
-            {"config": {"digest": "sha256:" + "c" * 64}},
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "config": {"digest": "sha256:" + "c" * 64},
+                "layers": [],
+            },
         ):
 
             def changed(arguments, *, manifest=manifest, **kwargs):
@@ -285,7 +492,85 @@ class EvidenceAndImageTest(unittest.TestCase):
                     self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
 
+    def test_different_pull_back_config_is_refused(self):
+        self.prepare_image_archive()
+
+        def changed(arguments, **kwargs):
+            if arguments[1:3] == ["image", "save"]:
+                self.write_image_archive(Path(arguments[4]), config=b"different config")
+                return ""
+            return self.image_run(arguments, **kwargs)
+
+        with (
+            patch.object(channel, "run", side_effect=changed),
+            self.assertRaisesRegex(channel.ChannelError, "pull-back differs"),
+        ):
+            channel.publish_image(
+                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+            )
+
+    def test_ambiguous_corrupt_linked_or_unexpected_config_is_refused(self):
+        config = b"image config"
+        digest = hashlib.sha256(config).hexdigest()
+        name = "blobs/sha256/" + digest
+        base = {"Config": name, "RepoTags": [f"eimir-backend:evidence-{SOURCE}"]}
+        for change in ("multiple", "corrupt", "link", "duplicate", "traversal", "tag"):
+            record = copy.deepcopy(base)
+            if change == "traversal":
+                record["Config"] = "../" + name
+            if change == "tag":
+                record["RepoTags"] = ["unrelated:image"]
+            manifest = [record, record] if change == "multiple" else [record]
+            archive_path = self.root / self.index["artifacts"][0]["path"]
+            with tarfile.open(archive_path, mode="w") as archive:
+                for member_name, content in (
+                    ("manifest.json", json.dumps(manifest).encode()),
+                    (name, b"wrong bytes" if change == "corrupt" else config),
+                ):
+                    member = tarfile.TarInfo(member_name)
+                    member.size = len(content)
+                    if change == "link" and member_name == name:
+                        member.type = tarfile.SYMTYPE
+                        member.linkname = "/private"
+                    archive.addfile(member, io.BytesIO(content))
+                    if change == "duplicate" and member_name == name:
+                        archive.addfile(member, io.BytesIO(content))
+            with (
+                self.subTest(change=change),
+                patch.object(channel, "run") as run,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+                )
+            run.assert_not_called()
+
+    def test_missing_media_evidence_refuses_private_publication_before_registry_use(
+        self,
+    ):
+        with (
+            patch.dict(os.environ, {"GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"}),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "publish_image") as publish,
+            self.assertRaisesRegex(channel.ChannelError, "restricted-worker evidence"),
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        publish.assert_not_called()
+
+
     def test_partial_publication_never_advances_the_branch(self):
+        record = {
+            "id": "media-runtime",
+            "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json",
+            "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
         with (
             patch.dict(os.environ, {"GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"}),
             patch.object(channel, "latest_main", return_value=SOURCE),
@@ -423,11 +708,258 @@ class BranchPromotionTest(unittest.TestCase):
         self.assertEqual(self.calls[-1][1]["ref"], "refs/heads/deploy/eimir-test")
 
 
+class OptionalPhotoConfigurationTest(unittest.TestCase):
+    def test_photo_settings_are_instance_expressions_and_never_runner_values(self):
+        canonical = {
+            "services": {
+                name: {
+                    "environment": {
+                        "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "source-placeholder"
+                    }
+                }
+                for name in channel.CLOUD_SERVICES
+            }
+        }
+        with patch.dict(
+            os.environ,
+            {
+                "EIMIR_PHOTO_SOURCES_ENABLED": "false",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "runner-client",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "runner-secret",
+            },
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            env = exported["services"][name]["environment"]
+            self.assertEqual(
+                env["EIMIR_PHOTO_SOURCES_ENABLED"],
+                "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_ID"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS"],
+                "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}",
+            )
+        self.assertNotIn("runner-client", json.dumps(exported))
+        self.assertNotIn("runner-secret", json.dumps(exported))
+        self.assertNotIn(
+            "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET",
+            exported["services"]["cloud-migrate"]["environment"],
+        )
+
+    def test_calendar_settings_are_instance_expressions_and_never_runner_values(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(
+            os.environ,
+            {
+                "EIMIR_CALENDAR_SYNC_ENABLED": "false",
+                "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "runner-calendar-client",
+                "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "runner-calendar-secret",
+            },
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            env = exported["services"][name]["environment"]
+            self.assertEqual(
+                env["EIMIR_CALENDAR_SYNC_ENABLED"], "${EIMIR_CALENDAR_SYNC_ENABLED:-true}"
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_CALENDAR_CLIENT_ID"],
+                "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET"],
+                "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
+            )
+            # Cloud never admits private CalDAV targets.
+            self.assertNotIn("EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS", env)
+        self.assertNotIn("runner-calendar", json.dumps(exported))
+        self.assertNotIn(
+            "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET",
+            exported["services"]["cloud-migrate"]["environment"],
+        )
+class FCMSenderMountContractTest(unittest.TestCase):
+    def setUp(self):
+        channel.fcm_sender_mount.cache_clear()
+        self.addCleanup(channel.fcm_sender_mount.cache_clear)
+        self.mount = {
+            "type": "bind",
+            "source": channel._FCM_SOURCE_PLACEHOLDER,
+            "target": channel.FCM_CREDENTIAL_TARGET,
+            "read_only": True,
+            "bind": {"create_host_path": False},
+        }
+
+    def _config(self, mount):
+        return {"services": {
+            name: {"volumes": [copy.deepcopy(mount)]}
+            for name in ("cloud-api", "cloud-worker")
+        }}
+
+    def test_supported_compose_serializers_export_the_same_explicit_safe_mount(self):
+        expected = dict(self.mount, source=channel.required(
+            "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"
+        ))
+        for bind in ({"create_host_path": False}, {}):
+            config = self._config(dict(self.mount, bind=bind))
+            original = copy.deepcopy(config)
+            channel.fcm_sender_mount.cache_clear()
+            with self.subTest(bind=bind), patch.object(
+                channel, "canonical_compose", return_value=config
+            ):
+                self.assertEqual(channel.fcm_sender_mount(), expected)
+                self.assertEqual(config, original)
+
+    def test_changed_mount_security_or_identity_is_rejected_for_either_runtime(self):
+        changes = (
+            {"type": "volume"},
+            {"source": "/different-sender.json"},
+            {"target": "/different-target.json"},
+            {"read_only": False},
+            {"bind": {"create_host_path": True}},
+            {"bind": {"create_host_path": False, "propagation": "shared"}},
+            {"bind": None},
+            {"consistency": "cached"},
+        )
+        for name in ("cloud-api", "cloud-worker"):
+            for change in changes:
+                config = self._config(self.mount)
+                config["services"][name]["volumes"][0].update(change)
+                with self.subTest(name=name, change=change), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for missing in ("read_only", "bind"):
+                config = self._config(self.mount)
+                del config["services"][name]["volumes"][0][missing]
+                with self.subTest(name=name, missing=missing), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for mounts in ([], [self.mount, self.mount]):
+                config = self._config(self.mount)
+                config["services"][name]["volumes"] = mounts
+                with self.subTest(name=name, mounts=len(mounts)), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+
+
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required")
 class CanonicalWiringTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.canonical = channel.canonical_compose()
+
+    def test_audio_opt_in_resolves_from_instance_settings_with_verified_media(self):
+        import re
+
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        with patch.dict(os.environ, {"EIMIR_AUDIO_UPLOAD_ENABLED": "publisher-value"}):
+            config = channel.export_compose(
+                channel.canonical_compose(video=True), BACKEND, WEB, media
+            )
+        roles = ("cloud-api", "cloud-worker", "cloud-video-worker")
+        for name in roles:
+            self.assertEqual(
+                config["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
+            )
+        self.assertNotIn("publisher-value", json.dumps(config))
+        required = set(re.findall(r"\$\{([A-Z_]+):\?", json.dumps(config)))
+        environment = {key: os.environ[key] for key in ("PATH", "HOME") if key in os.environ}
+        environment.update({key: "fixture" for key in required})
+        with tempfile.TemporaryDirectory() as temporary:
+            compose = Path(temporary) / "compose.yaml"
+            compose.write_text(json.dumps(config))
+            for setting, expected in ((None, "false"), ("", "false"), ("true", "true"), ("false", "false")):
+                local = dict(environment)
+                if setting is not None:
+                    local["EIMIR_AUDIO_UPLOAD_ENABLED"] = setting
+                with self.subTest(setting=setting):
+                    result = subprocess.run(
+                        ["docker", "compose", "--env-file", os.devnull,
+                         "--file", str(compose), "config", "--format", "json"],
+                        env=local, text=True, capture_output=True,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    resolved = json.loads(result.stdout)
+                    for name in roles:
+                        self.assertEqual(
+                            resolved["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                            expected,
+                        )
+                    self.assertNotIn(
+                        "EIMIR_AUDIO_UPLOAD_ENABLED",
+                        resolved["services"]["cloud-migrate"]["environment"],
+                    )
+
+    def test_audio_cannot_be_enabled_without_the_verified_media_role(self):
+        canonical = copy.deepcopy(self.canonical)
+        for name in ("cloud-api", "cloud-worker"):
+            canonical["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"] = "true"
+        with patch.dict(os.environ, {"EIMIR_AUDIO_UPLOAD_ENABLED": "true"}):
+            config = channel.export_compose(canonical, BACKEND, WEB)
+        self.assertNotIn("cloud-video-worker", config["services"])
+        for name in ("cloud-api", "cloud-worker"):
+            self.assertEqual(
+                config["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                "false",
+            )
+
+    def test_private_video_worker_is_exact_source_bounded_and_receives_only_its_credentials(
+        self,
+    ):
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        exported = channel.export_compose(
+            channel.canonical_compose(video=True), BACKEND, WEB, media
+        )
+        worker = exported["services"]["cloud-video-worker"]
+        self.assertEqual(worker["image"], media)
+        self.assertTrue(worker["read_only"])
+        self.assertEqual(worker["pids_limit"], 64)
+        self.assertEqual(worker["cap_drop"], ["ALL"])
+        self.assertEqual(worker["security_opt"], ["no-new-privileges:true"])
+        self.assertFalse(worker.get("ports"))
+        self.assertEqual(worker["networks"], {"app": None})
+        self.assertEqual(
+            worker["depends_on"]["cloud-migrate"]["condition"],
+            "service_completed_successfully",
+        )
+        self.assertEqual(
+            worker["environment"]["EIMIR_DATABASE_URL"],
+            exported["services"]["cloud-api"]["environment"]["EIMIR_DATABASE_URL"],
+        )
+        for name in ("cloud-api", "cloud-worker", "cloud-video-worker"):
+            self.assertEqual(
+                exported["services"][name]["environment"]["EIMIR_VIDEO_UPLOAD_ENABLED"],
+                "true",
+            )
+        for key in worker["environment"]:
+            self.assertFalse(
+                any(value in key for value in ("SMTP", "FCM", "GOOGLE_PHOTOS")), key
+            )
+        self.assertFalse(
+            any(
+                mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                for mount in worker["volumes"]
+            )
+        )
+        self.assertTrue(exported["volumes"]["cloud_media_data"]["external"])
+        with self.assertRaises(channel.ChannelError):
+            channel.export_compose(self.canonical, BACKEND, WEB, media)
+        with self.assertRaises(channel.release_manifest.ManifestError):
+            channel.export_compose(
+                channel.canonical_compose(video=True), BACKEND, WEB, "media:mutable"
+            )
+
 
     def test_operator_process_values_cannot_be_resolved_into_the_git_export(self):
         with patch.dict(
@@ -435,10 +967,103 @@ class CanonicalWiringTest(unittest.TestCase):
             {
                 "EIMIR_ENCRYPTION_KEYS": "private-value-must-not-enter-git",
                 "SBS_SMTP_PASSWORD": "private-value-must-not-enter-git",
+                "EIMIR_PUSH_VAPID_PRIVATE_KEY": "private-value-must-not-enter-git",
+                "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE": "/private-value-must-not-enter-git",
             },
         ):
             resolved = channel.canonical_compose()
+            enabled = channel.canonical_compose(fcm=True)
         self.assertNotIn("private-value-must-not-enter-git", json.dumps(resolved))
+        self.assertNotIn("private-value-must-not-enter-git", json.dumps(enabled))
+
+    def test_default_cloud_requires_no_fcm_file_and_private_channel_mount_is_shared(self):
+        for service in self.canonical["services"].values():
+            self.assertFalse(any(
+                mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                for mount in service.get("volumes", [])
+            ))
+        exported = channel.export_compose(self.canonical, BACKEND, WEB)
+        for name, service in exported["services"].items():
+            mounts = [
+                mount for mount in service.get("volumes", [])
+                if mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+            ]
+            if name in ("cloud-api", "cloud-worker"):
+                self.assertEqual(mounts, [channel.fcm_sender_mount()])
+                self.assertEqual(mounts[0]["source"], channel.required(
+                    "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"
+                ))
+                self.assertTrue(mounts[0]["read_only"])
+                self.assertFalse(mounts[0]["bind"]["create_host_path"])
+                self.assertEqual(
+                    service["environment"]["EIMIR_PUSH_FCM_CREDENTIALS_FILE"],
+                    channel.FCM_CREDENTIAL_TARGET,
+                )
+                self.assertNotIn("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE", service["environment"])
+                for key in (
+                    "EIMIR_PUSH_FCM_PROJECT_ID", "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
+                ):
+                    self.assertEqual(service["environment"][key], channel.required(key))
+                # The selected target is FCM-only (PO 2026-11-01).
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_PRIVATE_KEY"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_SUBJECT"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS"],
+                                 "[]")
+            else:
+                self.assertEqual(mounts, [])
+                self.assertFalse(any(key.startswith("EIMIR_PUSH_") for key in service["environment"]))
+
+    def test_optional_fragment_preserves_topology_and_requires_operator_values(self):
+        settings = {
+            "EIMIR_PUSH_FCM_PROJECT_ID": "fixture-project",
+            "EIMIR_PUSH_FCM_ANDROID_PACKAGE": "de.example.fixture",
+            "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE": "/private/fixture-not-opened.json",
+        }
+        base_environment = {key: os.environ[key] for key in ("PATH", "HOME") if key in os.environ}
+        base = [
+            "docker", "compose", "--file", str(ROOT / "compose.yaml"),
+            "--env-file", os.devnull,
+        ]
+        fragment = ["--file", str(ROOT / "deploy/push-fcm.compose.yaml")]
+        for profile, runtimes in (
+            ("self-hosted", {"api", "worker"}),
+            ("cloud", {"cloud-api", "cloud-worker"}),
+        ):
+            suffix = ["--profile", profile, "config", "--format", "json"]
+            disabled = subprocess.run(base + suffix, env=base_environment, text=True, capture_output=True)
+            self.assertEqual(disabled.returncode, 0, disabled.stderr)
+            enabled = subprocess.run(
+                base + fragment + suffix, env={**base_environment, **settings},
+                text=True, capture_output=True,
+            )
+            self.assertEqual(enabled.returncode, 0, enabled.stderr)
+            normal, opt_in = json.loads(disabled.stdout), json.loads(enabled.stdout)
+            self.assertEqual(set(normal["services"]), set(opt_in["services"]))
+            self.assertEqual(normal["networks"], opt_in["networks"])
+            self.assertEqual(normal["volumes"], opt_in["volumes"])
+            for name, service in normal["services"].items():
+                self.assertFalse(any(
+                    mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                    for mount in service.get("volumes", [])
+                ))
+                mounts = [
+                    mount for mount in opt_in["services"][name].get("volumes", [])
+                    if mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                ]
+                self.assertEqual(len(mounts), 1 if name in runtimes else 0)
+                if name not in runtimes:
+                    self.assertFalse(any(
+                        key.startswith("EIMIR_PUSH_") for key in service.get("environment", {})
+                    ))
+            for missing in settings:
+                partial = {key: value for key, value in settings.items() if key != missing}
+                refused = subprocess.run(
+                    base + fragment + suffix, env={**base_environment, **partial},
+                    text=True, capture_output=True,
+                )
+                self.assertNotEqual(refused.returncode, 0, missing)
 
     def test_export_keeps_canonical_commands_readiness_and_migration_dependencies(self):
         exported = channel.export_compose(self.canonical, BACKEND, WEB)
@@ -532,19 +1157,21 @@ class CanonicalWiringTest(unittest.TestCase):
                 resolved["services"]["cloud-api"]["environment"]["FORWARDED_ALLOW_IPS"],
                 "fixture",
             )
-            del env["EIMIR_ACCOUNT_DELETION_INSTANCE_ID"]
-            result = subprocess.run(
-                command,
-                env={
-                    key: value
-                    for key, value in dict(os.environ, **env).items()
-                    if key != "EIMIR_ACCOUNT_DELETION_INSTANCE_ID"
-                },
-                text=True,
-                capture_output=True,
-            )
-            self.assertNotEqual(result.returncode, 0)
+            for missing in (
+                "EIMIR_ACCOUNT_DELETION_INSTANCE_ID", "EIMIR_PUSH_FCM_PROJECT_ID",
+                "EIMIR_PUSH_FCM_ANDROID_PACKAGE", "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE",
+            ):
+                result = subprocess.run(
+                    command,
+                    env={
+                        key: value for key, value in dict(os.environ, **env).items()
+                        if key != missing
+                    },
+                    text=True, capture_output=True,
+                )
+                self.assertNotEqual(result.returncode, 0, missing)
 
 
 if __name__ == "__main__":
     unittest.main()
+

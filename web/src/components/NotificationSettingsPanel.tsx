@@ -1,15 +1,22 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
 import type { NotificationChannelCapability } from '../api/generated/models/NotificationChannelCapability';
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
+import { assertOnlineWrite } from '../client/connectivity';
+import type { DevicePushController } from '../client/devicePush';
+import {
+  devicePushAction,
+  devicePushStatusKey,
+} from '../client/devicePushPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { settingsCategoryPath } from '../client/routes';
-import type { DevicePushController } from '../client/unifiedPush';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { QuietHoursSettings } from './QuietHoursSettings';
@@ -24,22 +31,38 @@ const CHANNELS = [
 const GROUPS = [
   {
     key: 'sharedActivity',
-    kinds: [NotificationKind.COMMENT_CREATED, NotificationKind.REMINDER_DUE],
+    kinds: [
+      NotificationKind.COMMENT_CREATED,
+      NotificationKind.REMINDER_CREATED,
+      NotificationKind.REMINDER_DUE,
+    ],
   },
   {
     key: 'closeness',
     kinds: [
       NotificationKind.THINKING_OF_YOU,
+      NotificationKind.COUPLE_EXPERIENCE_SHARED,
+      NotificationKind.COLLECTION_SENT,
+      NotificationKind.GARDEN_SEED_ARRIVED,
       NotificationKind.PARTNER_KISS,
       NotificationKind.PARTNER_CHECK_IN,
     ],
+  },
+  {
+    key: 'recaps',
+    kinds: [NotificationKind.RECAP_READY],
   },
 ] as const;
 
 const KIND_KEYS = {
   [NotificationKind.COMMENT_CREATED]: 'comment',
   [NotificationKind.REMINDER_DUE]: 'reminder',
+  [NotificationKind.REMINDER_CREATED]: 'reminderCreated',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
+  [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
+  [NotificationKind.COLLECTION_SENT]: 'collectionSent',
+  [NotificationKind.GARDEN_SEED_ARRIVED]: 'gardenSeed',
+  [NotificationKind.RECAP_READY]: 'recapReady',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;
@@ -56,45 +79,135 @@ type Choice = {
   enabled: boolean;
 };
 
-const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
-  NO_PUSH_DISTRIBUTOR: 'notificationSettings.deviceNoDistributor',
-  NOTIFICATION_PERMISSION_DENIED: 'notificationSettings.devicePermissionDenied',
-  PUSH_DEVICE_CLEANUP_PENDING: 'notificationSettings.deviceCleanupPending',
-  PUSH_ENDPOINT_UNSUPPORTED: 'notificationSettings.deviceUnsupported',
-  PUSH_DEVICE_STATUS_UNAVAILABLE:
-    'notificationSettings.deviceStatusUnavailable',
-};
-
-const DEVICE_STATE_STATUS_KEYS: Readonly<
-  Record<DevicePushController['state'], string>
-> = {
-  loading: 'notificationSettings.deviceLoading',
-  unavailable: 'notificationSettings.deviceUnavailable',
-  off: 'notificationSettings.deviceOff',
-  connecting: 'notificationSettings.deviceConnecting',
-  disconnecting: 'notificationSettings.deviceDisconnecting',
-  on: 'notificationSettings.deviceOn',
-  error: 'notificationSettings.deviceError',
-};
-
-function deviceStatusKey(devicePush: DevicePushController): string {
+/**
+ * One delivery channel of a category as a chip. It keeps the switch role and
+ * its "<Category>: <Channel>" name; the state is also readable without colour:
+ * a check for on, a dash for mixed, a dashed outline for a channel that is
+ * chosen but cannot deliver yet.
+ */
+function ChannelChip({
+  label,
+  accessibleLabel,
+  checked,
+  mixed,
+  pending,
+  disabled,
+  onCheckedChange,
+}: {
+  label: string;
+  accessibleLabel: string;
+  checked: boolean;
+  mixed: boolean;
+  pending: boolean;
+  disabled: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const on = checked || mixed;
   return (
-    (devicePush.error && DEVICE_ERROR_STATUS_KEYS[devicePush.error]) ||
-    DEVICE_STATE_STATUS_KEYS[devicePush.state]
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={accessibleLabel}
+      className={`channel-chip${checked ? ' is-on' : ''}${mixed ? ' is-mixed' : ''}${on && pending ? ' is-pending' : ''}`}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+    >
+      <span className="channel-chip-mark" aria-hidden="true">
+        {checked ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        ) : mixed ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 12h12" />
+          </svg>
+        ) : null}
+      </span>
+      {label}
+    </button>
   );
 }
 
-/** One dominant action per state; retry only where it can succeed. */
-function deviceAction(
-  devicePush: DevicePushController,
-): 'enable' | 'openSettings' | null {
-  if (devicePush.error === 'NOTIFICATION_PERMISSION_DENIED') {
-    return 'openSettings';
+function DevicePushSetting({
+  devicePush,
+}: {
+  devicePush: DevicePushController;
+}) {
+  const { t } = useTranslation();
+  const { state, error, registered } = devicePush;
+  const action = devicePushAction(devicePush);
+  const connecting = state === 'connecting';
+  const disableFailed = error === 'PUSH_DEVICE_DISABLE_FAILED';
+  const checked =
+    state === 'on' ||
+    (!connecting && state !== 'loading' && (registered || disableFailed));
+  const disabled =
+    state === 'loading' ||
+    connecting ||
+    state === 'disconnecting' ||
+    (!checked && action !== 'enable');
+  const status =
+    error || (state !== 'on' && state !== 'off')
+      ? t(devicePushStatusKey(devicePush))
+      : null;
+  let secondaryAction: { label: string; run: () => Promise<void> } | undefined;
+  if (connecting) {
+    secondaryAction = { label: t('common.cancel'), run: devicePush.disable };
+  } else if (action === 'openSettings') {
+    secondaryAction = {
+      label: t('notificationSettings.deviceOpenSettings'),
+      run: devicePush.openSettings,
+    };
+  } else if (checked && action === 'enable' && !disableFailed) {
+    secondaryAction = { label: t('common.retry'), run: devicePush.enable };
   }
-  if (devicePush.error === 'PUSH_ENDPOINT_UNSUPPORTED') return null;
-  return devicePush.state === 'off' || devicePush.state === 'error'
-    ? 'enable'
-    : null;
+
+  return (
+    <div className="notification-device-push">
+      <div className="notification-device-push-head">
+        <span className="notification-device-push-icon" aria-hidden="true">
+          <EimirIcon name="benachrichtigungen" />
+        </span>
+        <PreferenceSwitch
+          label={t(
+            devicePush.browser
+              ? 'notificationSettings.browserToggle'
+              : 'notificationSettings.deviceToggle',
+          )}
+          description={
+            !checked && action === 'enable'
+              ? t('notificationSettings.deviceHintOff')
+              : undefined
+          }
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={(enabled) => {
+            if (enabled) void devicePush.enable();
+            else void devicePush.disable();
+          }}
+        />
+      </div>
+      <p
+        className={status ? undefined : 'sr-only'}
+        role="status"
+        aria-live="polite"
+      >
+        {status}
+      </p>
+      {secondaryAction ? (
+        <div className="form-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void secondaryAction.run()}
+          >
+            {secondaryAction.label}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function NotificationSettingsPanel({
@@ -110,6 +223,7 @@ export function NotificationSettingsPanel({
   const queryClient = useQueryClient();
   const queryKey = ['notification-preferences', accountId];
   const [feedback, setFeedback] = useState<string | null>(null);
+  const writeLock = useRef(false);
   const preferences = useQuery({
     queryKey,
     queryFn: ({ signal }) =>
@@ -118,45 +232,77 @@ export function NotificationSettingsPanel({
     gcTime: 0,
   });
   const mutation = useMutation({
-    mutationFn: async (choice: Choice) => {
-      try {
-        return await notificationsApi.updateOwnNotificationPreference({
-          kind: choice.kind,
-          channel: choice.channel,
-          notificationPreferenceUpdate: { enabled: choice.enabled },
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
+    retry: false,
+    networkMode: 'always',
+    mutationFn: async (choices: Choice[]) => {
+      const isCurrent = captureAuthorizedQuery(queryClient, queryKey);
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      assertOnlineWrite();
+      for (const choice of choices) {
+        if (!isCurrent())
+          throw new Error('Notification preference owner changed.');
+        let updated: Awaited<
+          ReturnType<NotificationsApi['updateOwnNotificationPreference']>
+        >;
+        try {
+          updated = await notificationsApi.updateOwnNotificationPreference({
+            kind: choice.kind,
+            channel: choice.channel,
+            notificationPreferenceUpdate: { enabled: choice.enabled },
+          });
+        } catch (error) {
+          throw await normalizeClientError(error);
+        }
+        if (!isCurrent()) return;
+        queryClient.setQueryData<NotificationPreferencesView>(
+          queryKey,
+          (current) =>
+            current && {
+              ...current,
+              items: current.items.map((item) =>
+                item.kind === updated.kind
+                  ? {
+                      ...item,
+                      channels: item.channels.map((channel) =>
+                        channel.channel === updated.channel
+                          ? { ...channel, enabled: updated.enabled }
+                          : channel,
+                      ),
+                    }
+                  : item,
+              ),
+            },
+        );
       }
+      return isCurrent();
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<NotificationPreferencesView>(
-        queryKey,
-        (current) =>
-          current && {
-            ...current,
-            items: current.items.map((item) =>
-              item.kind === updated.kind
-                ? {
-                    ...item,
-                    channels: item.channels.map((choice) =>
-                      choice.channel === updated.channel
-                        ? { ...choice, enabled: updated.enabled }
-                        : choice,
-                    ),
-                  }
-                : item,
-            ),
-          },
-      );
-      const event = t(`notificationSettings.${KIND_KEYS[updated.kind]}`);
-      const channel = t(
-        `notificationSettings.${CHANNEL_KEYS[updated.channel]}`,
-      );
-      setFeedback(t('notificationSettings.saved', { event, channel }));
+    onSuccess: (isCurrent, choices) => {
+      if (!isCurrent) return;
+      setFeedback(t('notificationSettings.groupSaved'));
+      if (
+        choices.some(
+          (choice) =>
+            choice.kind === NotificationKind.GENTLE_PROMPT && choice.enabled,
+        ) &&
+        devicePush?.available &&
+        devicePushAction(devicePush) === 'enable'
+      )
+        void devicePush.enable();
     },
-    onError: () => setFeedback(t('notificationSettings.failed')),
+    onError: () => {
+      setFeedback(t('notificationSettings.groupFailed'));
+      void queryClient.invalidateQueries({ queryKey, exact: true });
+    },
+    onSettled: () => {
+      writeLock.current = false;
+    },
   });
+  function saveChoices(choices: Choice[]) {
+    if (writeLock.current || !choices.length) return;
+    writeLock.current = true;
+    setFeedback(null);
+    mutation.mutate(choices);
+  }
 
   const data = preferences.data;
   const capabilities = new Map(
@@ -180,6 +326,21 @@ export function NotificationSettingsPanel({
     return t('notificationSettings.unavailable');
   };
 
+  function canConfigure(
+    kind: NotificationKind,
+    channel: NotificationChannel,
+    choice: { configurable: boolean; enabled: boolean },
+    capability?: NotificationChannelCapability,
+  ) {
+    return (
+      choice.configurable &&
+      (choice.enabled ||
+        capability?.available === true ||
+        (kind === NotificationKind.COMMENT_CREATED &&
+          channel === NotificationChannel.PUSH))
+    );
+  }
+
   return (
     <section
       className="notification-settings settings-section"
@@ -189,51 +350,9 @@ export function NotificationSettingsPanel({
         <h2 id="notification-settings-title">
           {t('notificationSettings.title')}
         </h2>
-        <p className="settings-section-intro">
-          {t('notificationSettings.intro')}
-        </p>
       </div>
 
-      {devicePush?.available && (
-        <div className="notification-device-push">
-          <h3>{t('notificationSettings.deviceTitle')}</h3>
-          <p>{t('notificationSettings.deviceIntro')}</p>
-          <p role="status" aria-live="polite">
-            {t(deviceStatusKey(devicePush))}
-          </p>
-          <div className="form-actions">
-            {deviceAction(devicePush) === 'openSettings' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.openSettings()}
-              >
-                {t('notificationSettings.deviceOpenSettings')}
-              </button>
-            )}
-            {deviceAction(devicePush) === 'enable' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.enable()}
-              >
-                {t('notificationSettings.deviceEnable')}
-              </button>
-            )}
-            {(devicePush.registered ||
-              devicePush.state === 'on' ||
-              devicePush.state === 'connecting') && (
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={() => void devicePush.disable()}
-              >
-                {t('notificationSettings.deviceDisable')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {devicePush?.available && <DevicePushSetting devicePush={devicePush} />}
 
       {preferences.isPending ? (
         <p role="status">{t('notificationSettings.loading')}</p>
@@ -261,6 +380,39 @@ export function NotificationSettingsPanel({
             )}
           </div>
 
+          {data.items.some(
+            (item) => item.kind === NotificationKind.GENTLE_PROMPT,
+          ) ? (
+            <div className="notification-settings-group">
+              <PreferenceSwitch
+                label={t('gentlePrompts.label')}
+                description={t('gentlePrompts.description')}
+                checked={
+                  data.items
+                    .find(
+                      (item) => item.kind === NotificationKind.GENTLE_PROMPT,
+                    )
+                    ?.channels.find(
+                      (channel) => channel.channel === NotificationChannel.PUSH,
+                    )?.enabled === true
+                }
+                disabled={mutation.isPending}
+                onCheckedChange={(enabled) =>
+                  saveChoices([
+                    {
+                      kind: NotificationKind.GENTLE_PROMPT,
+                      channel: NotificationChannel.PUSH,
+                      enabled,
+                    },
+                  ])
+                }
+              />
+              {!capabilities.get(NotificationChannel.PUSH)?.available ? (
+                <p className="muted">{t('gentlePrompts.permissionHint')}</p>
+              ) : null}
+            </div>
+          ) : null}
+
           {data.items.length === 0 ? (
             <p>{t('notificationSettings.empty')}</p>
           ) : (
@@ -272,109 +424,209 @@ export function NotificationSettingsPanel({
               return (
                 <div className="notification-settings-group" key={group.key}>
                   <h3>{t(`notificationSettings.${group.key}`)}</h3>
-                  {items.map((item) => {
-                    const event = t(
-                      `notificationSettings.${KIND_KEYS[item.kind]}`,
+                  <p className="muted">
+                    {t(`notificationSettings.${group.key}Description`)}
+                  </p>
+                  <fieldset className="notification-group-channels">
+                    <legend className="sr-only">
+                      {t(`notificationSettings.${group.key}`)}
+                    </legend>
+                    {CHANNELS.map((channel) => {
+                      const capability = capabilities.get(channel);
+                      const choices = items.flatMap((item) => {
+                        const choice = item.channels.find(
+                          (candidate) => candidate.channel === channel,
+                        );
+                        return choice ? [{ kind: item.kind, ...choice }] : [];
+                      });
+                      if (!choices.length) return null;
+                      const enabled = choices.filter(
+                        (choice) => choice.enabled,
+                      ).length;
+                      const mixed = enabled > 0 && enabled < choices.length;
+                      const editable = choices.filter((choice) =>
+                        canConfigure(choice.kind, channel, choice, capability),
+                      );
+                      const label = t(
+                        `notificationSettings.${CHANNEL_KEYS[channel]}`,
+                      );
+                      return (
+                        <ChannelChip
+                          key={channel}
+                          label={label}
+                          accessibleLabel={`${t(`notificationSettings.${group.key}`)}: ${label}`}
+                          checked={enabled === choices.length}
+                          mixed={mixed}
+                          pending={!capability?.available}
+                          disabled={!editable.length || mutation.isPending}
+                          onCheckedChange={(value) =>
+                            saveChoices(
+                              editable
+                                .filter((choice) => choice.enabled !== value)
+                                .map((choice) => ({
+                                  kind: choice.kind,
+                                  channel,
+                                  enabled: value,
+                                })),
+                            )
+                          }
+                        />
+                      );
+                    })}
+                  </fieldset>
+                  {CHANNELS.map((channel) => {
+                    const capability = capabilities.get(channel);
+                    const hasChoice = items.some((item) =>
+                      item.channels.some(
+                        (candidate) => candidate.channel === channel,
+                      ),
                     );
+                    if (!hasChoice || capability?.available) return null;
                     return (
-                      <div className="notification-event" key={item.kind}>
-                        <div className="notification-event-copy">
-                          <strong>{event}</strong>
-                          {item.kind === NotificationKind.COMMENT_CREATED && (
-                            <span>
-                              {t('notificationSettings.commentDescription')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="notification-event-channels">
-                          {CHANNELS.map((channel) => {
-                            const choice = item.channels.find(
-                              (candidate) => candidate.channel === channel,
-                            );
-                            if (!choice) return null;
-                            const capability = capabilities.get(channel);
-                            const commentDigestPush =
-                              item.kind === NotificationKind.COMMENT_CREATED &&
-                              channel === NotificationChannel.PUSH;
-                            const commentDigestEmail =
-                              item.kind === NotificationKind.COMMENT_CREATED &&
-                              channel === NotificationChannel.EMAIL;
-                            const unavailable =
-                              !choice.configurable ||
-                              (!commentDigestPush &&
-                                !choice.enabled &&
-                                !capability?.available);
-                            const explanation =
-                              !commentDigestEmail &&
-                              !choice.configurable &&
-                              item.deliveryClass !== 'IMMEDIATE'
-                                ? t('notificationSettings.policyUnavailable')
-                                : commentDigestPush
-                                  ? `${t('notificationSettings.commentPushDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
-                                  : commentDigestEmail
-                                    ? `${t('notificationSettings.commentEmailDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
-                                    : !capability?.available
-                                      ? reason(channel, capability)
-                                      : undefined;
-                            const channelLabel = t(
-                              `notificationSettings.${CHANNEL_KEYS[channel]}`,
-                            );
-                            return (
-                              <div
-                                className="notification-channel-choice"
-                                key={channel}
-                              >
-                                <PreferenceSwitch
-                                  label={channelLabel}
-                                  accessibleLabel={`${event}: ${channelLabel}`}
-                                  description={explanation}
-                                  checked={choice.enabled}
-                                  disabled={unavailable || mutation.isPending}
-                                  onCheckedChange={(enabled) => {
-                                    setFeedback(null);
-                                    mutation.reset();
-                                    mutation.mutate({
-                                      kind: item.kind,
-                                      channel,
-                                      enabled,
-                                    });
-                                  }}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      <p className="notification-group-note" key={channel}>
+                        <strong>
+                          {t(`notificationSettings.${CHANNEL_KEYS[channel]}`)}:
+                        </strong>{' '}
+                        <span>{reason(channel, capability)}</span>
+                      </p>
                     );
                   })}
+                  {CHANNELS.some((channel) => {
+                    const choices = items.flatMap((item) =>
+                      item.channels.filter(
+                        (candidate) => candidate.channel === channel,
+                      ),
+                    );
+                    const enabled = choices.filter(
+                      (choice) => choice.enabled,
+                    ).length;
+                    return enabled > 0 && enabled < choices.length;
+                  }) ? (
+                    <p className="notification-group-note">
+                      {t('notificationSettings.mixed')}
+                    </p>
+                  ) : null}
+                  <details className="notification-event-details">
+                    <summary>{t('notificationSettings.individual')}</summary>
+                    {items.map((item) => {
+                      const event = t(
+                        `notificationSettings.${KIND_KEYS[item.kind as keyof typeof KIND_KEYS]}`,
+                      );
+                      return (
+                        <div className="notification-event" key={item.kind}>
+                          <div className="notification-event-copy">
+                            <strong>{event}</strong>
+                            {item.kind === NotificationKind.COMMENT_CREATED && (
+                              <span>
+                                {t('notificationSettings.commentDescription')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="notification-event-channels">
+                            {CHANNELS.map((channel) => {
+                              const choice = item.channels.find(
+                                (candidate) => candidate.channel === channel,
+                              );
+                              if (!choice) return null;
+                              const capability = capabilities.get(channel);
+                              const commentDigestPush =
+                                item.kind ===
+                                  NotificationKind.COMMENT_CREATED &&
+                                channel === NotificationChannel.PUSH;
+                              const commentDigestEmail =
+                                item.kind ===
+                                  NotificationKind.COMMENT_CREATED &&
+                                channel === NotificationChannel.EMAIL;
+                              const unavailable = !canConfigure(
+                                item.kind,
+                                channel,
+                                choice,
+                                capability,
+                              );
+                              const explanation =
+                                !commentDigestEmail &&
+                                !choice.configurable &&
+                                item.deliveryClass !== 'IMMEDIATE'
+                                  ? t('notificationSettings.policyUnavailable')
+                                  : commentDigestPush
+                                    ? `${t('notificationSettings.commentPushDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
+                                    : commentDigestEmail
+                                      ? `${t('notificationSettings.commentEmailDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
+                                      : !capability?.available
+                                        ? reason(channel, capability)
+                                        : undefined;
+                              const channelLabel = t(
+                                `notificationSettings.${CHANNEL_KEYS[channel]}`,
+                              );
+                              return (
+                                <div
+                                  className="notification-channel-choice"
+                                  key={channel}
+                                >
+                                  <PreferenceSwitch
+                                    label={channelLabel}
+                                    accessibleLabel={`${event}: ${channelLabel}`}
+                                    description={explanation}
+                                    checked={choice.enabled}
+                                    disabled={unavailable || mutation.isPending}
+                                    onCheckedChange={(enabled) =>
+                                      saveChoices([
+                                        { kind: item.kind, channel, enabled },
+                                      ])
+                                    }
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </details>
                 </div>
               );
             })
           )}
-          <QuietHoursSettings
-            quietHours={data.quietHours}
-            notificationsApi={notificationsApi}
-            onUpdated={(quietHours) =>
-              queryClient.setQueryData<NotificationPreferencesView>(
-                queryKey,
-                (current) => current && { ...current, quietHours },
-              )
-            }
-          />
+          {data.items.some((item) =>
+            item.channels.some(
+              (choice) =>
+                choice.enabled && !capabilities.get(choice.channel)?.available,
+            ),
+          ) ? (
+            <p className="notification-pending-legend">
+              {t('notificationSettings.pendingLegend')}
+            </p>
+          ) : null}
+          <details className="notification-quiet-hours notification-event-details">
+            <summary>
+              {t('notificationSettings.quietHoursTitle')}
+              <small>
+                {data.quietHours.enabled
+                  ? t('notificationSettings.quietHoursActive', {
+                      start: data.quietHours.start?.slice(0, 5),
+                      end: data.quietHours.end?.slice(0, 5),
+                    })
+                  : t('notificationSettings.quietHoursOff')}
+              </small>
+            </summary>
+            <QuietHoursSettings
+              quietHours={data.quietHours}
+              notificationsApi={notificationsApi}
+              onUpdated={(quietHours) =>
+                queryClient.setQueryData<NotificationPreferencesView>(
+                  queryKey,
+                  (current) => current && { ...current, quietHours },
+                )
+              }
+            />
+          </details>
           <p
             className="notification-settings-feedback"
             role="status"
             aria-live="polite"
           >
-            {mutation.isPending && mutation.variables
-              ? t('notificationSettings.saving', {
-                  event: t(
-                    `notificationSettings.${KIND_KEYS[mutation.variables.kind]}`,
-                  ),
-                  channel: t(
-                    `notificationSettings.${CHANNEL_KEYS[mutation.variables.channel]}`,
-                  ),
-                })
+            {mutation.isPending
+              ? t('notificationSettings.groupSaving')
               : feedback}
           </p>
           {mutation.error && (

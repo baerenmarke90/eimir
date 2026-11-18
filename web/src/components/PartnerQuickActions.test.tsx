@@ -25,11 +25,11 @@ import {
 import '../i18n';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
-import { ClientProblemError } from '../client/problemDetails';
 import { dashboardQueryKey } from '../client/dashboardQueries';
-import { partnerQuickActionsEntitlementQueryKey } from '../client/partnerQuickActions';
-import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
 import type { M4ProductApis } from '../client/m4Product';
+import { ClientProblemError } from '../client/problemDetails';
+import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
+import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { PartnerQuickActions } from './PartnerQuickActions';
@@ -242,6 +242,7 @@ describe('PartnerQuickActions', () => {
       await screen.findByText(copy.sentThinking);
       expect(activated).toBe(true);
       expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
+      expect(view.snackbars).toEqual([]);
     } finally {
       unsubscribe();
     }
@@ -506,8 +507,8 @@ describe('PartnerQuickActions', () => {
     first.queryClient.clear();
     first.queryClient.setQueryData(key, { thinkingOfYouAvailableAt: null });
     first.queryClient.setQueryData(
-      partnerQuickActionsEntitlementQueryKey('account-1', 'space-1'),
-      false,
+      spaceEntitlementQueryKey('account-1', 'space-1'),
+      { capabilities: [] },
     );
     await act(async () =>
       resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),
@@ -811,5 +812,150 @@ describe('PartnerQuickActions', () => {
     await waitFor(() => expect(kissButton.disabled).toBe(true));
     fireEvent.click(kissButton);
     expect(sendPartnerQuickAction).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** jsdom runs no layout, animation or top layer: stand in for all three. */
+function installFlightSupport() {
+  const root = document.documentElement.style;
+  const roles: Record<string, string> = {
+    '--duration-context': '280ms',
+    '--duration-send-flight': '560ms',
+    '--duration-gesture-moment': '900ms',
+    '--duration-feedback': '120ms',
+    '--easing-enter': 'cubic-bezier(0, 0, 0.2, 1)',
+    '--easing-standard': 'cubic-bezier(0.2, 0, 0, 1)',
+  };
+  for (const [name, value] of Object.entries(roles))
+    root.setProperty(name, value);
+  const rect = {
+    x: 10,
+    y: 10,
+    left: 10,
+    top: 10,
+    right: 50,
+    bottom: 50,
+    width: 40,
+    height: 40,
+    toJSON: () => ({}),
+  };
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+    rect as never,
+  );
+  Object.assign(HTMLElement.prototype, {
+    animate: vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() })),
+    showPopover: vi.fn(),
+    hidePopover: vi.fn(),
+  });
+  return () => {
+    for (const name of Object.keys(roles)) root.removeProperty(name);
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    delete proto.animate;
+    delete proto.showPopover;
+    delete proto.hidePopover;
+    vi.restoreAllMocks();
+  };
+}
+
+const gestureGhosts = () =>
+  document.querySelectorAll('.wir-checkin-flight-layer .is-gesture');
+
+describe('PartnerQuickActions gesture flight', () => {
+  let restore: () => void;
+  beforeEach(() => {
+    restore = installFlightSupport();
+  });
+  afterEach(() => restore());
+
+  it('lifts the sent gesture, waits for the server, then closes the sheet and flies', async () => {
+    let resolveSend: (value: { thinkingOfYouAvailableAt: Date }) => void = () =>
+      undefined;
+    const sendThinkingOfYou = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        resolveSend = resolve;
+      }),
+    );
+    const { snackbars } = renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    const button = screen
+      .getByText(copy.thinking)
+      .closest('button') as HTMLButtonElement;
+    fireEvent.click(button);
+
+    // Waiting for the server: the symbol hovers in the top layer, the sheet
+    // stays open and nothing is announced as sent yet.
+    await waitFor(() => expect(gestureGhosts()).toHaveLength(1));
+    expect(
+      document.querySelector('[popover]')?.getAttribute('aria-hidden'),
+    ).toBe('true');
+    expect(
+      screen
+        .getByRole('button', { name: /Marie/ })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(snackbars).toEqual([]);
+
+    await act(async () => {
+      resolveSend({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) });
+    });
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: /Marie/ })
+          .getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(snackbars).toContain('snackbar.partnerQuickActionThinkingSent');
+    await waitFor(() => expect(gestureGhosts()).toHaveLength(0));
+    expect(document.querySelector('[popover]')).toBeNull();
+    expect(document.querySelector('[data-flight-source]')).toBeNull();
+  });
+
+  it('returns the symbol and keeps the sheet open when the send failed', async () => {
+    const sendThinkingOfYou = vi
+      .fn()
+      .mockRejectedValue(new ClientProblemError('server', 500, 'BROKEN'));
+    const { snackbars } = renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    fireEvent.click(
+      screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+    );
+    await screen.findByText(copy.sendError);
+    await waitFor(() => expect(gestureGhosts()).toHaveLength(0));
+    expect(
+      screen
+        .getByRole('button', { name: /Marie/ })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(snackbars).toEqual([]);
+    expect(document.querySelector('[data-flight-source]')).toBeNull();
+  });
+
+  it('flies a granted extended gesture the same way', async () => {
+    const sendPartnerQuickAction = vi.fn().mockResolvedValue({
+      kind: SupportGestureKind.CHECK_IN,
+      clientRequestId: 'req-1',
+      availableAt: new Date(Date.now() + 30 * 60_000),
+    });
+    const { snackbars } = renderQuickActions({
+      apis: { sendPartnerQuickAction },
+      entitlementApi: {
+        getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet: vi
+          .fn()
+          .mockResolvedValue({
+            capabilities: ['partner.quick_actions.extended'],
+          }),
+      },
+    });
+    openSheet();
+    const button = (await screen.findByText(copy.checkIn)).closest(
+      'button',
+    ) as HTMLButtonElement;
+    await waitFor(() => expect(button.disabled).toBe(false));
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(snackbars).toContain('snackbar.partnerQuickActionCheckInSent'),
+    );
+    await waitFor(() => expect(gestureGhosts()).toHaveLength(0));
   });
 });

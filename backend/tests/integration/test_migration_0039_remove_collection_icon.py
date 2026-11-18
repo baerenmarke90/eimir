@@ -220,9 +220,12 @@ def test_real_alembic_migration_0039_lifecycle(
 
         # Verify ORM compatibility with strict ProtectedPayload extra='forbid'
         with Session(engine) as s:
-            orm_col = s.get(Collection, col_shared_id)
-            assert orm_col is not None
-            assert orm_col.payload.title == "Packing List"
+            # Read only the payload: the current model has columns that were added
+            # by later revisions and do not exist at this historical schema.
+            orm_payload = s.execute(
+                sa.select(Collection.payload).where(Collection.id == col_shared_id)
+            ).scalar_one()
+            assert orm_payload.title == "Packing List"
 
             orm_pcol = s.get(PrivateCollection, pcol_id)
             assert orm_pcol is not None

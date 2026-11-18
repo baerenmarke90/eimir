@@ -1,0 +1,10 @@
+{
+  "web/src/client/wirDesign.tsx": "fb416e82fbb5b576ad44c1a24f9e8a14628578c18b5082c5ef2fccc4dc6e51b7",
+  "web/src/components/WirDesignSettings.tsx": "6e6d88f33c6259d1282486a712f7a8b09a8bd25fff07834bb55d5107d6b5b066",
+  "web/src/components/WirDesign.css": "f5bd1c9a91f7a0c42217e0e1768a9e1945e9f8934575fab8d4a83030ab54fd35",
+  "web/src/components/TodayPage.tsx": "b229398fa0c50e85fbadaa37b62ad24f28c52a29ea181b3b54f3546428822442",
+  "web/src/components/SharedStorySummary.css": "a3e31eff343a530a7fcddd9ded12837fbd8597bd9b270b98bb4bf4ebce9d48c7",
+  "web/src/App.tsx": "c2cd6562d029120704798259a17f6f7eb2359e7c99e036ff73f94b7d08b3fd90",
+  "backend/src/eimir/appearance/service.py": "e8d4b7072d021fb8e3cdc0f008a64923142c3376194f6819015939c33d7574aa",
+  "backend/src/eimir/api/v1/appearance.py": "b3c9e2de42d28e2a8a770fd694f7f2e8daded9820d9f967776a6fa4f79b76eb2"
+}

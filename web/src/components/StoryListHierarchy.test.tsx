@@ -1,6 +1,15 @@
 import '../i18n';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
@@ -8,6 +17,18 @@ import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import { StoryList } from './StoryList';
+
+/** StoryList reads the couple's occasions through Query (#1907 F2). */
+function StoryListProviders({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 const loadImage = () => new Promise<string>(() => {});
 const author = { id: 'author-1', displayName: 'Anna-Katharina Lindqvist' };
@@ -19,6 +40,7 @@ const image = (id: string, position = 0) => ({
   mediaType: 'IMAGE',
   mimeType: 'image/jpeg',
   hasThumbnail: true,
+  isSensitive: false,
   width: 800,
   height: 500,
   size: 1,
@@ -82,14 +104,14 @@ const milestone = StoryItemFromJSON({
 
 function renderList(items: StoryItem[], currentAccountId?: string) {
   return render(
-    <MemoryRouter>
+    <StoryListProviders>
       <StoryList
         items={items}
         loadMemoryImage={loadImage}
         loadHeartMomentImage={loadImage}
         currentAccountId={currentAccountId}
       />
-    </MemoryRouter>,
+    </StoryListProviders>,
   );
 }
 
@@ -166,6 +188,95 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(heartFooterId).not.toBe(footerId);
   });
 
+  it('moves happiness identity onto its chronology node while retaining both authored answers', () => {
+    if (memory.kind !== 'MEMORY') throw new Error('Expected a Memory fixture');
+    const happiness: StoryItem = {
+      ...memory,
+      memory: {
+        ...memory.memory,
+        attachments: [],
+        experienceKind: 'HAPPINESS',
+        experienceAnswers: [
+          {
+            id: 'answer-1',
+            author,
+            body: 'Our coffee together.',
+            version: 1,
+            capabilities,
+            attachments: [],
+          },
+          {
+            id: 'answer-2',
+            author: { id: 'author-2', displayName: 'Sam' },
+            body: 'Your smile this morning.',
+            version: 1,
+            capabilities,
+            attachments: [],
+          },
+        ],
+      },
+    };
+    const { container } = renderList([happiness]);
+    const card = cardFor(
+      `${i18n.t('coupleExperiences.sharedHappiness')}: Evening at the lake`,
+    );
+    expect(
+      container.querySelector('.story-timeline-marker .eimir-icon-highlights'),
+    ).not.toBeNull();
+    expect(card.querySelector('.experience-shared-label')).toBeNull();
+    expect(card.querySelector('.eimir-icon-highlights')).toBeNull();
+    expect(within(card).getByText('Our coffee together.')).toBeDefined();
+    expect(within(card).getByText('Your smile this morning.')).toBeDefined();
+    expect(within(card).getByText(author.displayName)).toBeDefined();
+    expect(within(card).getByText('Sam')).toBeDefined();
+    expect(card.getAttribute('href')).toBe('/story/memories/memory-1');
+  });
+
+  it.each(['MEMORY', 'HEART_MOMENT'] as const)(
+    'keeps a sensitive %s preview concealed with a direct detail link and no reveal action',
+    async (kind) => {
+      const item = kind === 'MEMORY' ? memory : heartMoment;
+      const attachment = { ...image('sensitive-photo'), isSensitive: true };
+      const sensitive =
+        item.kind === 'MEMORY'
+          ? { ...item, memory: { ...item.memory, attachments: [attachment] } }
+          : item.kind === 'HEART_MOMENT'
+            ? { ...item, heartMoment: { ...item.heartMoment, attachment } }
+            : item;
+      const { container } = render(
+        <StoryListProviders>
+          <StoryList
+            items={[sensitive as StoryItem]}
+            loadMemoryImage={async () => 'blob:sensitive-preview'}
+            loadHeartMomentImage={async () => 'blob:sensitive-preview'}
+          />
+        </StoryListProviders>,
+      );
+      await waitFor(() =>
+        expect(
+          container.querySelector('.sensitive-media-blurred img'),
+        ).not.toBeNull(),
+      );
+      expect(screen.queryByRole('button')).toBeNull();
+      const preview = container.querySelector('.sensitive-media-preview');
+      if (!preview) throw new Error('Expected a sensitive preview');
+      expect(within(preview as HTMLElement).queryByRole('img')).toBeNull();
+      expect(screen.getByText(i18n.t('sensitiveMedia.label'))).toBeDefined();
+      const card = screen.getByRole('link');
+      expect(
+        card.contains(container.querySelector('.sensitive-media-cover')),
+      ).toBe(true);
+      fireEvent.mouseEnter(card);
+      fireEvent.focus(card);
+      expect(container.querySelector('.sensitive-media-cover')).not.toBeNull();
+      expect(card.getAttribute('href')).toBe(
+        kind === 'MEMORY'
+          ? '/story/memories/memory-1'
+          : '/story/heart-moments/heart-1',
+      );
+    },
+  );
+
   it('shows photo count and shared visibility as named icon metadata', () => {
     renderList([memory, heartMoment, milestone]);
 
@@ -217,30 +328,39 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(footer.queryByText(privateLabel)).toBeNull();
   });
 
-  it('uses avatar-only partner attribution while keeping an accessible identity (#1064)', () => {
+  it('omits the partner avatar from the Diary overview', () => {
     const { container } = renderList([milestone], 'viewer-2');
 
     expect(container.querySelector('.story-card-author')).toBeNull();
     expect(container.querySelector('.momente-author-meta .sr-only')).toBeNull();
     expect(
-      screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
-    ).toBeTruthy();
+      screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
+    ).toBeNull();
     expect(container.textContent).not.toContain(
       i18n.t('story.byAuthor', { author: 'Anna-Katharina' }),
     );
   });
 
-  it('uses the same avatar-only presentation for the current viewer (#1064)', () => {
+  it('omits the current viewer avatar from the Diary overview', () => {
     const { container } = renderList([milestone], 'author-1');
 
     expect(container.querySelector('.story-card-author')).toBeNull();
     expect(container.querySelector('.momente-author-meta .sr-only')).toBeNull();
     expect(
-      screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
-    ).toBeTruthy();
+      screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
+    ).toBeNull();
     expect(container.textContent).not.toContain(
       i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }),
     );
+  });
+
+  it('gives titled photo memories the same photo-led hierarchy as untitled entries', () => {
+    const { container } = renderList([memory]);
+    const link = container.querySelector('.story-card-link');
+    expect(link?.classList.contains('story-card-photo-led')).toBe(true);
+    expect(
+      screen.getByRole('heading', { name: 'Evening at the lake' }),
+    ).toBeDefined();
   });
 
   it('starts every card with its content, not a metadata row', () => {

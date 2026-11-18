@@ -1,24 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useMemo, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { type ReactNode, useEffect, useId, useMemo } from 'react';
+import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import {
-  dailyInsightsEntitlementQueryKey,
+  DAILY_INSIGHTS_CAPABILITY,
   dailyInsightsQueryKey,
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
-  loadDailyInsightsCapability,
 } from '../client/dailyInsights';
 import {
   addDays,
   daysInRange,
   type InsightDay,
   type IsoDate,
+  isoToDate,
   mondayOf,
   monthEnd,
   monthStart,
@@ -32,26 +32,34 @@ import { firstNameFromDisplayName } from '../client/personalName';
 import {
   appRoutePath,
   MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   settingsCategoryPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
+import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
 import {
-  formatDayMonth,
   formatMonthYear,
-  Handwriting,
+  formatWeekRange,
   InsightIcon,
   type InsightPerson,
   ProMark,
 } from './DailyInsightsParts';
-import { PatternsView, RecapView, WeekView } from './DailyInsightsViews';
+import { PatternsView, WeekView } from './DailyInsightsViews';
+import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import {
+  ClearWeeklyInsightFeedback,
+  WeeklyInsightCard,
+} from './WeeklyInsightCard';
 
-export type DailyInsightsViewId = 'week' | 'patterns' | 'recap';
+export type DailyInsightsViewId = 'week' | 'patterns';
 
 interface DailyInsightsPageProps {
   view: DailyInsightsViewId;
@@ -61,6 +69,7 @@ interface DailyInsightsPageProps {
   entitlementApi: EntitlementsApi;
   dashboardApi: DashboardApi;
   profilesApi?: ProfilesApi;
+  apiBaseUrl?: string;
 }
 
 const NAV_ITEMS = [
@@ -76,53 +85,67 @@ const NAV_ITEMS = [
     labelKey: 'dailyInsights.nav.patterns',
     end: false,
   },
-  {
-    id: 'recap',
-    to: MORE_INSIGHTS_RECAP_ROUTE,
-    labelKey: 'dailyInsights.nav.recap',
-    end: false,
-  },
 ] as const;
 
 function PeriodPicker({
+  view,
   label,
-  text,
-  previousLabel,
-  nextLabel,
-  canGoNext,
-  onPrevious,
-  onNext,
+  selected,
+  current,
+  today,
+  onSelect,
 }: {
+  view: DailyInsightsViewId;
   label: string;
-  text: string;
-  previousLabel: string;
-  nextLabel: string;
-  canGoNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
+  selected: IsoDate;
+  current: IsoDate;
+  today: IsoDate;
+  onSelect: (date: IsoDate) => void;
 }) {
+  const datePickerId = useId();
+  const offsets = selected === current ? [-2, -1, 0] : [-1, 0, 1];
+  const periods = offsets.map((offset) =>
+    view === 'week'
+      ? addDays(selected, offset * 7)
+      : shiftMonth(selected, offset),
+  );
   return (
     <fieldset className="insight-picker">
       <legend className="sr-only">{label}</legend>
-      <button type="button" onClick={onPrevious} aria-label={previousLabel}>
-        <span aria-hidden="true">‹</span>
-      </button>
-      <span className="insight-picker-text" aria-live="polite">
-        {text}
-      </span>
-      <button
-        type="button"
-        onClick={onNext}
-        aria-label={nextLabel}
-        disabled={!canGoNext}
-      >
-        <span aria-hidden="true">›</span>
-      </button>
+      {periods.map((date) => (
+        <button
+          key={date}
+          type="button"
+          aria-pressed={date === selected}
+          onClick={() => onSelect(date)}
+        >
+          {view === 'week'
+            ? formatWeekRange(date, addDays(date, 6))
+            : formatMonthYear(date)}
+        </button>
+      ))}
+      <label className="insight-date-picker" htmlFor={datePickerId}>
+        <InsightIcon name="calendar" />
+        <NativeDateInput
+          id={datePickerId}
+          aria-label={label}
+          value={selected}
+          max={today}
+          onChange={(event) => onSelect(event.currentTarget.value)}
+        />
+      </label>
     </fieldset>
   );
 }
 
-function GateCard() {
+function validPeriod(value: string | null, today: IsoDate): value is IsoDate {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value > today)
+    return false;
+  const date = isoToDate(value);
+  return Number.isFinite(date.getTime()) && toIsoDate(date) === value;
+}
+
+function GateCard({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <section
@@ -137,9 +160,10 @@ function GateCard() {
       <p className="insight-gate-reassurance">
         {t('dailyInsights.gate.keptNote')}
       </p>
-      <Link className="insight-link" to={appRoutePath('today')}>
+      {children}
+      <TaskBackLink to={appRoutePath('today')}>
         {t('dailyInsights.gate.back')}
-      </Link>
+      </TaskBackLink>
     </section>
   );
 }
@@ -176,18 +200,22 @@ export function DailyInsightsPage({
   entitlementApi,
   dashboardApi,
   profilesApi,
+  apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [monthOffset, setMonthOffset] = useState(0);
+  const { hash } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const capabilityQuery = useQuery({
-    queryKey: dailyInsightsEntitlementQueryKey(account.id, spaceId),
-    queryFn: ({ signal }) =>
-      loadDailyInsightsCapability(entitlementApi, spaceId, signal),
-    retry: false,
-    gcTime: 0,
-    refetchOnMount: 'always',
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capabilityQuery = useSpaceCapability({
+    accountId: account.id,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_INSIGHTS_CAPABILITY,
   });
   const capable = capabilityQuery.data === true;
 
@@ -206,16 +234,29 @@ export function DailyInsightsPage({
     ? toIsoDate(anchorQuery.data.endDate)
     : null;
 
+  const weekDate = searchParams.get('week');
+  const monthDate = searchParams.get('month');
+  const monday = today
+    ? mondayOf(validPeriod(weekDate, today) ? weekDate : today)
+    : null;
+  const month = today
+    ? monthStart(validPeriod(monthDate, today) ? monthDate : today)
+    : null;
+
+  function selectPeriod(date: IsoDate) {
+    if (!today || !validPeriod(date, today)) return;
+    const nextParams = new URLSearchParams(searchParams);
+    if (view === 'week') nextParams.set('week', mondayOf(date));
+    else nextParams.set('month', monthStart(date));
+    setSearchParams(nextParams, { replace: true });
+  }
+
   const range = useMemo(() => {
-    if (today === null) return null;
-    if (view === 'patterns') {
-      const anchor = shiftMonth(today, monthOffset);
-      return { start: monthStart(anchor), end: monthEnd(anchor) };
-    }
-    const monday = addDays(mondayOf(today), weekOffset * 7);
+    if (monday === null || month === null) return null;
+    if (view === 'patterns') return { start: month, end: monthEnd(month) };
     // The previous week rides along for the recap's comparison.
     return { start: addDays(monday, -7), end: addDays(monday, 6) };
-  }, [today, view, weekOffset, monthOffset]);
+  }, [monday, month, view]);
 
   const rangeQuery = useQuery({
     queryKey: dailyInsightsQueryKey(account.id, spaceId, range),
@@ -226,6 +267,11 @@ export function DailyInsightsPage({
     gcTime: 0,
     refetchOnMount: 'always',
   });
+
+  useEffect(() => {
+    if (hash !== '#wochenrueckblick' || !rangeQuery.isSuccess) return;
+    document.getElementById('wochenrueckblick')?.scrollIntoView?.();
+  }, [hash, rangeQuery.isSuccess]);
 
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
@@ -319,59 +365,6 @@ export function DailyInsightsPage({
       false,
   };
 
-  const monday =
-    today === null ? null : addDays(mondayOf(today), weekOffset * 7);
-  const monthAnchor = today === null ? null : shiftMonth(today, monthOffset);
-
-  const title =
-    view === 'patterns'
-      ? t('dailyInsights.patterns.title')
-      : view === 'recap'
-        ? t('dailyInsights.recap.title')
-        : t('dailyInsights.week.title');
-  const subtitle =
-    view === 'patterns'
-      ? t('dailyInsights.patterns.subtitle')
-      : view === 'recap'
-        ? t('dailyInsights.recap.subtitle')
-        : t('dailyInsights.week.subtitle');
-  const accent =
-    view === 'patterns'
-      ? t('dailyInsights.patterns.handwriting')
-      : view === 'recap'
-        ? t('dailyInsights.recap.handwriting')
-        : t('dailyInsights.week.handwriting');
-
-  let picker: ReactNode = null;
-  if (monday !== null && view !== 'patterns') {
-    picker = (
-      <PeriodPicker
-        label={t('dailyInsights.week.picker')}
-        text={t('dailyInsights.week.range', {
-          start: formatDayMonth(monday),
-          end: formatDayMonth(addDays(monday, 6)),
-        })}
-        previousLabel={t('dailyInsights.week.previous')}
-        nextLabel={t('dailyInsights.week.next')}
-        canGoNext={weekOffset < 0}
-        onPrevious={() => setWeekOffset((offset) => offset - 1)}
-        onNext={() => setWeekOffset((offset) => Math.min(0, offset + 1))}
-      />
-    );
-  } else if (monthAnchor !== null && view === 'patterns') {
-    picker = (
-      <PeriodPicker
-        label={t('dailyInsights.patterns.monthPicker')}
-        text={formatMonthYear(monthAnchor)}
-        previousLabel={t('dailyInsights.patterns.previous')}
-        nextLabel={t('dailyInsights.patterns.next')}
-        canGoNext={monthOffset < 0}
-        onPrevious={() => setMonthOffset((offset) => offset - 1)}
-        onNext={() => setMonthOffset((offset) => Math.min(0, offset + 1))}
-      />
-    );
-  }
-
   let body: ReactNode;
   if (capabilityQuery.isPending) {
     body = <UiState kind="loading" title={t('dailyInsights.loading')} />;
@@ -383,7 +376,15 @@ export function DailyInsightsPage({
       />
     );
   } else if (gated) {
-    body = <GateCard />;
+    body = (
+      <GateCard>
+        <ClearWeeklyInsightFeedback
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={dailyCheckInsApi}
+          spaceId={spaceId}
+        />
+      </GateCard>
+    );
   } else if (isInsightsContextUnavailable(anchorQuery.error)) {
     body = (
       <UiState
@@ -410,38 +411,40 @@ export function DailyInsightsPage({
         onRetry={() => void rangeQuery.refetch()}
       />
     );
-  } else if (!rangeQuery.data || monday === null || monthAnchor === null) {
+  } else if (!rangeQuery.data || monday === null || month === null) {
     body = <UiState kind="loading" title={t('dailyInsights.loading')} />;
   } else if (view === 'patterns') {
     body = (
       <PatternsView
-        key={monthAnchor}
-        days={daysInRange(allDays, monthDates(monthAnchor))}
+        key={month}
+        days={daysInRange(allDays, monthDates(month))}
         people={people}
         modules={modules}
-        monthDate={monthAnchor}
+        monthDate={month}
       />
     );
   } else {
     const current = daysInRange(allDays, weekDates(monday));
     const previous = daysInRange(allDays, weekDates(addDays(monday, -7)));
-    body =
-      view === 'recap' ? (
-        <RecapView
-          key={monday}
-          days={current}
-          previousDays={previous}
-          people={people}
-          modules={modules}
-        />
-      ) : (
-        <WeekView
-          key={monday}
-          days={current}
-          people={people}
-          modules={modules}
-        />
-      );
+    body = (
+      <WeekView
+        weeklyReview={
+          <WeeklyInsightCard
+            key={`${apiBaseUrl}:${account.id}:${spaceId}:${monday}`}
+            api={dailyCheckInsApi}
+            instance={apiBaseUrl}
+            accountId={account.id}
+            spaceId={spaceId}
+            monday={monday}
+          />
+        }
+        key={monday}
+        days={current}
+        previousDays={previous}
+        people={people}
+        modules={modules}
+      />
+    );
   }
 
   const showSingleModuleNote =
@@ -453,23 +456,42 @@ export function DailyInsightsPage({
   return (
     <div className="page daily-insights" data-view={view}>
       <header className="insight-header">
+        {/* Back, title and Pro mark share one row (#1907 C4). */}
         <div className="insight-header-top">
+          <BackSlotHost />
+          <h1>{t('dailyInsights.title')}</h1>
           <ProMark />
-          <Handwriting>{accent}</Handwriting>
         </div>
-        <h1>{title}</h1>
-        <p className="insight-subtitle">{subtitle}</p>
-        {!gated ? picker : null}
+        <p className="insight-subtitle">{t('dailyInsights.week.subtitle')}</p>
       </header>
 
       {capable && !gated ? (
         <nav className="insight-nav" aria-label={t('dailyInsights.nav.label')}>
           {NAV_ITEMS.map((item) => (
-            <NavLink key={item.id} to={item.to} end={item.end}>
+            <NavLink
+              key={item.id}
+              to={{ pathname: item.to, search: searchParams.toString() }}
+              end={item.end}
+            >
               {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
+      ) : null}
+
+      {!gated && today && monday && month ? (
+        <PeriodPicker
+          view={view}
+          label={t(
+            view === 'week'
+              ? 'dailyInsights.week.picker'
+              : 'dailyInsights.patterns.monthPicker',
+          )}
+          selected={view === 'week' ? monday : month}
+          current={view === 'week' ? mondayOf(today) : monthStart(today)}
+          today={today}
+          onSelect={selectPeriod}
+        />
       ) : null}
 
       {showSingleModuleNote ? (

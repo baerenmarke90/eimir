@@ -6,6 +6,11 @@
   border: 0;
 }
 
+.memory-task-page .immersive-create-media {
+  display: grid;
+  gap: var(--space-3);
+}
+
 /* R1 is a page composer, not a form card around the task. Reuse the accepted
  * flattened create-surface pattern: hierarchy comes from the content/media
  * inside the page rather than from one enclosing card boundary. */
@@ -99,10 +104,10 @@
     gap: var(--space-4);
   }
 
-  .memory-task-page.create-page
+  .memory-task-page.create-page:not(.quiet-composer)
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-media,
-  .memory-task-page.create-page
+  .memory-task-page.create-page:not(.quiet-composer)
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-media
     .file-picker {
@@ -132,5 +137,48 @@
    * the rest of the R1 composer so both actions remain in the first viewport. */
   .memory-task-page .form-actions {
     gap: var(--space-1);
+  }
+}
+
+.memory-draft-status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.memory-task-page .memory-draft-recovery {
+  margin-block-end: var(--space-4);
+}
+
+.memory-task-page .memory-draft-recovery h2 {
+  font-size: 1.125rem;
+}
+
+.memory-task-page .page-heading {
+  margin-block-end: var(--space-4);
+  padding-block-end: 0;
+}
+
+.memory-task-page .immersive-create-media .attachment-draft-item {
+  grid-template-columns: 7rem minmax(0, 1fr);
+}
+
+.memory-task-page .attachment-draft-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+@media (max-width: 430px) {
+  .memory-task-page .immersive-create-media .attachment-draft-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .memory-task-page .attachment-draft-meta,
+  .memory-task-page .attachment-draft-actions button {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
   }
 }

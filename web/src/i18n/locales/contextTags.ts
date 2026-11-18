@@ -1,13 +1,20 @@
 export default {
-  label: 'Tags für euren Moment',
+  label: 'Tags',
+  showTagged: 'Alle Einträge mit Tag „{{tag}}“ ansehen',
+  resultsTitle: 'Tag: {{tag}}',
+  resultsDescription:
+    'Alle Erinnerungen, Herzmomente, Pläne und Wünsche mit diesem Tag.',
+  searchAll: 'Zur Suche',
+  noMatches: 'Zu diesem Tag gibt es noch keine Einträge.',
+  proposed: 'KI-Vorschläge · Du entscheidest, was passt.',
   help: 'Beschreibt euren Moment mit euren eigenen Worten.',
   newLabel: 'Eigenen Tag hinzufügen',
   placeholder: 'Zum Beispiel: Unser Urlaub',
-  add: 'Hinzufügen',
+  add: 'Tag hinzufügen',
   suggestions: 'Vorschläge',
   remove: 'Tag „{{tag}}“ entfernen',
   empty: 'Gib deinem Tag einen Namen.',
   duplicate: 'Dieser Tag ist schon dabei.',
   tooLong: 'Ein Tag darf höchstens {{count}} Zeichen haben.',
-  tooMany: 'Du kannst bis zu {{count}} Tags pro Moment hinzufügen.',
+  tooMany: 'Du kannst bis zu {{count}} Tags pro Eintrag hinzufügen.',
 };

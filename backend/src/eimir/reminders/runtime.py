@@ -50,6 +50,7 @@ from eimir.reminders.runtime_models import (
     ReminderOccurrence,
     RulePreference,
 )
+from eimir.wishes import reminders as wish_reminders
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +101,8 @@ def register_handlers(target: JobRegistry | None = None) -> None:
     destination = target if target is not None else registry
     if destination.get(OCCURRENCE_JOB) is None:
         destination.register(OCCURRENCE_JOB, handle_occurrence)
+    if destination.get(wish_reminders.JOB_KIND) is None:
+        destination.register(wish_reminders.JOB_KIND, wish_reminders.handle_due)
     if destination.get(RECONCILE_JOB) is None:
         destination.register(RECONCILE_JOB, handle_reconcile)
 
@@ -247,7 +250,7 @@ def _reconcile_generated_reminders(session: Session, space_id: UUID) -> None:
         select(RelatedPerson).where(
             RelatedPerson.space_id == space_id,
             RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            RelatedPerson.birthday.is_not(None),
+            RelatedPerson.with_birthday(),
         )
     ).scalars()
     for person in people:
@@ -268,7 +271,7 @@ def _reconcile_generated_reminders(session: Session, space_id: UUID) -> None:
             Membership.space_id == space_id,
             Membership.status == MembershipStatus.ACTIVE.value,
             Account.disabled_at.is_(None),
-            Account.birthday.is_not(None),
+            Account.with_birthday(),
         )
         .order_by(Account.id)
     ).scalars()
@@ -729,7 +732,7 @@ def source_is_eligible(session: Session, reminder: Reminder) -> bool:
                     RelatedPerson.id == reminder.source_id,
                     RelatedPerson.space_id == reminder.space_id,
                     RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
-                    RelatedPerson.birthday.is_not(None),
+                    RelatedPerson.with_birthday(),
                 )
             ).scalar_one_or_none()
             is not None
@@ -742,7 +745,7 @@ def source_is_eligible(session: Session, reminder: Reminder) -> bool:
                 .where(
                     Account.id == reminder.source_id,
                     Account.disabled_at.is_(None),
-                    Account.birthday.is_not(None),
+                    Account.with_birthday(),
                     Membership.space_id == reminder.space_id,
                     Membership.status == MembershipStatus.ACTIVE.value,
                 )

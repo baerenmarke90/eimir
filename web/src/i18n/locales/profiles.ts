@@ -1,4 +1,5 @@
 const profiles = {
+  partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
   intro:
@@ -7,16 +8,9 @@ const profiles = {
   accountTitle: 'Mein Konto',
   accountName: 'Anzeigename',
   premium: {
-    eyebrow: 'Premium',
-    title: 'eimir.Pro',
-    badge: 'Pro',
-    gamesTitle: 'Mehr gemeinsame Momente mit eimir.Pro.',
-    gamesBody:
-      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
-    action: 'Premium ansehen',
-    detailsTitle: 'Ein Premium-Bereich für euch beide',
-    detailsBody:
-      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
+    title: 'eimir. Pro',
+    rowInactive: 'Funktionen und Preise entdecken',
+    rowActive: 'Pro aktiv · Funktionen entdecken',
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:
@@ -25,9 +19,6 @@ const profiles = {
   relationshipDurationLabel: 'Gemeinsame Zeit anzeigen',
   relationshipDurationHelp:
     'Zeigt eure gemeinsame Zeit auf „Wir“ und an passenden Stellen in eimir.',
-  relationshipModeLabel: 'Beziehungsdauer anzeigen als',
-  relationshipModeYearsMonths: 'Jahre und Monate',
-  relationshipModeDays: 'Tage',
   relationshipPreviewTitle: 'Vorschau',
   relationshipCurrentLabel: 'Aktuell',
   nextAnniversaryLabel: 'Nächster Jahrestag',
@@ -35,11 +26,7 @@ const profiles = {
   anniversaryInDays_one: 'in 1 Tag',
   anniversaryInDays_other: 'in {{count}} Tagen',
   relationshipSavedSubtle: '✓ Gespeichert',
-  relationshipNotificationHint:
-    'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
-  relationshipYearsMonths: '{{years}} Jahre, {{months}} Monate',
-  relationshipDays: '{{days}} Tage',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',
   relationshipSave: 'Änderungen speichern',
@@ -73,8 +60,8 @@ const profiles = {
   preferenceCreateTitle: 'Vorliebe hinzufügen',
   preferenceEditTitle: 'Vorliebe bearbeiten',
   addPreference: 'Vorliebe hinzufügen',
-  addPreferenceShort: 'Vorliebe',
-  addNoteShort: 'Notiz',
+  addPreferenceShort: 'Vorliebe hinzufügen',
+  addNoteShort: 'Notiz hinzufügen',
   editName: 'Name bearbeiten',
   noteCreateTitle: 'Notiz für mich hinzufügen',
   noteEditTitle: 'Notiz für mich bearbeiten',

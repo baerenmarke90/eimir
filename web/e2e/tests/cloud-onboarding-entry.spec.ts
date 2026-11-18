@@ -1,14 +1,49 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import en from '../../src/i18n/locales/en.json' with { type: 'json' };
+import legal from '../../src/i18n/locales/legal';
+import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPolicy.de.generated';
+import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import {
+  installMocks,
+  ACCOUNT_ID as SHELL_ACCOUNT_ID,
+  SPACE_ID as SHELL_SPACE_ID,
+  signIn,
+} from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const OWN_SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
+/**
+ * Waits until no finite animation or transition is running. A color-scheme
+ * switch transitions theme colors (for example the active entry mode), and
+ * axe must measure the settled colors, not an intermediate frame.
+ */
+async function settleMotion(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        return document.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return (
+            animation.playState === 'running' &&
+            timing?.iterations !== Number.POSITIVE_INFINITY
+          );
+        }).length;
+      }),
+    )
+    .toBe(0);
+}
+
 async function expectNoWcagViolations(page: Page): Promise<void> {
+  await settleMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',
@@ -37,6 +72,483 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
+
+const CLOUD_STATUS_WITH_TERMS = {
+  maintenanceMode: false,
+  registrationAvailable: true,
+  accountCreation: 'self_service',
+  selfServiceSignupAvailable: true,
+  termsOfUseVersion: termsOfUseDe.version,
+  auth: { localPassword: false, magicLink: true, oidc: false, passkey: false },
+};
+const ACCEPTANCE_LABEL = legal.accept.replace(/<\/?termsLink>/g, '');
+const PRIVACY_NOTICE_LINK =
+  /<privacyLink>(.*)<\/privacyLink>/.exec(legal.privacyNotice)?.[1] ?? '';
+// Derive headings and links from the generated texts so wording edits in
+// legal/ never require test edits.
+const textOf = (runs: { kind: string; text?: string }[]) =>
+  runs.map((run) => run.text ?? '').join('');
+const PRIVACY_SECTIONS = privacyPolicyDe.blocks.flatMap((block) =>
+  block.kind === 'heading' ? [textOf(block.content)] : [],
+);
+const PRIVACY_FIRST_SECTION = PRIVACY_SECTIONS[1];
+const PRIVACY_LAST_SECTION = PRIVACY_SECTIONS.at(-1) ?? '';
+const TERMS_PRIVACY_REFERENCE =
+  termsOfUseDe.blocks
+    .flatMap((block) => (block.kind === 'paragraph' ? block.content : []))
+    .flatMap((run) =>
+      run.kind === 'link' && run.href === '/legal/privacy' ? [run.text] : [],
+    )[0] ?? '';
+
+async function routeCloudEntry(
+  page: Page,
+  onSignup?: (body: unknown) => void,
+): Promise<void> {
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (request.method() === 'GET' && pathname === '/api/v1/instance/status') {
+      await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+      return;
+    }
+    if (
+      request.method() === 'POST' &&
+      pathname === '/api/v1/auth/signup/request'
+    ) {
+      onSignup?.(request.postDataJSON());
+      await route.fulfill({ status: 202 });
+      return;
+    }
+    await route.continue();
+  });
+}
+
+async function openSignup(page: Page): Promise<void> {
+  await page.goto('/');
+  await page
+    .getByRole('group', { name: de.identity.entryModesAria })
+    .getByRole('button', { name: de.identity.startTogether })
+    .click();
+  await page.getByLabel(de.login.email).fill('couple@example.org');
+}
+
+test.describe('Terms of use at Cloud signup', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
+
+  test('requires the acceptance and keeps the typed address while the terms are read', async ({
+    page,
+  }) => {
+    const signupBodies: unknown[] = [];
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const request = route.request();
+      const pathname = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        pathname === '/api/v1/instance/status'
+      ) {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      if (
+        request.method() === 'POST' &&
+        pathname === '/api/v1/auth/signup/request'
+      ) {
+        signupBodies.push(request.postDataJSON());
+        await route.fulfill({ status: 202 });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: de.identity.entryModesAria })
+      .getByRole('button', { name: de.identity.startTogether })
+      .click();
+    await page.getByLabel(de.login.email).fill('couple@example.org');
+    const form = page.locator('form');
+    const acceptance = form.getByRole('checkbox', { name: ACCEPTANCE_LABEL });
+    const submit = form.getByRole('button', {
+      name: de.identity.startTogetherSubmit,
+    });
+
+    await submit.click();
+    await expect(acceptance).toBeFocused();
+    expect(signupBodies).toEqual([]);
+
+    await form.getByRole('link', { name: legal.termsLink }).click();
+    const sheet = page.getByRole('dialog', { name: legal.termsSheetTitle });
+    await expect(sheet).toBeVisible();
+    await expect(
+      sheet.getByRole('heading', { name: '§ 1 Geltungsbereich' }),
+    ).toBeVisible();
+    await expectNoWcagViolations(page);
+    await sheet.getByRole('button', { name: legal.sheetClose }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByLabel(de.login.email)).toHaveValue(
+      'couple@example.org',
+    );
+    await expect(acceptance).not.toBeChecked();
+
+    await acceptance.check();
+    await submit.click();
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeVisible();
+    expect(signupBodies).toEqual([
+      {
+        email: 'couple@example.org',
+        acceptedTermsVersion: termsOfUseDe.version,
+      },
+    ]);
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test('the public terms page needs no account and returns to the entry', async ({
+    page,
+  }) => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === '/api/v1/instance/status') {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/legal/terms');
+    await expect(
+      page.getByRole('heading', { level: 1, name: termsOfUseDe.title }),
+    ).toBeVisible();
+    await expect(page.getByText(legal.draftBadge)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: '§ 18 Schlussbestimmungen' }),
+    ).toBeAttached();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expectNoWcagViolations(page);
+
+    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('group', { name: de.identity.entryModesAria }),
+    ).toBeVisible();
+  });
+
+  test('an opened link that would create an account asks for the terms first', async ({
+    page,
+  }) => {
+    const consumeBodies: Record<string, unknown>[] = [];
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const request = route.request();
+      const method = request.method();
+      const pathname = new URL(request.url()).pathname;
+      if (method === 'GET' && pathname === '/api/v1/instance/status') {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      if (method === 'POST' && pathname === '/api/v1/auth/signup/consume') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        consumeBodies.push(body);
+        if (!body.acceptedTermsVersion) {
+          await route.fulfill({
+            status: 409,
+            json: {
+              type: 'conflict',
+              title: 'Conflict',
+              status: 409,
+              detail: 'Terms acceptance required.',
+              code: 'TERMS_ACCEPTANCE_REQUIRED',
+            },
+          });
+          return;
+        }
+        await route.fulfill({
+          json: {
+            account: { id: ACCOUNT_ID, displayName: 'Lea' },
+            tokens: {
+              accessToken: 'session-access-token',
+              refreshToken: 'session-refresh-token',
+              accessExpiresAt: '2026-09-01T12:00:00Z',
+              refreshExpiresAt: '2026-09-08T12:00:00Z',
+            },
+            accountCreated: true,
+          },
+        });
+        return;
+      }
+      if (method === 'GET' && pathname === '/api/v1/auth/me') {
+        await route.fulfill({ json: { id: ACCOUNT_ID, displayName: 'Lea' } });
+        return;
+      }
+      if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
+        await route.fulfill({ json: { serverAdmin: false } });
+        return;
+      }
+      if (
+        method === 'GET' &&
+        (pathname === '/api/v1/auth/memberships' ||
+          pathname === '/api/v1/spaces')
+      ) {
+        await route.fulfill({ json: [] });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/auth/signup?token=sign-in-form-proof');
+    await expect(page).not.toHaveURL(/sign-in-form-proof/);
+    await expect(
+      page.getByRole('heading', { name: legal.pendingTitle }),
+    ).toBeVisible();
+    await expect(page.getByText(de.identity.signupFailedTitle)).toHaveCount(0);
+    await expectNoWcagViolations(page);
+
+    await page.getByRole('checkbox', { name: ACCEPTANCE_LABEL }).check();
+    await page.getByRole('button', { name: legal.createAccount }).click();
+
+    await expect(
+      page.getByRole('heading', {
+        name: de.spaceContext.createFirstSpaceTitle,
+      }),
+    ).toBeVisible();
+    expect(consumeBodies.map((body) => body.acceptedTermsVersion)).toEqual([
+      undefined,
+      termsOfUseDe.version,
+    ]);
+    expect(
+      consumeBodies.every((body) => body.token === 'sign-in-form-proof'),
+    ).toBe(true);
+  });
+});
+
+test.describe('Privacy policy on eimir. Cloud', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
+
+  test('the signup informs about the privacy policy without a second consent', async ({
+    page,
+  }) => {
+    const signupBodies: unknown[] = [];
+    await routeCloudEntry(page, (body) => signupBodies.push(body));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSignup(page);
+
+    const form = page.locator('form');
+    await expect(form.getByRole('checkbox')).toHaveCount(1);
+    const acceptance = form.getByRole('checkbox', { name: ACCEPTANCE_LABEL });
+    await expect(acceptance).toBeVisible();
+    const notice = form.locator('.privacy-notice');
+    await expect(notice).toHaveText(
+      legal.privacyNotice.replace(/<\/?privacyLink>/g, ''),
+    );
+    await expect(notice.locator('xpath=ancestor::label')).toHaveCount(0);
+    await expect(
+      page.getByRole('navigation', { name: legal.eyebrow }).getByRole('link'),
+    ).toHaveText([legal.termsLink, legal.privacyLink]);
+
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'light' });
+
+    await notice.getByRole('link', { name: PRIVACY_NOTICE_LINK }).click();
+    const sheet = page.getByRole('dialog', { name: legal.privacySheetTitle });
+    await expect(sheet).toBeVisible();
+    await expect(
+      sheet.getByRole('heading', { name: PRIVACY_FIRST_SECTION }),
+    ).toBeVisible();
+    await expect(sheet.getByText(legal.draftBadge)).toBeVisible();
+    await expectNoWcagViolations(page);
+    await sheet.getByRole('button', { name: legal.privacySheetClose }).click();
+    await expect(sheet).toBeHidden();
+    await expect(
+      notice.getByRole('link', { name: PRIVACY_NOTICE_LINK }),
+    ).toBeFocused();
+    await expect(page.getByLabel(de.login.email)).toHaveValue(
+      'couple@example.org',
+    );
+
+    for (const width of [320, 360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await acceptance.check();
+    await form
+      .getByRole('button', { name: de.identity.startTogetherSubmit })
+      .click();
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeVisible();
+    expect(signupBodies).toEqual([
+      {
+        email: 'couple@example.org',
+        acceptedTermsVersion: termsOfUseDe.version,
+      },
+    ]);
+  });
+
+  test('the terms open the privacy policy on top of their sheet and keep the form', async ({
+    page,
+  }) => {
+    await routeCloudEntry(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSignup(page);
+    const acceptance = page
+      .locator('form')
+      .getByRole('checkbox', { name: ACCEPTANCE_LABEL });
+    await acceptance.check();
+
+    await page
+      .locator('form')
+      .getByRole('link', { name: legal.termsLink })
+      .click();
+    const terms = page.getByRole('dialog', { name: legal.termsSheetTitle });
+    await expect(terms).toBeVisible();
+    const reference = terms.getByRole('link', {
+      name: TERMS_PRIVACY_REFERENCE,
+    });
+    await reference.scrollIntoViewIfNeeded();
+    await reference.click();
+
+    const privacy = page.getByRole('dialog', {
+      name: legal.privacySheetTitle,
+    });
+    await expect(privacy).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await page.keyboard.press('Escape');
+    await expect(privacy).toBeHidden();
+    await expect(terms).toBeVisible();
+    await expect(reference).toBeFocused();
+
+    await terms.getByRole('button', { name: legal.sheetClose }).click();
+    await expect(terms).toBeHidden();
+    await expect(page.getByLabel(de.login.email)).toHaveValue(
+      'couple@example.org',
+    );
+    await expect(acceptance).toBeChecked();
+  });
+
+  test('the public privacy page needs no account and returns to the entry', async ({
+    page,
+  }) => {
+    await routeCloudEntry(page);
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/legal/privacy');
+    await expect(
+      page.getByRole('heading', { level: 1, name: privacyPolicyDe.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(`${legal.privacySheetTitle} · eimir.`);
+    await expect(page.getByText(legal.draftBadge)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: PRIVACY_LAST_SECTION }),
+    ).toBeAttached();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expectNoWcagViolations(page);
+
+    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('group', { name: de.identity.entryModesAria }),
+    ).toBeVisible();
+  });
+
+  test('More opens the privacy policy at its title and returns', async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ accountId, spaceId }) => {
+        localStorage.setItem(
+          `eimir:product-tour:v1:${accountId}:${spaceId}`,
+          'seen',
+        );
+      },
+      { accountId: SHELL_ACCOUNT_ID, spaceId: SHELL_SPACE_ID },
+    );
+    await installMocks(page);
+    // Registered after the shell mocks, so this Cloud status wins.
+    await page.route('**/api/v1/instance/status', (route) =>
+      route.fulfill({
+        json: {
+          maintenanceMode: false,
+          registrationAvailable: true,
+          registrationUnavailableReason: null,
+          termsOfUseVersion: termsOfUseDe.version,
+          auth: {
+            localPassword: true,
+            passkey: true,
+            magicLink: true,
+            oidc: false,
+          },
+        },
+      }),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page);
+    await page.goto('/more');
+
+    const legalLinks = page.getByRole('navigation', { name: legal.eyebrow });
+    await expect(legalLinks.getByRole('link')).toHaveText([
+      legal.termsLink,
+      legal.privacyLink,
+    ]);
+    await expectNoWcagViolations(page);
+    await legalLinks.getByRole('link', { name: legal.privacyLink }).click();
+
+    await expect(page).toHaveURL(/\/legal\/privacy$/);
+    const title = page.getByRole('heading', {
+      level: 1,
+      name: privacyPolicyDe.title,
+    });
+    await expect(title).toBeFocused();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(legalLinks).toBeVisible();
+  });
+});
+
+test.describe('Privacy policy in the English UI', () => {
+  test.use({ locale: 'en-US' });
+
+  test('keeps the German text and names German as binding', async ({
+    page,
+  }) => {
+    await routeCloudEntry(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/legal/privacy');
+
+    const article = page.getByRole('article');
+    await expect(article).toHaveAttribute('lang', 'de-DE');
+    await expect(
+      article.getByRole('heading', { level: 1, name: privacyPolicyDe.title }),
+    ).toBeVisible();
+    const notice = page.getByText(
+      en.legal.documentLanguageNotice.replace('{{language}}', 'German'),
+    );
+    await expect(notice).toHaveAttribute('lang', 'en');
+    await expect(page.getByText(en.legal.draftBadge)).toBeVisible();
+    await expect(page).toHaveTitle(`${en.legal.privacySheetTitle} · eimir.`);
+    await expect(
+      page.getByRole('button', { name: en.taskBoundary.back }),
+    ).toBeVisible();
+    await expectNoWcagViolations(page);
+  });
+});
 
 test.describe('Cloud Onboarding Entry Flow (#622)', () => {
   test.beforeEach(async ({ page }) => {

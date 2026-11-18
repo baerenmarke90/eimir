@@ -20,6 +20,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
@@ -154,6 +155,11 @@ function setup() {
 }
 
 beforeEach(() => {
+  // Keep unrelated linked-Plan reads deterministic and off the network.
+  vi.spyOn(
+    StoryPlanningRelationsApi.prototype,
+    'listMilestonePlans',
+  ).mockResolvedValue({ items: [] });
   revoke.mockReset().mockResolvedValue(undefined);
   onlineManager.setOnline(true);
 });
@@ -356,10 +362,10 @@ describe('Milestone delete response ownership', () => {
     const button = await h.confirm();
     onlineManager.setOnline(false);
     fireEvent.click(button);
-    await waitFor(() =>
-      expect(screen.getByText(de.states.offline.title)).toBeTruthy(),
-    );
-    expect(h.client.isMutating()).toBe(0);
+    await waitFor(() => {
+      expect(h.client.isMutating()).toBe(0);
+      expect(screen.getByText(de.states.offline.title)).toBeTruthy();
+    });
     await act(async () => onlineManager.setOnline(true));
     expect(h.deleteMilestone).not.toHaveBeenCalled();
     await userEvent

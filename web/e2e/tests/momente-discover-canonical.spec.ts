@@ -1,6 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import mapCopy from '../../src/i18n/locales/memoryMap';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -213,8 +216,24 @@ async function installMocks(
     ) {
       tracker.timelineRequests += 1;
       await fulfillJson({
-        items: [],
-        availableYears: [],
+        items: [
+          {
+            kind: 'MEMORY',
+            effectiveDate: '2026-09-16T08:30:00Z',
+            memory: {
+              id: 'diary-independent',
+              title: 'A complete diary day',
+              body: 'The chronological diary remains independent of rediscovery.',
+              happenedOn: '2026-09-16',
+              createdAt: '2026-09-16T08:30:00Z',
+              author: ME,
+              capabilities: CAPABILITIES,
+              visibility: 'SHARED',
+              attachments: [],
+            },
+          },
+        ],
+        availableYears: [2026],
         hasMore: false,
         nextCursor: null,
       });
@@ -238,16 +257,60 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
+/**
+ * Pages once through the Fotostory with its visible "next" control and
+ * returns each slide's title and destination in playing order.
+ */
+async function walkStory(
+  page: Page,
+  titles: readonly string[],
+): Promise<string[]> {
+  const story = storyProducts.discoverStory;
+  const pause = page.getByRole('button', { name: story.pause, exact: true });
+  if (await pause.count()) await pause.click();
+  const viewer = page.locator('.momente-story-viewer');
+  const open = viewer.getByRole('link', {
+    name: new RegExp(`^${story.open}:`),
+  });
+  const hrefs: string[] = [];
+  for (const title of titles) {
+    await expect(
+      viewer.locator('.momente-story-slide[data-state="current"]'),
+    ).toContainText(title);
+    await expect(viewer.getByText(title, { exact: true })).toBeVisible();
+    hrefs.push((await open.getAttribute('href')) ?? '');
+    await page.getByRole('button', { name: story.next, exact: true }).click();
+  }
+  return hrefs;
+}
+
+// Fotostory themes play heart moments, milestones, then memories in words;
+// inside each theme the canonical backend order is kept.
+const STORY_TITLES = [
+  'Thinking of you',
+  'Our first apartment',
+  'Winter evening',
+] as const;
+const STORY_HREFS = [
+  '/story/heart-moments/discover-heart',
+  '/story/milestones/discover-milestone',
+  '/story/memories/discover-memory',
+];
+
 async function captureEvidence(
   page: Page,
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({ path: testInfo.outputPath(name), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath(name),
+    fullPage: true,
+    animations: 'disabled',
+  });
 }
 
 test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
-  test('uses only canonical Discover data and captures Compact and Expanded evidence', async ({
+  test('switches between canonical Discover and the independent Diary in Compact and Expanded', async ({
     page,
   }, testInfo) => {
     const tracker: RequestTracker = {
@@ -261,21 +324,151 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await page.waitForSelector('.momente-discover-page');
 
     expect(tracker.discoverRequests).toBeGreaterThan(0);
-    expect(tracker.timelineRequests).toBe(0);
-    await expect(page.getByText('Morning by the lake')).toBeVisible();
-    await expect(page.getByText('Thinking of you')).toBeVisible();
-    await expect(page.getByText('Our first apartment')).toBeVisible();
-    await expect(page.getByText('Winter evening')).toBeVisible();
+    const discover = page.locator('.momente-discover-page');
+    const diary = page.locator('#momente-diary');
+    await expect(discover.getByText('Morning by the lake')).toBeVisible();
+    expect(await walkStory(page, STORY_TITLES)).toEqual(STORY_HREFS);
+    const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
+    const diaryTab = page.getByRole('tab', { name: de.story.tabTimeline });
+    const mapTab = page.getByRole('tab', { name: mapCopy.entry, exact: true });
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(diary).toBeHidden();
+    await expect(discover.getByText('A complete diary day')).toHaveCount(0);
+    expect(tracker.timelineRequests).toBeGreaterThan(0);
+
+    await diaryTab.click();
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    await expect(page.locator('#momente-panel-discover')).toBeHidden();
+    await expect(diary.getByText('Morning by the lake')).toHaveCount(0);
+    await expect(page.getByRole('tabpanel')).toHaveCount(1);
+    await captureEvidence(page, testInfo, 'moments-tabs-diary-390-light.png');
+    await discoverTab.click();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
 
     await captureEvidence(page, testInfo, 'story-971-discover-390-compact.png');
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('.momente-discover-page')).toBeVisible();
-    expect(tracker.timelineRequests).toBe(0);
+    await page.locator('.momente-story-viewer').scrollIntoViewIfNeeded();
+    expect(await walkStory(page, STORY_TITLES)).toEqual(STORY_HREFS);
+    await expect(diary).toBeHidden();
     await captureEvidence(
       page,
       testInfo,
       'story-971-discover-1440-expanded.png',
     );
+    await diaryTab.click();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await captureEvidence(page, testInfo, 'moments-tabs-diary-1440-light.png');
+
+    // Keep Timeline scope parked while Discover uses its own canonical data.
+    await page.goto('/story?tab=timeline&type=MEMORY&year=2026&order=ASC');
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    await discoverTab.click();
+    await expect(page).toHaveURL(/tab=discover/);
+    await expect(page).toHaveURL(/type=MEMORY/);
+    await expect(page).toHaveURL(/year=2026/);
+    await expect(page).toHaveURL(/order=ASC/);
+    await expect(discover.getByText('Thinking of you')).toBeVisible();
+    await page.goBack();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+
+    await diaryTab.focus();
+    await diaryTab.press('ArrowLeft');
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(discoverTab).toHaveAttribute('tabindex', '0');
+    await expect(diaryTab).toHaveAttribute('tabindex', '-1');
+    await discoverTab.press('End');
+    await expect(mapTab).toBeFocused();
+    await expect(mapTab).toHaveAttribute('aria-selected', 'true');
+    await mapTab.press('Home');
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await discoverTab.press('ArrowRight');
+    await expect(diaryTab).toBeFocused();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await diaryTab.press('ArrowRight');
+    await expect(mapTab).toBeFocused();
+    await expect(mapTab).toHaveAttribute('aria-selected', 'true');
+    await mapTab.press('ArrowRight');
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+
+    // Deliver a burst before React can commit either route. Every key follows
+    // the tab that actually has focus, including the reversal to the old view.
+    await discoverTab.evaluate((tab) => {
+      tab.focus();
+      for (let index = 0; index < 3; index++) {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'ArrowRight',
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      }
+    });
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/tab=discover/);
+    await expect(page).toHaveURL(/type=MEMORY/);
+    await expect(page).toHaveURL(/year=2026/);
+    await expect(page).toHaveURL(/order=ASC/);
+
+    await captureEvidence(
+      page,
+      testInfo,
+      'story-tabs-keyboard-burst-1440-light.png',
+    );
+
+    for (const width of [360, 390, 430, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const [view, tab] of [
+        ['discover', discoverTab],
+        ['diary', diaryTab],
+      ] as const) {
+        await tab.click();
+        await expect(tab).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('tabpanel')).toHaveCount(1);
+        const box = await tab.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+        await captureEvidence(
+          page,
+          testInfo,
+          `moments-tabs-${view}-${width}-light.png`,
+        );
+      }
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    for (const [view, tab] of [
+      ['discover', discoverTab],
+      ['diary', diaryTab],
+    ] as const) {
+      await tab.click();
+      await tab.press('Home');
+      if (view === 'diary') await discoverTab.press('ArrowRight');
+      await expect(tab).toBeFocused();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      await captureEvidence(
+        page,
+        testInfo,
+        `moments-tabs-${view}-390-dark.png`,
+      );
+      const accessibility = await new AxeBuilder({ page })
+        .include('.story-page')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(accessibility.violations).toEqual([]);
+    }
   });
 });

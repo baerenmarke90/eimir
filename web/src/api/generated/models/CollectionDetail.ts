@@ -34,6 +34,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { CollectionKind } from './CollectionKind';
+import {
+    CollectionKindFromJSON,
+    CollectionKindFromJSONTyped,
+    CollectionKindToJSON,
+    CollectionKindToJSONTyped,
+} from './CollectionKind';
 
 /**
  * 
@@ -79,6 +86,12 @@ export interface CollectionDetail {
     items: Array<CollectionItemDetail>;
     /**
      * 
+     * @type {CollectionKind}
+     * @memberof CollectionDetail
+     */
+    kind?: CollectionKind;
+    /**
+     * 
      * @type {string}
      * @memberof CollectionDetail
      */
@@ -102,6 +115,8 @@ export interface CollectionDetail {
      */
     version: number;
 }
+
+
 
 /**
  * Check if a given object implements the CollectionDetail interface.
@@ -136,6 +151,7 @@ export function CollectionDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         'creator': AuthorSummaryFromJSON(json['creator']),
         'id': json['id'],
         'items': ((json['items'] as Array<any>).map(CollectionItemDetailFromJSON)),
+        'kind': json['kind'] == null ? undefined : CollectionKindFromJSON(json['kind']),
         'spaceId': json['spaceId'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
@@ -160,6 +176,7 @@ export function CollectionDetailToJSONTyped(value?: CollectionDetail | null, ign
         'creator': AuthorSummaryToJSON(value['creator']),
         'id': value['id'],
         'items': ((value['items'] as Array<any>).map(CollectionItemDetailToJSON)),
+        'kind': CollectionKindToJSON(value['kind']),
         'spaceId': value['spaceId'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),

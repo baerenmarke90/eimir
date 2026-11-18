@@ -1,40 +1,49 @@
+import './FreeComposer.css';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type FormEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
-  type FormEvent,
-  type RefObject,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import { normalizeClientError } from '../client/problemDetails';
-import {
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { MORE_PLACES_ROUTE } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
 } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
-import { useTranslation } from '../i18n';
-import { PageHeader } from './PageHeader';
-import { ListEntryIconButton } from './ListEntryActions';
 import {
-  PlanningDiscardConfirmation,
-  usePlanningEditorLifecycle,
-} from './PlanningEditorLifecycle';
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { MORE_PLACES_ROUTE } from '../client/routes';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
+import { postSnackbar } from '../client/snackbar';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTranslation } from '../i18n';
+import { DestinationIcon } from './DestinationIcon';
+import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
+import { PlaceMapPicker } from './PlaceMapPicker';
 import { PlanningRelationManager } from './PlanningRelationManager';
 import { ProblemState } from './ProblemState';
+import { SharedContentSheet } from './SharedContentSheet';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
+import './SharedContentPages.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -63,30 +72,42 @@ function placeDraft(place: PlaceDetail): PlaceDraft {
 }
 
 function PlaceEditor({
+  open,
+  apis,
   place,
   draft,
   setDraft,
   titleInputRef,
   editTriggerRef,
+  sheetRef,
   updatePending,
   updateError,
   deletePending,
   deleteError,
   onSubmit,
   onDelete,
+  onArchive,
+  archivePending,
+  archiveError,
   onClose,
 }: {
+  open: boolean;
+  apis: SharedPlanningApis;
   place: PlaceDetail;
   draft: PlaceDraft;
   setDraft: (draft: PlaceDraft) => void;
   titleInputRef: RefObject<HTMLInputElement | null>;
   editTriggerRef: RefObject<HTMLButtonElement | null>;
+  sheetRef: RefObject<ShortTaskSheetHandle | null>;
   updatePending: boolean;
   updateError: unknown;
   deletePending: boolean;
   deleteError: unknown;
   onSubmit: (draft: PlaceDraft) => void;
   onDelete: () => void;
+  onArchive: () => void;
+  archivePending: boolean;
+  archiveError: unknown;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -95,22 +116,14 @@ function PlaceEditor({
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
   const restoreDeleteTriggerRef = useRef(false);
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(placeDraft(place));
-  const isPending = updatePending || deletePending;
-
-  const lifecycle = usePlanningEditorLifecycle({
-    isDirty,
-    isPending,
-    initialFocusRef: titleInputRef,
-    restoreFocusRef: editTriggerRef,
-    onEscape: () => {
-      if (!confirmDelete) return false;
-      restoreDeleteTriggerRef.current = true;
+  useEffect(() => {
+    if (!open) {
       setConfirmDelete(false);
-      return true;
-    },
-    onClose,
-  });
+      setCoordinateError(false);
+    }
+  }, [open]);
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(placeDraft(place));
+  const isPending = updatePending || deletePending || archivePending;
 
   useEffect(() => {
     if (confirmDelete) deleteHeadingRef.current?.focus();
@@ -130,6 +143,7 @@ function PlaceEditor({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isPending) return;
     if (Boolean(draft.latitude.trim()) !== Boolean(draft.longitude.trim())) {
       setCoordinateError(true);
       return;
@@ -139,167 +153,251 @@ function PlaceEditor({
   }
 
   return (
-    <section className="planning-subsection">
-      <h2>{t('m5s3.common.edit')}</h2>
-      {lifecycle.showDiscardConfirm ? (
-        <PlanningDiscardConfirmation
-          onKeepEditing={lifecycle.keepEditing}
-          onDiscard={lifecycle.discard}
-        />
-      ) : null}
-      <form id="place-edit-form" className="form-grid" onSubmit={submit}>
-        <label htmlFor="place-edit-description">
-          {t('m5s3.common.description')}
-        </label>
-        <textarea
-          id="place-edit-description"
-          name="description"
-          rows={4}
-          value={draft.description}
-          onChange={(event) => updateDraft({ description: event.target.value })}
-        />
-        <label htmlFor="place-edit-address">{t('m5s3.place.address')}</label>
-        <input
-          id="place-edit-address"
-          name="address"
-          value={draft.address}
-          onChange={(event) => updateDraft({ address: event.target.value })}
-        />
-        <div className="planning-coordinate-grid">
-          <div className="field-group">
-            <label htmlFor="place-edit-latitude">
-              {t('m5s3.place.latitude')}
-            </label>
-            <input
-              id="place-edit-latitude"
-              name="latitude"
-              type="number"
-              step="any"
-              min="-90"
-              max="90"
-              value={draft.latitude}
-              onChange={(event) =>
-                updateDraft({ latitude: event.target.value })
-              }
-              aria-invalid={coordinateError}
-              aria-describedby={
-                coordinateError
-                  ? 'place-edit-coordinate-help place-edit-coordinate-error'
-                  : 'place-edit-coordinate-help'
-              }
-            />
-          </div>
-          <div className="field-group">
-            <label htmlFor="place-edit-longitude">
-              {t('m5s3.place.longitude')}
-            </label>
-            <input
-              id="place-edit-longitude"
-              name="longitude"
-              type="number"
-              step="any"
-              min="-180"
-              max="180"
-              value={draft.longitude}
-              onChange={(event) =>
-                updateDraft({ longitude: event.target.value })
-              }
-              aria-invalid={coordinateError}
-              aria-describedby={
-                coordinateError
-                  ? 'place-edit-coordinate-help place-edit-coordinate-error'
-                  : 'place-edit-coordinate-help'
-              }
-            />
-          </div>
-        </div>
-        <p
-          id="place-edit-coordinate-help"
-          className="field-help planning-coordinate-help"
-        >
-          {t('m5s3.place.coordinateHelp')}
-        </p>
-        {coordinateError ? (
-          <p
-            id="place-edit-coordinate-error"
-            className="field-error"
-            role="alert"
+    <SharedContentSheet
+      open={open}
+      title={t('m5s3.common.edit')}
+      isDirty={isDirty}
+      isPending={isPending}
+      initialFocusRef={titleInputRef}
+      restoreFocusRef={editTriggerRef}
+      sheetRef={sheetRef}
+      hasDismissLayer={confirmDelete}
+      onDismissLayer={() => {
+        restoreDeleteTriggerRef.current = true;
+        setConfirmDelete(false);
+      }}
+      onClose={onClose}
+    >
+      {(requestClose) => (
+        <>
+          <form
+            id="place-edit-form"
+            className="form-grid free-composer"
+            onSubmit={submit}
           >
-            {t('m5s3.place.coordinatePairError')}
-          </p>
-        ) : null}
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button type="submit" disabled={isPending}>
-            {updatePending
-              ? t('m5s3.common.saving')
-              : t('m5s3.common.saveChanges')}
-          </button>
-          <button
-            type="button"
-            className="tertiary"
-            onClick={lifecycle.requestClose}
-            disabled={isPending}
-          >
-            {t('common.cancel')}
-          </button>
-        </div>
-        {updateError ? <ProblemState error={updateError} /> : null}
-      </form>
-
-      {place.capabilities.canDelete ? (
-        <div style={{ marginTop: 'var(--space-8)' }}>
-          {!confirmDelete ? (
-            <button
-              ref={deleteTriggerRef}
-              type="button"
-              className="button-link danger-link"
-              onClick={() => setConfirmDelete(true)}
+            <fieldset
               disabled={isPending}
+              className="shared-content-fields form-grid"
             >
-              {t('m5s3.common.delete')}
-            </button>
-          ) : (
-            <section
-              className="planning-danger-zone"
-              aria-labelledby="place-delete-heading"
-            >
-              <h2
-                ref={deleteHeadingRef}
-                id="place-delete-heading"
-                tabIndex={-1}
-              >
-                {t('m5s3.common.deleteHeading')}
-              </h2>
-              <p>{t('m5s3.place.deleteConsequence')}</p>
-              <div className="planning-confirm-row">
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={onDelete}
-                  disabled={isPending}
+              <label htmlFor="place-edit-name">{t('m5s3.place.name')}</label>
+              <input
+                ref={titleInputRef}
+                id="place-edit-name"
+                name="name"
+                required
+                maxLength={200}
+                value={draft.name}
+                onChange={(event) => updateDraft({ name: event.target.value })}
+              />
+              <PlaceMapPicker
+                api={apis.places}
+                spaceId={place.spaceId}
+                disabled={isPending}
+                value={
+                  draft.latitude && draft.longitude
+                    ? {
+                        name: draft.name,
+                        address: draft.address || null,
+                        latitude: Number(draft.latitude),
+                        longitude: Number(draft.longitude),
+                      }
+                    : undefined
+                }
+                onSelect={(selection) =>
+                  updateDraft({
+                    name: selection.name,
+                    address: selection.address ?? '',
+                    latitude: String(selection.latitude),
+                    longitude: String(selection.longitude),
+                  })
+                }
+              />
+              <label htmlFor="place-edit-description">
+                {t('m5s3.common.description')}
+              </label>
+              <textarea
+                id="place-edit-description"
+                name="description"
+                rows={4}
+                value={draft.description}
+                onChange={(event) =>
+                  updateDraft({ description: event.target.value })
+                }
+              />
+              <label htmlFor="place-edit-address">
+                {t('m5s3.place.address')}
+              </label>
+              <input
+                id="place-edit-address"
+                name="address"
+                value={draft.address}
+                onChange={(event) =>
+                  updateDraft({ address: event.target.value })
+                }
+              />
+              <details className="planning-technical-details">
+                <summary>{t('m5s3.place.technicalDetails')}</summary>
+                <div className="planning-coordinate-grid">
+                  <div className="field-group">
+                    <label htmlFor="place-edit-latitude">
+                      {t('m5s3.place.latitude')}
+                    </label>
+                    <input
+                      id="place-edit-latitude"
+                      name="latitude"
+                      type="number"
+                      step="any"
+                      min="-90"
+                      max="90"
+                      value={draft.latitude}
+                      onChange={(event) =>
+                        updateDraft({ latitude: event.target.value })
+                      }
+                      aria-invalid={coordinateError}
+                      aria-describedby={
+                        coordinateError
+                          ? 'place-edit-coordinate-help place-edit-coordinate-error'
+                          : 'place-edit-coordinate-help'
+                      }
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="place-edit-longitude">
+                      {t('m5s3.place.longitude')}
+                    </label>
+                    <input
+                      id="place-edit-longitude"
+                      name="longitude"
+                      type="number"
+                      step="any"
+                      min="-180"
+                      max="180"
+                      value={draft.longitude}
+                      onChange={(event) =>
+                        updateDraft({ longitude: event.target.value })
+                      }
+                      aria-invalid={coordinateError}
+                      aria-describedby={
+                        coordinateError
+                          ? 'place-edit-coordinate-help place-edit-coordinate-error'
+                          : 'place-edit-coordinate-help'
+                      }
+                    />
+                  </div>
+                </div>
+                <p
+                  id="place-edit-coordinate-help"
+                  className="field-help planning-coordinate-help"
                 >
-                  {deletePending
-                    ? t('m5s3.common.deleting')
-                    : t('m5s3.common.confirmDelete')}
+                  {t('m5s3.place.coordinateHelp')}
+                </p>
+              </details>
+              {coordinateError ? (
+                <p
+                  id="place-edit-coordinate-error"
+                  className="field-error"
+                  role="alert"
+                >
+                  {t('m5s3.place.coordinatePairError')}
+                </p>
+              ) : null}
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button type="submit" disabled={isPending}>
+                  {updatePending
+                    ? t('m5s3.common.saving')
+                    : t('m5s3.common.saveChanges')}
                 </button>
                 <button
                   type="button"
                   className="tertiary"
-                  onClick={() => {
-                    restoreDeleteTriggerRef.current = true;
-                    setConfirmDelete(false);
-                  }}
+                  onClick={requestClose}
                   disabled={isPending}
                 >
                   {t('common.cancel')}
                 </button>
               </div>
-              {deleteError ? <ProblemState error={deleteError} /> : null}
-            </section>
-          )}
-        </div>
-      ) : null}
-    </section>
+              {updateError ? <ProblemState error={updateError} /> : null}
+            </fieldset>
+          </form>
+
+          {place.capabilities.canEdit ? (
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                disabled={isPending || isDirty}
+                onClick={onArchive}
+              >
+                {t(
+                  archivePending
+                    ? 'm5s3.common.saving'
+                    : place.archived
+                      ? 'm5s3.place.restore'
+                      : 'm5s3.place.archive',
+                )}
+              </button>
+              {isDirty ? (
+                <p className="field-help">{t('m5s3.place.archiveSaveFirst')}</p>
+              ) : null}
+              {archiveError ? <ProblemState error={archiveError} /> : null}
+            </div>
+          ) : null}
+          {place.capabilities.canDelete ? (
+            <div style={{ marginTop: 'var(--space-8)' }}>
+              {!confirmDelete ? (
+                <button
+                  ref={deleteTriggerRef}
+                  type="button"
+                  className="button-link danger-link"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={isPending}
+                >
+                  {t('m5s3.common.delete')}
+                </button>
+              ) : (
+                <section
+                  className="planning-danger-zone"
+                  aria-labelledby="place-delete-heading"
+                >
+                  <h2
+                    ref={deleteHeadingRef}
+                    id="place-delete-heading"
+                    tabIndex={-1}
+                  >
+                    {t('m5s3.common.deleteHeading')}
+                  </h2>
+                  <p>{t('m5s3.place.deleteConsequence')}</p>
+                  <div className="planning-confirm-row">
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={onDelete}
+                      disabled={isPending}
+                    >
+                      {deletePending
+                        ? t('m5s3.common.deleting')
+                        : t('m5s3.common.confirmDelete')}
+                    </button>
+                    <button
+                      type="button"
+                      className="tertiary"
+                      onClick={() => {
+                        restoreDeleteTriggerRef.current = true;
+                        setConfirmDelete(false);
+                      }}
+                      disabled={isPending}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                  {deleteError ? <ProblemState error={deleteError} /> : null}
+                </section>
+              )}
+            </div>
+          ) : null}
+        </>
+      )}
+    </SharedContentSheet>
   );
 }
 
@@ -314,7 +412,7 @@ export function PlaceProductPage({
   const { placeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const queryClient = useQueryClient();
@@ -322,6 +420,7 @@ export function PlaceProductPage({
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const editorSheetRef = useRef<ShortTaskSheetHandle>(null);
   const key = authorSummaryQueryKeys.placeDetail(spaceId, placeId);
 
   const placeQuery = useQuery({
@@ -335,6 +434,7 @@ export function PlaceProductPage({
   });
 
   const updateMutation = useMutation({
+    networkMode: 'always',
     mutationFn: ({
       place,
       name,
@@ -350,14 +450,15 @@ export function PlaceProductPage({
       latitude: number | null;
       longitude: number | null;
     }) =>
-      apiCall(() =>
-        apis.places.updatePlace({
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.updatePlace({
           spaceId,
           placeId: place.id,
           ifMatch: planningIfMatch(place),
           placeUpdate: { name, description, address, latitude, longitude },
-        }),
-      ),
+        });
+      }),
     onSuccess: async (place) => {
       queryClient.setQueryData(key, place);
       await invalidatePlaceConsumers(queryClient, spaceId);
@@ -366,32 +467,74 @@ export function PlaceProductPage({
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (place: PlaceDetail) =>
-      apiCall(() =>
-        apis.places.deletePlace({
+  const archiveMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (place: PlaceDetail) => {
+      try {
+        assertOnlineWrite();
+        return await apis.places.updatePlace({
           spaceId,
           placeId: place.id,
           ifMatch: planningIfMatch(place),
-        }),
-      ),
+          placeUpdate: { archived: !place.archived },
+        });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onMutate: () => ({ isCurrent: captureAuthorizedQuery(queryClient, key) }),
+    onSuccess: async (place, _previous, context) => {
+      if (!context?.isCurrent()) return;
+      queryClient.setQueryData(key, place);
+      await invalidatePlaceConsumers(queryClient, spaceId);
+      if (!context.isCurrent()) return;
+      setIsEditing(false);
+      setDraft(null);
+      postSnackbar(
+        t(place.archived ? 'm5s3.place.archived' : 'm5s3.place.restored'),
+      );
+    },
+  });
+
+  const deleteMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: (place: PlaceDetail) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.deletePlace({
+          spaceId,
+          placeId: place.id,
+          ifMatch: planningIfMatch(place),
+        });
+      }),
     onMutate: (place) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
-        queryClient.getQueryData<InfiniteItemsData<PlaceDetail>>(
-          authorSummaryQueryKeys.placesOverview(spaceId),
-        ),
+        queryClient
+          .getQueriesData<InfiniteItemsData<PlaceDetail>>({
+            queryKey: authorSummaryQueryKeys.placesOverview(spaceId),
+          })
+          .map(([, data]) => data)
+          .find((data) =>
+            data?.pages.some((page) =>
+              page.items.some((item) => item.id === place.id),
+            ),
+          ),
         place.id,
       ),
     }),
     onSuccess: async (_result, _place, context) => {
-      queryClient.removeQueries({ queryKey: key });
-      await invalidatePlaceConsumers(queryClient, spaceId);
-      navigate(MORE_PLACES_ROUTE, {
-        replace: true,
-        state: {
-          [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
-        },
-      });
+      const returnToOverview = () => {
+        queryClient.removeQueries({ queryKey: key });
+        void invalidatePlaceConsumers(queryClient, spaceId);
+        navigate(MORE_PLACES_ROUTE, {
+          replace: true,
+          state: { [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget },
+        });
+      };
+      if (editorSheetRef.current)
+        editorSheetRef.current.closeForNavigation(returnToOverview);
+      else returnToOverview();
     },
   });
 
@@ -405,7 +548,13 @@ export function PlaceProductPage({
     );
   if (placeQuery.isLoading)
     return <UiState kind="loading" title={t('m5s3.place.loading')} />;
-  if (placeQuery.error)
+  if (
+    placeQuery.error &&
+    (!placeQuery.data ||
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(placeQuery.error),
+      ))
+  )
     return (
       <ProblemState
         error={placeQuery.error}
@@ -416,47 +565,21 @@ export function PlaceProductPage({
   if (!place) return null;
 
   return (
-    <div className="page planning-page">
+    <div className="page shared-content-page">
       <PageHeader
         before={
-          <button
-            type="button"
-            className="back-link tertiary"
+          <TaskBackButton
             onClick={() => requestReturn(originKey, MORE_PLACES_ROUTE)}
-          >
-            {t(
-              resolveOrigin(originKey)
-                ? 'taskBoundary.back'
-                : 'm5s3.common.backToPlaces',
-            )}
-          </button>
+          />
         }
-        eyebrow={t('m5s3.place.detailEyebrow')}
+        className="shared-authored-heading"
+        itemLabel={t('m5s3.place.detailEyebrow')}
         title={place.name}
-        titleEditor={
-          isEditing ? (
-            <input
-              ref={titleInputRef}
-              form="place-edit-form"
-              name="name"
-              required
-              maxLength={200}
-              value={draft?.name ?? place.name}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...(current ?? placeDraft(place)),
-                  name: event.target.value,
-                }))
-              }
-              aria-label={t('m5s3.place.name')}
-            />
-          ) : undefined
-        }
-        description={place.description || t('m5s3.place.noDescription')}
         titleAction={
-          place.capabilities.canEdit && !isEditing ? (
+          place.capabilities.canEdit ? (
             <ListEntryIconButton
               ref={editTriggerRef}
+              disabled={isEditing || archiveMutation.isPending}
               icon="edit"
               className="tertiary"
               label={t('common.edit')}
@@ -469,72 +592,106 @@ export function PlaceProductPage({
         }
       />
 
-      <div className="planning-detail-grid">
-        {isEditing && draft ? (
-          <PlaceEditor
-            place={place}
-            draft={draft}
-            setDraft={setDraft}
-            titleInputRef={titleInputRef}
-            editTriggerRef={editTriggerRef}
-            updatePending={updateMutation.isPending}
-            updateError={updateMutation.error}
-            deletePending={deleteMutation.isPending}
-            deleteError={deleteMutation.error}
-            onSubmit={(next) =>
-              updateMutation.mutate({
-                place,
-                name: next.name.trim(),
-                description: next.description.trim() || null,
-                address: next.address.trim() || null,
-                latitude: next.latitude.trim()
-                  ? Number(next.latitude.trim())
-                  : null,
-                longitude: next.longitude.trim()
-                  ? Number(next.longitude.trim())
-                  : null,
-              })
-            }
-            onDelete={() => deleteMutation.mutate(place)}
-            onClose={() => {
-              setIsEditing(false);
-              setDraft(null);
-              updateMutation.reset();
-              deleteMutation.reset();
-            }}
-          />
-        ) : null}
+      {placeQuery.error ? (
+        <ProblemState
+          error={placeQuery.error}
+          onRetry={() => void placeQuery.refetch()}
+        />
+      ) : null}
 
-        <section className="planning-subsection">
-          <h2>{t('m5s3.place.locationHeading')}</h2>
-          <p>
-            <strong>{t('m5s3.place.address')}:</strong>{' '}
-            {place.address || t('m5s3.place.noAddress')}
-          </p>
-          <details className="planning-technical-details">
-            <summary>{t('m5s3.place.technicalDetails')}</summary>
-            {place.latitude != null && place.longitude != null ? (
-              <p className="planning-meta">
-                {t('m5s3.place.coordinates', {
-                  latitude: place.latitude,
-                  longitude: place.longitude,
-                })}
-              </p>
-            ) : (
-              <p className="planning-meta">{t('m5s3.place.nameOnly')}</p>
-            )}
-            <p className="planning-meta">{t('m5s3.place.noMap')}</p>
-          </details>
-        </section>
-      </div>
+      <PlaceEditor
+        open={isEditing}
+        apis={apis}
+        place={place}
+        draft={draft ?? placeDraft(place)}
+        setDraft={setDraft}
+        titleInputRef={titleInputRef}
+        editTriggerRef={editTriggerRef}
+        sheetRef={editorSheetRef}
+        updatePending={updateMutation.isPending}
+        updateError={updateMutation.error}
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onSubmit={(next) =>
+          updateMutation.mutate({
+            place,
+            name: next.name.trim(),
+            description: next.description.trim() || null,
+            address: next.address.trim() || null,
+            latitude: next.latitude.trim()
+              ? Number(next.latitude.trim())
+              : null,
+            longitude: next.longitude.trim()
+              ? Number(next.longitude.trim())
+              : null,
+          })
+        }
+        onDelete={() => deleteMutation.mutate(place)}
+        onArchive={() => {
+          if (!archiveMutation.isPending) archiveMutation.mutate(place);
+        }}
+        archivePending={archiveMutation.isPending}
+        archiveError={archiveMutation.error}
+        onClose={() => {
+          setIsEditing(false);
+          setDraft(null);
+          updateMutation.reset();
+          deleteMutation.reset();
+          archiveMutation.reset();
+        }}
+      />
 
+      {place.archived ? (
+        <p className="planning-meta" role="status">
+          {t('m5s3.place.scopeARCHIVED')}
+        </p>
+      ) : null}
+      {place.address || place.description ? (
+        <div className="shared-place-intro">
+          {place.address ? (
+            <p className="shared-place-address">
+              <DestinationIcon icon="places" />
+              <span>{place.address}</span>
+            </p>
+          ) : null}
+          {place.description ? (
+            <p className="shared-place-description">{place.description}</p>
+          ) : null}
+        </div>
+      ) : null}
       <PlanningRelationManager
         apis={apis}
         spaceId={spaceId}
+        ownerName={place.name}
         ownerKind="place"
         ownerId={place.id}
         canManage={place.capabilities.canEdit}
       />
+      <details className="shared-place-details">
+        <summary>{t('m5s3.place.locationHeading')}</summary>
+        {place.latitude != null && place.longitude != null ? (
+          <p>
+            {t('m5s3.place.coordinates', {
+              latitude: place.latitude,
+              longitude: place.longitude,
+            })}
+          </p>
+        ) : (
+          <p>{t('m5s3.place.nameOnly')}</p>
+        )}
+      </details>
+      {place.geocodingSource === 'openstreetmap' ? (
+        <p className="shared-place-attribution">
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+          >
+            © OpenStreetMap
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }

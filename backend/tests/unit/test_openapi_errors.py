@@ -23,7 +23,7 @@ EXPECTED_PROBLEM_RESPONSES: dict[tuple[str, str], set[int]] = {
     # 403: no self-service signup on this deployment, or registration disabled
     # when the proof would create an Account. 503: no mail transport (request)
     # or maintenance (consume).
-    ("/api/v1/auth/signup/request", "post"): {403, 422, 429, 503},
+    ("/api/v1/auth/signup/request", "post"): {403, 409, 422, 429, 503},
     # Bound invitations can reject an already-member Account or a full Space.
     ("/api/v1/auth/signup/consume", "post"): {403, 409, 422, 429, 503},
     ("/api/v1/spaces", "post"): {401, 409},

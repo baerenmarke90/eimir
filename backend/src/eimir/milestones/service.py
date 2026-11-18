@@ -20,8 +20,8 @@ from sqlalchemy.orm.exc import StaleDataError
 from eimir.authorization import (
     AuthorizationContext,
     readable,
+    require_editable_locked,
     require_readable,
-    require_writable,
     require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
@@ -192,7 +192,7 @@ def update_milestone(
     body: str | None,
     happened_on: date | None,
 ) -> Milestone:
-    milestone = require_writable(session, Milestone, context, milestone_id)
+    milestone = require_editable_locked(session, Milestone, context, milestone_id)
     _ensure_expected_version(milestone, expected_version)
 
     next_title = milestone.payload.title

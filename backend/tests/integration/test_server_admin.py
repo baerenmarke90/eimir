@@ -111,6 +111,8 @@ def test_allowlisted_but_unverified_email_does_not_grant_server_admin(
     assert capability.status_code == 200
     assert capability.json() == {
         "serverAdmin": False,
+        "videoProcessingEnabled": False,
+        "audioProcessingEnabled": False,
         "auth": {
             "localPassword": True,
             "passkey": True,
@@ -143,6 +145,8 @@ def test_verified_allowlisted_account_gets_server_admin_capability_and_extended_
     assert capability.status_code == 200
     assert capability.json() == {
         "serverAdmin": True,
+        "videoProcessingEnabled": False,
+        "audioProcessingEnabled": False,
         "auth": {
             "localPassword": True,
             "passkey": True,
@@ -245,6 +249,16 @@ def test_account_directory_exposes_identity_metadata_only(
     assert by_id.status_code == 200
     assert by_id.json()["total"] == 1
     assert by_id.json()["items"][0]["id"] == str(target.id)
+
+    # The name is protected content: it is still shown for a found account, but
+    # it is no longer a way to find one (#797).
+    assert payload["items"][0]["displayName"] == "Target Person"
+    by_name = client.get(
+        "/api/v1/server-admin/accounts?query=person",
+        headers=auth(token),
+    )
+    assert by_name.status_code == 200
+    assert by_name.json()["total"] == 0
 
 
 def test_space_directory_exposes_only_lifecycle_metadata(

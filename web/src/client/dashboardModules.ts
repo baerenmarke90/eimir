@@ -11,9 +11,10 @@
  * modules: the App Shell is out of #817's scope entirely, and the empty state
  * only ever appears in place of the configurable module stack, never as one
  * of its members. `relationship_presence` (the Couple Presence hero) IS a
- * module like any other - #817 has no core/high-priority exception - it is
- * simply the one whose Today rendering doubles as the page's `<h1>`; see
- * `TodayPage.tsx` for how hiding it preserves an accessible heading.
+ * module in the persisted API contract. The Wir presentation now pins it at
+ * the top and always displays it, even for older saved preferences that hid or
+ * moved it; the other sections remain independently configurable.
+ * The page H1 stays in PageHeader rather than in the couple hero.
  *
  * This list must stay in sync with the backend catalog in
  * `backend/src/eimir/dashboard/preferences.py`. Both are tested against
@@ -24,18 +25,29 @@
 
 export type DashboardModuleKey =
   | 'relationship_presence'
+  | 'partner_distance'
+  | 'shared_experience'
+  | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
+  | 'pinned_note'
   | 'keepsake'
+  | 'retrospective'
   | 'relationship_signal'
   | 'monthly_highlights'
   | 'recent_shared'
-  | 'shared_story_summary';
+  | 'shared_story_summary'
+  | 'shared_garden';
 
 export interface DashboardModuleCatalogEntry {
   key: DashboardModuleKey;
-  /** i18n key for the module's Settings-facing (and Today-facing) label. */
+  /** i18n key for the module's label in Settings, without interpolation. */
   labelKey: string;
+  /**
+   * Visibility without a saved choice. Only an opt-in module sets `false`;
+   * the backend catalog carries the same `default_visible`.
+   */
+  defaultVisible?: false;
 }
 
 /**
@@ -48,20 +60,44 @@ export interface DashboardModuleCatalogEntry {
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
+    { key: 'partner_distance', labelKey: 'partnerLocation.wirModuleLabel' },
+    { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
+    { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
     { key: 'upcoming', labelKey: 'm5s5.dashboard.upcomingTitle' },
     {
       key: 'pinned_collection',
       labelKey: 'm5s5.dashboard.pinnedCollectionSettingsTitle',
     },
+    {
+      key: 'pinned_note',
+      labelKey: 'sharedNotes.dashboard.settingsTitle',
+    },
+    { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
-    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.title' },
+    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.settingsTitle' },
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',
-      labelKey: 'm5s5.dashboard.storySummarySettingsTitle',
+      labelKey: 'm5s5.dashboard.storySummaryTitle',
+    },
+    // Product Owner 2026-11-17: the shared garden on Wir, only when chosen.
+    {
+      key: 'shared_garden',
+      labelKey: 'games.garden.title',
+      defaultVisible: false,
     },
   ];
 
 export const DASHBOARD_MODULE_KEYS: readonly DashboardModuleKey[] =
   DASHBOARD_MODULE_CATALOG.map((entry) => entry.key);
+
+/** Whether a module shows on Wir before the person made a choice. */
+export function dashboardModuleDefaultVisible(
+  key: DashboardModuleKey,
+): boolean {
+  return (
+    DASHBOARD_MODULE_CATALOG.find((entry) => entry.key === key)
+      ?.defaultVisible !== false
+  );
+}

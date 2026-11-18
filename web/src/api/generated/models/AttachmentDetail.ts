@@ -40,6 +40,12 @@ export interface AttachmentDetail {
      */
     durationSeconds: number | null;
     /**
+     * Stable validation code for a failed upload; never decoder diagnostics.
+     * @type {string}
+     * @memberof AttachmentDetail
+     */
+    failureCode?: string | null;
+    /**
      * 
      * @type {boolean}
      * @memberof AttachmentDetail
@@ -57,6 +63,12 @@ export interface AttachmentDetail {
      * @memberof AttachmentDetail
      */
     id: string;
+    /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof AttachmentDetail
+     */
+    isSensitive?: boolean;
     /**
      * 
      * @type {MediaType}
@@ -127,9 +139,11 @@ export function AttachmentDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'createdAt': (new Date(json['createdAt'])),
         'durationSeconds': json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'size': json['size'],
@@ -152,9 +166,11 @@ export function AttachmentDetailToJSONTyped(value?: AttachmentDetail | null, ign
         
         'createdAt': value['createdAt'].toISOString(),
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'size': value['size'],

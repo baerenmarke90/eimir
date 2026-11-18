@@ -1,0 +1,379 @@
+"""Official Google Photos Picker, limited to a single consented selection."""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import time
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from typing import Any, BinaryIO, Literal
+from urllib.parse import quote, urlencode, urlsplit
+
+from pydantic import SecretStr
+
+from eimir.attachments.limits import IMAGE_MAX_SIZE, VIDEO_MAX_SIZE, supported_mime_types
+from eimir.providers.google_photos_config import (
+    AUTH_URI,
+    SCOPE,
+    TOKEN_URI,
+)
+from eimir.providers.google_photos_config import CALLBACK_PATH as CALLBACK_PATH
+from eimir.providers.google_photos_config import GooglePhotosClient as GooglePhotosClient
+from eimir.providers.google_photos_config import client_configuration as client_configuration
+from eimir.providers.photo_transport import (
+    PhotoResponse,
+    PhotoSourceError,
+    PhotoSourceHttp,
+    SelectedPhoto,
+)
+
+_JSON_LIMIT = 128 * 1024
+_MIME = re.compile(r"[a-z0-9][a-z0-9!#$&^_.+-]{0,40}/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}")
+_VIDEO_MIME_TYPES = frozenset({"video/mp4", "video/quicktime"})
+VIDEO_DOWNLOAD_SECONDS = 240
+
+ItemKind = Literal["IMAGE", "VIDEO", "OTHER"]
+
+
+@dataclass(frozen=True)
+class GoogleItem:
+    """One selected provider item. The URL never leaves the encrypted task payload."""
+
+    source_id: str = field(repr=False)
+    mime_type: str
+    kind: ItemKind
+    provider_state: str | None
+    code: str | None
+    url: str | None = field(default=None, repr=False)
+
+
+def sanitize_mime(value: object) -> str:
+    """Lower-case type/subtype only; parameters and anything unusual collapse to empty."""
+    if not isinstance(value, str):
+        return ""
+    base = value.split(";", 1)[0].strip().lower()
+    return base if _MIME.fullmatch(base) else ""
+
+
+@dataclass(frozen=True)
+class PickerTiming:
+    interval: timedelta
+    poll_deadline: datetime
+    expires_at: datetime
+
+
+def session_timing(
+    value: dict[str, Any],
+    *,
+    at: datetime,
+    expires_at: datetime,
+    poll_deadline: datetime | None = None,
+) -> PickerTiming:
+    """Intersect provider advice with the existing task, never extend either."""
+    config = value.get("pollingConfig")
+    if not isinstance(config, dict):
+        raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+
+    def duration(name: str, *, positive: bool = False) -> timedelta:
+        raw = config.get(name)
+        if (
+            not isinstance(raw, str)
+            or re.fullmatch(r"(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,9})?s", raw) is None
+        ):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        parsed = timedelta(seconds=float(raw[:-1]))
+        if positive and parsed <= timedelta():
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        return parsed
+
+    interval = duration("pollInterval", positive=True)
+    timeout = at + duration("timeoutIn")
+    raw_expiry = value.get("expireTime")
+    if raw_expiry is not None:
+        try:
+            if not isinstance(raw_expiry, str) or "T" not in raw_expiry:
+                raise ValueError
+            provider_expiry = datetime.fromisoformat(raw_expiry)
+            if provider_expiry.tzinfo is None:
+                raise ValueError
+            expires_at = min(expires_at, provider_expiry.astimezone(UTC))
+        except (ValueError, OverflowError):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID") from None
+    deadline = min(timeout, poll_deadline or expires_at, expires_at)
+    return PickerTiming(interval, deadline, expires_at)
+
+
+# This SDK otherwise emits raw token responses at DEBUG. Provider material is
+# never diagnostic content, including when the operator enables debug logging.
+logging.getLogger("requests_oauthlib.oauth2_session").setLevel(logging.CRITICAL + 1)
+
+
+def _flow(
+    *,
+    state: str | None = None,
+    verifier: str | None = None,
+    client: GooglePhotosClient | None = None,
+) -> Any:
+    from google_auth_oauthlib.flow import Flow  # type: ignore[import-untyped]
+
+    client = client or client_configuration()
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": client.client_id,
+                "client_secret": client.client_secret.get_secret_value(),
+                "auth_uri": AUTH_URI,
+                "token_uri": TOKEN_URI,
+            }
+        },
+        scopes=[SCOPE],
+        state=state,
+        code_verifier=verifier,
+        autogenerate_code_verifier=verifier is None,
+    )
+    flow.redirect_uri = client.redirect_uri
+    flow.oauth2session.trust_env = False
+    return flow
+
+
+def authorization(
+    *, client: GooglePhotosClient | None = None, login_hint: str | None = None
+) -> tuple[str, str, str]:
+    """Build the consent URL. ``login_hint`` only pre-selects the account in Google's window.
+
+    Without a hint Google always asks which account to use. With one, ``prompt`` is omitted:
+    ``select_account`` would show the chooser again. The hint grants nothing and proves nothing;
+    Google still authenticates the person and the callback never reads it.
+    """
+    flow = _flow(client=client)
+    try:
+        if login_hint:
+            url, state = flow.authorization_url(access_type="online", login_hint=login_hint)
+        else:
+            url, state = flow.authorization_url(access_type="online", prompt="select_account")
+        return str(url), str(state), str(flow.code_verifier)
+    finally:
+        flow.oauth2session.close()
+
+
+def exchange(
+    code: str, state: str, verifier: str, *, client: GooglePhotosClient | None = None
+) -> str:
+    flow = _flow(state=state, verifier=verifier, client=client)
+    deadline = time.monotonic() + 25
+
+    def bounded(response: Any, **_: Any) -> Any:
+        content = bytearray()
+        try:
+            for chunk in response.iter_content(chunk_size=4096):
+                content.extend(chunk)
+                if len(content) > 64 * 1024 or time.monotonic() > deadline:
+                    raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+            response._content = bytes(content)
+            response._content_consumed = True
+            return response
+        finally:
+            response.close()
+
+    flow.oauth2session.hooks["response"] = [bounded]
+    try:
+        flow.fetch_token(code=code, timeout=(5, 5), allow_redirects=False, stream=True)
+        token = flow.credentials.token
+    except Exception:
+        # OAuth exceptions can quote codes, tokens and provider response text.
+        raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED") from None
+    finally:
+        flow.oauth2session.close()
+    if not isinstance(token, str) or not token:
+        raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED")
+    return token
+
+
+def picker_uri(value: object) -> str:
+    try:
+        parsed = urlsplit(value) if isinstance(value, str) else None
+        if (
+            parsed is None
+            or parsed.scheme != "https"
+            or parsed.hostname != "photos.google.com"
+            or parsed.port is not None
+            or parsed.username
+            or parsed.password
+            or parsed.fragment
+            or "\\" in str(value)
+            or any(ord(c) < 33 for c in str(value))
+        ):
+            raise ValueError
+    except ValueError:
+        raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID") from None
+    return str(value)
+
+
+class GooglePhotoPicker:
+    def __init__(self, token: str) -> None:
+        self._transport = PhotoSourceHttp(
+            "https://photospicker.googleapis.com",
+            {"Authorization": SecretStr(f"Bearer {token}")},
+            report_rate_limit=True,
+        )
+        self._token = SecretStr(token)
+
+    def _json(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        raw = self._transport.request(
+            method,
+            path,
+            limit=_JSON_LIMIT,
+            mime_types={"application/json"},
+            deadline=time.monotonic() + 30,
+            body=json.dumps(body).encode() if body is not None else None,
+            statuses=frozenset({200, 204}),
+        )
+        try:
+            value = json.loads(raw) if raw else {}
+        except (ValueError, RecursionError):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID") from None
+        if not isinstance(value, dict):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        return value
+
+    def create(self, count: int) -> dict[str, Any]:
+        value = self._json("POST", "/v1/sessions", {"pickingConfig": {"maxItemCount": str(count)}})
+        picker_uri(value.get("pickerUri"))
+        if not isinstance(value.get("id"), str) or len(value["id"]) > 1024:
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        return value
+
+    def poll(self, identifier: str) -> dict[str, Any]:
+        return self._json("GET", "/v1/sessions/" + quote(identifier, safe=""))
+
+    def items(self, identifier: str, maximum: int) -> list[GoogleItem]:
+        """Enumerate every selected item with a typed descriptor.
+
+        An item this release cannot import stays in the list with a fixed code, so it can
+        neither disappear silently nor fail the rest of a valid selection. Only a structurally
+        invalid response (shape, count, paging) rejects the whole selection.
+        """
+        result: list[GoogleItem] = []
+        page: str | None = None
+        for _ in range(3):
+            query = {"sessionId": identifier, "pageSize": "100"}
+            if page:
+                query["pageToken"] = page
+            value = self._json("GET", "/v1/mediaItems?" + urlencode(query))
+            items = value.get("mediaItems", [])
+            if not isinstance(items, list) or len(items) > maximum:
+                raise PhotoSourceError("PHOTO_SOURCE_SELECTION_INVALID")
+            for item in items:
+                if not isinstance(item, dict):
+                    raise PhotoSourceError("PHOTO_SOURCE_SELECTION_INVALID")
+                result.append(self._descriptor(item))
+            if len(result) > maximum:
+                raise PhotoSourceError("PHOTO_SOURCE_SELECTION_INVALID")
+            page = value.get("nextPageToken")
+            if not page:
+                return result
+            if not isinstance(page, str) or len(page) > 4096:
+                break
+        raise PhotoSourceError("PHOTO_SOURCE_SELECTION_INVALID")
+
+    @classmethod
+    def _descriptor(cls, item: dict[str, Any]) -> GoogleItem:
+        raw_type = item.get("type")
+        kind: ItemKind = (
+            "IMAGE" if raw_type == "PHOTO" else "VIDEO" if raw_type == "VIDEO" else "OTHER"
+        )
+        media = item.get("mediaFile")
+        media = media if isinstance(media, dict) else {}
+        mime = sanitize_mime(media.get("mimeType"))
+        source_id, url = item.get("id"), media.get("baseUrl")
+        if not isinstance(source_id, str) or not 0 < len(source_id) <= 1024:
+            source_id = ""
+        usable_url = (
+            url if isinstance(url, str) and len(url) <= 8192 and cls._media_url_ok(url) else None
+        )
+        state: str | None = None
+        if kind == "VIDEO":
+            metadata = media.get("mediaFileMetadata")
+            video = metadata.get("videoMetadata") if isinstance(metadata, dict) else None
+            raw_state = video.get("processingStatus") if isinstance(video, dict) else None
+            state = raw_state if raw_state in {"PROCESSING", "READY", "FAILED"} else "UNSPECIFIED"
+        code: str | None = None
+        if (
+            kind == "OTHER"
+            or (kind == "IMAGE" and mime not in supported_mime_types())
+            or (kind == "VIDEO" and mime and mime not in _VIDEO_MIME_TYPES)
+        ):
+            code = "UNSUPPORTED_TYPE"
+        elif not source_id or usable_url is None or state == "FAILED":
+            code = "UNAVAILABLE"
+        return GoogleItem(
+            source_id,
+            mime,
+            kind,
+            state,
+            code,
+            usable_url if code is None or code == "UNSUPPORTED_TYPE" else None,
+        )
+
+    @classmethod
+    def _media_url_ok(cls, value: str) -> bool:
+        try:
+            cls._media_url(value)
+        except PhotoSourceError:
+            return False
+        return True
+
+    @staticmethod
+    def _media_url(value: str) -> tuple[str, str]:
+        if not value.isascii() or not re.fullmatch(
+            r"https://lh[0-9]+\.googleusercontent\.com/[^?#\s\\]+", value
+        ):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        parsed = urlsplit(value)
+        return f"https://{parsed.hostname}", parsed.path
+
+    def read(self, value: str, mime: str) -> SelectedPhoto:
+        origin, path = self._media_url(value)
+        content = PhotoSourceHttp(
+            origin, {"Authorization": SecretStr("Bearer " + self._token.get_secret_value())}
+        ).request(
+            "GET",
+            path + "=d",
+            limit=IMAGE_MAX_SIZE,
+            mime_types={mime, "application/octet-stream"},
+            deadline=time.monotonic() + 30,
+        )
+        extension = {
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+            "image/heic": "heic",
+            "image/heif": "heif",
+        }.get(mime)
+        if extension is None:
+            raise PhotoSourceError("PHOTO_SOURCE_IMAGE_UNAVAILABLE")
+        return SelectedPhoto(content, mime, "imported-photo." + extension)
+
+    def download_video(self, value: str, sink: BinaryIO, *, deadline: float) -> PhotoResponse:
+        """Stream Google's transcoded copy of a provider-READY video into a private file.
+
+        This is the documented ``=dv`` variant: a playable derivative, not the original file.
+        Actual bytes, codec and size are validated later by the existing attachment ingestion.
+        """
+        origin, path = self._media_url(value)
+        return PhotoSourceHttp(
+            origin,
+            {"Authorization": SecretStr("Bearer " + self._token.get_secret_value())},
+            report_rate_limit=True,
+        ).download(
+            path + "=dv",
+            sink,
+            limit=VIDEO_MAX_SIZE,
+            mime_types={*_VIDEO_MIME_TYPES, "application/octet-stream"},
+            deadline=deadline,
+        )
+
+    def delete(self, identifier: str) -> None:
+        self._json("DELETE", "/v1/sessions/" + quote(identifier, safe=""))

@@ -1,0 +1,639 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import AxeBuilder from '../support/axe';
+import { expect, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import composer from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
+import planningCopy from '../../src/i18n/locales/m5s3';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import copy from '../../src/i18n/locales/photoPlaces';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { mockMapTiles } from '../support/mapTiles';
+import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import {
+  ACCOUNT_ID,
+  CAPABILITIES,
+  captureScreenshot,
+  getTimelineItems,
+  installMocks,
+  ME,
+  SPACE_ID,
+  signIn,
+} from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
+
+const BASE = `/api/v1/spaces/${SPACE_ID}`;
+const place = {
+  id: 'saved-place',
+  name: 'Our park by the water',
+  address: 'River Lane',
+  latitude: 52.5,
+  longitude: 13.4,
+  spaceId: SPACE_ID,
+  version: 1,
+  createdAt: '2026-10-29T12:00:00Z',
+  updatedAt: '2026-10-29T12:00:00Z',
+  capabilities: CAPABILITIES,
+};
+function createMemoryFixture() {
+  return {
+    id: 'mem-canal',
+    spaceId: SPACE_ID,
+    author: ME,
+    authorId: ACCOUNT_ID,
+    title: 'Breakfast by the canal',
+    body: 'A wonderful morning by the water.',
+    tags: [],
+    attachments: [],
+    happenedOn: '2026-05-12',
+    happenedUntil: null,
+    placeIds: [] as string[],
+    capabilities: CAPABILITIES,
+    createdAt: '2026-05-12T08:30:00Z',
+    updatedAt: '2026-05-12T08:30:00Z',
+    version: 1,
+  };
+}
+
+for (const scenario of [
+  { width: 390, height: 844, theme: 'light', scale: 1 },
+  { width: 430, height: 932, theme: 'dark', scale: 1 },
+  { width: 1280, height: 900, theme: 'light', scale: 1 },
+  { width: 320, height: 760, theme: 'dark', scale: 2 },
+])
+  test(`rediscovery and Diary modes open, edit, add Place, return at ${scenario.width} ${scenario.theme} text ${scenario.scale}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({
+      width: scenario.width,
+      height: scenario.height,
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      scenario.theme,
+    );
+    const unexpected = await installMocks(page);
+    let linked = false;
+    let links = 0;
+    const updates: Record<string, unknown>[] = [];
+    let memory = createMemoryFixture();
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
+      const path = new URL(route.request().url()).pathname;
+      if (path === `${BASE}/memories/mem-canal`) {
+        if (route.request().method() === 'PATCH') {
+          const { expectedPlaceIds, ...values } = route
+            .request()
+            .postDataJSON();
+          updates.push({ ...values, expectedPlaceIds });
+          memory = { ...memory, ...values, version: memory.version + 1 };
+          linked = memory.placeIds.includes(place.id);
+        }
+        return route.fulfill({ json: memory });
+      }
+      if (path === `${BASE}/places`)
+        return route.fulfill({
+          json: { items: [place], nextCursor: null, hasMore: false },
+        });
+      if (path === `${BASE}/moments/memories/mem-canal/places`)
+        return route.fulfill({
+          json: {
+            items: linked ? [place] : [],
+            nextCursor: null,
+            hasMore: false,
+          },
+        });
+      if (
+        path === `${BASE}/places/saved-place/memories/mem-canal` &&
+        route.request().method() === 'PUT'
+      ) {
+        linked = true;
+        links++;
+        return route.fulfill({ status: 204 });
+      }
+      if (path.endsWith('/content') && path.includes('/attachments/'))
+        return route.fulfill({
+          contentType: 'image/png',
+          body: readFileSync(
+            fileURLToPath(
+              new URL(
+                '../fixtures/plan-cover-fit/landscape.png',
+                import.meta.url,
+              ),
+            ),
+          ),
+        });
+      return route.fallback();
+    });
+    await signIn(page);
+    await page.goto('/story');
+    if (scenario.scale > 1)
+      await page.addStyleTag({
+        content: `html { font-size: ${scenario.scale * 100}% !important; }`,
+      });
+    const discover = page.getByRole('tab', {
+      name: de.story.tabDiscover,
+      exact: true,
+    });
+    const diary = page.getByRole('tab', {
+      name: de.story.tabTimeline,
+      exact: true,
+    });
+    await expect(discover).toHaveAttribute('aria-selected', 'true');
+    await expect(diary).toBeVisible();
+    await expect(page.getByRole('tablist')).toHaveCount(1);
+    await expect(
+      page.getByRole('heading', {
+        name: de.story.discoverHeading,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    ).toHaveCount(0);
+    // The curated selection plays as one Fotostory: every entry except the
+    // lead appears once, and the Heart Moment wears its emotion badge (#1784).
+    const story = storyProducts.discoverStory;
+    const storyViewer = page.locator('.momente-story-viewer');
+    const storyOpen = storyViewer.getByRole('link', {
+      name: new RegExp(`^${story.open}:`),
+    });
+    const storyHrefs = new Set<string>();
+    let heartBadges = 0;
+    for (let index = 0; index < getTimelineItems().length - 1; index++) {
+      storyHrefs.add((await storyOpen.getAttribute('href')) ?? '');
+      heartBadges += await storyViewer
+        .locator(
+          '.momente-story-slide[data-state="current"] .heart-emotion-badge',
+        )
+        .count();
+      await page.getByRole('button', { name: story.next, exact: true }).click();
+    }
+    expect(storyHrefs.size).toBe(getTimelineItems().length - 1);
+    expect(heartBadges).toBe(1);
+    const overflowDetails = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('main *'))
+        .filter((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.width > innerWidth || rect.right > innerWidth + 1;
+        })
+        .slice(0, 14)
+        .map((node) => ({
+          tag: node.tagName,
+          className: node.className,
+          width: node.getBoundingClientRect().width,
+        })),
+    );
+
+    expect(overflowDetails).toEqual([]);
+    if (scenario.scale === 1) {
+      // The theme bubbles share one row above the story viewer.
+      const cards = await page
+        .locator('.momente-story-bubble')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            x: node.getBoundingClientRect().x,
+            y: node.getBoundingClientRect().y,
+          })),
+        );
+      expect(cards[1].x).toBeGreaterThan(cards[0].x);
+      expect(Math.abs(cards[1].y - cards[0].y)).toBeLessThan(1);
+    }
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+        ),
+      )
+      .toBe(true);
+
+    await captureScreenshot(
+      page,
+      info,
+      `moments-${scenario.width}-${scenario.theme}-${scenario.scale}.png`,
+      { fullPage: true },
+    );
+    await diary.click();
+    await expect(diary).toHaveAttribute('aria-selected', 'true');
+    const offsets = await page
+      .locator('.story-timeline-marker')
+      .evaluateAll((markers) =>
+        markers.map((marker) => {
+          const entry = marker.closest('.story-timeline-item');
+          const card = entry?.querySelector('.story-card-link');
+          if (!entry || !card)
+            throw new Error(
+              'A timeline marker must belong to its card and rail.',
+            );
+          const rail = getComputedStyle(entry, '::before');
+          const box = entry.getBoundingClientRect();
+          const cardBox = card.getBoundingClientRect();
+          const node = marker.getBoundingClientRect();
+          return {
+            horizontal: Math.abs(
+              node.left + node.width / 2 - (box.left + parseFloat(rail.left)),
+            ),
+            vertical: Math.abs(
+              node.top + node.height / 2 - (cardBox.top + cardBox.height / 2),
+            ),
+          };
+        }),
+      );
+    expect(offsets.length).toBeGreaterThan(0);
+    for (const offset of offsets) {
+      expect(offset.horizontal).toBeLessThanOrEqual(1);
+      expect(offset.vertical).toBeLessThanOrEqual(1);
+    }
+    await page
+      .locator('#momente-diary [data-task-item-key="memory-mem-canal"]')
+      .click();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Breakfast by the canal',
+        level: 2,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('link', { name: memoryProduct.edit, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
+    await openComposerPlace(page);
+    const picker = page.getByRole('dialog', { name: copy.add });
+    await expect(picker).toBeVisible();
+    await expect(picker.locator('select')).toHaveCount(0);
+    await picker
+      .locator('.moment-place-choices')
+      .getByRole('button', { name: /Our park by the water/ })
+      .click();
+    await expect(
+      picker
+        .locator('.ordered-moment-places > ol')
+        .getByText(place.name, { exact: true }),
+    ).toBeVisible();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
+    await expect(picker).toBeHidden();
+    await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+    expect(links).toBe(0);
+    expect(updates).toEqual([]);
+    await expect(
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
+    ).toHaveCount(1);
+    await page
+      .getByRole('button', { name: memoryProduct.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      placeIds: [place.id],
+      expectedPlaceIds: [],
+    });
+    expect(links).toBe(0);
+    await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+    await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(diary).toHaveAttribute('aria-selected', 'true');
+    expect(unexpected).toEqual([]);
+  });
+
+for (const theme of ['light', 'dark'])
+  test(`session restoration shows a restrained public startup logo: ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir.theme', value),
+      theme,
+    );
+    await installMocks(page);
+    await signIn(page);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(/\/api\/v1\/auth\/(me|memberships)$/, async (route) => {
+      await gate;
+      await route.fallback();
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const startup = page.locator('.branded-startup');
+    await expect(startup).toBeVisible();
+    await expect(startup.locator('.ui-state')).toHaveCount(0);
+    const logo = await startup.locator('.brand-mark').boundingBox();
+    if (!logo) throw new Error('The public startup logo must be visible.');
+    expect(logo.width).toBeLessThanOrEqual(72);
+    if (!logo) throw new Error('The public startup logo must be visible.');
+    expect(logo.width).toBeGreaterThanOrEqual(48);
+    await expect(startup.getByRole('status')).toHaveText(
+      de.states.loading.title,
+    );
+    expect(
+      await startup
+        .getByRole('status')
+        .evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+    ).toBeLessThanOrEqual(18);
+    await expect(page.getByRole('navigation')).toHaveCount(0);
+    await captureScreenshot(page, info, `startup-${theme}-390.png`);
+    release();
+    await expect(startup).toHaveCount(0);
+  });
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const)
+  test(`Wir restores saved content and module choices before slow background reads: ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await installMocks(page);
+    let delay = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/v1/auth/me', async (route) => {
+      if (delay) await gate;
+      await route.fallback();
+    });
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/dashboard/preferences`,
+      async (route) => {
+        if (delay) await gate;
+        await route.fulfill({
+          json: {
+            items: DASHBOARD_MODULE_KEYS.map((moduleKey) => ({
+              moduleKey,
+              visible: moduleKey !== 'keepsake',
+            })),
+          },
+        });
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/dashboard`,
+      async (route) => {
+        const revalidating = delay;
+        if (delay) await gate;
+        await route.fulfill({
+          json: {
+            space: {
+              spaceId: SPACE_ID,
+              partner: { id: 'partner', displayName: 'Alex' },
+            },
+            relationshipDuration: null,
+            retrospective: null,
+            recentShared: [],
+            sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
+            viewerLocalDate: '2026-09-17',
+            upcoming: [
+              {
+                id: 'startup-plan',
+                type: 'PLAN',
+                titleOrText: revalidating
+                  ? 'Fresh afternoon together'
+                  : 'Saved afternoon together',
+                scheduledOn: '2026-09-19',
+                scheduledAt: null,
+                occurredOn: null,
+                createdAt: '2026-09-17T12:00:00Z',
+              },
+            ],
+          },
+        });
+      },
+    );
+    await signIn(page);
+    await page.goto('/today');
+    await expect(
+      page.getByText('Saved afternoon together', { exact: true }),
+    ).toBeVisible();
+    delay = true;
+    try {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(
+        page.getByText('Saved afternoon together', { exact: true }),
+      ).toBeVisible();
+      await expect(page.locator('.overview-cache-notice')).toBeVisible();
+      await expect(page.locator('.today-hero')).toBeVisible();
+      await expect(page.locator('.branded-startup')).toHaveCount(0);
+      await expect(page.locator('.today-page .ui-state')).toHaveCount(0);
+      await captureScreenshot(
+        page,
+        info,
+        `wir-background-start-${width}-${theme}.png`,
+        { fullPage: true },
+      );
+    } finally {
+      release();
+    }
+    await expect(
+      page.getByText('Fresh afternoon together', { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.overview-cache-notice')).toHaveCount(0);
+    // The fixed couple hero stays; the hidden personal section stays hidden.
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-section-moment')).toHaveCount(0);
+
+    // Even with a saved overview, a current denial cannot authorize a cold start.
+    await page.route('**/api/v1/auth/memberships', (route) =>
+      route.fulfill({
+        status: 403,
+        json: { code: 'ACCESS_DENIED', title: 'Access denied' },
+      }),
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByText('Fresh afternoon together', { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.today-content')).toHaveCount(0);
+  });
+
+test('a created map Place survives a failed Memory save and retries only its staged assignment', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpected = await installMocks(page, { strict: true });
+  const creates: Record<string, unknown>[] = [];
+  const assignments: {
+    body: Record<string, unknown>;
+    ifMatch: string | undefined;
+  }[] = [];
+  let legacyLinks = 0;
+  let memory = createMemoryFixture();
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const method = request.method();
+    if (path === `${BASE}/places/lookup`)
+      return route.fulfill({
+        json: {
+          items: [
+            {
+              name: place.name,
+              address: place.address,
+              latitude: place.latitude,
+              longitude: place.longitude,
+            },
+          ],
+          attribution: '© OpenStreetMap contributors',
+        },
+      });
+    if (path === `${BASE}/places` && method === 'POST') {
+      const values = request.postDataJSON();
+      creates.push(values);
+      return route.fulfill({ status: 201, json: { ...place, ...values } });
+    }
+    if (path === `${BASE}/places`)
+      return route.fulfill({
+        json: {
+          items: creates.length ? [place] : [],
+          nextCursor: null,
+          hasMore: false,
+        },
+      });
+    if (path === `${BASE}/moments/memories/mem-canal/places`)
+      return route.fulfill({
+        json: {
+          items: memory.placeIds.includes(place.id) ? [place] : [],
+          nextCursor: null,
+          hasMore: false,
+        },
+      });
+    if (path === `${BASE}/memories/mem-canal`) {
+      if (method === 'PATCH') {
+        const body = request.postDataJSON();
+        assignments.push({ body, ifMatch: request.headers()['if-match'] });
+        if (assignments.length === 1)
+          return route.fulfill({
+            status: 500,
+            contentType: 'application/problem+json',
+            json: {
+              status: 500,
+              code: 'TEST_SAVE_FAILURE',
+              title: 'Temporary save failure',
+              type: 'about:blank',
+            },
+          });
+        const { expectedPlaceIds: _expectedPlaceIds, ...values } = body;
+        memory = { ...memory, ...values, version: memory.version + 1 };
+      }
+      return route.fulfill({ json: memory });
+    }
+    if (
+      path === `${BASE}/places/saved-place/memories/mem-canal` &&
+      method === 'PUT'
+    ) {
+      legacyLinks++;
+      return route.fulfill({ status: 204 });
+    }
+    return route.fallback();
+  });
+  await mockMapTiles(page, { fail: true });
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
+  await openComposerPlace(page);
+  const picker = page.getByRole('dialog', { name: copy.add });
+  await picker
+    .getByRole('button', { name: planningCopy.map.open, exact: true })
+    .click();
+  const map = page.getByRole('dialog', { name: planningCopy.map.title });
+  await map.getByLabel(planningCopy.map.searchLabel).fill('River park');
+  await map
+    .getByRole('button', { name: planningCopy.map.search, exact: true })
+    .click();
+  await map
+    .getByRole('button', {
+      name: `${place.name}, ${place.address}`,
+      exact: true,
+    })
+    .click();
+  await expect(
+    map.getByText(copy.sharedCreateHint, { exact: true }),
+  ).toBeVisible();
+  await map
+    .getByRole('button', { name: copy.saveSharedPlace, exact: true })
+    .click();
+  await expect(map).toBeHidden();
+  await expect(
+    picker
+      .locator('.ordered-moment-places > ol')
+      .getByText(place.name, { exact: true }),
+  ).toBeVisible();
+  await picker
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
+  await expect(picker).toBeHidden();
+  await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(creates).toEqual([
+    {
+      name: place.name,
+      address: place.address,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    },
+  ]);
+  expect(assignments).toEqual([]);
+  expect(legacyLinks).toBe(0);
+  const save = page.getByRole('button', {
+    name: memoryProduct.save,
+    exact: true,
+  });
+  await save.click();
+  await expect(
+    page.getByText(de.states.server.title, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(assignments).toHaveLength(1);
+  expect(memory.placeIds).toEqual([]);
+  await save.click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(creates).toHaveLength(1);
+  expect(assignments).toHaveLength(2);
+  expect(assignments[0].body).toMatchObject({
+    placeIds: [place.id],
+    expectedPlaceIds: [],
+  });
+  expect(assignments[1].body).toEqual(assignments[0].body);
+  expect(assignments.map((entry) => entry.ifMatch)).toEqual(['1', '1']);
+  expect(legacyLinks).toBe(0);
+  expect(unexpected).toEqual([]);
+});

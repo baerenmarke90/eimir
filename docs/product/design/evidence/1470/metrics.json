@@ -1,0 +1,320 @@
+{
+  "baseline": "624458354c651b39c19f97a82f04eda1a93a5314",
+  "environment": "Chromium, intercepted synthetic API and Capacitor plugin callbacks; not a physical Android device",
+  "browser": {
+    "expected": 49,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0
+  },
+  "resumeScenarios": [
+    {
+      "width": 390,
+      "failure": 200,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": 429,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": 503,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": "offline",
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": 401,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": 403,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    },
+    {
+      "width": 390,
+      "failure": 404,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 200,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 429,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 503,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": "offline",
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": false,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 401,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 403,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    },
+    {
+      "width": 1280,
+      "failure": 404,
+      "shortResumeCycles": 3,
+      "staleMembershipReads": 1,
+      "initialPhotoTransports": 3,
+      "additionalPhotoTransports": 0,
+      "additionalDescriptors": 0,
+      "authorizationBlocked": true,
+      "objectUrlsBefore": {
+        "created": 3,
+        "revoked": 0,
+        "active": 3,
+        "peak": 3
+      },
+      "objectUrlsAfter": {
+        "created": 3,
+        "revoked": 3,
+        "active": 0,
+        "peak": 3
+      }
+    }
+  ]
+}

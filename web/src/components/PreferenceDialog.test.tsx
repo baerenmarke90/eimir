@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PreferenceDialog, PreferenceManager } from './ProfilePageBase';
@@ -9,6 +15,7 @@ import { PreferenceCategory } from '../api/generated/models/PreferenceCategory';
 import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
+import privateArea from '../i18n/locales/privateArea';
 
 function fireReactAnimationEnd(element: Element): void {
   fireEvent.animationEnd(element);
@@ -37,6 +44,61 @@ function mockMatchMedia(reducedMotion: boolean): void {
 
 beforeEach(() => {
   mockMatchMedia(true);
+});
+
+describe('PreferenceDialog privacy context', () => {
+  for (const editing of [false, true]) {
+    for (const privateNote of [true, false]) {
+      it(`${privateNote ? 'describes owner-only access inside' : 'does not claim owner-only access in'} the ${editing ? 'edit' : 'create'} dialog`, () => {
+        render(
+          <PreferenceDialog
+            isOpen={true}
+            preference={
+              editing
+                ? {
+                    id: 'preference-1',
+                    accountId: 'account-1',
+                    category: PreferenceCategory.OTHER,
+                    sentiment: PreferenceSentiment.LIKE,
+                    topic: 'A personal idea',
+                    value: 'An authored detail',
+                    visibility: privateNote
+                      ? ProfileVisibility.PRIVATE_PARTNER_NOTE
+                      : ProfileVisibility.SELF_PROFILE,
+                    version: 1,
+                    createdAt: new Date('2026-10-26T00:00:00Z'),
+                    updatedAt: new Date('2026-10-26T00:00:00Z'),
+                  }
+                : null
+            }
+            privateNote={privateNote}
+            pending={false}
+            deletePending={false}
+            onCancel={vi.fn()}
+            onSubmit={vi.fn()}
+          />,
+        );
+
+        if (privateNote) {
+          const dialog = screen.getByRole('dialog', {
+            description: privateArea.entry.privacy,
+          });
+          const notice = within(dialog).getByRole('note');
+          expect(notice.textContent).toBe(privateArea.entry.privacy);
+          expect(dialog.getAttribute('aria-describedby')).toBe(notice.id);
+          expect(
+            notice.querySelector('[aria-hidden="true"] svg'),
+          ).not.toBeNull();
+        } else {
+          const dialog = screen.getByRole('dialog');
+          expect(dialog.hasAttribute('aria-describedby')).toBe(false);
+          expect(
+            within(dialog).queryByText(privateArea.entry.privacy),
+          ).toBeNull();
+        }
+      });
+    }
+  }
 });
 
 describe('PreferenceDialog accessibility, focus, and scroll locking', () => {

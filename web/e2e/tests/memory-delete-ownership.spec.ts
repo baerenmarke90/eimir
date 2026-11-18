@@ -1,14 +1,15 @@
 import fs from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '../support/axe';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -19,7 +20,7 @@ async function expectMemoryControlsContained(page: Page) {
       const bounds = root.getBoundingClientRect();
       return [
         ...root.querySelectorAll(
-          '.memory-form .form-actions > *, .memory-form .file-picker, .memory-form .file-picker strong, .memory-delete-confirmation, .memory-delete-confirmation button',
+          '.composer-header button, .composer-header a, .memory-form .form-actions > *, .memory-form .file-picker, .memory-form .file-picker strong, .memory-delete-confirmation, .memory-delete-confirmation button',
         ),
       ].map((element) => {
         const box = element.getBoundingClientRect();
@@ -28,7 +29,7 @@ async function expectMemoryControlsContained(page: Page) {
           right: bounds.right - box.right,
           width: box.width,
           height: box.height,
-          button: element.tagName === 'BUTTON',
+          button: element.matches('button,a'),
         };
       });
     });
@@ -134,7 +135,10 @@ async function openMemoryDeleteJourney(page: Page, failFirst: boolean) {
   });
   await signIn(page);
   await page.goto('/story?tab=timeline');
-  await page.getByRole('link', { name: /Breakfast by the canal/ }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: /Breakfast by the canal/ })
+    .click();
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
@@ -235,7 +239,7 @@ for (const profile of [
     expect(widths.scroll).toBe(widths.client);
     await expectMemoryControlsContained(page);
     await page
-      .getByRole('link', { name: de.common.cancel, exact: true })
+      .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
     await expect(page.locator('.memory-form')).toHaveCount(0);
     await page
@@ -252,7 +256,7 @@ for (const profile of [
         page.getByRole('button', { name: memoryProduct.save, exact: true }),
       ).toBeDisabled();
       await page
-        .getByRole('link', { name: de.common.cancel, exact: true })
+        .getByRole('link', { name: taskBoundary.back, exact: true })
         .click();
       await expect(page.locator('.memory-form')).toHaveCount(0);
       await page
@@ -293,10 +297,14 @@ for (const profile of [
       .click();
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Breakfast by the canal/ }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: /Breakfast by the canal/ }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('link', { name: /First coffee in new home/ }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: /First coffee in new home/ }),
     ).toBeVisible();
     await captureScreenshot(page, info, `${prefix}-returned.png`, {
       fullPage: true,
@@ -358,7 +366,8 @@ for (const theme of ['light', 'dark'] as const) {
     );
     state.release();
     await response;
-    await expect(page).toHaveURL(/\/story$/);
+    // Deleting returns to the Timeline scope the item was opened from (#1907).
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     expect(state.deletes).toEqual(['1']);
     expect(state.unexpected).toEqual([]);
   });

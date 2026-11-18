@@ -1,12 +1,18 @@
 import { useTranslation } from '../i18n';
-import { ThemeControl } from './ThemeControl';
 import { AppIconSettingsPanel } from './AppIconSettingsPanel';
+import { LanguageSettings } from './LanguageSettings';
+import { MomentsLayoutSettings } from './MomentsLayoutSettings';
+import { PersonColoursSettings } from './PersonColoursSettings';
+import { ThemeControl } from './ThemeControl';
+import { WirDesignSettings } from './WirDesignSettings';
 
 /** Appearance belongs to the centralized personal settings hierarchy. */
 export function ProfileAppearancePanel({
   id = 'settings-appearance',
+  language,
 }: {
   id?: string;
+  language?: { apiBaseUrl: string; accessToken: string; accountId: string };
 } = {}) {
   const { t } = useTranslation();
 
@@ -19,6 +25,15 @@ export function ProfileAppearancePanel({
         <h2 id="profile-appearance-title">{t('appIcon.colorMode')}</h2>
         <ThemeControl variant="inline" />
       </section>
+      {language ? (
+        <LanguageSettings
+          key={`${language.apiBaseUrl}:${language.accountId}`}
+          {...language}
+        />
+      ) : null}
+      <PersonColoursSettings />
+      <WirDesignSettings />
+      <MomentsLayoutSettings />
       <AppIconSettingsPanel />
     </div>
   );

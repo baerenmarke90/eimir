@@ -82,22 +82,18 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('Alex');
     expect(html).toContain('Dies ist das Profil, das dein Partner sieht.');
     expect(html).toContain(profileIdentity.editProfile);
-    expect(html).not.toContain(profileIdentity.editName);
+    expect(html).not.toContain(profileIdentity.saveProfile);
     expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 
-  it('places the eimir.Pro explanation in the account profile instead of the Games surface', () => {
+  it('leaves Pro information to App and Account settings', () => {
     const html = renderProfilePageFixture();
-
-    expect(html).toContain('profile-premium-section');
-    expect(html).toContain(profiles.premium.title);
-    expect(html).toContain(profiles.premium.gamesTitle);
-    expect(html).toContain(profiles.premium.gamesBody);
-    expect(html).toContain(profiles.premium.action);
-    expect(html).toContain(profiles.premium.detailsTitle);
+    expect(html).not.toContain('profile-premium-section');
+    expect(html).not.toContain(profiles.premium.title);
+    expect(html).not.toContain(profiles.premium.rowInactive);
   });
 
-  it('keeps authored personal preferences ahead of eimir.Pro information', () => {
+  it('keeps authored personal preferences in the profile', () => {
     const html = renderProfilePageFixture([
       {
         id: 'pref-order',
@@ -112,9 +108,7 @@ describe('Profile page reorganization', () => {
     ]);
 
     expect(html.indexOf('Pasta')).toBeGreaterThanOrEqual(0);
-    expect(html.indexOf(profiles.premium.title)).toBeGreaterThan(
-      html.indexOf('Pasta'),
-    );
+    expect(html).not.toContain(profiles.premium.title);
   });
 
   it('renders categorized preference chips and [Vorliebe] without a permanent empty form', () => {
@@ -177,7 +171,7 @@ describe('Profile page reorganization', () => {
     expect(html).not.toContain('/more/private/notes');
   });
 
-  it('differentiates Vorliebe for own profile vs Notiz with privacy badge for private partner notes', () => {
+  it('keeps private partner-note content out of the shared Profile surface', () => {
     const html = renderProfilePageFixture([
       {
         id: 'pref-self',
@@ -205,10 +199,9 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('Vorliebe');
     expect(html).toContain('Pasta');
 
-    // Private partner notes use Notiz and carry privacy indicator
-    expect(html).toContain('Notiz');
-    expect(html).toContain('Lieblingsblumen');
-    expect(html).toContain('private-partner-notes-badge');
+    expect(html).not.toContain('Lieblingsblumen');
+    expect(html).not.toContain('Pfingstrosen im Juni');
+    expect(html).not.toContain('private-partner-notes-panel');
   });
 
   it('filters self preferences strictly by current account ID and shows partner preferences only in read-only section', () => {

@@ -1,24 +1,22 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 const PROFILE_ID = '00000000-0000-0000-0000-000000000020';
+// Seed a complete personal order with upcoming third, as the reorder journeys
+// require. A legacy list would insert daily_quote ahead of it during migration.
+const REORDER_PREFIX = ['relationship_presence', 'keepsake', 'upcoming'];
 const MODULE_KEYS = [
-  'relationship_presence',
-  'keepsake',
-  'upcoming',
-  'pinned_collection',
-  'relationship_signal',
-  'monthly_highlights',
-  'recent_shared',
-  'shared_story_summary',
+  ...REORDER_PREFIX,
+  ...DASHBOARD_MODULE_KEYS.filter((key) => !REORDER_PREFIX.includes(key)),
 ];
 
 /**
@@ -273,6 +271,8 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
+  // The URL already matches before sign-in; wait for authenticated content.
+  await expect(page.locator('.today-agenda-row').first()).toBeVisible();
 }
 
 test('Today "Demnächst" renders compact, bounded-width planning tiles instead of full-width table rows on desktop', async ({
@@ -427,6 +427,7 @@ test('compact Dashboard settings persist the personal horizon and update Today w
   await signIn(page);
   await page.goto(settingsCategoryPath('today'));
 
+  await page.getByText(profileIdentity.dashboardMoreOptions).click();
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,
   });
@@ -480,24 +481,38 @@ test('personal module reorder persists across reload and separates the visibilit
   expect(size?.height).toBeGreaterThanOrEqual(44);
   await handle.focus();
   await handle.press('ArrowUp');
+  // Let the first change persist before issuing another write.
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await handle.press('ArrowUp');
-  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await expect(handle).toBeFocused();
+  // A visibility change moves the row between the sortable list and the
+  // collapsed hidden group, which replaces its checkbox element. Playwright's
+  // check()/uncheck() re-read the clicked element afterwards and, once it is
+  // detached, wait for a role match that the closed group hides. Click as the
+  // user does and assert the persisted state and the moved row instead.
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
-    .uncheck();
+    .click();
   await expect.poll(() => preferences.upcomingVisible()).toBe(false);
+  await expect(page.locator('.dashboard-hidden-sections')).toBeVisible();
+  await expect(handle).toHaveCount(0);
   await page.reload();
-  await expect(page.locator('.dashboard-module-option').first()).toContainText(
-    m5s5.dashboard.upcomingTitle,
-  );
+  await expect(page.locator('.dashboard-hidden-sections')).toBeVisible();
+  await expect(handle).toHaveCount(0);
+  await page.locator('.dashboard-hidden-sections summary').click();
   await expect(
     page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
   ).not.toBeChecked();
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
-    .check();
+    .click();
   await expect.poll(() => preferences.upcomingVisible()).toBe(true);
+  await expect(handle).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
+  ).toBeChecked();
+  await expect(page.locator('.dashboard-hidden-sections')).toHaveCount(0);
   await page.goto('/today');
   await expect(page.locator('.today-section-upcoming')).toBeVisible();
   const orderedSections = await page
@@ -508,9 +523,11 @@ test('personal module reorder persists across reload and separates the visibilit
         .filter((name) => typeof name === 'string'),
     );
   expect(
-    orderedSections.indexOf('today-section today-section-upcoming'),
-  ).toBeLessThan(
     orderedSections.findIndex((name) => name.includes('today-hero')),
+  ).toBeLessThan(
+    orderedSections.findIndex((name) =>
+      name.includes('today-section-upcoming'),
+    ),
   );
 
   await page.goto(settingsCategoryPath('today'));
@@ -546,7 +563,12 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     name: `${m5s5.dashboard.upcomingTitle} verschieben`,
   });
   const firstRow = page.locator('.dashboard-module-option').first();
-  await handle.scrollIntoViewIfNeeded();
+  // Raw mouse coordinates do not perform Playwright's actionability scrolling.
+  // Keep the handle above the fixed mobile navigation before measuring it.
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const firstBounds = await firstRow.boundingBox();
   const handleBounds = await handle.boundingBox();
   expect(firstBounds).not.toBeNull();
@@ -564,7 +586,7 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     { steps: 12 },
   );
   await page.mouse.up();
-  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
 
   const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.mouse.move(firstBounds.x + 12, firstBounds.y + 15);
@@ -574,7 +596,10 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     .toBeGreaterThan(scrollBefore);
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await handle.scrollIntoViewIfNeeded();
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const movedHandle = await handle.boundingBox();
   expect(movedHandle).not.toBeNull();
   if (!movedHandle) return;
@@ -595,6 +620,7 @@ test('touch dragging starts on the handle and keeps normal row scrolling availab
   browser,
 }) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 390, height: 844 },
@@ -613,7 +639,7 @@ test('touch dragging starts on the handle and keeps normal row scrolling availab
     const bounds = await handle.boundingBox();
     const target = await page
       .locator('.dashboard-module-option')
-      .nth(1)
+      .nth(0)
       .boundingBox();
     expect(bounds).not.toBeNull();
     expect(target).not.toBeNull();
@@ -659,6 +685,7 @@ test('expanded Dashboard settings remain clear in light mode and at 200 percent 
   await signIn(page);
   await page.goto(settingsCategoryPath('today'));
 
+  await page.getByText(profileIdentity.dashboardMoreOptions).click();
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,
   });

@@ -30,6 +30,15 @@ import {
 
 const BOTH = { vibe: true, energy: true };
 
+it('keeps very-good days in their own lane and includes them in positive shared observations', () => {
+  const days = [
+    day('2026-11-02', { vibe: DailyVibe.VERY_GOOD }, { vibe: DailyVibe.GOOD }),
+    day('2026-11-03', { vibe: DailyVibe.GOOD }, { vibe: DailyVibe.VERY_GOOD }),
+  ];
+  expect(deriveBothGood(days, BOTH)?.params.count).toBe(2);
+  expect(deriveHighlights(days, BOTH)).toHaveLength(2);
+});
+
 function day(
   date: string,
   own: Partial<InsightDay['own']> = {},

@@ -166,7 +166,7 @@ class TestCrudAndOwnership:
         assert missing.status_code == 404
         assert missing.json()["code"] == "RESOURCE_NOT_FOUND"
 
-    def test_partner_can_read_but_not_write(
+    def test_partner_can_edit_shared_content_but_cannot_delete(
         self,
         client,
         couple,
@@ -179,7 +179,7 @@ class TestCrudAndOwnership:
         )
         assert detail.status_code == 200
         assert detail.json()["capabilities"] == {
-            "canEdit": False,
+            "canEdit": True,
             "canDelete": False,
             "canComment": True,
         }
@@ -196,8 +196,15 @@ class TestCrudAndOwnership:
             json={"title": "Partner-Aenderung"},
             headers=if_match(couple["token_b"], memory["version"]),
         )
-        assert update.status_code == 403
-        assert update.json()["code"] == "NOT_RESOURCE_OWNER"
+        assert update.status_code == 200
+        assert update.json()["authorId"] == str(couple["anna"].id)
+        assert update.json()["title"] == "Partner-Aenderung"
+        stale = client.patch(
+            f"{memories_path(couple['space'].id)}/{memory['id']}",
+            json={"body": "Stale author content"},
+            headers=if_match(couple["token_a"], memory["version"]),
+        )
+        assert stale.status_code == 409
 
         delete = client.delete(
             f"{memories_path(couple['space'].id)}/{memory['id']}",

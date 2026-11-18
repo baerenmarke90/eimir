@@ -543,6 +543,26 @@ Every row of the Wish/Plan Delete matrix receives an HTTP and PostgreSQL test. A
 - no original-resource Cascade;
 - after deleting a completed source Plan, Wish remains COMPLETED and separately deletable.
 
+## 12a. Repeating a completed Wish ("Nochmal erleben") – #1816
+
+**Status:** `DECIDED` by the Product Owner on 2026-11-13 (chat decision recorded in #1816).
+
+A completed Wish can be experienced again without reopening it:
+
+- `POST /api/v1/spaces/{spaceId}/wishes/{wishId}/repeat` creates a **new** Wish with status `OPEN`. It is allowed only when the source Wish is `COMPLETED`; any other state returns `409 WISH_REPEAT_REQUIRES_COMPLETED`.
+- `COMPLETED` stays terminal and `Plan.sourceWishId` stays unique (M3-D02). The source keeps its Plan, Chapter and version; nothing about it changes.
+- The new Wish remembers its origin through three server-controlled fields, none of which a client can set:
+  - `followedFromWishId` – nullable soft link to the source Wish of the same Space (composite foreign key, `ON DELETE SET NULL (followed_from_wish_id)`, so deleting the source never blocks or cascades);
+  - `seriesId` – groups a Wish with its repeats; equals the ID of the first Wish and survives deletion of the source;
+  - `seriesPosition` – 1 for the first Wish, source position + 1 for a repeat; immutable.
+- Title, description and tags are an editable **proposal**: omitted fields are copied from the source, supplied fields replace them. A Wish has no Place; a Place belongs to the Plan.
+- No `If-Match` is needed because a new resource is created. Idempotency uses the existing create receipt (`Idempotency-Key`): a retry returns the first created Wish with `200`, never a second one.
+- Both Space members may repeat (M3-D01). Cross-Space and missing Membership stay Privacy-safe (`404 WISH_NOT_FOUND`).
+- Several open repeats of the same source are allowed; the soft link is not unique.
+- No new event type: creation records `WISH_CREATED` without authored content (M3-D13).
+
+Not decided here: how reminders show the originating Wish and how the "Done" list groups a series. Both are presentation of these fields and are tracked in #1816.
+
 ## 13. Privacy/Telemetry consequences
 
 Wish and Plan titles/descriptions do not belong in logs, Analytics, Error Context, or Domain Event payloads. Technical IDs, Actor, Space, version, Event type, and safe status values are permitted according to later-finalized M3-D23.

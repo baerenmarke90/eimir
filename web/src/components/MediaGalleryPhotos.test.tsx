@@ -24,6 +24,7 @@ it('custom previews load no originals until open, keep only neighbours, and revo
       items={Array.from({ length: 6 }, (_, i) => ({
         id: `${i}`,
         mediaType: 'IMAGE' as const,
+        isSensitive: false,
       }))}
       loadMedia={load}
       renderPreviews={(open) => (
@@ -37,13 +38,20 @@ it('custom previews load no originals until open, keep only neighbours, and revo
   fireEvent.click(screen.getByText('Open photo'));
   await waitFor(() => expect(load).toHaveBeenCalledTimes(3));
   expect(load.mock.calls.map(([id]) => id).sort()).toEqual(['1', '2', '3']);
+  // Wait for adopted URLs, not only for the asynchronous loader invocations.
+  const expectedUrls = ['blob:1', 'blob:2', 'blob:3'];
+  await waitFor(() =>
+    expect(
+      Array.from(screen.getByRole('dialog').querySelectorAll('img'))
+        .map((image) => image.getAttribute('src'))
+        .sort(),
+    ).toEqual(expectedUrls),
+  );
   fireEvent.keyDown(window, { key: 'Escape' });
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(revoke.mock.calls.map(([url]) => url).sort()).toEqual([
-    'blob:1',
-    'blob:2',
-    'blob:3',
-  ]);
+  await waitFor(() =>
+    expect(revoke.mock.calls.map(([url]) => url).sort()).toEqual(expectedUrls),
+  );
   vi.unstubAllGlobals();
 });
 
@@ -59,7 +67,7 @@ it('revokes a late original response after dismissal without publishing it', asy
   );
   render(
     <MediaGallery
-      items={[{ id: 'one', mediaType: 'IMAGE' }]}
+      items={[{ id: 'one', mediaType: 'IMAGE', isSensitive: false }]}
       loadMedia={load}
       renderPreviews={(open) => (
         <button type="button" onClick={() => open(0)}>
@@ -71,6 +79,7 @@ it('revokes a late original response after dismissal without publishing it', asy
   fireEvent.click(screen.getByText('Open photo'));
   await waitFor(() => expect(load).toHaveBeenCalledOnce());
   fireEvent.keyDown(window, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   await act(async () => {
     resolve('blob:late');
   });

@@ -31,7 +31,7 @@ This log separates specification statements from implementation proposals. `PROP
 | M2-D11 | BLOCKING | DECIDED | Data + Privacy | Delete, Retention, and Cascade rules for Entity, Relation, Blob, Event, and Audit? | Domain portion #68 plus Media portion #69 decided: domain entity immediately invisible; Comments atomic; final Media reference sets `DELETING`; Provider Cleanup async/idempotent; `DELETE_FAILED` retryable/observable. |
 | M2-D12 | BLOCKING | DECIDED | Backend + Ops | How long are incomplete/failed uploads retained? | PENDING/UPLOADING/FAILED 24 h; Cleanup at least hourly; DELETE_FAILED until success/manual intervention. See #69. |
 | M2-D13 | BLOCKING | DECIDED | Security + Media | Direct Upload or server-side stream for Local/S3 adapters? | Local: authorized server stream. S3: presigned Upload ≤10 min; Read URL ≤5 min. Domain/Finalize Authorization remains server-controlled. See #69. |
-| M2-D14 | BLOCKING | DECIDED | Privacy + Product | Are EXIF, GPS, and other embedded metadata removed? | Yes, during ingest. The validation job extracts an allowlist of technical fields into ProtectedPayload and then stores only the sanitized file. See #78. |
+| M2-D14 | BLOCKING | DECIDED | Privacy + Product | Are EXIF, GPS, and other embedded metadata removed? | Removed by default; ADR 0014 permits readable EXIF/ICC in selected moment primary photos. The validation job still rewrites pixels and keeps projections allowlisted. See #78 and #1459. |
 | M2-D15 | BLOCKING | DECIDED | Media + Product | Are Thumbnailing, Transcoding, and Poster Frames part of M2? | One derived variant each: image Thumbnail and video Poster Frame. Transcoding is not part of M2. See #78. |
 | M2-D16 | BLOCKING | DECIDED | Architecture + Security | Minimum schema for each M2 Domain Event? | Envelope: `eventId`, `eventType`, `occurredAt`, `spaceId`, `actorId`, `resourceType`, `resourceId`, `resourceVersion`; event-specific payload only IDs, safe states/categories, and technical timestamps. No ProtectedPayload, filenames, URLs, or emotion. See #68. |
 | M2-D17 | BEFORE_CLIENTS | DECIDED | Product + Privacy | Which private data is included in personal Export, shared Export, or Backup? | `SHARED` contains only portable SPACE_SHARED data; `PERSONAL` adds only the requesting account's OWNER_ONLY data. Operational Backup remains separate. See #303 and `../m5/S6-CACHE-PORTABILITY-DECISIONS.md`. |
@@ -219,6 +219,15 @@ Tests: unique operationIds/method-path pairs; all paths Space-scoped; If-Match m
 References: #70, `API-DESIGN.md`, `API-CONTRACT.json`, `backend/tests/test_m2_api_contract_manifest.py`.
 
 ### M2-D14 – EXIF/metadata removal on ingest
+
+Amendment (2026-10-27): [ADR 0014](../decisions/0014-moment-photo-metadata-preservation.md)
+supersedes the blanket removal rule below for explicitly selected Memory and
+HeartMoment primary photos. Their readable EXIF/ICC may remain after pixel
+validation/re-encoding, independently of automatic Place association. Export,
+backup and authorized primary downloads may therefore contain GPS/device data.
+Unrelated uploads, clean derivatives, projection allowlists and discarded raw
+container segments retain the original contract. Previously stripped metadata
+cannot be recovered. #1465's separate encrypted GPS staging remains unchanged.
 Status: DECIDED  
 Date: 2026-08-25  
 Decision owner: Privacy + Product / project decision #78  

@@ -1,34 +1,44 @@
 import { ActivityApi } from '../api/generated/apis/ActivityApi';
-import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
+import { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
-import { Configuration } from './apiConfiguration';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
 import type { SearchKind } from '../api/generated/models/SearchKind';
-import {
-  appRoutePath,
-  MORE_PEOPLE_ROUTE,
-  chapterDetailPath,
-  collectionDetailPath,
-  heartMomentDetailPath,
-  memoryDetailPath,
-  milestoneDetailPath,
-  planDetailPath,
-  placeDetailPath,
-  wishDetailPath,
-} from './routes';
+import { Configuration } from './apiConfiguration';
+import { DashboardApi } from './mediaApis';
+import { onceMessagePath } from './onceMessages';
 import {
   privateCollectionPath,
   privateGiftIdeaPath,
   privateNotePath,
 } from './privateArea';
+import {
+  appRoutePath,
+  chapterDetailPath,
+  collectionDetailPath,
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
+  heartMomentDetailPath,
+  MEMORY_CREATE_ROUTE,
+  memoryDetailPath,
+  milestoneDetailPath,
+  placeDetailPath,
+  planDetailPath,
+  recapDetailPath,
+  reminderDetailPath,
+  STORY_RECAPS_ROUTE,
+  sharedNoteDetailPath,
+  wishDetailPath,
+} from './routes';
 
 export interface M4ProductApis {
   activity: ActivityApi;
   dashboard: DashboardApi;
   notifications: NotificationsApi;
   search: SearchApi;
+  recaps?: RecapsApi;
 }
 
 export function createM4ProductApis(
@@ -45,6 +55,7 @@ export function createM4ProductApis(
     dashboard: new DashboardApi(configuration),
     notifications: new NotificationsApi(configuration),
     search: new SearchApi(configuration),
+    recaps: new RecapsApi(configuration),
   };
 }
 
@@ -72,6 +83,8 @@ export function searchResultPath(
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
       return appRoutePath('more');
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(id);
     case 'PRIVATE_NOTE':
       return privateNotePath(id);
     case 'GIFT_IDEA':
@@ -109,7 +122,7 @@ export function dashboardItemPath(
     case 'IMPORTANT_DATE':
     case 'BIRTHDAY':
     case 'ANNIVERSARY':
-      return MORE_PEOPLE_ROUTE;
+      return `${appRoutePath('plan')}#dates`;
     default:
       return null;
   }
@@ -122,6 +135,10 @@ export function engagementTargetPath(
   if (!targetType || !targetId) return null;
 
   switch (targetType) {
+    case 'ONCE_MESSAGE':
+      return onceMessagePath(targetId);
+    case 'REMINDER':
+      return reminderDetailPath(targetId);
     case 'MEMORY':
       return memoryDetailPath(targetId);
     case 'HEART_MOMENT':
@@ -138,9 +155,55 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'PICTURE_GAME':
+      return GAMES_PICTURE_PING_PONG_ROUTE;
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(targetId);
+    case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
+      return GAMES_GARDEN_ROUTE;
+    case 'RECAP':
+      return recapDetailPath(targetId);
+    case 'WISH_SELECTION':
+      return '/plan/choose';
+    case 'TRANSFER_EXPORT':
+      return `/more/settings/data?export=${encodeURIComponent(targetId)}`;
+    case 'TRANSFER_IMPORT':
+      return `/more/settings/data?import=${encodeURIComponent(targetId)}`;
     default:
       return null;
   }
+}
+
+export function notificationPath(item: {
+  kind: string;
+  targetType: EngagementTarget | null;
+  targetId: string | null;
+}): string | null {
+  if (
+    (item.kind === 'WISH_DATE_PROPOSED' ||
+      item.kind === 'WISH_DATE_COUNTERED') &&
+    item.targetType === 'WISH' &&
+    item.targetId
+  )
+    return `${wishDetailPath(item.targetId)}#terminvorschlag`;
+
+  if (item.kind === 'HEART_HUNT_HIDDEN' || item.kind === 'HEART_HUNT_FOUND')
+    return GAMES_HEART_HUNT_ROUTE;
+
+  return (
+    engagementTargetPath(item.targetType, item.targetId) ??
+    (item.kind === 'GENTLE_PROMPT'
+      ? MEMORY_CREATE_ROUTE
+      : item.kind === 'PLAN_CANCELLED'
+        ? '/plan'
+        : item.kind === 'PARTNER_JOINED'
+          ? '/today'
+          : // Several earlier recaps at once open the overview (#1744).
+            item.kind === 'RECAP_READY'
+            ? STORY_RECAPS_ROUTE
+            : null)
+  );
 }
 
 export function opaqueNextCursor(page: {

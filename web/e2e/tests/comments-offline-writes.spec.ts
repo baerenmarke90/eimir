@@ -1,12 +1,13 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
-  DETAIL_COMMENTS,
-  SPACE_ID,
   captureScreenshot,
+  DETAIL_COMMENTS,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -49,6 +50,10 @@ async function openJourney(page: Page, scenario: (typeof cases)[number]) {
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = DETAIL_COMMENTS.map((item) => ({ ...item }));
   const writes: {
     method: string;
@@ -101,7 +106,10 @@ async function openJourney(page: Page, scenario: (typeof cases)[number]) {
     },
   );
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByText('Still smiling about this.', { exact: true }),
@@ -117,20 +125,28 @@ for (const scenario of cases) {
       page,
     }, info) => {
       const state = await openJourney(page, scenario);
+      const field = state.panel
+        .locator(
+          operation === 'create' ? 'form.comment-form' : '.comment-edit-form',
+        )
+        .getByRole('textbox');
       if (operation === 'create') {
-        await state.panel
-          .getByRole('button', { name: copy.send, exact: true })
-          .click();
-        await state.panel.getByRole('textbox').fill('A thought worth keeping.');
+        if (!(await state.panel.locator('form.comment-form').isVisible()))
+          await state.panel
+            .getByRole('button', { name: copy.send, exact: true })
+            .click();
+        await field.fill('A thought worth keeping.');
       } else {
-        await state.panel.locator('.comment-menu-trigger').click();
+        if (operation === 'delete')
+          await state.panel.locator('.comment-menu-trigger').click();
         if (operation === 'update') {
+          await state.panel
+            .getByLabel(copy.moreActions, { exact: true })
+            .click();
           await state.panel
             .getByRole('button', { name: copy.edit, exact: true })
             .click();
-          await state.panel
-            .getByRole('textbox')
-            .fill('An edited thought worth keeping.');
+          await field.fill('An edited thought worth keeping.');
         }
       }
       const action = state.panel.getByRole('button', {
@@ -152,7 +168,7 @@ for (const scenario of cases) {
       await expect(action).toBeEnabled();
       expect(state.writes).toEqual([]);
       if (operation !== 'delete')
-        await expect(state.panel.getByRole('textbox')).toHaveValue(
+        await expect(field).toHaveValue(
           operation === 'create'
             ? 'A thought worth keeping.'
             : 'An edited thought worth keeping.',
@@ -259,7 +275,9 @@ for (const scenario of cases) {
       await page.goBack();
       await expect(page).toHaveURL(/\/story\?tab=timeline$/);
       await expect(
-        page.getByRole('link', { name: new RegExp(scenario.title) }),
+        page
+          .locator('#momente-diary')
+          .getByRole('link', { name: new RegExp(scenario.title) }),
       ).toBeVisible();
       expect(state.writes).toHaveLength(1);
       expect(state.unknown).toEqual([]);

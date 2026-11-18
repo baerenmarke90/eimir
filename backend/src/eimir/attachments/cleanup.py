@@ -16,15 +16,16 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from eimir.attachments import service, upload_ownership
-from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.attachments.models import Attachment, AttachmentStatus, MediaType, PlaybackGrant
 from eimir.core.clock import now
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
+from eimir.media import get_media_store
 
 log = logging.getLogger(__name__)
 
@@ -103,7 +104,13 @@ def _expire_stale_uploads(session: Session) -> int:
                 ),
                 and_(
                     Attachment.status == AttachmentStatus.FAILED.value,
+                    Attachment.failed_media_purged_at.is_(None),
                     func.coalesce(Attachment.failed_at, Attachment.created_at) < cutoff,
+                ),
+                and_(
+                    Attachment.status == AttachmentStatus.VALIDATING.value,
+                    Attachment.media_type == MediaType.VIDEO.value,
+                    func.coalesce(Attachment.uploaded_at, Attachment.created_at) < cutoff,
                 ),
             )
         )
@@ -113,6 +120,40 @@ def _expire_stale_uploads(session: Session) -> int:
     affected = 0
     for attachment in candidates:
         if upload_ownership.active_upload_claim(attachment):
+            continue
+        from eimir.attachments import binding
+
+        if (
+            attachment.media_type == MediaType.VIDEO.value
+            and attachment.status
+            in {
+                AttachmentStatus.PENDING.value,
+                AttachmentStatus.UPLOADING.value,
+                AttachmentStatus.FAILED.value,
+                AttachmentStatus.VALIDATING.value,
+            }
+            and binding.parent_of(session, attachment.id) is not None
+        ):
+            if attachment.status != AttachmentStatus.FAILED.value:
+                service._fail(
+                    attachment,
+                    "VIDEO_PROCESSING_TIMEOUT"
+                    if attachment.status == AttachmentStatus.VALIDATING.value
+                    else "VIDEO_UPLOAD_TIMEOUT",
+                )
+                binding.notify_video_failure(session, attachment)
+            # Keep the explicit failed placeholder, but discard unvalidated bytes
+            # on the same bounded schedule as an abandoned upload.
+            store = get_media_store()
+            try:
+                for variant in (service.ORIGINAL_VARIANT, service.THUMBNAIL_VARIANT):
+                    for key in service.storage_homes_for(attachment, variant):
+                        store.delete(key)
+            except OSError:
+                continue
+            attachment.failed_media_purged_at = now()
+            attachment.has_thumbnail = False
+            affected += 1
             continue
         service.mark_for_deletion(session, attachment)
         affected += 1
@@ -173,6 +214,7 @@ def run_media_cleanup(session: Session, payload: dict[str, Any]) -> None:
     del payload
 
     expired_uploads = _expire_stale_uploads(session)
+    session.execute(delete(PlaybackGrant).where(PlaybackGrant.expires_at <= now()))
     expired_unbound = _expire_unbound_ready(session)
     session.flush()
     removed, failed = _purge_marked(session)

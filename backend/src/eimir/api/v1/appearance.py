@@ -7,7 +7,14 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.appearance import service
-from eimir.appearance.models import AppIconId, AppIconPreference
+from eimir.appearance.models import (
+    DEFAULT_WIR_DESIGN,
+    FREE_WIR_DESIGNS,
+    AppIconId,
+    AppIconPreference,
+    PersonColoursId,
+    WirDesignId,
+)
 from eimir.authorization import AuthorizationContext
 from eimir.entitlements.models import Capability
 
@@ -79,3 +86,129 @@ def update_app_icon_preference(
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_preference(session, authorization, body.icon_id, expected_token)
     return _view(saved, authorization, response)
+
+
+class WirDesignPreferenceView(ApiModel):
+    design_id: WirDesignId
+    version: int
+
+
+class WirDesignPreferencePatch(ApiModel):
+    design_id: WirDesignId
+
+
+def _design_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> WirDesignPreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return WirDesignPreferenceView(
+        design_id=WirDesignId(preference.wir_design) if preference else DEFAULT_WIR_DESIGN,
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/wir-design",
+    response_model=WirDesignPreferenceView,
+    operation_id="getWirDesignPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_wir_design_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> WirDesignPreferenceView:
+    """Read only the caller's personal composition, including after Pro expiry."""
+    return _design_view(service.read_preference(session, authorization), authorization, response)
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/wir-design",
+    response_model=WirDesignPreferenceView,
+    operation_id="updateWirDesignPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_wir_design_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: WirDesignPreferencePatch,
+    expected_token: IfMatchToken,
+) -> WirDesignPreferenceView:
+    """Save a personal cosmetic. Connected and Warm are Free; other designs require Pro."""
+    if body.design_id not in FREE_WIR_DESIGNS:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_wir_design(session, authorization, body.design_id, expected_token)
+    return _design_view(saved, authorization, response)
+
+
+class PersonColoursPreferenceView(ApiModel):
+    """The caller's own colour pair; ``colours`` is null while automatic."""
+
+    colours: PersonColoursId | None
+    version: int
+
+
+class PersonColoursPreferencePatch(ApiModel):
+    colours: PersonColoursId | None
+
+
+def _colours_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> PersonColoursPreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return PersonColoursPreferenceView(
+        colours=(
+            PersonColoursId(preference.person_colours)
+            if preference and preference.person_colours
+            else None
+        ),
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/person-colours",
+    response_model=PersonColoursPreferenceView,
+    operation_id="getPersonColoursPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_person_colours_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> PersonColoursPreferenceView:
+    """Read only the caller's own colour pair. No partner value is ever returned."""
+    return _colours_view(service.read_preference(session, authorization), authorization, response)
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/person-colours",
+    response_model=PersonColoursPreferenceView,
+    operation_id="updatePersonColoursPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_person_colours_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: PersonColoursPreferencePatch,
+    expected_token: IfMatchToken,
+) -> PersonColoursPreferenceView:
+    """Save a known colour pair (Pro) or return to automatic (always Free).
+
+    Membership precedes the capability check. Reads never delete or revert a
+    saved pair when a grant expires, and going back to automatic stays free.
+    The pair is a personal view of the people in this Space. It is not shared
+    and carries no gender statement.
+    """
+    if body.colours is not None:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_person_colours(session, authorization, body.colours, expected_token)
+    return _colours_view(saved, authorization, response)

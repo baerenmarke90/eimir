@@ -22,6 +22,15 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { WishProductPage } from './WishProductPage';
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 afterEach(() => {
   cleanup();
   onlineManager.setOnline(true);
@@ -33,6 +42,11 @@ const wish = (overrides: Partial<WishDetail> = {}): WishDetail => ({
   createdAt: new Date('2026-09-01T10:00:00Z'),
   createdBy: 'account-anna',
   creator: { id: 'account-anna', displayName: 'Anna' },
+  plan: null,
+  hasMemory: false,
+  followedFromWishId: null,
+  seriesId: ID,
+  seriesPosition: 1,
   id: ID,
   spaceId: SPACE,
   status: 'OPEN',
@@ -121,21 +135,21 @@ it('fails an offline attempt without pausing it for automatic reconnect submissi
   const h = setup();
   const title = screen.getByLabelText(m5s3.wish.planTitle);
   fireEvent.change(title, { target: { value: 'Future trip' } });
-  h.completeWish.mockRejectedValueOnce(new ClientProblemError('offline'));
   onlineManager.setOnline(false);
   fireEvent.click(action());
 
   await screen.findByText(de.states.offline.title);
-  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  // A deliberate offline tap never reaches the API, nor queues a future write.
+  expect(h.completeWish).not.toHaveBeenCalled();
   expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
   expect(title.closest('fieldset')?.disabled).toBe(false);
   expect((title as HTMLInputElement).value).toBe('Future trip');
 
   await act(async () => onlineManager.setOnline(true));
-  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  expect(h.completeWish).not.toHaveBeenCalled();
   expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
   fireEvent.click(action());
-  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(1));
   h.setServer(fulfilled());
   await act(async () => h.writes[0].resolve(fulfilled()));
   await screen.findByRole('button', { name: m5s3.wish.createMemory });
@@ -301,7 +315,7 @@ it.each(['completion', 'conversion'])(
   },
 );
 it.each(['update', 'delete'])(
-  'prevents completion from racing a pending %s',
+  'prevents completion from racing a pending %s across a detail remount',
   async (kind) => {
     const h = setup();
     fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
@@ -316,12 +330,15 @@ it.each(['update', 'delete'])(
         screen.getByRole('button', { name: m5s3.common.confirmDelete }),
       );
     }
-    fireEvent.click(action());
     await waitFor(() =>
       expect(
         kind === 'update' ? h.updateWish : h.deleteWish,
       ).toHaveBeenCalledTimes(1),
     );
+    h.view.unmount();
+    render(h.tree());
+    expect(action().getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(action());
     expect(h.completeWish).not.toHaveBeenCalled();
   },
 );
@@ -418,6 +435,48 @@ it('reconciles an unmounted completion without offering a transient continuation
     screen.queryByRole('button', { name: m5s3.wish.createMemory }),
   ).toBeNull();
 });
+it('preserves a newer authorized Wish read when the pending fulfillment resolves', async () => {
+  const h = setup();
+  await submit(h);
+  const newer = wish({ title: 'Newer authoritative wish', version: 7 });
+  h.setServer(newer);
+  act(() => h.queryClient.setQueryData(h.key, newer));
+
+  await act(async () => h.writes[0].resolve(fulfilled()));
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.version).toBe(7);
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.title).toBe(
+    'Newer authoritative wish',
+  );
+  expect(
+    screen.queryByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeNull();
+});
+
+it('rejects a Wish fulfillment after original Query access is denied while cancellation settles', async () => {
+  const h = setup();
+  await screen.findByText('Northern lights');
+  act(() => {
+    fireEvent.click(action());
+    h.queryClient
+      .getQueryCache()
+      .find({ queryKey: h.key, exact: true })
+      ?.setState({
+        error: new ClientProblemError('permission', 403),
+        status: 'error',
+      });
+  });
+  await waitFor(() =>
+    expect(
+      h.queryClient.isMutating({
+        mutationKey: ['wish-complete', SPACE, ID],
+        exact: true,
+      }),
+    ).toBe(0),
+  );
+  expect(h.completeWish).not.toHaveBeenCalled();
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
+});
+
 it('ignores a late result when the initiating query was replaced in the same Space', async () => {
   const h = setup();
   await submit(h);

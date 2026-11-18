@@ -1,16 +1,21 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { fulfillNoWishDateProposal } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import { captureR3Evidence } from './r3-evidence';
+import wishJourney from '../../src/i18n/locales/wishJourney';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const WISH_EVIDENCE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../docs/product/design/evidence/508/wish-completion',
+  '../../../docs/product/design/evidence/1574-wir-rediscovery',
 );
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -29,6 +34,7 @@ async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -254,6 +260,20 @@ async function installMocks(
       return;
     }
 
+    // The Wish detail also reads its date proposal, the personal reminder and
+    // the Space entitlements. Left to the catch-all 500 below, the proposal
+    // section renders a second server-error alert once its retries end, and
+    // the completion-failure alert assertion then matches two alerts.
+    if (await fulfillNoWishDateProposal(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wishes/${WISH_ID}/reminder`
+    ) {
+      await fulfillJson({ dueAt: null });
+      return;
+    }
+
     if (
       method === 'POST' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
@@ -365,15 +385,98 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(
-    page,
-    testInfo,
-    `r3-wish-completion-${name}.png`,
-    false,
-  );
+  await captureScreenshot(page, testInfo, `r3-wish-completion-${name}.png`, {
+    fullPage: false,
+  });
 }
 
 for (const scenario of visualScenarios) {
+  test(`Wish continuation keeps authoring and utility controls soft and borderless: ${scenario.name}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(scenario.viewport);
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      scenario.theme,
+    );
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page);
+    await signIn(page);
+    await page.goto(`/plan/wishes/${WISH_ID}`);
+    const disclosure = page.locator('.wish-operations > summary');
+    await expect(disclosure).toHaveClass('button-link');
+    const actionStyle = await disclosure.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        minHeight: parseFloat(style.minHeight),
+      };
+    });
+    expect(actionStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(actionStyle.minHeight).toBeGreaterThanOrEqual(44);
+    await disclosure.click();
+    for (const selector of [
+      '#wish-plan-title',
+      '#wish-plan-description',
+      '#wish-plan-place',
+      '#wish-plan-schedule-date',
+      '#wish-plan-schedule-time',
+    ]) {
+      const control = page.locator(selector);
+      await expect(control).toBeVisible();
+      await expect(control).toHaveCSS('border-top-width', '0px');
+      expect(
+        await control.evaluate(
+          (node) => getComputedStyle(node).backgroundColor,
+        ),
+      ).not.toBe('rgba(0, 0, 0, 0)');
+    }
+    await page.locator('#wish-plan-title').fill('Our shared next step');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#wish-plan-description')).toBeFocused();
+    await expect(page.locator('#wish-plan-description')).toHaveCSS(
+      'outline-style',
+      'solid',
+    );
+    if (scenario.name === '320-reflow')
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await assertNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      `wish-authored-controls-${scenario.name}.png`,
+      { fullPage: true },
+    );
+    await assertNoWcagViolations(page);
+    if (scenario.name === '390-light') {
+      await page.emulateMedia({ forcedColors: 'active' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      await page.emulateMedia({ forcedColors: 'none' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '0px',
+      );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
+        'border-top-width',
+        '0px',
+      );
+    }
+    await page
+      .getByRole('button', { name: m5s3.wish.complete, exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: m5s3.wish.completionTitle }),
+    ).toBeVisible();
+  });
+
   test(`fulfilled Wish continuation: ${scenario.name}`, async ({
     page,
   }, testInfo) => {
@@ -494,9 +597,12 @@ for (const scenario of pendingScenarios) {
       .filter({ hasText: m5s3.wish.completePending });
     await expect(status).toHaveCount(1);
     await expect(status).toBeVisible();
+    // #1790 F2: the journey path replaces the status word.
     await expect(
-      page.getByText(m5s3.wish.status.OPEN, { exact: true }),
-    ).toBeVisible();
+      page
+        .getByRole('list', { name: wishJourney.pathLabel })
+        .locator('[aria-current="step"]'),
+    ).toHaveText(wishJourney.stages.wished);
     await expect(
       page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
     ).toBeFocused();
@@ -654,11 +760,10 @@ test('keyboard completion keeps action focus while pending then focuses confirme
   ).toBeFocused();
 });
 
-test('offline completion fails visibly and reconnect requires an explicit new attempt', async ({
+test('offline completion sends no request and reconnect requires an explicit new attempt', async ({
   page,
 }) => {
-  const options = { offline: true };
-  const mocks = await installMocks(page, options);
+  const mocks = await installMocks(page);
   await openWish(page, visualScenarios[0]);
   const title = page.getByLabel(m5s3.wish.planTitle);
   await title.fill('Future trip');
@@ -666,21 +771,167 @@ test('offline completion fails visibly and reconnect requires an explicit new at
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(title).toBeEnabled();
   await expect(title).toHaveValue('Future trip');
-  expect(mocks.requestCount()).toBe(1);
+  // The shared dispatch guard rejects known-offline intent before HTTP.
+  expect(mocks.requestCount()).toBe(0);
 
-  options.offline = false;
   await page.context().setOffline(false);
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
-  expect(mocks.requestCount()).toBe(1);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(0);
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
   await expect(
     page.getByRole('button', { name: m5s3.wish.createMemory }),
   ).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+});
+
+test('a disconnected completion request preserves input and retries only deliberately', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, offline: true };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  const title = page.getByLabel(m5s3.wish.planTitle);
+  await title.fill('Future trip');
+  const complete = page.getByRole('button', {
+    name: m5s3.wish.complete,
+    exact: true,
+  });
+  await complete.click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
+  // Connectivity was available at dispatch; this request fails in transport.
+  held.release();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(title).toBeEnabled();
+  await expect(title).toHaveValue('Future trip');
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+
+  await page.context().setOffline(true);
+  options.offline = false;
+  await page.context().setOffline(false);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+  await complete.click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
   expect(mocks.requestCount()).toBe(2);
 });
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`fulfilled photo-free Wish remains discoverable and restores scope (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const state = await installMocks(page);
+    const collection = new RegExp(
+      `/spaces/${SPACE_ID}/(wishes|plans)(?:\\?.*)?$`,
+    );
+    await page.route(collection, async (route) => {
+      const url = new URL(route.request().url());
+      const fulfilled = state.requestCount() > 0;
+      const status = url.searchParams.get('status');
+      const items =
+        url.pathname.endsWith('/wishes') &&
+        ((fulfilled && status === 'COMPLETED') ||
+          (!fulfilled && status === 'OPEN'))
+          ? [
+              {
+                id: WISH_ID,
+                spaceId: SPACE_ID,
+                title: WISH_TITLE,
+                status: fulfilled ? 'COMPLETED' : 'OPEN',
+                createdBy: ACCOUNT_ID,
+                creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+                version: fulfilled ? 2 : 1,
+                createdAt: TEST_NOW,
+                updatedAt: TEST_NOW,
+                capabilities: { canEdit: true, canDelete: true },
+              },
+            ]
+          : [];
+      await route.fulfill({
+        json: { items, nextCursor: null, hasMore: false },
+      });
+    });
+    await signIn(page);
+    await page.goto('/plan#wishes');
+    await page.getByRole('link', { name: WISH_TITLE, exact: true }).click();
+    await page.getByText(m5s3.wish.actionsHeading, { exact: true }).click();
+    await page
+      .getByRole('button', { name: m5s3.wish.complete, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: m5s3.wish.completionDone, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    const scope = page.getByRole('group', { name: m5s3.overview.wishScope });
+    await scope
+      .getByRole('button', { name: m5s3.overview.fulfilledWishes, exact: true })
+      .click();
+    const wish = page.getByRole('link', { name: WISH_TITLE, exact: true });
+    await expect(wish).toBeVisible();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-fulfilled-${width}-${colorScheme}.png`,
+      { fullPage: true },
+    );
+    await wish.click();
+    await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(wish).toBeFocused();
+    await page.reload();
+    await expect(wish).toBeVisible();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const audit = await new AxeBuilder({ page })
+      .include('.planen-overview')
+      .analyze();
+    expect(audit.violations).toEqual([]);
+  });
+}

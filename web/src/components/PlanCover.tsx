@@ -1,0 +1,144 @@
+import { useMemo, useState } from 'react';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
+import { createReferenceApis } from '../client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useMediaReveal } from '../client/useMediaReveal';
+import { useObjectUrlResource } from '../client/useObjectUrlResources';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
+import { useTranslation } from '../i18n';
+import { DiscreetLock } from './DiscreetPlan';
+import {
+  SensitiveMediaControl,
+  SensitiveMediaCover,
+  useSensitiveMediaReveals,
+} from './SensitiveMedia';
+import './PlanCover.css';
+
+export function PlanCover({
+  plan,
+  spaceId,
+  apiBaseUrl,
+  accessToken,
+  interactive = true,
+  presentation = 'detail',
+  discreet = false,
+}: {
+  plan: PlanDetail;
+  spaceId: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
+  interactive?: boolean;
+  presentation?: 'detail' | 'preview';
+  /** A concealed discreet Plan: always blurred, marked only by the lock. */
+  discreet?: boolean;
+}) {
+  const { t } = useTranslation();
+  const apis = useMemo(
+    () =>
+      apiBaseUrl && accessToken
+        ? createReferenceApis(apiBaseUrl, accessToken)
+        : null,
+    [apiBaseUrl, accessToken],
+  );
+  const cover = plan.coverAttachment;
+  const { ref, shouldLoad } = usePreviewLoadGate(
+    presentation === 'preview' ? 'near-viewport' : 'immediate',
+    Boolean(cover),
+  );
+  const variant =
+    presentation === 'preview' && cover?.hasThumbnail
+      ? 'thumbnail'
+      : 'original';
+  const [attempt, setAttempt] = useState(0);
+  const scope = apis ? mediaCacheScopeForClient(apis.attachments).id : '';
+  const image = useObjectUrlResource(
+    `${scope}:${spaceId}:plan:${plan.id}:${variant}:${attempt}`,
+    apis && cover && shouldLoad ? cover.id : null,
+    async (id, signal) => {
+      if (!apis) throw new Error('Plan media API unavailable');
+      return loadAuthorizedStoryImageResource(
+        apis,
+        spaceId,
+        'PLAN',
+        plan.id,
+        id,
+        {
+          signal,
+          variant,
+        },
+      );
+    },
+  );
+  const reveal = useMediaReveal(image.url);
+  const reveals = useSensitiveMediaReveals(
+    `${scope}:${spaceId}:${plan.id}:${cover?.id}`,
+    Boolean(cover),
+  );
+  if (!cover) return null;
+  const concealed =
+    discreet || (cover.isSensitive && !reveals.isRevealed(cover.id));
+  const media = image.url ? (
+    <img
+      src={image.url}
+      alt={concealed ? '' : plan.title}
+      width={cover.width ?? undefined}
+      height={cover.height ?? undefined}
+      loading="lazy"
+      decoding="async"
+      {...reveal}
+    />
+  ) : (
+    <span
+      className={`plan-cover-placeholder${image.error ? '' : ' is-loading'}`}
+      role={shouldLoad ? 'status' : undefined}
+      aria-hidden={!shouldLoad || undefined}
+    >
+      {image.error ? (
+        t('m5s3.planImage.failed')
+      ) : (
+        <span className="sr-only">{t('states.loading.title')}</span>
+      )}
+      {image.error && interactive ? (
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => setAttempt((value) => value + 1)}
+        >
+          {t('common.retry')}
+        </button>
+      ) : null}
+    </span>
+  );
+  return (
+    <div
+      ref={ref}
+      data-media-deferred={!shouldLoad || undefined}
+      className={`plan-cover plan-cover--${presentation}`}
+      style={
+        concealed && presentation === 'detail'
+          ? {
+              aspectRatio:
+                cover.width && cover.height
+                  ? `${cover.width} / ${cover.height}`
+                  : '4 / 3',
+            }
+          : undefined
+      }
+    >
+      {concealed ? (
+        <SensitiveMediaCover showLabel={!discreet}>{media}</SensitiveMediaCover>
+      ) : (
+        media
+      )}
+      {discreet ? <DiscreetLock /> : null}
+      {cover.isSensitive && interactive && !discreet ? (
+        <SensitiveMediaControl
+          revealed={!concealed}
+          onToggle={() => reveals.toggle(cover.id)}
+          overlay
+        />
+      ) : null}
+    </div>
+  );
+}

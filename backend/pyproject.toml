@@ -14,7 +14,7 @@ dependencies = [
     "uuid6>=2025.0.1",
     "argon2-cffi>=25.1",
     # Ausgehendes HTTP fuer OIDC: Discovery, JWKS und Token-Endpunkt.
-    "httpx>=0.28",
+    "httpx[http2]>=0.28",
     # ID Token verification uses the maintained library, including the fixed
     # key and claim validation boundary; no custom signature implementation.
     "pyjwt[crypto]>=2.15.1",
@@ -36,6 +36,15 @@ dependencies = [
     # HEIC/HEIF steht in der M2-D04-Allowlist und ist ohne libheif nicht
     # zu dekodieren. Registriert sich als Plugin in Pillow.
     "pillow-heif>=1.1",
+    "google-auth-oauthlib>=1.5.0",
+    "google-auth[requests]>=2.62,<3",
+    # Keep the adopted OAuth stack above the corrected device-grant advisory baseline.
+    "oauthlib>=4.0.1,<5",
+    # Standard JWE encrypted device previews; never implement JOSE framing here.
+    "joserfc==1.7.7",
+    # Untrusted CalDAV multistatus XML (#1895): parse without entity expansion
+    # or external resources instead of hardening the stdlib parser by hand.
+    "defusedxml>=0.7.1",
 ]
 
 [dependency-groups]
@@ -62,6 +71,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"eimir.i18n" = ["locales/*.json"]
+"eimir.quotes" = ["daily_sayings.json"]
+"eimir.date_ideas" = ["data/*.json", "data/images/*.webp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

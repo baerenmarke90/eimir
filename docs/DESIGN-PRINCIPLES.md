@@ -237,7 +237,7 @@ The base unit is a 4-unit grid.
 
 - Each view has at most one visually dominant primary action.
 - Primary: the established strong-coral/on-accent pairing through semantic theme roles; verify actual contrast in Light and Dark.
-- Secondary: light Surface with a clear outline.
+- Secondary: a distinct light surface without a decorative surrounding outline (PO refinement, 2026-10-29). Preserve visible keyboard focus and forced-colors system boundaries.
 - Tertiary: text action without its own surface.
 - Destructive: unambiguous warning text; never communicate destructiveness through red alone.
 - Loading states retain their width and labeling context.

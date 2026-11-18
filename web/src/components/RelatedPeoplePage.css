@@ -24,7 +24,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-3);
   align-items: start;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   padding: var(--space-4);
   background: var(--color-surface);
@@ -188,17 +188,6 @@
   font-weight: 700;
 }
 
-.important-date-marker-month {
-  max-width: 100%;
-  padding-inline: var(--space-1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.3;
-}
-
 .important-date-timeline-body {
   display: grid;
   gap: 0.2rem;
@@ -258,7 +247,6 @@
   height: 0.9rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -286,7 +274,7 @@
   overflow-y: auto;
   display: grid;
   gap: var(--space-5);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 4vw, var(--space-8));
   background: var(--color-surface-raised);
@@ -300,7 +288,8 @@
 }
 
 .inline-message-danger {
-  border: 1px solid color-mix(in srgb, var(--color-error) 35%, transparent);
+  border: var(--border-surface-width) solid
+    color-mix(in srgb, var(--color-error) 35%, transparent);
   background: var(--color-error-surface);
   color: var(--color-text);
 }
@@ -347,7 +336,7 @@ button.danger:hover:not(:disabled) {
   gap: var(--space-4);
   padding: var(--space-4);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   cursor: pointer;
@@ -436,7 +425,6 @@ button.danger:hover:not(:disabled) {
   height: 1rem;
   stroke: currentColor;
   fill: none;
-  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -451,7 +439,7 @@ button.danger:hover:not(:disabled) {
   font-weight: 500;
   border-radius: var(--radius-small);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   width: fit-content;
   max-width: 100%;
@@ -483,12 +471,24 @@ button.danger:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-bottom: 0;
   border-radius: 28px 28px 0 0;
   background: var(--color-surface-raised);
   color: var(--color-text);
   box-shadow: 0 -16px 48px rgb(20 15 24 / 22%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .focused-editor-backdrop[data-create-entry] {
+    animation: eimir-create-entry-fade var(--duration-context)
+      var(--easing-enter);
+  }
+
+  .focused-editor-backdrop[data-create-entry] > .focused-editor-sheet {
+    animation: eimir-create-entry-rise var(--duration-context)
+      var(--easing-enter);
+  }
 }
 
 .focused-editor-header {
@@ -812,7 +812,6 @@ button.danger:hover:not(:disabled) {
   height: 1.15rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

@@ -14,19 +14,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Integer, UniqueConstraint, select
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, UniqueConstraint, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.attachments.service import binding_window_expired
-from eimir.core.errors import ConflictError, ErrorCode
+from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin
 
 MAX_MEMORY_ATTACHMENTS = 20
 MAX_MEMORY_TOTAL_SIZE = 500 * 1024 * 1024
 """M2-D04 cardinality and aggregate size limits for one memory."""
+MAX_GALLERY_ATTACHMENTS = MAX_MEMORY_ATTACHMENTS
+MAX_GALLERY_TOTAL_SIZE = MAX_MEMORY_TOTAL_SIZE
+"""The same collection safety boundary applies to ordinary Plan galleries."""
 
 
 class MemoryAttachment(IdMixin, Base):
@@ -57,6 +60,76 @@ class MemoryAttachment(IdMixin, Base):
         UniqueConstraint("attachment_id", name="uq_memory_attachments_attachment"),
         UniqueConstraint("memory_id", "position", name="uq_memory_attachments_position"),
         Index("ix_memory_attachments_memory_id", "memory_id"),
+    )
+
+
+class PlanAttachment(IdMixin, Base):
+    """Ordered supplemental Plan photos; the designated cover owns position zero.
+
+    The cover remains in Plan.cover_attachment_id for older clients. It never
+    also appears here, so each attachment has exactly one authoritative binding.
+    """
+
+    __tablename__ = "plan_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_attachments_attachment"),
+        UniqueConstraint("plan_id", "position", name="uq_plan_attachments_position"),
+        CheckConstraint("position > 0", name="position_is_supplemental"),
+        Index("ix_plan_attachments_plan_id", "plan_id"),
+    )
+
+
+class PlanFileAttachment(IdMixin, Base):
+    """One exclusively bound document in the shared Plan's file list."""
+
+    __tablename__ = "plan_file_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("attachments.id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_file_attachments_attachment"),
+        Index("ix_plan_file_attachments_plan_id", "plan_id"),
+    )
+
+
+class HeartMomentAttachment(IdMixin, Base):
+    """Supplemental media; the legacy HeartMoment FK retains position zero."""
+
+    __tablename__ = "heart_moment_attachments"
+    heart_moment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("heart_moments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_heart_moment_attachments_attachment"),
+        UniqueConstraint(
+            "heart_moment_id", "position", name="uq_heart_moment_attachments_position"
+        ),
+        CheckConstraint("position > 0", name="position_is_supplemental"),
+        Index("ix_heart_moment_attachments_parent", "heart_moment_id"),
     )
 
 
@@ -107,7 +180,10 @@ def lock_for_binding(session: Session, attachment_ids: list[UUID]) -> dict[UUID,
     if not attachment_ids:
         return {}
     rows = session.execute(
-        select(Attachment).where(Attachment.id.in_(attachment_ids)).with_for_update()
+        select(Attachment)
+        .where(Attachment.id.in_(attachment_ids))
+        .order_by(Attachment.id)
+        .with_for_update()
     ).scalars()
     return {row.id: row for row in rows}
 
@@ -117,6 +193,10 @@ def ensure_bindable(
     *,
     space_id: UUID,
     account_id: UUID,
+    already_bound: bool = False,
+    allow_submitted_video: bool = False,
+    allow_audio: bool = False,
+    allow_documents: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -129,9 +209,36 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.owner_id != account_id:
         raise Attachment.privacy_absence.error()
-    if attachment.status != AttachmentStatus.READY.value:
+    if attachment.media_type == MediaType.AUDIO and not allow_audio:
+        raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
+    if attachment.media_type == MediaType.DOCUMENT and not allow_documents:
+        raise ValidationError("Documents require a Plan.", ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
+    pending_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.PENDING.value, AttachmentStatus.UPLOADING.value}
+    )
+    submitted_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.VALIDATING.value, AttachmentStatus.FAILED.value}
+        and (attachment.uploaded_at is not None or already_bound)
+        and (already_bound or attachment.failed_media_purged_at is None)
+    )
+    if attachment.status != AttachmentStatus.READY.value and not (submitted_video or pending_video):
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if binding_window_expired(attachment):
+    if pending_video:
+        from eimir.attachments.cleanup import UPLOAD_RETENTION
+        from eimir.attachments.service import expired
+
+        if not already_bound and expired(attachment.created_at, UPLOAD_RETENTION):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif submitted_video and not already_bound:
+        from eimir.attachments.service import BINDING_WINDOW, expired
+
+        if expired(attachment.uploaded_at, BINDING_WINDOW):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif binding_window_expired(attachment) and not already_bound:
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
     return attachment
 
@@ -145,6 +252,7 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     """
     from eimir.heart_moments.models import HeartMoment
     from eimir.people.models import RelatedPerson
+    from eimir.plans.models import Plan
 
     memory_id = session.execute(
         select(MemoryAttachment.memory_id).where(MemoryAttachment.attachment_id == attachment_id)
@@ -158,11 +266,37 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     if heart_moment_id is not None:
         return "HEART_MOMENT", heart_moment_id
 
+    heart_moment_id = session.scalar(
+        select(HeartMomentAttachment.heart_moment_id).where(
+            HeartMomentAttachment.attachment_id == attachment_id
+        )
+    )
+    if heart_moment_id is not None:
+        return "HEART_MOMENT", heart_moment_id
+
     related_person_id = session.execute(
         select(RelatedPerson.id).where(RelatedPerson.avatar_attachment_id == attachment_id)
     ).scalar_one_or_none()
     if related_person_id is not None:
         return "RELATED_PERSON", related_person_id
+
+    plan_id = session.execute(
+        select(Plan.id).where(Plan.cover_attachment_id == attachment_id)
+    ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
+
+    plan_id = session.execute(
+        select(PlanAttachment.plan_id).where(PlanAttachment.attachment_id == attachment_id)
+    ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
+
+    plan_id = session.scalar(
+        select(PlanFileAttachment.plan_id).where(PlanFileAttachment.attachment_id == attachment_id)
+    )
+    if plan_id is not None:
+        return "PLAN", plan_id
 
     account_id = session.execute(
         select(AccountProfileAttachment.account_id).where(
@@ -171,6 +305,14 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     ).scalar_one_or_none()
     if account_id is not None:
         return "ACCOUNT_PROFILE", account_id
+
+    from eimir.heart_hunt.models import HeartHuntRound
+
+    round_id = session.scalar(
+        select(HeartHuntRound.id).where(HeartHuntRound.attachment_id == attachment_id)
+    )
+    if round_id is not None:
+        return "HEART_HUNT_ROUND", round_id
     return None
 
 
@@ -198,17 +340,77 @@ def ensure_unlinked(
 
 
 def ensure_within_limits(attachments: list[Attachment]) -> None:
-    if len(attachments) > MAX_MEMORY_ATTACHMENTS:
+    if len(attachments) > MAX_GALLERY_ATTACHMENTS:
         raise _conflict(
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
-    total = sum(attachment.size or 0 for attachment in attachments)
-    if total > MAX_MEMORY_TOTAL_SIZE:
+    total = sum(reserved_size(attachment) for attachment in attachments)
+    if total > MAX_GALLERY_TOTAL_SIZE:
         raise _conflict(
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
+
+
+def check_replacements(
+    replacements: dict[UUID, UUID] | None,
+    *,
+    previous: set[UUID],
+    selected: list[UUID],
+) -> dict[UUID, UUID]:
+    """Validate edited-photo replacements as new id -> replaced bound id (#1907 G1).
+
+    An edited photo is a new attachment that takes the place of one the parent
+    already holds. The replaced photo must leave the gallery in the same write,
+    and the new one must not have been bound before; each photo is replaced at
+    most once. Removal authorization stays with the ordinary gallery rules.
+    """
+    if not replacements:
+        return {}
+    chosen = set(selected)
+    replaced = list(replacements.values())
+    if len(set(replaced)) != len(replaced) or any(
+        new_id not in chosen or new_id in previous or old_id not in previous or old_id in chosen
+        for new_id, old_id in replacements.items()
+    ):
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
+    return dict(replacements)
+
+
+def reserved_size(attachment: Attachment) -> int:
+    """Reserve declared bytes until the worker establishes the actual size."""
+    if attachment.failed_media_purged_at is not None:
+        return 0
+    return attachment.size if attachment.size is not None else attachment.declared_size
+
+
+def notify_video_failure(session: Session, attachment: Attachment) -> None:
+    """Caller owns the attachment lock and its first failure/binding transition."""
+    if (
+        attachment.status != AttachmentStatus.FAILED.value
+        or attachment.media_type != MediaType.VIDEO.value
+        or attachment.space_id is None
+        or parent_of(session, attachment.id) is None
+    ):
+        return
+    from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+    from eimir.outbox import service as outbox
+
+    outbox.record(
+        session,
+        DomainEvent(
+            type=EventType.VIDEO_PROCESSING_FAILED,
+            space_id=attachment.space_id,
+            actor_id=attachment.owner_id,
+            subject_type="attachment",
+            subject_id=attachment.id,
+            payload=PublicEventPayload(recipient_id=attachment.owner_id),
+        ),
+    )
 
 
 def attachments_of_memories(
@@ -249,3 +451,42 @@ def attachments_of_memory(session: Session, memory_id: UUID) -> list[BoundAttach
         .order_by(MemoryAttachment.position, MemoryAttachment.attachment_id)
     ).all()
     return [BoundAttachment(attachment=row[1], position=row[0].position) for row in rows]
+
+
+def can_edit_sensitivity(
+    attachment: Attachment, *, account_id: UUID, parent_owner_id: UUID
+) -> bool:
+    """Match the existing parent-author or individual-uploader write authority."""
+    return account_id in (parent_owner_id, attachment.owner_id)
+
+
+def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: bool = True) -> None:
+    """Update protected metadata only under the authorized parent's write/lock contract.
+
+    Collaborative content editing does not imply protected metadata authority;
+    those callers supply the parent/photo ownership decision through allow_change.
+    Omission and unchanged values preserve classification for older clients. This helper
+    never changes visibility or source bytes and emits no classification event.
+    """
+    if value is not None and value != attachment.payload.is_sensitive:
+        if not allow_change:
+            raise ForbiddenError(
+                "Only the author may change another author's photo classification.",
+                "NOT_RESOURCE_OWNER",
+            )
+        attachment.payload = attachment.payload.model_copy(update={"is_sensitive": value})
+
+
+def cover_of(entries: list[BoundAttachment], selected: UUID | None) -> Attachment | None:
+    """Choose a presentation cover without changing binding order."""
+    entries = [
+        entry
+        for entry in entries
+        if entry.attachment.status == AttachmentStatus.READY
+        and entry.attachment.media_type != MediaType.AUDIO
+    ]
+    if selected is not None:
+        for entry in entries:
+            if entry.attachment.id == selected:
+                return entry.attachment
+    return entries[0].attachment if entries else None

@@ -30,6 +30,12 @@ export interface CollectionItemCreate {
      * @type {string}
      * @memberof CollectionItemCreate
      */
+    quantity?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CollectionItemCreate
+     */
     title: string;
 }
 
@@ -52,6 +58,7 @@ export function CollectionItemCreateFromJSONTyped(json: any, ignoreDiscriminator
     return {
         
         'completed': json['completed'] == null ? undefined : json['completed'],
+        'quantity': json['quantity'] === undefined ? undefined : json['quantity'] === null ? null : json['quantity'],
         'title': json['title'],
     };
 }
@@ -68,6 +75,7 @@ export function CollectionItemCreateToJSONTyped(value?: CollectionItemCreate | n
     return {
         
         'completed': value['completed'],
+        'quantity': value['quantity'],
         'title': value['title'],
     };
 }

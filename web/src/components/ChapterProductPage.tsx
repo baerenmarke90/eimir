@@ -1,36 +1,44 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
-import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import { normalizeClientError } from '../client/problemDetails';
-import {
-  dateFromInput,
-  dateOnlyInput,
-  loadAllPlaces,
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { placeDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { formatChapterPeriod } from '../client/chapterPresentation';
+import { invalidateChapterProjections } from '../client/chapterQueries';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { normalizeClientError } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { placeDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
+import {
+  dateFromInput,
+  dateOnlyInput,
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { PageHeader } from './PageHeader';
+import { ChapterContextFields, type ChapterDraft } from './ChapterFields';
 import { ListEntryIconButton } from './ListEntryActions';
-import { NativeDateField } from './NativeDateField';
+import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
 } from './PlanningEditorLifecycle';
 import { PlanningRelationManager } from './PlanningRelationManager';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
+import './ChapterExperience.css';
+import './StoryUnifiedPage.css';
+import './StoryHandmade.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -39,14 +47,6 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
     throw await normalizeClientError(error);
   }
 }
-
-type ChapterDraft = {
-  title: string;
-  description: string;
-  startOn: string;
-  endOn: string;
-  placeId: string;
-};
 
 function chapterDraft(chapter: ChapterDetail): ChapterDraft {
   return {
@@ -58,16 +58,14 @@ function chapterDraft(chapter: ChapterDetail): ChapterDraft {
   };
 }
 
-function formatChapterDate(value: Date): string {
-  return new Intl.DateTimeFormat(resolvedLocale(), {
-    dateStyle: 'medium',
-    timeZone: 'UTC',
-  }).format(value);
-}
-
 function ChapterEditor({
   chapter,
-  places,
+  apis,
+  spaceId,
+  placeName,
+  captureAdmission,
+  requestCloseRef,
+  confirmedCloseRef,
   draft,
   setDraft,
   titleInputRef,
@@ -81,7 +79,12 @@ function ChapterEditor({
   onClose,
 }: {
   chapter: ChapterDetail;
-  places: PlaceDetail[];
+  apis: SharedPlanningApis;
+  spaceId: string;
+  placeName?: string;
+  captureAdmission: () => () => boolean;
+  requestCloseRef: RefObject<(() => void) | null>;
+  confirmedCloseRef: RefObject<((afterClose: () => void) => void) | null>;
   draft: ChapterDraft;
   setDraft: (draft: ChapterDraft) => void;
   titleInputRef: RefObject<HTMLInputElement | null>;
@@ -101,7 +104,8 @@ function ChapterEditor({
   const restoreDeleteTriggerRef = useRef(false);
   const isDirty =
     JSON.stringify(draft) !== JSON.stringify(chapterDraft(chapter));
-  const isPending = updatePending || deletePending;
+  const [placePending, setPlacePending] = useState(false);
+  const isPending = updatePending || deletePending || placePending;
   const lifecycle = usePlanningEditorLifecycle({
     isDirty,
     isPending,
@@ -115,6 +119,19 @@ function ChapterEditor({
     },
     onClose,
   });
+  useEffect(() => {
+    requestCloseRef.current = lifecycle.requestClose;
+    confirmedCloseRef.current = lifecycle.closeConfirmed;
+    return () => {
+      requestCloseRef.current = null;
+      confirmedCloseRef.current = null;
+    };
+  }, [
+    requestCloseRef,
+    confirmedCloseRef,
+    lifecycle.requestClose,
+    lifecycle.closeConfirmed,
+  ]);
 
   useEffect(() => {
     if (confirmDelete) deleteHeadingRef.current?.focus();
@@ -128,7 +145,7 @@ function ChapterEditor({
     setDraft({ ...draft, ...values });
 
   return (
-    <section className="planning-subsection">
+    <section className="planning-subsection free-composer">
       <h2>{t('m5s3.common.edit')}</h2>
       {lifecycle.showDiscardConfirm ? (
         <PlanningDiscardConfirmation
@@ -141,6 +158,7 @@ function ChapterEditor({
         className="form-grid"
         onSubmit={(event) => {
           event.preventDefault();
+          if (isPending) return;
           onSubmit(draft);
         }}
       >
@@ -152,42 +170,21 @@ function ChapterEditor({
           name="description"
           rows={4}
           value={draft.description}
+          disabled={isPending}
           onChange={(event) => updateDraft({ description: event.target.value })}
         />
-        <div className="planning-coordinate-grid">
-          <NativeDateField
-            id="chapter-edit-start"
-            name="startOn"
-            label={t('m5s3.chapter.startOn')}
-            value={draft.startOn}
-            onChange={(event) => updateDraft({ startOn: event.target.value })}
-            openPickerOnClick
-          />
-          <NativeDateField
-            id="chapter-edit-end"
-            name="endOn"
-            label={t('m5s3.chapter.endOn')}
-            value={draft.endOn}
-            onChange={(event) => updateDraft({ endOn: event.target.value })}
-            openPickerOnClick
-          />
-        </div>
-        <label htmlFor="chapter-edit-place">{t('m5s3.common.place')}</label>
-        <select
-          id="chapter-edit-place"
-          name="placeId"
-          value={draft.placeId}
-          onChange={(event) => updateDraft({ placeId: event.target.value })}
-        >
-          <option value="">{t('m5s3.common.noPlace')}</option>
-          {places.map((place) => (
-            <option key={place.id} value={place.id}>
-              {place.name}
-            </option>
-          ))}
-        </select>
+        <ChapterContextFields
+          apis={apis}
+          spaceId={spaceId}
+          draft={draft}
+          onChange={updateDraft}
+          disabled={updatePending || deletePending}
+          placeName={placeName}
+          captureAdmission={captureAdmission}
+          onPendingChange={setPlacePending}
+        />
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button type="submit" disabled={isPending}>
+          <button type="submit" disabled={isPending || !draft.title.trim()}>
             {updatePending
               ? t('m5s3.common.saving')
               : t('m5s3.common.saveChanges')}
@@ -261,13 +258,27 @@ function ChapterEditor({
   );
 }
 
-export function ChapterProductPage({
-  apis,
-  spaceId,
-}: {
+type ChapterProductProps = {
   apis: SharedPlanningApis;
   spaceId: string;
-}) {
+  accountId?: string;
+};
+
+export function ChapterProductPage(props: ChapterProductProps) {
+  const { chapterId } = useParams();
+  return (
+    <ScopedChapterProductPage
+      key={`${props.accountId}:${props.spaceId}:${chapterId}`}
+      {...props}
+    />
+  );
+}
+
+function ScopedChapterProductPage({
+  apis,
+  spaceId,
+  accountId,
+}: ChapterProductProps) {
   const { t } = useTranslation();
   const { chapterId } = useParams();
   const navigate = useNavigate();
@@ -276,29 +287,45 @@ export function ChapterProductPage({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const queryClient = useQueryClient();
+  const captureOwnership = useTaskActivation(true);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ChapterDraft | null>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const editorRequestCloseRef = useRef<(() => void) | null>(null);
+  const editorConfirmedCloseRef = useRef<
+    ((afterClose: () => void) => void) | null
+  >(null);
   const key = authorSummaryQueryKeys.chapterDetail(spaceId, chapterId);
 
   const chapterQuery = useQuery({
     queryKey: key,
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!chapterId) throw new Error('Missing Chapter route parameter.');
-      return apiCall(() => apis.chapters.getChapter({ spaceId, chapterId }));
+      return apiCall(() =>
+        apis.chapters.getChapter({ spaceId, chapterId }, { signal }),
+      );
     },
     enabled: Boolean(chapterId),
     retry: false,
   });
+  const placeId = chapterQuery.data?.placeId;
   const placesQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.placeOptions(spaceId),
-    queryFn: () => apiCall(() => loadAllPlaces(apis, spaceId)),
+    queryKey: authorSummaryQueryKeys.placeDetail(spaceId, placeId ?? undefined),
+    queryFn: ({ signal }) =>
+      apiCall(() =>
+        apis.places.getPlace(
+          { spaceId, placeId: placeId as string },
+          { signal },
+        ),
+      ),
+    enabled: Boolean(placeId),
     staleTime: 30_000,
     retry: false,
   });
 
   const updateMutation = useMutation({
+    networkMode: 'always',
     mutationFn: ({
       chapter,
       title,
@@ -306,6 +333,8 @@ export function ChapterProductPage({
       startOn,
       endOn,
       placeId,
+      ownsTask,
+      admitted,
     }: {
       chapter: ChapterDetail;
       title: string;
@@ -313,38 +342,55 @@ export function ChapterProductPage({
       startOn: Date | null;
       endOn: Date | null;
       placeId: string | null;
+      ownsTask: () => boolean;
+      admitted: () => boolean;
     }) =>
-      apiCall(() =>
-        apis.chapters.updateChapter({
+      apiCall(() => {
+        if (!ownsTask() || !admitted())
+          throw new Error('Chapter task is no longer authorized.');
+        assertOnlineWrite();
+        return apis.chapters.updateChapter({
           spaceId,
           chapterId: chapter.id,
           ifMatch: planningIfMatch(chapter),
           chapterUpdate: { title, description, startOn, endOn, placeId },
-        }),
-      ),
-    onSuccess: async (chapter) => {
+        });
+      }),
+    onSuccess: async (chapter, request) => {
+      if (!request.ownsTask() || !request.admitted()) return;
       queryClient.setQueryData(key, chapter);
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['m5-s3', 'chapters', spaceId],
-        }),
+        invalidateChapterProjections(queryClient, spaceId, accountId),
         queryClient.invalidateQueries({ queryKey: key }),
       ]);
+      if (!request.ownsTask() || !request.admitted()) return;
       setIsEditing(false);
       setDraft(null);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (chapter: ChapterDetail) =>
-      apiCall(() =>
-        apis.chapters.deleteChapter({
+    networkMode: 'always',
+    mutationFn: ({
+      chapter,
+      ownsTask,
+      admitted,
+    }: {
+      chapter: ChapterDetail;
+      ownsTask: () => boolean;
+      admitted: () => boolean;
+    }) =>
+      apiCall(() => {
+        if (!ownsTask() || !admitted())
+          throw new Error('Chapter task is no longer authorized.');
+        assertOnlineWrite();
+        return apis.chapters.deleteChapter({
           spaceId,
           chapterId: chapter.id,
           ifMatch: planningIfMatch(chapter),
-        }),
-      ),
-    onMutate: (chapter) => ({
+        });
+      }),
+    onMutate: ({ chapter }) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
         queryClient.getQueryData<InfiniteItemsData<ChapterDetail>>(
           authorSummaryQueryKeys.chapters(spaceId),
@@ -352,17 +398,29 @@ export function ChapterProductPage({
         chapter.id,
       ),
     }),
-    onSuccess: async (_result, _chapter, context) => {
-      queryClient.removeQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'chapters', spaceId],
-      });
-      navigate(STORY_CHAPTERS_ROUTE, {
-        replace: true,
-        state: {
-          [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
-        },
-      });
+    onSuccess: async (_result, request, context) => {
+      if (!request.ownsTask() || !request.admitted()) return;
+      await invalidateChapterProjections(queryClient, spaceId, accountId);
+      if (!request.ownsTask() || !request.admitted()) return;
+      const returnAfterEditor = () => {
+        if (!request.ownsTask() || !request.admitted()) return;
+        queryClient.removeQueries({ queryKey: key });
+        if (resolveOrigin(originKey)) {
+          requestReturn(originKey, STORY_CHAPTERS_ROUTE);
+          return;
+        }
+        navigate(STORY_CHAPTERS_ROUTE, {
+          replace: true,
+          state: {
+            [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+          },
+        });
+      };
+      // Retire the editor's same-route history entry before returning to its
+      // origin; otherwise Back consumes that entry and reopens the deleted read.
+      if (editorConfirmedCloseRef.current)
+        editorConfirmedCloseRef.current(returnAfterEditor);
+      else returnAfterEditor();
     },
   });
 
@@ -385,39 +443,33 @@ export function ChapterProductPage({
     );
   const chapter = chapterQuery.data;
   if (!chapter) return null;
-  const linkedPlace = chapter.placeId
-    ? (placesQuery.data?.find((place) => place.id === chapter.placeId) ?? null)
-    : null;
-  const startLabel = chapter.startOn
-    ? formatChapterDate(chapter.startOn)
-    : null;
-  const endLabel = chapter.endOn ? formatChapterDate(chapter.endOn) : null;
+  const linkedPlace = placesQuery.data;
+  const period = formatChapterPeriod(chapter, t, resolvedLocale());
 
   return (
-    <div className="page planning-page">
+    <div className="page planning-page chapter-page">
       <PageHeader
         before={
-          <button
-            type="button"
-            className="back-link tertiary"
-            onClick={() => requestReturn(originKey, STORY_CHAPTERS_ROUTE)}
-          >
-            {t(
-              resolveOrigin(originKey)
-                ? 'taskBoundary.back'
-                : 'm5s3.common.backToChapters',
-            )}
-          </button>
+          <TaskBackButton
+            disabled={updateMutation.isPending || deleteMutation.isPending}
+            onClick={() =>
+              isEditing
+                ? editorRequestCloseRef.current?.()
+                : requestReturn(originKey, STORY_CHAPTERS_ROUTE)
+            }
+          />
         }
-        eyebrow={t('m5s3.chapter.detailEyebrow')}
+        itemLabel={t('m5s3.chapter.detailEyebrow')}
         title={chapter.title}
         titleEditor={
           isEditing ? (
             <input
               ref={titleInputRef}
               form="chapter-edit-form"
+              className="composer-authored-title"
               name="title"
               required
+              disabled={updateMutation.isPending || deleteMutation.isPending}
               maxLength={200}
               value={draft?.title ?? chapter.title}
               onChange={(event) =>
@@ -430,7 +482,6 @@ export function ChapterProductPage({
             />
           ) : undefined
         }
-        description={chapter.description || t('m5s3.chapter.noDescription')}
         titleAction={
           chapter.capabilities.canEdit && !isEditing ? (
             <ListEntryIconButton
@@ -448,64 +499,62 @@ export function ChapterProductPage({
       />
 
       {!isEditing ? (
-        <section className="planning-subsection planning-chapter-context">
-          <h2>{t('m5s3.chapter.contextHeading')}</h2>
-          {startLabel && endLabel ? (
-            <p className="planning-chapter-period">
-              {startLabel} – {endLabel}
-            </p>
-          ) : startLabel ? (
-            <p className="planning-chapter-period">
-              {t('m5s3.chapter.startOn')}: {startLabel}
-            </p>
-          ) : endLabel ? (
-            <p className="planning-chapter-period">
-              {t('m5s3.chapter.endOn')}: {endLabel}
-            </p>
-          ) : (
-            <p className="planning-meta">{t('m5s3.chapter.noPeriod')}</p>
-          )}
-          {chapter.placeId ? (
-            linkedPlace ? (
-              <Link
-                className="planning-context-link"
-                to={placeDetailPath(linkedPlace.id)}
-                onClick={(event) => {
-                  if (
-                    event.button !== 0 ||
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
-                  const taskOriginKey = captureOrigin();
-                  if (!taskOriginKey) return;
-                  event.preventDefault();
-                  void navigate(placeDetailPath(linkedPlace.id), {
-                    state: { taskOriginKey },
-                  });
-                }}
-              >
-                {t('m5s3.chapter.placeLabel', { name: linkedPlace.name })}
-              </Link>
-            ) : placesQuery.isLoading ? (
-              <p className="planning-meta">{t('m5s3.chapter.placeLoading')}</p>
-            ) : (
-              <p className="planning-meta">
-                {t('m5s3.chapter.placeUnavailable')}
-              </p>
-            )
-          ) : (
-            <p className="planning-meta">{t('m5s3.chapter.noPlace')}</p>
-          )}
-        </section>
+        <>
+          {period || chapter.placeId ? (
+            <section
+              className="chapter-reading-context"
+              aria-label={t('m5s3.chapter.contextHeading')}
+            >
+              {period ? <p className="chapter-period">{period}</p> : null}
+              {chapter.placeId && linkedPlace ? (
+                <Link
+                  className="planning-context-link"
+                  to={placeDetailPath(linkedPlace.id)}
+                  onClick={(event) => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    const taskOriginKey = captureOrigin();
+                    if (!taskOriginKey) return;
+                    event.preventDefault();
+                    void navigate(placeDetailPath(linkedPlace.id), {
+                      state: { taskOriginKey },
+                    });
+                  }}
+                >
+                  {linkedPlace.name}
+                </Link>
+              ) : chapter.placeId ? (
+                <p className="planning-meta">
+                  {t(
+                    placesQuery.isLoading
+                      ? 'm5s3.chapter.placeLoading'
+                      : 'm5s3.chapter.placeUnavailable',
+                  )}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+          {chapter.description?.trim() ? (
+            <p className="chapter-authored-words">{chapter.description}</p>
+          ) : null}
+        </>
       ) : null}
 
       {isEditing && draft ? (
         <ChapterEditor
           chapter={chapter}
-          places={placesQuery.data ?? []}
+          apis={apis}
+          spaceId={spaceId}
+          placeName={linkedPlace?.name}
+          captureAdmission={captureOwnership}
+          requestCloseRef={editorRequestCloseRef}
+          confirmedCloseRef={editorConfirmedCloseRef}
           draft={draft}
           setDraft={setDraft}
           titleInputRef={titleInputRef}
@@ -517,6 +566,8 @@ export function ChapterProductPage({
           onSubmit={(next) =>
             updateMutation.mutate({
               chapter,
+              ownsTask: captureOwnership(),
+              admitted: captureAuthorizedQuery(queryClient, key),
               title: next.title.trim(),
               description: next.description.trim() || null,
               startOn: dateFromInput(next.startOn) ?? null,
@@ -524,7 +575,13 @@ export function ChapterProductPage({
               placeId: next.placeId || null,
             })
           }
-          onDelete={() => deleteMutation.mutate(chapter)}
+          onDelete={() =>
+            deleteMutation.mutate({
+              chapter,
+              ownsTask: captureOwnership(),
+              admitted: captureAuthorizedQuery(queryClient, key),
+            })
+          }
           onClose={() => {
             setIsEditing(false);
             setDraft(null);
@@ -534,13 +591,16 @@ export function ChapterProductPage({
         />
       ) : null}
 
-      <PlanningRelationManager
-        apis={apis}
-        spaceId={spaceId}
-        ownerKind="chapter"
-        ownerId={chapter.id}
-        canManage={chapter.capabilities.canEdit}
-      />
+      {!isEditing ? (
+        <PlanningRelationManager
+          apis={apis}
+          spaceId={spaceId}
+          ownerName={chapter.title}
+          ownerKind="chapter"
+          ownerId={chapter.id}
+          canManage={chapter.capabilities.canEdit}
+        />
+      ) : null}
     </div>
   );
 }

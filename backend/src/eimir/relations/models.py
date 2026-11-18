@@ -15,7 +15,15 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    func,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -51,10 +59,133 @@ class _ChapterRelationColumns(_RelationAuditColumns):
     chapter_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
 
 
+class MemoryPlan(_RelationAuditColumns, Base):
+    __tablename__ = "memory_plans"
+    memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["memory_id", "space_id"], ["memories.id", "memories.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_memory_plans_plan_id", "plan_id"),
+        Index("ix_memory_plans_space_id", "space_id"),
+    )
+
+
+class MemoryWish(_RelationAuditColumns, Base):
+    __tablename__ = "memory_wishes"
+    memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    wish_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["memory_id", "space_id"], ["memories.id", "memories.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["wish_id", "space_id"], ["wishes.id", "wishes.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_memory_wishes_wish_id", "wish_id"),
+        Index("ix_memory_wishes_space_id", "space_id"),
+    )
+
+
+class HeartMomentPlan(_RelationAuditColumns, Base):
+    """Only shared HeartMoments can contribute to a shared Plan's context."""
+
+    __tablename__ = "heart_moment_plans"
+    heart_moment_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    source_privacy_class: Mapped[str] = mapped_column(
+        privacy_class_type(), nullable=False, default=PrivacyClass.SPACE_SHARED.value
+    )
+    __table_args__ = (
+        CheckConstraint("source_privacy_class = 'SPACE_SHARED'", name="relation_source_is_shared"),
+        ForeignKeyConstraint(
+            ["heart_moment_id", "space_id", "source_privacy_class"],
+            ["heart_moments.id", "heart_moments.space_id", "heart_moments.privacy_class"],
+            ondelete="CASCADE",
+            onupdate="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_heart_moment_plans_plan_id", "plan_id"),
+        Index("ix_heart_moment_plans_space_id", "space_id"),
+    )
+
+
+class MilestonePlan(_RelationAuditColumns, Base):
+    __tablename__ = "milestone_plans"
+    milestone_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["milestone_id", "space_id"],
+            ["milestones.id", "milestones.space_id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_milestone_plans_plan_id", "plan_id"),
+        Index("ix_milestone_plans_space_id", "space_id"),
+    )
+
+
+class PlanCollection(_RelationAuditColumns, Base):
+    """Independent shared lists referenced by one or more Plans."""
+
+    __tablename__ = "plan_collections"
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    collection_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["collection_id", "space_id"],
+            ["collections.id", "collections.space_id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_plan_collections_collection_id", "collection_id"),
+        Index("ix_plan_collections_space_id", "space_id"),
+    )
+
+
+class PlanNote(_RelationAuditColumns, Base):
+    """Independent shared notes referenced by one or more Plans (#1969).
+
+    The Planning system owns this link: a note carries no reference to the Plans
+    that mention it.
+    """
+
+    __tablename__ = "plan_notes"
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    note_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["note_id", "space_id"],
+            ["shared_notes.id", "shared_notes.space_id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_plan_notes_note_id", "note_id"),
+        Index("ix_plan_notes_space_id", "space_id"),
+    )
+
+
 class PlaceMemory(_PlaceRelationColumns, Base):
     """A memory that took place at a location."""
 
     __tablename__ = "place_memories"
+
+    photo_generated: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default=text("false")
+    )
 
     memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
 
@@ -112,6 +243,10 @@ class PlaceHeartMoment(_PlaceRelationColumns, Base):
     """A shared HeartMoment that took place at a location."""
 
     __tablename__ = "place_heart_moments"
+
+    photo_generated: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default=text("false")
+    )
 
     heart_moment_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
     target_privacy_class: Mapped[str] = mapped_column(

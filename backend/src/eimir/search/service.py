@@ -44,9 +44,11 @@ from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
 from eimir.private_notes.models import PrivateNote
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes.models import Wish
 
 DEFAULT_LIMIT = 25
@@ -56,6 +58,7 @@ MAX_QUERY_LENGTH = 200
 _EXCERPT_LENGTH = 240
 _RANK_SCALE = 1_000_000
 _SORT_CONTRACT = "search-v1"
+_TAG_QUERY_PREFIX = "tag:"
 _WEIGHTS = {"A": 1.0, "B": 0.4}
 _TOKEN = re.compile(r"[^\W_]+")
 _QUERY_ITEM = re.compile(r'(-?)"([^"]*)"|(-?)(\S+)')
@@ -71,10 +74,21 @@ class SearchKind(StrEnum):
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
     COLLECTION_ITEM = "COLLECTION_ITEM"
+    SHARED_NOTE = "SHARED_NOTE"
     PRIVATE_NOTE = "PRIVATE_NOTE"
     GIFT_IDEA = "GIFT_IDEA"
     PRIVATE_COLLECTION = "PRIVATE_COLLECTION"
     PRIVATE_COLLECTION_ITEM = "PRIVATE_COLLECTION_ITEM"
+
+
+_TAGGED_KINDS = frozenset(
+    {
+        SearchKind.MEMORY,
+        SearchKind.HEART_MOMENT,
+        SearchKind.WISH,
+        SearchKind.PLAN,
+    }
+)
 
 
 class SearchScope(StrEnum):
@@ -93,6 +107,8 @@ class SearchRow:
     occurred_on: date | None
     created_at: datetime
     rank_key: int
+    concealed: bool = False
+    """Display only the list title: a discreet Plan (#1790 F3)."""
 
 
 @dataclass(frozen=True)
@@ -111,6 +127,19 @@ def normalize_query(value: str) -> str:
             "SEARCH_QUERY_INVALID",
         )
     return normalized
+
+
+def tagged_query(query: str) -> str | None:
+    """Extract an exact authored tag query within the existing Search contract."""
+    if not query.casefold().startswith(_TAG_QUERY_PREFIX):
+        return None
+    tag = query[len(_TAG_QUERY_PREFIX) :].strip()
+    if not 1 <= len(tag) <= 40:
+        raise ValidationError(
+            "The selected tag is not valid.",
+            "SEARCH_QUERY_INVALID",
+        )
+    return tag.casefold()
 
 
 def tokenize(text: str) -> list[str]:
@@ -211,6 +240,7 @@ class _Source:
     owner_only: bool = False
     privacy: PrivacyClass = PrivacyClass.SPACE_SHARED
     parent: Any = None
+    concealed: Callable[[Any], bool] = lambda row: False
 
 
 def _none(_: Any) -> None:
@@ -223,7 +253,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.MEMORY,
             SearchScope.SHARED,
             Memory,
-            (("title", "A"), ("body", "B")),
+            (("title", "A"), ("body", "B"), ("tags", "B")),
             lambda row: row.payload.title,
             lambda row: _bounded(row.payload.body),
             lambda row: row.happened_on,
@@ -267,7 +297,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.WISH,
             SearchScope.SHARED,
             Wish,
-            (("title", "A"),),
+            (("title", "A"), ("tags", "B")),
             lambda row: row.payload.title,
             _none,
         ),
@@ -277,10 +307,13 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.PLAN,
             SearchScope.SHARED,
             Plan,
-            (("title", "A"), ("description", "B")),
-            lambda row: row.payload.title,
-            lambda row: _bounded(row.payload.description),
+            # Matching still uses the real content; a discreet Plan only
+            # changes what the result displays (#1790 F3).
+            (("title", "A"), ("description", "B"), ("tags", "B")),
+            discreet.list_title,
+            lambda row: None if row.discreet else _bounded(row.payload.description),
             lambda row: row.experienced_on,
+            concealed=lambda row: bool(row.discreet),
         ),
     ),
     SearchKind.PLACE: (
@@ -323,6 +356,17 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             lambda row: row.payload.title,
             _none,
             parent=Collection,
+        ),
+    ),
+    SearchKind.SHARED_NOTE: (
+        _Source(
+            SearchKind.SHARED_NOTE,
+            SearchScope.SHARED,
+            SharedNote,
+            (("title", "A"), ("body", "B")),
+            # A note may have no title: show the start of its text instead.
+            lambda row: row.payload.title or _bounded(row.payload.body.split("\n", 1)[0]),
+            lambda row: _bounded(row.payload.body),
         ),
     ),
     SearchKind.PRIVATE_NOTE: (
@@ -535,18 +579,35 @@ def search(
         else None
     )
 
-    groups = parse_query(normalized_query)
+    exact_tag = tagged_query(normalized_query)
+    groups = () if exact_tag is not None else parse_query(normalized_query)
     matches: list[SearchRow] = []
-    if groups:
+    if groups or exact_tag is not None:
         for kind in selected:
+            if exact_tag is not None and kind not in _TAGGED_KINDS:
+                continue
             for source in _SOURCES[kind]:
                 for row, parent_id in _authorized_rows(session, context, source):
-                    rank = score(
-                        groups,
-                        tuple(
-                            (getattr(row.payload, name), weight) for name, weight in source.fields
-                        ),
-                    )
+                    if exact_tag is not None:
+                        # SQL authorization stays authoritative before reading
+                        # protected tags; unrelated prose cannot match.
+                        tags = getattr(row.payload, "tags", ()) or ()
+                        if not any(tag.casefold() == exact_tag for tag in tags):
+                            continue
+                        rank: int | None = _RANK_SCALE
+                    else:
+                        rank = score(
+                            groups,
+                            tuple(
+                                (
+                                    " ".join(getattr(row.payload, name))
+                                    if name == "tags"
+                                    else getattr(row.payload, name),
+                                    weight,
+                                )
+                                for name, weight in source.fields
+                            ),
+                        )
                     if rank is None:
                         continue
                     matches.append(
@@ -560,6 +621,7 @@ def search(
                             occurred_on=source.occurred_on(row),
                             created_at=row.created_at,
                             rank_key=rank,
+                            concealed=source.concealed(row),
                         )
                     )
 

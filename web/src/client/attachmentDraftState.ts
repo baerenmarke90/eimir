@@ -1,4 +1,7 @@
+import { advanceUploadProgress } from './uploadProgress';
+
 export type AttachmentDraftStatus =
+  | 'preparing'
   | 'uploading'
   | 'validating'
   | 'ready'
@@ -12,6 +15,10 @@ export interface AttachmentDraft {
   attempt: number;
   progress: number;
   attachmentId?: string;
+  hasThumbnail?: boolean;
+  durationSeconds?: number | null;
+  processing?: boolean;
+  isSensitive?: boolean;
   error?: string;
 }
 
@@ -23,11 +30,30 @@ export type AttachmentDraftAction =
       type: 'phase';
       id: string;
       attempt: number;
-      status: 'uploading' | 'validating';
+      status: 'preparing' | 'uploading' | 'validating';
     }
-  | { type: 'ready'; id: string; attempt: number; attachmentId: string }
-  | { type: 'failed'; id: string; attempt: number; error: string }
+  | {
+      type: 'ready';
+      id: string;
+      attempt: number;
+      attachmentId: string;
+      hasThumbnail?: boolean;
+      durationSeconds?: number | null;
+      processing?: boolean;
+    }
+  | {
+      type: 'failed';
+      id: string;
+      attempt: number;
+      error: string;
+      keepAttachmentId?: boolean;
+    }
+  | { type: 'recovered'; id: string; file: File; previewUrl: string }
+  | { type: 'replaced'; id: string; file: File; previewUrl: string }
+  | { type: 'sensitive'; id: string; value: boolean }
   | { type: 'remove'; id: string }
+  | { type: 'move'; id: string; offset: -1 | 1 }
+  | { type: 'reorder'; ids: readonly string[] }
   | { type: 'clear' };
 
 function updateCurrentAttempt(
@@ -68,7 +94,7 @@ export function attachmentDraftReducer(
         action.attempt,
         (draft) => ({
           ...draft,
-          progress: Math.max(0, Math.min(100, action.progress)),
+          progress: advanceUploadProgress(draft.progress, action.progress),
         }),
       );
     case 'phase':
@@ -79,7 +105,12 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: action.status,
-          progress: action.status === 'validating' ? 100 : draft.progress,
+          progress:
+            action.status === 'validating'
+              ? 100
+              : action.status === draft.status
+                ? draft.progress
+                : 0,
           error: undefined,
         }),
       );
@@ -93,6 +124,9 @@ export function attachmentDraftReducer(
           status: 'ready',
           progress: 100,
           attachmentId: action.attachmentId,
+          hasThumbnail: action.hasThumbnail,
+          durationSeconds: action.durationSeconds,
+          processing: action.processing,
           error: undefined,
         }),
       );
@@ -104,12 +138,68 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: 'failed',
-          attachmentId: undefined,
+          attachmentId: action.keepAttachmentId
+            ? draft.attachmentId
+            : undefined,
           error: action.error,
         }),
       );
+    case 'recovered':
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? {
+              ...draft,
+              file: action.file,
+              previewUrl: action.previewUrl,
+              status: 'ready',
+              progress: 100,
+              error: undefined,
+            }
+          : draft,
+      );
+    case 'replaced':
+      // An edited photo (#1907 G1) takes the draft's place and position; the
+      // previous upload is abandoned and the new file uploads in its stead.
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? {
+              ...draft,
+              file: action.file,
+              previewUrl: action.previewUrl,
+              status: 'uploading',
+              progress: 0,
+              attachmentId: undefined,
+              hasThumbnail: undefined,
+              error: undefined,
+            }
+          : draft,
+      );
+    case 'sensitive':
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? { ...draft, isSensitive: action.value }
+          : draft,
+      );
     case 'remove':
       return drafts.filter((draft) => draft.id !== action.id);
+    case 'reorder': {
+      const ordered = action.ids.flatMap((id) => {
+        const item = drafts.find((draft) => draft.id === id);
+        return item ? [item] : [];
+      });
+      return [
+        ...ordered,
+        ...drafts.filter((draft) => !action.ids.includes(draft.id)),
+      ];
+    }
+    case 'move': {
+      const from = drafts.findIndex((draft) => draft.id === action.id);
+      const to = from + action.offset;
+      if (from < 0 || to < 0 || to >= drafts.length) return drafts;
+      const result = [...drafts];
+      [result[from], result[to]] = [result[to], result[from]];
+      return result;
+    }
     case 'clear':
       return [];
   }
@@ -123,6 +213,9 @@ export function readyAttachmentIds(drafts: AttachmentDraft[]): string[] {
 
 export function hasPendingAttachments(drafts: AttachmentDraft[]): boolean {
   return drafts.some(
-    (draft) => draft.status === 'uploading' || draft.status === 'validating',
+    (draft) =>
+      draft.status === 'preparing' ||
+      draft.status === 'uploading' ||
+      draft.status === 'validating',
   );
 }

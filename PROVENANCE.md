@@ -88,14 +88,105 @@ repository currently contains project-specific product-preview, roadmap and
 M2 handoff graphics. Their paths and provenance classification are recorded
 in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
-The product-preview files under `docs/assets/playstore/` are mockups for
-eimir., not screenshots or assets copied from a predecessor. The
+The product-preview images under `docs/assets/readme/` are real screenshots
+of the current eimir. Web client (smartphone width, Light theme), captured with
+a Playwright-driven browser against a locally running eimir. backend seeded with
+the canonical demo Space (`docs/DEMO-SPACE.md`). They contain only the fictional
+demo identities and content and the CC0 demo photographs recorded in
+`backend/demo_assets/manifest.json`; no real couple data, account data or
+third-party artwork. The earlier AI-generated mockups under
+`docs/assets/playstore/` no longer represented the product and were removed.
+They were never screenshots or assets copied from a predecessor. The
 roadmap graphics under `docs/assets/roadmap/` and the M2 SVG diagrams were
 created specifically for this repository's documentation and handoff.
+
+The tag and photo-library outline motifs added to `EimirIcon.tsx` for #1724
+were drawn specifically for eimir. with AI assistance on the existing 24 px
+icon grid. They reuse the project's stroke grammar, have no third-party source
+and follow the project's source-code license. Companion browser evidence uses
+synthetic test identities and the existing approved product fixtures.
 
 Unless an individual entry states otherwise, these project assets have no
 separate public license grant. No font or audio assets are currently part of
 the repository.
+
+The #1489 generated whole-screen navigation reference under
+`docs/product/design/references/1489/` was created with OpenAI's built-in
+image-generation tool on 2026-10-28 from an actual eimir. browser render at
+`5e19e8b8f522be6b59737b15a40e6c8bbbceb806`. It is design guidance, not runtime
+evidence. Companion browser screenshots use synthetic test identities and the
+repository's existing authorized assets. No predecessor assets were consulted.
+
+## Date-idea catalog and images
+
+`backend/src/eimir/date_ideas/data/catalog.json` is the eimir. editorial
+date-idea catalog (#1892): 200 original ideas in German and English, written
+for eimir. and delivered as a versioned handoff with its JSON Schema.
+
+`backend/src/eimir/date_ideas/data/images/` holds 25 editorial images for that
+catalog (15 per idea, 10 per category). They were generated with OpenAI's
+built-in image-generation tool without reference images; `images.json`
+records each file, size, German and English alt text and the exact prompt.
+They depict no real persons and contain no third-party photographs, brands or
+artwork. They are project assets with no separate public license grant and
+are served only through the Pro-gated API.
+
+## Daily Saying catalog
+
+`backend/src/eimir/quotes/daily_sayings.json` contains an eimir. selection
+of German public-domain literary excerpts, aphorisms and traditional sayings
+with equivalent German and English versions. Each collection records the
+edition or digital source and the basis for reuse. Public-domain selections
+include historical literature and documented traditional sayings. Contemporary
+sayings carry eimir. credit and the repository license.
+
+Catalog translations of historical works and public remarks are contributed
+under [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+The underlying works retain their source credits and reuse terms. The catalog
+records the author, work and edition for each quotation.
+
+- **Poetry.** The original texts and bibliographic fields were selected from
+  the [TextGrid Poetry Corpus](https://github.com/linhd-postdata/textgrid-poetry/tree/33a990cbf8e078edf3615f9ff35c4239065270b1),
+  a conversion of the [TextGrid Digital Library](https://textgrid.de/ueber-textgrid/die-digitale-bibliothek/)
+  based on Editura's digitization. The extracted metadata and adaptations of
+  that data retain the [CC BY 3.0 DE](https://creativecommons.org/licenses/by/3.0/de/)
+  terms and credit to TextGrid and Editura. Each collection links to its
+  pinned source. The selection extracts short passages and normalizes whitespace.
+- **Aphorisms.** Johann Wolfgang von Goethe,
+  [*Maximen und Reflexionen*](https://hdl.handle.net/11858/00-1734-0000-0006-5ED3-4),
+  from the TextGrid Digital Library under the same terms as above.
+  Marie von Ebner-Eschenbach, *Gesammelte Schriften*, vol. 1
+  (Gebrüder Paetel, 1893), [Project Gutenberg #77889](https://www.gutenberg.org/ebooks/77889).
+  Christian Morgenstern, *Stufen* (R. Piper & Co., 1922),
+  [Project Gutenberg #15898](https://www.gutenberg.org/ebooks/15898).
+  Friedrich Nietzsche, *Menschliches, Allzumenschliches*, vol. 1 (1878),
+  [Project Gutenberg #7207](https://www.gutenberg.org/ebooks/7207).
+  The Project Gutenberg excerpts contain text from the original works.
+- **Traditional sayings.** Karl Simrock (ed.),
+  [*Die deutschen Sprichwörter*](https://openlibrary.org/books/OL20517562M/Die_deutschen_Sprichw%C3%B6rter_gesammelt)
+  (H. L. Brönner, 1846).
+  The catalog uses original proverb wording with corrected transcription and
+  occasional spelling normalization.
+
+- **Additional editions.** The 1893 [Ebner-Eschenbach scan](https://archive.org/details/aphorismen00escgoog)
+  supplies numbered aphorisms with normalized historical typography.
+  [*Selbstbetrachtungen*](https://www.gutenberg.org/ebooks/15028) uses the
+  F. C. Schneider translation edited by Alexander von Gleichen-Rußwurm.
+  Khalil Gibran's [*The Prophet*](https://standardebooks.org/ebooks/kahlil-gibran/the-prophet)
+  uses the 1923 English text. The catalog identifies the edition used for each
+  excerpt from *A Room of One's Own*, *Emma*, and the other English works.
+- **Public remarks.** The catalog records the transcript, date and reuse policy
+  for quotations from the twentieth and twenty-first centuries. Beehive's
+  [copyright policy](https://www.beehive.govt.nz/copyright) authorizes accurate
+  reproduction and translation with source credit. Official White House and
+  NASA quotations use the sources identified in the individual catalog entries.
+- **Contemporary sayings.** The eimir. editorial collection contains original
+  sayings in German and English. Their author credit is `eimir.`.
+
+The licensing terms above apply to the supplied source data independently of
+the application license. Source and rights metadata stay in the repository.
+The card shows author credit for attributed texts. Traditional sayings can
+appear by themselves.
 
 ## Contributors
 

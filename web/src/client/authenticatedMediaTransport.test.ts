@@ -21,6 +21,7 @@ const descriptor: UploadDescriptor = {
     createdAt: new Date(),
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: null,
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
@@ -36,6 +37,7 @@ const descriptor: UploadDescriptor = {
 const file = new File(['photo'], 'moment.jpg', { type: 'image/jpeg' });
 const uploads: Upload[] = [];
 let result: (request: Upload) => void;
+let emitLoadEnd = true;
 class Upload extends EventTarget {
   status = 204;
   statusText = 'No Content';
@@ -57,7 +59,7 @@ class Upload extends EventTarget {
     uploads.push(this);
     queueMicrotask(() => {
       result(this);
-      this.dispatchEvent(new Event('loadend'));
+      if (emitLoadEnd) this.dispatchEvent(new Event('loadend'));
     });
   }
   abort() {
@@ -68,6 +70,7 @@ class Upload extends EventTarget {
 
 beforeEach(async () => {
   uploads.length = 0;
+  emitLoadEnd = true;
   result = (request) => request.onload?.();
   vi.stubGlobal('XMLHttpRequest', Upload);
   await clearStoredSession();
@@ -151,6 +154,48 @@ it('does not retry a photo upload with an unknown network outcome', async () => 
   expect(fetch).not.toHaveBeenCalled();
 });
 
+it('keeps progress monotonic through token renewal and reserves completion for accepted bytes', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...tokens,
+            accessToken: 'access-b',
+            refreshToken: 'refresh-b',
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+    ),
+  );
+  const progress = vi.fn();
+  result = (request) => {
+    const first = uploads.length === 1;
+    for (const loaded of first ? [40, 20, 100] : [10, 60, 100]) {
+      request.upload.onprogress?.({
+        loaded,
+        total: 100,
+        lengthComputable: true,
+      } as ProgressEvent);
+    }
+    expect(progress).not.toHaveBeenCalledWith(100);
+    request.status = first ? 401 : 204;
+    request.onload?.();
+    // A queued event from a completed transport cannot update the next one.
+    request.upload.onprogress?.({
+      loaded: 1,
+      total: 100,
+      lengthComputable: true,
+    } as ProgressEvent);
+  };
+  await uploadAttachmentBytesWithProgress(api, 'access-a', descriptor, file, {
+    onProgress: progress,
+  });
+  expect(uploads).toHaveLength(2);
+  expect(progress.mock.calls.map(([value]) => value)).toEqual([40, 99, 100]);
+});
+
 it('keeps signed object-storage uploads free of session credentials', async () => {
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);
@@ -167,4 +212,35 @@ it('keeps signed object-storage uploads free of session credentials', async () =
   expect(uploads[0].url).toBe('https://storage.example/photo');
   expect(uploads[0].headers.has('Authorization')).toBe(false);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('fails and aborts a stalled transfer, retaining the original file for an explicit retry', async () => {
+  const { UPLOAD_STALL_TIMEOUT_MS } = await import('./referenceFlow');
+  const timers = vi.spyOn(globalThis, 'setTimeout');
+  const aborted = vi.spyOn(Upload.prototype, 'abort');
+  result = () => {};
+  emitLoadEnd = false;
+  const upload = uploadAttachmentBytesWithProgress(
+    api,
+    'access-a',
+    descriptor,
+    file,
+  );
+  const failure = expect(upload).rejects.toThrow();
+  const { waitFor } = await import('@testing-library/react');
+  await waitFor(() => expect(uploads).toHaveLength(1));
+  const callback = timers.mock.calls.find(
+    ([, delay]) => delay === UPLOAD_STALL_TIMEOUT_MS,
+  )?.[0];
+  if (typeof callback !== 'function')
+    throw new Error('Stall watchdog was not armed');
+  callback();
+  await failure;
+  expect(aborted).toHaveBeenCalledTimes(1);
+  result = (request) => request.onload?.();
+  emitLoadEnd = true;
+  await uploadAttachmentBytesWithProgress(api, 'access-a', descriptor, file);
+  expect(uploads.at(-1)?.body).toBe(file);
+  timers.mockRestore();
+  aborted.mockRestore();
 });

@@ -1,23 +1,28 @@
-import { useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import {
-  dailyQuoteEntitlementQueryKey,
+  DAILY_QUOTE_CAPABILITY,
+  type DailyQuotePreferenceSnapshot,
   dailyQuotePreferencesQueryKey,
   dailyQuoteQueryKey,
   isDailyQuoteConflict,
   isDailyQuoteEntitlementRequired,
-  loadDailyQuoteCapability,
   loadDailyQuotePreferences,
   saveDailyQuotePreferences,
-  type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
 import {
   ClientProblemError,
   clientProblemKind,
 } from '../client/problemDetails';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from '../client/spaceEntitlement';
 import { useTranslation } from '../i18n';
+import { DailyQuoteCard } from './DailyQuoteCard';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
 
@@ -26,18 +31,16 @@ export function DailyQuoteSettingsPanel({
   entitlementsApi,
   accountId,
   spaceId,
+  variant = 'section',
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
+  variant?: 'section' | 'toggle' | 'categories';
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const entitlementKey = useMemo(
-    () => dailyQuoteEntitlementQueryKey(accountId, spaceId),
-    [accountId, spaceId],
-  );
   const preferencesKey = useMemo(
     () => dailyQuotePreferencesQueryKey(accountId, spaceId),
     [accountId, spaceId],
@@ -47,13 +50,16 @@ export function DailyQuoteSettingsPanel({
     [accountId, spaceId],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: entitlementKey,
-    queryFn: ({ signal }) =>
-      loadDailyQuoteCapability(entitlementsApi, spaceId, signal),
-    enabled: Boolean(accountId && spaceId),
-    retry: false,
-    gcTime: 0,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_QUOTE_CAPABILITY,
   });
   const hasCapability = entitlementQuery.data === true;
 
@@ -69,8 +75,13 @@ export function DailyQuoteSettingsPanel({
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-    queryClient.setQueryData(entitlementKey, false);
-  }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
+    withdrawSpaceCapability(
+      queryClient,
+      accountId,
+      spaceId,
+      DAILY_QUOTE_CAPABILITY,
+    );
+  }, [accountId, spaceId, preferencesKey, preferencesQuery.error, queryClient]);
 
   const mutation = useMutation({
     mutationFn: (enabled: boolean) => {
@@ -90,7 +101,12 @@ export function DailyQuoteSettingsPanel({
     onError: (error) => {
       if (!isDailyQuoteEntitlementRequired(error)) return;
       queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-      queryClient.setQueryData(entitlementKey, false);
+      withdrawSpaceCapability(
+        queryClient,
+        accountId,
+        spaceId,
+        DAILY_QUOTE_CAPABILITY,
+      );
     },
   });
 
@@ -106,6 +122,53 @@ export function DailyQuoteSettingsPanel({
       ? t('dailyQuote.settingsSaved')
       : null;
 
+  if (variant === 'toggle') {
+    const failure =
+      entitlementQuery.error ?? preferencesQuery.error ?? mutation.error;
+    return (
+      <div className="dashboard-module-control">
+        <label className="dashboard-module-switch">
+          <input
+            type="checkbox"
+            aria-label={t('dailyQuote.title')}
+            checked={hasCapability && enabled}
+            disabled={
+              !hasCapability ||
+              !preferencesQuery.data ||
+              Boolean(failure) ||
+              mutation.isPending
+            }
+            onChange={(event) => {
+              mutation.reset();
+              mutation.mutate(event.target.checked);
+            }}
+          />
+        </label>
+        {failure ? (
+          <div role="status">
+            <p>{t('dailyQuote.preferencesUnavailable')}</p>
+            <button
+              type="button"
+              className="tertiary"
+              onClick={() => {
+                mutation.reset();
+                void entitlementQuery.refetch();
+                void preferencesQuery.refetch();
+              }}
+            >
+              {t('dailyQuote.retry')}
+            </button>
+          </div>
+        ) : null}
+        {status ? (
+          <span className="sr-only" role="status">
+            {status}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <section
       id="settings-daily-quote"
@@ -116,9 +179,11 @@ export function DailyQuoteSettingsPanel({
         <h2 id="settings-daily-quote-heading">
           {t('dailyQuote.settingsTitle')}
         </h2>
-        <p className="settings-section-intro">
-          {t('dailyQuote.settingsIntro')}
-        </p>
+        {variant !== 'categories' ? (
+          <p className="settings-section-intro">
+            {t('dailyQuote.settingsIntro')}
+          </p>
+        ) : null}
       </div>
 
       {entitlementQuery.isPending ? (
@@ -164,7 +229,7 @@ export function DailyQuoteSettingsPanel({
             {t('dailyQuote.retry')}
           </button>
         </div>
-      ) : preferencesQuery.data ? (
+      ) : preferencesQuery.data && variant !== 'categories' ? (
         <PreferenceSwitch
           label={t('dailyQuote.enabledLabel')}
           description={t('dailyQuote.enabledSettingsDescription')}
@@ -177,6 +242,15 @@ export function DailyQuoteSettingsPanel({
         />
       ) : null}
 
+      {hasCapability ? (
+        <DailyQuoteCard
+          settingsOnly
+          quoteApi={quoteApi}
+          entitlementsApi={entitlementsApi}
+          accountId={accountId}
+          spaceId={spaceId}
+        />
+      ) : null}
       {status ? (
         <p
           className="daily-quote-settings-status"

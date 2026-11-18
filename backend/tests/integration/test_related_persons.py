@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from eimir.people.models import PersonRelationship
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -33,6 +32,7 @@ def person_body(
     birthday_year_known: bool = True,
     visibility: str = "SHARED",
     show_birthday_on_dashboard: bool = False,
+    note: str | None = None,
 ) -> dict[str, Any]:
     return {
         "displayName": display_name,
@@ -41,6 +41,7 @@ def person_body(
         "birthdayYearKnown": birthday_year_known,
         "visibility": visibility,
         "showBirthdayOnDashboard": show_birthday_on_dashboard,
+        **({"note": note} if note is not None else {}),
     }
 
 
@@ -140,36 +141,26 @@ class TestRelatedPerson:
         assert response.status_code == 200
         assert response.json()["displayName"] == "Lisa"
 
-    def test_private_person_remains_invisible_to_partner(
-        self,
-        client,
-        couple,
+    def test_private_person_request_is_rejected_without_creating_content(
+        self, client, couple
     ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, couple, visibility="PRIVATE").json()
+        response = create_person(client, couple, visibility="PRIVATE")
+        assert response.status_code == 422
+        for token in ("token_a", "token_b"):
+            listing = client.get(persons_path(couple["space"].id), headers=auth(couple[token]))
+            assert listing.status_code == 200
+            assert listing.json() == []
 
-        detail = client.get(
-            f"{persons_path(couple['space'].id)}/{person['id']}",
-            headers=auth(couple["token_b"]),
-        )
-        assert detail.status_code == 404
-        assert detail.json()["code"] == "RELATED_PERSON_NOT_FOUND"
-
-        listing = client.get(
-            persons_path(couple["space"].id),
-            headers=auth(couple["token_b"]),
-        )
-        assert listing.status_code == 200
-        assert listing.json() == []
-
-    def test_partner_cannot_modify_shared_person(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+    def test_partner_can_modify_shared_person(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         person = create_person(client, couple).json()
         response = client.put(
             f"{persons_path(couple['space'].id)}/{person['id']}",
             json=person_body(display_name="Umbenannt"),
             headers=if_match(couple["token_b"], person["version"]),
         )
-        assert response.status_code == 403
-        assert response.json()["code"] == "NOT_RESOURCE_OWNER"
+        assert response.status_code == 200
+        assert response.json()["displayName"] == "Umbenannt"
+        assert response.json()["visibility"] == "SHARED"
 
     def test_stale_state_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         person = create_person(client, couple).json()
@@ -203,8 +194,72 @@ class TestRelatedPerson:
         assert response.json()["code"] == "AUTHENTICATION_REQUIRED"
 
     def test_unknown_relationship_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
-        response = create_person(client, couple, relationship="COLLEAGUE")
+        response = create_person(client, couple, relationship="UNKNOWN_RELATIONSHIP")
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("relationship", list(PersonRelationship))
+    def test_concrete_and_legacy_relationships_are_persisted(
+        self, client, couple, relationship
+    ) -> None:  # type: ignore[no-untyped-def]
+        response = create_person(client, couple, relationship=relationship.value)
+        assert response.status_code == 201
+        path = f"{persons_path(couple['space'].id)}/{response.json()['id']}"
+        assert (
+            client.get(path, headers=auth(couple["token_b"])).json()["relationship"] == relationship
+        )
+
+    def test_shared_note_survives_legacy_writes_and_obeys_authorization_and_versions(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        note = "Likes the sea.\nRemember the strawberry cake."
+        response = create_person(client, couple, note=f"  {note}  ")
+        assert response.status_code == 201
+        person = response.json()
+        path = f"{persons_path(couple['space'].id)}/{person['id']}"
+        assert person["note"] == note
+        assert client.get(path, headers=auth(couple["token_b"])).json()["note"] == note
+        for method in ("get", "put"):
+            arguments = {"headers": if_match(couple["token_outsider"], person["version"])}
+            if method == "put":
+                arguments["json"] = person_body(note="Not authorized")
+            assert getattr(client, method)(path, **arguments).status_code == 404
+
+        # Pre-note clients omit the new field; explicit null has the same contract.
+        for supplied in ({}, {"note": None}):
+            response = client.put(
+                path,
+                json={**person_body(display_name="Renamed"), **supplied},
+                headers=if_match(couple["token_b"], person["version"]),
+            )
+            assert response.status_code == 200
+            person = response.json()
+            assert person["note"] == note
+
+        changed = client.put(
+            path,
+            json=person_body(note="A new note"),
+            headers=if_match(couple["token_b"], person["version"]),
+        )
+        assert changed.status_code == 200
+        stale = client.put(
+            path,
+            json=person_body(note="Stale"),
+            headers=if_match(couple["token_a"], person["version"]),
+        )
+        assert stale.status_code == 409
+        assert client.get(path, headers=auth(couple["token_a"])).json()["note"] == "A new note"
+        cleared = client.put(
+            path,
+            json=person_body(note=""),
+            headers=if_match(couple["token_a"], changed.json()["version"]),
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["note"] == ""
+
+    def test_note_is_bounded_and_optional(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        assert create_person(client, couple).json()["note"] == ""
+        assert create_person(client, couple, note="n" * 2000).status_code == 201
+        assert create_person(client, couple, note="n" * 2001).status_code == 422
 
     def test_blank_display_name_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         response = create_person(client, couple, display_name="   ")
@@ -300,18 +355,15 @@ class TestDashboardBirthdayVisibility:
         assert disabled.status_code == 200
         assert disabled.json()["showBirthdayOnDashboard"] is False
 
-    def test_persists_independent_of_visibility(self, client, couple) -> None:  # type: ignore[no-untyped-def]
-        """Writing the flag is not gated by SPACE_SHARED; only projection is."""
-        response = create_person(
-            client,
-            couple,
-            visibility="PRIVATE",
-            show_birthday_on_dashboard=True,
+    def test_persists_as_shared_without_an_audience_argument(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        body = person_body(show_birthday_on_dashboard=True)
+        del body["visibility"]
+        response = client.post(
+            persons_path(couple["space"].id), json=body, headers=auth(couple["token_a"])
         )
         assert response.status_code == 201
-        body = response.json()
-        assert body["visibility"] == "PRIVATE"
-        assert body["showBirthdayOnDashboard"] is True
+        assert response.json()["visibility"] == "SHARED"
+        assert response.json()["showBirthdayOnDashboard"] is True
 
 
 class TestImportantDate:
@@ -380,19 +432,19 @@ class TestImportantDate:
         )
         assert listing.json() == []
 
-    def test_filter_by_partners_private_person_remains_404(
-        self,
-        client,
-        couple,
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Even a hit count of zero would disclose information about the person."""
-        person = create_person(client, couple, visibility="PRIVATE").json()
-        response = client.get(
-            f"{dates_path(couple['space'].id)}?relatedPersonId={person['id']}",
-            headers=auth(couple["token_b"]),
+    def test_filter_by_foreign_person_remains_404(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        response = client.post(
+            persons_path(couple["outsider_space"].id),
+            json=person_body(),
+            headers=auth(couple["token_outsider"]),
         )
-        assert response.status_code == 404
-        assert response.json()["code"] == "RELATED_PERSON_NOT_FOUND"
+        person = response.json()
+        filtered = client.get(
+            f"{dates_path(couple['space'].id)}?relatedPersonId={person['id']}",
+            headers=auth(couple["token_a"]),
+        )
+        assert filtered.status_code == 404
+        assert filtered.json()["code"] == "RELATED_PERSON_NOT_FOUND"
 
     def test_unknown_type_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         assert create_date(client, couple, date_type="FUNERAL").status_code == 422
@@ -401,52 +453,43 @@ class TestImportantDate:
         assert create_date(client, couple, repeats="WEEKLY").status_code == 422
 
 
-class TestDateNeverMoreVisibleThanPerson:
-    def test_shared_date_on_private_person_is_rejected(
-        self,
-        client,
-        couple,
-    ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, couple, visibility="PRIVATE").json()
-        response = create_date(
-            client,
-            couple,
-            related_person_id=person["id"],
-            visibility="SHARED",
-        )
-        assert response.status_code == 422
-        assert response.json()["code"] == "IMPORTANT_DATE_MORE_OPEN_THAN_PERSON"
-
-    def test_private_date_on_private_person_is_allowed(
-        self,
-        client,
-        couple,
-    ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, couple, visibility="PRIVATE").json()
-        response = create_date(
-            client,
-            couple,
-            related_person_id=person["id"],
-            visibility="PRIVATE",
-        )
+class TestSharedPeopleAndIndependentDatePrivacy:
+    def test_shared_date_can_reference_a_shared_person(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple).json()
+        response = create_date(client, couple, related_person_id=person["id"])
         assert response.status_code == 201
+        assert response.json()["relatedPersonId"] == person["id"]
 
-    def test_opening_date_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, couple, visibility="PRIVATE").json()
-        important_date = create_date(
-            client,
-            couple,
-            related_person_id=person["id"],
-            visibility="PRIVATE",
-        ).json()
-
-        response = client.put(
-            f"{dates_path(couple['space'].id)}/{important_date['id']}",
-            json=date_body(related_person_id=person["id"], visibility="SHARED"),
-            headers=if_match(couple["token_a"], important_date["version"]),
+    def test_private_date_keeps_its_scope_on_a_shared_person(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple).json()
+        response = create_date(client, couple, related_person_id=person["id"], visibility="PRIVATE")
+        assert response.status_code == 201
+        private = response.json()
+        assert (
+            client.get(
+                f"{dates_path(couple['space'].id)}/{private['id']}", headers=auth(couple["token_b"])
+            ).status_code
+            == 404
         )
-        assert response.status_code == 422
-        assert response.json()["code"] == "IMPORTANT_DATE_MORE_OPEN_THAN_PERSON"
+        assert (
+            client.get(
+                f"{dates_path(couple['space'].id)}?relatedPersonId={person['id']}",
+                headers=auth(couple["token_b"]),
+            ).json()
+            == []
+        )
+
+    def test_partner_cannot_open_another_members_private_date(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple).json()
+        private = create_date(
+            client, couple, related_person_id=person["id"], visibility="PRIVATE"
+        ).json()
+        response = client.put(
+            f"{dates_path(couple['space'].id)}/{private['id']}",
+            json=date_body(related_person_id=person["id"]),
+            headers=if_match(couple["token_b"], private["version"]),
+        )
+        assert response.status_code == 404
 
     def test_person_with_shared_dates_does_not_silently_become_private(
         self,
@@ -461,10 +504,9 @@ class TestDateNeverMoreVisibleThanPerson:
             json=person_body(visibility="PRIVATE"),
             headers=if_match(couple["token_a"], person["version"]),
         )
-        assert response.status_code == 409
-        assert response.json()["code"] == "RELATED_PERSON_HAS_SHARED_DATES"
+        assert response.status_code == 422
 
-    def test_partners_private_date_does_not_block_restriction(
+    def test_partners_private_date_does_not_block_shared_edit(
         self,
         client,
         couple,
@@ -480,19 +522,13 @@ class TestDateNeverMoreVisibleThanPerson:
 
         response = client.put(
             f"{persons_path(couple['space'].id)}/{person['id']}",
-            json=person_body(visibility="PRIVATE"),
+            json=person_body(display_name="Lisa Marie"),
             headers=if_match(couple["token_a"], person["version"]),
         )
         assert response.status_code == 200
-        assert response.json()["visibility"] == "PRIVATE"
+        assert response.json()["visibility"] == "SHARED"
 
-    def test_database_enforces_rule_without_domain_logic(
-        self,
-        session,
-        couple,
-    ) -> None:  # type: ignore[no-untyped-def]
-        """The rule is a schema fact, not only a service validation."""
-        from eimir.core.ids import new_id
+    def test_database_enforces_shared_people_without_domain_logic(self, session, couple) -> None:  # type: ignore[no-untyped-def]
         from eimir.people.models import RelatedPerson, RelatedPersonPayload
 
         person = RelatedPerson(
@@ -504,28 +540,9 @@ class TestDateNeverMoreVisibleThanPerson:
             birthday_year_known=False,
             payload=RelatedPersonPayload(display_name="Lisa"),
         )
-        session.add(person)
-        session.flush()
-
-        with pytest.raises(IntegrityError) as error:
-            session.execute(
-                text(
-                    "INSERT INTO important_dates (id, space_id, owner_id, privacy_class, "
-                    "related_person_id, related_person_privacy_class, type, date, repeats, "
-                    "crypto_version, payload, version) "
-                    "VALUES (:id, :space_id, :owner_id, 'SPACE_SHARED', :person_id, "
-                    "'OWNER_ONLY', 'BIRTHDAY', :day, 'ANNUALLY', 0, '{\"label\": \"x\"}', 1)"
-                ),
-                {
-                    "id": new_id(),
-                    "space_id": couple["space"].id,
-                    "owner_id": couple["anna"].id,
-                    "person_id": person.id,
-                    "day": date(2016, 2, 29),
-                },
-            )
-        assert "never_more_open_than_its_person" in str(error.value)
-        session.rollback()
+        with pytest.raises(IntegrityError, match="people_are_shared"), session.begin_nested():
+            session.add(person)
+            session.flush()
 
     def test_deleted_person_cascades_to_its_dates(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         person = create_person(client, couple).json()

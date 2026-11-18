@@ -1,30 +1,41 @@
 import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
-import { i18n } from '../i18n';
+import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
-import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import { PlacesApi } from './mediaApis';
 import { PlansApi } from '../api/generated/apis/PlansApi';
+import { SearchApi } from '../api/generated/apis/SearchApi';
+import { SharedNotesApi } from '../api/generated/apis/SharedNotesApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
+import { WishSelectionsApi } from '../api/generated/apis/WishSelectionsApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import { i18n } from '../i18n';
 import { Configuration } from './apiConfiguration';
+import { galleryCover } from './galleryCover';
 
 export interface SharedPlanningApis {
+  comments?: CommentsApi;
+  linkPreviews?: LinkPreviewsApi;
   wishes: WishesApi;
+  wishSelections?: WishSelectionsApi;
   plans: PlansApi;
   places: PlacesApi;
   placeRelations: PlaceRelationsApi;
   chapters: ChaptersApi;
   chapterRelations: ChapterRelationsApi;
   collections: CollectionsApi;
+  sharedNotes: SharedNotesApi;
   story: StoryApi;
+  search?: SearchApi;
   memories: MemoriesApi;
   heartMoments: HeartMomentsApi;
   milestones: MilestonesApi;
@@ -41,6 +52,8 @@ export interface PlanningRelationTarget {
   kind: PlanningRelationKind;
   label: string;
   effectiveDate: Date;
+  excerpt?: string;
+  attachment?: { id: string; isSensitive?: boolean };
 }
 
 export function createSharedPlanningApis(
@@ -54,13 +67,18 @@ export function createSharedPlanningApis(
 
   return {
     wishes: new WishesApi(configuration),
+    wishSelections: new WishSelectionsApi(configuration),
     plans: new PlansApi(configuration),
+    comments: new CommentsApi(configuration),
+    linkPreviews: new LinkPreviewsApi(configuration),
     places: new PlacesApi(configuration),
     placeRelations: new PlaceRelationsApi(configuration),
     chapters: new ChaptersApi(configuration),
     chapterRelations: new ChapterRelationsApi(configuration),
     collections: new CollectionsApi(configuration),
+    sharedNotes: new SharedNotesApi(configuration),
     story: new StoryApi(configuration),
+    search: new SearchApi(configuration),
     memories: new MemoriesApi(configuration),
     heartMoments: new HeartMomentsApi(configuration),
     milestones: new MilestonesApi(configuration),
@@ -119,7 +137,13 @@ export function planScheduleFromInputs(
 
   if (!timeValue) {
     const plannedOn = dateFromInput(dateValue);
-    return plannedOn ? { plannedOn } : undefined;
+    if (!plannedOn) return undefined;
+    // A date-only end is a plain calendar day; the same day means one day.
+    const plannedUntil =
+      /^\d{4}-\d{2}-\d{2}$/.test(endValue) && endValue > dateValue
+        ? dateFromInput(endValue)
+        : undefined;
+    return plannedUntil ? { plannedOn, plannedUntil } : { plannedOn };
   }
 
   const plannedStart = dateTimeFromInput(`${dateValue}T${timeValue}`);
@@ -134,6 +158,17 @@ export function planScheduleDateInput(
 ): string {
   if (plan.plannedOn) return dateOnlyInput(plan.plannedOn);
   return localDateTimeInput(plan.plannedStart).slice(0, 10);
+}
+
+/**
+ * Product end input: the inclusive last calendar day of a multi-day date-only
+ * Plan (YYYY-MM-DD), or the local end instant of a timed Plan.
+ */
+export function planScheduleEndInput(
+  plan: Pick<PlanDetail, 'plannedOn' | 'plannedUntil' | 'plannedEnd'>,
+): string {
+  if (plan.plannedOn) return dateOnlyInput(plan.plannedUntil);
+  return localDateTimeInput(plan.plannedEnd);
 }
 
 /** Product time input. Absence is semantically meaningful and must stay empty. */
@@ -154,6 +189,8 @@ export async function loadAllPlaces(
   do {
     const page = await apis.places.listPlaces({
       spaceId,
+      scope: 'ACTIVE',
+      order: 'NAME',
       cursor,
       limit: 50,
     });
@@ -192,6 +229,7 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'MEMORY',
         label: item.memory.title,
         effectiveDate: item.effectiveDate,
+        attachment: galleryCover(item.memory),
       };
     case 'HEART_MOMENT':
       return {
@@ -199,6 +237,11 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'HEART_MOMENT',
         label: item.heartMoment.text || i18n.t('heartMomentProduct.untitled'),
         effectiveDate: item.effectiveDate,
+        attachment:
+          item.heartMoment.attachment?.mediaType === 'IMAGE' &&
+          item.heartMoment.attachment.status === 'READY'
+            ? item.heartMoment.attachment
+            : undefined,
       };
     case 'MILESTONE':
       return {

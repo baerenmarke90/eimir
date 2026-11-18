@@ -9,30 +9,43 @@ runs on `app.eimir.de` (web app and API on one origin). The two are separate dep
 ## What is in the repository
 
 - `site/index.html` (German), `site/en/index.html` (English), `site/impressum/index.html`
-  (legal notice, German) and `site/assets/site.css`.
+  (legal notice, German), `site/assets/site.css` and `site/assets/devices.css` (an excerpt of
+  [devices.css](https://github.com/picturepan2/devices.css), MIT, with its license text).
 - `tools/site/build_main_site.py` assembles `site/dist/` and adds the Web app's self-hosted
-  fonts (Literata, Instrument Sans) and app icon from `web/public/`, so no binary copies live
-  in Git.
+  fonts (Literata, Instrument Sans), favicon, brand mark and touch icon from `web/public/`, plus
+  the product screens from `docs/assets/site/` (see its `SOURCES.md`). Screen file names are
+  fingerprinted at build time so a changed capture is never served from a stale cache.
 - `tools/ci/test_main_site.py` guards the site (see below).
 
 The site is plain HTML and CSS without JavaScript, cookies, tracking, third-party fonts or
 remote resources. Each page carries a restrictive Content-Security-Policy meta tag
-(`default-src 'none'` plus same-origin images, fonts and styles).
+(`default-src 'none'` plus same-origin images, fonts and styles; the start pages also allow
+same-origin media for the garden video).
 
 ## Design
 
 Smartphone/Compact is the reference composition; the Expanded layout adapts the same
-hierarchy (hero left, illustration right, topics as two columns). The hero reuses the rose
-entry-screen gradient of the app, Literata for headings and Instrument Sans for text.
-Colors use the same variable names and values as the Web design-system adapter
-(`web/src/styles.css`, `web/src/theme.css`); the test fails when a value drifts. Light and
-Dark follow `prefers-color-scheme`. The page has no animation beyond a color transition on the
-primary button, which is disabled with reduced motion.
+hierarchy. The page order is: intro with two device frames, the three app areas (Wir, Momente,
+Planen), four feature highlights (diary, garden, recaps, our story), how to use eimir. (browser,
+PWA, self-hosted), security, FAQ and a closing call to action.
+
+Tokens: colors use the same variable names and values as the Web design-system adapter
+(`web/src/styles.css`, `web/src/theme.css`); the test fails when a value drifts. Radius, spacing,
+touch sizes, content width, breakpoints, motion durations, the navigation glass and the shadow come
+from `design/tokens.json`. Literata is used for display headings and Instrument Sans for text.
+The two overlapping circles use the app's person colors (own blue, partner rose). Favicon, brand
+mark and touch icon are the app's own assets and switch with `prefers-color-scheme`.
+
+Screens: real captures of the Web app inside a Google Pixel 6 Pro frame. The diary scrolls through
+its screen with a CSS scroll-driven animation (static fallback without support), the garden plays a
+short silent video with a still poster. Both fall back to still images with reduced motion. The intro
+phones fade in once; the primary button only changes color and scale. All motion respects
+`prefers-reduced-motion`.
 
 The primary action is one filled pill that opens the application (localized per page). Privacy and terms are the
 application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so
-there is a single source of truth. Product screenshots are intentionally not used yet; the
-repository's older store images are outdated mockups.
+there is a single source of truth. Security copy follows `docs/ENCRYPTION-AT-REST.md` section 11:
+encryption at rest and TLS may be claimed, end-to-end encryption may not, and the FAQ says so.
 
 ## Legal notice (Impressum)
 

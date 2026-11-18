@@ -128,10 +128,6 @@ const m5s5 = {
       retrospectiveDismissToday: 'Für heute ausblenden',
       retrospectiveDismissed: 'Rückblick für heute ausgeblendet',
     },
-    momentGallery: {
-      pause: 'Bilderwechsel anhalten',
-      play: 'Bilderwechsel fortsetzen',
-    },
     monthly: {
       title: 'Euer {{month}}',
       settingsTitle: 'Euer Monat',

@@ -51,9 +51,10 @@ interface Position {
  * The rotation of the shared moment through its pictures.
  *
  * It only runs while it can be seen and nobody is looking at one picture: it
- * pauses while the page is hidden, while Wir is off screen, while a pointer
- * rests on it or focus is inside it, and when the person pauses it. With
- * reduced motion it never starts and the first picture simply stays.
+ * pauses while the page is hidden, while Wir is off screen and while a pointer
+ * rests on it or focus is inside it. With reduced motion it never starts and
+ * the first picture simply stays. There is deliberately no control on the
+ * picture itself (Product Owner decision): nothing sits over the photograph.
  */
 export function useMomentRotation(
   count: number,
@@ -65,7 +66,6 @@ export function useMomentRotation(
     index: 0,
     previous: null,
   });
-  const [paused, setPaused] = useState(false);
   const [engaged, setEngaged] = useState(false);
   const [inView, setInView] = useState(false);
   const [pageVisible, setPageVisible] = useState(
@@ -74,7 +74,7 @@ export function useMomentRotation(
   );
 
   const rotates = count > 1 && !reducedMotion;
-  const running = rotates && !paused && !engaged && inView && pageVisible;
+  const running = rotates && !engaged && inView && pageVisible;
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -132,8 +132,6 @@ export function useMomentRotation(
     previous: position.previous,
     rotates,
     running,
-    paused,
-    togglePaused: () => setPaused((current) => !current),
     advance,
     // A resting mouse or focus inside holds the picture; a touch does not.
     engagement: {

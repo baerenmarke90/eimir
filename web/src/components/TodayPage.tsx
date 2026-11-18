@@ -146,11 +146,7 @@ import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
 import { WirLists } from './WirLists';
-import {
-  type MomentClipLoader,
-  WirMomentControls,
-  WirMomentSlides,
-} from './WirMomentGallery';
+import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
@@ -641,14 +637,6 @@ function TodayMomentFeature({
         {...rotation.engagement}
       >
         {moment}
-        {rotation.rotates ? (
-          <WirMomentControls
-            count={gallery.length}
-            index={rotation.index}
-            paused={rotation.paused}
-            onToggle={rotation.togglePaused}
-          />
-        ) : null}
       </div>
     ) : (
       moment

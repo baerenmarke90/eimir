@@ -136,6 +136,13 @@
     translate: 0 0.5rem;
   }
 
+  /* The daily quote arrives with a soft fade once it is known, instead of
+     replacing the loading line in a single frame. */
+  .today-page .daily-quote-block {
+    animation: wir-reveal-fade calc(var(--duration-sequence-beat) * 2.4)
+      var(--easing-enter) both;
+  }
+
   /* ---- 3. The rest: a slow breath --------------------------------------- */
 
   /* Once the arrival has landed, the rings around the two portraits swell and

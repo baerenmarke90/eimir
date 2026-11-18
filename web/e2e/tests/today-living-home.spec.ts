@@ -2391,7 +2391,7 @@ const GALLERY_SPACE = {
 };
 
 test.describe('Wir: the shared moment rotates through its pictures', () => {
-  test('changes the picture on its own, keeps the link intact and can be paused', async ({
+  test('changes the picture on its own, keeps the link intact and shows nothing over the photograph', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -2402,8 +2402,10 @@ test.describe('Wir: the shared moment rotates through its pictures', () => {
     await expect(frame).toBeVisible();
     const current = () =>
       page.evaluate(() =>
-        [...document.querySelectorAll('.wir-moment-mark')].findIndex((mark) =>
-          mark.hasAttribute('data-current'),
+        Number(
+          document
+            .querySelector('.wir-moment-slide[data-state="active"]')
+            ?.getAttribute('data-index'),
         ),
       );
     expect(await current()).toBe(0);
@@ -2411,24 +2413,14 @@ test.describe('Wir: the shared moment rotates through its pictures', () => {
     await expect(
       frame.locator('.wir-moment-slide:not([aria-hidden="true"])'),
     ).toHaveCount(1);
-    // The controls sit beside the link, never inside it.
-    await expect(frame.locator('a .wir-moment-toggle')).toHaveCount(0);
+    // Nothing sits over the photograph: no progress marks and no control.
+    await expect(frame.locator('button')).toHaveCount(0);
+    await expect(frame.locator('.wir-moment-marks')).toHaveCount(0);
     await expect(frame.locator('a.today-moment')).toHaveCount(1);
 
     // A resting mouse holds the picture, so the pointer leaves the frame first.
     await page.mouse.move(1, 1);
     await expect.poll(current, { timeout: 12_000 }).toBe(1);
-
-    const toggle = frame.getByRole('button', {
-      name: m5s5.today.momentGallery.pause,
-    });
-    await toggle.click();
-    await expect(
-      frame.getByRole('button', { name: m5s5.today.momentGallery.play }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    const paused = await current();
-    await page.waitForTimeout(7000);
-    expect(await current()).toBe(paused);
   });
 
   test('shows one still picture and no controls with reduced motion', async ({
@@ -2440,7 +2432,7 @@ test.describe('Wir: the shared moment rotates through its pictures', () => {
     await signInAndOpenToday(page);
 
     await expect(page.locator('.wir-moment-gallery')).toBeVisible();
-    await expect(page.locator('.wir-moment-toggle')).toHaveCount(0);
+    await expect(page.locator('.wir-moment-frame button')).toHaveCount(0);
     await page.waitForTimeout(7000);
     await expect(
       page.locator('.wir-moment-slide[data-state="active"]'),

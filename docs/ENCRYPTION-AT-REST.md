@@ -1,7 +1,10 @@
 # Application-controlled encryption at rest
 
 Decision record, security architecture, threat model, and operator runbook for
-[#797](https://github.com/baerenmarke90/eimir/issues/797).
+encryption at rest, formerly tracked as #797. That GitHub issue was deleted on
+2026-11-18; the number remains in code comments and migrations as a historical
+reference, and this document is the tracking surface until a new Issue is
+opened.
 
 **This is not end-to-end encryption.** The running application holds the keys and
 can read every value it protects. See [Security claims](#11-security-claims) for
@@ -528,11 +531,11 @@ introduced are recorded in the pull request that added it.
 
 All are invoked as `python -m eimir.security <command>`.
 
-## 16. Acceptance status of #797
+## 16. Acceptance status (formerly #797)
 
-This section records, against the repository state, which acceptance criteria of
-[#797](https://github.com/baerenmarke90/eimir/issues/797) hold. The implementation
-landed in PR #1177; the issue deliberately stays open until the items below are closed.
+This section records, against the repository state, which acceptance criteria of the
+former issue #797 hold. The implementation landed in PR #1177; the work stays open
+until the items below are closed.
 Cloud/Managed is not certified by the G5 decision (`docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`)
 and must not go live before this table is satisfied or each open row has an explicit
 Product Owner decision.

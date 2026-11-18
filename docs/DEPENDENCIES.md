@@ -479,7 +479,7 @@ runs on the eimir. Cloud backend with the already adopted `google-auth` and
 
 ## iOS — Capacitor wrapper runtime
 
-The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+The official Capacitor iOS runtime and Swift Package Manager template (8.6.2,
 MIT) wrap the same React product. The existing Capacitor App and Browser packages
 provide platform integration. Apple Security and UserNotifications supply Keychain
 storage and remote notifications without another SDK.

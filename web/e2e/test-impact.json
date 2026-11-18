@@ -1070,6 +1070,8 @@
         "web/src/components/MemoryPlanningLinks.tsx",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/StoryPlanningLinks.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
         "web/src/components/CommentsPanel.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/HeartMomentProductPage.tsx"

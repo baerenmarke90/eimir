@@ -541,7 +541,7 @@
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
-      "reason": "Existing device-review typed links with draft-safe static destinations in Edit and verified canonical links after returning to read mode, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded; no new always-run cases."
+      "reason": "Memory read-mode link group with independent Plan and Wish destinations and return, keyboard order, wrapping, reflow and axe at Compact/Expanded. Retains draft-safe static destinations in Edit, aligned own-comment metadata, and learned and explicit AI labels."
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",

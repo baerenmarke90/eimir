@@ -416,7 +416,9 @@
 }
 
 .today-agenda-row-link {
-  transition: border-color var(--duration-feedback) var(--easing-standard);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    scale var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
@@ -521,7 +523,8 @@
   transition:
     transform var(--duration-feedback) var(--easing-standard),
     box-shadow var(--duration-feedback) var(--easing-standard),
-    border-color var(--duration-feedback) var(--easing-standard);
+    border-color var(--duration-feedback) var(--easing-standard),
+    scale var(--duration-feedback) var(--easing-standard);
 }
 
 .today-recent-tile-static {
@@ -768,7 +771,8 @@
   box-shadow: var(--shadow-raised);
   transition:
     transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard);
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    scale var(--duration-feedback) var(--easing-standard);
 }
 
 .today-moment-link:hover .today-moment-figure {

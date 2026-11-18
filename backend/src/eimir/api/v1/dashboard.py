@@ -14,6 +14,7 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
+from eimir.attachments.models import MediaType
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
 from eimir.domain.experiences import ExperienceKind
@@ -40,6 +41,12 @@ class DashboardRelationshipDuration(ApiModel):
     display_mode: DurationDisplayMode
 
 
+class DashboardMedia(ApiModel):
+    attachment_id: UUID
+    media_type: MediaType
+    has_thumbnail: bool = False
+
+
 class DashboardItem(ApiModel):
     type: DashboardItemType
     id: UUID
@@ -53,6 +60,8 @@ class DashboardItem(ApiModel):
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    gallery: list[DashboardMedia] = Field(default_factory=list)
+    """Keepsake only: ready, non-sensitive photos and clips to rotate through (at least two)."""
     concealed: bool = False
     """Show only the list title with neutral lines: a discreet Plan (#1790 F3)."""
 
@@ -502,5 +511,13 @@ def _project_item(item: service.DashboardItem) -> DashboardItem:
         preview_attachment_id=item.preview_attachment_id,
         preview_is_sensitive=item.preview_is_sensitive,
         preview_has_thumbnail=item.preview_has_thumbnail,
+        gallery=[
+            DashboardMedia(
+                attachment_id=media.attachment_id,
+                media_type=media.media_type,
+                has_thumbnail=media.has_thumbnail,
+            )
+            for media in item.gallery
+        ],
         concealed=item.concealed,
     )

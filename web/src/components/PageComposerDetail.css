@@ -113,16 +113,23 @@
 .page-composer-detail .memory-planning-links {
   margin-block: var(--space-4);
 }
-.page-composer-detail .memory-planning-links a.memory-planning-destination {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  a.memory-planning-destination {
   border: 0;
   background: var(--color-surface);
   box-shadow: none;
 }
-.page-composer-detail .memory-planning-destination .memory-planning-kind {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  .memory-planning-kind {
   color: var(--composer-accent);
   font: var(--font-action-label);
 }
-.page-composer-detail .memory-planning-destination strong {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  .memory-planning-destination
+  strong {
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
 }

@@ -956,6 +956,120 @@ for (const [width, theme] of [
   });
 }
 
+test.describe('lifeline touch gestures', () => {
+  test.use({ hasTouch: true });
+
+  for (const [route, width, theme] of [
+    ['/today', 360, 'light'],
+    ['/story/our-story', 1280, 'dark'],
+  ] as const) {
+    test(`keeps lifeline swipes local on ${route}`, async ({
+      page,
+      context,
+    }, info) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: theme,
+        reducedMotion: 'no-preference',
+      });
+      const state = await fixture(page);
+      await signIn(page);
+      if (route === '/today') {
+        await page.goto('/more/settings/today');
+        await page
+          .getByRole('checkbox', { name: copy.passport.wirStatisticsTitle })
+          .check();
+      }
+      await page.goto(route);
+      const summary = page.locator('.shared-story-summary');
+      const band = summary.getByRole('slider');
+      await band.press('End');
+      const preview = summary.locator('.shared-story-lifeline-preview-main');
+      await expect(preview).toContainText('Autumn walk');
+      await expect(band).toHaveAttribute(
+        'aria-valuetext',
+        new RegExp(`${lifelinePosition(1, 9)}$`),
+      );
+      await band.evaluate((node) =>
+        node.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      );
+
+      const touch = await context.newCDPSession(page);
+      const position = () =>
+        page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+      const before = await position();
+      const previewBox = await preview.boundingBox();
+      if (!previewBox) throw new Error('Missing lifeline preview');
+      const x = previewBox.x + previewBox.width * 0.75;
+      const y = previewBox.y + previewBox.height / 2;
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x, y }],
+      });
+      for (const distance of [30, 100]) {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: x - distance, y }],
+        });
+      }
+      await expect(
+        summary.locator('.shared-story-lifeline-preview-swipe'),
+      ).toHaveClass(/is-dragging/);
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => resolve()),
+          ),
+      );
+      await expect(page.locator('[data-primary-tab-dragging]')).toHaveCount(0);
+      expect(await position()).toEqual(before);
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+      await expect(preview).toContainText('Thank you for the tea');
+      expect(new URL(page.url()).pathname).toBe(route);
+      expect(await position()).toEqual(before);
+
+      const previousPeriod = await band.getAttribute('aria-valuenow');
+      const bandBox = await band.boundingBox();
+      if (!bandBox) throw new Error('Missing lifeline band');
+      // The finger can land anywhere on the active band for a vertical step.
+      const bandX = bandBox.x + bandBox.width * 0.1;
+      const bandY = bandBox.y + bandBox.height - 8;
+      const swipeBand = async (distance: number) => {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: bandX, y: bandY }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: bandX, y: bandY + distance }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+      };
+      await swipeBand(-16);
+      await expect(preview).toContainText('Three years');
+      expect(await band.getAttribute('aria-valuenow')).toBe(previousPeriod);
+      expect(await position()).toEqual(before);
+      await captureScreenshot(
+        page,
+        info,
+        `lifeline-touch-${width}-${theme}.png`,
+        { animations: 'disabled' },
+      );
+      await swipeBand(16);
+      await expect(preview).toContainText('Thank you for the tea');
+      expect(await band.getAttribute('aria-valuenow')).toBe(previousPeriod);
+      expect(state.unexpected).toEqual([]);
+      await touch.detach();
+    });
+  }
+});
+
 for (const pro of [true, false])
   test(`Wir statistics remain a voluntary passport Pro option: ${pro}`, async ({
     page,

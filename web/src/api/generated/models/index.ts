@@ -86,6 +86,7 @@ export * from './DashboardAnticipation';
 export * from './DashboardExperience';
 export * from './DashboardItem';
 export * from './DashboardItemType';
+export * from './DashboardMedia';
 export * from './DashboardModuleOrderUpdate';
 export * from './DashboardModulePreferenceList';
 export * from './DashboardModulePreferenceUpdate';

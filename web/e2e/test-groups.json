@@ -303,7 +303,7 @@
     "story-discover-tapestry.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 16,
-      "reason": "Canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture and Expanded button) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
+      "reason": "Wir-only retrospective placement, canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture and Expanded button) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -435,7 +435,7 @@
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 13,
-      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded; Eure Geschichte lifeline kind shapes, lazily read single entries, period list and photos in Light/Dark."
+      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access; Eure Geschichte lifeline kind shapes, lazy entries, period list and photos, plus touch direction and root swipe isolation on Today and the full story."
     },
     "webview-update-notice.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -545,7 +545,7 @@
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
-      "reason": "Existing device-review typed links with draft-safe static destinations in Edit and verified canonical links after returning to read mode, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded; no new always-run cases."
+      "reason": "Memory read-mode link group with independent Plan and Wish destinations and return, keyboard order, wrapping, reflow and axe at Compact/Expanded. Retains draft-safe static destinations in Edit, aligned own-comment metadata, and learned and explicit AI labels."
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",

@@ -252,8 +252,8 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
   - [x] **#525 — Final G5 decision:** focused closure on immutable `v0.1.2` records **PASS** for Web + Self-Hosted; final matrix 18 PASS / 1 NOT_APPLICABLE / 0 FAIL / 0 BLOCKED. See `docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`.
   - [x] **#1123 — Protected publication approval:** closed by `v0.1.2` publish run `35521890433`; GitHub records `baerenmarke90` approving `production-release`, after which the protected publish completed successfully. Evidence: `docs/m6/G5-EVIDENCE-DELTA-1123-2026-09-20.md`.
   - [x] **#827 — Pre-market Self-Hosted OCI/topology hardening:** completed in PR #1092; this does not imply that G5 has passed.
-  - [ ] **#797 — Cloud encryption at rest:** required before Cloud/Managed go-live. Cloud/Managed is explicitly `NOT_APPLICABLE` to the 2026-09-20 Web + Self-Hosted launch review, so #797 is not a blocker for that selected scope.
-    Application-controlled encryption of `ProtectedPayload` columns and media is implemented on `main` (PR #1177, `docs/ENCRYPTION-AT-REST.md`); the issue stays open for the remaining acceptance items tracked in `docs/ENCRYPTION-AT-REST.md` section 16: ADR review, live Cloud verification and restore drill, and the product decisions on key custody (KMS), row binding and plaintext identity columns.
+  - **Cloud encryption at rest (formerly #797; GitHub issue deleted on 2026-11-18, no successor Issue yet):** open and required before Cloud/Managed go-live. Cloud/Managed is explicitly `NOT_APPLICABLE` to the 2026-09-20 Web + Self-Hosted launch review, so it is not a blocker for that selected scope.
+    Application-controlled encryption of `ProtectedPayload` columns and media is implemented on `main` (PR #1177, `docs/ENCRYPTION-AT-REST.md`); the remaining acceptance items are tracked in `docs/ENCRYPTION-AT-REST.md` section 16 until a new Issue is opened for them: ADR review, live Cloud verification and restore drill, and the product decisions on key custody (KMS), row binding and plaintext identity columns.
 - [ ] **M7 — Relationship Depth:** post-launch expansion; not a G5 prerequisite
 - [ ] **M8 — Discover & Integrations:** post-launch expansion; not a G5 prerequisite
 - [ ] **M9 — Context & Presence:** post-launch expansion; not a G5 prerequisite
@@ -279,7 +279,7 @@ The certified launch release is `v0.1.2` from
 - immutable GitHub Release and anonymous digest-qualified GHCR consumption: verified.
 
 The launch certification is **Web + Self-Hosted**. Android store/package launch and
-Cloud/Managed remain outside this certification. #797 and target-relevant managed
+Cloud/Managed remain outside this certification. Cloud encryption at rest (formerly #797) and target-relevant managed
 deployment/recovery evidence remain required before Cloud/Managed go-live.
 
 The `v0.1.1...v0.1.2` delta is documentation/evidence-only, so the accepted #915,

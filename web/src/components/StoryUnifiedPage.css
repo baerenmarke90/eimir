@@ -145,11 +145,6 @@
   overflow-wrap: anywhere;
 }
 
-.story-page-unified .momente-retrospective-compact {
-  min-width: 0;
-  margin: 0;
-}
-
 .story-page-unified .momente-hero-link.has-media {
   grid-template-columns: minmax(0, 1fr);
   isolation: isolate;
@@ -186,18 +181,6 @@
 
 .story-page-unified .momente-tapestry-note .momente-tapestry-body {
   padding-top: var(--space-10);
-}
-
-.story-page-unified .momente-retrospective-compact .momente-retrospective-link {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.story-page-unified
-  .momente-retrospective-compact
-  .momente-retrospective-media {
-  width: 100%;
-  aspect-ratio: 1;
 }
 
 .story-page-unified .momente-diary-section .story-timeline .story-card-footer {

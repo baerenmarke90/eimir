@@ -568,14 +568,6 @@
   overflow-wrap: break-word;
 }
 
-/* No arrow on the rediscovery card: the whole card is the link, like the paper
-   pieces around it. Compact view keeps its arrow. */
-.story-page-unified
-  .momente-discover-page[data-diary-layout="album"]
-  .momente-retrospective-chevron {
-  display: none;
-}
-
 /* ---------- photo frames follow the real photo shape ---------- */
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]

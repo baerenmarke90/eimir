@@ -99,6 +99,8 @@ PREFLIGHT_TOOLING_TESTS = {
     "tools/ci/engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
     "tools/ci/documentation_language_audit.py": "tools/ci/test_engineering_language_audit.py",
     "tools/ci/test_engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/test_main_site.py": "tools/ci/test_main_site.py",
+    "tools/site/build_main_site.py": "tools/ci/test_main_site.py",
 }
 
 # Account-deletion recovery authority is intentionally classified by semantic
@@ -336,6 +338,11 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         # container gates. Web has its own product gates; wrapper integration is
         # handled by mobile packaging work.
         if path.startswith(("web/", "android/", "ios/")):
+            known = True
+
+        # The public site ships in its own container. The unconditional
+        # main-site preflight covers this tree and its assembly script.
+        if path.startswith("site/"):
             known = True
 
         if _is_explicitly_safe_documentation(path):

@@ -52,9 +52,8 @@ successful bundle build or test collection alone does not establish a speedup.
 
 The current per-PR selection contract is [Browser impact selection](BROWSER-IMPACT-SELECTION.md).
 An always-run core plus actual transitive dependencies selects affected feature
-and reference coverage. Shared/unknown changes run every retained spec. The four
-PR shard names and full-regression topology remain; historical counts below are
-not current Playwright collection counts.
+and reference coverage. Shared/unknown changes run every retained spec. The
+historical counts below reflect earlier Playwright collections.
 
 Every `web/e2e/tests/*.spec.ts` file must be classified. The inventory runner fails closed when a spec exists without a classification or when the inventory references a removed file.
 
@@ -66,7 +65,6 @@ Historical #1042 state:
 - Phase B Slice 2 retained full regression: **314** browser tests
 - #961 adds two retained tests to `f2-task-boundaries.spec.ts` (unknown-create verification and its photo continuation), so the full regression is **316** tests
 - PR-critical group: **152** browser tests
-- Current topology: **4 PR shards** / **up to 3 additional-spec shards** / **4 full-regression shards**, one Playwright worker per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
 
@@ -112,12 +110,12 @@ The full regression includes every retained browser spec, including Product Refe
 
 ## CI topology
 
-`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Pull requests use **four isolated runners**, each with **one Playwright worker**. This divides the PR-critical workload across runners without browser processes competing with each other and the Vite server on the same runner. Playwright assigns cases in native shard order; a slow file can span a shard boundary, but the configuration does not guarantee that every file appears on multiple runners.
+`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. The PR-critical group uses **six isolated runners**, each with **one Playwright worker**. This divides the PR-critical workload across runners without browser processes competing with each other and the Vite server on the same runner. Playwright assigns cases in native shard order; a slow file can span a shard boundary, but the configuration does not guarantee that every file appears on multiple runners.
 
 For a `pull_request` touching `web/**` or the workflow itself:
 
 1. a planning job validates both inventories, proves the planner with deterministic tests and resolves the complete GitHub PR Files response, bound to the event's head SHA;
-2. four PR-critical jobs run `npm run test:pr -- --shard=1/4` through `--shard=4/4` against the validated core-plus-impact selection;
+2. six PR-critical jobs run `npm run test:pr -- --shard=1/6` through `--shard=6/6` against the validated core-plus-impact selection;
 3. when required, isolated additional jobs run affected or changed non-critical specs completely through native sharding; the plan emits `min(3, selected additional files)` shards so no shard is empty and a small selection pays for one runner only. Critical files are already covered by step 2 and are not executed twice;
 4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
 5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
@@ -128,7 +126,7 @@ Native Playwright sharding uses the existing `fullyParallel: true` configuration
 
 This follows [Playwright's CI worker guidance](https://playwright.dev/docs/ci#workers) and [native sharding](https://playwright.dev/docs/test-sharding). A two-worker trial produced repeated deadlines in existing journeys; the final configuration provides concurrency across isolated runners. The existing test corrections are retained; assertions, timeouts, coverage and production behavior remain unchanged. There is no user-facing UI/UX or business/freemium impact: changes are limited to CI scheduling, test journeys and engineering documentation.
 
-With one worker per runner, Playwright can still report a slow file's accumulated time within that shard. Check all four shard results and the complete job duration when evaluating performance. The warnings remain enabled and should be interpreted alongside the shard allocation and total job duration.
+With one worker per runner, Playwright can still report a slow file's accumulated time within that shard. Check all shard results and the complete job duration when evaluating performance. The warnings remain enabled and should be interpreted alongside the shard allocation and total job duration.
 
 Successful curated Product Reference evidence artifacts are retained for **1 day** and failed-run evidence for **3 days**, preserving the storage-reduction intent of #963. Artifact names include the group, shard where applicable, commit SHA and `github.run_attempt`. Reports from separate attempts therefore have distinct names, and retrying a failed job does not overwrite earlier diagnostic evidence.
 
@@ -180,7 +178,7 @@ unique file list against the PR metadata's `changed_files` count, including the
 Unknown statuses, unsafe current/previous paths and duplicate or oversized pages
 also fail planning. Transport/JSON errors use fixed diagnostics, and CLI error
 output redacts the API token. Even when the additional group is
-empty, the aggregate still requires all four critical shards and the planning job
+empty, the aggregate still requires all critical shards and the planning job
 to succeed. No browser assertion, classification, retry/timeout policy or
 post-merge coverage is removed.
 
@@ -198,7 +196,7 @@ A CI shard can be reproduced locally without changing package scripts:
 
 ```bash
 cd web/e2e
-npm run test:pr -- --shard=1/4
+npm run test:pr -- --shard=1/6
 npm run test:full -- --shard=3/4
 ```
 

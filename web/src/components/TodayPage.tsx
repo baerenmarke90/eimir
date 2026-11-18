@@ -173,7 +173,7 @@ import { useWirReveal } from './useWirReveal';
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
 let wirHeroIntroStartedAt: number | null | undefined;
-const WIR_HERO_INTRO_WINDOW_MS = 1000;
+const WIR_HERO_INTRO_WINDOW_MS = 1500;
 
 function WirIntroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);

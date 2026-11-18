@@ -19,9 +19,9 @@ import { useEffect, useRef, useState } from 'react';
  * first would let a visible card jump down. Waiting means those late changes
  * only ever move things that are not shown yet.
  */
-const INITIAL_BATCH_WINDOW_MS = 900;
-const INITIAL_BATCH_START_MS = 420;
-const INITIAL_BATCH_STEP_MS = 110;
+const INITIAL_BATCH_WINDOW_MS = 1100;
+const INITIAL_BATCH_START_MS = 580;
+const INITIAL_BATCH_STEP_MS = 130;
 const INITIAL_BATCH_MAX_STEPS = 4;
 /** The hero and the quote count as settled after this long without a change. */
 const SETTLE_QUIET_MS = 300;

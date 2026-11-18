@@ -4,6 +4,7 @@ import {
   passportStatisticsKey,
   readPassportStatisticsPreference,
 } from './passportPreferences';
+import { announcePersonalSettingChange } from './personalSettingsBus';
 import { entitlementLoader, useSpaceCapability } from './spaceEntitlement';
 
 const memoryPreferences = new Map<string, boolean>();
@@ -17,7 +18,37 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** Personal device opt-in is independent of grant; revoked Pro never reveals it. */
+export function wirStatisticsKey(
+  instance: string,
+  accountId: string,
+  spaceId: string,
+): string {
+  return `${passportStatisticsKey(instance, accountId, spaceId)}:wir`;
+}
+
+function writeWirStatistics(key: string, value: boolean): void {
+  memoryPreferences.set(key, value);
+  try {
+    window.localStorage.setItem(key, String(value));
+    memoryPreferences.delete(key);
+  } catch {
+    /* Keep the current explicit choice without persistent storage. */
+  }
+  window.dispatchEvent(new Event(eventName));
+}
+
+/**
+ * Applies the Account's saved opt-in from another device without echoing it
+ * back. It grants nothing: the counts still show only while Pro allows them.
+ */
+export function applySyncedWirStatistics(key: string, value: boolean): void {
+  writeWirStatistics(key, value);
+}
+
+/**
+ * The personal opt-in is independent of the grant and follows the Account to
+ * the person's other devices; revoked Pro never reveals it.
+ */
 export function useWirStatistics({
   api,
   instance,
@@ -29,7 +60,7 @@ export function useWirStatistics({
   accountId: string;
   spaceId: string;
 }) {
-  const key = `${passportStatisticsKey(instance, accountId, spaceId)}:wir`;
+  const key = wirStatisticsKey(instance, accountId, spaceId);
   const enabled = useSyncExternalStore(
     subscribe,
     () => memoryPreferences.get(key) ?? readPassportStatisticsPreference(key),
@@ -55,14 +86,8 @@ export function useWirStatistics({
     grant,
     setEnabled(value: boolean) {
       if (grant.data !== true || grant.isError) return;
-      memoryPreferences.set(key, value);
-      try {
-        window.localStorage.setItem(key, String(value));
-        memoryPreferences.delete(key);
-      } catch {
-        /* Keep the current explicit choice without persistent storage. */
-      }
-      window.dispatchEvent(new Event(eventName));
+      writeWirStatistics(key, value);
+      announcePersonalSettingChange(key);
     },
   };
 }

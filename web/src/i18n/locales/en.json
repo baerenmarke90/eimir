@@ -2013,7 +2013,7 @@
       "intro": "You can include recurring celebrations alongside your personal dates.",
       "toggle": "Show common occasions",
       "description": "For example Easter, Christmas, New Year, Pentecost and Valentine's Day.",
-      "deviceNote": "This choice applies on this device only. Your saved dates do not change.",
+      "deviceNote": "This choice is just for you and applies on all your devices. Your saved dates do not change.",
       "manage": "Common occasion settings"
     },
     "holidays": {
@@ -3202,10 +3202,10 @@
       "history": "What you have captured together",
       "wirStatisticsTitle": "Your story in numbers",
       "wirStatisticsToggle": "Show statistics on Us",
-      "wirStatisticsHelp": "Optional for you on this device. Also show your shared counts on Us here. The setting in your recaps is independent.",
+      "wirStatisticsHelp": "Optional and just for you, on all your devices. Also show your shared counts on Us here. The setting in your recaps is independent.",
       "wirStatisticsPro": "Available with your recaps in Pro.",
       "statisticsToggle": "Show shared statistics",
-      "statisticsHelp": "Optional for you on this device. Your shared counts appear here with your recaps.",
+      "statisticsHelp": "Optional and just for you, on all your devices. Your shared counts appear here with your recaps.",
       "nextChapter": "The next chapter",
       "anniversary": "Your anniversary: {{count}} years",
       "roundDay": "{{days}} days together",
@@ -4012,7 +4012,7 @@
           "close": "Close"
         },
         "feedback": {
-          "title": "On this device",
+          "title": "Just for you",
           "sound": "Sounds in the garden",
           "soundHint": "Soft sounds when planting, watering and with the animals.",
           "vibration": "Gentle vibration",
@@ -5152,7 +5152,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us – on all your devices.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."

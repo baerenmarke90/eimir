@@ -192,6 +192,7 @@ import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
+import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
 import { PicturePingPongPage } from './components/PicturePingPongPage';
 import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlaceProductPage } from './components/PlaceProductPage';
@@ -1219,6 +1220,13 @@ function AuthenticatedApp({
           </Routes>
         </AppErrorBoundary>
       </AppShell>
+      <PersonalSettingsSyncRuntime
+        key={`settings:${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+      />
       <PartnerLocationSync
         key={`${apiBaseUrl}:${account.id}:${spaceId}`}
         apiBaseUrl={apiBaseUrl}

@@ -1,4 +1,5 @@
 import type { AppIconId } from './api/generated/models/AppIconId';
+import { announcePersonalSettingChange } from './client/personalSettingsBus';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -84,7 +85,18 @@ export function readThemePreference(): ThemePreference {
   }
 }
 
+/** A person's own choice on this device; it follows the Account to other devices. */
 export function storeThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+  announcePersonalSettingChange(THEME_STORAGE_KEY);
+}
+
+/** Applies the Account's saved choice from another device without echoing it back. */
+export function applySyncedThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+}
+
+function writeThemePreference(preference: ThemePreference): void {
   activeThemePreference = preference;
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, preference);

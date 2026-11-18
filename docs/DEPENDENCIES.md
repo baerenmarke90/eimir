@@ -396,7 +396,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 | Component | Version | Source | License |
 |---|---|---|---|
 | Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.8, `sha256:e4264279b179f0e654579a90a1a9c1eab3ba9124c17551794bee20f68a38b5ce` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| nginx-unprivileged | 1.31.8, `sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;

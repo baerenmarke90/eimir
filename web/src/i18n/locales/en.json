@@ -3492,10 +3492,13 @@
       "loadingBody": "We only load open wishes from your shared space.",
       "coupleRequiredTitle": "This game belongs to both of you",
       "coupleRequiredBody": "Wish detective is designed for a shared space with exactly two partners.",
-      "sparseEyebrow": "A few more wishes to collect",
-      "sparseTitle": "A few more shared wishes are needed for a fair round.",
-      "sparseBody": "Your first round can start once you have each captured at least two open wishes. Private gift ideas are never used for this.",
-      "sparseAction": "Add wishes",
+      "sparseEyebrow": "Almost ready",
+      "sparseTitleBoth": "You each still need a wish.",
+      "sparseTitleYou": "You still need a wish.",
+      "sparseTitlePartner": "{{name}} still needs a wish.",
+      "sparseBody": "Each of you needs at least one open or planned wish. Private gift ideas are never used for this.",
+      "sparseBodyPartner": "Your wishes are enough. As soon as {{name}} captures a wish, your first round can start.",
+      "sparseAction": "Capture a wish",
       "interruptedEyebrow": "Round interrupted",
       "interruptedTitle": "The wish stays hidden.",
       "interruptedBody": "You left the round during handoff or guessing. Hand the device back and start a new round from Play together.",
@@ -3533,6 +3536,15 @@
         "duplicate": "Use a different word for each clue.",
         "wishWord": "This word is already in the wish. Use another clue."
       }
+    },
+    "playMode": {
+      "legend": "How do you want to play?",
+      "apart": "Each on your own phone",
+      "apartBody": "You don't need to be together. {{name}} is told as soon as it continues.",
+      "together": "Together on one phone",
+      "togetherBody": "You sit together and pass the phone back and forth.",
+      "start": "Start the game",
+      "starting": "Starting …"
     },
     "whoOfUs": {
       "back": "Back to Games",

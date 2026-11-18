@@ -233,11 +233,15 @@ const games = {
     coupleRequiredTitle: 'Dieses Spiel gehört euch beiden',
     coupleRequiredBody:
       'Wunschdetektiv ist für einen gemeinsamen Bereich mit genau zwei Partnern gedacht.',
-    sparseEyebrow: 'Noch ein paar Wünsche sammeln',
-    sparseTitle: 'Für eine faire Runde fehlen noch gemeinsame Wünsche.',
+    sparseEyebrow: 'Fast startklar',
+    sparseTitleBoth: 'Euch fehlt noch je ein Wunsch.',
+    sparseTitleYou: 'Dir fehlt noch ein Wunsch.',
+    sparseTitlePartner: '{{name}} braucht noch einen Wunsch.',
     sparseBody:
-      'Sobald ihr beide mindestens zwei offene Wünsche festgehalten habt, kann eure erste Runde starten. Private Geschenkideen werden dafür niemals verwendet.',
-    sparseAction: 'Wünsche ergänzen',
+      'Jeder von euch braucht mindestens einen offenen oder geplanten Wunsch. Private Geschenkideen werden dafür niemals verwendet.',
+    sparseBodyPartner:
+      'Deine Wünsche reichen schon. Sobald {{name}} einen Wunsch festhält, kann eure erste Runde starten.',
+    sparseAction: 'Wunsch festhalten',
     interruptedEyebrow: 'Runde unterbrochen',
     interruptedTitle: 'Der Wunsch bleibt verborgen.',
     interruptedBody:
@@ -277,6 +281,17 @@ const games = {
       wishWord:
         'Dieses Wort steckt bereits im Wunsch. Nimm einen anderen Hinweis.',
     },
+  },
+  // #2048: how a couple game is played.
+  playMode: {
+    legend: 'Wie wollt ihr spielen?',
+    apart: 'Jeder an seinem Handy',
+    apartBody:
+      'Ihr müsst nicht zusammen sein. {{name}} bekommt Bescheid, sobald es weitergeht.',
+    together: 'Zusammen an einem Handy',
+    togetherBody: 'Ihr sitzt beieinander und reicht das Handy hin und her.',
+    start: 'Spiel starten',
+    starting: 'Wird gestartet …',
   },
   whoOfUs: {
     back: 'Zurück zu Spielen',

@@ -20,6 +20,11 @@
   cursor: pointer;
 }
 
+.garden-fullscreen-open .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
 .garden-fullscreen-open:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
@@ -42,6 +47,11 @@
   inset-block-start: max(var(--space-3), env(safe-area-inset-top, 0px));
   inset-inline-start: max(var(--space-3), env(safe-area-inset-left, 0px));
   z-index: 2;
+}
+
+/* The close button alone dismisses; a grab handle has no meaning here. */
+.garden-fullscreen .short-task-sheet-drag-handle {
+  display: none;
 }
 
 .garden-fullscreen .short-task-sheet-body {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import games from '../i18n/locales/games';
@@ -201,16 +201,53 @@ describe('WishDetectiveGamePage', () => {
 
   it('shows the sparse state without exposing hidden candidate totals', async () => {
     const setup = playableSetup();
-    renderPage({ participants: setup.participants, rounds: [] });
+    renderPage({
+      participants: setup.participants,
+      rounds: [],
+      missing: { you: true, partner: false },
+    });
 
     await screen.findByRole('heading', {
-      name: games.wishDetective.sparseTitle,
+      name: games.wishDetective.sparseTitleYou,
       level: 2,
     });
     const wishesLink = screen.getByRole('link', {
       name: games.wishDetective.sparseAction,
     });
     expect(wishesLink.getAttribute('href')).toBe('/plan/wishes/new');
+  });
+
+  it('names the partner who still needs a wish, without an action for them', async () => {
+    const setup = playableSetup();
+    renderPage({
+      participants: setup.participants,
+      rounds: [],
+      missing: { you: false, partner: true },
+    });
+
+    await screen.findByRole('heading', {
+      name: games.wishDetective.sparseTitlePartner.replace('{{name}}', 'Alex'),
+      level: 2,
+    });
+    expect(
+      screen.queryByRole('link', { name: games.wishDetective.sparseAction }),
+    ).toBeNull();
+  });
+
+  it('starts with one wish per person', async () => {
+    const setup = playableSetup();
+    renderPage({
+      participants: setup.participants,
+      rounds: setup.rounds.slice(0, 2),
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', {
+          name: games.wishDetective.sparseTitleBoth,
+        }),
+      ).toBeNull(),
+    );
+    expect(screen.queryByText(games.wishDetective.sparseEyebrow)).toBeNull();
   });
 
   it('does not start when the active Space is not a two-partner couple', async () => {

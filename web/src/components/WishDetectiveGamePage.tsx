@@ -1,4 +1,3 @@
-import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -18,6 +17,7 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export interface WishDetectiveGameSetup {
@@ -25,6 +25,11 @@ export interface WishDetectiveGameSetup {
     | readonly [WishDetectiveParticipant, WishDetectiveParticipant]
     | null;
   rounds: readonly WishDetectiveCandidate[];
+  /**
+   * Who still needs a wish before a round is possible (#2048). Only a yes/no
+   * per person; counts of anyone's wishes are never shown.
+   */
+  missing?: { you: boolean; partner: boolean };
 }
 
 const HIDDEN_ROUND_STORAGE_PREFIX = 'eimir:wish-detective:hidden-round';
@@ -115,7 +120,52 @@ async function loadDefaultSetup({
   return {
     participants,
     rounds: selectWishDetectiveRounds(candidates, participants),
+    missing: {
+      you: !candidates.some((c) => c.createdBy === participants[0].id),
+      partner: !candidates.some((c) => c.createdBy === participants[1].id),
+    },
   };
+}
+
+/*
+ * #2048: one open or planned wish per person is enough. The state says who
+ * still needs one, never how many wishes anybody has.
+ */
+function SparseWishes({
+  partnerName,
+  missing,
+}: {
+  partnerName: string;
+  missing?: { you: boolean; partner: boolean };
+}) {
+  const { t } = useTranslation();
+  const you = missing?.you ?? true;
+  const partner = missing?.partner ?? true;
+  const title =
+    you && partner
+      ? t('games.wishDetective.sparseTitleBoth')
+      : you
+        ? t('games.wishDetective.sparseTitleYou')
+        : t('games.wishDetective.sparseTitlePartner', { name: partnerName });
+  return (
+    <section
+      className="wish-detective-sparse"
+      aria-labelledby="wish-detective-sparse-title"
+    >
+      <p className="eyebrow">{t('games.wishDetective.sparseEyebrow')}</p>
+      <h2 id="wish-detective-sparse-title">{title}</h2>
+      <p>
+        {you
+          ? t('games.wishDetective.sparseBody')
+          : t('games.wishDetective.sparseBodyPartner', { name: partnerName })}
+      </p>
+      {you ? (
+        <Link className="button-link" to="/plan/wishes/new">
+          {t('games.wishDetective.sparseAction')}
+        </Link>
+      ) : null}
+    </section>
+  );
 }
 
 function clueErrorKey(error: ClueValidationError): string {
@@ -493,20 +543,11 @@ export function WishDetectiveGamePage({
           title={t('games.wishDetective.coupleRequiredTitle')}
           body={t('games.wishDetective.coupleRequiredBody')}
         />
-      ) : setupQuery.data.rounds.length < 4 ? (
-        <section
-          className="wish-detective-sparse"
-          aria-labelledby="wish-detective-sparse-title"
-        >
-          <p className="eyebrow">{t('games.wishDetective.sparseEyebrow')}</p>
-          <h2 id="wish-detective-sparse-title">
-            {t('games.wishDetective.sparseTitle')}
-          </h2>
-          <p>{t('games.wishDetective.sparseBody')}</p>
-          <Link className="button-link" to="/plan/wishes/new">
-            {t('games.wishDetective.sparseAction')}
-          </Link>
-        </section>
+      ) : setupQuery.data.rounds.length === 0 ? (
+        <SparseWishes
+          partnerName={setupQuery.data.participants[1].displayName}
+          missing={setupQuery.data.missing}
+        />
       ) : (
         <WishDetectiveSessionView
           setup={{

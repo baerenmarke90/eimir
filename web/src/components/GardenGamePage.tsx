@@ -1378,6 +1378,7 @@ export function GardenGamePage({
             fullscreen.closeFullscreen();
             void choosePlant(plantId);
           }}
+          cover
           gustKey={gustKey}
           celebrationKey={celebrationKey}
           lively

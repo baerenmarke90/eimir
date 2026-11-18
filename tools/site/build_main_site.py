@@ -18,6 +18,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / "site"
 DIST = SITE / "dist"
+# `npm run build:preview` in web/ writes the product preview here; the container build adds it in its own stage.
+PREVIEW = ROOT / "web" / "dist-preview"
 
 # (source relative to the repository root, destination relative to dist)
 SHARED_FILES: tuple[tuple[str, str], ...] = (
@@ -31,6 +33,9 @@ SHARED_FILES: tuple[tuple[str, str], ...] = (
     ("web/public/identity/app-icon-light.png", "assets/brand-light.png"),
     ("web/public/identity/app-icon-dark.png", "assets/brand-dark.png"),
     ("web/public/apple-touch-icon.png", "assets/apple-touch-icon.png"),
+    # The product preview (the real app) loads its brand mark from the absolute /identity/ path.
+    ("web/public/identity/app-icon-light.png", "identity/app-icon-light.png"),
+    ("web/public/identity/app-icon-dark.png", "identity/app-icon-dark.png"),
     # Real captures of the Web app, see docs/assets/site/SOURCES.md.
     ("docs/assets/site/wir.webp", "assets/screens/wir.webp"),
     ("docs/assets/site/momente.webp", "assets/screens/momente.webp"),
@@ -73,6 +78,8 @@ def build(*, production: bool) -> list[str]:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / source, target)
 
+    if PREVIEW.is_dir():
+        shutil.copytree(PREVIEW, DIST / "preview")
     _fingerprint_screens()
 
     for path in sorted(DIST.rglob("*.html")):

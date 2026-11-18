@@ -28,3 +28,6 @@ materially.
 The device frame is the iPhone 18 Pro from react-mockframe 1.3.0 (MIT, adapted from Marvel
 devices.css), see `site/assets/iphone-frame-LICENSE.txt`. Its 402 x 874 pt screen matches the
 390 x 844 px captures almost exactly.
+
+The recorded answers and photos of the interactive preview live in `web/preview/data/`; see
+`web/preview/README.md` for how they were captured from the public demo Space and how to refresh them.

@@ -63,3 +63,4 @@ keystore.properties
 .openapi-check/
 android/app/src/androidTest/assets/video-preparation/
 backend/tests/fixtures/media/detail-motion-1080p-avc.mp4
+web/dist-preview/

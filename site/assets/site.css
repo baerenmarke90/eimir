@@ -219,6 +219,13 @@ img { max-width: 100%; }
   @keyframes lf-3 { 0.0% { opacity: 0; } 47.55% { opacity: 0; } 50.0% { opacity: 1; } 66.67% { opacity: 1; } 69.12% { opacity: 0; } 100.0% { opacity: 0; } }
 }
 
+/* Live preview: the real app on recorded data, inside the same device frame. */
+.screen > iframe { display: block; position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--color-surface); }
+.try { padding-block: 0 var(--space-section); }
+.panel.live-panel { height: auto; padding: var(--space-8) 0; align-items: center; }
+.panel.live-panel .phone { --s: 0.78; }
+.phone.live { overflow: visible; }
+
 /* Intro: display type (Literata 600, -0.02em, 1.08). */
 .intro { display: grid; gap: var(--space-10); padding-block: var(--space-10) var(--space-section); }
 .intro h1 { font-size: clamp(2.5rem, 2rem + 2.5vw, 3.5rem); line-height: 1.08; letter-spacing: -0.02em; max-width: 12ch; }
@@ -313,6 +320,7 @@ footer a { display: inline-flex; align-items: center; min-height: var(--size-tou
 @media (min-width: 600px) {
   .panel { height: 520px; padding-top: var(--space-12); }
   .panel .phone { --s: 0.576; }
+  .panel.live-panel .phone { --s: 0.9; }
   .space .panel { height: 380px; }
   .principles { grid-template-columns: repeat(2, 1fr); gap: var(--space-10); }
   .ways { grid-template-columns: repeat(3, 1fr); }

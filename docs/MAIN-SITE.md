@@ -18,8 +18,8 @@ runs on `app.eimir.de` (web app and API on one origin). The two are separate dep
 - `tools/ci/test_main_site.py` guards the site (see below).
 
 The site is plain HTML and CSS without JavaScript, cookies, tracking, third-party fonts or
-remote resources. Each page carries a restrictive Content-Security-Policy meta tag
-(`default-src 'none'` plus same-origin images, fonts and styles).
+remote resources. Only the framed product preview (see below) runs JavaScript, and only on request. Each page carries a restrictive Content-Security-Policy meta tag
+(`default-src 'none'` plus same-origin images, fonts, styles and, for the preview frame, `frame-src 'self'`).
 
 ## Design
 
@@ -47,6 +47,17 @@ The primary action is one filled pill that opens the application (localized per 
 application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so
 there is a single source of truth. Security copy follows `docs/ENCRYPTION-AT-REST.md` section 11:
 encryption at rest and TLS may be claimed, end-to-end encryption may not, and the FAQ says so.
+
+## Product preview
+
+Below the highlights, the page embeds the real Web app in the phone frame (`web/preview/`, see its
+README). Visitors can open Wir, Momente (Erinnerungen, Tagebuch) and Eure Geschichte, scroll, open
+entries and swipe the timeline. It runs on a recording of the public demo Space (fictional data), so
+there is no server, no sign-in and nothing is stored; writing is refused and the controls are hidden.
+The app loads only after a tap on "Vorschau starten". The page's own policy only gains
+`frame-src 'self'`; the preview itself needs scripts and has its own policy in
+`site/security-headers-preview.conf` (same-origin scripts and connections, framing by the main site
+only). The container build gains a Node stage that builds it (`npm run build:preview`).
 
 ## Legal notice (Impressum)
 

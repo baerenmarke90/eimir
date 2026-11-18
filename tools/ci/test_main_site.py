@@ -67,6 +67,18 @@ class MainSiteTests(unittest.TestCase):
         css = (SITE / "assets/site.css").read_text()
         self.assertNotIn("http", re.sub(r"/\*.*?\*/", "", css, flags=re.S), "no remote CSS resources")
 
+    def test_preview_is_framed_from_the_same_origin_only(self) -> None:
+        for page in PAGES[:2]:
+            text = page.read_text(encoding="utf-8")
+            name = page.relative_to(SITE).as_posix()
+            self.assertIn("frame-src 'self'", text, name)
+            frames = re.findall(r"<iframe[^>]*>", text)
+            self.assertEqual(len(frames), 1, name)
+            self.assertRegex(frames[0], r'src="/preview/(\?lang=en)?"', name)
+            self.assertIn("sandbox=", frames[0], name)
+            self.assertIn('loading="lazy"', frames[0], name)
+        self.assertIn("frame-src 'self'", (SITE / "security-headers.conf").read_text())
+
     def test_privacy_and_terms_links_use_the_application_origin(self) -> None:
         for page in PAGES[:2]:
             text = page.read_text(encoding="utf-8")
@@ -105,7 +117,17 @@ class MainSiteTests(unittest.TestCase):
         headers = (SITE / "security-headers.conf").read_text()
         for directive in ("Content-Security-Policy", "frame-ancestors 'none'", "Referrer-Policy", "X-Content-Type-Options"):
             self.assertIn(directive, headers)
-        self.assertEqual(nginx.count("include /etc/nginx/security-headers.conf;"), nginx.count("location "))
+        includes = nginx.count("include /etc/nginx/security-headers.conf;") + nginx.count(
+            "include /etc/nginx/security-headers-preview.conf;"
+        )
+        self.assertEqual(includes, nginx.count("location "))
+        preview_headers = (SITE / "security-headers-preview.conf").read_text()
+        for directive in ("frame-ancestors 'self'", "script-src 'self'", "connect-src 'self'", "X-Frame-Options"):
+            self.assertIn(directive, preview_headers)
+        self.assertNotIn("unsafe-inline", preview_headers)
+        self.assertNotIn("http", preview_headers.replace("Referrer-Policy", ""), "the preview may not reach other origins")
+        self.assertIn("security-headers-preview.conf", dockerfile)
+        self.assertIn("build:preview", dockerfile)
         self.assertIn("/etc/nginx/security-headers.conf", dockerfile)
 
 

@@ -163,6 +163,8 @@ import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 import './WirCompactLayouts.css';
+import './WirMotion.css';
+import { useWirReveal } from './useWirReveal';
 
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
@@ -278,11 +280,14 @@ export function TodayModuleSection({
   headerAction?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { ref, revealProps } = useWirReveal<HTMLElement>(className);
   return (
     <section
+      ref={ref}
       id={id}
       className={`today-section ${className ?? ''}`.trim()}
       data-color-world={colorWorld}
+      {...revealProps}
     >
       <div className="today-section-header">
         <div>

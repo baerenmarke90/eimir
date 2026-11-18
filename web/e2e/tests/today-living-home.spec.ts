@@ -275,9 +275,15 @@ async function settleMotion(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // Scroll-driven animations (the stage drift, the photograph parallax) are
+    // finite but never finish while the page stands still; they follow the
+    // finger, not the clock, so only the document timeline is awaited.
     const finite = document.getAnimations().filter((animation) => {
       const timing = animation.effect?.getTiming();
-      return timing?.iterations !== Number.POSITIVE_INFINITY;
+      return (
+        animation.timeline === document.timeline &&
+        timing?.iterations !== Number.POSITIVE_INFINITY
+      );
     });
     await Promise.all(
       finite.map((animation) => animation.finished.catch(() => undefined)),

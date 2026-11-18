@@ -71,6 +71,8 @@ distance. It never delays interaction and is absent with reduced motion.
 
 The Product Owner approved the flights of the own check-in and its siblings (Dein Tag send, the partner's shared day arriving on Wir, a gesture flying to the partner avatar; 2026-11-16/17). The own check-in send flight (Dein Tag): after "Fertig", the chosen feeling, the battery and the note fly together to the own avatar badge while the sheet closes. 560 ms is a deliberate departure from the 320 ms guardrail because the items cross the screen from the sheet to the badge; the flight is presentation only (it never delays saving, closing or the next action, and a failed save returns the item instead), and it is absent with reduced motion.
 
+The Product Owner approved a living arrival of the Wir page (2026-11-18, after reviewing a calm, a balanced and a vivid prototype and choosing the balanced one), a deliberate exception to "no movement merely to make a quiet surface look more active". It uses existing tokens only. The stage: the two portraits rise into place from their sides, the heart line is drawn and the heart beats twice, then rests (once per app start, only at the top of Wir). The modules: each arrives once per session the first time it is reached; modules already in view arrive together in reading order after the stage. Returning to Wir, refetching, and items added to or removed from a module already seen never replay it and never animate: the content is simply there. Scroll-driven: the stage drifts away more slowly than the page and the shared moment's photograph moves a little inside its frame. The plans in the horizontal strip grow in place; they never move sideways because that would widen the scrolling strip for a moment and nudge it. All of it is presentation only (it never delays content, focus, navigation or publication), it uses `transform`-class properties and opacity, and it is absent with reduced motion, which shows the same content and focus at once. The implementation is `WirMotion.css` and `useWirReveal.ts`.
+
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 
 The former `--motion-duration-*`, `--motion-easing-*` and `--motion-fast` compatibility aliases were retired from production Web by #1213. Do not reintroduce them; historical fixtures or previews that need motion must use the generated roles as well.
@@ -167,6 +169,7 @@ attention motion.
 | Toast / Snackbar | non-critical acknowledgement | optional fast-standard / standard | `Snackbar` | immediate appearance/removal is acceptable |
 | Overlay / backdrop | modal layer cue | standard / standard-exit | owning sheet/dialog/lightbox lifecycle | immediate/opacity-only |
 | Navigation content | bounded continuity, stable shell | optional standard / standard | route-owned content surface | instant content handoff with position preserved |
+| Wir arrival (PO 2026-11-18) | one-shot stage choreography, once-per-session module reveal, scroll-driven drift | sequence beat, context and gesture moment / enter; scroll-driven with no duration | `WirMotion.css`, `useWirReveal` | final composition at once; nothing replays |
 
 ## 9. Existing shared responsibilities
 

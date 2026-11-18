@@ -441,7 +441,7 @@ describe('primary tab swipe ownership', () => {
     }
     const view = render(<CommitProbe pathname="/story" />);
     view.rerender(<CommitProbe pathname="/plan" />);
-    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/more');
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/more/collections');
   });
   it('keeps a live reading surface interactive during rapid consecutive tab changes', () => {
     const navigate = vi.fn();
@@ -470,9 +470,13 @@ describe('primary tab swipe ownership', () => {
     act(() => swipe(screen.getByTestId('reading')));
     expect(cancel).toHaveBeenCalled();
     expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('/more');
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/more/collections');
     view.rerender(
-      <Harness pathname="/more" routeKey="third" onNavigate={navigate} />,
+      <Harness
+        pathname="/more/collections"
+        routeKey="third"
+        onNavigate={navigate}
+      />,
     );
     // The swipe already travelled the pages; it does not replay an entrance.
     expect(animate).toHaveBeenCalledTimes(1);
@@ -518,8 +522,10 @@ describe('primary tab swipe ownership', () => {
   it.each([
     ['/today', 280, 90, '/story'],
     ['/story', 280, 90, '/plan'],
-    ['/plan', 280, 90, '/more'],
-    ['/more', 90, 280, '/plan'],
+    ['/plan', 280, 90, '/more/collections'],
+    ['/more/collections', 280, 90, '/more'],
+    ['/more', 90, 280, '/more/collections'],
+    ['/more/collections', 90, 280, '/plan'],
     ['/plan', 90, 280, '/story'],
     ['/story', 90, 280, '/today'],
   ])(

@@ -128,12 +128,13 @@ describe('PlanProductPage', () => {
     expect(withoutNotes).not.toContain('planen-detail-meta');
   });
 
-  it('keeps one named Edit entry and a distinct completion action without management or visibility clutter', () => {
+  it('keeps one named actions menu and a distinct completion action without management or visibility clutter', () => {
     const html = renderPlan(basePlan());
 
     expect(html).not.toContain(i18n.t('m5s3.plan.sharedTitle'));
     expect(html).not.toContain(i18n.t('m5s3.plan.actionsHeading'));
-    expect(html).toContain(i18n.t('common.edit'));
+    expect(html).toContain(i18n.t('m5s3.plan.menu'));
+    expect(html).not.toContain('composer-detail-edit');
     expect(html).toContain('planen-complete-cta');
     expect(html).toContain(i18n.t('m5s3.plan.complete'));
   });

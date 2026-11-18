@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { i18n } from '../i18n';
 import m5s3 from '../i18n/locales/m5s3';
 import { CollectionsOverviewPage } from './CollectionsOverviewPage';
 
@@ -266,5 +267,108 @@ describe('CollectionsOverviewPage short way to a shopping list (#1808)', () => {
       }),
     ).toBeTruthy();
     expect(screen.queryByText('opened')).toBeNull();
+  });
+});
+
+describe('CollectionsOverviewPage cards show and tick the entries', () => {
+  const item = (
+    id: string,
+    title: string,
+    position: number,
+    completed = false,
+  ) => ({
+    id,
+    title,
+    position,
+    completed,
+    version: 1,
+  });
+  const list = {
+    id: 'list-1',
+    spaceId: 'space-1',
+    title: 'Weekend',
+    kind: 'GENERIC',
+    capabilities: { canEdit: true, canDelete: true },
+    items: [
+      item('a', 'Tent', 1),
+      item('b', 'Stove', 2),
+      item('c', 'Lamp', 3),
+      item('d', 'Map', 4),
+      item('e', 'Water', 5),
+      item('f', 'Socks', 6, true),
+    ],
+  };
+  let updateCollectionItem: ReturnType<typeof vi.fn>;
+
+  function renderPage() {
+    const listCollections = vi.fn(async () => ({
+      items: [list],
+      nextCursor: null,
+    }));
+    const apis = {
+      collections: { listCollections, updateCollectionItem },
+    } as unknown as SharedPlanningApis;
+    return render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter initialEntries={['/more/collections']}>
+          <Routes>
+            <Route
+              path="/more/collections"
+              element={
+                <CollectionsOverviewPage apis={apis} spaceId="space-1" />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    updateCollectionItem = vi.fn(async (request: { itemId: string }) => ({
+      ...list.items.find((entry) => entry.id === request.itemId),
+      completed: true,
+    }));
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('shows the first entries and expands the whole list on request', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByText('Tent');
+    expect(screen.queryByText('Socks')).toBeNull();
+    await user.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.previewMore', { count: 2 }),
+      }),
+    );
+    expect(screen.getByText('Socks')).toBeTruthy();
+    expect(screen.getByText('Water')).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: m5s3.collection.previewLess }),
+    );
+    expect(screen.queryByText('Socks')).toBeNull();
+  });
+
+  it('ticks an entry straight on the card without opening the list', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('checkbox', { name: 'Stove' }));
+    await waitFor(() =>
+      expect(updateCollectionItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionId: 'list-1',
+          itemId: 'b',
+          collectionItemUpdate: { completed: true },
+        }),
+      ),
+    );
   });
 });

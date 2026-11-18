@@ -18,6 +18,7 @@ import {
 import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
+import { useQuietHint } from '../client/quietHints';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import type { PartnerAvatarAction } from './PartnerAvatarPair';
@@ -32,6 +33,7 @@ import {
   type PartnerArrival,
   startPartnerArrival,
 } from './partnerArrival';
+import { type PromptFlight, startPromptFlight } from './promptFlight';
 import {
   type FlightItem,
   type FlightKind,
@@ -233,6 +235,12 @@ function writeArrivalSeen(key: string, value: ArrivalSeen): void {
     // Local convenience only; storage may be unavailable.
   }
 }
+
+const PROMPT_HINT_ID = 'wir-checkin-prompt';
+/** How long the line stays before it sinks into the plus. */
+const PROMPT_HOLD_MS = 2800;
+/** Accounts and spaces whose line already sank into the plus this session. */
+const promptSettled = new Set<string>();
 
 export type PartnerDayState = 'visible' | 'hidden' | 'none' | 'off';
 
@@ -794,6 +802,46 @@ export function useWirDailyCheckIn({
     energyWrite.reset,
   ]);
 
+  // The "Wie geht's?" line explains the plus on the own ring. It is a quiet
+  // hint: it shows for a few app sessions, holds for a moment, then sinks into
+  // the plus and is not seen again once the day has a value.
+  const ownDayHasValue = Boolean(ownVibe) || ownEnergy !== null;
+  const promptHint = useQuietHint(accountId, spaceId, [
+    {
+      id: PROMPT_HINT_ID,
+      eligible: Boolean(snapshot) && !ownDayHasValue,
+      used: ownDayHasValue,
+    },
+  ]);
+  const promptKey = `:`;
+  const [promptGone, setPromptGone] = useState(() =>
+    promptSettled.has(promptKey),
+  );
+  const promptShown =
+    promptHint.activeId === PROMPT_HINT_ID && !promptGone && !panelOpen;
+  useEffect(() => {
+    if (!promptShown) return;
+    let flight: PromptFlight | null = null;
+    const settle = () => {
+      promptSettled.add(promptKey);
+      setPromptGone(true);
+    };
+    const timer = window.setTimeout(() => {
+      const badge = ownBadgeRef.current;
+      const source = badge?.querySelector<HTMLElement>('.wir-checkin-prompt');
+      const target = badge
+        ?.closest('.partner-avatar-stack')
+        ?.querySelector<HTMLElement>('.wir-stage-gesture-own');
+      flight = source && target ? startPromptFlight(source, target) : null;
+      if (flight) void flight.finished.then(settle);
+      else settle();
+    }, PROMPT_HOLD_MS);
+    return () => {
+      window.clearTimeout(timer);
+      flight?.cancel();
+    };
+  }, [promptShown]);
+
   if (!active || !accountId || !api) return null;
 
   const loaded = Boolean(snapshot);
@@ -967,6 +1015,7 @@ export function useWirDailyCheckIn({
       className="wir-checkin-badge wir-checkin-badge-own"
       badgeRef={ownBadgeRef}
       data-pending={ownPending ? 'true' : undefined}
+      data-empty={!ownHasValue && !promptShown ? 'true' : undefined}
       data-testid="wir-checkin-own-badge"
       aria-hidden="true"
     >

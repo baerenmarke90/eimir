@@ -77,7 +77,7 @@ function Position() {
   return <output aria-label="Current route">{useLocation().pathname}</output>;
 }
 
-function setup(mode: 'edit' | 'create' = 'edit') {
+function setup(mode: 'detail' | 'edit' | 'create' = 'detail') {
   const pending = deferred();
   const deleteHeartMoment = vi.fn(() => pending.promise);
   const createHeartMoment = vi.fn(
@@ -117,13 +117,16 @@ function setup(mode: 'edit' | 'create' = 'edit') {
         initialEntries={[
           mode === 'create'
             ? '/story/heart-moments/new'
-            : '/story/heart-moments/heart-1/edit',
+            : mode === 'edit'
+              ? '/story/heart-moments/heart-1/edit'
+              : '/story/heart-moments/heart-1',
         ]}
       >
         <Position />
         <Link to="/other">Other task</Link>
+        <Link to="/story/heart-moments/heart-1">Return to Heart Moment</Link>
         <Link to="/story/heart-moments/heart-1/edit">Return to edit</Link>
-        <Link to="/story/heart-moments/heart-2/edit">Another Heart Moment</Link>
+        <Link to="/story/heart-moments/heart-2">Another Heart Moment</Link>
         <Routes>
           <Route
             path="/story/heart-moments/new"
@@ -174,13 +177,26 @@ function setup(mode: 'edit' | 'create' = 'edit') {
     </QueryClientProvider>
   );
   const view = render(tree());
+  const openMenu = () =>
+    userEvent.setup().click(screen.getByRole('button', { name: copy.menu }));
   const confirm = async () => {
+    await openMenu();
     await userEvent
       .setup()
       .click(screen.getByRole('button', { name: copy.delete }));
     return screen.getByRole('button', {
       name: copy.deleteConfirm,
     });
+  };
+  /** Starts an edit save elsewhere, as another open task would. */
+  const startCompetingSave = () => {
+    void client
+      .getMutationCache()
+      .build(client, {
+        mutationKey: ['heart-moment-update', 'account-1', 'space-1', 'heart-1'],
+        mutationFn: () => new Promise<void>(() => {}),
+      })
+      .execute(undefined);
   };
   const submit = async () => {
     await userEvent.setup().click(await confirm());
@@ -198,6 +214,8 @@ function setup(mode: 'edit' | 'create' = 'edit') {
     updateHeartMoment,
     changeHeartMomentVisibility,
     apis,
+    openMenu,
+    startCompetingSave,
     confirm,
     submit,
     settle,
@@ -215,8 +233,10 @@ beforeEach(() => {
   HTMLDialogElement.prototype.close = function () {
     this.removeAttribute('open');
   };
-  vi.stubGlobal('matchMedia', () => ({
-    matches: false,
+  // Reduced motion lets a closing sheet finish at once, as it would after its
+  // exit animation in a browser.
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(prefers-reduced-motion: reduce)',
     addEventListener() {},
     removeEventListener() {},
   }));
@@ -262,10 +282,10 @@ describe('HeartMoment delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Other task' }));
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: 'Return to edit' }));
+      .click(screen.getByRole('link', { name: 'Return to Heart Moment' }));
     await h.settle();
     expect(screen.getByLabelText('Current route').textContent).toBe(
-      '/story/heart-moments/heart-1/edit',
+      '/story/heart-moments/heart-1',
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
   });
@@ -296,7 +316,7 @@ describe('HeartMoment delete response ownership', () => {
       read({ ...heartMoment, text: 'Replacement read' }),
     );
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
   });
 
@@ -319,7 +339,7 @@ describe('HeartMoment delete response ownership', () => {
       await h.settle();
       expect(h.client.getQueryState(key)?.error).toBe(denied);
       expect(screen.getByLabelText('Current route').textContent).toContain(
-        '/edit',
+        '/story/heart-moments/heart-1',
       );
     },
   );
@@ -339,7 +359,7 @@ describe('HeartMoment delete response ownership', () => {
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
   });
 
@@ -360,7 +380,7 @@ describe('HeartMoment delete response ownership', () => {
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
   });
 
@@ -378,7 +398,7 @@ describe('HeartMoment delete response ownership', () => {
     expect(h.client.getQueryData(otherKey)).toBeTruthy();
     expect(h.client.getQueryData(key)).toBeUndefined();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      'heart-2/edit',
+      'heart-2',
     );
   });
 
@@ -405,7 +425,7 @@ describe('HeartMoment delete response ownership', () => {
     );
     expect(h.client.getQueryData(otherKey)).toBeTruthy();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
   });
 
@@ -449,38 +469,30 @@ describe('HeartMoment delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Other task' }));
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: 'Return to edit' }));
+      .click(screen.getByRole('link', { name: 'Return to Heart Moment' }));
+    await h.openMenu();
     expect(
-      (screen.getByRole('button', { name: copy.deleting }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole('button', { name: copy.save }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: copy.delete }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     await h.settle();
   });
 
-  it('admits only one synchronous confirmation and prevents a competing save', async () => {
+  it('admits only one synchronous confirmation', async () => {
     const h = setup();
     const button = await h.confirm();
     act(() => {
       button.click();
       button.click();
-      screen.getByRole('button', { name: copy.save }).click();
     });
     await waitFor(() => expect(h.deleteHeartMoment).toHaveBeenCalledTimes(1));
-    expect(h.updateHeartMoment).not.toHaveBeenCalled();
     await h.settle();
   });
 
   it('prevents deletion while an edit is pending', async () => {
     const h = setup();
     const button = await h.confirm();
-    await userEvent
-      .setup()
-      .click(screen.getByRole('button', { name: copy.save }));
-    await waitFor(() => expect(h.updateHeartMoment).toHaveBeenCalledTimes(1));
+    act(() => h.startCompetingSave());
     await act(async () => fireEvent.click(button));
     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
   });
@@ -534,7 +546,7 @@ describe('HeartMoment delete response ownership', () => {
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
   });
 
@@ -548,7 +560,7 @@ describe('HeartMoment delete response ownership', () => {
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(revoke).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/heart-moments/heart-1',
     );
     const retry = deferred();
     h.deleteHeartMoment.mockReturnValue(retry.promise);
@@ -582,19 +594,10 @@ describe('HeartMoment delete response ownership', () => {
 
   it('prevents a visibility write after detail reopens Edit while deletion is pending', async () => {
     const h = setup();
-    await userEvent
-      .setup()
-      .type(
-        screen.getByRole('textbox', { name: copy.textLabel }),
-        ' A later draft.',
-      );
     await h.submit();
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: taskBoundary.back }));
-    await userEvent
-      .setup()
-      .click(await screen.findByRole('link', { name: copy.edit }));
+      .click(screen.getByRole('link', { name: 'Return to edit' }));
     const visibility = await screen.findByRole('button', {
       name: `${copy.visibilityLabel}: ${copy.visibilityShared}`,
     });
@@ -622,10 +625,7 @@ describe('HeartMoment delete response ownership', () => {
     const h = setup();
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: taskBoundary.back }));
-    await userEvent
-      .setup()
-      .click(await screen.findByRole('link', { name: copy.edit }));
+      .click(screen.getByRole('link', { name: 'Return to edit' }));
     await userEvent.setup().click(
       await screen.findByRole('button', {
         name: `${copy.visibilityLabel}: ${copy.visibilityShared}`,
@@ -645,17 +645,16 @@ describe('HeartMoment delete response ownership', () => {
         '/story/heart-moments/heart-1',
       ),
     );
+    await h.openMenu();
+    const open = screen.getByRole('button', { name: copy.delete });
+    expect((open as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => fireEvent.click(open));
     await userEvent
       .setup()
       .click(screen.getByRole('link', { name: 'Return to edit' }));
-    const open = screen.getByRole('button', { name: copy.delete });
     const save = screen.getByRole('button', { name: copy.save });
-    expect((open as HTMLButtonElement).disabled).toBe(true);
     expect((save as HTMLButtonElement).disabled).toBe(true);
-    await act(async () => {
-      fireEvent.click(open);
-      fireEvent.click(save);
-    });
+    await act(async () => fireEvent.click(save));
     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
     expect(h.updateHeartMoment).not.toHaveBeenCalled();
   });
@@ -663,7 +662,7 @@ describe('HeartMoment delete response ownership', () => {
 
 describe('HeartMoment save response ownership for sensitive-media editing', () => {
   it('preserves a replacement Account read after a late save', async () => {
-    const h = setup();
+    const h = setup('edit');
     const response = deferred<HeartMomentDetail>();
     h.updateHeartMoment.mockReturnValueOnce(response.promise);
     await userEvent
@@ -689,7 +688,7 @@ describe('HeartMoment save response ownership for sensitive-media editing', () =
   });
 
   it('retains a newer authoritative version when an older save response arrives', async () => {
-    const h = setup();
+    const h = setup('edit');
     const response = deferred<HeartMomentDetail>();
     h.updateHeartMoment.mockReturnValueOnce(response.promise);
     await userEvent

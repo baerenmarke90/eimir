@@ -48,8 +48,14 @@
     "today": "Us",
     "plan": "Planning",
     "games": "Games",
+    "shared": "Lists",
+    "sharedHeading": "Together",
+    "sharedLists": "Lists",
+    "sharedNotes": "Notes",
+    "sharedViewsAria": "Shared lists and notes",
     "more": "More",
     "searchAll": "Search eimir.",
+    "searchPrompt": "What are you looking for?",
     "operatorArea": "For operators",
     "search": "Search",
     "notifications": "Notifications",
@@ -614,6 +620,7 @@
       "planFallback": "A shared plan"
     },
     "wish": {
+      "menu": "Wish menu",
       "heading": "Wishes",
       "intro": "Ideas for later that you capture together and turn into a plan when you are ready.",
       "create": "Add wish",
@@ -666,6 +673,7 @@
       }
     },
     "plan": {
+      "menu": "Plan menu",
       "linkWish": "Link a wish",
       "linkWishHelp": "The plan stays. Completing it also fulfils the wish. You can undo the plan later with “Back to wish”.",
       "chooseWish": "Choose an open wish",
@@ -810,6 +818,7 @@
       "help": "Optional. This image belongs to your shared plan."
     },
     "place": {
+      "menu": "Place menu",
       "scope": "Filter places",
       "scopeACTIVE": "Active",
       "scopeARCHIVED": "Archived",
@@ -819,7 +828,6 @@
       "archived": "Place archived. Your links are retained.",
       "restored": "Place restored.",
       "emptyArchive": "Your archived places will appear here.",
-      "archiveSaveFirst": "Save or discard your changes first.",
       "heading": "Places",
       "intro": "A name is enough. You can add an address and location.",
       "emptyOverview": "No shared places saved yet. Capture places that matter to your plans or moments here.",
@@ -842,6 +850,7 @@
       "deleteConsequence": "The place and its links will be deleted. Memories, heart moments and milestones themselves will be kept."
     },
     "chapter": {
+      "menu": "Chapter menu",
       "ongoing": "Ongoing chapters",
       "since": "Since {{date}}",
       "until": "Until {{date}}",
@@ -945,6 +954,8 @@
       "progress": "{{count}} entries · {{completed}} done",
       "progress_one": "{{count}} entry · {{completed}} done",
       "progress_other": "{{count}} entries · {{completed}} done",
+      "previewMore": "+ {{count}} more",
+      "previewLess": "Show less",
       "openItem": "Edit “{{title}}”",
       "itemActions": "Actions for “{{title}}”",
       "editItem": "Edit entry",
@@ -958,7 +969,6 @@
       "create": "Add list",
       "loading": "Loading list …",
       "detailEyebrow": "Shared list",
-      "pinLabel": "On Us",
       "pinToToday": "Show on Us",
       "unpinFromToday": "Stop showing on Us",
       "itemCount_one": "{{count}} entry",
@@ -994,8 +1004,7 @@
       "suggestions": {
         "heading": "Bought before",
         "add": "Add {{title}} again",
-        "remove": "Remove suggestion “{{title}}”",
-        "note": "From your finished trips. Only the two of you see this."
+        "remove": "Remove suggestion “{{title}}”"
       },
       "finish": {
         "action": "Finish trip",
@@ -1923,7 +1932,7 @@
       "PRIVATE": "Only for me"
     },
     "viewPhoto": "View photo of {{name}}",
-    "moreActions": "More actions",
+    "menuLabel": "Actions for {{name}}",
     "addBirthday": "Add birthday",
     "optionalYear": "Year (optional)",
     "photoAction": "View profile photo",
@@ -2041,7 +2050,7 @@
     "delete": "Delete",
     "deleting": "Deleting …",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Keep",
+    "menuLabel": "Actions for {{name}}",
     "deleteConfirmTitle": "Really delete?",
     "deleteConfirmBody": "This content will only be deleted from your personal area.",
     "navigation": {
@@ -3293,17 +3302,17 @@
         "description": "Playfully compare how you see the two of you."
       },
       "pingPong": {
-        "role": "Feel close",
+        "role": "Paint",
         "title": "Picture ping-pong",
         "description": "Take turns adding to one picture until it is finished."
       },
       "heartHunt": {
-        "role": "Be close",
+        "role": "Seek",
         "title": "Heart hunt",
         "description": "Hide a heart in a photo. Who finds it?"
       },
       "garden": {
-        "role": "Being close",
+        "role": "Grow",
         "title": "Our garden",
         "description": "Send each other a seed every day, wherever you are."
       }
@@ -4444,7 +4453,7 @@
     "deleteConfirmTitle": "Really delete this memory?",
     "deleteConfirmBody": "The memory will be permanently removed from your shared space.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Memory menu",
     "deleting": "Deleting …",
     "editEyebrow": "Edit memory",
     "editHeading": "Edit memory",
@@ -4516,7 +4525,7 @@
     "deleteConfirmTitle": "Really delete this heart moment?",
     "deleteConfirmBody": "The heart moment will be permanently removed.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Heart moment menu",
     "deleting": "Deleting …",
     "commentsPrivate": "Private heart moments have no shared comments.",
     "savedTitle": "Heart moment saved."
@@ -4554,7 +4563,7 @@
     "deleteConfirmTitle": "Really delete this milestone?",
     "deleteConfirmBody": "The milestone will be permanently removed.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Milestone menu",
     "deleting": "Deleting …",
     "savedTitle": "Milestone saved."
   },
@@ -5756,10 +5765,10 @@
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
     "mapLoading": "Loading map …",
-    "mapPartnerArea": "{{partner}} · approximate area",
+    "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",
     "mapPartnerAsOf": "As of: {{time}}",
-    "mapYou": "You · only visible to you",
+    "mapYou": "You",
     "mapYouMissing": "You · your location is missing",
     "mapOwnSharesMap": "{{partner}} sees your approximate area",
     "mapOwnSharesDistance": "{{partner}} sees only the distance",
@@ -6394,7 +6403,6 @@
     "destination": "Shared notes",
     "destinationSubtitle": "Addresses, thoughts, tips for both of you",
     "untitled": "Untitled",
-    "audience": "For both of you",
     "audienceEditing": "Visible to both of you",
     "create": "Add note",
     "createFirst": "Add the first note",
@@ -6429,11 +6437,10 @@
     },
     "pinnedBadge": "Pinned",
     "editedBy": "Last edited by {{name}} · {{when}}",
-    "editedByYou": "Last edited by you · {{when}}",
     "writtenBy": "Written by {{name}}",
     "writtenByYou": "Written by you",
     "changedBy": "Last changed by {{name}} · {{when}}",
-    "changedByYou": "Last changed by you · {{when}}",
+    "changedAt": "Last changed · {{when}}",
     "read": {
       "edit": "Edit",
       "itemLabel": "Shared note",
@@ -6451,8 +6458,7 @@
       "wirTitleOnlyHint": "Good for door codes and passwords",
       "wirExcerpt": "Show an excerpt on Us",
       "wirExcerptHint": "The start of the text appears on Us",
-      "delete": "Delete …",
-      "deleteHint": "For both of you"
+      "delete": "Delete"
     },
     "toast": {
       "saved": "Saved.",
@@ -6467,7 +6473,7 @@
     "delete": {
       "title": "Delete note?",
       "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
-      "confirm": "Delete",
+      "confirm": "Delete permanently",
       "pending": "Deleting …"
     },
     "edit": {

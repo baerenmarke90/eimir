@@ -11,6 +11,7 @@ import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
+import { chooseItemMenuRow, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -526,9 +527,10 @@ test.describe('wish journey (#1790 F2)', () => {
       const state = await installMocks(page);
       await signIn(page);
       await page.goto(`/plan/wishes/${OPEN_WISH}`);
-      const action = page.getByRole('button', { name: copy.action });
+      // The reminder is offered by the wish's actions menu, not on the page.
+      const menu = itemMenuTrigger(page);
       const sheet = page.getByRole('dialog', { name: copy.action });
-      await action.click();
+      await chooseItemMenuRow(page, copy.action);
       await expect(sheet.getByText(copy.privacy)).toBeVisible();
       await sheet.getByRole('button', { name: copy.nextWeek }).click();
       const date = sheet.getByLabel(copy.when);
@@ -541,16 +543,16 @@ test.describe('wish journey (#1790 F2)', () => {
       await assertNoWcagViolations(page);
       await sheet.getByRole('button', { name: copy.save }).click();
       await expect(sheet).not.toBeVisible();
-      const change = page.getByRole('button', { name: copy.edit });
-      await expect(change).toBeFocused();
+      await expect(menu).toBeFocused();
       expect(state.reminderAt).toEqual(
         new Date(`${isoDay(7)}T09:00`).toISOString(),
       );
       await page.reload();
-      await change.click();
+      // With a saved reminder the menu row offers to change it.
+      await chooseItemMenuRow(page, copy.edit);
       await expect(date).toHaveValue(`${isoDay(7)}T09:00`);
       await sheet.getByRole('button', { name: copy.remove }).click();
-      await expect(action).toBeFocused();
+      await expect(menu).toBeFocused();
       expect(state.reminderAt).toBeNull();
       expect(state.unexpected).toEqual([]);
     });

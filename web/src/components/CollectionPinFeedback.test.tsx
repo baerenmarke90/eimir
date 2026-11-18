@@ -13,7 +13,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
@@ -24,6 +24,14 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { CollectionProductPage } from './CollectionProductPage';
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 afterEach(() => {
   cleanup();
   onlineManager.setOnline(true);
@@ -142,10 +150,19 @@ function setup(start = initial()) {
   };
 }
 
+/** Pinning is a row of the list's actions menu; it stays open while saving. */
+function ensureMenu() {
+  if (document.querySelector('dialog[open]')) return;
+  fireEvent.click(
+    screen.getByRole('button', { name: m5s3.collection.menu.open }),
+  );
+}
 function pinButton() {
+  ensureMenu();
   return screen.getByRole('button', { name: m5s3.collection.pinToToday });
 }
 function unpinButton() {
+  ensureMenu();
   return screen.getByRole('button', { name: m5s3.collection.unpinFromToday });
 }
 function cached(harness: ReturnType<typeof setup>, queryKey = key) {
@@ -167,7 +184,7 @@ it.each(['query manager', 'browser'])(
     await waitFor(() =>
       expect(screen.getByText(de.states.offline.title)).toBeDefined(),
     );
-    expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+    expect(pinButton()).toBeDefined();
     expect(screen.queryByText(de.common.saving)).toBeNull();
     expect(cached(h)).toEqual(initial());
     expect(h.update).not.toHaveBeenCalled();
@@ -248,11 +265,10 @@ it('selects immediately, announces pending, blocks rapid duplicates, then remove
   fireEvent.click(button);
   fireEvent.click(button);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
-  expect(unpinButton().getAttribute('aria-pressed')).toBe('true');
+  expect(unpinButton()).toBeDefined();
   expect(button.hasAttribute('disabled')).toBe(true);
   const status = screen.getByRole('status');
   expect(status.textContent).toBe(de.common.saving);
-  expect(button.getAttribute('aria-describedby')).toBe(status.id);
   // The list is added to the ones already on Wir; nothing is replaced.
   expect(cached(h)?.items[1]).toEqual(
     preference(['old-list', collectionId], true),
@@ -270,7 +286,7 @@ it('selects immediately, announces pending, blocks rapid duplicates, then remove
   expect(screen.queryByRole('status')).toBeNull();
   fireEvent.click(button);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
-  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(pinButton()).toBeDefined();
   expect(cached(h)?.items[1]).toEqual(preference('old-list', true));
   expect(h.update.mock.calls[1][0].dashboardModulePreferenceUpdate).toEqual({
     selectedCollectionIds: ['old-list'],
@@ -296,7 +312,7 @@ it('keeps the submitted selection through background reads and preserves replace
   await act(async () =>
     h.queryClient.invalidateQueries({ queryKey: key, exact: true }),
   );
-  expect(unpinButton().getAttribute('aria-pressed')).toBe('true');
+  expect(unpinButton()).toBeDefined();
   expect(screen.getByRole('status')).toBeDefined();
   const read = deferred<DashboardModulePreferenceList>();
   h.get.mockImplementation(() => read.promise);
@@ -304,7 +320,7 @@ it('keeps the submitted selection through background reads and preserves replace
     h.writes[0].reject(new ClientProblemError('server', 500)),
   );
   await waitFor(() => expect(cached(h)).toEqual(newer));
-  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(pinButton()).toBeDefined();
   await act(async () => read.resolve(newer));
   await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
   expect(h.update).toHaveBeenCalledTimes(1);
@@ -437,9 +453,7 @@ it.each(['account', 'space'])(
     const other = { items: [preference('other-list', false)] };
     h.queryClient.setQueryData(otherKey, other);
     h.view.rerender(h.tree(owner, space));
-    await waitFor(() =>
-      expect(pinButton().getAttribute('aria-pressed')).toBe('false'),
-    );
+    await waitFor(() => expect(pinButton()).toBeDefined());
     expect(screen.queryByRole('status')).toBeNull();
     await act(async () => h.writes[0].resolve(preference(collectionId, true)));
     expect(cached(h, otherKey)).toEqual(other);
@@ -476,7 +490,7 @@ it('blocks denied preference reads and removes the invalid selected state', asyn
   fireEvent.click(pinButton());
   expect(h.update).not.toHaveBeenCalled();
   expect(screen.getByText(de.states.permission.title)).toBeDefined();
-  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(pinButton()).toBeDefined();
 });
 
 it.each(['success', 'failure'] as const)(
@@ -509,7 +523,7 @@ it.each(['success', 'failure'] as const)(
     expect(cached(h)).toEqual(latest);
     expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
     expect(invalidate).not.toHaveBeenCalled();
-    expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+    expect(pinButton()).toBeDefined();
     expect(screen.getByText(de.states.permission.title)).toBeDefined();
   },
 );
@@ -535,7 +549,7 @@ it('does not dispatch a pin when authorization is lost during cancellation', asy
   await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
   expect(h.update).not.toHaveBeenCalled();
   expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
-  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(pinButton()).toBeDefined();
   expect(screen.getByText(de.states.permission.title)).toBeDefined();
 });
 
@@ -555,7 +569,7 @@ it('preserves a newer authoritative row when an older pin response arrives befor
   h.get.mockImplementation(() => read.promise);
   await act(async () => h.writes[0].resolve(preference(collectionId, true)));
   expect(cached(h)).toEqual(newer);
-  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(pinButton()).toBeDefined();
   expect(pinButton().hasAttribute('disabled')).toBe(true);
   await act(async () => read.resolve(newer));
   await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
@@ -613,7 +627,7 @@ it.each(['account', 'space'])(
     await act(async () =>
       h.writes[0].reject(new ClientProblemError('server', 500)),
     );
-    expect(unpinButton().getAttribute('aria-pressed')).toBe('true');
+    expect(unpinButton()).toBeDefined();
     expect(screen.getByRole('status').textContent).toBe(de.common.saving);
     expect(screen.queryByText(de.states.server.title)).toBeNull();
     expect(cached(h, otherKey)?.items[0]).toEqual(

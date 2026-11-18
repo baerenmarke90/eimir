@@ -775,7 +775,7 @@
 
 .mobile-bottom-shell .mobile-bottom-nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .mobile-bottom-nav .shell-nav-link {
@@ -790,7 +790,9 @@
   padding: var(--space-1) 2px;
   border-radius: var(--radius-large);
   color: var(--color-text);
-  font-size: 0.8rem;
+  /* Five labels share the bar: they shrink with the screen at large text
+     instead of breaking inside a word. */
+  font-size: min(0.8rem, 3.5vw);
   font-weight: 550;
   line-height: 1.15;
   text-align: center;

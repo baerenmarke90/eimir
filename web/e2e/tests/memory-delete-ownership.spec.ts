@@ -3,8 +3,7 @@ import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import navigation from '../../src/i18n/locales/navigation';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { deleteViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import {
   captureScreenshot,
   getTimelineItems,
@@ -13,34 +12,39 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 
-async function expectMemoryControlsContained(page: Page) {
-  const controls = await page
-    .locator('.product-editor-page')
-    .evaluate((root) => {
-      const bounds = root.getBoundingClientRect();
-      return [
-        ...root.querySelectorAll(
-          '.composer-header button, .composer-header a, .memory-form .form-actions > *, .memory-form .file-picker, .memory-form .file-picker strong, .memory-delete-confirmation, .memory-delete-confirmation button',
-        ),
-      ].map((element) => {
-        const box = element.getBoundingClientRect();
-        return {
-          left: box.left - bounds.left,
-          right: bounds.right - box.right,
-          width: box.width,
-          height: box.height,
-          button: element.matches('button,a'),
-        };
-      });
+/** The delete confirmation sheet and its actions stay inside the viewport. */
+async function expectDeleteSheetContained(page: Page) {
+  const controls = await page.getByRole('alertdialog').evaluate((dialog) => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return [...dialog.querySelectorAll('.form-actions > *')].map((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: viewportWidth - box.right,
+        width: box.width,
+        height: box.height,
+      };
     });
+  });
+  expect(controls.length).toBeGreaterThan(0);
   for (const control of controls) {
     expect(control.left).toBeGreaterThanOrEqual(0);
     expect(control.right).toBeGreaterThanOrEqual(0);
-    if (control.button) {
-      expect(control.width).toBeGreaterThanOrEqual(44);
-      expect(control.height).toBeGreaterThanOrEqual(44);
-    }
+    expect(control.width).toBeGreaterThanOrEqual(44);
+    expect(control.height).toBeGreaterThanOrEqual(44);
   }
+}
+
+/** Deletion starts from the item menu of the detail page. */
+async function startMemoryDelete(page: Page) {
+  await deleteViaMenu(page, memoryProduct.delete);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+}
+
+function deleteSheetButton(page: Page, name: string) {
+  return page
+    .getByRole('alertdialog')
+    .getByRole('button', { name, exact: true });
 }
 
 async function openMemoryDeleteJourney(page: Page, failFirst: boolean) {
@@ -139,10 +143,7 @@ async function openMemoryDeleteJourney(page: Page, failFirst: boolean) {
     .locator('#momente-diary')
     .getByRole('link', { name: /Breakfast by the canal/ })
     .click();
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
-  await expect(page.locator('.memory-form')).toBeVisible();
+  await expect(itemMenuTrigger(page)).toBeVisible();
   return { unexpected, deletes, release, completed: () => completed };
 }
 
@@ -153,7 +154,7 @@ for (const profile of [
   { width: 1440, theme: 'dark', large: false },
   { width: 320, theme: 'dark', large: true },
 ] as const) {
-  test(`Memory deletion keeps confirmed cache settlement separate from a departed task at ${profile.width}px ${profile.theme}`, async ({
+  test(`Memory deletion from the detail menu stays pending in its confirmation and settles into the Timeline at ${profile.width}px ${profile.theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: profile.width, height: 900 });
@@ -170,37 +171,25 @@ for (const profile of [
         element.style.fontSize = '200%';
       });
     const prefix = `memory-delete-${profile.width}-${profile.theme}${profile.large ? '-large' : ''}`;
-    await page
-      .getByRole('button', { name: memoryProduct.delete, exact: true })
-      .click();
-    await page
-      .getByRole('button', { name: memoryProduct.deleteCancel, exact: true })
-      .click();
+    await startMemoryDelete(page);
+    await deleteSheetButton(page, de.common.cancel).click();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     expect(state.deletes).toEqual([]);
-    await page
-      .getByRole('button', { name: memoryProduct.delete, exact: true })
-      .click();
-    const confirm = page.getByRole('button', {
-      name: memoryProduct.deleteConfirm,
-      exact: true,
-    });
+    await startMemoryDelete(page);
+    const confirm = deleteSheetButton(page, memoryProduct.deleteConfirm);
     await confirm.focus();
     await page.keyboard.press('Enter');
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
     ).toBeVisible();
-    await expect(page.locator('#memory-edit-title')).toHaveValue(
-      'Breakfast by the canal',
-    );
+    // The failed request keeps the confirmation open for a deliberate retry.
+    await expect(page.getByRole('alertdialog')).toBeVisible();
     await expect(confirm).toBeEnabled();
     await captureScreenshot(page, info, `${prefix}-error.png`, {
       fullPage: true,
     });
     await confirm.click();
-    const pending = page.getByRole('button', {
-      name: memoryProduct.deleting,
-      exact: true,
-    });
+    const pending = deleteSheetButton(page, memoryProduct.deleting);
     await expect(pending).toBeDisabled();
     await expect.poll(() => state.deletes.length).toBe(2);
     await captureScreenshot(page, info, `${prefix}-pending.png`, {
@@ -237,32 +226,15 @@ for (const profile of [
       ),
     );
     expect(widths.scroll).toBe(widths.client);
-    await expectMemoryControlsContained(page);
-    await page
-      .getByRole('link', { name: taskBoundary.back, exact: true })
-      .click();
-    await expect(page.locator('.memory-form')).toHaveCount(0);
-    await page
-      .getByRole('link', { name: navigation.more, exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/more$/);
+    await expectDeleteSheetContained(page);
     if (profile.width === 390) {
+      // While the request is pending the confirmation cannot be left through
+      // the browser's Back: the task stays open and the delete stays pending.
+      const detailUrl = page.url();
       await page.goBack();
-      await page
-        .getByRole('link', { name: memoryProduct.edit, exact: true })
-        .click();
+      await expect(page.getByRole('alertdialog')).toBeVisible();
       await expect(pending).toBeDisabled();
-      await expect(
-        page.getByRole('button', { name: memoryProduct.save, exact: true }),
-      ).toBeDisabled();
-      await page
-        .getByRole('link', { name: taskBoundary.back, exact: true })
-        .click();
-      await expect(page.locator('.memory-form')).toHaveCount(0);
-      await page
-        .getByRole('link', { name: navigation.more, exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/more$/);
+      expect(page.url()).toBe(detailUrl);
     }
     const response = page.waitForResponse(
       (r) =>
@@ -280,21 +252,14 @@ for (const profile of [
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await expect(page).toHaveURL(/\/more$/);
+    // The confirmed delete returns to the Timeline scope the item was opened from.
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     expect(
       await page.evaluate(
         () => (window as Window & { deleteToasts?: string[] }).deleteToasts,
       ),
-    ).not.toContain('snackbar.memoryDeleted');
-    await captureScreenshot(page, info, `${prefix}-departed.png`, {
-      fullPage: true,
-    });
-    await page
-      .getByRole('link', { name: navigation.story, exact: true })
-      .click();
-    await page
-      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
-      .click();
+    ).toContain('snackbar.memoryDeleted');
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await expect(
       page
@@ -324,22 +289,14 @@ for (const theme of ['light', 'dark'] as const) {
       localStorage.setItem('eimir.theme', 'system'),
     );
     const state = await openMemoryDeleteJourney(page, false);
-    await page
-      .locator('#memory-edit-body')
-      .fill('Unsaved words stay after failed deletion');
-    await page
-      .getByRole('button', { name: memoryProduct.delete, exact: true })
-      .click();
+    await startMemoryDelete(page);
     await page.context().setOffline(true);
-    await page
-      .getByRole('button', { name: memoryProduct.deleteConfirm, exact: true })
-      .click();
+    await deleteSheetButton(page, memoryProduct.deleteConfirm).click();
     await expect(
       page.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
-    await expect(page.locator('#memory-edit-body')).toHaveValue(
-      'Unsaved words stay after failed deletion',
-    );
+    // The failed offline attempt keeps the confirmation open and sends nothing.
+    await expect(page.getByRole('alertdialog')).toBeVisible();
     expect(state.deletes).toEqual([]);
     await captureScreenshot(
       page,
@@ -348,16 +305,11 @@ for (const theme of ['light', 'dark'] as const) {
       { fullPage: true },
     );
     await page.context().setOffline(false);
-    await page
-      .getByRole('button', { name: memoryProduct.deleteCancel, exact: true })
-      .click();
+    await deleteSheetButton(page, de.common.cancel).click();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     expect(state.deletes).toEqual([]);
-    await page
-      .getByRole('button', { name: memoryProduct.delete, exact: true })
-      .click();
-    await page
-      .getByRole('button', { name: memoryProduct.deleteConfirm, exact: true })
-      .click();
+    await startMemoryDelete(page);
+    await deleteSheetButton(page, memoryProduct.deleteConfirm).click();
     await expect.poll(() => state.deletes.length).toBe(1);
     const response = page.waitForResponse(
       (r) =>

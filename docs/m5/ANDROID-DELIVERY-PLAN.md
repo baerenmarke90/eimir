@@ -126,6 +126,12 @@ the route identity itself does not change:
 | `discover` | Entdecken | `/discover` | **M8**, reserved and not rendered |
 | `more` | Mehr | `/more` | now |
 
+> **Historical table.** It records the retired Compose client's S0B plan (Decision 0011).
+> The current registry is `today`, `story`, `plan`, `shared`, `more` with Games under
+> More; see `docs/INFORMATION-ARCHITECTURE.md` section 2. The Android product UI is
+> the Capacitor wrapper around the Web client and has no separate route table
+> (route ID `shared` added by PR #2044, 2026-11-18).
+
 Four destinations until M8. Search is a global utility rather than a
 destination, Activity lives at `/today/activity`, and people, the owner-only
 area, notifications and profile live under `/more`. Web migrates onto the same

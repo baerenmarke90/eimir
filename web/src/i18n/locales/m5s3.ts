@@ -90,6 +90,7 @@ const m5s3 = {
     descriptionPlaceholder: 'Was macht diesen Wunsch für euch besonders?',
     loading: 'Wunsch wird geladen …',
     detailEyebrow: 'Gemeinsamer Wunsch',
+    menu: 'Menü des Wunsches',
     planTitle: 'Titel des Plans',
     convertHeading: 'Daraus einen Plan machen',
     convertIntro:
@@ -134,6 +135,7 @@ const m5s3 = {
     },
   },
   plan: {
+    menu: 'Menü des Plans',
     linkWish: 'Wunsch verknüpfen',
     linkWishHelp:
       'Der Plan bleibt bestehen. Wenn ihr ihn abschließt, wird auch der Wunsch erfüllt. Über „Zurück zum Wunsch“ könnt ihr den Plan später auflösen.',
@@ -302,7 +304,6 @@ const m5s3 = {
     archived: 'Ort archiviert. Eure Verknüpfungen bleiben erhalten.',
     restored: 'Ort wiederhergestellt.',
     emptyArchive: 'Hier erscheinen eure archivierten Orte.',
-    archiveSaveFirst: 'Speichere zuerst deine Änderungen oder verwirf sie.',
 
     heading: 'Orte',
     intro: 'Ein Name reicht. Adresse und Standort könnt ihr ergänzen.',
@@ -311,6 +312,7 @@ const m5s3 = {
     create: 'Ort hinzufügen',
     loading: 'Ort wird geladen …',
     detailEyebrow: 'Gemeinsamer Ort',
+    menu: 'Menü des Ortes',
     name: 'Name',
     address: 'Adresse',
     latitude: 'Breitengrad',
@@ -352,6 +354,7 @@ const m5s3 = {
     addMoreDetails: 'Zeitraum und Ort ergänzen',
     loading: 'Kapitel wird geladen …',
     detailEyebrow: 'Gemeinsames Kapitel',
+    menu: 'Menü des Kapitels',
     startOn: 'Beginn',
     endOn: 'Bis',
     contextHeading: 'Zeitraum und Ort',
@@ -450,6 +453,8 @@ const m5s3 = {
     progress: '{{count}} Einträge · {{completed}} erledigt',
     progress_one: '{{count}} Eintrag · {{completed}} erledigt',
     progress_other: '{{count}} Einträge · {{completed}} erledigt',
+    previewMore: '+ {{count}} weitere',
+    previewLess: 'Weniger anzeigen',
     openItem: '„{{title}}“ bearbeiten',
     itemActions: 'Aktionen für „{{title}}“',
     editItem: 'Eintrag bearbeiten',
@@ -465,7 +470,6 @@ const m5s3 = {
     create: 'Liste hinzufügen',
     loading: 'Liste wird geladen …',
     detailEyebrow: 'Gemeinsame Liste',
-    pinLabel: 'Auf „Wir“',
     pinToToday: 'Auf „Wir“ anzeigen',
     unpinFromToday: 'Nicht mehr auf „Wir“ anzeigen',
     itemCount_one: '{{count}} Eintrag',
@@ -506,7 +510,6 @@ const m5s3 = {
       heading: 'Zuletzt gekauft',
       add: '{{title}} wieder hinzufügen',
       remove: 'Vorschlag „{{title}}“ entfernen',
-      note: 'Aus euren beendeten Einkäufen. Nur ihr beide seht das.',
     },
     finish: {
       action: 'Einkauf fertig',

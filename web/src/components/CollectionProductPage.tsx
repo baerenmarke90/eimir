@@ -68,6 +68,13 @@ import {
   type CartFlight,
   flyIntoCart,
 } from './cartFlight';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -76,7 +83,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
-import { SharedContentSheet } from './SharedContentSheet';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { SharedListCartBar } from './SharedListCartBar';
 import {
   type FinishBlock,
@@ -170,7 +177,9 @@ function CollectionProductDetail({
   const overviewScope =
     rawScope === 'COMPLETED' || rawScope === 'ALL' ? rawScope : 'OPEN';
   const queryClient = useQueryClient();
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const createItemInFlightRef = useRef(false);
@@ -218,15 +227,11 @@ function CollectionProductDetail({
   const [titleDraft, setTitleDraft] = useState('');
   const [showTitleSaved, showTitleSavedForFeedbackWindow] =
     useTransientFlag(2500);
-  const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   const reorderInFlightRef = useRef<{
     variables: ReorderRequest;
     isCurrentQuery: () => boolean;
   } | null>(null);
-  const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
-  const restoreDeleteTriggerRef = useRef(false);
   const itemUpdateInFlightRef = useRef(false);
   const key = authorSummaryQueryKeys.collectionDetail(spaceId, collectionId);
   const hasCurrentReorder = () =>
@@ -401,7 +406,6 @@ function CollectionProductDetail({
     onSuccess: async (data) => {
       await commitCollection(data);
       setIsEditing(false);
-      setConfirmDelete(false);
       showTitleSavedForFeedbackWindow();
     },
   });
@@ -800,7 +804,6 @@ function CollectionProductDetail({
       ),
     }),
     onSuccess: async (_result, deleted, context) => {
-      queryClient.removeQueries({ queryKey: key });
       if (accountId) {
         // The list is gone: its saved copy and unsent changes go with it.
         void deleteProductReadCacheEntry(
@@ -817,17 +820,23 @@ function CollectionProductDetail({
           queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
         }),
       ]);
-      if (origin && !origin.to.startsWith(MORE_COLLECTIONS_ROUTE)) {
-        requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
-        return;
-      }
-      navigate(origin?.to ?? MORE_COLLECTIONS_ROUTE, {
-        replace: true,
-        state: {
-          [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
-          taskReturnKey: originKey,
-        },
-      });
+      const leave = () => {
+        queryClient.removeQueries({ queryKey: key });
+        if (origin && !origin.to.startsWith(MORE_COLLECTIONS_ROUTE)) {
+          requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
+          return;
+        }
+        navigate(origin?.to ?? MORE_COLLECTIONS_ROUTE, {
+          replace: true,
+          state: {
+            [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+            taskReturnKey: originKey,
+          },
+        });
+      };
+      if (deleteSheetRef.current)
+        deleteSheetRef.current.closeForNavigation(leave);
+      else leave();
     },
   });
 
@@ -836,29 +845,13 @@ function CollectionProductDetail({
     isDirty: isTitleDirty,
     isPending: updateCollection.isPending || deleteCollection.isPending,
     initialFocusRef: titleInputRef,
-    restoreFocusRef: editTriggerRef,
-    onEscape: () => {
-      if (!confirmDelete) return false;
-      restoreDeleteTriggerRef.current = true;
-      setConfirmDelete(false);
-      return true;
-    },
+    restoreFocusRef: menuTriggerRef,
     onClose: () => {
       setIsEditing(false);
-      setConfirmDelete(false);
       setTitleDraft(collectionQuery.data?.title ?? '');
       updateCollection.reset();
-      deleteCollection.reset();
     },
   });
-
-  useEffect(() => {
-    if (confirmDelete) deleteHeadingRef.current?.focus();
-    else if (restoreDeleteTriggerRef.current) {
-      restoreDeleteTriggerRef.current = false;
-      deleteTriggerRef.current?.focus();
-    }
-  }, [confirmDelete]);
 
   const embeddedPending =
     createItem.isPending ||
@@ -978,11 +971,18 @@ function CollectionProductDetail({
       }}
     />
   ) : null;
-  // The list's menu (#1808): sorting lives here instead of in the page. Without
-  // a page header (the Wir sheet) the button sits in the list's toolbar.
+  // The list's one actions menu: Edit first, the list's own actions, Delete
+  // last. Without a page header (the Wir sheet) the button sits in the list's
+  // toolbar and offers only the actions that work without a header.
   const canSort = collection.capabilities.canEdit && items.length > 1;
   const canSend = Boolean(partnerId) && Boolean(accountId);
-  const hasListMenu = !embedded && !isSorting && (canSort || canSend);
+  const canEditList = !inSheet && collection.capabilities.canEdit;
+  const canPin = !inSheet && Boolean(dashboardApi && accountId);
+  const canDeleteList = !inSheet && collection.capabilities.canDelete;
+  const hasListMenu =
+    !embedded &&
+    !isSorting &&
+    (canEditList || canSort || canSend || canPin || canDeleteList);
   const partnerLabel =
     partnerNickname ||
     firstNameFromDisplayName(
@@ -995,14 +995,11 @@ function CollectionProductDetail({
     sendToPartner.reset();
   };
   const listMenuButton = hasListMenu ? (
-    <ListEntryIconButton
-      ref={menuTriggerRef}
-      icon="more"
-      className="tertiary"
+    <ItemMenuTrigger
+      triggerRef={menuTriggerRef}
       label={t('m5s3.collection.menu.open')}
-      aria-haspopup="dialog"
-      aria-expanded={menuOpen}
-      onClick={() => setMenuOpen(true)}
+      open={menuOpen}
+      onOpen={() => setMenuOpen(true)}
     />
   ) : null;
   const suggestionsShown =
@@ -1165,20 +1162,7 @@ function CollectionProductDetail({
               ) : null}
             </span>
           }
-          titleAction={
-            collection.capabilities.canEdit && !isEditing ? (
-              <ListEntryIconButton
-                ref={editTriggerRef}
-                icon="edit"
-                className="tertiary"
-                label={t('common.edit')}
-                onClick={() => {
-                  setTitleDraft(collection.title);
-                  setIsEditing(true);
-                }}
-              />
-            ) : undefined
-          }
+          titleAction={isEditing ? undefined : (listMenuButton ?? undefined)}
           titleEditor={
             isEditing ? (
               <form
@@ -1244,50 +1228,6 @@ function CollectionProductDetail({
                 ) : null}
               </form>
             ) : undefined
-          }
-          action={
-            (dashboardApi && accountId) || listMenuButton ? (
-              <>
-                {dashboardApi && accountId ? (
-                  <div className="planning-collection-dashboard-action">
-                    <button
-                      type="button"
-                      className="button-link secondary-link"
-                      disabled={pinCollection.isBlocked}
-                      aria-pressed={pinCollection.isPinned(collection.id)}
-                      aria-label={t(
-                        pinCollection.isPinned(collection.id)
-                          ? 'm5s3.collection.unpinFromToday'
-                          : 'm5s3.collection.pinToToday',
-                      )}
-                      aria-describedby={
-                        pinCollection.isSaving
-                          ? 'collection-pin-pending'
-                          : undefined
-                      }
-                      onClick={() => pinCollection.toggle(collection.id)}
-                    >
-                      {pinCollection.isPinned(collection.id) ? (
-                        <span aria-hidden="true">✓ </span>
-                      ) : null}
-                      {t('m5s3.collection.pinLabel')}
-                    </button>
-                    {pinCollection.isSaving ? (
-                      <small id="collection-pin-pending" role="status">
-                        {t('common.saving')}
-                      </small>
-                    ) : null}
-                    {pinCollection.error ? (
-                      <ProblemState
-                        error={pinCollection.error}
-                        onRetry={() => void pinCollection.retryRead()}
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-                {listMenuButton}
-              </>
-            ) : null
           }
         />
       ) : null}
@@ -1458,18 +1398,6 @@ function CollectionProductDetail({
             />
           </form>
         ) : null}
-        {suggestionsShown.length > 0 ? (
-          <SharedListSuggestions
-            suggestions={suggestionsShown}
-            disabled={createItem.isPending || isReordering}
-            onAdd={addSuggestion}
-            onRemove={(suggestion) => removeSuggestion.mutate(suggestion)}
-          />
-        ) : null}
-        {removeSuggestion.error ? (
-          <ProblemState error={removeSuggestion.error} />
-        ) : null}
-
         {items.length > 0 ? (
           <div ref={itemsRef} className="shared-list-groups">
             {groups.map((group) => (
@@ -1569,6 +1497,18 @@ function CollectionProductDetail({
         ) : (
           <p className="planning-empty">{t('m5s3.collection.itemsEmpty')}</p>
         )}
+        {/* Below the list, so the list itself stays the first thing on the page. */}
+        {suggestionsShown.length > 0 ? (
+          <SharedListSuggestions
+            suggestions={suggestionsShown}
+            disabled={createItem.isPending || isReordering}
+            onAdd={addSuggestion}
+            onRemove={(suggestion) => removeSuggestion.mutate(suggestion)}
+          />
+        ) : null}
+        {removeSuggestion.error ? (
+          <ProblemState error={removeSuggestion.error} />
+        ) : null}
         {isReordering ? (
           <p role="status">{t('m5s3.collection.reordering')}</p>
         ) : null}
@@ -1584,75 +1524,135 @@ function CollectionProductDetail({
         ) : null}
       </section>
 
-      <SharedContentSheet
-        open={menuOpen && hasListMenu}
+      <ItemMenuSheet
+        open={menuOpen && hasListMenu && !isEditing}
         title={
           sendStep
             ? t('m5s3.collection.menu.sendTitle', { name: partnerLabel })
             : collection.title
         }
-        isPending={sendToPartner.isPending}
+        isCloseBlocked={sendToPartner.isPending}
         restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
         onClose={closeMenu}
       >
-        {() =>
-          sendStep ? (
-            <div className="shared-content-actions">
-              <p>{t('m5s3.collection.menu.sendBody')}</p>
-              <button
-                type="button"
-                disabled={sendToPartner.isPending}
-                onClick={() => sendToPartner.mutate()}
-              >
-                {sendToPartner.isPending
-                  ? t('m5s3.collection.menu.sendSending')
-                  : t('m5s3.collection.menu.sendConfirm', {
-                      name: partnerLabel,
-                    })}
-              </button>
-              <button
-                type="button"
-                className="tertiary"
-                disabled={sendToPartner.isPending}
-                onClick={closeMenu}
-              >
-                {t('m5s3.collection.menu.sendKeep')}
-              </button>
-              {sendToPartner.error ? (
-                <ProblemState
-                  error={sendToPartner.error}
-                  onRetry={() => sendToPartner.mutate()}
-                />
-              ) : null}
-            </div>
-          ) : (
-            <div className="shared-content-actions">
-              {canSort ? (
-                <button
-                  type="button"
-                  className="tertiary"
-                  disabled={isReordering || outbox.pendingCount > 0}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setIsSorting(true);
-                  }}
-                >
-                  {t('m5s3.collection.sort')}
-                </button>
-              ) : null}
-              {canSend ? (
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => setSendStep(true)}
-                >
-                  {t('m5s3.collection.menu.send', { name: partnerLabel })}
-                </button>
-              ) : null}
-            </div>
-          )
-        }
-      </SharedContentSheet>
+        {sendStep ? (
+          <div className="shared-content-actions">
+            <p>{t('m5s3.collection.menu.sendBody')}</p>
+            <button
+              type="button"
+              disabled={sendToPartner.isPending}
+              onClick={() => sendToPartner.mutate()}
+            >
+              {sendToPartner.isPending
+                ? t('m5s3.collection.menu.sendSending')
+                : t('m5s3.collection.menu.sendConfirm', {
+                    name: partnerLabel,
+                  })}
+            </button>
+            <button
+              type="button"
+              className="tertiary"
+              disabled={sendToPartner.isPending}
+              onClick={closeMenu}
+            >
+              {t('m5s3.collection.menu.sendKeep')}
+            </button>
+            {sendToPartner.error ? (
+              <ProblemState
+                error={sendToPartner.error}
+                onRetry={() => sendToPartner.mutate()}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {canEditList ? (
+              <ItemMenuOption
+                icon="pen"
+                title={t('common.edit')}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () => {
+                      setTitleDraft(collection.title);
+                      setIsEditing(true);
+                    },
+                    closeMenu,
+                  )
+                }
+              />
+            ) : null}
+            {canSort ? (
+              <ItemMenuOption
+                icon="listen"
+                title={t('m5s3.collection.sort')}
+                disabled={isReordering || outbox.pendingCount > 0}
+                onClick={() => {
+                  closeMenu();
+                  setIsSorting(true);
+                }}
+              />
+            ) : null}
+            {canSend ? (
+              <ItemMenuOption
+                icon="geteilt"
+                title={t('m5s3.collection.menu.send', { name: partnerLabel })}
+                onClick={() => setSendStep(true)}
+              />
+            ) : null}
+            {canPin ? (
+              <ItemMenuOption
+                icon="highlights"
+                title={t(
+                  pinCollection.isPinned(collection.id)
+                    ? 'm5s3.collection.unpinFromToday'
+                    : 'm5s3.collection.pinToToday',
+                )}
+                disabled={pinCollection.isBlocked}
+                onClick={() => pinCollection.toggle(collection.id)}
+              />
+            ) : null}
+            {canDeleteList ? (
+              <ItemMenuOption
+                icon="trash"
+                danger
+                title={t('m5s3.common.delete')}
+                onClick={() => {
+                  closeMenu();
+                  deleteCollection.reset();
+                  setDeleteOpen(true);
+                }}
+              />
+            ) : null}
+            {canPin && pinCollection.isSaving ? (
+              <p className="planning-meta" role="status">
+                {t('common.saving')}
+              </p>
+            ) : null}
+            {canPin && pinCollection.error ? (
+              <ProblemState
+                error={pinCollection.error}
+                onRetry={() => void pinCollection.retryRead()}
+              />
+            ) : null}
+          </>
+        )}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheetRef}
+        open={deleteOpen && !isEditing}
+        title={t('m5s3.common.deleteHeading')}
+        body={t('m5s3.collection.deleteConsequence')}
+        confirmLabel={t('m5s3.common.confirmDelete')}
+        pendingLabel={t('m5s3.common.deleting')}
+        pending={deleteCollection.isPending}
+        error={deleteCollection.error}
+        restoreFocusRef={menuTriggerRef}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => deleteCollection.mutate(collection)}
+      />
 
       {shopping && !embedded && !isSorting ? (
         <SharedListCartBar
@@ -1664,67 +1664,6 @@ function CollectionProductDetail({
           onPutBack={toggleItem}
           finish={finishControl}
         />
-      ) : null}
-
-      {isEditing && collection.capabilities.canDelete ? (
-        <section
-          className="planning-danger-zone"
-          aria-labelledby="collection-delete-heading"
-        >
-          <h2 id="collection-delete-heading">
-            {t('m5s3.common.deleteHeading')}
-          </h2>
-          <p>{t('m5s3.collection.deleteConsequence')}</p>
-          {!confirmDelete ? (
-            <button
-              ref={deleteTriggerRef}
-              type="button"
-              className="danger"
-              onClick={() => setConfirmDelete(true)}
-              disabled={updateCollection.isPending}
-            >
-              {t('m5s3.common.delete')}
-            </button>
-          ) : (
-            <div className="planning-confirm-row">
-              <h2
-                ref={deleteHeadingRef}
-                id="collection-delete-confirmation-heading"
-                className="sr-only"
-                tabIndex={-1}
-              >
-                {t('m5s3.common.deleteHeading')}
-              </h2>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => deleteCollection.mutate(collection)}
-                disabled={deleteCollection.isPending}
-              >
-                {deleteCollection.isPending
-                  ? t('m5s3.common.deleting')
-                  : t('m5s3.common.confirmDelete')}
-              </button>
-              <button
-                type="button"
-                className="tertiary"
-                onClick={() => {
-                  restoreDeleteTriggerRef.current = true;
-                  setConfirmDelete(false);
-                }}
-                disabled={deleteCollection.isPending}
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          )}
-          {deleteCollection.error ? (
-            <ProblemState
-              error={deleteCollection.error}
-              onRetry={() => void collectionQuery.refetch()}
-            />
-          ) : null}
-        </section>
       ) : null}
     </div>
   );

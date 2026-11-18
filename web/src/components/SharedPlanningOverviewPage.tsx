@@ -59,6 +59,7 @@ import {
 } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { CollapsibleSearch } from './CollapsibleSearch';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
@@ -103,86 +104,17 @@ function PlanningSearch({
   onChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
-  const id = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const label = t(
-    kind === 'plans'
-      ? 'm5s3.overview.searchPlans'
-      : 'm5s3.overview.searchWishes',
-  );
-  // The search rests as an icon on the status row and opens on
-  // demand, so the first plan sits one row higher.
-  const [open, setOpen] = useState(() => Boolean(value));
-  const [closing, setClosing] = useState(false);
-  const [focusOnOpen, setFocusOnOpen] = useState(false);
-  if (!open && !value) {
-    return (
-      <button
-        type="button"
-        className="planen-search-toggle"
-        aria-label={label}
-        aria-expanded={false}
-        onClick={() => {
-          setFocusOnOpen(true);
-          setClosing(false);
-          setOpen(true);
-        }}
-      >
-        <EimirIcon name="suche" />
-      </button>
-    );
-  }
   return (
-    <search
-      className={`planen-search${closing ? ' is-closing' : ''}`}
-      onAnimationEnd={(event) => {
-        // The field folds away first and only then gives way to the icon.
-        if (closing && event.target === event.currentTarget) {
-          setClosing(false);
-          setOpen(false);
-        }
-      }}
-    >
-      <label className="sr-only" htmlFor={id}>
-        {label}
-      </label>
-      <div className="planen-search-field">
-        <EimirIcon name="suche" />
-        <input
-          ref={inputRef}
-          id={id}
-          type="search"
-          placeholder={label}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={() => setClosing(false)}
-          onBlur={() => {
-            if (value) return;
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-              setOpen(false);
-            } else {
-              setClosing(true);
-            }
-          }}
-          // biome-ignore lint/a11y/noAutofocus: focus follows the user's own tap on the search icon.
-          autoFocus={focusOnOpen}
-          autoComplete="off"
-        />
-        {value ? (
-          <button
-            type="button"
-            className="tertiary"
-            aria-label={t('m5s3.overview.clearSearch')}
-            onClick={() => {
-              onChange('');
-              inputRef.current?.focus();
-            }}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        ) : null}
-      </div>
-    </search>
+    <CollapsibleSearch
+      label={t(
+        kind === 'plans'
+          ? 'm5s3.overview.searchPlans'
+          : 'm5s3.overview.searchWishes',
+      )}
+      clearLabel={t('m5s3.overview.clearSearch')}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 

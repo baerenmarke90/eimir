@@ -125,6 +125,42 @@ function setup() {
     },
   };
 }
+function openMenu() {
+  fireEvent.click(screen.getByRole('button', { name: m5s3.wish.menu }));
+}
+/** "Continue the wish" (complete it or turn it into a plan) lives in the menu. */
+/** Opens the menu and checks that "continue the wish" cannot be started. */
+async function expectContinueLocked() {
+  openMenu();
+  const row = await screen.findByRole('button', {
+    name: m5s3.wish.actionsHeading,
+  });
+  expect(row.hasAttribute('disabled')).toBe(true);
+  fireEvent.click(row);
+}
+function tryOpenContinue() {
+  try {
+    openContinue();
+  } catch {
+    // An already completed wish has nothing left to continue.
+  }
+}
+function openContinue() {
+  openMenu();
+  fireEvent.click(
+    screen.getByRole('button', { name: m5s3.wish.actionsHeading }),
+  );
+}
+/** Reads the Edit row's state, then closes the menu again. */
+async function editIsDisabled() {
+  openMenu();
+  const row = await screen.findByRole('button', { name: de.common.edit });
+  const disabled = row.hasAttribute('disabled');
+  const dialog = row.closest('dialog') as HTMLDialogElement;
+  fireEvent(dialog, new Event('cancel', { cancelable: true }));
+  await waitFor(() => expect(dialog.isConnected).toBe(false));
+  return disabled;
+}
 const action = () =>
   screen.getByRole('button', {
     name: (name) =>
@@ -133,6 +169,7 @@ const action = () =>
 
 it('fails an offline attempt without pausing it for automatic reconnect submission', async () => {
   const h = setup();
+  tryOpenContinue();
   const title = screen.getByLabelText(m5s3.wish.planTitle);
   fireEvent.change(title, { target: { value: 'Future trip' } });
   onlineManager.setOnline(false);
@@ -165,6 +202,7 @@ async function submit(h: ReturnType<typeof setup>) {
 }
 it('claims once in the same task, shows one honest summary status and locks competing writes', async () => {
   const h = setup();
+  tryOpenContinue();
   await screen.findByText('Northern lights');
   const button = action();
   button.focus();
@@ -185,11 +223,7 @@ it('claims once in the same task, shows one honest summary status and locks comp
   expect(screen.getAllByRole('status')).toHaveLength(1);
   expect(action().getAttribute('aria-disabled')).toBe('true');
   expect(document.activeElement).toBe(button);
-  expect(
-    screen
-      .getByRole('button', { name: de.common.edit })
-      .hasAttribute('disabled'),
-  ).toBe(true);
+  expect(await editIsDisabled()).toBe(true);
   expect(
     screen.getByLabelText(m5s3.wish.planTitle).closest('fieldset')?.disabled,
   ).toBe(true);
@@ -201,6 +235,7 @@ it('claims once in the same task, shows one honest summary status and locks comp
 });
 it('confirms the server version and restores Back focus when the continuation is dismissed', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   h.setServer(fulfilled());
   await act(async () => h.writes[0].resolve(fulfilled()));
@@ -220,6 +255,7 @@ it('confirms the server version and restores Back focus when the continuation is
 });
 it('retains conversion drafts after failure and permits only an explicit retry', async () => {
   const h = setup();
+  tryOpenContinue();
   fireEvent.change(screen.getByLabelText(m5s3.wish.planTitle), {
     target: { value: 'Later trip' },
   });
@@ -246,6 +282,7 @@ it('retains conversion drafts after failure and permits only an explicit retry',
 });
 it('holds the lock through conflict recovery and uses the refreshed version on explicit retry', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   const read = deferred<WishDetail>();
   h.getWish.mockImplementation(() => read.promise);
@@ -270,6 +307,7 @@ it('holds the lock through conflict recovery and uses the refreshed version on e
 });
 it('shows partner fulfillment after conflict without claiming our Memory continuation', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   h.setServer(fulfilled());
   await act(async () =>
@@ -285,6 +323,7 @@ it.each(['completion', 'conversion'])(
   'excludes the competing write when %s starts first in one task',
   async (first) => {
     const h = setup();
+    tryOpenContinue();
     await screen.findByText('Northern lights');
     const complete = () => action().click();
     const convert = () =>
@@ -318,16 +357,22 @@ it.each(['update', 'delete'])(
   'prevents completion from racing a pending %s across a detail remount',
   async (kind) => {
     const h = setup();
-    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
-    if (kind === 'update')
+    tryOpenContinue();
+    openMenu();
+    if (kind === 'update') {
+      fireEvent.click(
+        await screen.findByRole('button', { name: de.common.edit }),
+      );
       fireEvent.submit(
         (screen.getByLabelText(m5s3.common.title) as HTMLInputElement)
           .form as HTMLFormElement,
       );
-    else {
-      fireEvent.click(screen.getByRole('button', { name: m5s3.common.delete }));
+    } else {
       fireEvent.click(
-        screen.getByRole('button', { name: m5s3.common.confirmDelete }),
+        await screen.findByRole('button', { name: m5s3.common.delete }),
+      );
+      fireEvent.click(
+        await screen.findByRole('button', { name: m5s3.common.confirmDelete }),
       );
     }
     await waitFor(() =>
@@ -337,26 +382,28 @@ it.each(['update', 'delete'])(
     );
     h.view.unmount();
     render(h.tree());
-    expect(action().getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(action());
+    // While a write is pending the menu does not offer to continue the wish.
+    await expectContinueLocked();
     expect(h.completeWish).not.toHaveBeenCalled();
   },
 );
 it('keeps pending state and duplicate exclusion across a remount', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   h.view.unmount();
   render(h.tree());
   expect((await screen.findByRole('status')).textContent).toBe(
     m5s3.wish.completePending,
   );
-  fireEvent.click(action());
+  await expectContinueLocked();
   expect(h.completeWish).toHaveBeenCalledTimes(1);
 });
 it.each(['pending', 'failed'])(
   'keeps a failed completion visible when the page remounts while %s',
   async (state) => {
     const h = setup();
+    tryOpenContinue();
     await submit(h);
     if (state === 'pending') {
       h.view.unmount();
@@ -372,6 +419,7 @@ it.each(['pending', 'failed'])(
     }
     expect(await screen.findByText(de.states.server.title)).toBeDefined();
     expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
+    tryOpenContinue();
     expect(action().getAttribute('aria-disabled')).toBeNull();
     expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
     expect(h.completeWish).toHaveBeenCalledTimes(1);
@@ -382,6 +430,7 @@ it.each(['pending', 'failed'])(
 );
 it('does not restore an earlier failure after a successful explicit retry and remount', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   await act(async () =>
     h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
@@ -403,6 +452,7 @@ it('does not restore an earlier failure after a successful explicit retry and re
 });
 it('drops a failed completion when its detail query is replaced without clearing mutations', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   await act(async () =>
     h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
@@ -425,6 +475,7 @@ it('drops a failed completion when its detail query is replaced without clearing
 });
 it('reconciles an unmounted completion without offering a transient continuation on return', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   h.view.unmount();
   h.setServer(fulfilled());
@@ -437,6 +488,7 @@ it('reconciles an unmounted completion without offering a transient continuation
 });
 it('preserves a newer authorized Wish read when the pending fulfillment resolves', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   const newer = wish({ title: 'Newer authoritative wish', version: 7 });
   h.setServer(newer);
@@ -454,6 +506,7 @@ it('preserves a newer authorized Wish read when the pending fulfillment resolves
 
 it('rejects a Wish fulfillment after original Query access is denied while cancellation settles', async () => {
   const h = setup();
+  tryOpenContinue();
   await screen.findByText('Northern lights');
   act(() => {
     fireEvent.click(action());
@@ -479,6 +532,7 @@ it('rejects a Wish fulfillment after original Query access is denied while cance
 
 it('ignores a late result when the initiating query was replaced in the same Space', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   act(() => {
     h.queryClient.clear();
@@ -497,6 +551,7 @@ it('ignores a late result when the initiating query was replaced in the same Spa
 });
 it('keeps the new Space independent and never recreates a cleared source cache', async () => {
   const h = setup();
+  tryOpenContinue();
   await submit(h);
   const otherKey = authorSummaryQueryKeys.wishDetail('space-2', ID);
   act(() => {

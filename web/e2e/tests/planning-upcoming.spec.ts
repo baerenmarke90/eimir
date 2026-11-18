@@ -4,6 +4,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { chooseItemMenuRow } from '../support/itemMenu';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -661,7 +662,8 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
   await page.getByRole('link', { name: new RegExp(EARLY_TITLE) }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
 
-  await page.getByText(m5s3.wish.actionsHeading).click();
+  // Continuing the wish (complete it or make a plan) is a row of its actions menu.
+  await chooseItemMenuRow(page, m5s3.wish.actionsHeading);
   await page.getByLabel(m5s3.wish.planTitle).fill('Requested autumn Plan');
   await page.getByRole('button', { name: m5s3.wish.convert }).click();
 

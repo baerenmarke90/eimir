@@ -86,6 +86,20 @@ def _content(session: Session, notification: Notification, context: Authorizatio
     return ""
 
 
+def _recipient_nickname_for(
+    session: Session, context: AuthorizationContext, actor_id: object
+) -> str:
+    """The nickname the recipient gave this actor, or an empty string."""
+    # Imported here: profiles depends on engagement-adjacent modules.
+    from eimir.profiles import service as profiles
+
+    partner_id, row = profiles.partner_nickname(session, context)
+    if row is None or partner_id != actor_id:
+        return ""
+    nickname = row.payload.nickname
+    return _label(nickname, 80) if nickname else ""
+
+
 def for_notification(
     session: Session,
     notification: Notification,
@@ -112,6 +126,13 @@ def for_notification(
         else None
     )
     name = _label(actor.display_name, 80) if actor is not None and actor.is_active else ""
+    if actor is not None and actor.is_active:
+        # The recipient's own private nickname for their partner wins over the
+        # partner's display name. The preview is encrypted for the recipient's
+        # own devices, so it never reaches anyone else.
+        nickname = _recipient_nickname_for(session, context, actor.id)
+        if nickname:
+            name = nickname
     title = ""
     concealed = False
     if not neutral and notification.target_type is not None and notification.target_id is not None:

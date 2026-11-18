@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   BrowserRouter,
@@ -130,6 +130,22 @@ function DiaryOrigin() {
   );
 }
 
+async function openEditor(
+  user: ReturnType<typeof userEvent.setup>,
+  waitForMenu = false,
+) {
+  const trigger = waitForMenu
+    ? await screen.findByRole('button', { name: i18n.t('m5s3.chapter.menu') })
+    : screen.getByRole('button', { name: i18n.t('m5s3.chapter.menu') });
+  await user.click(trigger);
+  await user.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
+}
+
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   HTMLDialogElement.prototype.showModal = function () {
@@ -174,7 +190,7 @@ describe('ChapterProductPage read presentation', () => {
 });
 
 describe('ChapterProductPage editor lifecycle', () => {
-  it('retires the editor history entry before returning a confirmed deletion to its diary scope', async () => {
+  it('retires the confirmation sheet history entry before returning a confirmed deletion to its diary scope', async () => {
     const user = userEvent.setup();
     let removed = false;
     const apis = createApis({
@@ -224,16 +240,18 @@ describe('ChapterProductPage editor lifecycle', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Open Chapter' }));
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('common.edit') }),
+      await screen.findByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
     );
     await waitFor(() =>
       expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
     );
     await user.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.common.delete') }),
-    );
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.common.confirmDelete') }),
+      await screen.findByRole('button', {
+        name: i18n.t('m5s3.common.confirmDelete'),
+      }),
     );
     await screen.findByRole('heading', { name: 'Filtered diary' });
     expect(window.location.pathname + window.location.search).toBe(
@@ -262,9 +280,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     expect(
       await screen.findByRole('link', { name: /A shared memory/ }),
     ).toBeTruthy();
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     expect(screen.queryByRole('link', { name: /A shared memory/ })).toBeNull();
     await user.click(
       screen.getByRole('button', {
@@ -284,9 +300,7 @@ describe('ChapterProductPage editor lifecycle', () => {
       ]);
     });
 
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     await user.click(
       screen.getByRole('button', { name: i18n.t('m5s3.chapter.choosePlace') }),
     );
@@ -302,8 +316,7 @@ describe('ChapterProductPage editor lifecycle', () => {
   it('focuses the editor and closes a clean editor with Escape', async () => {
     const user = userEvent.setup();
     renderChapter();
-    const edit = screen.getByRole('button', { name: i18n.t('common.edit') });
-    await user.click(edit);
+    await openEditor(user);
     const title = screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.title'),
     });
@@ -318,15 +331,14 @@ describe('ChapterProductPage editor lifecycle', () => {
       ).toBeNull(),
     );
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      screen.getByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
     );
   });
 
   it('uses Browser Back to ask before discarding and retains the full draft', async () => {
     const user = userEvent.setup();
     renderChapter();
-    const edit = screen.getByRole('button', { name: i18n.t('common.edit') });
-    await user.click(edit);
+    await openEditor(user);
     const title = screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.title'),
     }) as HTMLInputElement;
@@ -354,7 +366,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     );
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      screen.getByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
     );
   });
 
@@ -362,9 +374,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     const user = userEvent.setup();
     const updateChapter = vi.fn().mockReturnValue(new Promise(() => undefined));
     renderChapter(createApis({ updateChapter }));
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     const title = screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.title'),
     });
@@ -385,7 +395,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
-  it('restores delete focus and focuses the successor after deletion', async () => {
+  it('confirms Delete in its own sheet, restores focus on Cancel and focuses the successor after deletion', async () => {
     const user = userEvent.setup();
     const deleteChapter = vi.fn().mockResolvedValue(undefined);
     const apis = createApis({ deleteChapter });
@@ -401,28 +411,32 @@ describe('ChapterProductPage editor lifecycle', () => {
         pageParams: [null],
       });
     });
+    const menuTrigger = screen.getByRole('button', {
+      name: i18n.t('m5s3.chapter.menu'),
+    });
+    await user.click(menuTrigger);
     await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
     );
-    const deleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
-    });
-    await user.click(deleteTrigger);
-    expect(document.activeElement?.id).toBe('chapter-delete-heading');
+    const confirmation = await screen.findByRole('alertdialog');
+    expect(confirmation.textContent).toContain(
+      i18n.t('m5s3.chapter.deleteConsequence'),
+    );
+    expect(deleteChapter).not.toHaveBeenCalled();
 
-    const deleteCancel = screen
-      .getAllByRole('button', { name: i18n.t('common.cancel') })
-      .at(-1);
-    expect(deleteCancel).toBeDefined();
-    await user.click(deleteCancel as HTMLButtonElement);
-    const restoredDeleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
-    });
-    expect(document.activeElement).toBe(restoredDeleteTrigger);
-
-    await user.click(restoredDeleteTrigger);
     await user.click(
-      screen.getByRole('button', {
+      within(confirmation).getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(menuTrigger));
+
+    await user.click(menuTrigger);
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     );
@@ -431,5 +445,29 @@ describe('ChapterProductPage editor lifecycle', () => {
     );
     expect(successor).not.toBeNull();
     await waitFor(() => expect(document.activeElement).toBe(successor));
+  });
+
+  it('keeps Edit and Delete in the menu only, in that order', async () => {
+    const user = userEvent.setup();
+    renderChapter();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('common.edit') }),
+    ).toBeNull();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
+    );
+    const rows = (await screen.findAllByRole('button'))
+      .filter((button) => button.classList.contains('item-menu-option'))
+      .map((button) => button.textContent);
+    expect(rows).toEqual([i18n.t('common.edit'), i18n.t('m5s3.common.delete')]);
+
+    await user.click(screen.getByText(i18n.t('common.edit')));
+    await screen.findByRole('textbox', { name: i18n.t('m5s3.common.title') });
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
+    ).toBeNull();
   });
 });

@@ -32,6 +32,7 @@ beforeAll(() => {
 function renderEditor(
   status: PlanDetail['status'],
   places: { id: string; name: string }[] = [],
+  extraPlanApis: Record<string, unknown> = {},
 ) {
   const plan: PlanDetail = {
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -85,6 +86,7 @@ function renderEditor(
         hasMore: false,
       })),
       updatePlan,
+      ...extraPlanApis,
     },
     places: {
       listPlaces: vi.fn(async () => ({ items: places, nextCursor: null })),
@@ -129,8 +131,20 @@ function renderEditor(
   };
 }
 
+async function openEditor() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.plan.menu') }),
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
+}
+
 async function editDescription() {
-  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));
+  await openEditor();
   fireEvent.change(
     screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.description'),
@@ -216,15 +230,21 @@ describe('PlanProductPage editor request serialization', () => {
 
 it('keeps the activating Edit button separate from the new native-submit control', async () => {
   const h = renderEditor('IDEA');
-  const edit = screen.getByRole('button', {
-    name: i18n.t('common.edit'),
+  const trigger = screen.getByRole('button', {
+    name: i18n.t('m5s3.plan.menu'),
   }) as HTMLButtonElement;
+  fireEvent.click(trigger);
+  const edit = (await screen.findByRole('button', {
+    name: i18n.t('common.edit'),
+  })) as HTMLButtonElement;
   fireEvent.click(edit);
   await screen.findByRole('button', {
     name: i18n.t('m5s3.common.saveChanges'),
   });
   // Native click default activation runs after React's discrete event update.
-  // The initiating read action must not become a submit control mid-click.
+  // The initiating read actions must not become a submit control mid-click.
+  expect(trigger.type).toBe('button');
+  expect(trigger.form).toBeNull();
   expect(edit.type).toBe('button');
   expect(edit.form).toBeNull();
   expect(h.updatePlan).not.toHaveBeenCalled();
@@ -232,7 +252,7 @@ it('keeps the activating Edit button separate from the new native-submit control
 
 it('releases the parent pending guard after choosing a Place and saves the staged location', async () => {
   const h = renderEditor('IDEA', [{ id: 'river', name: 'Riverside' }]);
-  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));
+  await openEditor();
   fireEvent.click(
     screen.getByRole('button', { name: i18n.t('composer.place') }),
   );
@@ -312,4 +332,48 @@ it('keeps the initiating version during background reads and rebases only on del
     ifMatch: '4',
     planUpdate: { description: 'Updated note' },
   });
+});
+
+it('offers Edit then Delete in the menu only and deletes after confirmation', async () => {
+  const deletePlan = vi.fn().mockResolvedValue(undefined);
+  renderEditor('IDEA', [], { deletePlan });
+  expect(
+    screen.queryByRole('button', { name: i18n.t('common.edit') }),
+  ).toBeNull();
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.plan.menu') }),
+  );
+  const rows = (await screen.findAllByRole('button'))
+    .filter((button) => button.classList.contains('item-menu-option'))
+    .map((button) => button.textContent);
+  expect(rows).toEqual([i18n.t('common.edit'), i18n.t('m5s3.common.delete')]);
+
+  fireEvent.click(screen.getByText(i18n.t('m5s3.common.delete')));
+  const confirmation = await screen.findByRole('alertdialog');
+  expect(confirmation.textContent).toContain(
+    i18n.t('m5s3.plan.deleteConsequence'),
+  );
+  expect(deletePlan).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.common.confirmDelete') }),
+  );
+  await waitFor(() => expect(deletePlan).toHaveBeenCalledTimes(1));
+  expect(deletePlan.mock.calls[0][0]).toMatchObject({
+    planId: 'plan-1',
+    ifMatch: '3',
+  });
+});
+
+it('keeps Delete out of the editor', async () => {
+  renderEditor('IDEA');
+  await openEditor();
+  await screen.findByRole('button', {
+    name: i18n.t('m5s3.common.saveChanges'),
+  });
+  expect(
+    screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: i18n.t('m5s3.plan.menu') }),
+  ).toBeNull();
 });

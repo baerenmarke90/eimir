@@ -25,7 +25,12 @@ describe('M5 S5/S3 product navigation', () => {
     expect(searchResultPath('COLLECTION', 'collection-id')).toBe(
       '/plan/collections/collection-id',
     );
-    expect(searchResultPath('COLLECTION_ITEM', 'item-id')).toBe('/more');
+    expect(searchResultPath('COLLECTION_ITEM', 'item-id')).toBe(
+      '/more/collections',
+    );
+    expect(searchResultPath('COLLECTION_ITEM', 'item-id', 'list-id')).toBe(
+      '/plan/collections/list-id',
+    );
 
     expect(searchResultPath('PRIVATE_NOTE', 'private/id')).toBe(
       '/more/private/notes/private%2Fid',

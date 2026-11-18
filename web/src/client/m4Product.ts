@@ -82,7 +82,9 @@ export function searchResultPath(
     case 'COLLECTION':
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
-      return appRoutePath('more');
+      // An entry opens its list when the parent is known; otherwise the
+      // Listen destination, where Lists and Notes live.
+      return parentId ? collectionDetailPath(parentId) : appRoutePath('shared');
     case 'SHARED_NOTE':
       return sharedNoteDetailPath(id);
     case 'PRIVATE_NOTE':

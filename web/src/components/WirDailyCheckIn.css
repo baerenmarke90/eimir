@@ -78,6 +78,22 @@
   color: var(--color-brand-text);
 }
 
+/* The pill that lifted off keeps its place, unseen, while its line flies. */
+.wir-checkin-badge[data-flight-source],
+.wir-checkin-prompt[data-flight-source] {
+  visibility: hidden;
+}
+
+/* Once the line has explained the plus, the row stays but shows nothing. */
+.wir-checkin-badge[data-empty] {
+  opacity: 0;
+  visibility: hidden;
+  /* Visibility stays visible for the whole fade and flips at its end. */
+  transition:
+    opacity var(--duration-context) var(--easing-standard),
+    visibility var(--duration-context) var(--easing-standard);
+}
+
 .wir-checkin-lock {
   width: 1rem;
   height: 1rem;

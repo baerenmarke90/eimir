@@ -22,6 +22,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const fixture = fixtureCopy.subpageNavigation;
 const base = `/api/v1/spaces/${SPACE_ID}`;
@@ -293,9 +294,7 @@ for (const [width, theme, large] of [
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await expect(place).toBeFocused();
-    await page
-      .getByRole('link', { name: memoryProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, memoryProduct.edit);
     await openComposerPlace(page);
     const picker = page.getByRole('dialog', {
       name: placeCopy.add,

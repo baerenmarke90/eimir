@@ -471,6 +471,20 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
   return unexpectedRequests;
 }
 
+/** Opens an item's three-dot menu and chooses Edit: editing starts there. */
+async function openPrivateItemEdit(page: Page, title: string) {
+  await page
+    .getByRole('button', {
+      name: privateArea.menuLabel.replace('{{name}}', title),
+    })
+    .click();
+  await page
+    .getByRole('button', { name: privateArea.edit, exact: true })
+    .click();
+  // The menu sheet leaves with an exit animation; later steps wait for it.
+  await expect(page.locator('.item-menu')).toHaveCount(0);
+}
+
 async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {
   const unexpectedRequests = await installAuthorizedApiMocks(page);
   await page.goto('/today');
@@ -831,7 +845,7 @@ test('private Search restores query and type after detail edit/cancel/return', a
     page.getByRole('heading', { name: 'Hidden cabin idea' }),
   ).toBeVisible();
 
-  await page.getByRole('link', { name: privateArea.edit }).click();
+  await openPrivateItemEdit(page, 'Hidden cabin idea');
   await expect(
     page.getByRole('heading', { name: privateArea.notes.editTitle }),
   ).toBeVisible();
@@ -885,7 +899,7 @@ test('private collection is read/check-first and discloses management in Edit', 
     page.getByRole('button', { name: privateArea.collections.markOpen }),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: de.common.edit }).click();
+  await openPrivateItemEdit(page, 'Packing list');
   const titleInput = page.getByLabel(privateArea.collections.titleLabel);
   const newItem = page.getByPlaceholder(privateArea.collections.itemTitleLabel);
   const rename = page.getByLabel(privateArea.collections.rename);
@@ -1127,9 +1141,16 @@ for (const view of feedbackViews) {
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(toggle).toBeDisabled();
     await expect(row.getByRole('status')).toHaveText(de.common.saving);
+    // While an item write is pending the menu cannot start editing.
+    await page
+      .getByRole('button', {
+        name: privateArea.menuLabel.replace('{{name}}', 'Travel preparations'),
+      })
+      .click();
     await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
+      page.getByRole('button', { name: privateArea.edit, exact: true }),
     ).toBeDisabled();
+    await page.keyboard.press('Escape');
     await expect.poll(() => fixture.writes.length).toBe(1);
     expect(fixture.writes[0]).toEqual({ ifMatch: '1', completed: true });
     await expectNoHorizontalOverflow(page);
@@ -1535,9 +1556,7 @@ for (const view of feedbackViews) {
       Math.max(2, view.count),
     );
     await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Travel preparations');
     if ('largeText' in view)
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
@@ -1622,9 +1641,7 @@ for (const outcome of ['success', 'failure'] as const) {
     const unexpected = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateReorder(page);
     await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Travel preparations');
     await page
       .getByRole('button', { name: privateArea.collections.reorderItem })
       .nth(1)
@@ -1678,7 +1695,7 @@ test('private pointer reorder survives release and retains the existing title dr
   const unexpectedRequests = await signInAndOpenPrivateArea(page);
   const fixture = await installHeldPrivateReorder(page);
   await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await openPrivateItemEdit(page, 'Travel preparations');
   const draft = page.getByLabel(privateArea.collections.titleLabel);
   await draft.fill('My travel draft');
   const rows = page.locator('[data-sortable-item-id]');
@@ -1730,9 +1747,7 @@ for (const recoveryMode of ['immediate', 'held'] as const) {
     const unexpectedRequests = await signInAndOpenPrivateArea(page);
     const fixture = await installHeldPrivateReorder(page);
     await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Travel preparations');
     const before = await privateEditTitles(page);
     const draft = page.getByLabel(privateArea.collections.titleLabel);
     await draft.fill('My travel draft');
@@ -1860,9 +1875,7 @@ for (const view of [
       await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
       const row = page.locator(`[data-sortable-item-id="${PRIVATE_ITEM_ID}"]`);
       if (action === 'reorder')
-        await page
-          .getByRole('button', { name: de.common.edit, exact: true })
-          .click();
+        await openPrivateItemEdit(page, 'Travel preparations');
       const before = action === 'reorder' ? await privateEditTitles(page) : [];
       const activate = async () => {
         if (action === 'checkbox') await row.getByRole('button').click();
@@ -2467,9 +2480,7 @@ for (const view of [
     await expect(
       page.getByRole('heading', { name: 'Hidden cabin idea' }),
     ).toBeVisible();
-    await page
-      .getByRole('link', { name: privateArea.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Hidden cabin idea');
     await page
       .getByLabel(privateArea.notes.titleLabel)
       .fill('Quiet cabin for autumn');
@@ -2526,9 +2537,7 @@ for (const view of [
     const fixture = await installHeldPrivateNoteEdit(page);
     await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
-    await page
-      .getByRole('link', { name: privateArea.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Hidden cabin idea');
     await page
       .getByLabel(privateArea.notes.titleLabel)
       .fill('Submitted old private title');
@@ -2604,9 +2613,7 @@ for (const view of [
     const fixture = await installHeldPrivateNoteEdit(page);
     await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
-    await page
-      .getByRole('link', { name: privateArea.edit, exact: true })
-      .click();
+    await openPrivateItemEdit(page, 'Hidden cabin idea');
     await page
       .getByLabel(privateArea.notes.titleLabel)
       .fill('Old session private title');
@@ -2741,29 +2748,18 @@ for (const view of [
         await page
           .getByRole('link', { name: new RegExp(fixture.title) })
           .click();
-        if (definition.kind === 'collections')
-          await page
-            .getByRole('button', { name: de.common.edit, exact: true })
-            .click();
-        else
-          await page
-            .getByRole('link', { name: privateArea.edit, exact: true })
-            .click();
+        // Deletion lives in the item menu of the detail page.
         await page
           .getByRole('button', {
-            name:
-              definition.kind === 'collections'
-                ? m5s3.common.delete
-                : privateArea.delete,
-            exact: true,
+            name: privateArea.menuLabel.replace('{{name}}', fixture.title),
           })
           .click();
         await page
+          .getByRole('button', { name: privateArea.delete, exact: true })
+          .click();
+        await page
           .getByRole('button', {
-            name:
-              definition.kind === 'collections'
-                ? m5s3.common.confirmDelete
-                : privateArea.deleteConfirm,
+            name: privateArea.deleteConfirm,
             exact: true,
           })
           .click();
@@ -2771,18 +2767,10 @@ for (const view of [
         expect(fixture.writes).toEqual(['1']);
         await expect(
           page.getByRole('button', {
-            name:
-              definition.kind === 'collections'
-                ? m5s3.common.deleting
-                : privateArea.deleting,
+            name: privateArea.deleting,
             exact: true,
           }),
         ).toBeDisabled();
-        if (definition.kind !== 'collections') {
-          await expect(
-            page.getByRole('button', { name: privateArea.save, exact: true }),
-          ).toBeDisabled();
-        }
         if (definition.kind === 'notes' && !leave) {
           await expectNoWcagViolations(page);
           await page.screenshot({
@@ -2800,7 +2788,19 @@ for (const view of [
             : privateCreateCases[0];
         if (leave) {
           await installHeldPrivateDelete(page, destination.kind);
-          await openPrivateSection(page, destination.kind);
+          // The pending delete keeps its modal confirmation open, so the
+          // shell links behind it are not reachable by pointer. The first
+          // client-side navigation is dispatched on the link itself to model
+          // the person leaving anyway; the rest is the ordinary path.
+          await page
+            .locator('a.shell-nav-link', { hasText: navigation.more })
+            .first()
+            .dispatchEvent('click');
+          await page.locator('a[href="/more/private"]').first().click();
+          await page
+            .locator(`a[href="/more/private/${destination.kind}"]`)
+            .first()
+            .click();
           await expect(
             page.getByRole('heading', {
               name: destination.copy.title,

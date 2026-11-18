@@ -111,6 +111,16 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
   return { plan, requestBodies, updatePlan, listPlanNotes };
 }
 
+async function openEditor() {
+  fireEvent.click(screen.getByRole('button', { name: t('m5s3.plan.menu') }));
+  fireEvent.click(
+    await screen.findByRole('button', { name: t('common.edit') }),
+  );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
+}
+
 function setVisibility(state: DocumentVisibilityState) {
   Object.defineProperty(document, 'visibilityState', {
     configurable: true,
@@ -195,7 +205,7 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
       previewTitle: null,
     });
     expect(screen.getByText('Lake view room, sauna at seven')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: t('common.edit') }));
+    await openEditor();
     const switches = screen.getAllByRole('switch');
     expect(switches.map((node) => node.getAttribute('aria-label'))).toEqual([
       t('relationshipReflections.anticipation.show'),
@@ -231,7 +241,7 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
 
   it('saves the original-title mode and keeps the chosen preview title', async () => {
     const { requestBodies } = renderPlan();
-    fireEvent.click(screen.getByRole('button', { name: t('common.edit') }));
+    await openEditor();
     fireEvent.click(
       screen.getByRole('radio', { name: t('discreetPlans.editor.original') }),
     );

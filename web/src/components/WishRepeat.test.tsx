@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -120,8 +126,13 @@ function renderCompleted({
   return { repeatWish, convertWishToPlan, queryClient };
 }
 
-const action = () =>
-  screen.getByRole('button', { name: i18n.t('wishRepeat.action') });
+// The action lives in the wish's actions menu, so it is opened first.
+const action = () => {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+  );
+  return screen.getByRole('button', { name: i18n.t('wishRepeat.action') });
+};
 
 describe('Nochmal erleben (#1816)', () => {
   it('is offered on a completed wish only', () => {
@@ -129,6 +140,9 @@ describe('Nochmal erleben (#1816)', () => {
     expect(action()).toBeTruthy();
     cleanup();
     renderCompleted({ wish: { ...COMPLETED, status: 'OPEN', version: 1 } });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    );
     expect(
       screen.queryByRole('button', { name: i18n.t('wishRepeat.action') }),
     ).toBeNull();

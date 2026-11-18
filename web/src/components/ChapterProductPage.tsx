@@ -25,7 +25,13 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ChapterContextFields, type ChapterDraft } from './ChapterFields';
-import { ListEntryIconButton } from './ListEntryActions';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
@@ -33,6 +39,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { PlanningRelationManager } from './PlanningRelationManager';
 import { ProblemState } from './ProblemState';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
@@ -65,17 +72,13 @@ function ChapterEditor({
   placeName,
   captureAdmission,
   requestCloseRef,
-  confirmedCloseRef,
   draft,
   setDraft,
   titleInputRef,
-  editTriggerRef,
+  restoreFocusRef,
   updatePending,
   updateError,
-  deletePending,
-  deleteError,
   onSubmit,
-  onDelete,
   onClose,
 }: {
   chapter: ChapterDetail;
@@ -84,62 +87,33 @@ function ChapterEditor({
   placeName?: string;
   captureAdmission: () => () => boolean;
   requestCloseRef: RefObject<(() => void) | null>;
-  confirmedCloseRef: RefObject<((afterClose: () => void) => void) | null>;
   draft: ChapterDraft;
   setDraft: (draft: ChapterDraft) => void;
   titleInputRef: RefObject<HTMLInputElement | null>;
-  editTriggerRef: RefObject<HTMLButtonElement | null>;
+  restoreFocusRef: RefObject<HTMLButtonElement | null>;
   updatePending: boolean;
   updateError: unknown;
-  deletePending: boolean;
-  deleteError: unknown;
   onSubmit: (draft: ChapterDraft) => void;
-  onDelete: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
-  const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
-  const restoreDeleteTriggerRef = useRef(false);
   const isDirty =
     JSON.stringify(draft) !== JSON.stringify(chapterDraft(chapter));
   const [placePending, setPlacePending] = useState(false);
-  const isPending = updatePending || deletePending || placePending;
+  const isPending = updatePending || placePending;
   const lifecycle = usePlanningEditorLifecycle({
     isDirty,
     isPending,
     initialFocusRef: titleInputRef,
-    restoreFocusRef: editTriggerRef,
-    onEscape: () => {
-      if (!confirmDelete) return false;
-      restoreDeleteTriggerRef.current = true;
-      setConfirmDelete(false);
-      return true;
-    },
+    restoreFocusRef,
     onClose,
   });
   useEffect(() => {
     requestCloseRef.current = lifecycle.requestClose;
-    confirmedCloseRef.current = lifecycle.closeConfirmed;
     return () => {
       requestCloseRef.current = null;
-      confirmedCloseRef.current = null;
     };
-  }, [
-    requestCloseRef,
-    confirmedCloseRef,
-    lifecycle.requestClose,
-    lifecycle.closeConfirmed,
-  ]);
-
-  useEffect(() => {
-    if (confirmDelete) deleteHeadingRef.current?.focus();
-    else if (restoreDeleteTriggerRef.current) {
-      restoreDeleteTriggerRef.current = false;
-      deleteTriggerRef.current?.focus();
-    }
-  }, [confirmDelete]);
+  }, [requestCloseRef, lifecycle.requestClose]);
 
   const updateDraft = (values: Partial<ChapterDraft>) =>
     setDraft({ ...draft, ...values });
@@ -178,7 +152,7 @@ function ChapterEditor({
           spaceId={spaceId}
           draft={draft}
           onChange={updateDraft}
-          disabled={updatePending || deletePending}
+          disabled={updatePending}
           placeName={placeName}
           captureAdmission={captureAdmission}
           onPendingChange={setPlacePending}
@@ -200,60 +174,6 @@ function ChapterEditor({
         </div>
         {updateError ? <ProblemState error={updateError} /> : null}
       </form>
-
-      {chapter.capabilities.canDelete ? (
-        <div style={{ marginTop: 'var(--space-8)' }}>
-          {!confirmDelete ? (
-            <button
-              ref={deleteTriggerRef}
-              type="button"
-              className="button-link danger-link"
-              onClick={() => setConfirmDelete(true)}
-              disabled={isPending}
-            >
-              {t('m5s3.common.delete')}
-            </button>
-          ) : (
-            <section
-              className="planning-danger-zone"
-              aria-labelledby="chapter-delete-heading"
-            >
-              <h2
-                ref={deleteHeadingRef}
-                id="chapter-delete-heading"
-                tabIndex={-1}
-              >
-                {t('m5s3.common.deleteHeading')}
-              </h2>
-              <p>{t('m5s3.chapter.deleteConsequence')}</p>
-              <div className="planning-confirm-row">
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={onDelete}
-                  disabled={isPending}
-                >
-                  {deletePending
-                    ? t('m5s3.common.deleting')
-                    : t('m5s3.common.confirmDelete')}
-                </button>
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => {
-                    restoreDeleteTriggerRef.current = true;
-                    setConfirmDelete(false);
-                  }}
-                  disabled={isPending}
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-              {deleteError ? <ProblemState error={deleteError} /> : null}
-            </section>
-          )}
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -290,12 +210,13 @@ function ScopedChapterProductPage({
   const captureOwnership = useTaskActivation(true);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ChapterDraft | null>(null);
-  const editTriggerRef = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const editorRequestCloseRef = useRef<(() => void) | null>(null);
-  const editorConfirmedCloseRef = useRef<
-    ((afterClose: () => void) => void) | null
-  >(null);
   const key = authorSummaryQueryKeys.chapterDetail(spaceId, chapterId);
 
   const chapterQuery = useQuery({
@@ -402,7 +323,7 @@ function ScopedChapterProductPage({
       if (!request.ownsTask() || !request.admitted()) return;
       await invalidateChapterProjections(queryClient, spaceId, accountId);
       if (!request.ownsTask() || !request.admitted()) return;
-      const returnAfterEditor = () => {
+      const returnToOrigin = () => {
         if (!request.ownsTask() || !request.admitted()) return;
         queryClient.removeQueries({ queryKey: key });
         if (resolveOrigin(originKey)) {
@@ -416,11 +337,12 @@ function ScopedChapterProductPage({
           },
         });
       };
-      // Retire the editor's same-route history entry before returning to its
-      // origin; otherwise Back consumes that entry and reopens the deleted read.
-      if (editorConfirmedCloseRef.current)
-        editorConfirmedCloseRef.current(returnAfterEditor);
-      else returnAfterEditor();
+      // Retire the confirmation sheet's same-route history entry before
+      // returning to the origin; otherwise Back consumes that entry and
+      // reopens the deleted read.
+      if (deleteSheetRef.current)
+        deleteSheetRef.current.closeForNavigation(returnToOrigin);
+      else returnToOrigin();
     },
   });
 
@@ -483,16 +405,13 @@ function ScopedChapterProductPage({
           ) : undefined
         }
         titleAction={
-          chapter.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              ref={editTriggerRef}
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => {
-                setDraft(chapterDraft(chapter));
-                setIsEditing(true);
-              }}
+          (chapter.capabilities.canEdit || chapter.capabilities.canDelete) &&
+          !isEditing ? (
+            <ItemMenuTrigger
+              triggerRef={menuTriggerRef}
+              label={t('m5s3.chapter.menu')}
+              open={menuOpen}
+              onOpen={() => setMenuOpen(true)}
             />
           ) : undefined
         }
@@ -554,15 +473,12 @@ function ScopedChapterProductPage({
           placeName={linkedPlace?.name}
           captureAdmission={captureOwnership}
           requestCloseRef={editorRequestCloseRef}
-          confirmedCloseRef={editorConfirmedCloseRef}
           draft={draft}
           setDraft={setDraft}
           titleInputRef={titleInputRef}
-          editTriggerRef={editTriggerRef}
+          restoreFocusRef={menuTriggerRef}
           updatePending={updateMutation.isPending}
           updateError={updateMutation.error}
-          deletePending={deleteMutation.isPending}
-          deleteError={deleteMutation.error}
           onSubmit={(next) =>
             updateMutation.mutate({
               chapter,
@@ -575,18 +491,10 @@ function ScopedChapterProductPage({
               placeId: next.placeId || null,
             })
           }
-          onDelete={() =>
-            deleteMutation.mutate({
-              chapter,
-              ownsTask: captureOwnership(),
-              admitted: captureAuthorizedQuery(queryClient, key),
-            })
-          }
           onClose={() => {
             setIsEditing(false);
             setDraft(null);
             updateMutation.reset();
-            deleteMutation.reset();
           }}
         />
       ) : null}
@@ -601,6 +509,63 @@ function ScopedChapterProductPage({
           canManage={chapter.capabilities.canEdit}
         />
       ) : null}
+
+      <ItemMenuSheet
+        open={menuOpen && !isEditing}
+        title={t('m5s3.chapter.detailEyebrow')}
+        restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
+        onClose={() => setMenuOpen(false)}
+      >
+        {chapter.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('common.edit')}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () => {
+                  setDraft(chapterDraft(chapter));
+                  setIsEditing(true);
+                },
+                () => setMenuOpen(false),
+              )
+            }
+          />
+        ) : null}
+        {chapter.capabilities.canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('m5s3.common.delete')}
+            onClick={() => {
+              setMenuOpen(false);
+              deleteMutation.reset();
+              setDeleteOpen(true);
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheetRef}
+        open={deleteOpen && !isEditing}
+        title={t('m5s3.common.deleteHeading')}
+        body={t('m5s3.chapter.deleteConsequence')}
+        confirmLabel={t('m5s3.common.confirmDelete')}
+        pendingLabel={t('m5s3.common.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTriggerRef}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() =>
+          deleteMutation.mutate({
+            chapter,
+            ownsTask: captureOwnership(),
+            admitted: captureAuthorizedQuery(queryClient, key),
+          })
+        }
+      />
     </div>
   );
 }

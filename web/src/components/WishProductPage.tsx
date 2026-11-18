@@ -176,14 +176,6 @@ export function WishProductPage({
     setEditingWish(null);
   }, [completion.confirmedResult]);
 
-  // The continue dialog is modal, so the heading can take focus only once it
-  // has closed.
-  useEffect(() => {
-    if (!showCompletionContinuation || continueOpen) return;
-    completionHeadingRef.current?.focus();
-    completionHeadingRef.current?.scrollIntoView?.({ block: 'center' });
-  }, [showCompletionContinuation, continueOpen]);
-
   const wishQuery = useQuery({
     queryKey: key,
     queryFn: () => {
@@ -325,6 +317,15 @@ export function WishProductPage({
         animateExit: false,
       });
   }, [wishStatus, continueOpen]);
+
+  // The continue dialog is modal, so the heading can take focus only once it
+  // has closed and the completed wish (which renders the heading) has arrived.
+  useEffect(() => {
+    if (!showCompletionContinuation || continueOpen) return;
+    if (wishStatus !== 'COMPLETED') return;
+    completionHeadingRef.current?.focus();
+    completionHeadingRef.current?.scrollIntoView?.({ block: 'center' });
+  }, [showCompletionContinuation, continueOpen, wishStatus]);
 
   if (!wishId) {
     return (

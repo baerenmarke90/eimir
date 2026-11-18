@@ -133,60 +133,24 @@ are served only through the Pro-gated API.
 
 ## Daily Saying catalog
 
-`backend/src/eimir/quotes/daily_sayings.json` contains an eimir. selection
-of German public-domain literary excerpts, aphorisms and traditional sayings
-with equivalent German and English versions. Each collection records the
-edition or digital source and the basis for reuse. Public-domain selections
-include historical literature and documented traditional sayings. Contemporary
-sayings carry eimir. credit and the repository license.
+`backend/src/eimir/quotes/daily_sayings.json` contains 1,000 sayings in ten
+categories (100 each), in German and English. All of them are AI-generated
+text without an individual author. The Product Owner supplied and selected the
+German originals for eimir. on 2026-11-18, and they are used under the
+repository license. The English versions are AI-assisted translations of the
+German originals, contributed under
+[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). The
+card shows the sayings without author credit or citation. They carry the rights
+classification `EDITORIAL_CURATED`, and each entry records its collection, work
+and rights basis in the same file.
 
-Catalog translations of historical works and public remarks are contributed
-under [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
-The underlying works retain their source credits and reuse terms. The catalog
-records the author, work and edition for each quotation.
-
-- **Poetry.** The original texts and bibliographic fields were selected from
-  the [TextGrid Poetry Corpus](https://github.com/linhd-postdata/textgrid-poetry/tree/33a990cbf8e078edf3615f9ff35c4239065270b1),
-  a conversion of the [TextGrid Digital Library](https://textgrid.de/ueber-textgrid/die-digitale-bibliothek/)
-  based on Editura's digitization. The extracted metadata and adaptations of
-  that data retain the [CC BY 3.0 DE](https://creativecommons.org/licenses/by/3.0/de/)
-  terms and credit to TextGrid and Editura. Each collection links to its
-  pinned source. The selection extracts short passages and normalizes whitespace.
-- **Aphorisms.** Johann Wolfgang von Goethe,
-  [*Maximen und Reflexionen*](https://hdl.handle.net/11858/00-1734-0000-0006-5ED3-4),
-  from the TextGrid Digital Library under the same terms as above.
-  Marie von Ebner-Eschenbach, *Gesammelte Schriften*, vol. 1
-  (Gebrüder Paetel, 1893), [Project Gutenberg #77889](https://www.gutenberg.org/ebooks/77889).
-  Christian Morgenstern, *Stufen* (R. Piper & Co., 1922),
-  [Project Gutenberg #15898](https://www.gutenberg.org/ebooks/15898).
-  Friedrich Nietzsche, *Menschliches, Allzumenschliches*, vol. 1 (1878),
-  [Project Gutenberg #7207](https://www.gutenberg.org/ebooks/7207).
-  The Project Gutenberg excerpts contain text from the original works.
-- **Traditional sayings.** Karl Simrock (ed.),
-  [*Die deutschen Sprichwörter*](https://openlibrary.org/books/OL20517562M/Die_deutschen_Sprichw%C3%B6rter_gesammelt)
-  (H. L. Brönner, 1846).
-  The catalog uses original proverb wording with corrected transcription and
-  occasional spelling normalization.
-
-- **Additional editions.** The 1893 [Ebner-Eschenbach scan](https://archive.org/details/aphorismen00escgoog)
-  supplies numbered aphorisms with normalized historical typography.
-  [*Selbstbetrachtungen*](https://www.gutenberg.org/ebooks/15028) uses the
-  F. C. Schneider translation edited by Alexander von Gleichen-Rußwurm.
-  Khalil Gibran's [*The Prophet*](https://standardebooks.org/ebooks/kahlil-gibran/the-prophet)
-  uses the 1923 English text. The catalog identifies the edition used for each
-  excerpt from *A Room of One's Own*, *Emma*, and the other English works.
-- **Public remarks.** The catalog records the transcript, date and reuse policy
-  for quotations from the twentieth and twenty-first centuries. Beehive's
-  [copyright policy](https://www.beehive.govt.nz/copyright) authorizes accurate
-  reproduction and translation with source credit. Official White House and
-  NASA quotations use the sources identified in the individual catalog entries.
-- **Contemporary sayings.** The eimir. editorial collection contains original
-  sayings in German and English. Their author credit is `eimir.`.
-
-The licensing terms above apply to the supplied source data independently of
-the application license. Source and rights metadata stay in the repository.
-The card shows author credit for attributed texts. Traditional sayings can
-appear by themselves.
+The previous catalog is archived, not served. It held German and English
+public-domain quotations, traditional sayings, public remarks and the earlier
+`eimir.` editorial sayings. The archived file is
+`backend/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
+Its source editions, credits and licensing terms (including the TextGrid
+CC BY 3.0 DE credit and the CC0 1.0 translations) remain recorded in that file
+and in the git history. Restoring any of it requires the credits recorded there.
 
 ## Contributors
 

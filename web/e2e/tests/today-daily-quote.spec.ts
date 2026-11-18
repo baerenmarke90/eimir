@@ -286,7 +286,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
                 authorDisplay: 'Example Author',
                 sourceDisplay: 'Example Source',
                 sourceId: 'classic_literature',
-                categoryIds: ['love', 'mindfulness'],
+                categoryIds: ['love', 'together'],
                 locale: 'de',
                 rightsClassification: 'PUBLIC_DOMAIN',
                 attributionRequired: true,
@@ -609,13 +609,13 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await expect(preferencesSheet.getByRole('checkbox')).toHaveCount(
     categoryCount,
   );
-  const mindfulness = preferencesSheet.getByRole('checkbox', {
-    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+  const together = preferencesSheet.getByRole('checkbox', {
+    name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
   });
   await preferencesSheet
-    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .getByText(dailyQuote.catalog.categories.together, { exact: true })
     .click();
-  await expect(mindfulness).toBeChecked();
+  await expect(together).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
     path: testInfo.outputPath('today-daily-quote-preferences-390-light.png'),
@@ -629,7 +629,7 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   ).toBeFocused();
   expect(requests.patches[0]?.ifMatch).toBe('"quote-pref:2"');
   expect(requests.patches[0]?.body).toEqual({
-    selectedCategoryIds: ['love', 'mindfulness'],
+    selectedCategoryIds: ['love', 'together'],
   });
   expect(JSON.stringify(requests.patches)).not.toContain(PARTNER_ID);
 });
@@ -774,20 +774,20 @@ test('losing the quote capability shows discovery and restores personal preferen
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
 
   await openQuoteSettings(page);
-  const mindfulness = page.getByRole('checkbox', {
-    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+  const together = page.getByRole('checkbox', {
+    name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
   });
   await page
     .locator('.daily-quote-preferences-sheet')
-    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .getByText(dailyQuote.catalog.categories.together, { exact: true })
     .click();
-  await expect(mindfulness).toBeChecked();
+  await expect(together).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
   await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', {
-      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+      name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).toBeChecked();
   const personalReads = requests.preferences;
@@ -810,7 +810,7 @@ test('losing the quote capability shows discovery and restores personal preferen
   await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', {
-      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+      name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
@@ -825,11 +825,11 @@ test('signing into the partner account cannot reuse the previous account quote o
   await openQuoteSettings(page);
   await page
     .locator('.daily-quote-preferences-sheet')
-    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .getByText(dailyQuote.catalog.categories.together, { exact: true })
     .click();
   await expect(
     page.getByRole('checkbox', {
-      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+      name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
@@ -848,7 +848,7 @@ test('signing into the partner account cannot reuse the previous account quote o
   await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', {
-      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+      name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).not.toBeChecked();
   expect(requests.preferenceAccounts).toContain(PARTNER_ID);
@@ -1068,13 +1068,13 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   await openQuoteSettings(page);
   const sheet = page.getByRole('dialog', { name: dailyQuote.sheetTitle });
   await expect(sheet).toBeVisible();
-  const mindfulness = sheet.getByRole('checkbox', {
-    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+  const together = sheet.getByRole('checkbox', {
+    name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
   });
   await sheet
-    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .getByText(dailyQuote.catalog.categories.together, { exact: true })
     .click();
-  await expect(mindfulness).toBeChecked();
+  await expect(together).toBeChecked();
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const frames = await page
@@ -1127,7 +1127,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
       .first()
       .evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth)),
   ).toBeGreaterThanOrEqual(1);
-  await expect(mindfulness).toBeChecked();
+  await expect(together).toBeChecked();
   await page.screenshot({
     path: testInfo.outputPath('borderless-preferences-forced-colors-focus.png'),
     fullPage: true,
@@ -1138,7 +1138,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   await openQuoteSettings(page);
   await expect(
     sheet.getByRole('checkbox', {
-      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+      name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).toBeChecked();
 });

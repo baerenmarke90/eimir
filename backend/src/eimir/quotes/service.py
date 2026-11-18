@@ -18,6 +18,16 @@ from eimir.quotes.catalog import (
 from eimir.quotes.models import DailyQuotePreference
 
 
+def current_category_ids(selected_category_ids: list[str]) -> list[str]:
+    """Drop retired category IDs from a stored selection.
+
+    A selection that contains no current category falls back to all categories, so
+    people whose saved categories were retired still see the whole catalog.
+    """
+    current = [category_id for category_id in selected_category_ids if category_id in CATEGORY_MAP]
+    return current or [category.id for category in get_categories()]
+
+
 def preference_concurrency_token(
     preference: DailyQuotePreference | None,
     account_id: UUID,

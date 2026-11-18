@@ -2380,12 +2380,16 @@
     "originalLanguage": "Original in {{language}}",
     "catalog": {
       "categories": {
-        "love": "Love & relationships",
-        "life": "Life & wisdom",
-        "philosophy": "Philosophy",
-        "mindfulness": "Mindfulness",
-        "serenity": "Serenity",
-        "motivation": "Courage & motivation"
+        "love": "Love & partnership",
+        "friendship": "Friendship",
+        "motivation": "Motivation & success",
+        "humor": "Humor & fun",
+        "life": "Life wisdom",
+        "nature": "Nature & calm",
+        "travel": "Travel & adventure",
+        "courage": "Courage & fresh starts",
+        "selfcare": "Self-care & serenity",
+        "together": "Shared experiences & everyday life"
       }
     },
     "quoteText": "“{{text}}”"

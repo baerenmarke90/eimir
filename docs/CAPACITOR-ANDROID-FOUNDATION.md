@@ -141,7 +141,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.0** and
+The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.2** and
 JDK **21**. Gradle 9.8.1 and later contain the fixes for three advisories also repaired
 in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
@@ -156,7 +156,7 @@ later according to the
 The Capacitor project documents AGP 8.13.0 for
 [Capacitor 8](https://capacitorjs.com/docs/updating/8-0) and AGP 9.2.1 with
 Gradle 9.5.1 only in the [unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
-AGP 9.4.0 on Capacitor 8.6.0 is therefore a pairing Capacitor does not
+AGP 9.4.0 on Capacitor 8.6.2 is therefore a pairing Capacitor does not
 document. It is accepted for this repository because the wrapper builds and
 passes its own gates on it (debug APK, unsigned release APK/AAB, lint, unit
 tests, Android launcher tests under strict dependency verification), and the
@@ -474,7 +474,7 @@ death, and this policy cannot establish the root cause of an unlogged device
 crash.
 
 Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
-and Capacitor 8.6.0's existing `BridgeActivity`/`Bridge` lifecycle own the
+and Capacitor 8.6.2's existing `BridgeActivity`/`Bridge` lifecycle own the
 implementation. No new dependency, service, account, data egress or cost.
 `RuntimeRecoveryTest` exercises real non-crash termination through
 `WebViewRenderProcess.terminate()` on API 29+, healthy return and real

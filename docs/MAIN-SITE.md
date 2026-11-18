@@ -9,8 +9,8 @@ runs on `app.eimir.de` (web app and API on one origin). The two are separate dep
 ## What is in the repository
 
 - `site/index.html` (German), `site/en/index.html` (English), `site/impressum/index.html`
-  (legal notice, German), `site/assets/site.css` and `site/assets/devices.css` (an excerpt of
-  [devices.css](https://github.com/picturepan2/devices.css), MIT, with its license text).
+  (legal notice, German), `site/assets/site.css` and `site/assets/frame/` (the Google Pixel 10 Pro device art from
+  Android Studio, Apache-2.0, with notice and license text).
 - `tools/site/build_main_site.py` assembles `site/dist/` and adds the Web app's self-hosted
   fonts (Literata, Instrument Sans), favicon, brand mark and touch icon from `web/public/`, plus
   the product screens from `docs/assets/site/` (see its `SOURCES.md`). Screen file names are
@@ -36,7 +36,7 @@ from `design/tokens.json`. Literata is used for display headings and Instrument 
 The two overlapping circles use the app's person colors (own blue, partner rose). Favicon, brand
 mark and touch icon are the app's own assets and switch with `prefers-color-scheme`.
 
-Screens: real captures of the Web app inside a Google Pixel 6 Pro frame. The diary scrolls through
+Screens: real captures of the Web app inside a Google Pixel 10 Pro frame (Android Studio device art). The diary scrolls through
 its screen with a CSS scroll-driven animation (static fallback without support), the garden plays a
 short silent seamless loop with a still poster. Both fall back to still images with reduced motion. The intro
 phones fade in once; the primary button only changes color and scale. All motion respects

@@ -187,19 +187,21 @@ img { max-width: 100%; }
 .tag { display: inline-block; margin-bottom: var(--space-3); font: 600 0.875rem/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-brand-text); }
 .chip { display: inline-flex; align-items: center; min-height: 32px; margin-bottom: var(--space-5); padding-inline: var(--space-4); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--color-private) var(--chip-fill), transparent); color: var(--color-text); font: 600 0.8125rem/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
 
-/* Standard device frame: devices.css Google Pixel 6 Pro (404 x 862 px), scaled with --s. */
-.phone { --s: 0.6; width: calc(404px * var(--s)); height: calc(862px * var(--s)); flex: none; filter: drop-shadow(0 8px 32px var(--color-shadow-overlay)); }
-.phone .device { transform: scale(var(--s)); transform-origin: 0 0; }
-.phone .device-screen { object-fit: cover; object-position: top; background-color: var(--color-surface); }
-.phone .screen-stack, .phone .screen-scroll { position: relative; overflow: hidden; }
-.phone .screen-stack img, .phone .screen-stack video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.phone .screen-scroll img { display: block; width: 100%; height: auto; }
-@media (prefers-reduced-motion: reduce) { .phone .screen-stack video { display: none; } }
+/* Standard device frame: Google Pixel 10 Pro device art from Android Studio (Apache-2.0), sized with --w. */
+.phone { --w: 240px; position: relative; flex: none; width: var(--w); aspect-ratio: 705 / 1484; filter: drop-shadow(0 8px 32px var(--color-shadow-overlay)); }
+.phone-body { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.phone-screen, .phone-mask { position: absolute; left: 4.184%; top: 2.022%; width: 90.78%; height: 96.226%; }
+.phone-screen { overflow: hidden; background: var(--color-surface); }
+.phone-mask { pointer-events: none; }
+.phone-screen > img, .screen-stack img, .screen-stack video { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.screen-stack { position: absolute; inset: 0; }
+.screen-scroll img { display: block; width: 100%; height: auto; }
+@media (prefers-reduced-motion: reduce) { .screen-stack video { display: none; } }
 /* Apple-style scroll-linked diary: the long capture travels through the screen while the page scrolls. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .phone.scrolly { view-timeline: --phone block; }
-    .phone .screen-scroll img { --shift: 80%; animation: diary-scroll linear both; animation-timeline: --phone; animation-range: entry 35% exit 65%; }
+    .screen-scroll img { --shift: 80%; animation: diary-scroll linear both; animation-timeline: --phone; animation-range: entry 35% exit 65%; }
     @keyframes diary-scroll { to { transform: translateY(calc(-1 * var(--shift))); } }
   }
 }
@@ -213,9 +215,9 @@ img { max-width: 100%; }
 .hint { margin-top: var(--space-4); font-size: 0.875rem; line-height: 1.45; color: var(--color-text-secondary); }
 
 .stage { position: relative; height: 430px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
-.stage .phone { position: absolute; top: 24px; --s: 0.42; }
+.stage .phone { position: absolute; top: 24px; --w: 170px; }
 .stage .front { left: 4%; z-index: 2; }
-.stage .back { right: 4%; top: 72px; rotate: 5deg; --s: 0.39; }
+.stage .back { right: 4%; top: 72px; rotate: 5deg; --w: 158px; }
 /* The two overlapping circles use the app's person colours: own = blue, partner = rose. */
 .ring { position: absolute; border-radius: 50%; }
 .ring.one { width: 300px; height: 300px; left: 24%; top: 30px; background: color-mix(in srgb, var(--color-shared-accent) 30%, transparent); }
@@ -234,7 +236,7 @@ img { max-width: 100%; }
 .points li { position: relative; padding-inline-start: var(--space-6); }
 .points li::before { content: ""; position: absolute; inset-inline-start: 0; top: 0.5em; width: 10px; height: 10px; border-radius: 50%; background: var(--color-brand-strong); }
 .panel { position: relative; display: flex; justify-content: center; align-items: flex-start; height: 440px; padding-top: var(--space-10); overflow: hidden; border-radius: var(--radius-hero); }
-.panel .phone { position: relative; z-index: 1; --s: 0.6; }
+.panel .phone { position: relative; z-index: 1; --w: 242px; }
 .panel .ring { width: 280px; height: 280px; right: -60px; top: -70px; background: color-mix(in srgb, var(--color-surface-raised) 50%, transparent); }
 .panel.wir, .panel.diary, .panel.story { background: var(--color-page-tint-brand); }
 .panel.moments, .panel.recaps { background: var(--color-shared-surface); }
@@ -243,7 +245,7 @@ img { max-width: 100%; }
 /* Three spaces */
 .trio { display: grid; gap: var(--space-10); margin-top: var(--space-12); }
 .space .panel { height: 360px; padding-top: var(--space-8); margin-bottom: var(--space-5); }
-.space .panel .phone { --s: 0.5; }
+.space .panel .phone { --w: 202px; }
 .space h3 { font-size: 1.375rem; font-weight: 600; line-height: 1.25; }
 .space p { margin-top: var(--space-2); color: var(--color-text-secondary); max-width: 32rem; }
 
@@ -297,7 +299,7 @@ footer a { display: inline-flex; align-items: center; min-height: var(--size-tou
 /* Breakpoints follow layout.breakpoint: medium from 600px, expanded from 840px. */
 @media (min-width: 600px) {
   .panel { height: 520px; padding-top: var(--space-12); }
-  .panel .phone { --s: 0.62; }
+  .panel .phone { --w: 250px; }
   .space .panel { height: 380px; }
   .principles { grid-template-columns: repeat(2, 1fr); gap: var(--space-10); }
   .ways { grid-template-columns: repeat(3, 1fr); }
@@ -309,18 +311,18 @@ footer a { display: inline-flex; align-items: center; min-height: var(--size-tou
   .bar-action { margin-inline-start: 0; }
   .intro { grid-template-columns: 1.05fr 0.95fr; align-items: center; gap: var(--space-8); padding-block: var(--space-12) var(--space-section); }
   .stage { height: 620px; overflow: visible; -webkit-mask-image: none; mask-image: none; }
-  .stage .phone { top: 20px; --s: 0.66; }
+  .stage .phone { top: 20px; --w: 267px; }
   .stage .front { left: 4%; }
-  .stage .back { right: 2%; top: 90px; --s: 0.6; }
+  .stage .back { right: 2%; top: 90px; --w: 242px; }
   .ring.one { width: 400px; height: 400px; left: 20%; top: 36px; }
   .ring.two { width: 340px; height: 340px; right: 8%; top: 240px; }
   .room { grid-template-columns: 1fr 1fr; align-items: center; gap: 72px; margin-top: 96px; }
   .room.flip .room-copy { order: 2; }
   .panel { height: 600px; }
-  .panel .phone { --s: 0.68; }
+  .panel .phone { --w: 275px; }
   .trio { grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
   .space .panel { height: 420px; }
-  .space .panel .phone { --s: 0.56; }
+  .space .panel .phone { --w: 226px; }
   .faq { grid-template-columns: 0.8fr 1.2fr; gap: 72px; }
   .faq .section-head { position: sticky; top: 112px; align-self: start; }
 }

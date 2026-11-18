@@ -17,5 +17,6 @@ materially.
   The video was recorded at 390 x 844, cropped and cut to a 6.5 s loop whose last frame matches its
   first (frame difference about 0.7 of 255, against about 28 for the raw recording ends); it contains no audio.
 
-The device frame is the Google Pixel 6 Pro from devices.css (MIT), see
-`site/assets/devices.css-LICENSE.txt`.
+The device frame is the Google Pixel 10 Pro device art from Android Studio (Copyright The Android
+Open Source Project, Apache-2.0), scaled to half size; see `site/assets/frame/NOTICE.txt`. The screens
+are cropped by about 3 % at the sides to fit its 1280 x 2856 px display.

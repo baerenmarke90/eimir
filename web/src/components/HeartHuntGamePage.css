@@ -1,0 +1,254 @@
+.heart-hunt-page {
+  width: min(100%, 34rem);
+  margin-inline: auto;
+}
+
+.heart-hunt-heading {
+  margin-bottom: var(--space-4);
+}
+
+.heart-hunt-hide,
+.heart-hunt-seek,
+.heart-hunt-found,
+.heart-hunt-waiting {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.heart-hunt-card {
+  display: grid;
+  gap: var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.heart-hunt-card h2,
+.heart-hunt-card p {
+  margin: 0;
+}
+
+.heart-hunt-card p {
+  color: var(--color-text-secondary);
+}
+
+.heart-hunt-live {
+  margin: 0;
+}
+
+.heart-hunt-quiet {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+/* The flight between the two avatars. */
+.heart-hunt-band {
+  position: relative;
+  margin: 0 0 var(--space-4);
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-2) 0;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.heart-hunt-band svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.heart-hunt-band-arc {
+  fill: none;
+  stroke: var(--color-border-subtle);
+  stroke-width: 2;
+  stroke-dasharray: 3 6;
+  stroke-linecap: round;
+}
+
+.heart-hunt-band-heart {
+  fill: var(--person-own-accent);
+}
+
+.heart-hunt-band-person {
+  position: absolute;
+  top: calc(var(--space-2) + 68.75%);
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.heart-hunt-band-person.is-own {
+  left: 10%;
+}
+
+.heart-hunt-band-person.is-partner {
+  left: 90%;
+}
+
+.heart-hunt-band-label {
+  padding: 0 var(--space-3) var(--space-2);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* A 4:5 photo; positions are shares of this frame. */
+.heart-hunt-frame {
+  display: block;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  position: relative;
+  container-type: inline-size;
+  width: min(100%, 26rem);
+  margin-inline: auto;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius-media);
+  background: var(--color-surface-subtle);
+  box-shadow: var(--shadow-card);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.heart-hunt-frame.is-interactive {
+  cursor: crosshair;
+}
+
+.heart-hunt-frame:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.heart-hunt-photo,
+.heart-hunt-photo-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.heart-hunt-fog {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-surface-subtle) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: opacity var(--duration-context) var(--easing-standard);
+  pointer-events: none;
+}
+
+.heart-hunt-fog.is-lifting {
+  opacity: 0;
+}
+
+.heart-hunt-heart {
+  position: absolute;
+  width: 1.7rem;
+  height: 1.7rem;
+  transform: translate(-50%, -50%);
+  fill: var(--person-accent);
+  stroke: var(--color-surface-raised);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.heart-hunt-heart.is-found {
+  animation: heart-hunt-pop var(--duration-gesture-moment) var(--easing-enter) 1
+    both;
+}
+
+@keyframes heart-hunt-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+.heart-hunt-reticle {
+  position: absolute;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 3px solid var(--color-focus);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.heart-hunt-warmth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 700;
+}
+
+.heart-hunt-warmth-word {
+  min-width: 7.5rem;
+  color: var(--color-text);
+}
+
+.heart-hunt-meter {
+  flex: 1;
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.heart-hunt-meter b {
+  display: block;
+  height: 100%;
+  background: var(--color-action-primary);
+  transition: width var(--duration-transition) var(--easing-standard);
+}
+
+.heart-hunt-primary,
+.heart-hunt-secondary {
+  min-height: 3rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-5);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.heart-hunt-primary {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.heart-hunt-secondary {
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+}
+
+.heart-hunt-primary:disabled,
+.heart-hunt-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-hunt-fog,
+  .heart-hunt-meter b {
+    transition: none;
+  }
+
+  .heart-hunt-heart.is-found {
+    animation: none;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}

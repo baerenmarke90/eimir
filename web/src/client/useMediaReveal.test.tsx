@@ -27,3 +27,23 @@ it('never keeps a failed image hidden', () => {
   fireEvent.error(image);
   expect(image.dataset.mediaReveal).toBe('ready');
 });
+
+it('does not fade a source again after it already faded in once', () => {
+  const view = render(<Image src="blob:returning" />);
+  fireEvent.load(screen.getByAltText('Shared moment'));
+  view.unmount();
+  render(<Image src="blob:returning" />);
+  expect(screen.getByAltText('Shared moment').dataset.mediaReveal).toBe(
+    'ready',
+  );
+});
+
+it('still fades a source in whose earlier attempt only failed', () => {
+  const view = render(<Image src="blob:failed-once" />);
+  fireEvent.error(screen.getByAltText('Shared moment'));
+  view.unmount();
+  render(<Image src="blob:failed-once" />);
+  expect(screen.getByAltText('Shared moment').dataset.mediaReveal).toBe(
+    'pending',
+  );
+});

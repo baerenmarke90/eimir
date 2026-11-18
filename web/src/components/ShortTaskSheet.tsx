@@ -46,6 +46,8 @@ const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'audio',
   '.place-map-viewport',
   '.photo-crop-stage',
+  // The photo edit area owns pan, pinch, handles, pen and text (#1907 G1).
+  '.photo-edit-area',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="slider"]',
@@ -715,7 +717,7 @@ export function ShortTaskSheet({
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
           <svg
-            className="short-task-sheet-close-icon"
+            className="short-task-sheet-close-icon inline-icon"
             viewBox="0 0 24 24"
             aria-hidden="true"
             focusable="false"

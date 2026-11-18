@@ -43,6 +43,8 @@ The following are **protected Domain content**:
 - `latitude`
 - `longitude`
 
+**Update 2026-11-16 (Product Owner, #797):** `latitude`/`longitude` now live inside the `ProtectedPayload` like the other three fields, so encryption at rest covers them. The typed columns remain only as the legacy home of rows not yet moved (`docs/ENCRYPTION-AT-REST.md` section 8); a plain `has_coordinates` flag serves the map queries. The coordinate invariants below are enforced by the payload model.
+
 These fields belong to the ProtectedPayload/E2EE-readiness boundary. In version 1, `latitude`/`longitude` may exist as typed DB columns for clean validation and future Provider/map extensibility; their classification nevertheless remains `sensitive protected content`. Technical column representation does not turn them into Telemetry or Event data.
 
 Technical metadata outside the ProtectedPayload boundary:

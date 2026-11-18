@@ -36,6 +36,13 @@ export interface LifelineColumn extends LifelineTotals {
   highlight: DashboardItem;
   /** Drawn dots per type, bottom to top; never more than the band holds. */
   dots: LifelineKind[];
+  /**
+   * The half-open day range `[from, to)` whose entries the column counts:
+   * every server week starting inside the period, so a lazily read list of
+   * entries always matches the column's dots.
+   */
+  from: Date;
+  to: Date;
 }
 
 export interface LifelineModel {
@@ -72,6 +79,12 @@ function periodEnd(start: Date, unit: LifelineUnit): number {
     start.getUTCMonth() + (unit === 'month' ? 1 : 3),
     1,
   );
+}
+
+/** The Monday on or after a UTC day; server weeks start on Mondays. */
+function mondayOnOrAfter(day: number): Date {
+  const weekday = new Date(day).getUTCDay();
+  return new Date(day + ((8 - weekday) % 7) * DAY_MS);
 }
 
 function chooseUnit(days: number): LifelineUnit {
@@ -140,6 +153,8 @@ export function buildLifeline(view: StoryLifelineView): LifelineModel {
       total: 0,
       highlight: week.highlight,
       dots: [],
+      from: mondayOnOrAfter(start.getTime()),
+      to: mondayOnOrAfter(periodEnd(start, unit)),
     };
     column.memories += week.memories;
     column.heartMoments += week.heartMoments;
@@ -231,4 +246,45 @@ export function monthTicks(
     );
   }
   return ticks;
+}
+
+const KIND_OF_TYPE: Record<string, LifelineKind> = {
+  MEMORY: 'memories',
+  HEART_MOMENT: 'heartMoments',
+  MILESTONE: 'milestones',
+};
+
+/** The lifeline kind of a shared Story item type. */
+export function lifelineKindOf(type: string): LifelineKind {
+  return KIND_OF_TYPE[type] ?? 'memories';
+}
+
+/**
+ * The dot that stands for one entry of a column. Entries arrive in date
+ * order while dots are stacked by kind; the n-th entry of a kind falls on
+ * that kind's dots proportionally, so stepping through the entries walks
+ * up each kind's dots in turn.
+ */
+export function entryDot(
+  column: LifelineColumn,
+  kinds: readonly LifelineKind[],
+  index: number,
+): number {
+  const kind = kinds[index];
+  if (kind === undefined) return -1;
+  const first = column.dots.indexOf(kind);
+  if (first < 0) return -1;
+  const dots = column.dots.filter((dot) => dot === kind).length;
+  const ofKind = Math.max(1, column[kind]);
+  const nth = kinds.slice(0, index).filter((other) => other === kind).length;
+  return first + Math.min(dots - 1, Math.floor((nth * dots) / ofKind));
+}
+
+/** The first entry a dot stands for, or -1 when none of `kinds` falls on it. */
+export function dotEntry(
+  column: LifelineColumn,
+  kinds: readonly LifelineKind[],
+  dot: number,
+): number {
+  return kinds.findIndex((_, index) => entryDot(column, kinds, index) === dot);
 }

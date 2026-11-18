@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-14.draft-3',
+  version: '2026-11-17.draft-4',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -61,6 +61,15 @@ export const privacyPolicyDe: LegalDocument = {
             {
               kind: 'text',
               text: 'Eure Inhalte speichern wir verschlüsselt. Das ist keine Ende-zu-Ende-Verschlüsselung: Damit eimir. funktioniert, kann unser System sie entschlüsseln. Wir sehen sie uns nicht an, außer in den wenigen Fällen, die wir in Abschnitt 5 nennen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Deinen Standort teilen wir mit deinem Partner nur, wenn du das in eimir. Pro selbst einschaltest. Standardmäßig ist er ungefähr; auf Wunsch kannst du ihn genauer teilen. Wir speichern nur deine aktuelle Position und keinen Verlauf (Abschnitt 9).',
             },
           ],
           children: [],
@@ -206,7 +215,7 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten und Benachrichtigungen,',
+                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten, Benachrichtigungen und die Farben, in denen du dich und deine Partnerperson siehst (diese Auswahl sieht nur du),',
               },
             ],
             [
@@ -613,7 +622,52 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. fragt deinen aktuellen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.',
+              text: 'Mit eimir. Pro kannst du deinem Partner zeigen, wie weit du entfernt bist, und auf Wunsch zusätzlich einen ungefähren Kartenbereich. Das ist freiwillig und nie voreingestellt. Du entscheidest, was dein Partner sieht und wie lange, und kannst es jederzeit beenden. Dein Partner entscheidet für sich allein.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Du wählst auch, wie genau deine Position ist. Voreingestellt ist „ungefähr“: Dein Gerät rundet sie auf etwa einen Kilometer, bevor sie an uns geht. Wählst du „genau“, rundet dein Gerät auf etwa 100 Meter. Das stellst du beim ersten Start oder später in den Einstellungen ein. Genau teilen kannst du nur, wenn dein Gerät eine genaue Position hat; erlaubt Android nur den ungefähren Standort, bleibt es bei „ungefähr“ und wir sagen es dir in den Einstellungen. Deine genauen Koordinaten verlassen dein Gerät nicht. Dein Partner sieht eine Entfernungsstufe, bei „genau“ auf beiden Seiten auch eine feinere unter zwei Kilometern, und nie Koordinaten, eine Richtung oder einen Verlauf. Er erfährt nicht, welche Genauigkeit du gewählt hast.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Die Android-App misst deinen Standort einmal, wenn du sie öffnest oder zu ihr zurückkehrst, und nur solange das Teilen eingeschaltet ist oder du die Entfernung ansiehst. Für „genau“ bittet sie Android zusätzlich um die genaue Standortberechtigung; dort wählst du „Genau“ oder „Ungefähr“. Im Browser fragt dein Browser. Willst du, dass deine Position auch aktuell bleibt, wenn die App geschlossen ist, kannst du das zusätzlich einschalten und „Immer zulassen“ erlauben. Dann nutzt eimir. nur Positionen, die Android ohnehin schon ermittelt hat, und startet selbst keine Messung. Die Berechtigung kannst du jederzeit in den Android-Einstellungen entziehen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), für den Zugriff auf den Standort deines Geräts außerdem § 25 Abs. 1 TDDDG. Du kannst sie jederzeit widerrufen, indem du das Teilen beendest oder die Berechtigung entziehst. Das berührt nicht, was bis dahin geschah. Ohne Einwilligung funktioniert eimir. unverändert, nur ohne Entfernung.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Über diese Funktion hinaus fragt eimir. deinen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.',
             },
           ],
           children: [],
@@ -1063,7 +1117,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'dein Partner, soweit ihr Inhalte teilt (Abschnitt 4),',
+              text: 'dein Partner, soweit ihr Inhalte teilt (Abschnitt 4) und soweit du deine Entfernung oder einen ungefähren Kartenbereich teilst (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1227,6 +1281,16 @@ export const privacyPolicyDe: LegalDocument = {
             {
               kind: 'text',
               text: ' ungeöffnet 24 Stunden, nach dem Öffnen sofort.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Entfernung zum Partner:' },
+            {
+              kind: 'text',
+              text: ' deine aktuelle gerundete Position höchstens 24 Stunden und beim Beenden des Teilens sofort; deine Einstellung zum Teilen bis zum Löschen deines Kontos.',
             },
           ],
           children: [],

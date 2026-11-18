@@ -16,6 +16,12 @@ import {
   SPACE_ID,
   DETAIL_COMMENTS,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const fixture = localizedFixture.sharedExperience;
 

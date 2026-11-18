@@ -8,8 +8,8 @@
  * available as text.
  */
 .daily-insights {
-  --insight-own: var(--color-brand-text);
-  --insight-partner: var(--color-private);
+  --insight-own: var(--person-own-accent);
+  --insight-partner: var(--person-partner-accent);
   --insight-ink: var(--color-text);
   --insight-track: color-mix(
     in srgb,
@@ -48,14 +48,14 @@
 }
 
 :root[data-theme="dark"] .daily-insights {
-  --insight-own: var(--color-brand-text);
-  --insight-partner: var(--color-private);
+  --insight-own: var(--person-own-accent);
+  --insight-partner: var(--person-partner-accent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .daily-insights {
-    --insight-own: var(--color-brand-text);
-    --insight-partner: var(--color-private);
+    --insight-own: var(--person-own-accent);
+    --insight-partner: var(--person-partner-accent);
   }
 }
 
@@ -160,9 +160,12 @@
 
 .insight-nav a:focus-visible,
 .insight-picker button:focus-visible,
+.insight-date-picker:focus-within,
 .insight-cta:focus-visible,
 .insight-link:focus-visible,
 .insight-chart-column:focus-visible,
+.insight-week-highlights button:focus-visible,
+.insight-week-observations summary:focus-visible,
 .insight-cell:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
@@ -170,41 +173,48 @@
 
 .insight-picker {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--insight-card-surface);
-  box-shadow: 0 2px 10px var(--color-shadow-soft);
+  gap: var(--space-1);
+  padding: 0;
 }
 
-.insight-picker button {
+.insight-picker button,
+.insight-date-picker {
   display: grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
+  min-height: 44px;
   place-items: center;
-  border: 0;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text);
   font: inherit;
-  font-size: 1.4rem;
+  font-size: 0.81rem;
+  line-height: 1.2;
   cursor: pointer;
 }
 
-.insight-picker button:disabled {
-  opacity: var(--opacity-disabled);
-  cursor: default;
+.insight-picker button[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-brand-text);
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
 }
 
-.insight-picker-text {
-  min-width: 0;
-  font-weight: 650;
-  text-align: center;
-  overflow-wrap: break-word;
-  hyphens: auto;
+.insight-date-picker {
+  position: relative;
+  min-inline-size: 44px;
+  padding: 0;
+}
+
+.insight-date-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
 /* Cards ---------------------------------------------------------------- */
@@ -374,8 +384,40 @@
 
 .insight-chart {
   display: grid;
-  grid-template-columns: minmax(3.1rem, 22%) minmax(0, 1fr);
+  grid-template-columns: var(--insight-week-axis) minmax(0, 1fr);
   column-gap: var(--space-1);
+}
+
+.insight-week-charts {
+  --insight-week-axis: min(24%, 6rem);
+  --insight-vibe-lane: 1.3rem;
+  --insight-vibe-offset: 0.4rem;
+  container-type: inline-size;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--insight-card-surface);
+}
+
+@container (max-width: 16rem) {
+  .insight-week-plot {
+    --insight-week-axis: 40%;
+    --insight-vibe-lane: 1.65rem;
+    --insight-vibe-offset: 0.2rem;
+  }
+
+  .insight-week-charts .insight-week-days {
+    margin-inline-start: 0;
+  }
+}
+
+.insight-legend-compact {
+  font-size: 0.88rem;
+}
+
+.insight-week-plot {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .insight-chart-yaxis {
@@ -386,7 +428,7 @@
   padding: 0;
   list-style: none;
   color: var(--insight-quiet-text);
-  font-size: 0.7rem;
+  font-size: 0.69rem;
   line-height: 1.1;
 }
 
@@ -399,7 +441,7 @@
 
 .insight-chart-energy .insight-chart-yaxis,
 .insight-chart-energy .insight-chart-plot {
-  height: 10rem;
+  height: 7.1rem;
 }
 
 .insight-chart-energy .insight-chart-yaxis li {
@@ -415,23 +457,33 @@
 
 .insight-chart-vibe .insight-chart-yaxis li {
   display: flex;
-  height: 2.1rem;
+  height: var(--insight-vibe-lane);
   align-items: center;
+  overflow-wrap: anywhere;
 }
 
 .insight-chart-vibe .insight-chart-plot {
-  height: calc(6 * 2.1rem);
+  height: calc(7 * var(--insight-vibe-lane));
 }
 
 .insight-chart-lanes {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-rows: repeat(7, 1fr);
 }
 
 .insight-chart-lane {
-  border-top: 1px solid var(--insight-card-line);
+  background:
+    linear-gradient(var(--insight-card-line), var(--insight-card-line)) center /
+    100% 1px no-repeat;
+}
+
+.insight-plot-selection {
+  position: absolute;
+  inset-block: 0;
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--color-brand) 13%, transparent);
 }
 
 .insight-chart-inner {
@@ -467,15 +519,10 @@
   stroke-dasharray: 6 4;
 }
 
-.insight-area {
-  fill: var(--series);
-  fill-opacity: 0.1;
-}
-
 .insight-energy-dot {
   position: absolute;
-  width: 0.8rem;
-  height: 0.8rem;
+  width: min(0.8rem, 16px);
+  height: min(0.8rem, 16px);
   border: 2px solid var(--color-surface);
   background: var(--series);
   transform: translate(-50%, -50%);
@@ -493,24 +540,20 @@
 
 .insight-vibe-dot {
   position: absolute;
-  display: grid;
-  width: 0.85rem;
-  height: 0.85rem;
-  place-items: center;
-  border: 2px solid var(--series);
+  width: min(0.72rem, 13px);
+  height: min(0.72rem, 13px);
+  margin-inline-start: calc(-1 * var(--insight-vibe-offset));
   border-radius: 50%;
-  background: var(--insight-track);
-  color: var(--insight-ink);
-  font-size: 0.5rem;
-  line-height: 1;
+  background: var(--series);
   transform: translate(-50%, -50%);
 }
 
 .insight-vibe-dot.insight-series-partner {
-  border-radius: 0.22rem;
+  margin-inline-start: var(--insight-vibe-offset);
+  border-radius: 0.2rem;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
-.insight-vibe-dot[data-vibe],
 .insight-mark-vibe[data-vibe] {
   background: var(--insight-vibe-color);
 }
@@ -560,36 +603,135 @@
 }
 
 .insight-chart-columns {
-  position: absolute;
-  inset: 0;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   padding: 0;
+}
+
+.insight-week-days {
+  container-type: inline-size;
+  margin-inline-start: calc(var(--insight-week-axis) + var(--space-1));
+  gap: 2px;
 }
 
 .insight-chart-column {
   min-width: 0;
+  min-height: 44px;
   padding: 0;
-  border: 0;
-  border-radius: var(--radius-medium);
-  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
-.insight-chart-column:hover,
-.insight-chart-column[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--color-brand) 9%, transparent);
+.insight-chart-column[data-highlight="bothGood"] {
+  box-shadow: inset 0 -3px var(--color-success);
 }
 
-.insight-chart-xaxis {
-  grid-column: 2;
-  grid-row: 2;
+.insight-chart-column[data-highlight="bothEnergy"] {
+  box-shadow: inset 0 -3px var(--color-discovery);
+}
+
+.insight-chart-column[aria-pressed="true"] {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.insight-week-detail h2,
+.insight-week-recap h2 {
+  font-family: var(--font-ui);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.insight-week-detail-people {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding-top: var(--space-1);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: var(--space-3);
+}
+
+.insight-week-detail-people dl {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  font-size: 0.86rem;
+}
+
+.insight-week-detail-people dt {
+  display: inline;
   color: var(--insight-quiet-text);
-  font-size: 0.72rem;
-  text-align: center;
+}
+
+.insight-week-detail-people dd {
+  display: inline;
+  margin: 0;
+}
+
+.insight-week-detail-people dd::before {
+  content: " · ";
+}
+
+.insight-week-recap {
+  background: var(--insight-card-surface);
+  scroll-margin-block: var(--space-4);
+}
+
+.insight-week-highlights {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+}
+
+.insight-week-highlights li,
+.insight-week-highlights span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.insight-week-highlights li {
+  justify-content: space-between;
+}
+
+.insight-week-highlights li[data-highlight="bothGood"] svg {
+  color: var(--color-success);
+}
+
+.insight-week-highlights li[data-highlight="bothEnergy"] svg {
+  color: var(--color-discovery);
+}
+
+.insight-week-highlights button {
+  min-height: 44px;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-brand-text);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.insight-week-observations summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-brand-text);
+  list-style: none;
+  cursor: pointer;
+}
+
+.insight-week-observations summary::-webkit-details-marker {
+  display: none;
 }
 
 .insight-chart-detail {
@@ -1142,7 +1284,6 @@
 }
 
 /* Tight axes (large text / narrow windows) fall back to one-letter weekdays. */
-.insight-chart-xaxis,
 .insight-matrix-head {
   container-type: inline-size;
 }

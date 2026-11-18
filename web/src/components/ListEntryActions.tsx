@@ -444,7 +444,7 @@ export function EditPencilIcon({ className }: { className?: string }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className={className}
+      className={className ? `inline-icon ${className}` : 'inline-icon'}
     >
       <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
     </svg>
@@ -461,7 +461,7 @@ export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 24 24"
-        className="list-entry-icon"
+        className="list-entry-icon inline-icon"
       >
         <path d="m6 6 12 12M18 6 6 18" />
       </svg>
@@ -473,7 +473,7 @@ export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className="list-entry-icon"
+      className="list-entry-icon inline-icon"
     >
       {kind === 'more' ? (
         <>
@@ -500,9 +500,12 @@ export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       ) : null}
       {kind === 'reorder' ? (
         <>
-          <path d="M5 7h14" />
-          <path d="M5 12h14" />
-          <path d="M5 17h14" />
+          <circle cx="9" cy="6" r="1.2" />
+          <circle cx="15" cy="6" r="1.2" />
+          <circle cx="9" cy="12" r="1.2" />
+          <circle cx="15" cy="12" r="1.2" />
+          <circle cx="9" cy="18" r="1.2" />
+          <circle cx="15" cy="18" r="1.2" />
         </>
       ) : null}
     </svg>

@@ -83,10 +83,15 @@ export async function expectLabeledAddAction(
   const appearance = await action.evaluate((element) => {
     const style = getComputedStyle(element);
     const bounds = element.getBoundingClientRect();
-    const token = style.getPropertyValue('--color-action-primary').trim();
-    const expected = /^#[a-f\d]{6}$/i.test(token)
-      ? `rgb(${[1, 3, 5].map((start) => Number.parseInt(token.slice(start, start + 2), 16)).join(', ')})`
-      : token;
+    // The design's action colour, resolved as the browser does (a production
+    // build may shorten hex values).
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = style
+      .getPropertyValue('--color-action-primary')
+      .trim();
+    element.append(probe);
+    const expected = getComputedStyle(probe).backgroundColor;
+    probe.remove();
     return {
       width: bounds.width,
       height: bounds.height,

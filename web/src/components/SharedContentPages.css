@@ -204,7 +204,6 @@
   flex: none;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -518,9 +517,16 @@
   pointer-events: none;
   will-change: transform, opacity;
 }
-.shared-list-flight-a {
-  background: var(--color-partner-a-surface);
+.shared-list-flight {
+  background: var(--person-surface);
 }
-.shared-list-flight-b {
-  background: var(--color-partner-b-surface);
+.shared-list-sent {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-shared-surface);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  justify-self: start;
 }

@@ -24,6 +24,8 @@ const photoSources = {
   continue: 'Weiter zur Auswahl',
   waiting:
     'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
+  signingIn:
+    'Melde dich bei Google an und erlaube den Zugriff. Danach öffnet sich die Fotoauswahl.',
   nothingChosen:
     'Keine Fotos ausgewählt. Du kannst Google Fotos jederzeit wieder öffnen.',
   progress: 'Fotos werden übernommen …',
@@ -107,6 +109,9 @@ const photoSources = {
   googleAccountInvalid: 'Bitte gib eine gültige E-Mail-Adresse ein.',
   googleAccountChanged:
     'Das Konto wurde in einem anderen Fenster geändert. Bitte prüfe es noch einmal.',
+  googleConsentIncomplete:
+    'Das Konto ist gemerkt, aber Google hat den Zugriff noch nicht bestätigt.',
+  googleConsentConfirm: 'Bei Google bestätigen',
   googleAccountUnavailable:
     'Das hat gerade nicht geklappt. Versuche es noch einmal.',
 };

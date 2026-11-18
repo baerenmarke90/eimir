@@ -1,0 +1,93 @@
+/*
+ * The couple's story grows in the garden (#1907 H3 follow-up): Milestones as
+ * special plants in the memory corner. Like the rest of the garden palette,
+ * these illustration roles only mean something inside the scene, so they
+ * live here at the token boundary as local `--garden-*` roles with Light and
+ * Dark values (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ */
+.garden-game-page {
+  --garden-memory-lantern: #e8893a;
+  --garden-memory-lantern-vein: #b8642a;
+  --garden-memory-engraving: #8f7f68;
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-memory-lantern: #d27a36;
+  --garden-memory-lantern-vein: #9a5526;
+  --garden-memory-engraving: #5d5344;
+}
+
+/* A tapped piece sways once, gently, like a plant touched in passing. */
+.garden-scene .garden-memory-swaying {
+  animation: garden-memory-sway var(--duration-gesture-moment)
+    var(--garden-spring) both;
+}
+
+.garden-memory-target {
+  cursor: pointer;
+  outline: none;
+}
+
+.garden-memory-target:focus-visible rect {
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+.garden-memory-card-head {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.garden-memory-card-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.garden-memory-card-text h2 {
+  margin: 0;
+}
+
+.garden-memory-date {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.garden-memory-card .garden-card-actions a.button-link {
+  flex: 1 1 9rem;
+  color: var(--color-on-accent);
+}
+
+.garden-memory-link {
+  padding-inline: var(--space-2);
+  color: var(--color-link-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.garden-memory-book .garden-visitor-portrait svg {
+  width: 2.25rem;
+  height: 2.4rem;
+}
+
+@keyframes garden-memory-sway {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  55% {
+    transform: rotate(4deg);
+  }
+  80% {
+    transform: rotate(-1.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

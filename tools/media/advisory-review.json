@@ -403,6 +403,11 @@
       "evidenceSha256": "a7be63f4f5559eb9c766e8e05ec4bea8c5eb9d53408f590a59f639647e2cd44b",
       "reviewedAt": "2026-11-16",
       "review": "The affected JPEG XL parser (parse_frame_header() in libavcodec/jpegxl_parser.c) is not compiled. The restricted build starts with --disable-everything and its explicit parser list (h264, hevc, aac, mpegaudio, opus and vorbis) does not include it, and libavcodec/Makefile builds jpegxl_parser.o only with CONFIG_JPEGXL_PARSER. No JPEG XL decoder or demuxer is enabled either."
+    },
+    "CVE-2026-125269": {
+      "evidenceSha256": "c942619b3d9db68fc570351da37cf622d4fe27fac9ef3302bff45b0a603fccb7",
+      "reviewedAt": "2026-11-16",
+      "review": "The restricted build enables the H.264 metadata filter and compiles libavcodec/cbs_sei.c. clear-sei-message-slot.patch backports upstream FFmpeg commit 2c515eea07df719379e7f73deeeb7ccb8768433f to the pinned source. It clears each SEI message slot as it is handed out, including reused slots, so all restricted builds contain the upstream memory-safety fix. Debian sid continues to report this advisory open."
     }
   },
   "dependencies": {

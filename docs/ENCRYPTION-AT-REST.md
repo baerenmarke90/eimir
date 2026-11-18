@@ -1,7 +1,10 @@
 # Application-controlled encryption at rest
 
 Decision record, security architecture, threat model, and operator runbook for
-[#797](https://github.com/baerenmarke90/eimir/issues/797).
+encryption at rest, formerly tracked as #797. That GitHub issue was deleted on
+2026-11-18; the number remains in code comments and migrations as a historical
+reference, and this document is the tracking surface until a new Issue is
+opened.
 
 **This is not end-to-end encryption.** The running application holds the keys and
 can read every value it protects. See [Security claims](#11-security-claims) for
@@ -142,6 +145,12 @@ never made silently for them, which is the reason there is no Production default
 `private_collection_items`, `private_collections`, `private_notes`,
 `profile_preferences`, `related_persons`, `reminders`, `wishes`; every media
 original, thumbnail and derived variant; Transfer Bundle artifacts held in storage.
+Tables added since are covered the same way; the authoritative list is whatever
+`python -m eimir.security status` reports, and `PINNED_CONTEXTS` in
+`backend/tests/unit/test_payload_encryption.py` pins it. It includes
+`presence_snapshots`: the snapped partner-location position and its accuracy
+moved from plain columns into the payload (migration 0145), so a dump no longer
+shows where a sharing person was.
 
 **Plaintext by design (routing, authorization, indexing):** `id`, `space_id`,
 `owner_id`, `author_id`, `privacy_class`, `status`, timestamps and date columns
@@ -151,11 +160,34 @@ Authorization, sorting, keyset pagination, and relations depend on these. Media 
 metadata (`mime_type`, `size`, `width`, `height`, `has_thumbnail`) also stays plaintext
 because it drives validation and rendering.
 
-**Outside the ProtectedPayload boundary today (not covered by this change):** account
-and space display names, email addresses, and `profile_preferences.topic` (a
-user-authored 120-character column that sits beside its protected `value`). They are
-listed as follow-ups in section 12; they were never part of the `ProtectedPayload`
-contract this issue extends.
+**Moved into the payload after the first version of this document:** the preference
+topic (`profile_preferences.topic`), Place coordinates (`places.latitude`,
+`places.longitude`) and the daily check-in values (`daily_check_ins.vibe`,
+`energy_level`). New writes store them in the row's payload and leave the columns
+NULL; `places.has_coordinates` keeps the one fact queries need in SQL. Rows written
+earlier are moved as described in section 8, "Legacy plain columns".
+
+Account display names (`accounts.display_name`) moved the same way with migration
+0149. Because a name inside a payload cannot be matched in SQL, the administration
+account search finds an account by e-mail address or by its complete account ID, which a
+person can copy from the More page of the app.
+
+Birthdays (`accounts.birthday`, `related_persons.birthday`) moved with migration 0150,
+by Product Owner decision of 2026-11-16. `has_birthday` on both tables keeps the one fact
+queries and constraints need in SQL. The move hides the date of birth, and with it the
+year and the age. It does not hide that a birthday exists, nor the day and month of a
+birthday that has a reminder: `reminders.annual_month` and `annual_day` are scheduling
+metadata the server needs to know when to remind, and they name the person or account
+they were derived from. An important date (`important_dates.date`) is also still a plain
+column; its label is protected.
+
+Who a related person is to the couple (`related_persons.relationship`: mother, friend,
+colleague and so on) moved with migration 0155, by Product Owner decision of 2026-11-17.
+No flag replaces it: the only SQL use was the order of the people list, which the
+application now sorts after loading the few people of one Space.
+
+**Outside the ProtectedPayload boundary today:** email addresses, the date of an important
+date, and the relationship start date. They are listed in section 12.
 
 ## 6. Data flows
 
@@ -238,6 +270,39 @@ Rows written by an old application version during a rolling deploy are plaintext
 again; re-run step 2 before step 4. `required` fails closed on them, which is the
 signal.
 
+### Legacy plain columns
+
+A value that predates the payload boundary sits in an ordinary column, where this
+encryption does not reach it. `eimir.security.column_moves` registers such columns
+(first `profile_preferences.topic` and `places.latitude`/`longitude`) and moves
+their values into the row's payload. `daily_check_ins.vibe`/`energy_level` are
+registered too; that table had no payload column, so migration 0147 adds a **nullable**
+one (`ProtectedPayloadJSON(..., optional=True)`): a row keeps a NULL payload until the
+move has written it. `verify-payloads` skips NULL payloads, and `audit-raw` reports such
+a row through `legacy_plain_columns`, not as a malformed envelope. `accounts.display_name`
+(migration 0149), the two birthday columns (migration 0150) and
+`related_persons.relationship` (migration 0155) are registered the same way:
+
+- **Automatic.** The worker queues the job `security_column_moves` whenever a registered
+  column still holds a value and repeats it until none does. It needs no operator
+  action and runs in every mode; with `disabled` the value moves into the plaintext
+  payload, which keeps one code path.
+- **On demand.** `python -m eimir.security migrate-columns` does the same in one run and
+  prints counts per table. `status` prints `legacy_plain_columns` with the rows still
+  waiting, and `audit-raw` fails while any remain.
+- **Why not a migration.** Alembic runs without the encryption keys and cannot seal a
+  payload. Migration 0146 therefore only makes room (nullable column, `has_coordinates`).
+- **Guarantees.** One guarded `UPDATE` per row writes the merged payload and clears the
+  columns together; a concurrent application write wins and the row is picked up again
+  later. The row's `version` and `updated_at` are not changed, so no client runs into a
+  conflict and nothing looks edited. Readers take the payload value first and fall back
+  to the column, so every state in between reads correctly.
+- **Transfer Bundles.** An archive written before the move carries the value in the old
+  column; importing it creates exactly such an earlier row, which the job then moves.
+- **Not yet done.** The old columns still exist and are dropped in a later revision.
+  Until then a downgrade below 0146 is refused once values have moved, because they
+  cannot be brought back without the keys.
+
 Transfer artifacts written before the cutover are short-lived (they expire) and are
 not migrated; orphaned objects with no attachment row cannot be discovered because
 the `MediaStore` interface has no listing operation.
@@ -253,13 +318,43 @@ python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 Configuration (`Settings`):
 
 - `EIMIR_ENCRYPTION_KEYS`: JSON object `{"<key id>": "<base64 32-byte key>", ...}`
+- `EIMIR_ENCRYPTION_KEYS_FILE`: alternatively, the absolute path of a private file that
+  holds the same JSON object. Set one of the two, never both.
 - `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`: the id new writes are wrapped with
+
+**Key file instead of an environment value.** An environment value is visible to anyone
+who can inspect the container or open the project in a container manager. The optional
+fragment `deploy/encryption-keys.compose.yaml` mounts one host file read-only at
+`/run/secrets/eimir-encryption-keys.json` and sets `EIMIR_ENCRYPTION_KEYS_FILE` for every
+role that receives the keys (API, worker, video worker and demo initialization, in both
+profiles):
+
+```bash
+# on the Docker host, outside the checkout and outside any backup of data;
+# the backend runs as UID 10001, which must be the only reader
+install -m 600 -o 10001 -g 10001 /dev/null /ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+# write {"<key id>": "<base64 32-byte key>"} into that file, then:
+EIMIR_ENCRYPTION_KEYS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json
+EIMIR_ENCRYPTION_KEYS=            # must stay empty
+docker compose --env-file /ABSOLUTE/PATH/operator.env \
+  --file compose.yaml --file deploy/encryption-keys.compose.yaml \
+  --profile self-hosted config --quiet
+```
+
+The file is read once at startup and validated exactly like the inline value; a missing,
+unreadable, oversized or malformed file refuses to start, and no message quotes its
+content. A missing host path refuses instead of creating a directory. This narrows who
+can see the key; it
+does not change the threat model of section 12: whoever controls the running host can
+still read it. The released operator bundle and its launcher do not ship this fragment
+yet; it is available to deployments that combine Compose files themselves.
 
 Rules:
 
 - Production keys differ from Development, Demo, and every other project
   (`scripts/check_environment_isolation.py` fails when a Development and a Production
-  file share `EIMIR_ENCRYPTION_KEYS`).
+  file share `EIMIR_ENCRYPTION_KEYS` or point `EIMIR_ENCRYPTION_KEYS_HOST_FILE` at the
+  same file).
 - Keep the keys in a secret store **separate from database and object-store
   backups**. A backup and its keys must not be recoverable from the same place.
 - API and worker need read access to the keys; the release-guard one-shot does not
@@ -341,8 +436,14 @@ Known limits and follow-ups (deliberately not implemented here):
   rotation).
 - No KMS adapter (the `KeyWrapper` contract is ready for one).
 - Search is an in-application scan (section 7).
-- Columns outside the `ProtectedPayload` contract (`profile_preferences.topic`,
-  names, emails) remain plaintext.
+- Columns outside the `ProtectedPayload` contract remain plaintext: e-mail addresses,
+  the date of an important date and the relationship start date.
+  A birthday is protected, but the day and month of its reminder
+  (`reminders.annual_month`, `annual_day`) and the fact that it exists (`has_birthday`)
+  are not. The
+  check-in day itself (who checked in on which date) stays plain metadata. `places.has_coordinates` (whether a place has a position,
+  not where) is plaintext by design. E-mail addresses are not planned to move: sign-in
+  lookups, uniqueness and administrative search need them in SQL.
 - Object listing is not part of `MediaStore`, so orphaned pre-cutover objects
   without an attachment row cannot be found and migrated.
 - S3 puts and gets still buffer a whole object in memory (existing adapter
@@ -425,15 +526,16 @@ introduced are recorded in the pull request that added it.
 | `migrate-payloads` / `migrate-media` | Encrypt legacy plaintext; idempotent, resumable |
 | `rewrap-payloads` / `rewrap-media` | Re-wrap DEKs under the active KEK |
 | `verify-payloads` / `verify-media` | End-to-end authentication; non-zero on failure |
+| `migrate-columns` | Move values from legacy plain columns into their payloads (section 8); idempotent, resumable; non-zero when a row could not be converted |
 | `audit-raw [--media-sample N]` | Key-less, read-only check that stored rows and sampled objects are ciphertext; counts only; non-zero on any plaintext |
 
 All are invoked as `python -m eimir.security <command>`.
 
-## 16. Acceptance status of #797
+## 16. Acceptance status (formerly #797)
 
-This section records, against the repository state, which acceptance criteria of
-[#797](https://github.com/baerenmarke90/eimir/issues/797) hold. The implementation
-landed in PR #1177; the issue deliberately stays open until the items below are closed.
+This section records, against the repository state, which acceptance criteria of the
+former issue #797 hold. The implementation landed in PR #1177; the work stays open
+until the items below are closed.
 Cloud/Managed is not certified by the G5 decision (`docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`)
 and must not go live before this table is satisfied or each open row has an explicit
 Product Owner decision.
@@ -458,8 +560,13 @@ Product Owner decisions still required before the remaining items can be built:
   KMS/HSM behind `KeyWrapper` (provider, cost, lock-in).
 - **Row binding:** whether the ciphertext must be bound to its row identity
   (a new scheme number and migration) before Cloud go-live.
-- **Plaintext identity columns:** `profile_preferences.topic`, account and space display
-  names, and e-mail addresses remain outside the `ProtectedPayload` contract.
+- **Plaintext identity columns:** decided in part on 2026-11-16. The preference topic
+  and Place coordinates moved into their payloads (section 8, "Legacy plain columns"),
+  the partner-location position before them, the daily check-in values, account
+  display names and birthdays after them, and on 2026-11-17 the relationship of a
+  related person. The date of an important date and the relationship start date stay
+  plaintext, and no move is commissioned for them; e-mail addresses stay plaintext by
+  design.
 
 Deferred by Product Owner decision: the live Cloud verification (section 14 against a
 production-like deployment) and the Disaster Recovery drill (section 10) are run after the

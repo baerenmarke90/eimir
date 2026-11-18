@@ -22,7 +22,10 @@ import java.util.concurrent.Executors;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-/** A bounded credential slot per instance, never a native product-data cache. */
+/**
+ * A bounded credential slot per instance, never a native product-data cache.
+ * The slot also holds the per-login media key; media bytes stay in the WebView.
+ */
 @CapacitorPlugin(name = "NativeSessionStorage")
 public class NativeSessionStoragePlugin extends Plugin {
     private static final String KEY_ALIAS = "eimir_native_session_v1";
@@ -41,9 +44,17 @@ public class NativeSessionStoragePlugin extends Plugin {
     }
 
     static AtomicFile file(Context context, String instance) throws Exception {
+        return slot(context, "eimir-session-", instance);
+    }
+
+    static AtomicFile mediaKeyFile(Context context, String instance) throws Exception {
+        return slot(context, "eimir-media-key-", instance);
+    }
+
+    private static AtomicFile slot(Context context, String prefix, String instance) throws Exception {
         byte[] digest = MessageDigest.getInstance("SHA-256")
                 .digest(instance.getBytes(StandardCharsets.UTF_8));
-        StringBuilder name = new StringBuilder("eimir-session-");
+        StringBuilder name = new StringBuilder(prefix);
         for (byte value : digest) name.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
         return new AtomicFile(new File(context.getNoBackupFilesDir(), name.toString()));
     }
@@ -70,12 +81,63 @@ public class NativeSessionStoragePlugin extends Plugin {
 
     static void clearSnapshot(Context context, String instance) throws Exception {
         AtomicFile snapshot = file(context, instance);
+        AtomicFile mediaKey = mediaKeyFile(context, instance);
         try {
             try { BackgroundMediaTransfers.cancelInstance(context, instance); }
             finally { PresenceBackground.disableForInstance(context, instance); }
         }
-        finally { snapshot.delete(); }
-        if (snapshot.getBaseFile().exists()) throw new Exception("Session deletion failed");
+        // Without its key, every media item sealed for this login is unreadable.
+        finally { try { snapshot.delete(); } finally { mediaKey.delete(); } }
+        if (snapshot.getBaseFile().exists() || mediaKey.getBaseFile().exists())
+            throw new Exception("Session deletion failed");
+    }
+
+    static String mediaKey(Context context, String instance) throws Exception {
+        AtomicFile slot = mediaKeyFile(context, instance);
+        try {
+            if (slot.getBaseFile().length() <= NativeSessionCipher.MAX_ENVELOPE_BYTES)
+                return DeviceMediaKey.open(key(), instance, slot.readFully());
+        } catch (FileNotFoundException absent) {
+            // The first sealed media item of this login creates the key.
+        } catch (Exception unreadable) {
+            // A key that cannot be opened protects nothing; replace it below.
+        }
+        String value = DeviceMediaKey.generate();
+        byte[] envelope = DeviceMediaKey.seal(key(), instance, value);
+        FileOutputStream output = slot.startWrite();
+        try {
+            output.write(envelope);
+            slot.finishWrite(output);
+        } catch (Exception failed) {
+            slot.failWrite(output);
+            throw failed;
+        }
+        return value;
+    }
+
+    @PluginMethod
+    public void mediaKey(PluginCall call) {
+        io.execute(() -> {
+            try {
+                call.resolve(new JSObject().put("value", mediaKey(getContext(), instance(call))));
+            } catch (Exception unavailable) {
+                call.reject("Device media key unavailable", "DEVICE_MEDIA_KEY_UNAVAILABLE");
+            }
+        });
+    }
+
+    @PluginMethod
+    public void clearMediaKey(PluginCall call) {
+        io.execute(() -> {
+            try {
+                AtomicFile slot = mediaKeyFile(getContext(), instance(call));
+                slot.delete();
+                if (slot.getBaseFile().exists()) throw new Exception("Media key deletion failed");
+                call.resolve();
+            } catch (Exception unavailable) {
+                call.reject("Device media key unavailable", "DEVICE_MEDIA_KEY_UNAVAILABLE");
+            }
+        });
     }
 
     @PluginMethod

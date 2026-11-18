@@ -504,121 +504,23 @@ async function verifyDiaryAndReturnToDiscover(page: Page): Promise<void> {
   await expect(diary).toBeHidden();
 }
 
-test('Momente Discover presents the real #452 anniversary with authorized image and remains accessible on mobile', async ({
-  page,
-}, testInfo) => {
-  const unexpectedRequests = await installDiscoverApiMocks(page, {
-    retrospective: {
-      id: 'historic-lake',
-      type: 'MEMORY',
-      titleOrText: 'That day by the lake',
-      occurredOn: '2025-09-17',
-      createdAt: null,
-      scheduledAt: null,
-      previewAttachmentId: 'historic-lake-ready',
-      previewIsSensitive: false,
-    },
-  });
-  await page.setViewportSize({ width: 390, height: 1100 });
-  await page.goto('/story?tab=discover');
-  await signIn(page);
-  await page.goto('/story?tab=discover');
-
-  const retrospective = page.getByRole('region', {
-    name: de.story.retrospectiveHeading,
-  });
-  await expect(retrospective).toBeVisible();
-  await expect(retrospective).toContainText('That day by the lake');
-  await expect(
-    retrospective.getByRole('link', { name: /That day by the lake/ }),
-  ).toHaveAttribute('href', '/story/memories/historic-lake');
-  await expect(
-    retrospective.locator('.momente-retrospective-media'),
-  ).toHaveCount(1);
-  await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
-  await expectCanonicalStory(page);
-  await verifyDiaryAndReturnToDiscover(page);
-  await expectNoWcagViolations(page);
-  expect(unexpectedRequests).toEqual([]);
-
-  await retrospective.evaluate((card) =>
-    card.scrollIntoView({ block: 'center', behavior: 'instant' }),
-  );
-  await expect(
-    retrospective.locator('.momente-retrospective-chevron'),
-  ).toBeVisible();
-  await retrospective.screenshot({
-    path: testInfo.outputPath('story-601-retrospective-390-light.png'),
-  });
-});
-
-test('Momente Discover keeps a text-only retrospective readable at 320px in dark large-text mode', async ({
-  page,
-}, testInfo) => {
-  const unexpectedRequests = await installDiscoverApiMocks(page, {
-    retrospective: {
-      id: 'first-memory',
-      type: 'MEMORY',
-      titleOrText: 'Our first evening by the water',
-      occurredOn: '2023-09-17',
-      createdAt: null,
-      scheduledAt: null,
-      previewAttachmentId: null,
-      previewIsSensitive: false,
-    },
-  });
-  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 320, height: 720 });
-  await page.goto('/story?tab=discover');
-  await signIn(page);
-  await page.goto('/story?tab=discover');
-  await page.addStyleTag({ content: 'html { font-size: 125%; }' });
-
-  const retrospective = page.getByRole('region', {
-    name: de.story.retrospectiveHeading,
-  });
-  await expect(retrospective).toContainText('Our first evening by the water');
-  await expect(
-    retrospective.locator('.momente-retrospective-media'),
-  ).toHaveCount(0);
-  await expect(retrospective.getByRole('link')).toHaveAttribute(
-    'href',
-    '/story/memories/first-memory',
-  );
-  const width = await page.evaluate(() => ({
-    client: document.documentElement.clientWidth,
-    scroll: document.documentElement.scrollWidth,
-  }));
-  expect(width.scroll).toBeLessThanOrEqual(width.client);
-  await expectNoWcagViolations(page);
-  expect(unexpectedRequests).toEqual([]);
-
-  await page.screenshot({
-    path: testInfo.outputPath(
-      'story-601-retrospective-text-320-dark-reduced.png',
-    ),
-    fullPage: true,
-  });
-});
-
-for (const [width, theme] of [
-  [390, 'light'],
-  [1280, 'dark'],
+for (const [width, theme, textScale] of [
+  [390, 'light', 100],
+  [320, 'dark', 125],
+  [1280, 'dark', 100],
 ] as const) {
-  test(`long retrospective keeps one full reading row above an unstretched Fotostory at ${width} ${theme}`, async ({
+  test(`Fotostory includes the Wir memory as an ordinary slide at ${width} ${theme}`, async ({
     page,
   }, info) => {
-    const longText = localizedFixture.appContinuity.longRetrospective;
-    const unknown = await installDiscoverApiMocks(page, {
+    const unexpectedRequests = await installDiscoverApiMocks(page, {
       retrospective: {
-        id: 'long-text-retrospective',
+        id: 'mem-1',
         type: 'MEMORY',
-        titleOrText: longText,
-        occurredOn: '2023-09-17',
-        createdAt: null,
-        scheduledAt: null,
-        previewAttachmentId: null,
+        titleOrText: 'Ein Wochenende am Wasser',
+        occurredOn: '2026-08-24',
+        previewAttachmentId: 'mem-1-att',
         previewIsSensitive: false,
+        previewHasThumbnail: true,
       },
     });
     await page.setViewportSize({ width, height: 900 });
@@ -626,39 +528,64 @@ for (const [width, theme] of [
     await page.goto('/story?tab=discover');
     await signIn(page);
     await page.goto('/story?tab=discover');
-    const retrospective = page.locator('.momente-retrospective-compact');
-    await expect(retrospective).toHaveCount(1);
-    await retrospective.scrollIntoViewIfNeeded();
-    const geometry = await retrospective.evaluate((node) => ({
-      width: node.getBoundingClientRect().width,
-      columnWidth: node.parentElement!.getBoundingClientRect().width,
-    }));
-    expect(geometry.width).toBeCloseTo(geometry.columnWidth, 0);
-    const viewer = page.locator('.momente-story-viewer');
-    const bounds = await retrospective.boundingBox();
-    const viewerBounds = await viewer.boundingBox();
-    expect(viewerBounds!.y).toBeGreaterThanOrEqual(
-      bounds!.y + bounds!.height - 1,
-    );
-    // The photo slide keeps its 4:5 story shape next to the long text.
-    expect(viewerBounds!.height / viewerBounds!.width).toBeCloseTo(1.25, 1);
-    await retrospective.evaluate((node) =>
-      window.scrollTo(
-        0,
-        window.scrollY + node.getBoundingClientRect().top - 24,
-      ),
-    );
+    if (textScale > 100)
+      await page.addStyleTag({ content: `html { font-size: ${textScale}%; }` });
+
+    const discover = page.getByRole('tabpanel', {
+      name: de.story.tabDiscover,
+      exact: true,
+    });
+    const fotostory = discover.getByRole('region', { name: story.label });
+    const viewer = fotostory.locator('.momente-story-viewer');
+    await expect(discover.locator('.momente-retrospective')).toHaveCount(0);
+    await expect(discover.locator('.momente-hero-highlight')).toHaveCount(1);
     await expect(
-      viewer.locator('.momente-story-slide[data-state="current"] img').first(),
+      fotostory.getByRole('heading', {
+        name: 'Ein Wochenende am Wasser',
+        exact: true,
+      }),
     ).toBeVisible();
+    await expect(
+      fotostory.getByRole('link', { name: /Ein Wochenende am Wasser/ }),
+    ).toHaveAttribute('href', '/story/memories/mem-1');
+    await expect(
+      discover.locator('a[href="/story/memories/mem-1"]'),
+    ).toHaveCount(1);
+    await expect(fotostory).toHaveAttribute('data-autoplay', 'false');
+
+    const geometry = await viewer.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const root = document.documentElement;
+      return {
+        aspect: box.height / box.width,
+        overflow: root.scrollWidth - root.clientWidth,
+        immediatePredecessor:
+          node.closest('.momente-story')?.previousElementSibling?.className,
+      };
+    });
+    expect(geometry.overflow).toBeLessThanOrEqual(0);
+    expect(geometry.aspect).toBeGreaterThanOrEqual(1.24);
+    expect(geometry.immediatePredecessor).toBe('momente-discover-renew');
+
+    await fotostory.scrollIntoViewIfNeeded();
+    await expect(viewer.locator('[data-state="current"] img')).toHaveAttribute(
+      'src',
+      /^blob:/,
+    );
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
     await page.screenshot({
       path: info.outputPath(
-        `story-retrospective-full-row-${width}-${theme}.png`,
+        `fotostory-after-experiences-${width}-${theme}.png`,
       ),
-      fullPage: false,
+      fullPage: true,
     });
     await expectNoWcagViolations(page);
-    expect(unknown).toEqual([]);
+    if (width === 390) await verifyDiaryAndReturnToDiscover(page);
+    expect(unexpectedRequests).toEqual([]);
   });
 }
 

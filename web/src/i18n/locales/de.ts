@@ -333,7 +333,6 @@ const de = {
     featuredKicker: 'Wisst ihr noch?',
     onThisDay_one: 'Heute vor einem Jahr',
     onThisDay_other: 'Heute vor {{count}} Jahren',
-    retrospectiveHeading: 'Rückblicke',
     retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
     retrospectiveOpen: 'Erinnerung öffnen',
     milestonesTitle: 'Meilensteine',

@@ -105,7 +105,6 @@ import {
   viewerToday,
 } from './rediscoverySelection';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
 import './StoryHandmade.css';
@@ -303,9 +302,8 @@ export function StoryProductPage({
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
   });
-  // Reuse Today's authorized #452 candidate and its canonical Query key.
-  // Never manufacture a nostalgic Memory from the viewer's Story items.
-  const retrospectiveQuery = useQuery({
+  // Use the server's viewer day for the featured lead and recap invitation.
+  const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
     queryFn: async () => {
       if (!dashboardApi) throw new Error('Dashboard API unavailable.');
@@ -330,7 +328,7 @@ export function StoryProductPage({
       const [result] = await Promise.all([
         storyQuery.refetch(),
         renewSelection(),
-        ...(dashboardApi ? [retrospectiveQuery.refetch()] : []),
+        ...(dashboardApi ? [dashboardQuery.refetch()] : []),
       ]);
       if (!result.isError)
         setPaginationGeneration((generation) => generation + 1);
@@ -454,10 +452,9 @@ export function StoryProductPage({
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
-  // A cached Discover selection from another account-day must never be
-  // paired with a new Dashboard day or presented as today's retrospective.
+  // Only show the anniversary label when the selection matches the viewer day.
   const discoverDay = discoverQuery.data?.value.selectionDate;
-  const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
+  const dashboardDay = dashboardQuery.data?.viewerLocalDate;
   // #1907 F4: a new monthly recap leads the experiences only until opened,
   // on the same viewer day and receipt as the Wir invitation.
   const recapLead = recapsApi ? (
@@ -474,27 +471,6 @@ export function StoryProductPage({
     discoverDay != null &&
     dashboardDay != null &&
     discoverDay.getTime() === dashboardDay.getTime();
-  const retrospective = sameSelectionDay
-    ? (retrospectiveQuery.data?.retrospective ?? null)
-    : null;
-  const featuredId = featuredItem
-    ? featuredItem.kind === 'MEMORY'
-      ? featuredItem.memory.id
-      : featuredItem.kind === 'HEART_MOMENT'
-        ? featuredItem.heartMoment.id
-        : featuredItem.milestone.id
-    : null;
-  const visibleRetrospective =
-    retrospective &&
-    (retrospective.type === 'MEMORY' ||
-      retrospective.type === 'HEART_MOMENT' ||
-      retrospective.type === 'MILESTONE') &&
-    !(
-      featuredItem?.kind === retrospective.type &&
-      featuredId === retrospective.id
-    )
-      ? retrospective
-      : null;
 
   const timelineChapterMarkers = useMemo(
     () => (filters.kind ? [] : (combinedStory?.chapterMarkers ?? [])),
@@ -561,24 +537,11 @@ export function StoryProductPage({
     loadNextPage: loadNextStoryPage,
   });
 
-  // The curated selection without the featured lead and without the entry
-  // already shown as today's retrospective.
-  const curatedItems = useMemo(
-    () =>
-      discoverItems.filter(
-        (item) =>
-          (!featuredItem ||
-            storyItemKey(item) !== storyItemKey(featuredItem)) &&
-          (!visibleRetrospective ||
-            item.kind !== visibleRetrospective.type ||
-            (item.kind === 'MEMORY'
-              ? item.memory.id
-              : item.kind === 'HEART_MOMENT'
-                ? item.heartMoment.id
-                : item.milestone.id) !== visibleRetrospective.id),
-      ),
-    [discoverItems, featuredItem, visibleRetrospective],
-  );
+  const curatedItems = useMemo(() => {
+    if (!featuredItem) return discoverItems;
+    const featuredKey = storyItemKey(featuredItem);
+    return discoverItems.filter((item) => storyItemKey(item) !== featuredKey);
+  }, [discoverItems, featuredItem]);
 
   const featuredMedia =
     featuredItem?.kind === 'MEMORY'
@@ -939,16 +902,6 @@ export function StoryProductPage({
                   : t('story.discoverRenew')}
               </button>
             </div>
-            {visibleRetrospective ? (
-              <StoryRetrospective
-                compact
-                item={visibleRetrospective}
-                rediscovery={retrospectiveQuery.data?.retrospectiveRediscovery}
-                viewerLocalDate={retrospectiveQuery.data?.viewerLocalDate}
-                loadMemoryImage={loadMemoryImage}
-                onOpen={openDiscoverItem}
-              />
-            ) : null}
             <DiscoverStory
               items={curatedItems}
               loadMemoryImage={loadMemoryImage}

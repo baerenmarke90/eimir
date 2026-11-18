@@ -38,7 +38,7 @@ SHARED_FILES: tuple[tuple[str, str], ...] = (
     ("docs/assets/site/tagebuch.webp", "assets/screens/tagebuch.webp"),
     ("docs/assets/site/tagebuch-lang.webp", "assets/screens/tagebuch-lang.webp"),
     ("docs/assets/site/garten.webp", "assets/screens/garten.webp"),
-    ("docs/assets/site/garten.webm", "assets/screens/garten.webm"),
+    ("docs/assets/site/garten-scene.svg", "assets/screens/garten-scene.svg"),
     ("docs/assets/site/rueckblicke.webp", "assets/screens/rueckblicke.webp"),
     ("docs/assets/site/geschichte.webp", "assets/screens/geschichte.webp"),
 )

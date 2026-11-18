@@ -9,8 +9,8 @@ runs on `app.eimir.de` (web app and API on one origin). The two are separate dep
 ## What is in the repository
 
 - `site/index.html` (German), `site/en/index.html` (English), `site/impressum/index.html`
-  (legal notice, German), `site/assets/site.css` and `site/assets/frame/` (the Google Pixel 10 Pro device art from
-  Android Studio, Apache-2.0, with notice and license text).
+  (legal notice, German), `site/assets/site.css` and `site/assets/iphone-frame.css` (an excerpt of the iPhone 18 Pro frame
+  from react-mockframe, MIT, with its license text).
 - `tools/site/build_main_site.py` assembles `site/dist/` and adds the Web app's self-hosted
   fonts (Literata, Instrument Sans), favicon, brand mark and touch icon from `web/public/`, plus
   the product screens from `docs/assets/site/` (see its `SOURCES.md`). Screen file names are
@@ -19,8 +19,7 @@ runs on `app.eimir.de` (web app and API on one origin). The two are separate dep
 
 The site is plain HTML and CSS without JavaScript, cookies, tracking, third-party fonts or
 remote resources. Each page carries a restrictive Content-Security-Policy meta tag
-(`default-src 'none'` plus same-origin images, fonts and styles; the start pages also allow
-same-origin media for the garden video).
+(`default-src 'none'` plus same-origin images, fonts and styles).
 
 ## Design
 
@@ -36,11 +35,12 @@ from `design/tokens.json`. Literata is used for display headings and Instrument 
 The two overlapping circles use the app's person colors (own blue, partner rose). Favicon, brand
 mark and touch icon are the app's own assets and switch with `prefers-color-scheme`.
 
-Screens: real captures of the Web app inside a Google Pixel 10 Pro frame (Android Studio device art). The diary scrolls through
-its screen with a CSS scroll-driven animation (static fallback without support), the garden plays a
-short silent seamless loop with a still poster. Both fall back to still images with reduced motion. The intro
-phones fade in once; the primary button only changes color and scale. All motion respects
-`prefers-reduced-motion`.
+Screens: real captures of the Web app inside an iPhone 18 Pro frame. The diary capture scrolls slowly
+down and back in an endless CSS loop. The garden shows the app's own animated garden scene as a
+standalone SVG laid over a still, so the leaves, plants, clouds and animals move endlessly and
+smoothly without a video; nginx compresses the 200 KB file. All motion stops with
+`prefers-reduced-motion`. The intro phones fade in once; the primary button only changes color
+and scale.
 
 The primary action is one filled pill that opens the application (localized per page). Privacy and terms are the
 application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so

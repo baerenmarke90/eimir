@@ -11,12 +11,17 @@ materially.
   top inset so the camera cut-out of the device frame does not cover content.
 - `tagebuch-lang`: the Diary tab of the same Space, scrolled in 700 px steps and stitched into one
   tall image. The site scrolls it through the device screen with a CSS scroll-driven animation.
-- `garten.webm` and `garten.webp` (poster): the Playwright growth fixture of
-  `web/e2e/tests/garden-game.spec.ts` ("garden grows with news, bouquets, the book and visitors").
-  The public demo Space has only a sparse garden, so a populated, mocked garden is shown instead.
-  The video was recorded at 390 x 844, cropped and cut to a 6.5 s loop whose last frame matches its
-  first (frame difference about 0.7 of 255, against about 28 for the raw recording ends); it contains no audio.
+- `garten.webp`: still of the garden screen from the Playwright growth fixture of
+  `web/e2e/tests/garden-game.spec.ts` ("garden grows with news, bouquets, the book and visitors"),
+  with the same 44 px top inset. The public demo Space only has a sparse garden, so a populated,
+  mocked garden is shown instead.
+- `garten-scene.svg`: the garden scene of that fixture exported as a standalone SVG. It contains the
+  scene markup, the garden stylesheets (`GardenGamePage.css`, `GardenSeasonArt.css`,
+  `GardenAmbience.css`, `GardenGrowth.css`, `GardenRareVisitors.css`) and the resolved design
+  variables, so the app's own CSS animations (falling leaves, swaying plants, clouds, animals) run
+  endlessly. The site lays it over the still at the scene position and pans it slowly. Re-export it
+  whenever the garden art changes.
 
-The device frame is the Google Pixel 10 Pro device art from Android Studio (Copyright The Android
-Open Source Project, Apache-2.0), scaled to half size; see `site/assets/frame/NOTICE.txt`. The screens
-are cropped by about 3 % at the sides to fit its 1280 x 2856 px display.
+The device frame is the iPhone 18 Pro from react-mockframe 1.3.0 (MIT, adapted from Marvel
+devices.css), see `site/assets/iphone-frame-LICENSE.txt`. Its 402 x 874 pt screen matches the
+390 x 844 px captures almost exactly.

@@ -137,8 +137,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .remote-game-pulse {
-    animation: remote-game-pulse 2.4s var(--easing-standard, ease-in-out)
-      infinite;
+    animation: remote-game-pulse calc(var(--duration-gesture-sequence) * 2)
+      var(--easing-standard) infinite;
   }
 }
 

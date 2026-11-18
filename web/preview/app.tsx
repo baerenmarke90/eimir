@@ -8,6 +8,7 @@ import { dateAwareStructuralSharing } from '../src/client/structuralSharing';
 import { useControlPressFeedback } from '../src/client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from '../src/client/useFloatingCreateScrollTuck';
 import { initializeTheme } from '../src/theme';
+import messages from './locales/preview.json';
 import { seedPreviewSession } from './replay';
 import '../src/styles.css';
 import '../src/story-media.css';
@@ -59,7 +60,13 @@ function isOpen(path: string): boolean {
   );
 }
 
-function PreviewGuard({ children }: { children: React.ReactNode }) {
+function PreviewGuard({
+  children,
+  unavailableMessage,
+}: {
+  children: React.ReactNode;
+  unavailableMessage: string;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const [notice, setNotice] = useState(false);
@@ -68,26 +75,29 @@ function PreviewGuard({ children }: { children: React.ReactNode }) {
     if (open) return;
     setNotice(true);
     navigate('/today', { replace: true });
+  }, [open, navigate]);
+  useEffect(() => {
+    if (!notice) return;
     const timer = window.setTimeout(() => setNotice(false), 2600);
     return () => window.clearTimeout(timer);
-  }, [open, navigate]);
+  }, [notice]);
   return (
     <>
       {children}
       {notice ? (
         <p className="preview-notice" role="status">
-          Dieser Bereich ist in der Vorschau nicht enthalten.
+          {unavailableMessage}
         </p>
       ) : null}
     </>
   );
 }
 
-function PreviewApp() {
+function PreviewApp({ unavailableMessage }: { unavailableMessage: string }) {
   useControlPressFeedback();
   useFloatingCreateScrollTuck();
   return (
-    <PreviewGuard>
+    <PreviewGuard unavailableMessage={unavailableMessage}>
       <App />
     </PreviewGuard>
   );
@@ -116,7 +126,7 @@ export function startPreview(
   ReactDOM.createRoot(root).render(
     <MemoryRouter initialEntries={['/today']}>
       <QueryClientProvider client={queryClient}>
-        <PreviewApp />
+        <PreviewApp unavailableMessage={messages[language].unavailable} />
       </QueryClientProvider>
     </MemoryRouter>,
   );

@@ -250,6 +250,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/personal-settings"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/personal-settings",
+        body={"occasionHolidays": True},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/person-colours",
@@ -1571,6 +1578,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/account/device-context"),
     ("GET", "/api/v1/account/language-preference"),
     ("PUT", "/api/v1/account/language-preference"),
+    ("GET", "/api/v1/account/personal-settings"),
+    ("PATCH", "/api/v1/account/personal-settings"),
     ("GET", "/api/v1/account/photo-location-preference"),
     ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),

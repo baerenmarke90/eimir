@@ -815,7 +815,7 @@ const games = {
         close: 'Schließen',
       },
       feedback: {
-        title: 'Auf diesem Gerät',
+        title: 'Nur für dich',
         sound: 'Geräusche im Garten',
         soundHint: 'Leise Töne beim Pflanzen, Gießen und bei den Tieren.',
         vibration: 'Sanftes Vibrieren',

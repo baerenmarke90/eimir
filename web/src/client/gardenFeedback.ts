@@ -2,19 +2,23 @@
  * Optional feedback in the shared garden (#1907 H3 follow-up): soft sounds
  * and, in the native app only, a light vibration on taps and reactions.
  *
- * Both are off by default and remembered per device only. Sounds are made
- * with the Web Audio API (no audio files, so nothing to license or download)
- * and start only from a tap, so a browser never plays them unasked. Vibration
- * uses the Web Vibration API inside the Capacitor WebView, which the Android
- * app allows with the normal `VIBRATE` permission (no prompt); the decision
- * follows the runtime platform, never the viewport width. Nothing here is
- * ever sent to the server.
+ * Both are off by default. The two on/off choices are personal settings: they
+ * are remembered here first and then follow the Account to the person's other
+ * devices through the personal settings sync (no sound, tap or garden content
+ * ever leaves the device). Sounds are made with the Web Audio API (no audio
+ * files, so nothing to license or download) and start only from a tap, so a
+ * browser never plays them unasked. Vibration uses the Web Vibration API
+ * inside the Capacitor WebView, which the Android app allows with the normal
+ * `VIBRATE` permission (no prompt); the decision follows the runtime
+ * platform, never the viewport width.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isCapacitorNative } from '../pwa';
+import { announcePersonalSettingChange } from './personalSettingsBus';
 
 const PREFIX = 'eimir-garden-feedback-v1';
+const CHANGE_EVENT = 'eimir:garden-feedback-change';
 
 export type GardenFeedbackSetting = 'sound' | 'vibration';
 
@@ -25,7 +29,7 @@ export function gardenFeedbackKey(
   return JSON.stringify([PREFIX, accountId, setting]);
 }
 
-/** A device preference only; anything but an explicit `true` means off. */
+/** Anything but an explicit `true` means off. */
 export function readGardenFeedback(key: string): boolean {
   try {
     return window.localStorage.getItem(key) === 'true';
@@ -34,7 +38,26 @@ export function readGardenFeedback(key: string): boolean {
   }
 }
 
+/** A person's own choice on this device; it follows the Account to other devices. */
 export function saveGardenFeedback(key: string, enabled: boolean): void {
+  writeGardenFeedback(key, enabled);
+  announcePersonalSettingChange(key);
+}
+
+/** Applies the Account's saved choice from another device without echoing it back. */
+export function applySyncedGardenFeedback(key: string, enabled: boolean): void {
+  writeGardenFeedback(key, enabled);
+  // An open garden picks the new choice up at once.
+  window.dispatchEvent(
+    new CustomEvent<SyncedGardenFeedback>(CHANGE_EVENT, {
+      detail: { key, enabled },
+    }),
+  );
+}
+
+type SyncedGardenFeedback = { key: string; enabled: boolean };
+
+function writeGardenFeedback(key: string, enabled: boolean): void {
   try {
     window.localStorage.setItem(key, String(enabled));
   } catch {
@@ -213,6 +236,16 @@ export function useGardenFeedback(
     },
     [],
   );
+  // A choice synced from another device applies while the garden is open.
+  useEffect(() => {
+    const onSynced = (event: Event) => {
+      const detail = (event as CustomEvent<SyncedGardenFeedback>).detail;
+      if (detail?.key === soundKey) setSoundState(detail.enabled);
+      if (detail?.key === vibrationKey) setVibrationState(detail.enabled);
+    };
+    window.addEventListener(CHANGE_EVENT, onSynced);
+    return () => window.removeEventListener(CHANGE_EVENT, onSynced);
+  }, [soundKey, vibrationKey]);
 
   const play = useCallback((name: GardenSound) => {
     if (!settings.current.sound) return;

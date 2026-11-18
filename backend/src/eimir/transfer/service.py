@@ -620,6 +620,11 @@ def build_export_archive(
             }
             if preference is not None and preference.person_colours:
                 account_document["personalAppearance"]["personColours"] = preference.person_colours
+            from eimir.personal_settings import service as personal_settings
+
+            account_document["personalSettings"] = personal_settings.portable_snapshot(
+                session, authorization.account_id, authorization.space_id
+            )
             connections = session.scalars(
                 select(PhotoConnection).where(
                     PhotoConnection.account_id == authorization.account_id

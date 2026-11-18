@@ -111,6 +111,121 @@
         "title": "AccountMembershipView",
         "type": "object"
       },
+      "AccountPersonalSettingsPatch": {
+        "additionalProperties": false,
+        "description": "Only the changed keys; ``null`` removes a saved choice.",
+        "properties": {
+          "diaryLayout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiaryLayout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gardenSound": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gardensound"
+          },
+          "gardenVibration": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gardenvibration"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AccountPersonalSettingsPatch",
+        "type": "object"
+      },
+      "AccountPersonalSettingsView": {
+        "description": "The caller's Account-wide choices; ``null`` means no saved choice.",
+        "properties": {
+          "diaryLayout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiaryLayout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gardenSound": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gardensound"
+          },
+          "gardenVibration": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gardenvibration"
+          },
+          "schemaVersion": {
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "theme",
+          "diaryLayout",
+          "gardenSound",
+          "gardenVibration",
+          "schemaVersion",
+          "version"
+        ],
+        "title": "AccountPersonalSettingsView",
+        "type": "object"
+      },
       "AccountView": {
         "properties": {
           "displayName": {
@@ -3687,6 +3802,14 @@
         ],
         "title": "DevicePushConfiguration",
         "type": "object"
+      },
+      "DiaryLayout": {
+        "enum": [
+          "album",
+          "compact"
+        ],
+        "title": "DiaryLayout",
+        "type": "string"
       },
       "DiscoverLeadContext": {
         "properties": {
@@ -16562,6 +16685,79 @@
         "title": "SpaceMembershipExitView",
         "type": "object"
       },
+      "SpacePersonalSettingsPatch": {
+        "additionalProperties": false,
+        "description": "Only the changed keys; ``null`` removes a saved choice.",
+        "properties": {
+          "occasionHolidays": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occasionholidays"
+          },
+          "wirStatistics": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wirstatistics"
+          }
+        },
+        "title": "SpacePersonalSettingsPatch",
+        "type": "object"
+      },
+      "SpacePersonalSettingsView": {
+        "description": "The caller's own choices in one Space; ``null`` means no saved choice.",
+        "properties": {
+          "occasionHolidays": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occasionholidays"
+          },
+          "schemaVersion": {
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "wirStatistics": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wirstatistics"
+          }
+        },
+        "required": [
+          "occasionHolidays",
+          "wirStatistics",
+          "schemaVersion",
+          "version"
+        ],
+        "title": "SpacePersonalSettingsView",
+        "type": "object"
+      },
       "SpaceProfileUpdate": {
         "description": "Complete replacement state for a relationship profile.\n\nAll three fields are required. Otherwise an omitted field could not be\ndistinguished from clearing it, and that distinction determines whether a\nrelationship start date is preserved or removed. ``relationshipStartedOn``\nis explicitly removed by sending ``null``.",
         "properties": {
@@ -17194,6 +17390,15 @@
           "CHECK_IN"
         ],
         "title": "SupportGestureKind",
+        "type": "string"
+      },
+      "ThemePreference": {
+        "enum": [
+          "system",
+          "light",
+          "dark"
+        ],
+        "title": "ThemePreference",
         "type": "string"
       },
       "ThinkingOfYouAccepted": {
@@ -19052,6 +19257,127 @@
         "summary": "Set Language Preference",
         "tags": [
           "account"
+        ]
+      }
+    },
+    "/api/v1/account/personal-settings": {
+      "get": {
+        "description": "Read only the caller's Account-wide choices. A read never creates a row.",
+        "operationId": "getAccountPersonalSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPersonalSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal settings token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "Get Account Personal Settings",
+        "tags": [
+          "personal-settings"
+        ]
+      },
+      "patch": {
+        "description": "Merge the changed keys into the caller's Account-wide document.",
+        "operationId": "updateAccountPersonalSettings",
+        "parameters": [
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountPersonalSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPersonalSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal settings token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Account Personal Settings",
+        "tags": [
+          "personal-settings"
         ]
       }
     },
@@ -39552,6 +39878,167 @@
         "summary": "Send Partner Quick Action",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/personal-settings": {
+      "get": {
+        "description": "Read only the caller's own choices in this Space, never the partner's.",
+        "operationId": "getSpacePersonalSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpacePersonalSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal settings token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Space Personal Settings",
+        "tags": [
+          "personal-settings"
+        ]
+      },
+      "patch": {
+        "description": "Merge the changed keys into the caller's document for this Space.",
+        "operationId": "updateSpacePersonalSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpacePersonalSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpacePersonalSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal settings token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Space Personal Settings",
+        "tags": [
+          "personal-settings"
         ]
       }
     },

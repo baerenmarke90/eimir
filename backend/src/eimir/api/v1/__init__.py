@@ -45,6 +45,7 @@ from eimir.api.v1 import (
     once_messages,
     partner_location,
     people,
+    personal_settings,
     photo_sources,
     picture_ping_pong,
     place_relations,
@@ -96,6 +97,7 @@ normal_router.include_router(plan_notes.router)
 normal_router.include_router(shared_notes.router)
 normal_router.include_router(context_tags.router)
 normal_router.include_router(appearance.router)
+normal_router.include_router(personal_settings.router)
 normal_router.include_router(session_context.router)
 normal_router.include_router(demo.router)
 normal_router.include_router(invitations.router)

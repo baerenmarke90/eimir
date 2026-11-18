@@ -298,6 +298,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     if plan_id is not None:
         return "PLAN", plan_id
 
+    from eimir.wishes.models import Wish
+
+    wish_id = session.scalar(select(Wish.id).where(Wish.photo_attachment_id == attachment_id))
+    if wish_id is not None:
+        return "WISH", wish_id
+
     account_id = session.execute(
         select(AccountProfileAttachment.account_id).where(
             AccountProfileAttachment.attachment_id == attachment_id

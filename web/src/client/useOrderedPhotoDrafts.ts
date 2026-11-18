@@ -39,7 +39,12 @@ export function movePhotoKey(
   return order;
 }
 
-export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
+export function useOrderedPhotoDrafts(
+  options: AttachmentDraftOptions & {
+    /** Cap on newly selected drafts; a single-photo parent passes 1. */
+    maxItems?: number;
+  },
+) {
   const scope = JSON.stringify([
     options.apiBaseUrl,
     options.accountId,
@@ -59,7 +64,8 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
   const coverKey = state.scope === scope ? state.coverKey : null;
   const uploads = useAttachmentDrafts({
     ...options,
-    maxAttachments: MAX_MEMORY_ATTACHMENTS - existing.length,
+    maxAttachments:
+      options.maxItems ?? MAX_MEMORY_ATTACHMENTS - existing.length,
   });
   const clearUploads = uploads.clear;
   const lastScope = useRef(scope);

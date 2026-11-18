@@ -28,7 +28,7 @@ function SavedPhoto({
   controller: PlanPhotoDraftController;
   spaceId: string;
   planId: string;
-  parentType: 'PLAN' | 'HEART_MOMENT';
+  parentType: 'PLAN' | 'HEART_MOMENT' | 'WISH';
   persist?: boolean;
 }) {
   const { t } = useTranslation();
@@ -78,14 +78,20 @@ export function PlanPhotosEditor({
   presentation,
   mediaTrigger,
   pageWideDrop,
+  single = false,
 }: {
   presentation?: 'diary' | 'tools';
   mediaTrigger?: (open: () => void) => ReactNode;
   pageWideDrop?: boolean;
   additionalActions?: ReactNode;
+  /**
+   * One image for the parent (a Wish): a new selection replaces the current
+   * one, and neither a cover, an order nor a sensitivity mark applies.
+   */
+  single?: boolean;
   controller: PlanPhotoDraftController;
   spaceId: string;
-  parentType?: 'PLAN' | 'HEART_MOMENT';
+  parentType?: 'PLAN' | 'HEART_MOMENT' | 'WISH';
   canManageExisting?: boolean;
   /** `false` for a private parent: existing media stays in session memory. */
   persistMedia?: boolean;
@@ -101,10 +107,18 @@ export function PlanPhotosEditor({
 }) {
   const { t } = useTranslation();
   const openSource = useRef<() => void>(() => {});
+  /** A selection replaces the saved photo of a single-photo parent. */
+  function dropSavedForReplacement() {
+    if (!single) return;
+    for (const item of controller.items) {
+      if (item.existing) controller.remove(item);
+    }
+  }
   return (
     <div
       className="plan-photos-editor"
       data-has-media={Boolean(controller.items.length)}
+      data-single={single || undefined}
     >
       <AttachmentDraftPicker
         presentation={presentation}
@@ -118,23 +132,29 @@ export function PlanPhotosEditor({
         }
         pageWideDrop={pageWideDrop}
         additionalActions={additionalActions}
+        multiple={!single}
         id="plan-photos"
         sourceContext={
           photoSourceContext
             ? {
                 ...photoSourceContext,
                 spaceId,
-                remaining: Math.max(
-                  0,
-                  MAX_MEMORY_ATTACHMENTS - controller.items.length,
-                ),
+                remaining: single
+                  ? 1
+                  : Math.max(
+                      0,
+                      MAX_MEMORY_ATTACHMENTS - controller.items.length,
+                    ),
                 beginSelection: () => {
                   const ticket = controller.uploads.beginSelection();
                   return {
                     ...ticket,
                     commit: (files) => {
                       const accepted = ticket.commit(files);
-                      if (accepted) onChange();
+                      if (accepted) {
+                        dropSavedForReplacement();
+                        onChange();
+                      }
                       return accepted;
                     },
                   };
@@ -261,25 +281,40 @@ export function PlanPhotosEditor({
                   ) : null,
               }))}
               selectedCoverKey={controller.selectedCoverKey}
-              onSelectCover={(key) => {
-                controller.selectCover(key);
-                onChange();
-              }}
-              onOrderChange={(keys) => {
-                controller.reorder(keys);
-                onChange();
-              }}
-              onSensitive={(key, value) => {
-                const item = controller.items.find((item) => item.key === key);
-                if (
-                  item &&
-                  (!item.existing ||
-                    (item.existing.canEditSensitivity ?? canManageExisting))
-                ) {
-                  controller.setSensitive(item, value);
-                  onChange();
-                }
-              }}
+              onSelectCover={
+                single
+                  ? undefined
+                  : (key) => {
+                      controller.selectCover(key);
+                      onChange();
+                    }
+              }
+              onOrderChange={
+                single
+                  ? undefined
+                  : (keys) => {
+                      controller.reorder(keys);
+                      onChange();
+                    }
+              }
+              onSensitive={
+                single
+                  ? undefined
+                  : (key, value) => {
+                      const item = controller.items.find(
+                        (item) => item.key === key,
+                      );
+                      if (
+                        item &&
+                        (!item.existing ||
+                          (item.existing.canEditSensitivity ??
+                            canManageExisting))
+                      ) {
+                        controller.setSensitive(item, value);
+                        onChange();
+                      }
+                    }
+              }
               onRemove={(key) => {
                 const item = controller.items.find((item) => item.key === key);
                 if (item) {
@@ -338,6 +373,7 @@ export function PlanPhotosEditor({
           ...controller.uploads,
           addFiles: (files) => {
             controller.uploads.addFiles(files);
+            if (files?.length) dropSavedForReplacement();
             onChange();
           },
         }}

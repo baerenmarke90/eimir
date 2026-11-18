@@ -52,6 +52,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PlanCalendarPlugin.class);
         registerPlugin(PlanFilesPlugin.class);
         registerPlugin(VoiceSharePlugin.class);
+        registerPlugin(WishSharePlugin.class);
         registerPlugin(BackgroundMediaUploadsPlugin.class);
         registerPlugin(SystemThemePlugin.class);
         registerPlugin(ApproximateLocationPlugin.class);

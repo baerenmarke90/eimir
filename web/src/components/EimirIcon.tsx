@@ -16,6 +16,7 @@ export const EIMIR_ICON_NAMES = [
   'nurfuer',
   'foto',
   'paperclip',
+  'link',
   'external-link',
   'download',
   'microphone',
@@ -75,6 +76,10 @@ const LOCK_HEART_PATH =
   'M12 18.6s-3.3-2-3.3-4.2a1.7 1.7 0 0 1 3.3-.85 1.7 1.7 0 0 1 3.3.85c0 2.2-3.3 4.2-3.3 4.2Z';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  // A web address, drawn as two joined chain links.
+  link: (
+    <path d="M10.2 13.8a3.8 3.8 0 0 0 5.4 0l3-3a3.8 3.8 0 0 0-5.4-5.4l-.9.9M13.8 10.2a3.8 3.8 0 0 0-5.4 0l-3 3a3.8 3.8 0 0 0 5.4 5.4l.9-.9" />
+  ),
   paperclip: (
     <path d="m20 10-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-2.8-2.8l8.1-8.1" />
   ),

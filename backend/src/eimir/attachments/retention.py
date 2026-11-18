@@ -15,6 +15,7 @@ from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.people.models import RelatedPerson
 from eimir.plans.models import Plan
+from eimir.wishes.models import Wish
 
 
 class OwnerAttachmentBinding(StrEnum):
@@ -30,7 +31,7 @@ class OwnerAttachmentBinding(StrEnum):
 def _resource_binding(
     session: Session,
     *,
-    model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan],
+    model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan] | type[Wish],
     parent_id: UUID,
     account_id: UUID,
     attachment_space_id: UUID | None,
@@ -125,6 +126,14 @@ def classify_owner_attachment(
         return _resource_binding(
             session,
             model=RelatedPerson,
+            parent_id=parent_id,
+            account_id=account_id,
+            attachment_space_id=attachment.space_id,
+        )
+    if parent_type == "WISH":
+        return _resource_binding(
+            session,
+            model=Wish,
             parent_id=parent_id,
             account_id=account_id,
             attachment_space_id=attachment.space_id,

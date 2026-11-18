@@ -666,6 +666,40 @@
       "sharedBody": "This wish is automatically visible to both of you.",
       "deleteConsequence": "The wish will be deleted. Content that exists separately will not be changed.",
       "completedBody": "This wish has come true.",
+      "link": {
+        "tool": "Link",
+        "sheetTitle": "Link for this wish",
+        "label": "Web address",
+        "placeholder": "Paste a link, for example to a mountain hut",
+        "help": "The link is only saved, never opened. You can change or remove it at any time.",
+        "done": "Apply",
+        "remove": "Remove link",
+        "editNamed": "Change link to {{host}}",
+        "open": "Open link",
+        "openNamed": "Open link to {{host}}",
+        "invalid": {
+          "format": "That is not a valid web address.",
+          "scheme": "Only links starting with http or https are possible.",
+          "length": "The link is too long. It can have at most 2048 characters."
+        }
+      },
+      "photo": {
+        "failedHint": "The photo could not be uploaded. Try again or remove it to save."
+      },
+      "origin": {
+        "label": "From the original wish"
+      },
+      "merge": {
+        "title": "Already filled in",
+        "intro": "This wish already has a link or a photo. What should stay?",
+        "linkLegend": "Link",
+        "photoLegend": "Photo",
+        "linkCompare": "Currently: {{existing}}. New: {{shared}}.",
+        "keep": "Keep what is there",
+        "replace": "Replace with what was shared",
+        "continue": "Continue",
+        "cancel": "Cancel"
+      },
       "status": {
         "OPEN": "Open",
         "PLANNED": "Continued as a plan",
@@ -4394,6 +4428,33 @@
     "hintAwaitingMemory_other": "{{count}} wishes are waiting for a memory",
     "fulfilledTitle": "Wish fulfilled",
     "fulfilledBody": "You wished for “{{title}}” – and you did it."
+  },
+  "wishShare": {
+    "title": "Shared with eimir.",
+    "intro": "This was shared with eimir. Nothing is saved until you confirm it in the wish.",
+    "linkFrom": "Link from {{host}}",
+    "photo_one": "One photo",
+    "photo_other": "{{count}} photos",
+    "saveAsWish": "Save as wish",
+    "addToWish": "Add to wish",
+    "dismiss": "Discard",
+    "finishEditingFirst": "Finish what you are editing first. Then you can use what was shared.",
+    "photoFailed": "The photo could not be read. You can still use the text.",
+    "nothingUsable": "What was shared could not be read.",
+    "importFailed": "What was shared could not be used. Please try again.",
+    "pickTitle": "Which wish?",
+    "pickIntro": "Choose an open wish. You review everything in the wish before it is saved.",
+    "pickLoading": "Loading wishes …",
+    "pickEmptyTitle": "No open wish yet",
+    "pickEmptyBody": "Save what was shared as a new wish instead.",
+    "pickBack": "Back",
+    "pickUpdated": "Last changed {{date}}",
+    "share": "Share wish",
+    "sharing": "Sharing …",
+    "copyLink": "Copy link",
+    "copied": "Link copied.",
+    "copyFailed": "Copying is not available here.",
+    "shareFailed": "Sharing was not possible. Please try again."
   },
   "wishRepeat": {
     "action": "Experience it again",

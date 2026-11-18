@@ -103,6 +103,18 @@ export interface WishDetail {
      */
     plan: WishPlanReference | null;
     /**
+     * Optional web link (http/https) attached to the Wish.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    linkUrl?: string | null;
+    /**
+     * READY image attachment bound as the Wish photo; read it with parentType WISH.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    photoAttachmentId?: string | null;
+    /**
      * Groups a Wish with its repeats; equals the first Wish's ID.
      * @type {string}
      * @memberof WishDetail
@@ -194,6 +206,8 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'followedFromWishId': json['followedFromWishId'],
         'hasMemory': json['hasMemory'],
         'id': json['id'],
+        'linkUrl': json['linkUrl'] == null ? undefined : json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'] == null ? undefined : json['photoAttachmentId'],
         'plan': WishPlanReferenceFromJSON(json['plan']),
         'seriesId': json['seriesId'],
         'seriesPosition': json['seriesPosition'],
@@ -225,6 +239,8 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'followedFromWishId': value['followedFromWishId'],
         'hasMemory': value['hasMemory'],
         'id': value['id'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'plan': WishPlanReferenceToJSON(value['plan']),
         'seriesId': value['seriesId'],
         'seriesPosition': value['seriesPosition'],

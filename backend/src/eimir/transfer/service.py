@@ -526,6 +526,11 @@ def _media_rows(
         if isinstance(row.get("cover_attachment_id"), UUID)
     )
     attachment_ids.update(
+        row["photo_attachment_id"]
+        for row in rows.get("wishes", [])
+        if isinstance(row.get("photo_attachment_id"), UUID)
+    )
+    attachment_ids.update(
         row["attachment_id"]
         for table_name in ("plan_attachments", "plan_file_attachments", "heart_moment_attachments")
         for row in rows.get(table_name, [])
@@ -1183,11 +1188,17 @@ def _validate_plan_photos(
         ("heart_moments", "attachment_id"),
         ("heart_moment_attachments", "attachment_id"),
         ("related_persons", "avatar_attachment_id"),
+        ("wishes", "photo_attachment_id"),
     ):
         for raw in tables.get(table, []):
             value = _row_snake(raw).get(column)
             if value is not None:
-                bound.add(_uuid(value, ErrorCode.TRANSFER_RELATION_INVALID))
+                photo_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
+                if table == "wishes" and photo_id in bound:
+                    raise TransferArchiveError(
+                        "Transfer photo is bound twice.", ErrorCode.TRANSFER_RELATION_INVALID
+                    )
+                bound.add(photo_id)
     covers: dict[UUID, UUID | None] = {}
     for raw in tables.get("plans", []):
         row = _row_snake(raw)
@@ -1240,6 +1251,23 @@ def _validate_plan_photos(
         if total > MAX_GALLERY_TOTAL_SIZE:
             raise TransferArchiveError(
                 "Transfer Plan gallery is too large.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+
+
+def _validate_wish_photos(
+    tables: dict[str, list[dict[str, Any]]], media: list[dict[str, Any]]
+) -> None:
+    """A Wish holds at most one photo, and it must be a real image."""
+    indexed = {str(item.get("sourceId")): item for item in media}
+    for raw in tables.get("wishes", []):
+        photo = _row_snake(raw).get("photo_attachment_id")
+        if photo is None:
+            continue
+        item = indexed.get(str(_uuid(photo, ErrorCode.TRANSFER_RELATION_INVALID)), {})
+        size = item.get("size")
+        if item.get("mediaType") != "IMAGE" or type(size) is not int or size <= 0:
+            raise TransferArchiveError(
+                "Transfer Wish photo is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
 
 
@@ -1495,6 +1523,10 @@ def _validate_media(
         row = _row_snake(raw)
         if row.get("cover_attachment_id") is not None:
             referenced.add(_uuid(row["cover_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
+    for raw in tables.get("wishes", []):
+        row = _row_snake(raw)
+        if row.get("photo_attachment_id") is not None:
+            referenced.add(_uuid(row["photo_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
     for raw in tables.get("plan_attachments", []) + tables.get("heart_moment_attachments", []):
         row = _row_snake(raw)
         referenced.add(_uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID))
@@ -1758,6 +1790,7 @@ def validate_import_bundle(
     _validate_relations(tables, ids)
     _validate_photo_reactions(tables, source_members)
     _validate_plan_photos(tables, media)
+    _validate_wish_photos(tables, media)
     _validate_media(
         scope,
         personal_owner,

@@ -24,6 +24,25 @@
                 <data android:mimeType="audio/*" />
             </intent-filter>
 
+            <!-- Save a shared link/text or photo (for example from WhatsApp) as a Wish draft; WishSharePlugin owns it. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -77,6 +96,8 @@
                 <data android:path="/auth/recovery" />
                 <!-- Return from an external sign-in provider (Google); the app finishes the sign-in. -->
                 <data android:pathPrefix="/auth/oidc/" />
+                <!-- A shared Wish link opens the app on that Wish. -->
+                <data android:pathPrefix="/plan/wishes/" />
             </intent-filter>
 
         </activity>

@@ -5,6 +5,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import type { WishMediaDraft } from '../client/useWishMediaDraft';
 import { useTranslation } from '../i18n';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { MemoryTagChoices } from './MemoryTagChoices';
@@ -15,7 +16,18 @@ import {
 } from './PageComposer';
 import { ComposerHeader } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
+import { WishLinkEditor } from './WishLinkEditor';
+import { WishPhotoEditor } from './WishPhotoEditor';
 import './PlanningCreatePage.css';
+
+/** The link and the one photo of the Wish being written, with their context. */
+export interface WishComposerMedia {
+  draft: WishMediaDraft;
+  spaceId: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
+  accountId?: string;
+}
 
 export function WishComposer({
   wishId,
@@ -23,6 +35,7 @@ export function WishComposer({
   description,
   tags,
   tagEditorRef,
+  media,
   focusRef,
   disabled,
   saving,
@@ -39,6 +52,7 @@ export function WishComposer({
   description: string;
   tags: readonly string[];
   tagEditorRef: Ref<ContextTagEditorHandle>;
+  media: WishComposerMedia;
   focusRef: Ref<HTMLDivElement>;
   disabled: boolean;
   saving: boolean;
@@ -52,6 +66,12 @@ export function WishComposer({
 }) {
   const { t } = useTranslation();
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
+  const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [linkToolHost, setLinkToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
   const heading = t(wishId ? 'm5s3.common.edit' : 'm5s3.wish.createHeading');
   const idPrefix = wishId ? 'wish-edit' : 'planning-create';
   const formId = `${idPrefix}-form`;
@@ -70,7 +90,7 @@ export function WishComposer({
           <button
             form={formId}
             type="submit"
-            disabled={disabled || !title.trim()}
+            disabled={disabled || !title.trim() || media.draft.blocked}
             aria-label={
               wishId && !saving ? t('m5s3.common.saveChanges') : undefined
             }
@@ -83,6 +103,16 @@ export function WishComposer({
       <form id={formId} className="planning-intention-form" onSubmit={onSubmit}>
         <fieldset disabled={disabled}>
           <legend className="sr-only">{heading}</legend>
+          <WishPhotoEditor
+            media={media.draft}
+            spaceId={media.spaceId}
+            wishId={wishId}
+            apiBaseUrl={media.apiBaseUrl}
+            accessToken={media.accessToken}
+            accountId={media.accountId}
+            toolHost={photoToolHost}
+            disabled={disabled}
+          />
           <div className="page-composer-writing composer-authored-surface">
             <label className="sr-only" htmlFor={`${idPrefix}-title`}>
               {t(wishId ? 'm5s3.common.title' : 'm5s3.wish.intentionLabel')}
@@ -130,6 +160,12 @@ export function WishComposer({
           />
         </fieldset>
       </form>
+      <WishLinkEditor
+        value={media.draft.linkUrl}
+        onChange={media.draft.setLinkUrl}
+        toolHost={linkToolHost}
+        disabled={disabled}
+      />
       {saving ? (
         <p className="composer-status" role="status">
           {saveLabel}
@@ -137,6 +173,8 @@ export function WishComposer({
       ) : null}
       {children}
       <ComposerToolRow>
+        <span className="composer-tool-slot" ref={setPhotoToolHost} />
+        <span className="composer-tool-slot" ref={setLinkToolHost} />
         <span className="composer-tool-slot" ref={setTagToolHost} />
       </ComposerToolRow>
     </div>

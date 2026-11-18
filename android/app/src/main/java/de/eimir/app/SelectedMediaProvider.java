@@ -16,8 +16,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.List;
 import java.util.Set;
@@ -26,7 +28,13 @@ import java.util.UUID;
 /** Read-only, process-local descriptor leases for explicitly selected videos. */
 public final class SelectedMediaProvider extends ContentProvider {
     private static final int MAX_LEASES = 1000;
+    /** Largest shared photo that is adopted; larger or unsized streams stay with the sender. */
+    static final long MAX_SHARED_IMAGE_BYTES = 25L * 1024 * 1024;
+    private static final Set<String> SHARED_IMAGE_TYPES = new HashSet<>(Arrays.asList(
+        "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"));
     private static final Map<String, Lease> leases = new HashMap<>();
+
+    private enum Kind { VIDEO, AUDIO, IMAGE }
 
     private static final class Lease {
         final AssetFileDescriptor source;
@@ -49,31 +57,40 @@ public final class SelectedMediaProvider extends ContentProvider {
         private final Set<String> tokens = new HashSet<>();
         private boolean closed;
 
-        Uri adopt(Context context, Uri selected) { return adopt(context, selected, false); }
+        Uri adopt(Context context, Uri selected) { return adopt(context, selected, Kind.VIDEO); }
 
-        Uri adoptAudio(Context context, Uri selected) { return adopt(context, selected, true); }
+        Uri adoptAudio(Context context, Uri selected) { return adopt(context, selected, Kind.AUDIO); }
 
-        private Uri adopt(Context context, Uri selected, boolean audio) {
+        /** A shared photo: bounded, known length, one of the supported still-image types. */
+        Uri adoptImage(Context context, Uri selected) { return adopt(context, selected, Kind.IMAGE); }
+
+        private Uri adopt(Context context, Uri selected, Kind kind) {
             AssetFileDescriptor source = null;
             try {
                 synchronized (leases) { if (closed) return selected; }
                 String type = context.getContentResolver().getType(selected);
-                if (audio) {
+                if (kind == Kind.AUDIO) {
                     if (type == null || !type.startsWith("audio/")) return selected;
+                } else if (kind == Kind.IMAGE) {
+                    type = type == null ? null : type.toLowerCase(Locale.ROOT);
+                    if (type == null || !SHARED_IMAGE_TYPES.contains(type)) return selected;
                 } else if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
                 String name = "video" + ("video/mp4".equals(type) ? ".mp4" : ".mov");
-                if (!audio) try (Cursor cursor = context.getContentResolver().query(selected,
+                if (kind == Kind.VIDEO) try (Cursor cursor = context.getContentResolver().query(selected,
                         new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                     if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
                 }
                 source = context.getContentResolver().openAssetFileDescriptor(selected, "r");
                 if (source == null) return selected;
-                if (audio && source.getLength() > 20L * 1024 * 1024) return selected;
-                Lease lease = new Lease(source, audio ? "voice" : name, type);
+                if (kind == Kind.AUDIO && source.getLength() > 20L * 1024 * 1024) return selected;
+                // An unknown length cannot be bounded, so a shared photo must declare its size.
+                if (kind == Kind.IMAGE && (source.getLength() < 0 || source.getLength() > MAX_SHARED_IMAGE_BYTES))
+                    return selected;
+                Lease lease = new Lease(source, kind == Kind.AUDIO ? "voice" : kind == Kind.IMAGE ? "image" : name, type);
                 synchronized (leases) {
                     if (closed || leases.size() >= MAX_LEASES) return selected;
                     String token = UUID.randomUUID().toString();
-                    if (!audio) lease = new Lease(source, "eimir-selected-" + token + ("video/mp4".equals(type) ? ".mp4" : ".mov"), type);
+                    if (kind == Kind.VIDEO) lease = new Lease(source, "eimir-selected-" + token + ("video/mp4".equals(type) ? ".mp4" : ".mov"), type);
                     leases.put(token, lease);
                     tokens.add(token);
                     source = null; // Ownership moves only after complete registration.

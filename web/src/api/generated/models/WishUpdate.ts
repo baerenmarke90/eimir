@@ -30,6 +30,18 @@ export interface WishUpdate {
      */
     description?: string | null;
     /**
+     * Web link; explicit null clears it, omitted leaves it unchanged.
+     * @type {string}
+     * @memberof WishUpdate
+     */
+    linkUrl?: string | null;
+    /**
+     * READY image attachment bound as the photo; explicit null clears it, omitted leaves it unchanged.
+     * @type {string}
+     * @memberof WishUpdate
+     */
+    photoAttachmentId?: string | null;
+    /**
      * 
      * @type {Array<string>}
      * @memberof WishUpdate
@@ -61,6 +73,8 @@ export function WishUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'linkUrl': json['linkUrl'] === undefined ? undefined : json['linkUrl'] === null ? null : json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'] === undefined ? undefined : json['photoAttachmentId'] === null ? null : json['photoAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'] == null ? undefined : json['title'],
     };
@@ -78,6 +92,8 @@ export function WishUpdateToJSONTyped(value?: WishUpdate | null, ignoreDiscrimin
     return {
         
         'description': value['description'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

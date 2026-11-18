@@ -658,6 +658,25 @@
         "web/src/components/ReminderReadPage.tsx"
       ]
     },
+    "wish-link-photo.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishComposer.tsx",
+        "web/src/components/WishLinkEditor.tsx",
+        "web/src/components/WishPhotoEditor.tsx",
+        "web/src/components/WishLinkRow.tsx",
+        "web/src/components/WishPhotoGallery.tsx",
+        "web/src/components/WishOriginMedia.tsx",
+        "web/src/components/WishShareMergeSheet.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/client/useWishMediaDraft.ts",
+        "web/src/client/wishLinkPhoto.ts",
+        "web/src/client/storyMediaLoader.ts"
+      ]
+    },
     "wish-journey.spec.ts": {
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",

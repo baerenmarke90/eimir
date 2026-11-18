@@ -31,6 +31,18 @@ export interface WishCreate {
      */
     description?: string;
     /**
+     * Optional web link (http/https, at most 2048 characters).
+     * @type {string}
+     * @memberof WishCreate
+     */
+    linkUrl?: string | null;
+    /**
+     * READY image attachment to bind as the one photo of this Wish.
+     * @type {string}
+     * @memberof WishCreate
+     */
+    photoAttachmentId?: string | null;
+    /**
      * 
      * @type {Array<string>}
      * @memberof WishCreate
@@ -63,6 +75,8 @@ export function WishCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'description': json['description'] == null ? undefined : json['description'],
+        'linkUrl': json['linkUrl'] == null ? undefined : json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'] == null ? undefined : json['photoAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
@@ -80,6 +94,8 @@ export function WishCreateToJSONTyped(value?: WishCreate | null, ignoreDiscrimin
     return {
         
         'description': value['description'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

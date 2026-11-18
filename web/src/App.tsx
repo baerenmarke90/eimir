@@ -144,6 +144,7 @@ import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
+import { useWishLinkRouting } from './client/useWishLinkRouting';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
@@ -225,6 +226,7 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
+import { WishShareIngress } from './components/WishShareIngress';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
@@ -1273,6 +1275,12 @@ function AuthenticatedApp({
             key={`${apiBaseUrl}:${account.id}:${spaceId}`}
             scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
           />
+          <WishShareIngress
+            key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+            scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            apis={planningApis}
+            spaceId={spaceId}
+          />
 
           <DevicePushOnboarding
             key={`${apiBaseUrl}:${account.id}`}
@@ -1297,6 +1305,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
   useCalendarGoogleAppReturn();
+  useWishLinkRouting(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

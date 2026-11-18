@@ -173,7 +173,6 @@ export function SharedNoteReadPage({
           <ItemMenuOption
             icon="pen"
             title={t('sharedNotes.read.edit')}
-            hint={t('sharedNotes.menu.editHint')}
             onClick={() => {
               setMenuOpen(false);
               edit();
@@ -221,7 +220,6 @@ export function SharedNoteReadPage({
             icon="trash"
             danger
             title={t('sharedNotes.menu.delete')}
-            hint={t('sharedNotes.menu.deleteHint')}
             disabled={presentation.isPending}
             onClick={() => {
               setMenuOpen(false);

@@ -78,7 +78,8 @@
   color: var(--color-brand-text);
 }
 
-/* The line that lifted off keeps its place, unseen, while it flies. */
+/* The pill that lifted off keeps its place, unseen, while its line flies. */
+.wir-checkin-badge[data-flight-source],
 .wir-checkin-prompt[data-flight-source] {
   visibility: hidden;
 }

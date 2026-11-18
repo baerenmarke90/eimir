@@ -22,6 +22,14 @@
   margin: 0;
   padding: 0;
 }
+/* An item header keeps its stacked rows (type row, then the title) at every
+   width; the row layout above is for overview headings. */
+.shared-content-page > .page-heading.page-heading-item {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+}
 .shared-content-page > .page-heading > div:first-child {
   flex: 1 1 auto;
   min-inline-size: min(100%, 12rem);

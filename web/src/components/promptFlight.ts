@@ -50,11 +50,14 @@ export function startPromptFlight(
 
   const end = centre(to);
   const scale = landingScale(ghost.offsetWidth, to.width);
-  source.setAttribute('data-flight-source', 'true');
+  // The whole pill hides while its text flies, not just the text.
+  const holder = source.closest<HTMLElement>('.wir-checkin-badge') ?? source;
+  holder.setAttribute('data-flight-source', 'true');
 
   let cancelled = false;
+  let landed = false;
   const cleanup = () => {
-    source.removeAttribute('data-flight-source');
+    holder.removeAttribute('data-flight-source');
     ghost.remove();
     dispose();
   };
@@ -70,13 +73,18 @@ export function startPromptFlight(
     fill: 'forwards',
   });
 
+  // Landed: the caller retires the line now, while the ring still plays and
+  // the pill stays hidden until the layer is cleaned up.
   const finished = travel.finished.then(
-    async () => {
+    () => {
       if (cancelled) return;
+      // From here on the ring plays out and the timer below cleans up, even
+      // when the caller cancels because it has already retired the line.
+      landed = true;
       pulseRing(layer, to, roles, RING_GROWTH);
-      // Keep the layer until the ring has faded, then clean up.
-      await new Promise((resolve) => setTimeout(resolve, roles.context * 2));
-      if (!cancelled) cleanup();
+      window.setTimeout(() => {
+        if (!cancelled) cleanup();
+      }, roles.context * 2);
     },
     () => undefined,
   );
@@ -84,7 +92,7 @@ export function startPromptFlight(
   return {
     finished,
     cancel() {
-      if (cancelled) return;
+      if (cancelled || landed) return;
       cancelled = true;
       for (const animation of ghost.getAnimations?.() ?? []) animation.cancel();
       cleanup();

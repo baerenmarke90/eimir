@@ -6450,7 +6450,6 @@
     },
     "menu": {
       "title": "Note",
-      "editHint": "Change the title and text",
       "pin": "Pin",
       "pinHint": "Shown first in the list and on Us",
       "unpin": "Unpin",
@@ -6459,8 +6458,7 @@
       "wirTitleOnlyHint": "Good for door codes and passwords",
       "wirExcerpt": "Show an excerpt on Us",
       "wirExcerptHint": "The start of the text appears on Us",
-      "delete": "Delete …",
-      "deleteHint": "For both of you"
+      "delete": "Delete"
     },
     "toast": {
       "saved": "Saved.",
@@ -6475,7 +6473,7 @@
     "delete": {
       "title": "Delete note?",
       "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
-      "confirm": "Delete",
+      "confirm": "Delete permanently",
       "pending": "Deleting …"
     },
     "edit": {

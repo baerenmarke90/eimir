@@ -52,7 +52,6 @@ const sharedNotes = {
     },
     menu: {
       title: 'Notiz',
-      editHint: 'Titel und Text ändern',
       pin: 'Anheften',
       pinHint: 'Steht oben in der Liste und auf Wir',
       unpin: 'Lösen',
@@ -61,8 +60,7 @@ const sharedNotes = {
       wirTitleOnlyHint: 'Gut für Türcodes und Passwörter',
       wirExcerpt: 'Auszug auf Wir zeigen',
       wirExcerptHint: 'Der Anfang des Textes steht auf Wir',
-      delete: 'Löschen …',
-      deleteHint: 'Für euch beide',
+      delete: 'Löschen',
     },
     toast: {
       saved: 'Gespeichert.',
@@ -77,7 +75,7 @@ const sharedNotes = {
     delete: {
       title: 'Notiz löschen?',
       body: '„{{title}}“ wird für euch beide gelöscht. Falls sie mit einem Plan verknüpft ist, verschwindet sie auch dort. Das lässt sich nicht rückgängig machen.',
-      confirm: 'Löschen',
+      confirm: 'Endgültig löschen',
       pending: 'Wird gelöscht …',
     },
     edit: {

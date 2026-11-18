@@ -323,8 +323,16 @@ export function WishProductPage({
   useEffect(() => {
     if (!showCompletionContinuation || continueOpen) return;
     if (wishStatus !== 'COMPLETED') return;
-    completionHeadingRef.current?.focus();
-    completionHeadingRef.current?.scrollIntoView?.({ block: 'center' });
+    const heading = completionHeadingRef.current;
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: 'center' });
+    // The closing dialog may hand focus back to its opener a moment later (a
+    // keyboard close restores it); the confirmed continuation keeps it.
+    const frame = requestAnimationFrame(() => {
+      if (heading?.isConnected && document.activeElement !== heading)
+        heading.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [showCompletionContinuation, continueOpen, wishStatus]);
 
   if (!wishId) {

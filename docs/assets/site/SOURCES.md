@@ -14,7 +14,8 @@ materially.
 - `garten.webm` and `garten.webp` (poster): the Playwright growth fixture of
   `web/e2e/tests/garden-game.spec.ts` ("garden grows with news, bouquets, the book and visitors").
   The public demo Space has only a sparse garden, so a populated, mocked garden is shown instead.
-  The video was recorded at 390 x 844 and cropped; it contains no audio.
+  The video was recorded at 390 x 844, cropped and cut to a 6.5 s loop whose last frame matches its
+  first (frame difference about 0.7 of 255, against about 28 for the raw recording ends); it contains no audio.
 
 The device frame is the Google Pixel 6 Pro from devices.css (MIT), see
 `site/assets/devices.css-LICENSE.txt`.

@@ -38,7 +38,7 @@ mark and touch icon are the app's own assets and switch with `prefers-color-sche
 
 Screens: real captures of the Web app inside a Google Pixel 6 Pro frame. The diary scrolls through
 its screen with a CSS scroll-driven animation (static fallback without support), the garden plays a
-short silent video with a still poster. Both fall back to still images with reduced motion. The intro
+short silent seamless loop with a still poster. Both fall back to still images with reduced motion. The intro
 phones fade in once; the primary button only changes color and scale. All motion respects
 `prefers-reduced-motion`.
 

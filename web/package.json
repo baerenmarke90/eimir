@@ -39,7 +39,7 @@
     "i18next": "26.4.6",
     "jose": "6.2.13",
     "linkify-it": "6.1.0",
-    "maplibre-gl": "6.16.0",
+    "maplibre-gl": "6.18.0",
     "mediabunny": "1.65.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",

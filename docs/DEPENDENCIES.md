@@ -254,7 +254,7 @@ The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
-| maplibre-gl | 6.16.0 | npm / MapLibre | BSD-3-Clause |
+| maplibre-gl | 6.18.0 | npm / MapLibre | BSD-3-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
 Mediabunny is used unmodified in a lazy, same-origin Web Worker for active

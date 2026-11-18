@@ -451,7 +451,7 @@ def start_wish_detective_remote_game(
 ) -> WishDetectiveRemoteState:
     """Open a remote game; the opener gives the first clues.
 
-    Each partner needs at least one OPEN or PLANNED wish. Otherwise the
+    Each partner needs at least one OPEN wish. Otherwise the
     problem code says who is missing one: `WISH_DETECTIVE_OWN_WISH_MISSING`,
     `WISH_DETECTIVE_PARTNER_WISH_MISSING` or `WISH_DETECTIVE_WISHES_MISSING`.
     """

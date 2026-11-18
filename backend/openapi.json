@@ -34851,7 +34851,7 @@
         ]
       },
       "post": {
-        "description": "Open a remote game; the opener gives the first clues.\n\nEach partner needs at least one OPEN or PLANNED wish. Otherwise the\nproblem code says who is missing one: `WISH_DETECTIVE_OWN_WISH_MISSING`,\n`WISH_DETECTIVE_PARTNER_WISH_MISSING` or `WISH_DETECTIVE_WISHES_MISSING`.",
+        "description": "Open a remote game; the opener gives the first clues.\n\nEach partner needs at least one OPEN wish. Otherwise the\nproblem code says who is missing one: `WISH_DETECTIVE_OWN_WISH_MISSING`,\n`WISH_DETECTIVE_PARTNER_WISH_MISSING` or `WISH_DETECTIVE_WISHES_MISSING`.",
         "operationId": "startWishDetectiveRemoteGame",
         "parameters": [
           {

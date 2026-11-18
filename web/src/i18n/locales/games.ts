@@ -238,7 +238,7 @@ const games = {
     sparseTitleYou: 'Dir fehlt noch ein Wunsch.',
     sparseTitlePartner: '{{name}} braucht noch einen Wunsch.',
     sparseBody:
-      'Jeder von euch braucht mindestens einen offenen oder geplanten Wunsch. Private Geschenkideen werden dafür niemals verwendet.',
+      'Jeder von euch braucht mindestens einen offenen Wunsch. Private Geschenkideen werden dafür niemals verwendet.',
     sparseBodyPartner:
       'Deine Wünsche reichen schon. Sobald {{name}} einen Wunsch festhält, kann eure erste Runde starten.',
     sparseAction: 'Wunsch festhalten',

@@ -3496,7 +3496,7 @@
       "sparseTitleBoth": "You each still need a wish.",
       "sparseTitleYou": "You still need a wish.",
       "sparseTitlePartner": "{{name}} still needs a wish.",
-      "sparseBody": "Each of you needs at least one open or planned wish. Private gift ideas are never used for this.",
+      "sparseBody": "Each of you needs at least one open wish. Private gift ideas are never used for this.",
       "sparseBodyPartner": "Your wishes are enough. As soon as {{name}} captures a wish, your first round can start.",
       "sparseAction": "Capture a wish",
       "interruptedEyebrow": "Round interrupted",

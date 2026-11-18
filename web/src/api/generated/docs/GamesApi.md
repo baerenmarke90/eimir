@@ -2322,7 +2322,7 @@ No authorization required
 
 Start Wish Detective Remote Game
 
-Open a remote game; the opener gives the first clues.  Each partner needs at least one OPEN or PLANNED wish. Otherwise the problem code says who is missing one: &#x60;WISH_DETECTIVE_OWN_WISH_MISSING&#x60;, &#x60;WISH_DETECTIVE_PARTNER_WISH_MISSING&#x60; or &#x60;WISH_DETECTIVE_WISHES_MISSING&#x60;.
+Open a remote game; the opener gives the first clues.  Each partner needs at least one OPEN wish. Otherwise the problem code says who is missing one: &#x60;WISH_DETECTIVE_OWN_WISH_MISSING&#x60;, &#x60;WISH_DETECTIVE_PARTNER_WISH_MISSING&#x60; or &#x60;WISH_DETECTIVE_WISHES_MISSING&#x60;.
 
 ### Example
 

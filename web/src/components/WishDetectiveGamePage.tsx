@@ -130,7 +130,7 @@ async function loadDefaultSetup({
 }
 
 /*
- * #2048: one open or planned wish per person is enough. The state says who
+ * #2048: one open wish per person is enough. The state says who
  * still needs one, never how many wishes anybody has.
  */
 function SparseWishes({

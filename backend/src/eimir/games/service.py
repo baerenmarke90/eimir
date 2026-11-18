@@ -132,7 +132,7 @@ def read_wish_candidates(
     *,
     limit: int = MAX_WISH_CANDIDATES,
 ) -> list[WishCandidate]:
-    """Return a bounded, partner-balanced OPEN or PLANNED Wish pool for #864.
+    """Return a bounded, partner-balanced OPEN Wish pool for #864.
 
     Normal Wish authorization remains authoritative through ``readable()``.
     ``owner_id`` is the existing stable ``createdBy`` attribution used to bind
@@ -171,8 +171,8 @@ def read_wish_candidates(
         statement = (
             readable(Wish, context)
             .where(
-                # A wish that already became a plan is still the person's wish.
-                Wish.status.in_((WishStatus.OPEN.value, WishStatus.PLANNED.value)),
+                # Only open wishes; a wish already planned is no riddle (PO 2026-11-18).
+                Wish.status == WishStatus.OPEN.value,
                 Wish.owner_id == participant_id,
             )
             .order_by(Wish.created_at.desc(), Wish.id.desc())

@@ -8,7 +8,7 @@
  */
 .today-page .wir-stage {
   /* #2048: the lower bound also follows the width, so two portraits still
-     fit side by side at 320 CSS px with doubled text. */
+     fit next to each other at 320 CSS px with doubled text. */
   --wir-avatar: clamp(min(6.25rem, 34vw), 32vw, 8rem);
   --wir-ring: 5px;
   /* How far the marks ride outward past the photo's edge, per axis. */

@@ -117,7 +117,7 @@ def test_wish_candidates_return_open_and_planned_wishes_with_creator_attribution
         owner_id=couple["ben"].id,
         title="Wochenende am Meer",
     )
-    # A wish that already became a plan is still the person's wish.
+    # A wish that already became a plan is not offered (PO 2026-11-18).
     anna_planned = _wish(
         session,
         space_id=couple["space"].id,
@@ -145,7 +145,8 @@ def test_wish_candidates_return_open_and_planned_wishes_with_creator_attribution
     body = response.json()
     assert set(body) == {"items"}
     items = {item["wishId"]: item for item in body["items"]}
-    assert set(items) == {str(anna_open.id), str(anna_planned.id), str(ben_open.id)}
+    assert set(items) == {str(anna_open.id), str(ben_open.id)}
+    assert str(anna_planned.id) not in items
     assert items[str(anna_open.id)] == {
         "wishId": str(anna_open.id),
         "createdBy": str(couple["anna"].id),

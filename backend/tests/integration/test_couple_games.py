@@ -424,6 +424,8 @@ def test_wish_detective_says_who_is_missing_a_wish_without_counts(
     assert nobody.json()["code"] == "WISH_DETECTIVE_WISHES_MISSING"
     _wish(session, premium, "a", STAR_WISH)
     _wish(session, premium, "b", "Schon erlebt", WishStatus.COMPLETED)
+    # A planned wish does not count either (PO 2026-11-18).
+    _wish(session, premium, "b", "Schon geplant", WishStatus.PLANNED)
     partner_missing = _start_wish(client, premium, "a")
     assert partner_missing.json()["code"] == "WISH_DETECTIVE_PARTNER_WISH_MISSING"
     own_missing = _start_wish(client, premium, "b")
@@ -432,11 +434,9 @@ def test_wish_detective_says_who_is_missing_a_wish_without_counts(
     assert state["readiness"] == {"ownWishesAvailable": False, "partnerWishesAvailable": True}
 
 
-def test_a_planned_wish_counts_and_one_wish_each_makes_a_two_round_game(
-    client, session: Session, premium
-) -> None:  # type: ignore[no-untyped-def]
+def test_one_open_wish_each_makes_a_two_round_game(client, session: Session, premium) -> None:  # type: ignore[no-untyped-def]
     anna_wish = _wish(session, premium, "a", STAR_WISH)
-    ben_wish = _wish(session, premium, "b", SEA_WISH, WishStatus.PLANNED)
+    ben_wish = _wish(session, premium, "b", SEA_WISH)
     started = _start_wish(client, premium, "a")
     assert started.status_code == 200, started.text
     game = started.json()["game"]

@@ -7,7 +7,7 @@ everything, the other gets one "your turn" notice; when the second partner
 finishes, the first gets one notice that the result is there.
 
 Wish detective: rounds alternate between the partners as giver and guesser.
-The server draws the giver's wish from their own readable OPEN or PLANNED
+The server draws the giver's wish from their own readable OPEN
 wishes, validates the three clues exactly like the client, hides the wish
 from the guesser until the reveal and judges the guess. There are no timers,
 streaks or penalties: an open game simply waits.
@@ -60,8 +60,8 @@ from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.wishes.models import Wish, WishStatus
 
-# A wish that became a plan is still the person's wish (#1907 follow-up).
-CANDIDATE_WISH_STATUSES = (WishStatus.OPEN.value, WishStatus.PLANNED.value)
+# Only open wishes take part; a planned wish is no riddle (PO 2026-11-18).
+CANDIDATE_WISH_STATUSES = (WishStatus.OPEN.value,)
 # Bounded scan per draw; the game uses at most four wishes per partner.
 _MAX_DRAW_POOL = 64
 
@@ -306,7 +306,7 @@ class WishReadiness:
 def _candidate_ids(
     session: Session, space_id: UUID, owner_id: UUID, *, limit: int = _MAX_DRAW_POOL
 ) -> list[UUID]:
-    """The owner's own readable OPEN or PLANNED wishes with a title.
+    """The owner's own readable OPEN wishes with a title.
 
     The owner's authorization context is used, like ``read_wish_candidates``
     does for the reader; wishes are Space-shared, so the guesser can read the

@@ -20,6 +20,12 @@ neutral immediate delivery without the list title, its own recipient switch,
 Quiet Hours and no email choice; see the
 [module workflow](../product/notification-workflow.md).
 
+A shared note a partner creates or changes (#1969, `SHARED_NOTE_CREATED` and
+`SHARED_NOTE_CHANGED`) uses neutral immediate delivery that names only the
+partner and the action, never the note's title or text. It inherits the
+comment Push choice and Quiet Hours and offers no email. Edits of one note share
+a coalesced notice; a change adds no Push while the partner has not yet read
+the note's earlier notice, and notifies again once it was read.
 A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
 immediate delivery without the attached words, its own recipient switch,
 Quiet Hours and no email choice; the notice is current only while the seed

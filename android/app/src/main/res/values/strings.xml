@@ -56,6 +56,9 @@
     <string name="push_view_list">View list</string>
     <string name="push_picture_turn">%1$s added to your picture. It is your turn.</string>
     <string name="push_view_picture">Keep drawing</string>
+    <string name="push_shared_note_created">%1$s created a shared note.</string>
+    <string name="push_shared_note_changed">%1$s changed a shared note.</string>
+    <string name="push_view_note">View note</string>
     <string name="push_picture_finished">%1$s finished your picture.</string>
     <string name="push_view_finished_picture">View picture</string>
     <string name="push_game_who_of_us">%1$s played “Which of you?”. Take a look.</string>

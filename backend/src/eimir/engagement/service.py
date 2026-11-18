@@ -43,6 +43,8 @@ from eimir.engagement.models import (
     EngagementTarget,
     Notification,
     NotificationKind,
+    PushDelivery,
+    PushDeliveryStatus,
 )
 from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
@@ -705,9 +707,13 @@ def _project_target_notification(
         **notice_id,
     )
     if notification_kind.value in COALESCED_NOTIFICATION_KINDS:
+        if notification_kind is NotificationKind.SHARED_NOTE_CHANGED and target_id is not None:
+            _reopen_read_note_push(session, event, recipient_id, target_id)
         statement = insert.on_conflict_do_update(
             index_elements=["recipient_account_id", "space_id", "kind", "target_type", "target_id"],
-            index_where=Notification.kind.in_(list(COALESCED_NOTIFICATION_KINDS)),
+            # A literal predicate: a bound-parameter one stops matching the partial
+            # unique index once the driver prepares this statement server-side.
+            index_where=_COALESCED_PREDICATE,
             set_={
                 "created_at": insert.excluded.created_at,
                 "source_event_id": insert.excluded.source_event_id,
@@ -727,6 +733,50 @@ def _project_target_notification(
             index_elements=["recipient_account_id", "source_event_id", "kind"]
         )
     session.execute(statement)
+
+
+_COALESCED_PREDICATE = text(
+    "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
+)
+
+
+def _reopen_read_note_push(
+    session: Session, event: OutboxEvent, recipient_id: UUID, note_id: UUID
+) -> None:
+    """Let a note change push again once the partner has seen the earlier notice.
+
+    A coalesced notice keeps one identity, so it owns at most one delivery per
+    device. Edits made while the earlier notice is still unread stay silent; a
+    change after it was read drops the finished delivery so it can notify afresh.
+    An older event replayed later never reaches this far: it must be the newer one.
+    """
+    read_notices = select(Notification.id).where(
+        or_(
+            Notification.created_at < event.created_at,
+            and_(
+                Notification.created_at == event.created_at,
+                Notification.source_event_id < event.id,
+            ),
+        ),
+        Notification.space_id == event.space_id,
+        Notification.recipient_account_id == recipient_id,
+        Notification.kind == NotificationKind.SHARED_NOTE_CHANGED.value,
+        Notification.target_type == EngagementTarget.SHARED_NOTE.value,
+        Notification.target_id == note_id,
+        Notification.read_at.is_not(None),
+    )
+    session.execute(
+        delete(PushDelivery).where(
+            PushDelivery.notification_id.in_(read_notices),
+            PushDelivery.status.in_(
+                (
+                    PushDeliveryStatus.SUCCEEDED.value,
+                    PushDeliveryStatus.FAILED.value,
+                    PushDeliveryStatus.UNAVAILABLE.value,
+                )
+            ),
+        )
+    )
 
 
 def _target_is_projectable(

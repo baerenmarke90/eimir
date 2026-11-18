@@ -25,7 +25,7 @@ jobs:
     needs: changed-spec-plan
     name: PR-critical ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
       matrix:
@@ -105,7 +105,7 @@ jobs:
     if: github.event_name == 'pull_request'
     name: Changed browser spec plan
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     outputs:
       has-specs: ${{ steps.plan.outputs.has-specs }}
       critical-specs: ${{ steps.plan.outputs.critical-specs }}
@@ -135,7 +135,7 @@ jobs:
     needs: changed-spec-plan
     name: Changed browser specs ${{ matrix.shard }}/${{ needs.changed-spec-plan.outputs.additional-shard-total }}
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     # The plan bounds the shard count by the selected spec files, so no shard
     # is empty; the aggregate fails if any shard fails, is cancelled or skips.
     strategy:
@@ -217,7 +217,7 @@ jobs:
     if: github.event_name != 'pull_request'
     name: Full regression ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
       matrix:

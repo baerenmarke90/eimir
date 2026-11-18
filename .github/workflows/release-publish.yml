@@ -414,11 +414,11 @@ jobs:
           EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ inputs.android_firebase_project_id != '' && secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON || '' }}
         run: python3 scripts/android_firebase_configuration.py prepare
 
-      - name: Set up Node.js 24.21.0
+      - name: Set up Node.js 26.13.1
         if: inputs.include_android
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24.21.0"
+          node-version: "26.13.1"
 
       - name: Set up JDK 21
         if: inputs.include_android

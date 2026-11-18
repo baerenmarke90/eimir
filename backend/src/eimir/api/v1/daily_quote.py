@@ -98,6 +98,7 @@ class DailyQuotePreferencePatch(ApiModel):
 def get_daily_quote(
     authorization: Authorization,
     session: DbSession,
+    response: Response,
 ) -> DailyQuoteResponse:
     """Return the deterministic quote of the day for the authorized caller.
 
@@ -109,6 +110,7 @@ def get_daily_quote(
         Capability.DAILY_QUOTE.value,
         lock_grants=False,
     )
+    response.headers["Cache-Control"] = "private, no-store"
     resolved = resolver.resolve_daily_quote(session, authorization)
 
     quote_view: DailyQuoteView | None = None

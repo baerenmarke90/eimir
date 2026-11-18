@@ -35,6 +35,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from eimir.quotes.central_contract import TOKEN_PATTERN
 from eimir.security.errors import EncryptionConfigurationError
 from eimir.security.keyring import EncryptionMode, build_key_ring
 
@@ -245,6 +246,11 @@ class Settings(IdentityCompatibleSettings):
     # Operator switch for M9 partner location (#1792). OFF writes stay accepted.
     partner_location_enabled: bool = True
 
+    # Optional operator-hosted daily quote content. Neither account credentials
+    # nor the Self-Hosted offline license are used for this connection.
+    daily_quote_service_url: str = ""
+    daily_quote_service_token: SecretStr | None = None
+
     # Optional local-only recap wording. Selection and complete fallback stay in Core.
     recap_ai_url: str = ""
     recap_ai_model: str = "qwen3:1.7b-q4_K_M"
@@ -416,11 +422,40 @@ class Settings(IdentityCompatibleSettings):
         "push_vapid_private_key",
         "google_photos_client_secret",
         "google_calendar_client_secret",
+        "daily_quote_service_token",
         mode="before",
     )
     @classmethod
     def empty_secret_is_unset(cls, value: object) -> object | None:
         return None if value == "" else value
+
+    @field_validator("daily_quote_service_url")
+    @classmethod
+    def daily_quote_service_origin(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            return ""
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or re.search(r"\s|\\", parsed.netloc)
+            or parsed.path not in ("", "/")
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("The daily quote service URL must be an HTTPS origin.")
+        return f"https://{parsed.netloc}"
+
+    @model_validator(mode="after")
+    def daily_quote_service_credentials(self) -> Self:
+        token = self.daily_quote_service_token
+        if bool(self.daily_quote_service_url) != (token is not None):
+            raise ValueError("Configure both the daily quote service origin and its access token.")
+        if token is not None and not re.fullmatch(TOKEN_PATTERN, token.get_secret_value()):
+            raise ValueError("The daily quote service access token has an invalid format.")
+        return self
 
     @field_validator("encryption_keys", mode="before")
     @classmethod

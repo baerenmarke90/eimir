@@ -188,7 +188,7 @@ img { max-width: 100%; }
 .chip { display: inline-flex; align-items: center; min-height: 32px; margin-bottom: var(--space-5); padding-inline: var(--space-4); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--color-private) var(--chip-fill), transparent); color: var(--color-text); font: 600 0.8125rem/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
 
 /* Standard device frame: iPhone 18 Pro from react-mockframe (MIT), 402 x 874 pt screen, scaled with --s. */
-.phone { --s: 0.56; position: relative; flex: none; width: calc(433.66px * var(--s)); height: calc(905.34px * var(--s)); filter: drop-shadow(0 8px 32px var(--color-shadow-overlay)); }
+.phone { --s: 0.56; position: relative; flex: none; overflow: clip; overflow-clip-margin: 6px; width: calc(433.66px * var(--s)); height: calc(905.34px * var(--s)); filter: drop-shadow(0 8px 32px var(--color-shadow-overlay)); }
 .phone .mockframe { transform: scale(var(--s)); transform-origin: 0 0; }
 .phone .mockframe .screen { background: var(--color-surface); }
 .phone .screen > img, .screen-stack img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }

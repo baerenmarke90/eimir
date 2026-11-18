@@ -27,8 +27,9 @@ keys and all tooling stay English, following exception 1 of
 - The terms of use govern eimir. Cloud, the official apps and eimir. Pro. They
   do not govern the relationship between users and the operator of a
   Self-Hosted installation.
-- The privacy policy informs (Art. 13 GDPR) about eimir. Cloud and the official
-  apps. It is never accepted, never bundled with the terms acceptance and never
+- The privacy policy informs (Art. 13 GDPR) about eimir. Cloud, the official
+  apps and access to the central Daily Quote service. It is never accepted,
+  never bundled with the terms acceptance and never
   blocks a flow. Every statement must describe processing the repository
   actually implements; [`privacy-policy-review.md`](privacy-policy-review.md)
   maps each statement to its source and lists the open legal decisions.

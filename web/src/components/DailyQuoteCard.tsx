@@ -25,6 +25,7 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { EimirIcon } from './EimirIcon';
+import { LegalDocumentLink } from './LegalDocumentLink';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -444,7 +445,17 @@ export function DailyQuoteCard({
             lng: resolveSupportedLocale(quote.locale) ?? 'de',
           })}
         </p>
-        {quote.attributionRequired ? <footer>{attribution}</footer> : null}
+        {quote.attributionRequired ? (
+          <footer>
+            {attribution}
+            {quote.id.startsWith('mentria-') ? (
+              <>
+                {' · '}
+                <LegalDocumentLink documentId="mentriaLicense" />
+              </>
+            ) : null}
+          </footer>
+        ) : null}
         {resolveSupportedLocale(quote.locale) !== resolvedLocale() ? (
           <footer lang={resolvedLocale()}>
             {t('dailyQuote.originalLanguage', {

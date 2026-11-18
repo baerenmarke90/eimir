@@ -256,6 +256,10 @@ const proPaywall = {
   statusRetry: 'Erneut prüfen',
   termsTitle: 'Gut zu wissen',
   terms: {
+    selfHosted: {
+      title: 'Tagesspruch bei Self-Hosting',
+      body: 'Für die Mentria-Sprüche braucht eure Installation einen freigeschalteten Zugang zum eimir.-Zitatedienst und eine Internetverbindung. Ohne Verbindung oder Einrichtung zeigt eimir. einen lokalen Spruch an.',
+    },
     renewal: {
       title: 'Verlängerung',
       body: 'Das Abo verlängert sich automatisch um den gewählten Zeitraum, bis es gekündigt wird.',

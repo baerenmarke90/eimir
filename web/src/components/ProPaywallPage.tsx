@@ -324,6 +324,12 @@ export function ProPaywallPage({
       >
         <h2 id={`${plansId}-terms`}>{t('proPaywall.termsTitle')}</h2>
         <dl>
+          {context === 'general' ? (
+            <div>
+              <dt>{t('proPaywall.terms.selfHosted.title')}</dt>
+              <dd>{t('proPaywall.terms.selfHosted.body')}</dd>
+            </div>
+          ) : null}
           {(['renewal', 'cancellation', 'privacy'] as const).map((term) => (
             <div key={term}>
               <dt>{t(`proPaywall.terms.${term}.title`)}</dt>

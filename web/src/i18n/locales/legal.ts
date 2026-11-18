@@ -6,6 +6,9 @@ export default {
   privacyLink: 'Datenschutz',
   privacySheetTitle: 'Datenschutzhinweise',
   privacySheetClose: 'Datenschutzhinweise schließen',
+  mentriaLicenseTitle: 'Mentria · Apache-Lizenz 2.0',
+  mentriaLicenseLink: 'Apache-Lizenztext',
+  mentriaLicenseClose: 'Lizenztext schließen',
   privacyNotice:
     'Wie wir mit deinen Daten umgehen, erklären wir in den <privacyLink>Datenschutzhinweisen</privacyLink>.',
   draftBadge: 'Entwurf · noch nicht in Kraft',

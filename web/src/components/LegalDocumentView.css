@@ -18,6 +18,11 @@
   font: var(--font-page-heading);
 }
 
+.legal-verbatim {
+  font: inherit;
+  white-space: pre-wrap;
+}
+
 .legal-section-heading {
   margin-top: var(--space-4);
   font: var(--font-section-heading);

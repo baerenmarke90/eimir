@@ -67,6 +67,9 @@ function Block({
   sectionLevel: 2 | 3;
   renderInternalLink?: LegalInternalLinkRenderer;
 }) {
+  if (block.kind === 'verbatim') {
+    return <pre className="legal-verbatim">{block.text}</pre>;
+  }
   if (block.kind === 'heading') {
     const Heading = sectionLevel === 2 ? 'h2' : 'h3';
     return (

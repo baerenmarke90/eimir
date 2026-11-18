@@ -44,7 +44,9 @@ Self-Hosted operators opt in. Offline license checks remain local.
 
 4. Proxy only `GET /v1/daily-quote` from a dedicated HTTPS origin to
    `127.0.0.1:8097`. Forward the Authorization header. Disable response
-   caching and keep Authorization headers out of proxy logs. An authenticated
+   caching and keep Authorization headers out of proxy logs. If the proxy or
+   hosting infrastructure keeps access logs for this route, delete them within
+   the 30-day period described in section 16 of the privacy notice. An authenticated
    request with `?locale=de` or `?locale=en` returns the current date, entry
    ID, requested locale and text. A missing or unknown token returns 401.
 5. Configure each authorized eimir. application backend with its own

@@ -1,7 +1,7 @@
 ---
 document: terms-of-use
 locale: de-DE
-version: 2026-11-06.draft-2
+version: 2026-11-18.draft-3
 status: draft
 effective: null
 legal_review: pending
@@ -133,7 +133,7 @@ Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschut
 9. Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und exportierbar. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.
 10. Endet euer Space (§ 5 Abs. 4), endet Pro für diesen Space. Ein laufendes Abo kann die Person, die es gekauft hat, mit „Kauf wiederherstellen“ auf einen neuen Space übertragen.
 11. Den Preis eines laufenden Abos ändern wir nur mit deiner Zustimmung. Stimmst du nicht zu, können wir das Abo zum Ende des laufenden Abrechnungszeitraums kündigen. Wir informieren dich vorher rechtzeitig.
-12. Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.
+12. Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Für Mentria-Tagessprüche braucht die Installation einen eingerichteten Zugang zu unserem Zitatedienst und eine Internetverbindung. Ohne Einrichtung oder Verbindung verwendet eimir. den lokalen Zitatkatalog. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.
 13. Als Verbraucherin oder Verbraucher hast du beim Kauf von Pro ein gesetzliches Widerrufsrecht. Einzelheiten findest du in der Widerrufsbelehrung unter [[WITHDRAWAL_URL]], die wir dir auch im Kaufprozess zur Verfügung stellen.
 14. Für Mängel von eimir. Pro gelten die gesetzlichen Rechte bei digitalen Produkten, einschließlich unserer Pflicht, dir Aktualisierungen bereitzustellen.
 

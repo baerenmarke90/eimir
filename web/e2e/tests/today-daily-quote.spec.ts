@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
+import legal from '../../src/i18n/locales/legal';
 import navigation from '../../src/i18n/locales/navigation';
 import localizedFixture from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -20,6 +21,7 @@ interface DailyQuoteMockOptions {
   quoteFailures?: number;
   design?: 'warm' | 'modern' | 'classic';
   quoteText?: string;
+  mentria?: boolean;
 }
 
 interface PreferencePatch {
@@ -278,17 +280,25 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
         quote:
           preferenceEnabled && quoteAvailable
             ? {
-                id: 'quote-browser-001',
+                id: options.mentria ? 'mentria-001' : 'quote-browser-001',
                 text:
                   currentAccountId === ACCOUNT_ID
                     ? (options.quoteText ?? 'A calm thought for today.')
                     : 'A different thought for Ben.',
-                authorDisplay: 'Example Author',
-                sourceDisplay: 'Example Source',
-                sourceId: 'classic_literature',
-                categoryIds: ['love', 'mindfulness'],
+                authorDisplay: options.mentria ? 'Mentria' : 'Example Author',
+                sourceDisplay: options.mentria
+                  ? 'Motivational Quotes · Apache-2.0 · Deutsche Übersetzung'
+                  : 'Example Source',
+                sourceId: options.mentria
+                  ? 'poetic_wisdom'
+                  : 'classic_literature',
+                categoryIds: options.mentria
+                  ? ['motivation']
+                  : ['love', 'mindfulness'],
                 locale: 'de',
-                rightsClassification: 'PUBLIC_DOMAIN',
+                rightsClassification: options.mentria
+                  ? 'EDITORIAL_CURATED'
+                  : 'PUBLIC_DOMAIN',
                 attributionRequired: true,
               }
             : null,
@@ -586,6 +596,46 @@ for (const design of ['warm', 'modern', 'classic'] as const)
         });
       expect(contained).toBe(true);
     });
+
+test('Mentria attribution opens the complete license and returns to the quote', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page, { mentria: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const link = page.getByRole('link', { name: legal.mentriaLicenseLink });
+  await expect(link).toHaveAttribute('href', '/legal/mentria-license');
+  const dialog = page.getByRole('dialog', { name: legal.mentriaLicenseTitle });
+  const text = dialog.locator('pre');
+
+  for (const { label, width, height, colorScheme } of [
+    { label: 'compact', width: 390, height: 844, colorScheme: 'light' },
+    { label: 'expanded', width: 1280, height: 900, colorScheme: 'dark' },
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await link.click();
+    await expect(dialog).toBeVisible();
+    await expect(text).toContainText('Version 2.0, January 2004');
+    await expect(text).toContainText(
+      'APPENDIX: How to apply the Apache License to your work.',
+    );
+    await expect
+      .poll(() =>
+        text.evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+      )
+      .toBe(true);
+    await dialog.screenshot({
+      path: testInfo.outputPath(`today-mentria-license-${label}.png`),
+    });
+    await dialog
+      .getByRole('button', { name: legal.mentriaLicenseClose })
+      .click();
+    await expect(dialog).toBeHidden();
+    await expect(link).toBeFocused();
+  }
+});
 
 test('personal Daily Quote preferences stay caller-only and round-trip If-Match', async ({
   page,

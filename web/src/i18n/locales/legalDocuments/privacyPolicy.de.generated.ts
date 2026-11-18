@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-17.draft-4',
+  version: '2026-11-18.draft-5',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -154,7 +154,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Diese Hinweise gelten für eimir. Cloud, den von uns betriebenen Online-Dienst eimir., den du über die Web-App und die offiziellen Apps nutzt. Sie gelten für alle, die eimir. Cloud nutzen, also für dich und deinen Partner gleichermaßen.',
+              text: 'Diese Hinweise gelten für eimir. Cloud, den von uns betriebenen Online-Dienst eimir., den du über die Web-App und die offiziellen Apps nutzt. Sie gelten für dich und deinen Partner gleichermaßen und auch für den zentralen Zitatedienst (Nummer 3).',
             },
           ],
           children: [],
@@ -163,7 +163,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für eine solche Installation ist ihr Betreiber verantwortlich, nicht wir. Verbindest du eine offizielle App mit einer Installation, die nicht wir betreiben, gehen deine Daten an diese Installation und nicht an uns.',
+              text: 'eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für den Betrieb und die dort gespeicherten Daten ist der Betreiber dieser Installation verantwortlich. Die offizielle App verbindet sich mit dieser Installation. Für den optionalen Abruf von Mentria-Tagessprüchen bei uns gilt Nummer 3.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Ist der zentrale Zitatedienst für deine Installation eingerichtet, ruft ihr Server den Mentria-Tagesspruch bei uns ab. Dafür verarbeitet unser Dienst die IP-Adresse der anfragenden Installation, den Sprachcode und ihr Zugangstoken. Die Installation übermittelt dabei keine Kontokennungen, E-Mail-Adressen oder Inhalte aus eurem Space. Wir verwenden diese Angaben, um den Zugang zu prüfen, den Spruch in der gewählten Sprache zu liefern und den Dienst vor Missbrauch zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an der Bereitstellung und dem sicheren Betrieb des Zitatedienstes (Art. 6 Abs. 1 lit. f DSGVO). Wir protokollieren das Zugangstoken nicht. Für technische Zugriffsprotokolle und ihre Löschung gilt Abschnitt 16.',
             },
           ],
           children: [],

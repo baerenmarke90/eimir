@@ -13,6 +13,7 @@ export type LegalListItem = {
 export type LegalBlock =
   | { kind: 'heading'; id: string; content: LegalInline[] }
   | { kind: 'paragraph'; content: LegalInline[] }
+  | { kind: 'verbatim'; text: string }
   | { kind: 'list'; ordered: boolean; items: LegalListItem[] };
 
 export type LegalDocument = {

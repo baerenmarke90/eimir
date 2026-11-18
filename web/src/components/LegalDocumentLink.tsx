@@ -128,7 +128,7 @@ export function LegalFooterLinks({
   inPlace?: boolean;
 }) {
   const { t } = useTranslation();
-  const ids = Object.keys(LEGAL_DOCUMENTS) as LegalDocumentId[];
+  const ids = ['terms', 'privacy'] as const;
   return (
     <nav className={className} aria-label={t('legal.eyebrow')}>
       {ids.map((id, index) => (

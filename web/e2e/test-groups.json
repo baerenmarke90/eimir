@@ -431,7 +431,7 @@
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 13,
-      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded; Eure Geschichte lifeline kind shapes, lazily read single entries, period list and photos in Light/Dark."
+      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access; Eure Geschichte lifeline kind shapes, lazy entries, period list and photos, plus touch direction and root swipe isolation on Today and the full story."
     },
     "webview-update-notice.spec.ts": {
       "disposition": "FULL_REGRESSION",

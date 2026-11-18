@@ -784,6 +784,8 @@
     },
     "relationship-reflections.spec.ts": {
       "roots": [
+        "web/src/components/SharedStorySummary.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/RelationshipPassport.tsx",
         "web/src/components/RelationshipStoryPage.tsx",
         "web/src/components/RelationshipRecapsPage.tsx",

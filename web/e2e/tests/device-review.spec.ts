@@ -40,7 +40,7 @@ for (const [width, theme] of [
     const plan = {
       id: 'linked-plan',
       spaceId: SPACE_ID,
-      title: 'Unser gemeinsames Wochenende am See mit Picknick',
+      title: 'Our weekend at the lake with a picnic by the water',
       createdAt: '2026-11-04T10:00:00Z',
       updatedAt: '2026-11-04T10:00:00Z',
       version: 1,

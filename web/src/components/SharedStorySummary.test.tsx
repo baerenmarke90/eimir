@@ -246,8 +246,22 @@ describe('SharedStorySummary lifeline', () => {
     renderSummary(async () => LIFELINE);
     await screen.findByRole('slider');
     const band = stubBandWidth();
+    fireEvent.pointerDown(band, {
+      pointerType: 'touch',
+      clientX: 2,
+      clientY: 30,
+    });
+    fireEvent.pointerMove(band, {
+      pointerType: 'touch',
+      clientX: 2,
+      clientY: 70,
+    });
+    fireEvent.pointerCancel(band, { pointerType: 'touch' });
+    expect(screen.queryByRole('link', { name: /Our first walk/ })).toBeNull();
     fireEvent.pointerDown(band, { pointerType: 'touch', clientX: 2 });
+    fireEvent.pointerUp(band, { pointerType: 'touch', clientX: 2 });
     expect(screen.getByRole('link', { name: /Our first walk/ })).toBeDefined();
+    fireEvent.pointerDown(band, { pointerType: 'touch', clientX: 2 });
     fireEvent.pointerMove(band, { pointerType: 'touch', clientX: 120 });
     expect(
       screen.getByRole('link', { name: /Picnic at the lake/ }),

@@ -8,6 +8,8 @@
 
 **Current relationship:** Compatible domain homes and stable routes remain binding. Primary-navigation reservations below were superseded by [Decision 0009](./0009-games-primary-navigation-and-premium-capability.md) and [Decision 0010](./0010-games-secondary-navigation-under-more.md). Current product-design direction is [Product Reference v1](../product/design/product-reference-v1.md); this dated decision is not a separate screen-composition reference.
 
+**Amendment (November 18, 2026, PR #2044):** shared lists (and the later shared notes) moved from `more` to the new fifth primary destination `shared` (**Listen**). Their paths are unchanged; `/plan/collections/:collectionId` now marks **Listen** active instead of **Mehr**, so section 3's `Mehr` mapping for collections is superseded. The other mappings stand. See [ADR 0003](./0003-primary-navigation-and-route-model.md) and [Information Architecture](../INFORMATION-ARCHITECTURE.md).
+
 ## Context
 
 ADR 0003 established the five-area product model (four until M7) and durable

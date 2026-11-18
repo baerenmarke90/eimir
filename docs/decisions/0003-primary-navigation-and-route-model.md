@@ -1,8 +1,8 @@
 # ADR 0003 – Primary Navigation and Route Model
 
-**Status:** Accepted for compatible route contracts; navigation amended by #374 and ADRs 0008–0010
+**Status:** Accepted for compatible route contracts; navigation amended by #374, ADRs 0008–0010 and #2044
 **Date:** August 31, 2026
-**Amended:** September 1, 2026 (#374), September 4, 2026 (ADR 0008)
+**Amended:** September 1, 2026 (#374), September 4, 2026 (ADR 0008), November 18, 2026 (#2044)
 **Owning issue:** #360
 **Navigation amendment:** #374, ADR 0008
 **Affects:** #295 (Web), #350 (Android), #328 and #346 (Deep Links), #344, #352, #368, #374, #620
@@ -15,7 +15,33 @@
 > (`/plan/chapters/:id`, `/plan/places/:id`, `/plan/collections/:id`) remain strictly
 > unchanged. See `0008-product-ia-harmonization-and-domain-alignment.md`.
 
-**Current relationship:** Stable route IDs, supported compatibility redirects, and domain authorization remain binding. The dated labels and reserved primary Discover slot below are superseded by [ADR 0008](./0008-product-ia-harmonization-and-domain-alignment.md), [Decision 0009](./0009-games-primary-navigation-and-premium-capability.md), and [Decision 0010](./0010-games-secondary-navigation-under-more.md), as consolidated in [Information Architecture](../INFORMATION-ARCHITECTURE.md). [Product Reference v1](../product/design/product-reference-v1.md) governs current product-design direction; the original shell descriptions are not separate composition authority.
+> [!NOTE]
+> **Subsequent Amendment (November 18, 2026 – PR #2044, Lists destination):**
+> The Web client adds a fifth primary destination with the stable route ID
+> `shared`. Its de-DE visible name is **Listen** (en: **Lists**) and its canonical
+> path is `/more/collections`. Lists and Notes are peer views of this one
+> destination (`/more/collections` and `/more/notes`, registered as the route's
+> `peerPaths`), switched by a Listen | Notizen segmented control under the shared
+> page heading **Gemeinsam**. The persistent order is now
+> **Wir · Momente · Planen · Listen · Mehr** (`today`, `story`, `plan`, `shared`,
+> `more`).
+>
+> - No path changes: `/more/collections`, `/more/notes` and the detail deep link
+>   `/plan/collections/:id` keep their addresses, as ADR 0008 section 3 requires.
+>   Only the active-area mapping changes: `/more/collections*`, `/more/notes*`
+>   and `/plan/collections*` now activate `shared` instead of `more`.
+> - Lists and Notes are no longer entries of the More overview. The `/more`
+>   table in section 3 below lists the remaining More content.
+> - `games` stays a registered route ID but not a primary destination
+>   (Decision 0010); `/games*` keeps `more` active.
+> - The route ID `shared` is a cross-client contract identifier. The Android
+>   product UI is the Capacitor wrapper around the same Web client (Decision 0011),
+>   so it inherits the registry; no native route table exists to migrate.
+>
+> The interaction contract is
+> [`mobile-interaction-contract-lists-and-item-menu.md`](../product/design/mobile-interaction-contract-lists-and-item-menu.md).
+
+**Current relationship:** Stable route IDs, supported compatibility redirects, and domain authorization remain binding. The dated labels and reserved primary Discover slot below are superseded by [ADR 0008](./0008-product-ia-harmonization-and-domain-alignment.md), [Decision 0009](./0009-games-primary-navigation-and-premium-capability.md), and [Decision 0010](./0010-games-secondary-navigation-under-more.md), as consolidated in [Information Architecture](../INFORMATION-ARCHITECTURE.md). The `shared` (Listen) destination was added by the November 18, 2026 amendment above. [Product Reference v1](../product/design/product-reference-v1.md) governs current product-design direction; the original shell descriptions are not separate composition authority.
 
 ## Context
 
@@ -92,6 +118,10 @@ Secondary product/settings surfaces keep their canonical routes under `Mehr`:
 | `/more/private` | the owner-only area |
 | `/more/notifications` | in-app notifications surface |
 | `/more/profile` | profile, preferences, appearance |
+
+Since the November 18, 2026 amendment, `/more/collections` and `/more/notes`
+belong to the `shared` destination rather than to the More overview; their
+paths are unchanged.
 
 A route living under `/more` does not require its entry point to be a left-nav
 item. #374 moves the Web entry points for Notifications and Profile into the

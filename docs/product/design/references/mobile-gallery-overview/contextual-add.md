@@ -109,7 +109,7 @@ components, semantic tokens and authorized content govern the implementation.
 
 | Overview | Existing content and navigation | Direct action and result |
 | --- | --- | --- |
-| Lists (`/more/collections`) | Back to More, status filters, list names, progress and item previews | Open the existing short List creation sheet. Save into the new List and retain the originating scope on return. |
+| Lists (`/more/collections`; since PR #2044 the home view of the `Listen` destination, with no Back control) | Listen \| Notizen switch, status filters, list names, progress and item previews | Open the existing short List creation sheet. Save into the new List and retain the originating scope on return. |
 | Places (`/more/places`) | Back to More, active/archive filters, place names and address previews | Open the existing short Place creation sheet, with optional coordinates and map selection. Save into the new Place and retain the originating scope on return. |
 | People (`/more/people`) | Back to More, portraits, names, relationship and birthday context | Open the focused person editor and show the new profile on save. Retain photo viewing, draft handling and the People return path. |
 | Chapters (`/story/chapters`) | Back to Moments, chapter introduction, titles, dates and excerpts | Open the focused Chapter editor and show the new Chapter on save. Retain the Chapter collection and task origin. |

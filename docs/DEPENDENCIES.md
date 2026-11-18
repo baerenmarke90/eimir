@@ -422,8 +422,8 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
 | com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
-| com.google.firebase:firebase-bom | 35.1.0 | Google Maven | Apache-2.0 |
-| com.google.firebase:firebase-messaging | 26.0.1 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.2.0 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.2 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
@@ -490,7 +490,7 @@ storage and remote notifications without another SDK.
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
 | Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.6.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |

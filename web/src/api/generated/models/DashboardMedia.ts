@@ -90,3 +90,4 @@ export function DashboardMediaToJSONTyped(value?: DashboardMedia | null, ignoreD
         'mediaType': MediaTypeToJSON(value['mediaType']),
     };
 }
+

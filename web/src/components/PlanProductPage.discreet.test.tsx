@@ -116,6 +116,9 @@ async function openEditor() {
   fireEvent.click(
     await screen.findByRole('button', { name: t('common.edit') }),
   );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
 }
 
 function setVisibility(state: DocumentVisibilityState) {

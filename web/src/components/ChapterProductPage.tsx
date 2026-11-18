@@ -30,6 +30,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -213,6 +214,7 @@ function ScopedChapterProductPage({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const editorRequestCloseRef = useRef<(() => void) | null>(null);
   const key = authorSummaryQueryKeys.chapterDetail(spaceId, chapterId);
@@ -512,17 +514,23 @@ function ScopedChapterProductPage({
         open={menuOpen && !isEditing}
         title={t('m5s3.chapter.detailEyebrow')}
         restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
         onClose={() => setMenuOpen(false)}
       >
         {chapter.capabilities.canEdit ? (
           <ItemMenuOption
             icon="pen"
             title={t('common.edit')}
-            onClick={() => {
-              setMenuOpen(false);
-              setDraft(chapterDraft(chapter));
-              setIsEditing(true);
-            }}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () => {
+                  setDraft(chapterDraft(chapter));
+                  setIsEditing(true);
+                },
+                () => setMenuOpen(false),
+              )
+            }
           />
         ) : null}
         {chapter.capabilities.canDelete ? (

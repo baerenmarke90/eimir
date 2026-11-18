@@ -75,6 +75,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { MomentMapLink } from './MomentMapLink';
@@ -150,6 +151,7 @@ export function PlanProductPage({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editTitleValue, setEditTitleValue] = useState('');
@@ -1349,6 +1351,7 @@ export function PlanProductPage({
         open={menuOpen && !isEditing}
         title={t('navigation.quickCreatePlan')}
         restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
         onClose={() => setMenuOpen(false)}
       >
         {plan.capabilities.canEdit ? (
@@ -1356,10 +1359,9 @@ export function PlanProductPage({
             icon="pen"
             title={t('common.edit')}
             disabled={writesPending}
-            onClick={() => {
-              setMenuOpen(false);
-              startEdit();
-            }}
+            onClick={() =>
+              leaveItemMenu(menuSheet, startEdit, () => setMenuOpen(false))
+            }
           />
         ) : null}
         {plan.capabilities.canDelete ? (

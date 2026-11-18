@@ -73,6 +73,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
@@ -178,6 +179,7 @@ function CollectionProductDetail({
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const createItemInFlightRef = useRef(false);
@@ -1531,6 +1533,7 @@ function CollectionProductDetail({
         }
         isCloseBlocked={sendToPartner.isPending}
         restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
         onClose={closeMenu}
       >
         {sendStep ? (
@@ -1568,11 +1571,16 @@ function CollectionProductDetail({
               <ItemMenuOption
                 icon="pen"
                 title={t('common.edit')}
-                onClick={() => {
-                  closeMenu();
-                  setTitleDraft(collection.title);
-                  setIsEditing(true);
-                }}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () => {
+                      setTitleDraft(collection.title);
+                      setIsEditing(true);
+                    },
+                    closeMenu,
+                  )
+                }
               />
             ) : null}
             {canSort ? (

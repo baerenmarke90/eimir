@@ -239,7 +239,6 @@ export function PrivateItemMenuSheets({
   canEdit,
   canDelete,
   onEdit,
-  editLeavesPage = true,
   disabled = false,
   deletePending,
   deleteError,
@@ -251,8 +250,6 @@ export function PrivateItemMenuSheets({
   canEdit: boolean;
   canDelete: boolean;
   onEdit: () => void;
-  /** True when Edit opens another route; false when it edits in place. */
-  editLeavesPage?: boolean;
   disabled?: boolean;
   deletePending: boolean;
   deleteError: unknown;
@@ -275,16 +272,11 @@ export function PrivateItemMenuSheets({
             icon="pen"
             title={t('privateArea.edit')}
             disabled={disabled}
-            onClick={() => {
-              if (editLeavesPage) {
-                leaveItemMenu(menu.menuSheet, onEdit, () =>
-                  menu.setMenuOpen(false),
-                );
-                return;
-              }
-              menu.setMenuOpen(false);
-              onEdit();
-            }}
+            onClick={() =>
+              leaveItemMenu(menu.menuSheet, onEdit, () =>
+                menu.setMenuOpen(false),
+              )
+            }
           />
         ) : null}
         {canDelete ? (

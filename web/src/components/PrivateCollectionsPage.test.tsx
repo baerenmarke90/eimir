@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -43,6 +49,9 @@ async function startEditing(title = 'Packing list') {
   fireEvent.click(
     await screen.findByRole('button', { name: privateArea.edit }),
   );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
 }
 
 function collection() {

@@ -126,6 +126,9 @@ async function openEditor(user: ReturnType<typeof userEvent.setup>) {
   await user.click(
     await screen.findByRole('button', { name: i18n.t('common.edit') }),
   );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
 }
 
 beforeEach(() => {

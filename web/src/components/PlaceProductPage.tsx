@@ -38,6 +38,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { PageHeader } from './PageHeader';
 import { PlaceMapPicker } from './PlaceMapPicker';
@@ -320,6 +321,7 @@ export function PlaceProductPage({
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const editorSheetRef = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const deleteSheetRef = useRef<ShortTaskSheetHandle>(null);
   const key = authorSummaryQueryKeys.placeDetail(spaceId, placeId);
 
@@ -532,6 +534,7 @@ export function PlaceProductPage({
         open={menuOpen}
         title={t('m5s3.place.detailEyebrow')}
         restoreFocusRef={menuTriggerRef}
+        sheetRef={menuSheet}
         isCloseBlocked={archiveMutation.isPending}
         onClose={() => setMenuOpen(false)}
       >
@@ -540,11 +543,16 @@ export function PlaceProductPage({
             icon="pen"
             title={t('common.edit')}
             disabled={archiveMutation.isPending}
-            onClick={() => {
-              setMenuOpen(false);
-              setDraft(placeDraft(place));
-              setIsEditing(true);
-            }}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () => {
+                  setDraft(placeDraft(place));
+                  setIsEditing(true);
+                },
+                () => setMenuOpen(false),
+              )
+            }
           />
         ) : null}
         {place.capabilities.canEdit ? (

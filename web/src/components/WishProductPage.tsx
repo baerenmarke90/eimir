@@ -50,6 +50,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -100,6 +101,7 @@ export function WishProductPage({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [repeatOpen, setRepeatOpen] = useState(false);
   const repeatTrigger = useRef<HTMLButtonElement>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
@@ -729,6 +731,7 @@ export function WishProductPage({
         open={menuOpen}
         title={t('m5s3.wish.detailEyebrow')}
         restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
         onClose={() => setMenuOpen(false)}
       >
         {wish.capabilities.canEdit ? (
@@ -736,10 +739,9 @@ export function WishProductPage({
             icon="pen"
             title={t('common.edit')}
             disabled={writesPending}
-            onClick={() => {
-              setMenuOpen(false);
-              startEdit();
-            }}
+            onClick={() =>
+              leaveItemMenu(menuSheet, startEdit, () => setMenuOpen(false))
+            }
           />
         ) : null}
         {wish.status === 'OPEN' && accountId && apiBaseUrl ? (

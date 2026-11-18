@@ -339,3 +339,61 @@ def test_retired_switch_upgrade_enables_existing_accounts_once(monkeypatch, coup
     session.expire_all()
     assert anna.photo_locations_version == 5
     assert ben.photo_locations_version == 7
+
+
+def test_an_edited_replacement_adds_no_second_place(client, couple, session):  # type: ignore[no-untyped-def]
+    original = binding.ready_attachment(client, couple, session)
+    memory = binding.memory(client, couple)
+    saved = attach(client, couple, memory, [original])
+    assert saved.status_code == 200
+    [place] = places(client, couple, memory["id"]).json()["items"]
+    unlinked = client.delete(
+        f"{binding.base_path(couple['space'].id)}/places/{place['id']}/memories/{memory['id']}",
+        headers=auth(couple["token_a"]),
+    )
+    assert unlinked.status_code == 204
+    edited = binding.ready_attachment(client, couple, session)
+    assert session.get(PhotoLocationDraft, UUID(edited)) is not None
+    replaced = client.put(
+        f"{binding.base_path(couple['space'].id)}/memories/{memory['id']}/attachments",
+        json={
+            "attachments": [
+                {"attachmentId": edited, "position": 0, "replacesAttachmentId": original}
+            ]
+        },
+        headers=binding.if_match(couple["token_a"], saved.json()["version"]),
+    )
+    assert replaced.status_code == 200
+    # The edit keeps its metadata, but its location is consumed without a Place.
+    assert places(client, couple, memory["id"]).json()["items"] == []
+    session.expire_all()
+    assert session.get(PhotoLocationDraft, UUID(edited)) is None
+    assert session.get(Attachment, UUID(original)).status == "DELETING"
+
+
+def test_heart_moment_replacement_keeps_a_single_photo_place(client, couple, session):  # type: ignore[no-untyped-def]
+    heart = binding.heart_moment(client, couple).json()
+    url = f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}"
+    original = binding.ready_attachment(client, couple, session)
+    saved = client.patch(
+        url,
+        json={"attachments": [{"attachmentId": original, "position": 0}]},
+        headers=binding.if_match(couple["token_a"], heart["version"]),
+    )
+    assert saved.status_code == 200, saved.text
+    assert len(places(client, couple, heart["id"], kind="heart-moments").json()["items"]) == 1
+    edited = binding.ready_attachment(client, couple, session)
+    replaced = client.patch(
+        url,
+        json={
+            "attachments": [
+                {"attachmentId": edited, "position": 0, "replacesAttachmentId": original}
+            ]
+        },
+        headers=binding.if_match(couple["token_a"], saved.json()["version"]),
+    )
+    assert replaced.status_code == 200, replaced.text
+    assert len(places(client, couple, heart["id"], kind="heart-moments").json()["items"]) == 1
+    session.expire_all()
+    assert session.get(PhotoLocationDraft, UUID(edited)) is None
+    assert session.get(Attachment, UUID(original)).status == "DELETING"

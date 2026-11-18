@@ -339,6 +339,7 @@ def update_heart_moment(
     audio_title: str | None = None,
     audio_speaker_name: str | None = None,
     location: HeartMomentLocation | None = None,
+    attachment_replacements: dict[UUID, UUID] | None = None,
 ) -> HeartMoment:
     """Change content but explicitly not visibility.
 
@@ -407,6 +408,7 @@ def update_heart_moment(
             selection,
             selected_cover=selected_cover_attachment_id,
             cover_supplied="selected_cover_attachment_id" in changed_fields,
+            replacements=attachment_replacements,
         )
         heart_moment.updated_at = now()
     elif "attachment_id" in changed_fields:

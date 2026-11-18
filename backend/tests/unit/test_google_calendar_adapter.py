@@ -12,6 +12,7 @@ from eimir.providers import google_calendar
 from eimir.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
+    CalendarEventLink,
     CalendarEventMissingError,
     CalendarProviderError,
     CalendarVersionConflictError,
@@ -48,6 +49,20 @@ def test_calendar_list_reports_write_rights_and_the_account_label() -> None:
     assert calendars["Unser Kalender"].writable is True
     assert calendars["Feiertage"].writable is False
     assert client.account_label() == "anna@example.com"
+
+
+@pytest.mark.parametrize("notes", [None, "Meet at <the lake> & bring a blanket"])
+def test_the_labelled_plan_link_starts_the_shared_event_description(notes: str | None) -> None:
+    fake = FakeGoogleCalendar()
+    url = "https://eimir.example/p/MzMzMzMzQzODMzMzMzMzMw"
+    created = api(fake).create_event(
+        SHARED, event(description=notes, backlink=CalendarEventLink(url, "Open in eimir."))
+    )
+    stored = fake.events[SHARED, created.ref]
+    anchor = f'<a href="{url}">Open in eimir.</a>'
+    suffix = "<br><br>Meet at &lt;the lake&gt; &amp; bring a blanket" if notes else ""
+    assert stored["description"] == anchor + suffix
+    assert "source" not in stored
 
 
 def test_deterministic_ids_make_inserts_idempotent_and_writes_conditional() -> None:

@@ -3,16 +3,20 @@
 Status: **code ready, store not configured.** The backend adapter, the
 notification endpoint and the Android purchase sheet exist and are tested with
 mocked Google responses. Nothing below has been set up yet; no real or test
-purchase has been made. The Play developer account still awaits verification
-(Product Owner, 2026-11-15).
+purchase has been made. As of 2026-11-16 (Product Owner) the Play developer
+account is verified, the payments profile is set up and the app `eimir.`
+(`de.eimir.app`) exists in Play Console. Everything else is **paused on
+purpose** until end-to-end encryption and the eimir. production environment
+with S3 storage are in place: the upload key, the first signed bundle, the
+subscription, the license testers, Google Cloud and the server configuration.
 
 Only the account owner can perform these steps. No password, two-factor code,
 bank/tax detail or private key belongs in an issue, a pull request or a chat.
 
 ## 1. Play Console (owner)
 
-1. Finish the developer account verification and create a **payments profile**
-   (merchant account) in Play Console.
+1. Create a **payments profile** (merchant account) in Play Console. The
+   developer account itself is verified.
 2. Create the app with package name `de.eimir.app` (or the package used for the
    release build) and upload a signed build to the **internal testing** track.
    A build that includes the Billing Library declares the
@@ -23,10 +27,11 @@ bank/tax detail or private key belongs in an issue, a pull request or a chat.
    - `yearly`: 1 year, EUR 59.99.
 
    Play derives other countries' prices; review them before activating.
-4. Free trial (approved in principle; duration still open): add an offer with
-   a free-trial phase to the base plan(s) that should have one, eligibility
-   "new customers". The app shows a trial only when Google offers it to the
-   signed-in customer.
+4. Free trial (Product Owner decision 2026-11-16: **7 days**): add an offer
+   with a 7-day free-trial phase to the base plan(s) that should have one,
+   eligibility "new customers". The app shows a trial only when Google offers
+   it to the signed-in customer, so the duration is configured in Play Console
+   only and needs no code change.
 5. Settings → License testing: add the testers' Google accounts. Test track
    installation alone does not make purchases free.
 6. Monetization setup → set the grace period / account hold you want. The app
@@ -100,10 +105,14 @@ purchase again, so notifications are required for production.
 
 ## 5. Still open (Product Owner)
 
-- Developer account verification and everything in sections 1–3.
+- Sections 1–3 except the verified account, the payments profile and the app
+  entry. Next step when work resumes: create the Android **upload key** and
+  store it in the protected `production-release` GitHub environment (it is
+  empty today); Play Console only accepts subscriptions after a build with the
+  Billing permission is uploaded.
 - First real test purchase with a license tester on a Play-installed build,
   including cancel, restore, refund and expiry (device evidence).
-- Trial duration and the base plans it applies to.
+- The base plans the 7-day trial applies to.
 - Review of regional prices and tax presentation Google derives.
 - Store listing, data-safety form and subscription terms text.
 - Self-Hosted Pro delivery (signed license issuance), defined later.

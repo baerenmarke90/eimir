@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import func, select
 
+from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.engagement import push, quiet_hours_preferences
@@ -287,3 +288,62 @@ def test_reaction_push_respects_recipient_choice_and_live_source(
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
     assert not reaction_push.calls
+
+
+def test_reactions_follow_an_edited_photo_to_its_replacement(client, couple, session, photo_memory):  # type: ignore[no-untyped-def]
+    path, photo, _ = photo_memory
+    reacted = client.put(
+        f"{path}/attachments/{photo}/reaction",
+        json={"reaction": "LOVE"},
+        headers=auth(couple["token_b"]),
+    ).json()
+    edited = ready_attachment(client, couple, session)
+    replaced = client.put(
+        f"{path}/attachments",
+        json={
+            "attachments": [
+                {
+                    "attachmentId": edited,
+                    "position": 0,
+                    "isSensitive": True,
+                    "replacesAttachmentId": photo,
+                }
+            ]
+        },
+        headers=if_match(couple["token_a"], reacted["version"]),
+    )
+    assert replaced.status_code == 200
+    [item] = replaced.json()["attachments"]
+    assert item["id"] == edited
+    assert item["reactions"] == [{"reaction": "LOVE", "count": 1, "own": False}]
+    session.expire_all()
+    stored = session.get(Memory, UUID(reacted["id"])).payload.photo_reactions
+    assert [str(reaction.attachment_id) for reaction in stored] == [edited]
+    assert session.get(Attachment, UUID(photo)).status == AttachmentStatus.DELETING.value
+
+
+def test_rejects_replacements_that_do_not_swap_a_removed_photo(
+    client, couple, session, photo_memory
+):  # type: ignore[no-untyped-def]
+    path, photo, initial = photo_memory
+    edited = ready_attachment(client, couple, session)
+    for entries in [
+        # The replaced photo stays in the gallery.
+        [
+            {"attachmentId": photo, "position": 0},
+            {"attachmentId": edited, "position": 1, "replacesAttachmentId": photo},
+        ],
+        # Nothing with that id was bound to this Memory.
+        [{"attachmentId": edited, "position": 0, "replacesAttachmentId": str(uuid4())}],
+        # A bound photo cannot replace another one.
+        [{"attachmentId": photo, "position": 0, "replacesAttachmentId": photo}],
+    ]:
+        rejected = client.put(
+            f"{path}/attachments",
+            json={"attachments": entries},
+            headers=if_match(couple["token_a"], initial["version"]),
+        )
+        assert rejected.status_code == 422, rejected.text
+        assert "ATTACHMENT_REPLACEMENT_INVALID" in rejected.text
+    session.expire_all()
+    assert session.get(Attachment, UUID(photo)).status == AttachmentStatus.READY.value

@@ -65,6 +65,13 @@ const relationshipReflections = {
       'Eure Erinnerungen, Pläne, Orte und der Datenexport bleiben auch ohne Pro zugänglich.',
     learnMore: 'Über eimir. Pro',
   },
+  waymarks: {
+    title: 'Eure Wegmarken',
+    milestoneYears_one: '{{count}} Jahr seit „{{title}}“',
+    milestoneYears_other: '{{count}} Jahre seit „{{title}}“',
+    showAll: 'Alle {{count}} Wegmarken anzeigen',
+    showFewer: 'Weniger anzeigen',
+  },
 };
 
 export default relationshipReflections;

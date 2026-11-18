@@ -1,0 +1,922 @@
+/*
+ * Growth and life of the shared garden (#1907 H3, PR 3). Like the core garden
+ * palette, these illustration roles only mean something inside the scene, so
+ * they live here at the token boundary as local `--garden-*` roles with Light
+ * and Dark values (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ */
+.garden-game-page {
+  /* The visitors' reactions overshoot a little, like a living thing. */
+  --garden-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --garden-path: #e6d3ad;
+  --garden-stone: #cdbd9f;
+  --garden-water: #9fcbe8;
+  --garden-water-highlight: #e8f5ff;
+  --garden-tree: #6f9f5f;
+  --garden-shade: #1f3524;
+  --garden-house: #f2dcc2;
+  --garden-fur: #b99b80;
+  --garden-tail: #f6efe6;
+  --garden-squirrel: #c4703a;
+  --garden-deer: #b27a48;
+  --garden-hedgehog: #8f735c;
+  --garden-spike: #5f4a3a;
+  --garden-face: #d9c1a6;
+  --garden-snail: #dccaa8;
+  --garden-shell: #c98d5e;
+  --garden-duck: #fbf8ef;
+  --garden-plane: #ffffff;
+  --garden-banner: #fffdf5;
+  --garden-contrail: #ffffffcc;
+  --garden-moon-petal: #fbf8ff;
+  --garden-moon-glow: #fff6c433;
+  --garden-petal-shade: #d98b3a;
+  --garden-berry: #d8473c;
+  --garden-berry-blossom: #fffaf0;
+  --garden-firefly-opacity: 0;
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-path: #6b5c48;
+  --garden-stone: #7d725f;
+  --garden-water: #3f5f86;
+  --garden-water-highlight: #9fbfe6;
+  --garden-tree: #3f6a47;
+  --garden-shade: #0b120d;
+  --garden-house: #8a7460;
+  --garden-fur: #a28a74;
+  --garden-tail: #e6ddd2;
+  --garden-squirrel: #b0663a;
+  --garden-deer: #9c6d45;
+  --garden-hedgehog: #7d6550;
+  --garden-spike: #4b3b2f;
+  --garden-face: #bba48c;
+  --garden-snail: #c4b494;
+  --garden-shell: #a8764f;
+  --garden-duck: #e9e5da;
+  --garden-plane: #e9ecf8;
+  --garden-banner: #f2efe2;
+  --garden-contrail: #ffffff33;
+  --garden-moon-petal: #f4f1ff;
+  --garden-moon-glow: #fff6c466;
+  --garden-petal-shade: #b8742f;
+  --garden-berry: #c0443a;
+  --garden-berry-blossom: #ede8d8;
+  --garden-firefly-opacity: 1;
+}
+
+/* Cards ---------------------------------------------------------------------- */
+
+.garden-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.garden-card h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.garden-card-actions,
+.garden-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.garden-card-actions > button,
+.garden-tools > button {
+  flex: 1 1 9rem;
+  min-height: 2.75rem;
+}
+
+.garden-hint {
+  font-size: 0.875rem;
+}
+
+/* Finds: tinted fill only, never an outline (chips carry no borders). */
+.garden-finds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.garden-find {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.garden-find.is-unknown {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.garden-news .garden-find-new {
+  animation: garden-pop var(--duration-context) var(--easing-enter) both;
+}
+
+.garden-herbarium {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.garden-herbarium li {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.garden-herbarium li.is-unknown {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.garden-herbarium-unknown {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  font-weight: 700;
+}
+
+.garden-book-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-book-head h2 {
+  flex: 1;
+}
+
+.garden-rename {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-rename label {
+  font-weight: 600;
+}
+
+.garden-rename input {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* Eure Besucher: portrait, name and one quiet text action per visitor. */
+.garden-visitors {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-visitor-list {
+  display: grid;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  list-style: none;
+}
+
+.garden-visitor {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.garden-visitor + .garden-visitor {
+  border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+.garden-visitor-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.garden-visitor-portrait {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+.garden-visitor-portrait svg {
+  width: 2.5rem;
+  height: 2.25rem;
+  overflow: visible;
+}
+
+.garden-visitor-text {
+  display: grid;
+  min-width: 0;
+}
+
+.garden-visitor-name {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.garden-visitor-name.is-named {
+  animation: garden-pop var(--duration-context) var(--garden-spring) both;
+}
+
+.garden-visitor-sub {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.garden-visitor.is-unknown .garden-visitor-sub {
+  font-weight: 500;
+}
+
+button.garden-visitor-action,
+button.garden-status-ask {
+  padding-inline: var(--space-2);
+  color: var(--color-link-text);
+  font-size: 0.875rem;
+}
+
+button.garden-visitor-action {
+  max-width: 7.5rem;
+  text-align: end;
+}
+
+.garden-visitor-editor {
+  padding-bottom: var(--space-2);
+  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  transform-origin: 50% 0;
+}
+
+.garden-visitor-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.garden-visitor-editor-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.garden-visitor-editor-row .garden-hint {
+  margin: 0;
+}
+
+.garden-visitor-counter {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.garden-visitor-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+.garden-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.garden-bouquet-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-bouquet-card .garden-arrival > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.garden-bouquet-art {
+  flex: none;
+  overflow: visible;
+}
+
+.garden-plane-note .garden-folded-action {
+  white-space: nowrap;
+}
+
+/* Scene ---------------------------------------------------------------------- */
+
+.garden-animal-target {
+  cursor: pointer;
+  outline: none;
+}
+
+.garden-animal-target:focus-visible rect {
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+.garden-banner-text,
+.garden-quack-text {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 7.2px;
+  font-weight: 600;
+}
+
+.garden-quack-text {
+  font-family: var(--font-ui, inherit);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.garden-quack {
+  animation: garden-pop var(--duration-feedback) var(--easing-enter) both;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-moon-halo {
+  opacity: var(--garden-moon-opacity);
+}
+
+.garden-firefly {
+  opacity: calc(var(--garden-firefly-opacity) * 0.6);
+  transform-box: fill-box;
+}
+
+.garden-scene.is-lively .garden-firefly {
+  animation: garden-firefly calc(var(--duration-connection-travel) * 0.8)
+    var(--easing-travel) infinite alternate;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-ripple {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.garden-scene.is-lively .garden-ripple {
+  animation: garden-ripple var(--duration-connection-travel)
+    var(--easing-travel) infinite;
+}
+
+.garden-scene.is-lively .garden-stream-flow {
+  animation: garden-stream calc(var(--duration-connection-travel) * 0.7)
+    var(--easing-playback) infinite;
+}
+
+@keyframes garden-firefly {
+  from {
+    opacity: calc(var(--garden-firefly-opacity) * 0.1);
+    transform: none;
+  }
+  to {
+    opacity: var(--garden-firefly-opacity);
+    transform: translate(5px, -8px);
+  }
+}
+
+@keyframes garden-ripple {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scaleX(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.1);
+  }
+}
+
+@keyframes garden-stream {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+/* Visitors (#1907 H3 follow-up) ---------------------------------------------
+ * Idle micro-motion runs only in a lively scene; each tap reaction follows the
+ * wrapper's `data-pose`. Durations derive from the shared motion tokens, which
+ * resolve to 0ms with reduced motion, and the page's reduced-motion rule stops
+ * every animation: a reaction then shows as a still pose. */
+
+.garden-animal
+:is(
+  .garden-blink,
+  .garden-snail-body,
+  .garden-snail-foot,
+  .garden-snail-stalks,
+  .garden-snail-shell,
+  .garden-rabbit-head,
+  .garden-rabbit-ears,
+  .garden-hedgehog-roll,
+  .garden-hedgehog-spikes,
+  .garden-hedgehog-face,
+  .garden-duck,
+  .garden-duck-ripple,
+  .garden-squirrel-tail,
+  .garden-deer-head,
+  .garden-deer-ears,
+  .garden-deer-legs
+),
+.garden-squirrel-peek,
+.garden-tree-crown,
+.garden-name-tag-float {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.garden-scene.is-lively .garden-blink {
+  animation: garden-blink calc(var(--duration-connection-travel) * 1.5)
+    var(--easing-playback) infinite;
+}
+
+/* Snail: stalks first, then the body slides into the shell; it comes out
+   slowly and the stalks extend with a small overshoot. */
+.garden-snail-body,
+.garden-snail-foot {
+  transform-origin: 40% 100%;
+}
+
+.garden-snail-body {
+  transition:
+    transform var(--duration-connection-draw) var(--easing-standard)
+    var(--duration-feedback),
+    opacity var(--duration-connection-beat) var(--easing-standard)
+    var(--duration-feedback);
+}
+
+.garden-snail-stalks {
+  transform-origin: 50% 100%;
+  transition:
+    transform calc(var(--duration-context) * 2) var(--garden-spring)
+    var(--duration-connection-draw),
+    opacity var(--duration-transition) var(--easing-enter)
+    var(--duration-connection-draw);
+}
+
+.garden-animal[data-pose="hide"] .garden-snail-stalks {
+  transform: scaleY(0.05);
+  opacity: 0;
+  transition:
+    transform var(--duration-transition) var(--easing-exit),
+    opacity var(--duration-feedback) var(--easing-exit) var(--duration-feedback);
+}
+
+.garden-animal[data-pose="hide"] .garden-snail-body {
+  transform: scale(0.06, 0.7);
+  opacity: 0;
+  transition:
+    transform var(--duration-connection-beat) var(--easing-exit)
+    var(--duration-transition),
+    opacity var(--duration-transition) var(--easing-exit)
+    var(--duration-connection-beat);
+}
+
+.garden-snail-shell {
+  transform-origin: 50% 100%;
+}
+
+.garden-animal[data-pose="hide"] .garden-snail-shell {
+  animation: garden-wobble var(--duration-connection-draw)
+    var(--easing-standard) var(--duration-connection-beat);
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-snail-foot {
+  animation: garden-inch var(--duration-gesture-sequence) var(--easing-travel)
+    infinite;
+}
+
+/* Rabbit: nibbling and an ear twitch; on a tap the ears perk up. */
+.garden-rabbit-head {
+  transform-origin: 15% 90%;
+}
+
+.garden-rabbit-ears {
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-rabbit-head {
+  animation: garden-nibble calc(var(--duration-connection-travel) * 0.9)
+    var(--easing-travel) infinite;
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-rabbit-ears {
+  animation: garden-ear-twitch var(--duration-connection-travel-far)
+    var(--easing-travel) infinite;
+}
+
+.garden-animal[data-pose="perk"] .garden-rabbit-ears {
+  transform: scaleY(1.12);
+  transition: transform var(--duration-context) var(--garden-spring);
+}
+
+.garden-animal[data-pose="perk"] .garden-rabbit-head {
+  transform: rotate(-6deg);
+  transition: transform var(--duration-transition) var(--easing-standard);
+}
+
+/* Hedgehog: sniffing; on a tap the face tucks in, the spikes bristle and it
+   rolls a little way and back before it uncurls. */
+.garden-hedgehog-face {
+  transform-origin: 0% 80%;
+  transition: transform var(--duration-connection-beat) var(--garden-spring)
+    var(--duration-feedback);
+}
+
+.garden-hedgehog-spikes {
+  transform-origin: 50% 100%;
+  transition: transform var(--duration-context) var(--garden-spring);
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-hedgehog-face {
+  animation: garden-sniff calc(var(--duration-gesture-moment) * 1.45)
+    var(--easing-travel) infinite;
+}
+
+.garden-animal[data-pose="curl"] .garden-hedgehog-face {
+  transform: scale(0) rotate(-20deg);
+  transition: transform var(--duration-transition) var(--easing-exit);
+}
+
+.garden-animal[data-pose="curl"] .garden-hedgehog-spikes {
+  transform: scale(1.14, 1.18);
+}
+
+.garden-animal[data-pose="curl"] .garden-hedgehog-roll {
+  animation: garden-roll calc(var(--duration-connection-travel) * 0.94)
+    var(--easing-standard) both;
+}
+
+/* Ducks: bobbing; on a tap the heads dip and the water ripples. */
+.garden-duck {
+  transform-origin: 50% 100%;
+}
+
+.garden-duck-ripple {
+  opacity: 0;
+}
+
+.garden-animal[data-pose="quack"] .garden-duck {
+  transform-origin: 80% 100%;
+  animation: garden-dip calc(var(--duration-connection-beat) * 1.1)
+    var(--easing-travel) 2;
+}
+
+.garden-animal[data-pose="quack"] .garden-duck.is-second {
+  animation-delay: var(--duration-transition);
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-duck {
+  animation: garden-bob var(--duration-connection-travel) var(--easing-travel)
+    infinite;
+}
+
+.garden-scene.is-lively
+  .garden-animal[data-pose="rest"]
+  .garden-duck.is-second {
+  animation-delay: calc(var(--duration-connection-travel) * -0.4);
+}
+
+.garden-animal[data-pose="quack"] .garden-duck-ripple {
+  animation: garden-water-ring calc(var(--duration-gesture-moment) * 1.45)
+    var(--easing-enter) 2;
+}
+
+/* Squirrel: a tail flick; it peeks out of the crown after it climbed in. */
+.garden-squirrel-tail {
+  transform-origin: 85% 95%;
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-squirrel-tail {
+  animation: garden-tail-flick calc(var(--duration-connection-travel) * 1.06)
+    var(--easing-travel) infinite;
+}
+
+.garden-squirrel-peek {
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-squirrel-peek {
+  animation: garden-peek var(--duration-gesture-sequence) var(--easing-standard)
+    both;
+}
+
+.garden-tree-crown {
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-tree-crown.is-rustling {
+  animation: garden-rustle calc(var(--duration-connection-beat) * 1.4)
+    var(--easing-travel) 3;
+}
+
+/* Deer: grazing; on a tap the head snaps up and the ears twitch. */
+.garden-deer-head {
+  transform-origin: 15% 91%;
+  transition: transform var(--duration-connection-beat) var(--garden-spring);
+}
+
+.garden-deer-ears {
+  transform-origin: 50% 100%;
+}
+
+.garden-deer-legs {
+  transform-origin: 50% 0%;
+}
+
+.garden-animal[data-pose="graze"] .garden-deer-head {
+  transform: rotate(64deg);
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="graze"] .garden-deer-head {
+  animation: garden-graze calc(var(--duration-connection-travel-far) * 1.5)
+    var(--easing-travel) infinite;
+}
+
+.garden-animal[data-pose="alert"] .garden-deer-head {
+  transform: rotate(-6deg);
+  transition: transform var(--duration-transition) var(--garden-spring);
+}
+
+.garden-animal[data-pose="alert"] .garden-deer-ears {
+  animation: garden-ear-twitch var(--duration-gesture-moment)
+    var(--easing-travel) 2;
+}
+
+/* The couple's name floats above a tapped visitor for a moment. */
+.garden-name-tag-text {
+  fill: var(--color-text);
+  font-family: var(--font-ui, inherit);
+  font-size: 8.6px;
+  font-weight: 700;
+}
+
+.garden-name-tag-float {
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-name-tag-float {
+  animation: garden-name-float var(--duration-gesture-sequence)
+    var(--easing-standard) both;
+}
+
+@keyframes garden-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes garden-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-8deg) translateY(1px);
+  }
+  45% {
+    transform: rotate(6deg);
+  }
+  70% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes garden-inch {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.06);
+  }
+}
+
+@keyframes garden-nibble {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8%,
+  24% {
+    transform: rotate(7deg);
+  }
+  16%,
+  32% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes garden-ear-twitch {
+  0%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(-9deg);
+  }
+  94% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes garden-sniff {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes garden-roll {
+  0% {
+    transform: none;
+  }
+  12% {
+    transform: translateY(-2px) rotate(-14deg) scale(0.95);
+  }
+  42%,
+  82% {
+    transform: translateX(16px) rotate(360deg) scale(0.95);
+  }
+  52% {
+    transform: translateX(15px) rotate(352deg) scale(0.95);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes garden-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(1.2px) rotate(-2deg);
+  }
+}
+
+@keyframes garden-dip {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes garden-water-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes garden-tail-flick {
+  0%,
+  30%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8% {
+    transform: rotate(-16deg);
+  }
+  14% {
+    transform: rotate(7deg);
+  }
+  20% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes garden-peek {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(0) rotate(-10deg);
+  }
+  60% {
+    transform: translateY(0) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes garden-rustle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-2.5deg);
+  }
+  70% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes garden-graze {
+  0%,
+  30%,
+  84%,
+  100% {
+    transform: rotate(64deg);
+  }
+  40%,
+  74% {
+    transform: rotate(0deg);
+  }
+  46%,
+  58% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes garden-name-float {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

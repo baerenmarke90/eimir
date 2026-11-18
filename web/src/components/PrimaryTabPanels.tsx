@@ -1,7 +1,18 @@
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
-import { type Location, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  type Location,
+  Route,
+  Routes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
 import { usePrimaryTabPeek } from '../client/primaryTabPeek';
-import { PrimaryTabTaskOriginScope } from '../client/taskOrigin';
+import { DEFAULT_APP_ROUTE } from '../client/routes';
+import {
+  PrimaryTabTaskOriginScope,
+  taskOriginPath,
+  useTaskOrigin,
+} from '../client/taskOrigin';
 import { AppErrorBoundary } from './AppErrorBoundary';
 
 /** About half a second at 60 Hz for a revealed panel to finish settling. */
@@ -14,10 +25,21 @@ export interface PrimaryTabPanel {
 }
 
 /**
+ * Wir starts fresh when it is opened again: the carousels inside it (lists,
+ * what is coming up, recent activity) show their first item again instead of
+ * wherever they were swiped to. They are the only scrollers a person can leave
+ * half-way, so any element with a horizontal offset is put back.
+ */
+function resetHorizontalScroll(panel: Element | null) {
+  if (!panel) return;
+  for (const element of panel.querySelectorAll<HTMLElement>('*'))
+    if (element.scrollLeft !== 0) element.scrollLeft = 0;
+}
+
+/**
  * Keeps every visited primary tab mounted, like a native tab bar. Returning to
- * a tab shows the view, its images and its scroll position as they were left,
- * instead of rebuilding it behind loading and image placeholders. Inactive
- * tabs are hidden (removed from layout, focus order and accessibility tree)
+ * a tab reuses the view and its images and restores the reader on Back.
+ * Inactive tabs are removed from layout, focus order and accessibility tree
  * and see the location they last had, so they never react to another tab's
  * route. Queries in hidden tabs stay subscribed and follow the normal cache
  * freshness and invalidation contracts.
@@ -30,10 +52,18 @@ export function PrimaryTabPanels({
   fallback: ReactNode;
 }) {
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const { resolveOrigin } = useTaskOrigin();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
   const active = panels.some((panel) => panel.path === pathname)
     ? pathname
     : null;
+  const startWirAtTop =
+    active === DEFAULT_APP_ROUTE &&
+    navigationType !== 'POP' &&
+    resolveOrigin(
+      (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
+    )?.to !== taskOriginPath(location.pathname, location.search);
   // Idempotent render-time bookkeeping: a newly visited tab mounts in the same
   // commit that makes it active.
   const locations = useRef(new Map<string, Location>());
@@ -57,9 +87,16 @@ export function PrimaryTabPanels({
     const previous = activeRef.current;
     activeRef.current = active;
     if (!active || previous === active) return;
-    const target = scrollPositions.current.get(active) ?? 0;
-    // New tabs start at the top; revisited tabs restore their reading position.
+    // Opening Wir from the tab bar starts at the portraits. Back and task
+    // returns keep their captured reading position.
+    const target = startWirAtTop
+      ? 0
+      : (scrollPositions.current.get(active) ?? 0);
     window.scrollTo({ top: target, behavior: 'instant' });
+    if (startWirAtTop)
+      resetHorizontalScroll(
+        document.querySelector(`[data-primary-tab="${active}"]`),
+      );
     if (target === 0) return;
     // The revealed panel can still be briefly shorter than when it was left
     // (content settling after it becomes visible), which clamps the restore.
@@ -90,7 +127,7 @@ export function PrimaryTabPanels({
       window.addEventListener(type, stop, { passive: true });
     request = requestAnimationFrame(settle);
     return stop;
-  }, [active]);
+  }, [active, startWirAtTop]);
 
   // While a swipe drags the pages, the neighbouring tab is laid over the
   // viewport at the reading position it was left in. Measure once per peek
@@ -99,9 +136,12 @@ export function PrimaryTabPanels({
     const panel = peekRef.current;
     const main = panel?.parentElement;
     if (!panel || !main || !peek) return;
+    // Wir is always shown from its start, like it opens from the tab bar.
+    if (peek === DEFAULT_APP_ROUTE) resetHorizontalScroll(panel);
     const box = main.getBoundingClientRect();
     const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
-    const saved = scrollPositions.current.get(peek) ?? 0;
+    const saved =
+      peek === DEFAULT_APP_ROUTE ? 0 : (scrollPositions.current.get(peek) ?? 0);
     panel.style.setProperty('--primary-tab-peek-left', `${box.left}px`);
     panel.style.setProperty('--primary-tab-peek-width', `${box.width}px`);
     panel.style.setProperty(

@@ -1,4 +1,5 @@
 import type { Route } from '@playwright/test';
+import { fulfillNoSharedNotes } from './sharedNotes';
 import { NO_WISH_SELECTION_ROUND } from './storyTimelineFixture';
 
 /** Unrelated Wish journeys have no active date exchange. */
@@ -44,6 +45,7 @@ export async function fulfillNoWishSelectionRound(
 export async function fulfillDefaultProductContext(
   route: Route,
 ): Promise<boolean> {
+  if (await fulfillNoSharedNotes(route)) return true;
   const request = route.request();
   const pathname = new URL(request.url()).pathname;
   // An unrelated journey starts without pending one-time messages. Feature
@@ -55,6 +57,20 @@ export async function fulfillDefaultProductContext(
     await route.fulfill({
       json: { items: [] },
       headers: { 'Cache-Control': 'private, no-store' },
+    });
+    return true;
+  }
+  // Without a saved choice the person sees the automatic blue and rose pair.
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/appearance\/person-colours$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { colours: null, version: 0 },
+      headers: {
+        ETag: '"fixture-person-colours:absent"',
+        'Cache-Control': 'private, no-store',
+      },
     });
     return true;
   }

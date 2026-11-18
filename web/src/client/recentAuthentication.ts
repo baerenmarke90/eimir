@@ -7,6 +7,7 @@ import type { RecentAuthenticationView } from '../api/generated/models/RecentAut
 import { Configuration } from './apiConfiguration';
 import { isCapacitorNative } from '../pwa';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
+import { assertionToJson, requestOptionsFromJson } from './webauthnCodec';
 
 const OIDC_POPUP_POLL_MS = 200;
 const OIDC_POPUP_TIMEOUT_MS = 2 * 60 * 1000;
@@ -20,84 +21,6 @@ function api(apiBaseUrl: string, accessToken: string): AuthApi {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
   );
-}
-
-function decodeBase64Url(value: string): ArrayBuffer {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-  const raw = window.atob(padded);
-  const bytes = new Uint8Array(raw.length);
-  for (let index = 0; index < raw.length; index += 1) {
-    bytes[index] = raw.charCodeAt(index);
-  }
-  return bytes.buffer;
-}
-
-function encodeBase64Url(value: ArrayBuffer): string {
-  const bytes = new Uint8Array(value);
-  let raw = '';
-  for (const byte of bytes) raw += String.fromCharCode(byte);
-  return window
-    .btoa(raw)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function requestOptionsFromJson(
-  value: Record<string, unknown>,
-): PublicKeyCredentialRequestOptions {
-  const allowCredentials = Array.isArray(value.allowCredentials)
-    ? value.allowCredentials.map((item) => {
-        const descriptor = item as Record<string, unknown>;
-        return {
-          id: decodeBase64Url(String(descriptor.id)),
-          type: 'public-key' as const,
-          transports: Array.isArray(descriptor.transports)
-            ? (descriptor.transports as AuthenticatorTransport[])
-            : undefined,
-        };
-      })
-    : undefined;
-
-  return {
-    challenge: decodeBase64Url(String(value.challenge)),
-    timeout: typeof value.timeout === 'number' ? value.timeout : undefined,
-    rpId: typeof value.rpId === 'string' ? value.rpId : undefined,
-    allowCredentials,
-    userVerification:
-      typeof value.userVerification === 'string'
-        ? (value.userVerification as UserVerificationRequirement)
-        : undefined,
-    extensions:
-      value.extensions && typeof value.extensions === 'object'
-        ? (value.extensions as AuthenticationExtensionsClientInputs)
-        : undefined,
-  };
-}
-
-function assertionToJson(
-  credential: PublicKeyCredential,
-): Record<string, unknown> {
-  if (!(credential.response instanceof AuthenticatorAssertionResponse)) {
-    throw new Error('The authenticator did not return a WebAuthn assertion.');
-  }
-  const response = credential.response;
-  return {
-    id: credential.id,
-    rawId: encodeBase64Url(credential.rawId),
-    type: credential.type,
-    response: {
-      clientDataJSON: encodeBase64Url(response.clientDataJSON),
-      authenticatorData: encodeBase64Url(response.authenticatorData),
-      signature: encodeBase64Url(response.signature),
-      userHandle: response.userHandle
-        ? encodeBase64Url(response.userHandle)
-        : null,
-    },
-    clientExtensionResults: credential.getClientExtensionResults(),
-    authenticatorAttachment: credential.authenticatorAttachment,
-  };
 }
 
 async function normalize<T>(operation: () => Promise<T>): Promise<T> {

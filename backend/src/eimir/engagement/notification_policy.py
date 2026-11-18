@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 13
+POLICY_VERSION = 16
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -117,9 +117,20 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        NotificationKind.HEART_HUNT_HIDDEN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.HEART_HUNT_FOUND: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         # A partner's "rather decide ourselves" never interrupts by push.
         NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationPolicy(
             DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
+        # "Du bist dran" (#1907 H3): a quiet turn signal; the picture itself
+        # never appears in a preview.
+        NotificationKind.PICTURE_PING_PONG_TURN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.PHOTO_REACTION: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -133,6 +144,15 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
+        # #1969: a shared note appears in the Notification Center only. Push needs
+        # a native presentation per platform and is a separate, later decision;
+        # later edits of one note update a single coalesced entry.
+        NotificationKind.SHARED_NOTE_CREATED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
+        NotificationKind.SHARED_NOTE_CHANGED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -144,6 +164,18 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        # A list the partner deliberately sent (#1907 E2); neutral device preview.
+        NotificationKind.COLLECTION_SENT: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # A garden seed from the partner (#1907 H3); never the attached words.
+        NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # A retained recap is ready or got a newer version (#1744); the device
+        # preview names only the period, never a title or a photo.
+        NotificationKind.RECAP_READY: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.RECAP_GREW: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
@@ -225,6 +257,10 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.PLAN_CREATED.value,
         NotificationKind.PARTNER_JOINED.value,
         NotificationKind.WISH_REMINDER_DUE.value,
+        NotificationKind.COLLECTION_SENT.value,
+        NotificationKind.GARDEN_SEED_ARRIVED.value,
+        NotificationKind.RECAP_READY.value,
+        NotificationKind.RECAP_GREW.value,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

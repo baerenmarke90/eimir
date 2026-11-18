@@ -40,6 +40,10 @@ class ActivityKind(StrEnum):
     CHAPTER_CREATED = "CHAPTER_CREATED"
     COLLECTION_CREATED = "COLLECTION_CREATED"
     COMMENT_CREATED = "COMMENT_CREATED"
+    # #1969: a shared note was written or changed. A feed entry names the note
+    # and its author; it never carries or exposes the note's text.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
 
 
 class NotificationKind(StrEnum):
@@ -58,6 +62,8 @@ class NotificationKind(StrEnum):
     WISH_SELECTION_RANDOM_REQUESTED = "WISH_SELECTION_RANDOM_REQUESTED"
     WISH_SELECTION_RANDOM_ACCEPTED = "WISH_SELECTION_RANDOM_ACCEPTED"
     WISH_SELECTION_RANDOM_DECLINED = "WISH_SELECTION_RANDOM_DECLINED"
+    HEART_HUNT_HIDDEN = "HEART_HUNT_HIDDEN"
+    HEART_HUNT_FOUND = "HEART_HUNT_FOUND"
     PHOTO_REACTION = "PHOTO_REACTION"
     PARTNER_JOINED = "PARTNER_JOINED"
     COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
@@ -70,6 +76,16 @@ class NotificationKind(StrEnum):
     WISH_DATE_PROPOSED = "WISH_DATE_PROPOSED"
     WISH_DATE_COUNTERED = "WISH_DATE_COUNTERED"
     WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
+    COLLECTION_SENT = "COLLECTION_SENT"
+    PICTURE_PING_PONG_TURN = "PICTURE_PING_PONG_TURN"
+    # #1969: a partner wrote or changed a shared note. Content-free references only.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
+    GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
+    # #1744: a retained recap is ready, or a retained recap got a newer version.
+    # Both partners get the identical notice; it names only the period.
+    RECAP_READY = "RECAP_READY"
+    RECAP_GREW = "RECAP_GREW"
 
 
 WISH_DATE_NOTICE_KINDS = frozenset(
@@ -97,6 +113,11 @@ COALESCED_NOTIFICATION_KINDS = (
     "WISH_SELECTION_RANDOM_REQUESTED",
     "WISH_SELECTION_RANDOM_ACCEPTED",
     "WISH_SELECTION_RANDOM_DECLINED",
+    "COLLECTION_SENT",
+    "PICTURE_PING_PONG_TURN",
+    # Several edits of one note leave one current notice, not a stack of them.
+    "SHARED_NOTE_CHANGED",
+    "GARDEN_SEED_ARRIVED",
 )
 
 
@@ -125,6 +146,11 @@ class EngagementTarget(StrEnum):
     PLACE = "PLACE"
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
+    PICTURE_GAME = "PICTURE_GAME"
+    SHARED_NOTE = "SHARED_NOTE"
+    GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
+    RECAP = "RECAP"
 
 
 class PushDeliveryStatus(StrEnum):
@@ -269,6 +295,19 @@ class Activity(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
+        ),
+        # One feed entry per note and kind: repeated edits move the single
+        # "changed" entry forward instead of stacking one entry per save.
+        Index(
+            "uq_activities_shared_note_target_kind",
+            "space_id",
+            "target_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') "
+                "AND target_type = 'SHARED_NOTE'"
+            ),
         ),
     )
 

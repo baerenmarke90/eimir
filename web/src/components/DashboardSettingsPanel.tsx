@@ -45,12 +45,30 @@ const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   keepsake: 'momente',
   upcoming: 'kalender',
   pinned_collection: 'listen',
+  pinned_note: 'notes',
   retrospective: 'erinnerungen',
   relationship_signal: 'gemeinsam',
   monthly_highlights: 'highlights',
   recent_shared: 'aktivitaet',
   shared_story_summary: 'statistiken',
+  shared_garden: 'spiele',
 };
+
+/** Pro modules whose row carries the calm Pro marker. */
+const PRO_MARKED_MODULES: readonly DashboardModuleKey[] = [
+  'partner_distance',
+  'shared_garden',
+];
+
+/**
+ * Opt-in Pro modules stay in the arranged list even while off, like the
+ * other optional Pro rows, so they can be found without opening the hidden
+ * group, and keep their place.
+ */
+const ALWAYS_LISTED_MODULES: readonly DashboardModuleKey[] = [
+  'shared_story_summary',
+  'shared_garden',
+];
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
@@ -59,6 +77,11 @@ export interface DashboardSettingsPanelProps {
   moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
   /** Modules this account cannot use here; they stay out of the list. */
   unavailableModuleKeys?: readonly DashboardModuleKey[];
+  /**
+   * Pro modules listed without the capability: the switch shows off and is
+   * disabled, while the saved choice and place stay and return with Pro.
+   */
+  lockedModuleKeys?: readonly DashboardModuleKey[];
   /** Viewer-side controls for the always-visible couple hero. */
   heroControls?: ReactNode;
 }
@@ -183,6 +206,7 @@ function settlePreferenceFacetWrite(
 export function DashboardSettingsPanel({
   moduleControls,
   unavailableModuleKeys,
+  lockedModuleKeys,
   heroControls,
   dashboardApi,
   accountId,
@@ -579,7 +603,7 @@ export function DashboardSettingsPanel({
   const hiddenKeys = personalKeys.filter(
     (key) =>
       moduleControls?.[key] === undefined &&
-      key !== 'shared_story_summary' &&
+      !ALWAYS_LISTED_MODULES.includes(key) &&
       !isDashboardModuleVisible(preferencesQuery.data, key),
   );
   const visibleKeys = personalKeys.filter((key) => !hiddenKeys.includes(key));
@@ -718,7 +742,9 @@ export function DashboardSettingsPanel({
       (item) => item.key === moduleKey,
     );
     if (!entry) return null;
-    const visible = isDashboardModuleVisible(preferencesQuery.data, entry.key);
+    const locked = lockedModuleKeys?.includes(entry.key) === true;
+    const visible =
+      !locked && isDashboardModuleVisible(preferencesQuery.data, entry.key);
     const rowScope = `${settingsScope}:${entry.key}`;
     const isRowPending =
       pendingVisibility[rowScope] !== undefined ||
@@ -749,7 +775,7 @@ export function DashboardSettingsPanel({
             htmlFor={`dashboard-visible-${entry.key}`}
           >
             {t(entry.labelKey)}
-            {entry.key === 'partner_distance' ? (
+            {PRO_MARKED_MODULES.includes(entry.key) ? (
               <>
                 {' '}
                 <ProMark label={t('partnerLocation.pro')} />
@@ -767,6 +793,7 @@ export function DashboardSettingsPanel({
               type="checkbox"
               checked={pendingVisibility[rowScope]?.visible ?? visible}
               disabled={
+                locked ||
                 isRowPending ||
                 preferencesQuery.isPending ||
                 Boolean(preferencesQuery.error)

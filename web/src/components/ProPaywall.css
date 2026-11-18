@@ -243,6 +243,83 @@
   font: var(--font-reading-body);
 }
 
+.pro-feature-catalogue {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pro-feature-catalogue h2 {
+  margin: 0 0 var(--space-2);
+  font: var(--font-personal-heading);
+  letter-spacing: var(--tracking-personal-heading);
+}
+
+.pro-feature-catalogue details {
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-content);
+  background: var(--color-surface-panel);
+}
+
+.pro-feature-catalogue summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-3) var(--space-4);
+  border-radius: inherit;
+  list-style: none;
+  cursor: pointer;
+  font: var(--font-action-label);
+}
+
+.pro-feature-catalogue summary::-webkit-details-marker {
+  display: none;
+}
+
+.pro-feature-catalogue summary:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.pro-feature-catalogue details[open] summary {
+  background: var(--color-brand-surface);
+}
+
+.pro-feature-catalogue summary .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  color: var(--color-brand-text);
+}
+
+.pro-feature-catalogue :where(details[open]) .pro-feature-chevron {
+  transform: rotate(90deg);
+}
+
+.pro-feature-catalogue dl {
+  margin: 0;
+  padding-inline: var(--space-4);
+}
+
+.pro-feature-catalogue dl > div {
+  padding-block: var(--space-3);
+}
+
+.pro-feature-catalogue dl > div + div {
+  border-block-start: var(--border-surface-width) solid
+    var(--color-border-subtle);
+}
+
+.pro-feature-catalogue dt {
+  font: var(--font-action-label);
+}
+
+.pro-feature-catalogue dd {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
 .pro-paywall-free {
   margin: 0;
   color: var(--color-text-secondary);
@@ -272,13 +349,22 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .pro-paywall-hero-circle {
-    animation: pro-paywall-meet var(--duration-context) var(--easing-enter)
-      backwards;
+  .pro-paywall-hero-circle,
+  .pro-paywall-hero-icon {
+    animation: pro-paywall-meet var(--duration-context) var(--easing-enter);
   }
 
   .pro-paywall-plan {
     transition: background-color var(--duration-feedback) var(--easing-standard);
+  }
+
+  .pro-feature-catalogue .pro-feature-chevron {
+    transition: transform var(--duration-feedback) var(--easing-standard);
+  }
+
+  .pro-feature-catalogue details[open] dl {
+    animation: eimir-disclosure-reveal var(--duration-transition)
+      var(--easing-enter);
   }
 }
 

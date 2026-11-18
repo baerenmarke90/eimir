@@ -80,8 +80,11 @@ ActionState     = idle | submitting | success | error
   inline insertion controls retain their distinct roles. Keep at most one
   visually dominant primary action in the current view/state.
 - All create/add entry points, including authored tags, media and inline list
-  insertion, use `AddActionLink` or `AddActionButton`: the same filled
-  canonical-blue pill, shared icon and **visible localized action label**,
+  insertion, use `AddActionLink` or `AddActionButton`: the same filled pill
+  in the active design's action colour (`--color-action-primary` with
+  `--color-on-action-primary`; Verbunden keeps the canonical blue, Product
+  Owner decision 2026-11-17, #1907 C1), shared icon and **visible localized
+  action label**,
   with a comfortable 48 px target. The optional typed `icon` prop selects an
   `EimirIcon` motif; the plus remains the default for generic creation.
   Product Owner correction #1724 uses photo for device media, photo-library for
@@ -522,7 +525,9 @@ retains visible feeling radios and its separate visibility task.
 
 - An avatar-shaped upload passes through the shared `PhotoCropTask` before it
   is sent: the photo moves and zooms inside the round frame avatars use, and
-  the frame is always fully covered.
+  the frame is always fully covered. This includes related People avatars from
+  the device or a connected photo source (#1907 G1).
+- `Drehen` turns the photo a quarter counter-clockwise before cropping.
 - The step is a short sheet with one filled completion action and Cancel.
   Cancel, Escape, Back and the sheet dismissal upload nothing and keep the
   current photo.
@@ -532,8 +537,46 @@ retains visible feeling radios and its separate visibility task.
 - The crop is rendered on the device; the upload is the chosen square without
   metadata. The photo on the device is never modified. A photo the device
   cannot decode is uploaded unchanged instead of blocking the user.
-- Memory, HeartMoment and Plan photos do not use this step: their full image is
-  kept and previews use cover selection.
+- Memory, HeartMoment and Plan photos do not use this step; they use the
+  photo edit step (10.1b) only when the user asks for it.
+
+### 10.1b Photo edit step (#1907 G1)
+
+- A selected, not yet saved Memory, HeartMoment or Plan photo shows an
+  `Bearbeiten` overlay action on the composer stage. Nothing is edited unless
+  the user opens it; previews keep using cover selection.
+- `PhotoEditTask` is a short sheet with three tools as icon-over-label radios:
+  Zuschneiden, Malen and Text. Cancel, Escape, Back and dismissal keep the
+  selected photo unchanged.
+- Cropping works as in phone photo apps: the frame stays, the photo moves under
+  it with one finger and zooms with two (mouse: drag and wheel). Corner and edge
+  handles change the frame; releasing re-centres the new section. `Drehen`
+  turns a quarter counter-clockwise and `Zurücksetzen` restores the photo.
+  The frame shows thirds while moving and dims the area outside it.
+- Malen draws with a finger in one of five `photoMark` colours. Text is placed
+  by tapping, moved by dragging, resized from a corner grip and set in one of
+  six free typefaces. Both have `Rückgängig`.
+- Keyboard: the frame moves the photo with the arrow keys and zooms with plus
+  and minus; each handle moves its edges with the arrow keys; the text grip
+  resizes with the arrow keys. Every control has an accessible name.
+- The edit is rendered on the device once, from the same renderer as the
+  preview, and replaces the selection before saving. A JPEG keeps its EXIF
+  metadata (capture date, place, camera) with the orientation set upright, so
+  date and place enrichment still work. The photo on the device is never
+  modified, and no second copy is stored. A photo the device cannot decode
+  stays as selected.
+- Motion: the frame re-centres with `--duration-transition`; reduced motion
+  moves it at once.
+- Saved photos (Product Owner, 2026-11-16): only inside the entry's own edit
+  mode (`Bearbeiten` on the Memory, Plan or HeartMoment), never from reading
+  it, a saved image the viewer may remove shows the same overlay action. The
+  sheet says that the edited photo replaces the saved one when the entry is
+  saved. Nothing changes before that save; cancelling the entry edit keeps the
+  saved photo. On save the edited photo takes the original's position, cover
+  and sensitivity, the gallery write names the replaced photo
+  (`replacesAttachmentId`), the original is deleted like any removed photo,
+  photo reactions move to the edited photo, and its location creates no second
+  Place. There is no server copy of the unedited original.
 
 ### 10.2 Avatar Pair
 

@@ -14,13 +14,29 @@ export const BUNDLED_TERMS_VERSION = termsOfUseDe.version;
  */
 export function TermsAcceptanceField({
   name = 'acceptedTerms',
+  checked,
+  onChange,
 }: {
   name?: string;
+  /** Pass both to observe the choice, for example to enable a provider button. */
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
 }) {
   return (
     <>
       <label className="choice-row terms-acceptance">
-        <input type="checkbox" name={name} value="accepted" required />
+        <input
+          type="checkbox"
+          name={name}
+          value="accepted"
+          required
+          {...(checked !== undefined && onChange
+            ? {
+                checked,
+                onChange: (event) => onChange(event.currentTarget.checked),
+              }
+            : {})}
+        />
         <span>
           <Trans
             i18nKey="legal.accept"

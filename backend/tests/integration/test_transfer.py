@@ -34,10 +34,12 @@ from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
 from eimir.relations import service as relation_service
-from eimir.relations.models import HeartMomentPlan, MilestonePlan, PlanCollection
+from eimir.relations.models import HeartMomentPlan, MilestonePlan, PlanCollection, PlanNote
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.runtime_models import RulePreference
+from eimir.shared_notes import service as shared_note_service
+from eimir.shared_notes.models import SharedNote
 from eimir.transfer import jobs, service
 from eimir.transfer.models import ExportStatus, ImportStatus, TransferScope
 from eimir.wishes import service as wish_service
@@ -343,6 +345,12 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     relation_service.link(
         session, source_authorization, plan.id, collection.id, relation_service.PLAN_COLLECTIONS
     )
+    shared_note = shared_note_service.create_note(
+        session, source_authorization, title="Portable note", body="Door code 4172"
+    )
+    relation_service.link(
+        session, source_authorization, plan.id, shared_note.id, relation_service.PLAN_NOTES
+    )
 
     with service.build_export_archive(
         session, source_authorization, TransferScope.SHARED
@@ -403,6 +411,18 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     assert imported_link.plan_id == imported_plan.id
     assert imported_link.collection_id == imported_collection.id
     assert collection_service.list_items(session, imported_collection)[0].completed is True
+    imported_note = session.scalars(
+        select(SharedNote).where(SharedNote.space_id == target_space.id)
+    ).one()
+    imported_note_link = session.scalars(
+        select(PlanNote).where(PlanNote.space_id == target_space.id)
+    ).one()
+    assert imported_note.id != shared_note.id
+    assert imported_note.payload.title == "Portable note"
+    assert imported_note.payload.body == "Door code 4172"
+    assert imported_note.edited_by == imported_note.owner_id
+    assert imported_note_link.plan_id == imported_plan.id
+    assert imported_note_link.note_id == imported_note.id
     imported_milestone = session.scalars(
         select(Milestone).where(Milestone.space_id == target_space.id)
     ).one()

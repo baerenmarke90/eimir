@@ -1,13 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
-/** One-shot viewport admission; media ownership and privacy stay with the caller. */
+/** The admission band reaches three quarters of a viewport beyond each edge. */
+const ADMISSION_MARGIN = 0.75;
+
+function isWithinAdmissionBand(node: Element): boolean {
+  const height = window.innerHeight || document.documentElement.clientHeight;
+  if (!height) return false;
+  const rect = node.getBoundingClientRect();
+  // An element without a laid-out box (hidden, detached) waits for the observer.
+  if (rect.width === 0 && rect.height === 0) return false;
+  return (
+    rect.bottom >= -height * ADMISSION_MARGIN &&
+    rect.top <= height * (1 + ADMISSION_MARGIN)
+  );
+}
+
+/**
+ * One-shot viewport admission; media ownership and privacy stay with the caller.
+ * A preview already inside the admission band is admitted before the first
+ * paint, so a returning view never paints a deferred skeleton for an image it
+ * can show at once. Others wait for the IntersectionObserver.
+ */
 export function usePreviewLoadGate(
   mode: 'immediate' | 'near-viewport',
   enabled = true,
 ) {
   const ref = useRef<HTMLDivElement>(null);
   const [admitted, setAdmitted] = useState(mode === 'immediate');
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled) return;
     if (mode === 'immediate' || admitted) {
       setAdmitted(true);
@@ -15,7 +35,10 @@ export function usePreviewLoadGate(
     }
     const node = ref.current;
     if (!node) return;
-    if (typeof IntersectionObserver === 'undefined') {
+    if (
+      typeof IntersectionObserver === 'undefined' ||
+      isWithinAdmissionBand(node)
+    ) {
       setAdmitted(true);
       return;
     }
@@ -25,7 +48,11 @@ export function usePreviewLoadGate(
         setAdmitted(true);
         observer.disconnect();
       },
-      { root: null, rootMargin: '75% 0px', threshold: 0 },
+      {
+        root: null,
+        rootMargin: `${ADMISSION_MARGIN * 100}% 0px`,
+        threshold: 0,
+      },
     );
     observer.observe(node);
     return () => observer.disconnect();

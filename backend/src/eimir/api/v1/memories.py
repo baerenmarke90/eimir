@@ -29,6 +29,8 @@ from eimir.api.v1.attachments import (
     AttachmentEntry,
     OrderedAttachmentSummary,
     public_attachment_status,
+    reject_replacements,
+    replacements_of,
 )
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
@@ -377,6 +379,7 @@ def create_memory(
     (`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the
     answer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.
     """
+    reject_replacements(body.attachments)
     result = service.create_memory_once(
         session,
         authorization,
@@ -548,6 +551,7 @@ def replace_memory_attachments(
         sensitivity={entry.attachment_id: entry.is_sensitive for entry in body.attachments},
         selected_cover_attachment_id=body.selected_cover_attachment_id,
         cover_selection_supplied="selected_cover_attachment_id" in body.model_fields_set,
+        replacements=replacements_of(body.attachments),
     )
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)

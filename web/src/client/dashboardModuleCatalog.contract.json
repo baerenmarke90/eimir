@@ -8,10 +8,12 @@
     "keepsake",
     "upcoming",
     "pinned_collection",
+    "pinned_note",
     "retrospective",
     "relationship_signal",
     "monthly_highlights",
     "recent_shared",
-    "shared_story_summary"
+    "shared_story_summary",
+    "shared_garden"
   ]
 }

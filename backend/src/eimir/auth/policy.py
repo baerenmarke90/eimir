@@ -106,6 +106,26 @@ def self_service_signup_supported(settings: Settings | None = None) -> bool:
     )
 
 
+def oidc_signup_supported(settings: Settings | None = None) -> bool:
+    """Return whether an external identity may create a new Account without an invitation.
+
+    The same deployments that offer the mailed signup proof, and only where an
+    OIDC connection exists. The provider must assert a verified address and the
+    person accepts the terms of use, so the address is proven before the Account
+    exists, exactly as the mailed proof does. An address that already has an
+    Account is never merged into it.
+    """
+    if settings is None:
+        settings = config.get_settings()
+    return self_service_signup_supported(settings) and resolve_auth_capabilities(settings).oidc
+
+
+def ensure_oidc_signup_supported(settings: Settings | None = None) -> None:
+    """Reject OIDC onboarding without an invitation where it is not offered."""
+    if not oidc_signup_supported(settings):
+        raise AuthMethodDisabledError("Signup with an external identity is not supported here.")
+
+
 def ensure_self_service_signup_supported(settings: Settings | None = None) -> None:
     """Reject self-service onboarding before any address or proof is looked at."""
     if not self_service_signup_supported(settings):

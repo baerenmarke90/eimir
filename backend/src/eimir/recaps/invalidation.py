@@ -45,7 +45,8 @@ def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
     if affected:
         for edition in session.scalars(select(RecapEdition).where(RecapEdition.id.in_(affected))):
             if edition.payload.headline or edition.payload.introduction:
-                edition.payload = RecapPayload(mood=edition.payload.mood)
+                # Only derived prose is scrubbed; the frozen film look stays.
+                edition.payload = RecapPayload(mood=edition.payload.mood, film=edition.payload.film)
                 edition.generated_by = "RULES"
                 # The factual template shows at once; an automatic proposal is rewritten
                 # later. Scrubbed prose cannot trigger this again, which debounces edits.

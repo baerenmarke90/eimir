@@ -381,8 +381,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .wir-stage-intro .wir-bridge-arm {
     transform-origin: left center;
-    animation: wir-intro-arm calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) both;
+    animation: wir-intro-arm calc(var(--wir-intro-beat) * 2) var(--easing-enter)
+      both;
   }
 
   .wir-stage-intro .wir-bridge-arm-partner {
@@ -391,8 +391,8 @@
 
   /* Each half is 100 units long; its arm arrives 56 units from the tip. */
   .wir-stage-intro .wir-bridge-line path {
-    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 2)
-      var(--easing-standard) var(--duration-sequence-beat) both;
+    animation: wir-intro-heart calc(var(--wir-intro-beat) * 2)
+      var(--easing-standard) var(--wir-intro-beat) both;
   }
 }
 

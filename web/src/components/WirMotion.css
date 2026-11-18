@@ -24,33 +24,40 @@
  */
 
 @media (prefers-reduced-motion: no-preference) {
+  /* One beat for the whole opening, a little longer than the shared beat so
+     the arrival can be seen without becoming slow. Everything in the stage
+     below, and the heart line in WirHeroStage.css, counts in this beat. */
+  .wir-stage-intro {
+    --wir-intro-beat: calc(var(--duration-sequence-beat) * 1.4);
+  }
+
   /* ---- 1. The stage ---------------------------------------------------- */
 
   /* Each person fades in place, the partner a beat later. */
   .wir-stage-intro .today-hero .partner-avatar-stack > * {
-    animation: wir-intro-person calc(var(--duration-sequence-beat) * 2.4)
+    animation: wir-intro-person calc(var(--wir-intro-beat) * 2.4)
       var(--easing-enter) both;
   }
 
   .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2) {
-    animation-delay: calc(var(--duration-sequence-beat) * 0.4);
+    animation-delay: calc(var(--wir-intro-beat) * 0.4);
   }
 
   /* The ring opens around the portrait a little after the portrait arrives. */
   .wir-stage-intro .today-hero .partner-avatar-stack > *::before {
-    animation: wir-intro-ring calc(var(--duration-sequence-beat) * 2.4)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 0.6) both;
+    animation: wir-intro-ring calc(var(--wir-intro-beat) * 2.4)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 0.6) both;
   }
 
   .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2)::before {
-    animation-delay: var(--duration-sequence-beat);
+    animation-delay: var(--wir-intro-beat);
   }
 
   /* Names and today's state follow the portrait, like a caption. */
   .wir-stage-intro .wir-stage-name,
   .wir-stage-intro .today-hero .wir-checkin-badge {
-    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 1.4) both;
+    animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 1.4) both;
   }
 
   /* What joins you: the ampersand and the time settle in last. */
@@ -58,8 +65,8 @@
   .wir-stage-intro .wir-bridge-lead,
   .wir-stage-intro .wir-bridge-rest,
   .wir-stage-intro .wir-stage-distance {
-    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) calc(var(--duration-sequence-beat) * 2.2) both;
+    animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 2.2) both;
   }
 
   /* ---- 2. The modules --------------------------------------------------- */

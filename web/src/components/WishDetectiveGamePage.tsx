@@ -1,4 +1,3 @@
-import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -18,6 +17,7 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export interface WishDetectiveGameSetup {
@@ -493,7 +493,7 @@ export function WishDetectiveGamePage({
           title={t('games.wishDetective.coupleRequiredTitle')}
           body={t('games.wishDetective.coupleRequiredBody')}
         />
-      ) : setupQuery.data.rounds.length < 4 ? (
+      ) : setupQuery.data.rounds.length < 2 ? (
         <section
           className="wish-detective-sparse"
           aria-labelledby="wish-detective-sparse-title"

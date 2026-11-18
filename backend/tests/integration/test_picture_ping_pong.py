@@ -242,7 +242,7 @@ def test_a_stale_turn_count_is_a_version_conflict(client, premium) -> None:  # t
     assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
 
-def test_six_turns_finish_the_picture_and_the_last_hand_over_sends_no_notice(
+def test_six_turns_finish_the_picture_and_the_last_hand_over_sends_a_finished_notice(
     client, session: Session, premium
 ) -> None:  # type: ignore[no-untyped-def]
     _start(client, premium, "a")
@@ -259,6 +259,7 @@ def test_six_turns_finish_the_picture_and_the_last_hand_over_sends_no_notice(
         select(OutboxEvent.event_type).where(OutboxEvent.space_id == premium["space"].id)
     ).all()
     assert events.count("PICTURE_PING_PONG_TURN") == 5
+    assert events.count("PICTURE_PING_PONG_FINISHED") == 1
     over = _turn(client, premium, "a", 6)
     assert over.status_code == 409
 
@@ -423,6 +424,70 @@ def test_repeated_turns_coalesce_to_one_notice_per_recipient_and_picture(
     assert sorted(str(row.recipient_account_id) for row in rows) == sorted(
         [str(premium["anna"].id), str(premium["ben"].id)]
     )
+
+
+def _finished_notices(session: Session) -> list[Notification]:
+    return list(
+        session.scalars(
+            select(Notification).where(
+                Notification.kind == NotificationKind.PICTURE_PING_PONG_FINISHED.value
+            )
+        )
+    )
+
+
+def _listed(client, couple, who: str) -> list[str]:  # type: ignore[no-untyped-def]
+    response = client.get(
+        f"/api/v1/spaces/{couple['space'].id}/notifications", headers=_headers(couple, who)
+    )
+    assert response.status_code == 200, response.text
+    return [item["kind"] for item in response.json()["items"]]
+
+
+def test_the_partner_learns_once_when_the_last_turn_completes_the_picture(
+    client, session: Session, premium
+) -> None:  # type: ignore[no-untyped-def]
+    _start(client, premium, "a")
+    for index in range(6):
+        _turn(client, premium, "a" if index % 2 == 0 else "b", index)
+    _project(session)
+    # Ben drew the sixth turn; only Anna is told, and never by a turn notice.
+    [notice] = _finished_notices(session)
+    assert notice.recipient_account_id == premium["anna"].id
+    assert notice.actor_id == premium["ben"].id and notice.target_type == "PICTURE_GAME"
+    assert "PICTURE_PING_PONG_FINISHED" in _listed(client, premium, "a")
+    assert "PICTURE_PING_PONG_FINISHED" not in _listed(client, premium, "b")
+
+
+def test_an_early_finish_tells_only_the_partner_and_a_new_picture_retires_it(
+    client, session: Session, premium
+) -> None:  # type: ignore[no-untyped-def]
+    _start(client, premium, "a")
+    _turn(client, premium, "a", 0)
+    finished = client.post(
+        _url(premium, "/finish"), headers=_headers(premium, "b"), json={"turnsDone": 1}
+    )
+    assert finished.status_code == 200, finished.text
+    _project(session)
+    [notice] = _finished_notices(session)
+    assert notice.recipient_account_id == premium["anna"].id
+    assert notice.actor_id == premium["ben"].id
+    assert "PICTURE_PING_PONG_FINISHED" in _listed(client, premium, "a")
+    assert "PICTURE_PING_PONG_FINISHED" not in _listed(client, premium, "b")
+
+    _start(client, premium, "b")
+    assert _finished_notices(session) == []
+    assert "PICTURE_PING_PONG_FINISHED" not in _listed(client, premium, "a")
+
+
+def test_the_finished_notice_shares_the_turn_notice_switch_and_quiet_hours() -> None:
+    from eimir.engagement import notification_preferences, quiet_hours_preferences
+
+    kind = NotificationKind.PICTURE_PING_PONG_FINISHED
+    policy = notification_policy.for_kind(kind.value)
+    assert policy is not None and policy.push_immediately
+    assert kind in quiet_hours_preferences.DEFERABLE_KINDS
+    assert notification_preferences.INHERITED_KINDS[kind] is NotificationKind.THINKING_OF_YOU
 
 
 def test_the_turn_notice_is_a_quiet_deferable_push_that_follows_the_catalog() -> None:

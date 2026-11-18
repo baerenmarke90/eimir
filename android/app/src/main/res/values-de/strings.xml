@@ -56,6 +56,12 @@
     <string name="push_view_list">Liste ansehen</string>
     <string name="push_picture_turn">%1$s hat am Bild weitergemalt. Du bist dran.</string>
     <string name="push_view_picture">Weitermalen</string>
+    <string name="push_picture_finished">%1$s hat euer Bild fertig gemalt.</string>
+    <string name="push_view_finished_picture">Bild ansehen</string>
+    <string name="push_game_who_of_us">%1$s hat bei „Wer von euch?“ gespielt. Schau mal rein.</string>
+    <string name="push_game_wish_detective">%1$s hat beim Wunschdetektiv gespielt. Schau mal rein.</string>
+    <string name="push_game_our_moments">%1$s hat bei „Unsere Momente“ gespielt. Schau mal rein.</string>
+    <string name="push_view_game">Zum Spiel</string>
     <string name="push_garden_seed">%1$s hat dir einen Samen geschickt.</string>
     <string name="push_garden_bouquet">%1$s hat dir einen Strauß geschenkt.</string>
     <string name="push_view_garden">Garten ansehen</string>

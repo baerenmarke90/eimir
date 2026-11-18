@@ -2216,6 +2216,31 @@
         "title": "CoupleExperienceQuestions",
         "type": "object"
       },
+      "CoupleGameEndInput": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "description": "The game this client saw; another id is a conflict.",
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gameId"
+        ],
+        "title": "CoupleGameEndInput",
+        "type": "object"
+      },
+      "CoupleGameStatus": {
+        "enum": [
+          "OPEN",
+          "FINISHED",
+          "ENDED"
+        ],
+        "title": "CoupleGameStatus",
+        "type": "string"
+      },
       "DailyCheckInEnergyView": {
         "properties": {
           "partner": {
@@ -3884,6 +3909,9 @@
           "CHAPTER",
           "COLLECTION",
           "PICTURE_GAME",
+          "WHO_OF_US_GAME",
+          "WISH_DETECTIVE_GAME",
+          "OUR_MOMENTS_GAME",
           "SHARED_NOTE",
           "GARDEN_SEED",
           "GARDEN_BOUQUET",
@@ -7719,6 +7747,8 @@
           "WISH_DATE_ACCEPTED",
           "COLLECTION_SENT",
           "PICTURE_PING_PONG_TURN",
+          "PICTURE_PING_PONG_FINISHED",
+          "COUPLE_GAME_TURN",
           "SHARED_NOTE_CREATED",
           "SHARED_NOTE_CHANGED",
           "GARDEN_SEED_ARRIVED",
@@ -8414,6 +8444,295 @@
           "position"
         ],
         "title": "OrderedAttachmentSummary",
+        "type": "object"
+      },
+      "OurMomentsCardState": {
+        "enum": [
+          "HIDDEN",
+          "REVEALED",
+          "MATCHED"
+        ],
+        "title": "OurMomentsCardState",
+        "type": "string"
+      },
+      "OurMomentsCardView": {
+        "properties": {
+          "face": {
+            "$ref": "#/components/schemas/OurMomentsFace"
+          },
+          "moment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OurMomentsMomentView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for a revealed or matched card; never for a hidden one."
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OurMomentsCardState"
+          }
+        },
+        "required": [
+          "position",
+          "face",
+          "state",
+          "moment"
+        ],
+        "title": "OurMomentsCardView",
+        "type": "object"
+      },
+      "OurMomentsFace": {
+        "enum": [
+          "PHOTO",
+          "CONTEXT"
+        ],
+        "title": "OurMomentsFace",
+        "type": "string"
+      },
+      "OurMomentsFlipInput": {
+        "additionalProperties": false,
+        "properties": {
+          "flipsDone": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Flipsdone",
+            "type": "integer"
+          },
+          "gameId": {
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          },
+          "position": {
+            "exclusiveMaximum": 8.0,
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gameId",
+          "flipsDone",
+          "position"
+        ],
+        "title": "OurMomentsFlipInput",
+        "type": "object"
+      },
+      "OurMomentsLastTurnView": {
+        "description": "The two cards of the latest completed turn, so the partner can see it.",
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/OurMomentsCardView"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "matched": {
+            "title": "Matched",
+            "type": "boolean"
+          },
+          "playerId": {
+            "format": "uuid",
+            "title": "Playerid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playerId",
+          "matched",
+          "cards"
+        ],
+        "title": "OurMomentsLastTurnView",
+        "type": "object"
+      },
+      "OurMomentsMomentView": {
+        "description": "The flipped card's Memory; the image loads through the attachment path.",
+        "properties": {
+          "effectiveDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectivedate"
+          },
+          "imageAttachmentId": {
+            "format": "uuid",
+            "title": "Imageattachmentid",
+            "type": "string"
+          },
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent when the Memory is no longer readable.",
+            "title": "Title"
+          }
+        },
+        "required": [
+          "memoryId",
+          "imageAttachmentId",
+          "title",
+          "effectiveDate"
+        ],
+        "title": "OurMomentsMomentView",
+        "type": "object"
+      },
+      "OurMomentsRemoteGame": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/OurMomentsCardView"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "endedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedby"
+          },
+          "flipsDone": {
+            "description": "Send back with the next flip; a mismatch is a conflict.",
+            "title": "Flipsdone",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lastTurn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OurMomentsLastTurnView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matchedPairs": {
+            "title": "Matchedpairs",
+            "type": "integer"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/OurMomentsScore"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "startedBy": {
+            "format": "uuid",
+            "title": "Startedby",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CoupleGameStatus"
+          },
+          "totalPairs": {
+            "title": "Totalpairs",
+            "type": "integer"
+          },
+          "turnAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who flips next while the game is open.",
+            "title": "Turnaccountid"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "startedBy",
+          "endedBy",
+          "turnAccountId",
+          "flipsDone",
+          "totalPairs",
+          "matchedPairs",
+          "cards",
+          "lastTurn",
+          "scores",
+          "updatedAt"
+        ],
+        "title": "OurMomentsRemoteGame",
+        "type": "object"
+      },
+      "OurMomentsRemoteState": {
+        "properties": {
+          "game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OurMomentsRemoteGame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "OurMomentsRemoteState",
+        "type": "object"
+      },
+      "OurMomentsScore": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "pairs": {
+            "title": "Pairs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accountId",
+          "pairs"
+        ],
+        "title": "OurMomentsScore",
         "type": "object"
       },
       "PartOfDay": {
@@ -17810,6 +18129,197 @@
         "title": "WeeklyReviewView",
         "type": "object"
       },
+      "WhoOfUsAnswerInput": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          },
+          "partnerId": {
+            "description": "The partner the question applies to.",
+            "format": "uuid",
+            "title": "Partnerid",
+            "type": "string"
+          },
+          "questionId": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Questionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gameId",
+          "questionId",
+          "partnerId"
+        ],
+        "title": "WhoOfUsAnswerInput",
+        "type": "object"
+      },
+      "WhoOfUsRemoteGame": {
+        "properties": {
+          "agreementCount": {
+            "description": "Revealed questions where both chose alike.",
+            "title": "Agreementcount",
+            "type": "integer"
+          },
+          "endedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedby"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "myAnsweredCount": {
+            "title": "Myansweredcount",
+            "type": "integer"
+          },
+          "partnerAnsweredCount": {
+            "title": "Partneransweredcount",
+            "type": "integer"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/WhoOfUsRemoteQuestion"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "revealedCount": {
+            "title": "Revealedcount",
+            "type": "integer"
+          },
+          "startedBy": {
+            "format": "uuid",
+            "title": "Startedby",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CoupleGameStatus"
+          },
+          "turnAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "While open: the partner still answering after the other one finished.",
+            "title": "Turnaccountid"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "startedBy",
+          "endedBy",
+          "turnAccountId",
+          "questions",
+          "myAnsweredCount",
+          "partnerAnsweredCount",
+          "revealedCount",
+          "agreementCount",
+          "updatedAt"
+        ],
+        "title": "WhoOfUsRemoteGame",
+        "type": "object"
+      },
+      "WhoOfUsRemoteQuestion": {
+        "properties": {
+          "matches": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Both chose the same partner; once both answered.",
+            "title": "Matches"
+          },
+          "myAnswer": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The partner the reader chose, once answered.",
+            "title": "Myanswer"
+          },
+          "partnerAnswer": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The partner the other partner chose; only once the reader answered too.",
+            "title": "Partneranswer"
+          },
+          "partnerAnswered": {
+            "title": "Partneranswered",
+            "type": "boolean"
+          },
+          "questionId": {
+            "description": "Client-localized question id.",
+            "title": "Questionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "myAnswer",
+          "partnerAnswered",
+          "partnerAnswer",
+          "matches"
+        ],
+        "title": "WhoOfUsRemoteQuestion",
+        "type": "object"
+      },
+      "WhoOfUsRemoteState": {
+        "properties": {
+          "game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhoOfUsRemoteGame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "WhoOfUsRemoteState",
+        "type": "object"
+      },
       "WirDesignId": {
         "enum": [
           "connected",
@@ -18103,6 +18613,408 @@
           "hasMemory"
         ],
         "title": "WishDetail",
+        "type": "object"
+      },
+      "WishDetectiveCluesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "clues": {
+            "description": "Three single words, none of them part of the wish title.",
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Clues",
+            "type": "array"
+          },
+          "gameId": {
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          },
+          "round": {
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gameId",
+          "round",
+          "clues"
+        ],
+        "title": "WishDetectiveCluesInput",
+        "type": "object"
+      },
+      "WishDetectiveCurrentRound": {
+        "properties": {
+          "clues": {
+            "description": "The three clues once given; empty before.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Clues",
+            "type": "array"
+          },
+          "giverId": {
+            "format": "uuid",
+            "title": "Giverid",
+            "type": "string"
+          },
+          "guesserId": {
+            "format": "uuid",
+            "title": "Guesserid",
+            "type": "string"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/WishDetectivePhase"
+          },
+          "round": {
+            "description": "Zero-based round index.",
+            "title": "Round",
+            "type": "integer"
+          },
+          "skipsLeft": {
+            "description": "Skips the giver has left in this round.",
+            "title": "Skipsleft",
+            "type": "integer"
+          },
+          "wish": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishDetectiveWishView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for the giver; absent for the guesser and when the wish is no longer available (the giver then draws another one for free)."
+          }
+        },
+        "required": [
+          "round",
+          "giverId",
+          "guesserId",
+          "phase",
+          "wish",
+          "skipsLeft",
+          "clues"
+        ],
+        "title": "WishDetectiveCurrentRound",
+        "type": "object"
+      },
+      "WishDetectiveGuessInput": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          },
+          "guess": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The guessed wish; absent or `null` passes the round.",
+            "title": "Guess"
+          },
+          "round": {
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gameId",
+          "round"
+        ],
+        "title": "WishDetectiveGuessInput",
+        "type": "object"
+      },
+      "WishDetectivePhase": {
+        "enum": [
+          "CLUE",
+          "GUESS"
+        ],
+        "title": "WishDetectivePhase",
+        "type": "string"
+      },
+      "WishDetectiveReadiness": {
+        "description": "Whether each partner has a wish to play; deliberately never a count.",
+        "properties": {
+          "ownWishesAvailable": {
+            "title": "Ownwishesavailable",
+            "type": "boolean"
+          },
+          "partnerWishesAvailable": {
+            "title": "Partnerwishesavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ownWishesAvailable",
+          "partnerWishesAvailable"
+        ],
+        "title": "WishDetectiveReadiness",
+        "type": "object"
+      },
+      "WishDetectiveRemoteGame": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishDetectiveCurrentRound"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent once the game is over."
+          },
+          "endedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedby"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revealed": {
+            "items": {
+              "$ref": "#/components/schemas/WishDetectiveRevealedRound"
+            },
+            "title": "Revealed",
+            "type": "array"
+          },
+          "roundsPlayed": {
+            "title": "Roundsplayed",
+            "type": "integer"
+          },
+          "roundsTotal": {
+            "title": "Roundstotal",
+            "type": "integer"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/WishDetectiveScore"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "startedBy": {
+            "format": "uuid",
+            "title": "Startedby",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CoupleGameStatus"
+          },
+          "turnAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whose move it is while the game is open.",
+            "title": "Turnaccountid"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "startedBy",
+          "endedBy",
+          "roundsTotal",
+          "roundsPlayed",
+          "turnAccountId",
+          "current",
+          "revealed",
+          "scores",
+          "updatedAt"
+        ],
+        "title": "WishDetectiveRemoteGame",
+        "type": "object"
+      },
+      "WishDetectiveRemoteState": {
+        "properties": {
+          "game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishDetectiveRemoteGame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/WishDetectiveReadiness"
+          }
+        },
+        "required": [
+          "readiness"
+        ],
+        "title": "WishDetectiveRemoteState",
+        "type": "object"
+      },
+      "WishDetectiveResult": {
+        "enum": [
+          "CORRECT",
+          "INCORRECT",
+          "PASSED",
+          "VOID"
+        ],
+        "title": "WishDetectiveResult",
+        "type": "string"
+      },
+      "WishDetectiveRevealedRound": {
+        "properties": {
+          "clues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Clues",
+            "type": "array"
+          },
+          "giverId": {
+            "format": "uuid",
+            "title": "Giverid",
+            "type": "string"
+          },
+          "guess": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent when the guesser passed.",
+            "title": "Guess"
+          },
+          "guesserId": {
+            "format": "uuid",
+            "title": "Guesserid",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/WishDetectiveResult"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "wish": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishDetectiveWishView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent when the wish is no longer available."
+          }
+        },
+        "required": [
+          "round",
+          "giverId",
+          "guesserId",
+          "clues",
+          "guess",
+          "result",
+          "wish"
+        ],
+        "title": "WishDetectiveRevealedRound",
+        "type": "object"
+      },
+      "WishDetectiveScore": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "correctGuesses": {
+            "title": "Correctguesses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accountId",
+          "correctGuesses"
+        ],
+        "title": "WishDetectiveScore",
+        "type": "object"
+      },
+      "WishDetectiveSkipInput": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "format": "uuid",
+            "title": "Gameid",
+            "type": "string"
+          },
+          "round": {
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gameId",
+          "round"
+        ],
+        "title": "WishDetectiveSkipInput",
+        "type": "object"
+      },
+      "WishDetectiveWishView": {
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wishId",
+          "title"
+        ],
+        "title": "WishDetectiveWishView",
         "type": "object"
       },
       "WishPage": {
@@ -32520,6 +33432,316 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/our-moments": {
+      "get": {
+        "description": "The current or last remote memory board, with only flipped cards revealed.",
+        "operationId": "getOurMomentsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OurMomentsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Our Moments Remote Game",
+        "tags": [
+          "games"
+        ]
+      },
+      "post": {
+        "description": "Lay out a new board; the opener flips first.\n\nIt needs at least three photo Memories both partners may read\n(`OUR_MOMENTS_MOMENTS_MISSING` otherwise).",
+        "operationId": "startOurMomentsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OurMomentsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Our Moments Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/our-moments/end": {
+      "post": {
+        "description": "Either partner may end the open board; found pairs stay readable.",
+        "operationId": "endOurMomentsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoupleGameEndInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OurMomentsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "End Our Moments Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/our-moments/flips": {
+      "post": {
+        "description": "Flip one card; the second card of a turn is judged at once.",
+        "operationId": "flipOurMomentsRemoteCard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OurMomentsFlipInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OurMomentsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Flip Our Moments Remote Card",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/games/picture-ping-pong": {
       "get": {
         "description": "The current shared picture, or `null` when none was started.",
@@ -32925,6 +34147,812 @@
           }
         },
         "summary": "Hand Over Picture Ping Pong Turn",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/who-of-us": {
+      "get": {
+        "description": "The current or last remote Who of us game, as the reader may see it.",
+        "operationId": "getWhoOfUsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhoOfUsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Who Of Us Remote Game",
+        "tags": [
+          "games"
+        ]
+      },
+      "post": {
+        "description": "Open a remote game; it replaces a finished or ended one.",
+        "operationId": "startWhoOfUsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhoOfUsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Who Of Us Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/who-of-us/answers": {
+      "post": {
+        "description": "Answer one question; an answer cannot be changed afterwards.",
+        "operationId": "answerWhoOfUsRemoteQuestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhoOfUsAnswerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhoOfUsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Answer Who Of Us Remote Question",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/who-of-us/end": {
+      "post": {
+        "description": "Either partner may end the open game; the revealed answers stay readable.",
+        "operationId": "endWhoOfUsRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoupleGameEndInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhoOfUsRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "End Who Of Us Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/wish-detective": {
+      "get": {
+        "description": "The current or last remote Wish detective game, as the reader may see it.",
+        "operationId": "getWishDetectiveRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wish Detective Remote Game",
+        "tags": [
+          "games"
+        ]
+      },
+      "post": {
+        "description": "Open a remote game; the opener gives the first clues.\n\nEach partner needs at least one OPEN or PLANNED wish. Otherwise the\nproblem code says who is missing one: `WISH_DETECTIVE_OWN_WISH_MISSING`,\n`WISH_DETECTIVE_PARTNER_WISH_MISSING` or `WISH_DETECTIVE_WISHES_MISSING`.",
+        "operationId": "startWishDetectiveRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Start Wish Detective Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/wish-detective/clues": {
+      "post": {
+        "description": "The giver hands three clues to the guesser.",
+        "operationId": "submitWishDetectiveRemoteClues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishDetectiveCluesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Submit Wish Detective Remote Clues",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/wish-detective/end": {
+      "post": {
+        "description": "Either partner may end the open game; revealed rounds stay readable.",
+        "operationId": "endWishDetectiveRemoteGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoupleGameEndInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "End Wish Detective Remote Game",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/wish-detective/guesses": {
+      "post": {
+        "description": "The guesser guesses (or passes); the round is revealed to both.",
+        "operationId": "guessWishDetectiveRemoteWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishDetectiveGuessInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Guess Wish Detective Remote Wish",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/wish-detective/skip": {
+      "post": {
+        "description": "The giver draws another own wish (three times per round).",
+        "operationId": "skipWishDetectiveRemoteWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishDetectiveSkipInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetectiveRemoteState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Skip Wish Detective Remote Wish",
         "tags": [
           "games"
         ]

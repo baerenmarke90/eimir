@@ -365,12 +365,14 @@ def add_member(session: Session, space_id: UUID, account: Account) -> Membership
     session.add(membership)
     session.flush()
     _ensure_partner_profile(session, space_id, account.id)
+    from eimir.couple_games import service as couple_games
     from eimir.garden import service as garden
     from eimir.picture_ping_pong import service as picture_ping_pong
     from eimir.wish_selections.service import purge_space
 
     purge_space(session, space_id)
     picture_ping_pong.purge_space(session, space_id)
+    couple_games.purge_space(session, space_id)
     garden.purge_space(session, space_id)
     return membership
 
@@ -386,6 +388,7 @@ def end_membership(
     Deleting it would make it impossible to determine later who created
     content.
     """
+    from eimir.couple_games import service as couple_games
     from eimir.create_receipts import service as shared_create_receipts
     from eimir.engagement import gentle
     from eimir.garden import service as garden_service
@@ -423,6 +426,7 @@ def end_membership(
     heart_hunt.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
     picture_ping_pong.purge_space(session, membership.space_id)
+    couple_games.purge_space(session, membership.space_id)
     garden_service.purge_space(session, membership.space_id)
     wish_date_proposals.purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value

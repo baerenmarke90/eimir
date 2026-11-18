@@ -101,7 +101,7 @@ def test_wish_candidates_require_games_capability(client, session: Session, coup
     assert "Secret premium surface" not in response.text
 
 
-def test_wish_candidates_return_only_open_wishes_with_creator_attribution(
+def test_wish_candidates_return_open_and_planned_wishes_with_creator_attribution(
     client, session: Session, couple
 ) -> None:  # type: ignore[no-untyped-def]
     _grant_games(session, couple)
@@ -117,7 +117,8 @@ def test_wish_candidates_return_only_open_wishes_with_creator_attribution(
         owner_id=couple["ben"].id,
         title="Wochenende am Meer",
     )
-    _wish(
+    # A wish that already became a plan is still the person's wish.
+    anna_planned = _wish(
         session,
         space_id=couple["space"].id,
         owner_id=couple["anna"].id,
@@ -144,7 +145,7 @@ def test_wish_candidates_return_only_open_wishes_with_creator_attribution(
     body = response.json()
     assert set(body) == {"items"}
     items = {item["wishId"]: item for item in body["items"]}
-    assert set(items) == {str(anna_open.id), str(ben_open.id)}
+    assert set(items) == {str(anna_open.id), str(anna_planned.id), str(ben_open.id)}
     assert items[str(anna_open.id)] == {
         "wishId": str(anna_open.id),
         "createdBy": str(couple["anna"].id),

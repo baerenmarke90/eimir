@@ -22,6 +22,7 @@ from eimir.api.v1 import (
     collections,
     comments,
     context_tags,
+    couple_games,
     daily_checkins,
     daily_quote,
     dashboard,
@@ -130,6 +131,7 @@ normal_router.include_router(games.router)
 normal_router.include_router(garden.router)
 normal_router.include_router(heart_hunt.router)
 normal_router.include_router(picture_ping_pong.router)
+normal_router.include_router(couple_games.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)

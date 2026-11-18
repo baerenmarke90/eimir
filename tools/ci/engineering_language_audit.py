@@ -387,6 +387,17 @@ ALLOWED_LOCALIZED_TEXTS = (
     # Exact #1907 H3 native push copy for a garden bouquet and its encrypted fixtures.
     "%1$s hat dir einen Strauß geschenkt.",
     "Alex hat dir einen Strauß geschenkt.",
+    # Exact native push copy for a finished shared picture and its encrypted fixtures.
+    "%1$s hat euer Bild fertig gemalt.",
+    "Alex hat euer Bild fertig gemalt.",
+    # Exact native push copy for the remote couple games and their encrypted fixtures.
+    "%1$s hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+    "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+    "%1$s hat beim Wunschdetektiv gespielt. Schau mal rein.",
+    "Alex hat beim Wunschdetektiv gespielt. Schau mal rein.",
+    "%1$s hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+    "Alex hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+    "Zum Spiel",
     # Exact #1744 native push copy for a ready recap and its encrypted fixtures.
     "Euer Rückblick ist fertig.",
     "Euer Rückblick auf %2$s ist fertig.",

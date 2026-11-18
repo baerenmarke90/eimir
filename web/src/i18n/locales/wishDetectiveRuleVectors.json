@@ -1,0 +1,148 @@
+{
+  "stopWords": [
+    "am",
+    "an",
+    "auf",
+    "aus",
+    "bei",
+    "das",
+    "dem",
+    "den",
+    "der",
+    "des",
+    "die",
+    "ein",
+    "eine",
+    "einem",
+    "einen",
+    "einer",
+    "eines",
+    "für",
+    "im",
+    "in",
+    "ins",
+    "mit",
+    "oder",
+    "und",
+    "vom",
+    "von",
+    "zu",
+    "zum",
+    "zur"
+  ],
+  "clues": [
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Nacht", "Decke", "Warm"],
+      "errors": [null, null, null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["romantischer Abend", "Nacht", "Nacht"],
+      "errors": ["oneWord", "duplicate", "duplicate"]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Garten", "Stern", "warm"],
+      "errors": ["wishWord", "wishWord", null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["", "  ", "Kuss"],
+      "errors": ["required", "required", null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Donaudampfschifffahrtsgesellschaft", "Wolke", "Mond"],
+      "errors": ["tooLong", null, null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Sommer-Nacht", "Rock'n'Roll", "O’Neill"],
+      "errors": [null, "oneWord", null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["ＧＡＲＴＥＮ", "Zelt", "Ruhe"],
+      "errors": ["wishWord", null, null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Mond", "mond ", "Ruhe"],
+      "errors": ["duplicate", "duplicate", null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["Mond2", "Ruhe", "Zelt"],
+      "errors": ["oneWord", null, null]
+    },
+    {
+      "wishTitle": "Ein Tag am See",
+      "clues": ["See", "Tag", "Seeblick"],
+      "errors": ["wishWord", "wishWord", null]
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "clues": ["\u00a0Wolke\u00a0", "Mond", "Zelt"],
+      "errors": [null, null, null]
+    },
+    {
+      "wishTitle": "Café in Paris",
+      "clues": ["Cafe\u0301", "Croissant", "Seine"],
+      "errors": ["wishWord", null, null]
+    }
+  ],
+  "guesses": [
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "guess": "Sternegucken im Garten",
+      "correct": true
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "guess": "sternegucken garten",
+      "correct": true
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "guess": "Garten",
+      "correct": false
+    },
+    {
+      "wishTitle": "Sternegucken im Garten",
+      "guess": "Stern",
+      "correct": false
+    },
+    {
+      "wishTitle": "Wochenende am Meer",
+      "guess": "Meer am Wochenende",
+      "correct": true
+    },
+    { "wishTitle": "Wochenende am Meer", "guess": "am Meer", "correct": false },
+    { "wishTitle": "Paris", "guess": "paris", "correct": true },
+    { "wishTitle": "Paris", "guess": "Paris im Frühling", "correct": false },
+    {
+      "wishTitle": "Konzert in Berlin",
+      "guess": "ein Konzert in Berlin",
+      "correct": true
+    },
+    { "wishTitle": "Konzert in Berlin", "guess": "", "correct": false },
+    { "wishTitle": "Konzert in Berlin", "guess": "   ", "correct": false },
+    {
+      "wishTitle": "Picknick am See mit Freunden",
+      "guess": "Freunde See",
+      "correct": false
+    },
+    {
+      "wishTitle": "Picknick am See mit Freunden",
+      "guess": "See Picknick",
+      "correct": true
+    },
+    {
+      "wishTitle": "Café in Paris",
+      "guess": "cafe\u0301 paris",
+      "correct": true
+    },
+    { "wishTitle": "Für immer Rom", "guess": "Rom für immer", "correct": true }
+  ]
+}

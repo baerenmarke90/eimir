@@ -210,11 +210,20 @@
   text-align: center;
 }
 
-/* The distance is shared too: on the middle axis, level with the two
-   daily marks, as a quiet value rather than another chip. */
+/* A location statement takes the ampersand's place between the names. */
+.wir-stage-amp:has(~ .wir-stage-distance .wir-hero-distance) {
+  display: none;
+}
+
+/* The distance is shared too: on the middle axis, in the place of the
+   ampersand and centred on the names' line, as a tinted chip. */
 .wir-stage-distance {
   position: absolute;
-  top: calc(100% + var(--space-1) + 2 * var(--space-2) + 1.56rem);
+  /* The names' line is 1.56rem tall; the chip is centred on it. */
+  top: calc(
+    100% + var(--space-1) + var(--space-2) +
+    (1.56rem - var(--wir-stage-mark-height)) / 2
+  );
   /* Centred on its own line: the words of a range band (#1907 H4) are wider
      than the gap between the avatars and must not wrap there. */
   left: 50%;
@@ -226,7 +235,7 @@
   pointer-events: auto;
 }
 
-/* Too close to the daily marks: its own line below them (#1907 H4). */
+/* Too close to a name: its own line below the daily marks (#1907 H4). */
 .wir-stage-distance.is-below-marks {
   top: calc(
     100% +
@@ -244,10 +253,13 @@
 
 .wir-hero-distance {
   display: inline-flex;
-  min-height: 1.75rem;
+  min-height: var(--wir-stage-mark-height);
   align-items: center;
   gap: var(--space-1);
   margin: 0;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
   color: var(--color-text-muted);
   font: var(--font-supporting-copy);
   font-weight: 650;

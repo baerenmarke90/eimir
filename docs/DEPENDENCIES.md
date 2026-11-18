@@ -69,7 +69,7 @@ and `tools/media/advisory-review.json`; unresolved evidence is not a blanket wai
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.15`, Python `3.14.8`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.15.2`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -208,8 +208,8 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uvicorn[standard] | 0.52.4 | PyPI | BSD-3-Clause |
 | sqlalchemy | 2.0.52 | PyPI | MIT |
 | alembic | 1.19.1 | PyPI | MIT |
-| psycopg[binary] | 3.3.4 | PyPI | **LGPL-3.0-only** |
-| pydantic | 2.13.4 | PyPI | MIT |
+| psycopg[binary] | 3.3.9 | PyPI | **LGPL-3.0-only** |
+| pydantic | 2.14.3 | PyPI | MIT |
 | pydantic-settings | 2.15.0 | PyPI | MIT |
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
@@ -223,7 +223,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
-| pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| pillow-heif | 1.8.1 | PyPI | BSD-3-Clause |
 | defusedxml | 0.7.1 | PyPI | PSFL |
 
 `defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
@@ -240,7 +240,7 @@ The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 | pytest | 9.1.1 | PyPI | MIT |
 | pytest-asyncio | 1.4.0 | PyPI | Apache-2.0 |
 | httpx2 | 2.12.0 | PyPI | BSD-3-Clause |
-| cbor2 | 6.1.4 | PyPI | MIT |
+| cbor2 | 6.3.0 | PyPI | MIT |
 | ruff | 0.16.8 | PyPI | MIT |
 | mypy | 2.3.1 | PyPI | MIT |
 
@@ -512,7 +512,7 @@ pinned to commit SHAs.
 
 | Image | Version | Source | License |
 |---|---|---|---|
-| python | 3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
+| python | 3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
 | node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 

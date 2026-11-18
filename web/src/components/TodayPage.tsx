@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -106,6 +107,7 @@ import { useHeldQuery, useResumeSettling } from '../client/useResumeSettling';
 import { useRevealAfterCache } from '../client/useRevealAfterCache';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
+import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AnticipationCard } from './AnticipationCard';
@@ -140,9 +142,15 @@ import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
+import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
 import { WirLists } from './WirLists';
+import {
+  type MomentClipLoader,
+  WirMomentControls,
+  WirMomentSlides,
+} from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
@@ -163,6 +171,8 @@ import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
 import './WirCompactLayouts.css';
+import './WirMotion.css';
+import { useWirReveal } from './useWirReveal';
 
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
@@ -278,11 +288,14 @@ export function TodayModuleSection({
   headerAction?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { ref, revealProps } = useWirReveal<HTMLElement>(className);
   return (
     <section
+      ref={ref}
       id={id}
       className={`today-section ${className ?? ''}`.trim()}
       data-color-world={colorWorld}
+      {...revealProps}
     >
       <div className="today-section-header">
         <div>
@@ -530,6 +543,7 @@ function TodayAgendaRow({
 function TodayMomentFeature({
   item,
   loadMemoryImage,
+  loadMemoryClip,
   isKeepsake,
 }: {
   item: DashboardItem;
@@ -538,6 +552,7 @@ function TodayMomentFeature({
     attachmentId: string,
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
+  loadMemoryClip?: MomentClipLoader;
   isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
@@ -551,11 +566,34 @@ function TodayMomentFeature({
       : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
+  // The Keepsake rotates through its memory's pictures. The server only lists
+  // ready, non-sensitive ones; a sensitive preview never rotates.
+  const gallery = item.gallery ?? [];
+  const rotating =
+    hasImage && item.previewIsSensitive !== true && gallery.length > 1;
+  const clipsAllowed = Boolean(loadMemoryClip) && !prefersReducedData();
+  const rotation = useMomentRotation(
+    rotating ? gallery.length : 0,
+    (position) => clipsAllowed && gallery[position]?.mediaType === 'VIDEO',
+  );
 
   const feature = hasImage ? (
     <figure className="today-moment-figure eimir-motion-lift">
       <div className="today-moment-media">
-        {previewAttachmentId && loadMemoryImage ? (
+        {rotating && loadMemoryImage ? (
+          <WirMomentSlides
+            memoryId={item.id}
+            media={gallery}
+            index={rotation.index}
+            previous={rotation.previous}
+            running={rotation.running}
+            preloadNext={rotation.rotates}
+            clipsAllowed={clipsAllowed}
+            loadImage={loadMemoryImage}
+            loadClip={loadMemoryClip}
+            onClipEnded={rotation.advance}
+          />
+        ) : previewAttachmentId && loadMemoryImage ? (
           <MemoryPreview
             memoryId={item.id}
             attachmentId={previewAttachmentId}
@@ -594,8 +632,30 @@ function TodayMomentFeature({
     </article>
   );
 
+  const frame = (moment: ReactNode) =>
+    rotating ? (
+      // The controls sit beside the link, never inside it.
+      <div
+        ref={rotation.frameRef}
+        className="wir-moment-frame"
+        {...rotation.engagement}
+      >
+        {moment}
+        {rotation.rotates ? (
+          <WirMomentControls
+            count={gallery.length}
+            index={rotation.index}
+            paused={rotation.paused}
+            onToggle={rotation.togglePaused}
+          />
+        ) : null}
+      </div>
+    ) : (
+      moment
+    );
+
   if (path) {
-    return (
+    return frame(
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
@@ -613,10 +673,10 @@ function TodayMomentFeature({
           .join(' · ')}
       >
         {feature}
-      </TodayDestinationLink>
+      </TodayDestinationLink>,
     );
   }
-  return <div className="today-moment">{feature}</div>;
+  return frame(<div className="today-moment">{feature}</div>);
 }
 
 /** Daily rediscovery has its own visibility, order and section heading. */
@@ -957,6 +1017,22 @@ export function TodayPage({
   gamesApi?: Pick<GamesApi, 'getGarden'>;
 }) {
   const { t } = useTranslation();
+  // Clips of the shared moment play silently; they need the media APIs.
+  const loadMemoryClip = useMemo<MomentClipLoader | undefined>(
+    () =>
+      recapMediaApis
+        ? (memoryId, attachmentId, signal) =>
+            loadVideoSource(
+              recapMediaApis,
+              spaceId,
+              'MEMORY',
+              memoryId,
+              attachmentId,
+              signal,
+            )
+        : undefined,
+    [recapMediaApis, spaceId],
+  );
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
@@ -1780,6 +1856,7 @@ export function TodayPage({
         <TodayMomentFeature
           item={focalItem.item}
           loadMemoryImage={loadMemoryImage}
+          loadMemoryClip={loadMemoryClip}
           isKeepsake={focalItem.kind === 'keepsake'}
         />
       </div>
@@ -2019,6 +2096,7 @@ export function TodayPage({
             <TodayMomentFeature
               item={focalItem.item}
               loadMemoryImage={loadMemoryImage}
+              loadMemoryClip={loadMemoryClip}
               isKeepsake={focalItem.kind === 'keepsake'}
             />
           </TodayModuleSection>

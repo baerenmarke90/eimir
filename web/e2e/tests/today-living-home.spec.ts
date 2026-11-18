@@ -275,9 +275,15 @@ async function settleMotion(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // Scroll-driven animations (the stage drift, the photograph parallax) are
+    // finite but never finish while the page stands still; they follow the
+    // finger, not the clock, so only the document timeline is awaited.
     const finite = document.getAnimations().filter((animation) => {
       const timing = animation.effect?.getTiming();
-      return timing?.iterations !== Number.POSITIVE_INFINITY;
+      return (
+        animation.timeline === document.timeline &&
+        timing?.iterations !== Number.POSITIVE_INFINITY
+      );
     });
     await Promise.all(
       finite.map((animation) => animation.finished.catch(() => undefined)),
@@ -2365,4 +2371,82 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
     expect(samples.slidePositions).toBeGreaterThan(0);
     expect(samples.positions).toHaveLength(1);
   }
+});
+
+/*
+ * The shared moment rotates through its memory's pictures (Wir). The server
+ * lists only ready, non-sensitive ones; the page rotates only while it can be
+ * seen, never inside the moment's link, and not at all with reduced motion.
+ */
+const GALLERY_SPACE = {
+  ...RICH_SPACE,
+  keepsake: {
+    ...MOMENT,
+    gallery: ['att-moment', 'att-strip-1', 'att-strip-2'].map((id) => ({
+      attachmentId: id,
+      mediaType: 'IMAGE',
+      hasThumbnail: false,
+    })),
+  },
+};
+
+test.describe('Wir: the shared moment rotates through its pictures', () => {
+  test('changes the picture on its own, keeps the link intact and can be paused', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    const frame = page.locator('.wir-moment-frame');
+    await expect(frame).toBeVisible();
+    const current = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('.wir-moment-mark')].findIndex((mark) =>
+          mark.hasAttribute('data-current'),
+        ),
+      );
+    expect(await current()).toBe(0);
+    // Only the picture on show is exposed; the others are warm but hidden.
+    await expect(
+      frame.locator('.wir-moment-slide:not([aria-hidden="true"])'),
+    ).toHaveCount(1);
+    // The controls sit beside the link, never inside it.
+    await expect(frame.locator('a .wir-moment-toggle')).toHaveCount(0);
+    await expect(frame.locator('a.today-moment')).toHaveCount(1);
+
+    // A resting mouse holds the picture, so the pointer leaves the frame first.
+    await page.mouse.move(1, 1);
+    await expect.poll(current, { timeout: 12_000 }).toBe(1);
+
+    const toggle = frame.getByRole('button', {
+      name: m5s5.today.momentGallery.pause,
+    });
+    await toggle.click();
+    await expect(
+      frame.getByRole('button', { name: m5s5.today.momentGallery.play }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    const paused = await current();
+    await page.waitForTimeout(7000);
+    expect(await current()).toBe(paused);
+  });
+
+  test('shows one still picture and no controls with reduced motion', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    await expect(page.locator('.wir-moment-gallery')).toBeVisible();
+    await expect(page.locator('.wir-moment-toggle')).toHaveCount(0);
+    await page.waitForTimeout(7000);
+    await expect(
+      page.locator('.wir-moment-slide[data-state="active"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('.wir-moment-slide[data-entering]')).toHaveCount(
+      0,
+    );
+  });
 });

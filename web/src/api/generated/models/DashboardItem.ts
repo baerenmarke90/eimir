@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DashboardMedia } from './DashboardMedia';
+import {
+    DashboardMediaFromJSON,
+    DashboardMediaFromJSONTyped,
+    DashboardMediaToJSON,
+    DashboardMediaToJSONTyped,
+} from './DashboardMedia';
 import type { DashboardItemType } from './DashboardItemType';
 import {
     DashboardItemTypeFromJSON,
@@ -39,6 +46,12 @@ export interface DashboardItem {
      * @memberof DashboardItem
      */
     createdAt: Date | null;
+    /**
+     * 
+     * @type {Array<DashboardMedia>}
+     * @memberof DashboardItem
+     */
+    gallery?: Array<DashboardMedia>;
     /**
      * 
      * @type {string}
@@ -128,6 +141,7 @@ export function DashboardItemFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'createdAt': (json['createdAt'] == null ? null : new Date(json['createdAt'])),
+        'gallery': json['gallery'] == null ? undefined : ((json['gallery'] as Array<any>).map(DashboardMediaFromJSON)),
         'id': json['id'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
         'previewAttachmentId': json['previewAttachmentId'] === undefined ? undefined : json['previewAttachmentId'] === null ? null : json['previewAttachmentId'],
@@ -154,6 +168,7 @@ export function DashboardItemToJSONTyped(value?: DashboardItem | null, ignoreDis
         
         'concealed': value['concealed'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
+        'gallery': value['gallery'] == null ? undefined : ((value['gallery'] as Array<any>).map(DashboardMediaToJSON)),
         'id': value['id'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),
         'previewAttachmentId': value['previewAttachmentId'],

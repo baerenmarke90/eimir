@@ -98,6 +98,37 @@ def _bind_ready_photo(session: Session, memory: Memory, name: str) -> Attachment
     return attachment
 
 
+def _bind_ready_media(  # type: ignore[no-untyped-def]
+    session: Session,
+    memory: Memory,
+    name: str,
+    position: int,
+    *,
+    media_type: MediaType = MediaType.IMAGE,
+    sensitive: bool = False,
+    status: AttachmentStatus = AttachmentStatus.READY,
+) -> Attachment:
+    attachment = Attachment(
+        space_id=memory.space_id,
+        owner_id=memory.owner_id,
+        privacy_class=PrivacyClass.OWNER_ONLY.value,
+        status=status.value,
+        media_type=media_type.value,
+        declared_mime_type="video/mp4" if media_type == MediaType.VIDEO else "image/jpeg",
+        declared_size=100,
+        has_thumbnail=True,
+        ready_at=FIXED_NOW,
+        payload=AttachmentPayload(original_name=name, is_sensitive=sensitive),
+    )
+    session.add(attachment)
+    session.flush()
+    session.add(
+        MemoryAttachment(memory_id=memory.id, attachment_id=attachment.id, position=position)
+    )
+    session.flush()
+    return attachment
+
+
 def test_dashboard_is_shared_only_and_private_no_store(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
@@ -275,6 +306,59 @@ def test_keepsake_survives_recent_shared_crowded_by_non_memory_items(
     assert body["keepsake"]["type"] == "MEMORY"
     assert body["keepsake"]["previewAttachmentId"] == str(attachment.id)
     assert body["keepsake"]["previewHasThumbnail"] is True
+
+
+def test_keepsake_gallery_rotates_only_ready_non_sensitive_photos_and_clips(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    """The Keepsake may rotate through its memory's pictures, never sensitive ones."""
+    _freeze(monkeypatch)
+    memory = Memory(
+        **_resource(couple, couple["anna"].id),
+        happened_on=date(2026, 8, 1),
+        payload=MemoryPayload(title="Weekend away", body="Many pictures"),
+    )
+    session.add(memory)
+    session.flush()
+    first = _bind_ready_media(session, memory, "a.jpg", 0)
+    _bind_ready_media(session, memory, "private.jpg", 1, sensitive=True)
+    clip = _bind_ready_media(session, memory, "b.mp4", 2, media_type=MediaType.VIDEO)
+    _bind_ready_media(session, memory, "voice.m4a", 3, media_type=MediaType.AUDIO)
+    _bind_ready_media(session, memory, "broken.jpg", 4, status=AttachmentStatus.FAILED)
+    last = _bind_ready_media(session, memory, "c.jpg", 5)
+
+    body = _dashboard(client, couple).json()
+
+    assert body["keepsake"]["id"] == str(memory.id)
+    assert body["keepsake"]["previewAttachmentId"] == str(first.id)
+    assert [(item["attachmentId"], item["mediaType"]) for item in body["keepsake"]["gallery"]] == [
+        (str(first.id), "IMAGE"),
+        (str(clip.id), "VIDEO"),
+        (str(last.id), "IMAGE"),
+    ]
+
+
+def test_keepsake_gallery_is_empty_for_a_single_usable_picture_and_capped(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    _freeze(monkeypatch)
+    memory = Memory(
+        **_resource(couple, couple["anna"].id),
+        happened_on=date(2026, 8, 1),
+        payload=MemoryPayload(title="One public picture", body=""),
+    )
+    session.add(memory)
+    session.flush()
+    _bind_ready_media(session, memory, "a.jpg", 0)
+    _bind_ready_media(session, memory, "private.jpg", 1, sensitive=True)
+
+    assert _dashboard(client, couple).json()["keepsake"]["gallery"] == []
+
+    for position in range(2, 10):
+        _bind_ready_media(session, memory, f"{position}.jpg", position)
+
+    gallery = _dashboard(client, couple).json()["keepsake"]["gallery"]
+    assert len(gallery) == dashboard_service.KEEPSAKE_GALLERY_LIMIT
 
 
 def test_keepsake_is_space_isolated(client, session: Session, couple, monkeypatch) -> None:  # type: ignore[no-untyped-def]

@@ -2906,6 +2906,13 @@
             ],
             "title": "Createdat"
           },
+          "gallery": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardMedia"
+            },
+            "title": "Gallery",
+            "type": "array"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -3023,6 +3030,29 @@
         ],
         "title": "DashboardItemType",
         "type": "string"
+      },
+      "DashboardMedia": {
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "hasThumbnail": {
+            "default": false,
+            "title": "Hasthumbnail",
+            "type": "boolean"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/MediaType"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "mediaType"
+        ],
+        "title": "DashboardMedia",
+        "type": "object"
       },
       "DashboardModuleOrderUpdate": {
         "additionalProperties": false,

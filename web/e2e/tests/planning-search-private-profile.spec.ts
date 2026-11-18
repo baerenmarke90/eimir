@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
+import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import wishSelection from '../../src/i18n/locales/wishSelection';
@@ -246,9 +247,10 @@ for (const view of [
     const planSearch = page.getByRole('searchbox', {
       name: copy.overview.searchPlans,
     });
+    // One question for every search; the accessible name stays specific.
     await expect(planSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchPlans,
+      navigation.searchPrompt,
     );
     await expect(planSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (!view.large) {
@@ -338,7 +340,7 @@ for (const view of [
     });
     await expect(wishSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchWishes,
+      navigation.searchPrompt,
     );
     await expect(wishSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([

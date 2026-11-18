@@ -9,6 +9,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 import experiences from '../../src/i18n/locales/experiences';
@@ -434,7 +435,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   const scheduleTask = await showPlanSchedule(page);
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
@@ -519,7 +520,7 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '320-cross-day-light');
 
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await showPlanSchedule(page);
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
   await closePlanSchedule(page);
@@ -672,9 +673,7 @@ for (const [width, colorScheme] of [
       exact: true,
     });
     await expect(trigger).toHaveCount(0);
-    await page
-      .getByRole('button', { name: m5s3.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, m5s3.common.edit);
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
     await sheet.getByRole('radio', { name: WISH_TITLE }).check();

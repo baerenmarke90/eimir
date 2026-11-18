@@ -280,8 +280,9 @@ test.describe('Wish Detective Product Reference (#864)', () => {
     const secretWishTitle =
       (await secretWishHeading.textContent())?.trim() ?? '';
     expect(POSSIBLE_ACCOUNT_WISH_TITLES).toContain(secretWishTitle);
+    // Games are reached through Mehr, the last of the five destinations.
     await expect(
-      page.locator('.mobile-bottom-nav a.shell-nav-link').nth(3),
+      page.locator('.mobile-bottom-nav a.shell-nav-link').nth(4),
     ).toHaveAttribute('aria-current', 'page');
 
     const axeClue = await new AxeBuilder({ page })

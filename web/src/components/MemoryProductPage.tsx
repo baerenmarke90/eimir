@@ -87,6 +87,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { MediaProcessingState } from './MediaProcessingState';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
@@ -160,6 +161,7 @@ export function MemoryProductPage({
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -1618,18 +1620,23 @@ export function MemoryProductPage({
         open={sheets.menuOpen}
         title={t('memoryProduct.detailEyebrow')}
         restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
         onClose={() => sheets.close('menu')}
       >
         {mayEdit ? (
           <ItemMenuOption
             icon="pen"
             title={t('memoryProduct.edit')}
-            onClick={() => {
-              sheets.closeAll();
-              void navigate(memoryEditPath(memory.id), {
-                state: { taskOriginKey: originKey },
-              });
-            }}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () =>
+                  void navigate(memoryEditPath(memory.id), {
+                    state: { taskOriginKey: originKey },
+                  }),
+                sheets.closeAll,
+              )
+            }
           />
         ) : null}
         {mayDelete ? (

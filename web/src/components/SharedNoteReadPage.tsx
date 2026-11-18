@@ -15,6 +15,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -53,6 +54,7 @@ export function SharedNoteReadPage({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const note = noteQuery.data;
 
@@ -166,6 +168,7 @@ export function SharedNoteReadPage({
         open={menuOpen}
         title={t('sharedNotes.menu.title')}
         restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
         isCloseBlocked={presentation.isPending}
         onClose={() => setMenuOpen(false)}
       >
@@ -173,10 +176,9 @@ export function SharedNoteReadPage({
           <ItemMenuOption
             icon="pen"
             title={t('sharedNotes.read.edit')}
-            onClick={() => {
-              setMenuOpen(false);
-              edit();
-            }}
+            onClick={() =>
+              leaveItemMenu(menuSheet, edit, () => setMenuOpen(false))
+            }
           />
         ) : null}
         {current.capabilities.canEdit ? (

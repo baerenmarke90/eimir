@@ -147,7 +147,7 @@ function setup() {
       );
     }
     await user.click(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
       }),
     );

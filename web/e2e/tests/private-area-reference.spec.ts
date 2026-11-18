@@ -2786,7 +2786,19 @@ for (const view of [
             : privateCreateCases[0];
         if (leave) {
           await installHeldPrivateDelete(page, destination.kind);
-          await openPrivateSection(page, destination.kind);
+          // The pending delete keeps its modal confirmation open, so the
+          // shell links behind it are not reachable by pointer. The first
+          // client-side navigation is dispatched on the link itself to model
+          // the person leaving anyway; the rest is the ordinary path.
+          await page
+            .locator('a.shell-nav-link', { hasText: navigation.more })
+            .first()
+            .dispatchEvent('click');
+          await page.locator('a[href="/more/private"]').first().click();
+          await page
+            .locator(`a[href="/more/private/${destination.kind}"]`)
+            .first()
+            .click();
           await expect(
             page.getByRole('heading', {
               name: destination.copy.title,

@@ -57,6 +57,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { NativeDateField } from './NativeDateField';
 import { OccasionMark } from './OccasionMark';
@@ -166,6 +167,7 @@ export function MilestoneProductPage({
   const sheets = useItemSheets(milestoneId);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -719,18 +721,23 @@ export function MilestoneProductPage({
         open={sheets.menuOpen}
         title={t('milestoneProduct.detailEyebrow')}
         restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
         onClose={() => sheets.close('menu')}
       >
         {mayEdit ? (
           <ItemMenuOption
             icon="pen"
             title={t('milestoneProduct.edit')}
-            onClick={() => {
-              sheets.closeAll();
-              void navigate(milestoneEditPath(milestone.id), {
-                state: { taskOriginKey: originKey },
-              });
-            }}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () =>
+                  void navigate(milestoneEditPath(milestone.id), {
+                    state: { taskOriginKey: originKey },
+                  }),
+                sheets.closeAll,
+              )
+            }
           />
         ) : null}
         {mayDelete ? (

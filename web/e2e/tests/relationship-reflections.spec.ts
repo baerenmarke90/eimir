@@ -10,6 +10,7 @@ import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '../support/axe';
+import { editViaMenu } from '../support/itemMenu';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { openComposerPlace } from '../support/memoryDiary';
@@ -461,9 +462,7 @@ for (const [width, theme, largeText] of [
       name: copy.anticipation.show,
     });
     await expect(control).toHaveCount(0);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await expect(control).not.toBeChecked();
     await control.focus();
     await page.keyboard.press('Space');
@@ -822,7 +821,7 @@ test('failed Plan edit preserves the staged countdown without a success claim', 
   const control = page.getByRole('switch', {
     name: copy.anticipation.show,
   });
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await control.click();
   await page
     .getByRole('button', { name: planningCopy.common.saveChanges })
@@ -839,7 +838,7 @@ test('hidden upcoming module also conceals a selected special event', async ({
   const state = await fixture(page, { hidden: true });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await page.getByRole('switch', { name: copy.anticipation.show }).click();
   await page
     .getByRole('button', { name: planningCopy.common.saveChanges })
@@ -872,9 +871,7 @@ for (const [width, theme] of [
     await expect(
       page.getByText(planningCopy.plan.actionsHeading, { exact: true }),
     ).toHaveCount(0);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await openComposerMediaSources(page);
     await page
       .locator('#plan-photos-source')

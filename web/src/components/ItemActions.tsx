@@ -71,6 +71,26 @@ export function ItemMenuOption({
   );
 }
 
+/**
+ * Close the menu and go somewhere else. An open sheet owns a history entry, so
+ * leaving through `closeForNavigation` lets it release that entry before the
+ * navigation runs; closing first and navigating at once could leave a stale
+ * entry on the same address.
+ */
+export function leaveItemMenu(
+  sheet: RefObject<ShortTaskSheetHandle | null>,
+  go: () => void,
+  close: () => void,
+): void {
+  if (sheet.current) {
+    // The page behind the sheet is replaced, so the exit animation is skipped.
+    sheet.current.closeForNavigation(go, { animateExit: false });
+    return;
+  }
+  close();
+  go();
+}
+
 /** The sheet that holds the rows; rows are the children. */
 export function ItemMenuSheet({
   open,
@@ -78,6 +98,7 @@ export function ItemMenuSheet({
   onClose,
   restoreFocusRef,
   isCloseBlocked = false,
+  sheetRef,
   children,
 }: {
   open: boolean;
@@ -85,10 +106,13 @@ export function ItemMenuSheet({
   onClose: () => void;
   restoreFocusRef?: RefObject<HTMLElement | null>;
   isCloseBlocked?: boolean;
+  /** Lets the owner leave through the sheet when a row navigates elsewhere. */
+  sheetRef?: RefObject<ShortTaskSheetHandle | null>;
   children: ReactNode;
 }) {
   return (
     <ShortTaskSheet
+      ref={sheetRef}
       open={open}
       title={title}
       restoreFocusRef={restoreFocusRef}

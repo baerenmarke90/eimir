@@ -24,6 +24,11 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import AxeBuilder from '../support/axe';
+import {
+  chooseItemMenuRow,
+  editViaMenu,
+  itemMenuTrigger,
+} from '../support/itemMenu';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { expectQuietComposerMedia } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
@@ -690,9 +695,7 @@ for (const view of [
     ]) {
       await page.goto(screen.path);
       if ('edit' in screen && screen.edit)
-        await page
-          .getByRole('button', { name: m5s3.common.edit, exact: true })
-          .click();
+        await editViaMenu(page, m5s3.common.edit);
       if (view.large)
         await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       await expect(page.locator('.page-composer').last()).toBeVisible();
@@ -1760,9 +1763,7 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   const state = await installPageComposerFixture(page);
   await signIn(page);
   await page.goto('/plan/plans/composer-plan');
-  await page
-    .getByRole('button', { name: m5s3.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   const editedTitle = 'Evening walk';
   const titleInput = page.locator('#plan-edit-title');
   await titleInput.fill(editedTitle);
@@ -1933,12 +1934,11 @@ test('detail Places restore their map invoker without consuming a later clean ed
       const editorOrigin = await page.evaluate(() => window.scrollY);
       expect(editorOrigin).toBe(0);
       expect(editorOrigin).not.toBe(before);
-      const editLabel = m5s3.common.edit;
-      const edit = page
-        .getByRole('button', { name: editLabel, exact: true })
-        .or(page.getByRole('link', { name: editLabel, exact: true }));
+      // Editing starts from the item menu; closing the editor returns focus
+      // to the menu button that started it.
+      const edit = itemMenuTrigger(page);
       await expect(edit).toBeInViewport();
-      await edit.click();
+      await chooseItemMenuRow(page, m5s3.common.edit);
       await expect(page.locator('.page-composer').last()).toBeVisible();
       const close = page.locator('.composer-header .task-back-control:visible');
       await expect(close).toHaveCount(1);

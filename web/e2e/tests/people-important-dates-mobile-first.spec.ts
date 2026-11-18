@@ -13,6 +13,7 @@ import {
   expectOverviewActionPlacement,
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { editViaMenu } from '../support/itemMenu';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
@@ -673,12 +674,8 @@ async function openPerson(page: Page) {
   );
 }
 async function openEditor(page: Page) {
-  await page
-    .getByRole('button', {
-      name: people.menuLabel.replace('{{name}}', LONG_PERSON_NAME),
-    })
-    .click();
-  await page.getByRole('button', { name: people.edit, exact: true }).click();
+  // The menu button is named after the person, who may have been renamed.
+  await editViaMenu(page, people.edit);
   await expect(
     page.getByLabel(people.nameLabel, { exact: true }),
   ).toBeVisible();

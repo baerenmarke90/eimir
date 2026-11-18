@@ -11,6 +11,7 @@ import {
   expectLabeledAddAction,
   expectOverviewActionPlacement,
 } from '../support/addAction';
+import { editViaMenu } from '../support/itemMenu';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -220,7 +221,7 @@ async function installContent(page: Page, dense = false) {
 async function openOverview(page: Page, kind: 'places' | 'collections') {
   await page.goto(`/more/${kind}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    kind === 'places' ? m5s3.place.heading : m5s3.collection.overviewHeading,
+    kind === 'places' ? m5s3.place.heading : navigation.sharedHeading,
   );
   await expect(page.locator('.content-overview-row').first()).toBeVisible();
   const action = page.getByRole('button', {
@@ -379,8 +380,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(
     page.getByRole('button', { name: m5s3.relations.addLabel, exact: true }),
   ).toBeFocused();
-  await page.getByRole('button', { name: m5s3.place.menu }).click();
-  await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+  await editViaMenu(page, m5s3.common.edit);
   let dialog = page.getByRole('dialog');
   await dialog
     .getByLabel(m5s3.place.name, { exact: true })
@@ -516,7 +516,9 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .getByRole('link', { name: navigation.more, exact: true })
     .last()
     .click();
-  await page.locator('a[href="/more/collections"]').click();
+  await page
+    .getByRole('link', { name: navigation.shared, exact: true })
+    .click();
   await page.getByRole('button', { name: m5s3.collection.scope.ALL }).click();
   const createList = page.getByRole('button', {
     name: m5s3.collection.create,

@@ -103,6 +103,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { MomentDate } from './MomentDate';
@@ -249,6 +250,7 @@ export function HeartMomentProductPage({
   const sheets = useItemSheets(heartMomentId);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [createContentError, setCreateContentError] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [createText, setCreateText] = useState('');
@@ -1896,18 +1898,23 @@ export function HeartMomentProductPage({
           open={sheets.menuOpen}
           title={t('heartMomentProduct.detailEyebrow')}
           restoreFocusRef={menuTrigger}
+          sheetRef={menuSheet}
           onClose={() => sheets.close('menu')}
         >
           {mayEdit ? (
             <ItemMenuOption
               icon="pen"
               title={t('heartMomentProduct.edit')}
-              onClick={() => {
-                sheets.closeAll();
-                void navigate(heartMomentEditPath(heartMoment.id), {
-                  state: { taskOriginKey: originKey },
-                });
-              }}
+              onClick={() =>
+                leaveItemMenu(
+                  menuSheet,
+                  () =>
+                    void navigate(heartMomentEditPath(heartMoment.id), {
+                      state: { taskOriginKey: originKey },
+                    }),
+                  sheets.closeAll,
+                )
+              }
             />
           ) : null}
           {mayDelete ? (

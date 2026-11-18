@@ -11,6 +11,12 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  chooseItemMenuRow,
+  itemMenuRow,
+  itemMenuTrigger,
+  openItemMenu,
+} from '../support/itemMenu';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const WISH_EVIDENCE_DIR = path.resolve(
@@ -311,6 +317,22 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
+/**
+ * "Wunsch weiterführen" is an item-menu row that opens a modal sheet holding
+ * the completion and the conversion sections.
+ */
+async function openContinueSheet(page: Page): Promise<void> {
+  await chooseItemMenuRow(page, m5s3.wish.actionsHeading);
+}
+
+/**
+ * The completion outcome sits on the page behind the modal continue sheet, so
+ * role queries need `includeHidden` while the sheet is open.
+ */
+function completionProblem(page: Page, role: 'alert' | 'status') {
+  return page.getByRole(role, { includeHidden: true });
+}
+
 async function assertNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
     .withTags([
@@ -360,7 +382,7 @@ async function prepareCompletedScenario(
   await signIn(page);
   await page.goto(`/plan/wishes/${WISH_ID}`);
 
-  await page.getByText(m5s3.wish.actionsHeading).click();
+  await openContinueSheet(page);
   await expect(
     page.getByRole('button', { name: m5s3.wish.complete }),
   ).toBeVisible();
@@ -403,19 +425,15 @@ for (const scenario of visualScenarios) {
     await installMocks(page);
     await signIn(page);
     await page.goto(`/plan/wishes/${WISH_ID}`);
-    const disclosure = page.locator('.wish-operations > summary');
-    await expect(disclosure).toHaveClass('button-link');
-    const actionStyle = await disclosure.evaluate((node) => {
-      const style = getComputedStyle(node);
-      return {
-        background: style.backgroundColor,
-        color: style.color,
-        minHeight: parseFloat(style.minHeight),
-      };
-    });
-    expect(actionStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+    // The continuation opens from the item menu; its row keeps a touch target.
+    await openItemMenu(page);
+    const continueRow = itemMenuRow(page, m5s3.wish.actionsHeading);
+    await expect(continueRow).toBeVisible();
+    const actionStyle = await continueRow.evaluate((node) => ({
+      minHeight: parseFloat(getComputedStyle(node).minHeight),
+    }));
     expect(actionStyle.minHeight).toBeGreaterThanOrEqual(44);
-    await disclosure.click();
+    await continueRow.click();
     for (const selector of [
       '#wish-plan-title',
       '#wish-plan-description',
@@ -537,7 +555,7 @@ async function openWish(page: Page, scenario: VisualScenario) {
   );
   await signIn(page);
   await page.goto(`/plan/wishes/${WISH_ID}`);
-  await page.getByText(m5s3.wish.actionsHeading).click();
+  await openContinueSheet(page);
   await expect(
     page.getByRole('button', { name: m5s3.wish.complete, exact: true }),
   ).toBeEnabled();
@@ -592,23 +610,24 @@ for (const scenario of pendingScenarios) {
       button.click();
     });
     await expect.poll(mocks.requestCount).toBe(1);
-    const status = page
-      .getByRole('status', { name: '' })
-      .filter({ hasText: m5s3.wish.completePending });
+    const status = completionProblem(page, 'status').filter({
+      hasText: m5s3.wish.completePending,
+    });
     await expect(status).toHaveCount(1);
     await expect(status).toBeVisible();
     // #1790 F2: the journey path replaces the status word.
     await expect(
       page
-        .getByRole('list', { name: wishJourney.pathLabel })
+        .getByRole('list', { name: wishJourney.pathLabel, includeHidden: true })
         .locator('[aria-current="step"]'),
     ).toHaveText(wishJourney.stages.wished);
     await expect(
       page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
     ).toBeFocused();
-    await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
-    ).toBeDisabled();
+    // Editing starts from the item menu behind the modal sheet; no menu row
+    // can start a competing write while the completion is pending.
+    await expect(itemMenuTrigger(page)).toHaveCount(1);
+    await expect(page.locator('.item-menu-option')).toHaveCount(0);
     await expect(title).toBeDisabled();
     await expect(title).toHaveValue('Keep this future Plan');
     await expect(
@@ -620,8 +639,9 @@ for (const scenario of pendingScenarios) {
     await assertNoHorizontalOverflow(page);
     if (scenario.name.startsWith('390')) await assertNoWcagViolations(page);
     await capturePendingEvidence(page, testInfo, `pending-${scenario.name}`);
-    // Critical status stays visible even when operational details are collapsed.
-    await page.getByText(m5s3.wish.actionsHeading).click();
+    // Critical status stays visible even when the continue sheet is closed.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(status).toBeVisible();
     held.release();
     const heading = page.getByRole('heading', {
@@ -662,7 +682,7 @@ test('failed Wish completion preserves conversion input and allows explicit retr
   await expect.poll(mocks.requestCount).toBe(1);
   held.release();
   await expect(
-    page.getByRole('alert').getByText(de.states.server.title),
+    completionProblem(page, 'alert').getByText(de.states.server.title),
   ).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(page.getByLabel(m5s3.wish.planTitle)).toBeEnabled();
@@ -709,15 +729,14 @@ test('Wish completion failure remains actionable after leaving and returning dur
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
   await expect.poll(mocks.requestCount).toBe(1);
+  // The modal continue sheet is closed before the page is left.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
-  const operations = page.locator('details.wish-operations');
-  await expect(operations).toBeVisible();
-  if ((await operations.getAttribute('open')) === null)
-    await operations.locator('summary').click();
-  await expect(operations).toHaveJSProperty('open', true);
+  // The pending status is on the page itself, with the sheet closed.
   await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
   held.release();
   await expect(
@@ -726,6 +745,7 @@ test('Wish completion failure remains actionable after leaving and returning dur
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   expect(mocks.requestCount()).toBe(1);
   options.failure = undefined;
+  await openContinueSheet(page);
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
@@ -771,7 +791,10 @@ test('offline completion sends no request and reconnect requires an explicit new
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
-  const error = page.locator('.wish-operations').getByRole('status');
+  // The outcome sits on the page behind the modal continue sheet.
+  const error = page
+    .locator('.wish-detail')
+    .getByRole('status', { includeHidden: true });
   await expect(error.getByText(de.states.offline.title)).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(title).toBeEnabled();
@@ -809,7 +832,9 @@ test('a disconnected completion request preserves input and retries only deliber
   await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
   // Connectivity was available at dispatch; this request fails in transport.
   held.release();
-  const error = page.locator('.wish-operations').getByRole('status');
+  const error = page
+    .locator('.wish-detail')
+    .getByRole('status', { includeHidden: true });
   await expect(error.getByText(de.states.offline.title)).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(title).toBeEnabled();
@@ -876,7 +901,7 @@ for (const [width, colorScheme] of [
     await signIn(page);
     await page.goto('/plan#wishes');
     await page.getByRole('link', { name: WISH_TITLE, exact: true }).click();
-    await page.getByText(m5s3.wish.actionsHeading, { exact: true }).click();
+    await openContinueSheet(page);
     await page
       .getByRole('button', { name: m5s3.wish.complete, exact: true })
       .click();

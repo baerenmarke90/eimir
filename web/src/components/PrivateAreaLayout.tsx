@@ -17,6 +17,7 @@ import {
   ItemMenuOption,
   ItemMenuSheet,
   ItemMenuTrigger,
+  leaveItemMenu,
 } from './ItemActions';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { BackSlotHost, TaskBackButton, TaskBackLink } from './TaskBackButton';
@@ -195,6 +196,7 @@ export function usePrivateItemMenu() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   return {
     menuOpen,
     setMenuOpen,
@@ -202,6 +204,7 @@ export function usePrivateItemMenu() {
     setDeleteOpen,
     trigger,
     deleteSheet,
+    menuSheet,
   };
 }
 
@@ -236,6 +239,7 @@ export function PrivateItemMenuSheets({
   canEdit,
   canDelete,
   onEdit,
+  editLeavesPage = true,
   disabled = false,
   deletePending,
   deleteError,
@@ -247,6 +251,8 @@ export function PrivateItemMenuSheets({
   canEdit: boolean;
   canDelete: boolean;
   onEdit: () => void;
+  /** True when Edit opens another route; false when it edits in place. */
+  editLeavesPage?: boolean;
   disabled?: boolean;
   deletePending: boolean;
   deleteError: unknown;
@@ -261,6 +267,7 @@ export function PrivateItemMenuSheets({
         open={menu.menuOpen}
         title={title}
         restoreFocusRef={menu.trigger}
+        sheetRef={menu.menuSheet}
         onClose={() => menu.setMenuOpen(false)}
       >
         {canEdit ? (
@@ -269,6 +276,12 @@ export function PrivateItemMenuSheets({
             title={t('privateArea.edit')}
             disabled={disabled}
             onClick={() => {
+              if (editLeavesPage) {
+                leaveItemMenu(menu.menuSheet, onEdit, () =>
+                  menu.setMenuOpen(false),
+                );
+                return;
+              }
               menu.setMenuOpen(false);
               onEdit();
             }}

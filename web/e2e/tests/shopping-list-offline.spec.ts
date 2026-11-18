@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -1448,7 +1449,7 @@ test('one tap creates the default shopping list and opens it; the card is gone a
 
   await page.goto('/more/collections');
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+    page.getByRole('heading', { name: navigation.sharedHeading }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
@@ -1464,7 +1465,7 @@ test('the short way is not offered while the couple already has a shopping list'
   await page.goto('/more/collections');
 
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+    page.getByRole('heading', { name: navigation.sharedHeading }),
   ).toBeVisible();
   await expect(page.getByText('Einkauf').first()).toBeVisible();
   await expect(

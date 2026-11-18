@@ -1173,6 +1173,7 @@ export function PrivateCollectionDetailPage({
         canEdit={collection.capabilities.canEdit}
         canDelete={collection.capabilities.canDelete}
         onEdit={() => setIsEditing(true)}
+        editLeavesPage={false}
         disabled={collectionOperationBlocked}
         deletePending={deleteMutation.isPending}
         deleteError={deleteMutation.error}

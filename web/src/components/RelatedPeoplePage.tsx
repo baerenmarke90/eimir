@@ -38,7 +38,13 @@ import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AvatarPhoto } from './AvatarPhoto';
 import { DestinationIcon } from './DestinationIcon';
-import { ItemMenuOption, ItemMenuSheet, ItemMenuTrigger } from './ItemActions';
+import {
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
@@ -294,6 +300,7 @@ export function RelatedPeoplePage({
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [pendingFocus, setPendingFocus] = useState<DeleteFocusTarget | null>(
     null,
   );
@@ -580,28 +587,37 @@ export function RelatedPeoplePage({
               open={menuOpen}
               title={person.displayName}
               restoreFocusRef={menuTrigger}
+              sheetRef={menuSheet}
               onClose={() => setMenuOpen(false)}
             >
               <ItemMenuOption
                 icon="pen"
                 title={t('people.edit')}
-                onClick={() => {
-                  setMenuOpen(false);
-                  void navigate(`${personPath(person.id)}/edit`, {
-                    state: originState,
-                  });
-                }}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () =>
+                      void navigate(`${personPath(person.id)}/edit`, {
+                        state: originState,
+                      }),
+                    () => setMenuOpen(false),
+                  )
+                }
               />
               {person.birthday ? null : (
                 <ItemMenuOption
                   icon="geburtstag"
                   title={t('people.addBirthday')}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void navigate(`${personPath(person.id)}/edit`, {
-                      state: originState,
-                    });
-                  }}
+                  onClick={() =>
+                    leaveItemMenu(
+                      menuSheet,
+                      () =>
+                        void navigate(`${personPath(person.id)}/edit`, {
+                          state: originState,
+                        }),
+                      () => setMenuOpen(false),
+                    )
+                  }
                 />
               )}
               <ItemMenuOption

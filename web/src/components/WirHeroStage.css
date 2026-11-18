@@ -221,8 +221,11 @@
   position: absolute;
   /* The names' line is 1.56rem tall; the chip is centred on it. */
   top: calc(
-    100% + var(--space-1) + var(--space-2) +
-    (1.56rem - var(--wir-stage-mark-height)) / 2
+    100% +
+    var(--space-1) +
+    var(--space-2) +
+    (1.56rem - var(--wir-stage-mark-height)) /
+    2
   );
   /* Centred on its own line: the words of a range band (#1907 H4) are wider
      than the gap between the avatars and must not wrap there. */

@@ -45,6 +45,10 @@ class EventType(StrEnum):
     HEART_HUNT_HIDDEN = "HEART_HUNT_HIDDEN"
     HEART_HUNT_FOUND = "HEART_HUNT_FOUND"
     PICTURE_PING_PONG_TURN = "PICTURE_PING_PONG_TURN"
+    PICTURE_PING_PONG_FINISHED = "PICTURE_PING_PONG_FINISHED"
+    # A remote Who of us, Wish detective or Our moments game waits on the
+    # recipient; references only, never answers, clues, guesses or wishes.
+    COUPLE_GAME_TURN = "COUPLE_GAME_TURN"
     MEMORY_UPDATED = "MEMORY_UPDATED"
     MEMORY_PLAN_LINKED = "MEMORY_PLAN_LINKED"
     MEMORY_PLAN_UNLINKED = "MEMORY_PLAN_UNLINKED"

@@ -21,6 +21,7 @@ MODEL_MODULES = (
     "eimir.collections.models",
     "eimir.comments.models",
     "eimir.context_tags.models",
+    "eimir.couple_games.models",
     "eimir.create_receipts.models",
     "eimir.daily_checkins.models",
     "eimir.dashboard.models",

@@ -61,18 +61,21 @@ only). The container build gains a Node stage that builds it (`npm run build:pre
 
 ## Legal notice (Impressum)
 
-`site/impressum/index.html` contains `[[PLACEHOLDER]]` markers for the operator's name, address,
-contact and responsible person. These facts come from the operator; nothing is invented. The
-page is `noindex` until they are filled in, and `build_main_site.py --production` refuses to
-build while any marker remains. This text is a drafting baseline, not legal advice.
+`site/impressum/index.html` uses the details supplied by the operator. The page is marked
+`noindex`, and `build_main_site.py --production` refuses to build if a `[[PLACEHOLDER]]`
+marker remains.
 
 ## Build and preview
 
 ```bash
-python3 tools/site/build_main_site.py            # development build, placeholders allowed
-python3 tools/site/build_main_site.py --production   # release build, fails on placeholders
+python3 tools/site/build_main_site.py
 python3 -m http.server 8765 --directory site/dist
 ```
+
+The development build allows imprint placeholders and omits the preview when `web/dist-preview/`
+is absent. Run `npm ci` and `npm run build:preview` in `web/` before assembling the site to include
+the interactive preview. `python3 tools/site/build_main_site.py --production` requires the built
+preview and a completed imprint. The container assembles and validates both together.
 
 ## Deploying
 
@@ -121,9 +124,7 @@ In Nginx Proxy Manager add a proxy host for `eimir.de` (and `www.eimir.de`, redi
 forwarding `http://eimir-site-internal:8080`, with a Let's Encrypt certificate and "Force SSL". Enable
 HSTS only after the HTTPS setup has been verified.
 
-The imprint facts (name, address, contact) become part of the public repository when the placeholders
-are replaced. They must be public on the site anyway; replace them in `site/impressum/index.html` in a
-reviewed change. Until then the production build, and therefore the container build, fails on purpose.
+Review any changes to operator details in `site/impressum/index.html` before publication.
 
 Before relying on the site for Google OAuth verification, the privacy page
 `https://app.eimir.de/legal/privacy` must be live and the final imprint must be published.

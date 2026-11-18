@@ -22,7 +22,8 @@ npm run build:preview    # writes web/dist-preview
 ```
 
 `tools/site/build_main_site.py` copies `web/dist-preview` into `site/dist/preview` when it exists.
-The container build (`site/Dockerfile`) builds it in its own stage. nginx serves `/preview/` with
+The container build (`site/Dockerfile`) builds it before assembling and validating the production site.
+nginx serves `/preview/` with
 its own Content-Security-Policy (`site/security-headers-preview.conf`): scripts and connections
 from the same origin only, and framing from the main site only.
 

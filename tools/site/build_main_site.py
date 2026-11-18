@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / "site"
 DIST = SITE / "dist"
-# `npm run build:preview` in web/ writes the product preview here; the container build adds it in its own stage.
+# `npm run build:preview` in web/ writes the product preview here.
 PREVIEW = ROOT / "web" / "dist-preview"
 
 # (source relative to the repository root, destination relative to dist)
@@ -55,6 +55,7 @@ SHARED_FILES: tuple[tuple[str, str], ...] = (
 PLACEHOLDER = re.compile(r"\[\[[A-Z0-9_]+\]\]")
 LOCAL_REFERENCE = re.compile(r"""(?:href|src)="(/[^"#?]*)""")
 CSS_URL = re.compile(r"""url\("(/[^"]+)"\)""")
+PREVIEW_ONLY = re.compile(r"<!-- preview-only -->.*?<!-- /preview-only -->", re.DOTALL)
 
 
 def build(*, production: bool) -> list[str]:
@@ -71,24 +72,31 @@ def build(*, production: bool) -> list[str]:
     shutil.copytree(
         SITE,
         DIST,
-        ignore=shutil.ignore_patterns("dist", "Dockerfile", "nginx.conf", "security-headers.conf"),
+        ignore=shutil.ignore_patterns("dist", "Dockerfile", "nginx.conf", "security-headers*.conf"),
     )
     for source, destination in SHARED_FILES:
         target = DIST / destination
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / source, target)
 
-    if PREVIEW.is_dir():
+    has_preview = PREVIEW.is_dir()
+    if has_preview:
         shutil.copytree(PREVIEW, DIST / "preview")
+    elif production:
+        errors.append("missing web/dist-preview: run npm run build:preview in web/")
     _fingerprint_screens()
 
     for path in sorted(DIST.rglob("*.html")):
+        name = path.relative_to(DIST).as_posix()
         text = path.read_text(encoding="utf-8")
+        if not has_preview and not production:
+            text = PREVIEW_ONLY.sub("", text)
+            path.write_text(text, encoding="utf-8")
         if production and PLACEHOLDER.search(text):
-            errors.append(f"{path.relative_to(DIST)}: unresolved [[PLACEHOLDER]] marker")
+            errors.append(f"{name}: unresolved [[PLACEHOLDER]] marker")
         for reference in LOCAL_REFERENCE.findall(text):
             if not _resolves(reference):
-                errors.append(f"{path.relative_to(DIST)}: broken local reference {reference}")
+                errors.append(f"{name}: broken local reference {reference}")
     for reference in CSS_URL.findall((DIST / "assets/site.css").read_text(encoding="utf-8")):
         if not _resolves(reference):
             errors.append(f"assets/site.css: broken local reference {reference}")

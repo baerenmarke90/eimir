@@ -79,11 +79,20 @@
       var(--easing-enter) calc(var(--duration-sequence-beat) * 4.2) both;
   }
 
-  /* A current position sends out one quiet ring once the pin has settled, and
-     then stays still. A position that is not current never moves. */
-  .wir-hero-distance.is-fresh::before {
-    animation: wir-distance-ring calc(var(--duration-connection-draw) * 2)
+  /* A current position makes the pin wiggle once, after it has settled, and
+     then it stays still. A position that is not current never moves. The
+     opening repeats the wiggle in its own list so both run side by side. */
+  .wir-hero-distance.is-fresh .partner-distance-glyph {
+    animation: wir-distance-wiggle var(--duration-gesture-moment)
       var(--easing-standard) calc(var(--duration-sequence-beat) * 4.4) both;
+  }
+
+  .wir-stage-intro .wir-hero-distance.is-fresh .partner-distance-glyph {
+    animation:
+      wir-intro-pin-land calc(var(--duration-sequence-beat) * 3)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 2.2) both,
+      wir-distance-wiggle var(--duration-gesture-moment) var(--easing-standard)
+      calc(var(--duration-sequence-beat) * 4.4) both;
   }
 
   /* A changed value fades over instead of jumping. */
@@ -288,15 +297,27 @@
   }
 }
 
-@keyframes wir-distance-ring {
-  0% {
-    opacity: 0.6;
-    scale: 0.55;
+/* A short tip to one side and the other, settling back to upright. */
+@keyframes wir-distance-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
   }
 
-  100% {
-    opacity: 0;
-    scale: 2.8;
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
   }
 }
 

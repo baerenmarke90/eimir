@@ -238,7 +238,7 @@ export function PartnerDistanceLine({
         <HeroDistanceValue value={value} />
       </>
     );
-    // A current position is marked (pin colour, one quiet ring); an earlier
+    // A current position is marked (pin colour, one quiet wiggle); an earlier
     // one stays grey and still.
     const heroClass = `wir-hero-distance ${compactFresh ? 'is-fresh' : 'is-earlier'}`;
     return line.mapAvailable ? (

@@ -243,14 +243,6 @@
 }
 
 .wir-hero-distance {
-  /* The one-time ring around the pin of a current position. */
-  --wir-distance-ring: color-mix(
-    in srgb,
-    var(--color-brand-text) 40%,
-    transparent
-  );
-
-  position: relative;
   display: inline-flex;
   min-height: 1.75rem;
   align-items: center;
@@ -285,20 +277,9 @@
   display: none;
 }
 
-/* Decorative ring behind the pin: never takes a tap, never moves the layout.
-   Its animation lives in WirMotion.css. */
-.wir-hero-distance.is-fresh::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: -0.15rem;
-  width: 1.3rem;
-  height: 1.3rem;
-  margin-block-start: -0.65rem;
-  border-radius: 50%;
-  background: var(--wir-distance-ring);
-  opacity: 0;
-  pointer-events: none;
+/* The pin tips about its point when it wiggles (WirMotion.css). */
+.wir-hero-distance .partner-distance-glyph.is-pin {
+  transform-origin: 50% 87.5%;
 }
 
 .wir-hero-distance.is-action {

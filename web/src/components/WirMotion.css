@@ -81,7 +81,7 @@
 
   /* A current position makes the pin wiggle once, after it has settled, and
      then it stays still. A position that is not current never moves. The
-     opening repeats the wiggle in its own list so both run side by side. */
+     opening repeats the wiggle in its own list so both run together. */
   .wir-hero-distance.is-fresh .partner-distance-glyph {
     animation: wir-distance-wiggle var(--duration-gesture-moment)
       var(--easing-standard) calc(var(--duration-sequence-beat) * 4.4) both;

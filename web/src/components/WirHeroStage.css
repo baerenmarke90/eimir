@@ -235,11 +235,23 @@
   text-align: center;
 }
 
-/* The distance is shared too: on the middle axis, level with the two
-   daily marks, as a quiet value rather than another chip. */
+/* A location statement takes the ampersand's place between the names. */
+.wir-stage-amp:has(~ .wir-stage-distance .wir-hero-distance) {
+  display: none;
+}
+
+/* The distance is shared too: on the middle axis, in the place of the
+   ampersand and centred on the names' line, as a tinted chip. */
 .wir-stage-distance {
   position: absolute;
-  top: calc(100% + var(--space-1) + 2 * var(--space-2) + 1.56rem);
+  /* The names' line is 1.56rem tall; the chip is centred on it. */
+  top: calc(
+    100% +
+    var(--space-1) +
+    var(--space-2) +
+    (1.56rem - var(--wir-stage-mark-height)) /
+    2
+  );
   /* Centred on its own line: the words of a range band (#1907 H4) are wider
      than the gap between the avatars and must not wrap there. */
   left: 50%;
@@ -251,7 +263,7 @@
   pointer-events: auto;
 }
 
-/* Too close to the daily marks: its own line below them (#1907 H4). */
+/* Too close to a name: its own line below the daily marks (#1907 H4). */
 .wir-stage-distance.is-below-marks {
   top: calc(
     100% +
@@ -269,10 +281,13 @@
 
 .wir-hero-distance {
   display: inline-flex;
-  min-height: 1.75rem;
+  min-height: var(--wir-stage-mark-height);
   align-items: center;
   gap: var(--space-1);
   margin: 0;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
   color: var(--color-text-muted);
   font: var(--font-supporting-copy);
   font-weight: 650;
@@ -284,6 +299,27 @@
 .wir-hero-distance .partner-distance-glyph {
   width: 1rem;
   height: 1rem;
+}
+
+/* A current position carries the brand colour on its pin; an earlier one
+   stays in the quiet muted tone. */
+.wir-hero-distance.is-fresh .partner-distance-glyph {
+  color: var(--color-brand-text);
+}
+
+.wir-hero-distance-value {
+  position: relative;
+  display: inline-block;
+}
+
+/* The copy that leaves on a value change is shown by the motion rules only. */
+.wir-hero-distance-leaving {
+  display: none;
+}
+
+/* The pin tips about its point when it wiggles (WirMotion.css). */
+.wir-hero-distance .partner-distance-glyph.is-pin {
+  transform-origin: 50% 87.5%;
 }
 
 .wir-hero-distance.is-action {
@@ -406,8 +442,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .wir-stage-intro .wir-bridge-arm {
     transform-origin: left center;
-    animation: wir-intro-arm calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) both;
+    animation: wir-intro-arm calc(var(--wir-intro-beat) * 2) var(--easing-enter)
+      both;
   }
 
   .wir-stage-intro .wir-bridge-arm-partner {
@@ -416,8 +452,8 @@
 
   /* Each half is 100 units long; its arm arrives 56 units from the tip. */
   .wir-stage-intro .wir-bridge-line path {
-    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 2)
-      var(--easing-standard) var(--duration-sequence-beat) both;
+    animation: wir-intro-heart calc(var(--wir-intro-beat) * 2)
+      var(--easing-standard) var(--wir-intro-beat) both;
   }
 }
 

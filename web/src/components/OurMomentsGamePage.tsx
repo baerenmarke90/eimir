@@ -1,4 +1,3 @@
-import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,8 +9,6 @@ import {
   adoptObjectUrl,
   type OwnedObjectUrl,
 } from '../client/objectUrlResource';
-import { appRoutePath } from '../client/routes';
-import { normalizeClientError } from '../client/problemDetails';
 import {
   createLocalOurMomentsSession,
   type OurMomentsCard,
@@ -20,11 +17,16 @@ import {
   type PreparedOurMoment,
   selectOurMomentsRound,
 } from '../client/ourMomentsSession';
+import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
+import { appRoutePath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useRemoteOurMomentsGame } from '../client/useRemoteCoupleGames';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { CoupleGameModes, RemoteOurMomentsView } from './RemoteCoupleGames';
+import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export interface OurMomentsGameSetup {
@@ -477,13 +479,64 @@ export function OurMomentsGamePage({
           </Link>
         </section>
       ) : (
-        <OurMomentsSessionView
-          setup={{
-            participants: setup.participants,
-            moments: setup.moments,
-          }}
+        <OurMomentsModes
+          participants={setup.participants}
+          moments={setup.moments}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          spaceId={spaceId}
+          currentAccountId={currentAccountId}
         />
       )}
     </div>
+  );
+}
+
+/** #2048: one phone together or each partner on their own phone. */
+function OurMomentsModes({
+  participants,
+  moments,
+  apiBaseUrl,
+  accessToken,
+  spaceId,
+  currentAccountId,
+}: {
+  participants: NonNullable<OurMomentsGameSetup['participants']>;
+  moments: OurMomentsGameSetup['moments'];
+  apiBaseUrl: string;
+  accessToken: string;
+  spaceId: string;
+  currentAccountId: string;
+}) {
+  const remote = useRemoteOurMomentsGame({
+    spaceId,
+    currentAccountId,
+    apiBaseUrl,
+    accessToken,
+  });
+  const me =
+    participants.find((person) => person.id === currentAccountId) ??
+    participants[0];
+  const partner =
+    participants.find((person) => person.id !== currentAccountId) ??
+    participants[1];
+  return (
+    <CoupleGameModes
+      partnerName={partner.displayName}
+      remote={remote}
+      renderLocal={() => (
+        <OurMomentsSessionView setup={{ participants, moments }} />
+      )}
+      renderRemote={(onNewGame) => (
+        <RemoteOurMomentsView
+          game={remote}
+          people={{ me, partner }}
+          onNewGame={onNewGame}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          spaceId={spaceId}
+        />
+      )}
+    />
   );
 }

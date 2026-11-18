@@ -1,6 +1,6 @@
 const PREFIX = 'eimir-passport-statistics-v1';
 
-/** A device preference only: no content, grant or count belongs in this store. */
+/** A personal display preference only: no content, grant or count belongs in this store. */
 export function passportStatisticsKey(
   instance: string,
   accountId: string,

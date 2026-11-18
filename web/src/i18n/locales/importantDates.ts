@@ -68,7 +68,7 @@ const importantDates = {
     description:
       'Zum Beispiel Ostern, Weihnachten, Neujahr, Pfingsten und Valentinstag.',
     deviceNote:
-      'Diese Auswahl gilt auf diesem Gerät. Eure gespeicherten Termine bleiben unverändert.',
+      'Diese Auswahl gilt nur für dich, auf all deinen Geräten. Eure gespeicherten Termine bleiben unverändert.',
     manage: 'Allgemeine Anlässe einstellen',
   },
   holidays: {

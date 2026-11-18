@@ -75,7 +75,7 @@ export interface WishDetectiveSession {
 }
 
 const MAX_CLUE_LENGTH = 24;
-const MIN_ROUNDS_PER_PARTNER = 2;
+const MIN_ROUNDS_PER_PARTNER = 1;
 const MAX_ROUNDS_PER_PARTNER = 4;
 const WORD_PATTERN = /^[\p{L}\p{M}]+(?:[-'’][\p{L}\p{M}]+)?$/u;
 const TOKEN_PATTERN = /[\p{L}\p{M}]+(?:[-'’][\p{L}\p{M}]+)?/gu;
@@ -231,9 +231,9 @@ export function createLocalWishDetectiveSession(): WishDetectiveSession {
   }
 
   function beginGame(): void {
-    if (!sourceParticipants || sourceRounds.length < 4) {
+    if (!sourceParticipants || sourceRounds.length < 2) {
       throw new Error(
-        'Wish Detective requires two participants and at least four balanced rounds.',
+        'Wish Detective requires two participants and at least two balanced rounds.',
       );
     }
     const [giverIndex, guesserIndex] = playerIndexes(

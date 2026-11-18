@@ -514,6 +514,7 @@
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",
+        "web/src/components/WhoOfUsGamePage.tsx",
         "web/src/components/OurMomentsGamePage.tsx",
         "web/src/components/GamesProductArea.tsx"
       ]

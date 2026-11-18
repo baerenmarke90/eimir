@@ -626,11 +626,27 @@ function FoundPanel({
   people: HeartHuntPeople;
   url: string | null;
   onSwap: () => void;
-  onKeep: (frame: HTMLElement | null) => void;
+  onKeep: (frame: HTMLElement | null, title: string) => void;
   keeping: boolean;
   keepFailed: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  // #2048: keeping the photo asks for the Moment's name first.
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState(() => t('games.heartHunt.memoryTitle'));
+  const [nameMissing, setNameMissing] = useState(false);
+  const nameField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (naming) nameField.current?.focus();
+  }, [naming]);
+  const confirmKeep = () => {
+    if (!name.trim()) {
+      setNameMissing(true);
+      nameField.current?.focus();
+      return;
+    }
+    onKeep(wrapper.current, name);
+  };
   const hider = round.role === 'HIDER';
   const hiderRole: PersonRole = hider ? 'own' : 'partner';
   const place = round.heart
@@ -673,18 +689,65 @@ function FoundPanel({
         <button type="button" className="heart-hunt-primary" onClick={onSwap}>
           {t('games.heartHunt.found.swap')}
         </button>
-        <button
-          type="button"
-          className="heart-hunt-secondary"
-          disabled={round.kept || keeping || !url}
-          onClick={() => onKeep(wrapper.current)}
-        >
-          {round.kept
-            ? t('games.heartHunt.found.kept')
-            : keeping
-              ? t('games.heartHunt.found.keeping')
+        {naming && !round.kept ? (
+          <form
+            className="heart-hunt-name eimir-motion-disclosure"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!keeping) confirmKeep();
+            }}
+          >
+            <label htmlFor="heart-hunt-name">
+              {t('games.heartHunt.found.nameLabel')}
+            </label>
+            <input
+              ref={nameField}
+              id="heart-hunt-name"
+              type="text"
+              maxLength={120}
+              autoComplete="off"
+              enterKeyHint="done"
+              required
+              value={name}
+              aria-invalid={nameMissing || undefined}
+              aria-describedby={
+                nameMissing ? 'heart-hunt-name-missing' : undefined
+              }
+              onChange={(event) => {
+                setName(event.target.value);
+                if (event.target.value.trim()) setNameMissing(false);
+              }}
+            />
+            {nameMissing ? (
+              <p
+                id="heart-hunt-name-missing"
+                className="heart-hunt-name-missing"
+              >
+                {t('games.heartHunt.found.nameMissing')}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              className="heart-hunt-secondary"
+              disabled={keeping || !url}
+            >
+              {keeping
+                ? t('games.heartHunt.found.keeping')
+                : t('games.heartHunt.found.keepConfirm')}
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="heart-hunt-secondary"
+            disabled={round.kept || keeping || !url}
+            onClick={() => setNaming(true)}
+          >
+            {round.kept
+              ? t('games.heartHunt.found.kept')
               : t('games.heartHunt.found.keep')}
-        </button>
+          </button>
+        )}
         {keepFailed ? (
           <p className="heart-hunt-quiet" role="status">
             {t('games.heartHunt.found.keepFailed')}
@@ -1065,8 +1128,8 @@ export function HeartHuntGamePage({
     [queryClient, stateKey],
   );
 
-  const keep = async (wrapper: HTMLElement | null) => {
-    if (!lastFound || !photo.url || !lastFound.heart) return;
+  const keep = async (wrapper: HTMLElement | null, title: string) => {
+    if (!lastFound || !photo.url || !lastFound.heart || !title.trim()) return;
     setKeeping(true);
     setKeepFailed(false);
     try {
@@ -1097,7 +1160,7 @@ export function HeartHuntGamePage({
         apis,
         spaceId,
         {
-          title: t('games.heartHunt.memoryTitle'),
+          title: title.trim(),
           body: '',
           happenedOn: todayAsDate(),
           attachments: [{ attachmentId: ready.attachmentId, position: 0 }],
@@ -1194,7 +1257,7 @@ export function HeartHuntGamePage({
               people={people}
               url={photo.url}
               onSwap={() => setMode('hide')}
-              onKeep={(wrapper) => void keep(wrapper)}
+              onKeep={(wrapper, title) => void keep(wrapper, title)}
               keeping={keeping}
               keepFailed={keepFailed}
             />

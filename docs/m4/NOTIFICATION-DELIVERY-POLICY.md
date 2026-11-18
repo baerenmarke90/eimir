@@ -28,6 +28,17 @@ target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
 while its card waits; a person gets at most one garden notice per local day,
 so a later seed or bouquet on that day stays silent and waits in the garden.
 
+A finished shared picture (`PICTURE_PING_PONG_FINISHED`, target `PICTURE_GAME`)
+tells the partner of whoever completed it (last turn or early finish), and a
+remote couple game (`COUPLE_GAME_TURN`, targets `WHO_OF_US_GAME`,
+`WISH_DETECTIVE_GAME` and `OUR_MOMENTS_GAME`) tells the partner the game waits
+on them: their turn, or a result once the game is finished. Both use neutral
+immediate delivery that never shows the picture, answers, clues, guesses,
+wishes or moments, follow the picture turn notice's switch (inherited from
+thinking of you) and Quiet Hours, coalesce per recipient and target, and are
+current only while the picture stays finished or the game still waits on the
+reader.
+
 A retained recap (#1744, `RECAP_READY`, target `RECAP`) and a newer version of
 a retained recap after late entries (`RECAP_GREW`) use neutral immediate
 delivery to both partners: the device preview names only the period (a machine

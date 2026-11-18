@@ -34,6 +34,7 @@ from eimir.collections import models as _collections  # noqa: F401
 from eimir.comments import models as _comments  # noqa: F401
 from eimir.config import DatabaseSettings
 from eimir.context_tags import models as _context_tags  # noqa: F401
+from eimir.couple_games import models as _couple_games  # noqa: F401
 from eimir.create_receipts import models as _create_receipts  # noqa: F401
 from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
 from eimir.dashboard import models as _dashboard  # noqa: F401
@@ -52,6 +53,7 @@ from eimir.milestones import models as _milestones  # noqa: F401
 from eimir.once_messages import models as _once_messages  # noqa: F401
 from eimir.outbox import models as _outbox  # noqa: F401
 from eimir.people import models as _people  # noqa: F401
+from eimir.personal_settings import models as _personal_settings  # noqa: F401
 from eimir.photo_sources import models as _photo_sources  # noqa: F401
 from eimir.picture_ping_pong import models as _picture_ping_pong  # noqa: F401
 from eimir.places import models as _places  # noqa: F401

@@ -199,17 +199,15 @@ describe('HeartHuntGamePage', () => {
   });
 
   it('names where the heart was after it was found and offers keeping and swapping', async () => {
-    const { container } = renderPage(
-      fakeApi([
-        round({
-          state: 'FOUND',
-          heart: { x: 100, y: 100 },
-          foundAt: new Date('2026-11-16T11:00:00Z'),
-          deleteAfter: new Date('2026-11-30T11:00:00Z'),
-        }),
-      ]),
-      null,
-    );
+    const api = fakeApi([
+      round({
+        state: 'FOUND',
+        heart: { x: 100, y: 100 },
+        foundAt: new Date('2026-11-16T11:00:00Z'),
+        deleteAfter: new Date('2026-11-30T11:00:00Z'),
+      }),
+    ]);
+    const { container } = renderPage(api, null);
     await screen.findByRole('heading', { name: games.heartHunt.found.title });
     expect(
       screen.getByText(
@@ -221,9 +219,23 @@ describe('HeartHuntGamePage', () => {
     expect(
       container.querySelector('.heart-hunt-heart.is-found'),
     ).not.toBeNull();
-    expect(
+    // #2048: keeping asks for the Moment's name first, prefilled.
+    fireEvent.click(
       screen.getByRole('button', { name: games.heartHunt.found.keep }),
+    );
+    const name = (await screen.findByRole('textbox', {
+      name: games.heartHunt.found.nameLabel,
+    })) as HTMLInputElement;
+    expect(name.value).toBe(games.heartHunt.memoryTitle);
+    expect(document.activeElement).toBe(name);
+    fireEvent.change(name, { target: { value: ' ' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: games.heartHunt.found.keepConfirm }),
+    );
+    expect(
+      await screen.findByText(games.heartHunt.found.nameMissing),
     ).toBeTruthy();
+    expect(api.keepHeartHuntRound).not.toHaveBeenCalled();
     fireEvent.click(
       screen.getByRole('button', { name: games.heartHunt.found.swap }),
     );

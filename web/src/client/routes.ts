@@ -276,6 +276,8 @@ export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 export const GAMES_GARDEN_ROUTE = '/games/garden';
 export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
 export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
+/** The remote Who of us game played on two devices. */
+export const GAMES_WHO_OF_US_ROUTE = '/games/who-of-us';
 
 /* Story content ---------------------------------------------------------- */
 

@@ -1,13 +1,12 @@
 """Curated, code-owned catalog of daily quotes, categories, and sources.
 
-This catalog is closed, curated, and legally auditable (#1151):
-- Attributed quotations use identifiable works and documented source editions.
-- Catalog translations of public-domain texts carry their own rights metadata.
-- Original contemporary sayings carry first-party eimir. credit and provenance.
-- Source editions and rights bases are retained internally. Authored texts show credit.
-- Traditional sayings can be displayed without an author or a citation.
-- Each passage expresses a complete thought outside its original context.
-- Categories reflect the passage's meaning, and translations preserve that meaning.
+This catalog is closed and code-owned (#1151):
+- Every saying is AI-generated text without an individual author. It is selected for
+  eimir. and used under the repository license, so no author or citation is shown.
+- The previous catalog of public-domain quotations and first-party editorial sayings is
+  archived in `backend/archive/quotes` and no longer served.
+- Rights and provenance stay recorded per saying in `daily_sayings.json`.
+- Each saying expresses a complete thought and carries exactly one category.
 """
 
 from __future__ import annotations
@@ -58,37 +57,57 @@ class DailyQuote:
     active: bool = True
 
 
-# --- V1 Curated Categories ---
+# --- Curated Categories ---
 CATEGORIES: tuple[QuoteCategory, ...] = (
     QuoteCategory(
         id="love",
-        name="Liebe & Beziehung",
-        description="Gedanken über Verbundenheit, Nähe und Liebe im gemeinsamen Alltag.",
+        name="Liebe & Partnerschaft",
+        description="Nähe, Vertrauen und das Gefühl, zusammenzugehören.",
     ),
     QuoteCategory(
-        id="life",
-        name="Leben & Weisheit",
-        description="Betrachtungen über den Lebensweg, menschliche Reife und Zeit.",
-    ),
-    QuoteCategory(
-        id="philosophy",
-        name="Philosophie",
-        description="Klassische philosophische Einsichten und Reflexionen.",
-    ),
-    QuoteCategory(
-        id="mindfulness",
-        name="Achtsamkeit",
-        description="Innehalten, Gegenwart und bewusste Wahrnehmung des Moments.",
-    ),
-    QuoteCategory(
-        id="serenity",
-        name="Gelassenheit",
-        description="Innere Ruhe, Zuversicht und der gelassene Umgang mit Wandel.",
+        id="friendship",
+        name="Freundschaft",
+        description="Verbundenheit, Verständnis und gemeinsames Lachen.",
     ),
     QuoteCategory(
         id="motivation",
-        name="Mut & Motivation",
+        name="Motivation & Erfolg",
         description="Ermutigung zum Anfangen, Dranbleiben und Wachsen.",
+    ),
+    QuoteCategory(
+        id="humor",
+        name="Humor & Witzig",
+        description="Leichte Gedanken und kleine Schmunzler für zwischendurch.",
+    ),
+    QuoteCategory(
+        id="life",
+        name="Lebensweisheiten",
+        description="Gedanken über Zufriedenheit, Zeit und das, was bleibt.",
+    ),
+    QuoteCategory(
+        id="nature",
+        name="Natur & Ruhe",
+        description="Draußen sein, Stille finden und durchatmen.",
+    ),
+    QuoteCategory(
+        id="travel",
+        name="Reisen & Abenteuer",
+        description="Unterwegs sein, Neues entdecken und Neugier behalten.",
+    ),
+    QuoteCategory(
+        id="courage",
+        name="Mut & Neuanfang",
+        description="Der erste Schritt, Veränderung und Zuversicht.",
+    ),
+    QuoteCategory(
+        id="selfcare",
+        name="Selbstfürsorge & Gelassenheit",
+        description="Pausen, Grenzen und ein freundlicher Umgang mit dir selbst.",
+    ),
+    QuoteCategory(
+        id="together",
+        name="Gemeinsame Erlebnisse & Alltag",
+        description="Kleine gemeinsame Momente, die den Alltag besonders machen.",
     ),
 )
 

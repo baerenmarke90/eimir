@@ -19,7 +19,10 @@ import {
   collectionDetailPath,
   GAMES_GARDEN_ROUTE,
   GAMES_HEART_HUNT_ROUTE,
+  GAMES_MOMENTS_ROUTE,
   GAMES_PICTURE_PING_PONG_ROUTE,
+  GAMES_WHO_OF_US_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   memoryDetailPath,
@@ -159,6 +162,13 @@ export function engagementTargetPath(
       return collectionDetailPath(targetId);
     case 'PICTURE_GAME':
       return GAMES_PICTURE_PING_PONG_ROUTE;
+    // A remote couple game opens its own page; the page reads the current game.
+    case 'WHO_OF_US_GAME':
+      return GAMES_WHO_OF_US_ROUTE;
+    case 'WISH_DETECTIVE_GAME':
+      return GAMES_WISH_DETECTIVE_ROUTE;
+    case 'OUR_MOMENTS_GAME':
+      return GAMES_MOMENTS_ROUTE;
     case 'SHARED_NOTE':
       return sharedNoteDetailPath(targetId);
     case 'GARDEN_SEED':

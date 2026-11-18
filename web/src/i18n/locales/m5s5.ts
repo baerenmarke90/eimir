@@ -4,6 +4,11 @@ const m5s5 = {
     newSpaceEmpty: 'Willkommen in eurem gemeinsamen Ort.',
     newSpaceIntro: 'Alles ist bereit für eure gemeinsame Geschichte.',
     newSpaceAction: 'Ersten Moment festhalten',
+    // #2048: first sign-in while the partner has not joined yet.
+    newSpaceSolo: 'Willkommen, {{name}}.',
+    newSpaceSoloIntro:
+      'Hier entsteht euer gemeinsamer Ort. Sobald dein Mensch dazukommt, seid ihr hier zu zweit.',
+    partnerPlace: 'Dein Mensch',
     // The visible landing area is Übersicht; the stable route ID remains `today`.
     eyebrow: 'Übersicht',
     title: 'Euer gemeinsamer Ort',

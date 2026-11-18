@@ -40,7 +40,20 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   );
 }
 
-async function installApiMocks(page: Page): Promise<void> {
+// A 1x1 PNG stands in for both profile pictures.
+const AVATAR_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQBJ5D4dAAAAAElFTkSuQmCC',
+  'base64',
+);
+const AVATAR_IDS: Record<string, string> = {
+  [ACCOUNT_ID]: '55555555-5555-4555-8555-555555555555',
+  [PARTNER_ID]: '66666666-6666-4666-8666-666666666666',
+};
+
+async function installApiMocks(
+  page: Page,
+  { avatars = false }: { avatars?: boolean } = {},
+): Promise<void> {
   picture = null;
   turnRequests.length = 0;
   startRequests.length = 0;
@@ -146,17 +159,32 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
+    const profileMatch = pathname.match(
+      new RegExp(
+        `^/api/v1/spaces/${SPACE_ID}/profiles/([^/]+)(/avatar/content)?$`,
+      ),
+    );
+    const profileOwner = profileMatch?.[1];
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`
+      profileOwner &&
+      (profileOwner === ACCOUNT_ID || (avatars && profileOwner === PARTNER_ID))
     ) {
+      if (profileMatch?.[2]) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'image/png',
+          body: AVATAR_PNG,
+        });
+        return;
+      }
       await fulfillJson({
-        accountId: ACCOUNT_ID,
+        accountId: profileOwner,
         createdAt: TEST_NOW,
-        displayName: 'Anna',
+        displayName: profileOwner === ACCOUNT_ID ? 'Anna' : 'Alex',
         id: PROFILE_ID,
         preferences: [],
-        profileAttachmentId: null,
+        profileAttachmentId: avatars ? AVATAR_IDS[profileOwner] : null,
         updatedAt: TEST_NOW,
         version: 1,
       });
@@ -402,6 +430,28 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
       path: testInfo.outputPath('picture-ping-pong-done-390-dark.png'),
       fullPage: true,
     });
+  });
+
+  test('the stage shows both profile pictures instead of initials', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page, { avatars: true });
+    await page.goto('/login');
+    await signIn(page);
+    await page.goto('/games/picture-ping-pong');
+
+    const avatars = page.locator('.pingpong-stage .pingpong-avatar img');
+    await expect(avatars).toHaveCount(2);
+    for (const avatar of await avatars.all()) {
+      await expect(avatar).toHaveJSProperty('complete', true);
+      expect(
+        await avatar.evaluate(
+          (node) => (node as HTMLImageElement).naturalWidth,
+        ),
+      ).toBe(1);
+    }
   });
 
   test('a blank start and the partner’s turn arriving live at 390 px', async ({

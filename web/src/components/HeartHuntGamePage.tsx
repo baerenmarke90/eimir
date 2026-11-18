@@ -20,7 +20,6 @@ import type { HeartHuntTapResult } from '../api/generated/models/HeartHuntTapRes
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
-import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   arcPoints,
   composeHeartPhoto,
@@ -32,6 +31,7 @@ import {
   placeKey,
   warmthKey,
 } from '../client/heartHunt';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,
@@ -52,6 +52,7 @@ import {
   useSpaceCapability,
 } from '../client/spaceEntitlement';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { DeviceMediaPicker } from './DeviceMediaPicker';
@@ -138,11 +139,13 @@ const RIGHT = { x: 306, y: 66 };
 
 function FlightBand({
   people,
+  avatars,
   band,
   label,
   flightRef,
 }: {
   people: HeartHuntPeople;
+  avatars: { me: string | null; partner: string | null };
   band: DistanceBandView | null;
   label: string | null;
   flightRef: React.Ref<FlightHandle>;
@@ -228,10 +231,18 @@ function FlightBand({
         </g>
       </svg>
       <span className="heart-hunt-band-person is-own" aria-hidden="true">
-        <PartnerMarker name={people.me.displayName} role={OWN} />
+        <PartnerMarker
+          name={people.me.displayName}
+          role={OWN}
+          imageUrl={avatars.me}
+        />
       </span>
       <span className="heart-hunt-band-person is-partner" aria-hidden="true">
-        <PartnerMarker name={people.partner.displayName} role={PARTNER} />
+        <PartnerMarker
+          name={people.partner.displayName}
+          role={PARTNER}
+          imageUrl={avatars.partner}
+        />
       </span>
       {label ? (
         <figcaption className="heart-hunt-band-label">{label}</figcaption>
@@ -1107,6 +1118,22 @@ export function HeartHuntGamePage({
   };
 
   const people = peopleQuery.data ?? null;
+  const avatars = {
+    me: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: people?.me.id,
+      enabled: !loadPeople,
+    }),
+    partner: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: people?.partner.id,
+      enabled: !loadPeople,
+    }),
+  };
   return (
     <div className="page heart-hunt-page">
       <PageHeader
@@ -1139,6 +1166,7 @@ export function HeartHuntGamePage({
         <>
           <FlightBand
             people={people}
+            avatars={avatars}
             band={band}
             label={label}
             flightRef={flight}

@@ -205,6 +205,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/story-lifeline/entries",
+        query={"from": "2026-10-05", "to": "2026-10-12"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
@@ -505,6 +510,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name",
+        body={"name": "Frieda"},
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/games/garden/bouquets",
@@ -1840,6 +1850,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             # No seed exists in the matrix; tenant and entitlement checks come first.
             "seedId": str(uuid4()),
             "bouquetId": str(uuid4()),
+            # A closed visitor code, not a database row.
+            "animal": "SNAIL",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

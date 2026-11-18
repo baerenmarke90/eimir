@@ -284,3 +284,100 @@ with motion, 360 px Dark with reduced motion) are in [`evidence/`](evidence/):
 The garden page reads its state live while it is open, so the partner's moves
 appear without leaving the page. Contract, reuse and business review:
 [live partner sync](../1907-h3-live-sync/README.md).
+
+## Update 2026-11-17: the couple's story in the garden
+
+Product Owner request (#1907 H3 follow-up). Prototype for tone: the approved
+garden screen and garden book. Everything below is derived on the device; the
+server stores nothing new.
+
+### What is added
+
+- **Milestones grow as special plants** (the couple's story grows in the
+  garden). The page reads the couple's Milestones through the existing Story
+  path (`useStoryMilestones`, the same authorized `listMilestones` read and
+  cache as the Story overview). Each Milestone that already happened maps to
+  one of six pieces drawn in the garden's style (heart bush, young tree,
+  lantern flower, stepping stones, rose trellis, memory stone) by a stable hash
+  of its id, never repeating a piece of the five before it. At most the six
+  most recent stand in a calm memory corner at the front edge of the meadow,
+  left of the pond and between the stems of the planting lane, so no unlock
+  ever collides with them. A tap gives a gentle sway and a small card (title,
+  date, piece sentence, `Ansehen` to the Milestone route, `Schließen`). The
+  garden book lists them in a story section. Without
+  Milestones, or when the read fails, the garden and the book are unchanged:
+  no placeholder and no empty corner.
+- **Finds.** From fixed shared days on (2, 5, 9, 14, 20, 28, 38, 50) the
+  couple has found one more small thing (feather, hazelnut, snail shell, shiny
+  pebble, clover, acorn, pine cone, heart leaf), in an order seeded by the
+  space id, so both partners find the same things. The next visitor tap after
+  a new find lets it land and glint once where the visitor stands and adds a
+  line below the status (for example, that the hedgehog left a feather); a
+  device-local note keeps it from glinting twice. The book lists only what was
+  found in its section `Fundstücke`: no empty slots and no count.
+- **Rare visitors** that cannot be named: an owl on the couple's tree in the
+  evening and at night, a fox at the meadow edge in winter (early morning and
+  dusk), ducklings on the pond in spring (daytime). Each comes on about every
+  other day of its window, chosen from the space id and the couple's day, so
+  both partners see it on the same days. They are named buttons with a short
+  reaction in the status line and stay out of the `Eure Besucher` list.
+- **Garden-year playback** (`Euer Gartenjahr abspielen`) in the book opens a dialog that replays the
+  garden in about 13 seconds with the real scene: plantings in the order of
+  their planted dates growing to their stage of today, the unlocks in server
+  order (the meadow, garden and paradise forms arrive with pond, tree and rose
+  arch), seasons from spring to winter (real seasons for a garden of about a
+  year), ending on today. `Anhalten`/`Weiter`, `Noch einmal` at the end and
+  `Schließen`.
+- **Sounds and vibration.** The book's per-device section holds a sound
+  switch (Web Audio synthesis: a plop when planting, drops when
+  watering, a chirp when a bird carries the seed, a quack for the ducks and
+  ducklings, a hoot for the owl, a chime for a find) and, in the native app
+  only, a vibration switch (a light vibration on garden taps and reactions).
+  Both are off by default and stored per device.
+
+### Contract deltas
+
+- **States:** the Milestone card replaces a selected plant's story card and
+  vice versa; the replay is a modal dialog over the page (bottom sheet on
+  Compact, centred on Expanded); a failed Milestone read is silent. Loading,
+  error, 409 and offline stay as before; nothing is queued or stored on the
+  server.
+- **Hierarchy:** the Milestone card has one filled action (`Ansehen`); the
+  replay dialog has tonal `Anhalten`/`Weiter` and `Schließen`; the book's
+  play action is tonal. The new book sections follow the visitor list and the
+  herbarium layouts.
+- **Motion:** a tapped piece sways once; a find lands and glints once; rare
+  visitors blink or bob only in the lively scene and play one short reaction;
+  plants pop and grow during the replay. With reduced motion nothing sways,
+  glints or plays: the replay shows the start and today next to each other, a
+  reaction is a still pose described in the status line.
+- **Focus and keyboard:** pieces and rare visitors are named buttons
+  (Enter/Space) placed under the plants; the replay takes focus on its first
+  control, keeps Tab inside, closes with Escape and returns focus to
+  `Euer Gartenjahr abspielen`. The scenes inside the dialog are inert.
+- **Privacy:** Milestones are read only through their existing authorization
+  and are shown only to members, exactly as in the Story; nothing is copied or
+  stored by the garden. Finds and rare visitors use only shared days, the
+  space id, the couple's day and the device clock. Sound and vibration
+  preferences and the shown finds stay on the device.
+- **Native-only control:** the vibration switch is hidden outside the native
+  app by the runtime platform (Capacitor), not by the viewport width.
+- **No numbers:** the book's "Fundstücke" has no count and no empty slot; the
+  only numbers are Milestone dates.
+
+### Reuse review
+
+- Milestones: reuse of `useStoryMilestones` (only an `enabled` option was
+  added for tests); no new endpoint or authorization path.
+- Vibration: the Web Vibration API inside the Capacitor WebView with the
+  normal `android.permission.VIBRATE` permission (no runtime prompt) instead of
+  adding `@capacitor/haptics`: one light pattern on taps needs no native
+  haptic engine, no new dependency or plugin sync, and the call is a no-op on
+  the Web, where the control is hidden anyway.
+- Sounds: the Web Audio API synthesizes a few enveloped oscillator tones; no
+  audio files, so no licensing, download or cache cost. Audio starts only from
+  a tap and stays quiet (master gain 0.06).
+- The replay reuses `GardenScene` with a moment of the replay (plants,
+  stages, unlocks, season tint and season layers) instead of drawing the
+  garden twice, and the shared `useModalLifecycle` for focus and scroll lock.
+

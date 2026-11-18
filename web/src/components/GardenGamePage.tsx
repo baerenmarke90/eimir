@@ -13,9 +13,9 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { GardenPlantView } from '../api/generated/models/GardenPlantView';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenView } from '../api/generated/models/GardenView';
+import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
-import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   GARDEN_WORDS,
   type GardenFlight,
@@ -25,16 +25,31 @@ import {
   stageChanges,
 } from '../client/garden';
 import {
+  gardenCelebration,
+  isFirstSnowDay,
+  togetherArrivals,
+  togetherMoments,
+  togetherSeat,
+} from '../client/gardenAmbience';
+import {
+  availableAnimals,
+  cleanVisitorName,
+  type GardenAnimal,
   isBlooming,
   shownStage,
   unlockedWidth,
+  VISITOR_CODE,
+  visitorNames,
+  withVisitorName,
   wordsArriveByPlane,
 } from '../client/gardenGrowth';
 import { renderSvgPng } from '../client/gardenImage';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
+import type { SpaceOccasion } from '../client/occasionMatches';
 import { usePartnerDistanceLine } from '../client/partnerDistance';
 import {
   createPartnerLocationApi,
@@ -47,7 +62,11 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import type { MilestoneRef } from '../client/storyWaymarks';
+import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { type SceneAmbience, useGardenClock } from './GardenAmbience';
 import { Messenger, SeedIcon } from './GardenArt';
 import { GardenBook, GardenNewsCard, GardenYearCard } from './GardenBook';
 import {
@@ -65,11 +84,14 @@ import {
   useGardenPresentation,
 } from './GardenPresentation';
 import { GardenScene, type SceneGrowth, type ScenePlant } from './GardenScene';
+import { GardenVisitors } from './GardenVisitors';
+import { GardenWirHint } from './GardenWirHint';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { useGardenStory } from './useGardenStory';
 import './GardenGamePage.css';
 import './GardenGrowth.css';
 
@@ -88,6 +110,11 @@ export interface GardenServices {
   /* Growth and life (#1907 H3, PR 3). */
   acknowledgeNews?: () => Promise<GardenView>;
   rename?: (name: string | null) => Promise<GardenView>;
+  /** Names one visitor for both partners; `null` removes the name. */
+  nameVisitor?: (
+    animal: GardenVisitor,
+    name: string | null,
+  ) => Promise<GardenView>;
   giveBouquet?: (plantIds: string[]) => Promise<GardenView>;
   closeBouquet?: (bouquetId: string, kept: boolean) => Promise<GardenView>;
   saveToMoments?: (input: {
@@ -96,6 +123,8 @@ export interface GardenServices {
     image: Blob;
     fileName: string;
   }) => Promise<{ memoryId: string }>;
+  /** The couple's Milestones; the page reads them via the Story path by default. */
+  loadMilestones?: () => Promise<MilestoneRef[]>;
 }
 
 function localDay(): Date {
@@ -131,6 +160,12 @@ function useDefaultServices({
       acknowledgeNews: () => api.acknowledgeGardenNews({ spaceId }),
       rename: (name) =>
         api.renameGarden({ spaceId, gardenNameInput: { name } }),
+      nameVisitor: (animal, name) =>
+        api.nameGardenVisitor({
+          spaceId,
+          animal,
+          gardenVisitorNameInput: { name },
+        }),
       giveBouquet: (plantIds) =>
         api.giveGardenBouquet({ spaceId, gardenBouquetInput: { plantIds } }),
       closeBouquet: (bouquetId, kept) =>
@@ -227,12 +262,14 @@ function prefersReducedMotion(): boolean {
 /** The two partners and the arc the messenger flies along. */
 function FlightBand({
   names,
+  avatars,
   flight,
   flying,
   distanceLabel,
   colour,
 }: {
   names: { own: string; partner: string };
+  avatars: { own: string | null; partner: string | null };
   flight: GardenFlight;
   flying: { direction: 'toPartner' | 'toMe'; key: number } | null;
   distanceLabel: string | null;
@@ -267,6 +304,7 @@ function FlightBand({
       <span className="garden-band-avatar person-role-own">
         <PersonIdentity
           displayName={names.own}
+          imageUrl={avatars.own}
           size="small"
           showName={false}
           imageAlt={names.own}
@@ -304,6 +342,7 @@ function FlightBand({
       <span className="garden-band-avatar person-role-partner">
         <PersonIdentity
           displayName={names.partner}
+          imageUrl={avatars.partner}
           size="small"
           showName={false}
           imageAlt={names.partner}
@@ -322,6 +361,7 @@ export function GardenGamePage({
   services,
   loadPartners,
   flightOverride,
+  occasionsOverride,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -333,6 +373,8 @@ export function GardenGamePage({
   >;
   /** Tests pass a fixed band instead of reading partner location. */
   flightOverride?: GardenFlight;
+  /** Tests pass the couple's occasions instead of reading them. */
+  occasionsOverride?: ReadonlyArray<SpaceOccasion>;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -394,6 +436,23 @@ export function GardenGamePage({
     partner: partner?.displayName ?? t('games.garden.partnerFallback'),
   };
 
+  const avatars = {
+    own: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: currentAccountId,
+      enabled: !services,
+    }),
+    partner: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: partner?.id,
+      enabled: !services,
+    }),
+  };
+
   const liveFlight = useGardenFlight({
     apiBaseUrl,
     accessToken,
@@ -417,7 +476,25 @@ export function GardenGamePage({
   const [changes, setChanges] = useState<Map<string, number>>(new Map());
   const [gustKey, setGustKey] = useState(0);
   const [celebrationKey, setCelebrationKey] = useState(0);
-  const [wateredNow, setWateredNow] = useState<string | null>(null);
+  // Ambience (#1907 H3 extensions): one-shot moments keyed by a new number.
+  const [wateringMoment, setWateringMoment] =
+    useState<SceneAmbience['watering']>(null);
+  const [bounce, setBounce] = useState<SceneAmbience['bounce']>(null);
+  const [arrival, setArrival] = useState<SceneAmbience['arrival']>(null);
+  const [call, setCall] = useState<SceneGrowth['call']>(null);
+  const bookToggle = useRef<HTMLButtonElement | null>(null);
+  // A counter, not the clock: two moments in the same millisecond differ.
+  const moments = useRef(0);
+  const nextMoment = useCallback(() => {
+    moments.current += 1;
+    return moments.current;
+  }, []);
+  const clock = useGardenClock();
+  const readOccasions = useSpaceOccasions(
+    occasionsOverride ? undefined : spaceId,
+    currentAccountId,
+  );
+  const occasions = occasionsOverride ?? readOccasions;
   const greeted = useRef<string | null>(null);
   const frame = useRef<HTMLDivElement | null>(null);
   const defaultSaveMoment = useGardenMomentSaver({
@@ -429,13 +506,45 @@ export function GardenGamePage({
   const [binding, setBinding] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [bookOpen, setBookOpen] = useState(false);
+  // Visitor names (#1907 H3 follow-up): the open editor, a failed save to
+  // offer again, and the reaction that asks for a name.
+  const [visitorEditing, setVisitorEditing] = useState<GardenAnimal | null>(
+    null,
+  );
+  const [visitorFailed, setVisitorFailed] = useState<{
+    kind: GardenAnimal;
+    draft: string;
+  } | null>(null);
+  const [ask, setAsk] = useState<{ kind: GardenAnimal; text: string } | null>(
+    null,
+  );
   const [banner, setBanner] = useState<SceneGrowth['banner']>(null);
   const [yearSaved, setYearSaved] = useState(false);
+  // Successful garden moments of this visit, for the one-time Wir offer.
+  const [wirMoments, setWirMoments] = useState(0);
+  const markMoment = useCallback(() => setWirMoments((count) => count + 1), []);
   const bouquetSvg = useRef<SVGSVGElement | null>(null);
   const reduced = prefersReducedMotion();
 
   const garden = gardenQuery.data;
   const presentation = useGardenPresentation(garden, prefersReducedMotion());
+  // The couple's story in the garden (#1907 H3 follow-up).
+  const story = useGardenStory({
+    garden,
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+    loadMilestones: services?.loadMilestones,
+    live: !services,
+    reduced,
+    visitors: presentation.sleep !== 'asleep',
+    visitorName: (kind) =>
+      visitorNames(garden?.visitorNames)[kind] ??
+      t(`games.garden.growth.visitors.own.${kind}`),
+    onSelectMemory: () => setSelected(null),
+    onStatus: setStatus,
+  });
   // A gentle gust when the garden opens.
   const opened = garden !== undefined;
   useEffect(() => {
@@ -461,6 +570,25 @@ export function GardenGamePage({
             'SURPRISE',
       );
       if (revealed) setStatus(t('games.garden.growth.moonRevealed'));
+      if (previous) {
+        // What the partner did arrives live: their can, the double rainbow,
+        // the two on the swing, a note in the birdhouse. Each plays once.
+        const arrived = togetherArrivals(previous, next, currentAccountId);
+        const key = nextMoment();
+        if (arrived.partnerWatered)
+          setWateringMoment({
+            key,
+            plantId: arrived.partnerWatered,
+            who: 'partner',
+          });
+        if (arrived.bothWatered || arrived.bothSent || arrived.partnerWords)
+          setArrival({
+            key,
+            bothWatered: arrived.bothWatered,
+            bothSent: arrived.bothSent,
+            words: arrived.partnerWords,
+          });
+      }
       if (next.sharedToday && previous && !previous.sharedToday) {
         setCelebrationKey((key) => key + 1);
         setGustKey((key) => key + 1);
@@ -468,7 +596,7 @@ export function GardenGamePage({
         setGustKey((key) => key + 1);
       }
     },
-    [t],
+    [currentAccountId, nextMoment, t],
   );
 
   // Every new answer is staged against the last one shown, so growth the
@@ -519,6 +647,7 @@ export function GardenGamePage({
       api.send(pick, flight.wordsOffered ? words : null),
     );
     if (!next) return;
+    if (flight.messenger === 'bird') story.feedback.play('chirp');
     const done = () => {
       setLanding(false);
       void apply(next);
@@ -531,6 +660,7 @@ export function GardenGamePage({
           name: names.partner,
         }),
       );
+      markMoment();
     };
     if (prefersReducedMotion()) {
       done();
@@ -547,6 +677,8 @@ export function GardenGamePage({
     const next = await run(() => api.plant(previous.incoming?.id ?? ''));
     if (!next) return;
     void apply(next);
+    story.feedback.play('plop');
+    story.feedback.buzz('tap');
     setCardOpen(false);
     setStatus(t('games.garden.plantedStatus'));
   };
@@ -569,7 +701,10 @@ export function GardenGamePage({
       );
       return;
     }
+    story.feedback.buzz('tap');
     if (!watering) {
+      if (selected !== plantId) setBounce({ key: nextMoment(), plantId });
+      story.closeMemory();
       setSelected((current) => (current === plantId ? null : plantId));
       return;
     }
@@ -577,8 +712,10 @@ export function GardenGamePage({
     setWatering(false);
     if (!next) return;
     void apply(next);
-    setWateredNow(plantId);
+    setWateringMoment({ key: nextMoment(), plantId, who: 'own' });
+    story.feedback.play('water');
     setStatus(t('games.garden.wateredStatus', { name: names.partner }));
+    markMoment();
   };
 
   if (gardenQuery.isPending) {
@@ -690,6 +827,12 @@ export function GardenGamePage({
       colour: colourOf(flower.senderId),
     }),
   );
+  const named = visitorNames(garden.visitorNames);
+  const metVisitors = availableAnimals(sharedDays, unlocks);
+  const animalName = (kind: GardenAnimal) =>
+    t(`games.garden.growth.animals.${kind}`);
+  const ownVisitor = (kind: GardenAnimal) =>
+    t(`games.garden.growth.visitors.own.${kind}`);
   const growth: SceneGrowth = {
     unlocks,
     sharedDays,
@@ -699,13 +842,104 @@ export function GardenGamePage({
     reduced,
     labels: {
       animal: (kind) =>
-        t('games.garden.growth.animalLabel', {
-          animal: t(`games.garden.growth.animals.${kind}`),
-        }),
+        named[kind]
+          ? t('games.garden.growth.animalLabelNamed', {
+              name: named[kind],
+              animal: animalName(kind),
+            })
+          : t('games.garden.growth.animalLabel', { animal: animalName(kind) }),
       quack: t('games.garden.growth.quack'),
+      name: (kind) => named[kind] ?? null,
     },
-    onReaction: (kind) => setStatus(t(`games.garden.growth.reactions.${kind}`)),
+    call,
+    onCall: (kind, came) => {
+      const name = named[kind] ?? ownVisitor(kind);
+      const plural = kind === 'ducks';
+      setAsk(null);
+      setStatus(
+        came
+          ? t(
+              plural
+                ? 'games.garden.ambience.call.greetedPlural'
+                : 'games.garden.ambience.call.greeted',
+              { name },
+            )
+          : t(
+              plural
+                ? 'games.garden.ambience.call.laterPlural'
+                : 'games.garden.ambience.call.later',
+              { name },
+            ),
+      );
+    },
+    onReaction: (kind, at) => {
+      story.reactToVisitor(kind, at);
+      const name = named[kind];
+      const text = name
+        ? t(`games.garden.growth.reactionsNamed.${kind}`, { name })
+        : t(`games.garden.growth.reactions.${kind}`);
+      setStatus(text);
+      // An unnamed visitor asks for a name, right next to its reaction.
+      setAsk(name ? null : { kind, text });
+      markMoment();
+    },
     banner,
+  };
+  const together = togetherMoments(garden, currentAccountId);
+  const celebration = gardenCelebration(clock.day, occasions);
+  const firstSnow = isFirstSnowDay(garden.localDate);
+  const ambience: SceneAmbience = {
+    daytime: clock.daytime,
+    season: presentation.season,
+    together,
+    arrival,
+    watering: wateringMoment,
+    bounce,
+    celebration,
+    partnerName: names.partner,
+    partnerWordsText: together.partnerWords
+      ? t(`games.garden.words.${together.partnerWords}`)
+      : null,
+    onStatus: setStatus,
+  };
+  const celebrationText = !celebration
+    ? null
+    : celebration.kind === 'anniversary'
+      ? t('games.garden.ambience.celebration.anniversary')
+      : celebration.isViewer
+        ? t('games.garden.ambience.celebration.birthdayOwn')
+        : t('games.garden.ambience.celebration.birthdayPartner', {
+            name: celebration.name || names.partner,
+          });
+  const firstSnowText = firstSnow ? t('games.garden.ambience.firstSnow') : null;
+  const ambienceSentences = [
+    t(`games.garden.ambience.daytime.${clock.daytime}`),
+    ...(together.bothWatered && clock.daytime !== 'night'
+      ? [t('games.garden.ambience.doubleRainbow')]
+      : []),
+    ...(together.bothSent
+      ? [t(`games.garden.ambience.together.${togetherSeat(unlocks)}`)]
+      : []),
+    ...(ambience.partnerWordsText && unlocks.includes('BIRDHOUSE')
+      ? [
+          t('games.garden.ambience.birdhouseLabel', {
+            name: names.partner,
+          }),
+        ]
+      : []),
+  ];
+  const callVisitor = (kind: GardenAnimal) => {
+    setBookOpen(false);
+    setVisitorEditing(null);
+    setCall({ key: nextMoment(), kind });
+    // The book closes; focus returns to its toggle and the scene comes into view.
+    window.requestAnimationFrame(() => {
+      bookToggle.current?.focus({ preventScroll: true });
+      frame.current?.scrollIntoView?.({
+        block: 'nearest',
+        behavior: reduced ? 'auto' : 'smooth',
+      });
+    });
   };
   const planeWords =
     incoming?.words != null && !reduced && wordsArriveByPlane(incoming.id);
@@ -732,6 +966,58 @@ export function GardenGamePage({
       }),
     );
     return true;
+  };
+  const nameVisitor = async (kind: GardenAnimal, name: string) => {
+    if (!api.nameVisitor) return;
+    const previous = garden;
+    const cleaned = cleanVisitorName(name);
+    // Optimistic: the row shows the new name at once and rolls back on error.
+    setVisitorFailed(null);
+    setVisitorEditing(null);
+    queryClient.setQueryData<GardenView>(queryKey, (current) =>
+      current
+        ? {
+            ...current,
+            visitorNames: withVisitorName(current.visitorNames, kind, cleaned),
+          }
+        : current,
+    );
+    const next = await run(
+      () =>
+        api.nameVisitor?.(
+          VISITOR_CODE[kind],
+          cleaned || null,
+        ) as Promise<GardenView>,
+    );
+    if (!next) {
+      queryClient.setQueryData<GardenView>(queryKey, (current) =>
+        current
+          ? { ...current, visitorNames: previous.visitorNames ?? [] }
+          : current,
+      );
+      setVisitorFailed({ kind, draft: name });
+      setVisitorEditing(kind);
+      return;
+    }
+    void apply(next);
+    const saved = visitorNames(next.visitorNames)[kind];
+    setStatus(
+      saved
+        ? t('games.garden.growth.visitors.namedStatus', {
+            visitor: ownVisitor(kind),
+            name: saved,
+          })
+        : t('games.garden.growth.visitors.clearedStatus', {
+            visitor: ownVisitor(kind),
+          }),
+    );
+    markMoment();
+  };
+  const askForName = (kind: GardenAnimal) => {
+    setSelected(null);
+    setVisitorFailed(null);
+    setBookOpen(true);
+    setVisitorEditing(kind);
   };
   const giveBouquet = async () => {
     if (!api.giveBouquet || picked.length === 0) return;
@@ -1018,6 +1304,7 @@ export function GardenGamePage({
       <PageHeader title={title} />
       <FlightBand
         names={names}
+        avatars={avatars}
         flight={flight}
         flying={flying}
         distanceLabel={distanceLabel}
@@ -1029,6 +1316,7 @@ export function GardenGamePage({
         data-testid="garden-frame"
         data-season={presentation.season}
         data-sleep={presentation.sleep}
+        data-daytime={clock.daytime}
       >
         <GardenScene
           plants={scenePlants}
@@ -1038,19 +1326,57 @@ export function GardenGamePage({
           onSelect={(plantId) => void choosePlant(plantId)}
           gustKey={gustKey}
           celebrationKey={celebrationKey}
-          wateredPlantId={wateredNow}
           lively
           label={[
             `${title}, ${t(`games.garden.growth.forms.${form}`)}: ${t('games.garden.sceneLabel', { count: garden.plants.length })}`,
             ...sceneSentences,
+            ...ambienceSentences,
           ].join('. ')}
           layers={presentation.layers(width)}
           growth={growth}
+          ambience={ambience}
+          story={story.scene}
         />
       </div>
       {width > 340 ? (
         <p className="garden-pan-hint">{t('games.garden.panHint')}</p>
       ) : null}
+      {celebrationText ? (
+        <p
+          className="garden-note garden-celebration-note"
+          data-testid="garden-celebration"
+          data-kind={celebration?.kind}
+        >
+          {celebrationText}
+        </p>
+      ) : null}
+      {firstSnowText ? (
+        <p
+          className="garden-note garden-snow-note"
+          data-testid="garden-first-snow"
+        >
+          {firstSnowText}
+        </p>
+      ) : null}
+      {services ? null : (
+        <GardenWirHint
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          moment={wirMoments}
+          quiet={
+            busy ||
+            landing ||
+            watering ||
+            binding ||
+            bookOpen ||
+            wordsOpen ||
+            banner !== null ||
+            visitorEditing !== null
+          }
+        />
+      )}
       <GardenSleepCard presentation={presentation} />
       {selectedPlant ? (
         <section className="garden-card garden-story" aria-live="polite">
@@ -1104,6 +1430,7 @@ export function GardenGamePage({
           ) : null}
         </section>
       ) : null}
+      {story.card}
       {problem ? (
         <ProblemState error={problem} onRetry={() => setProblem(null)} />
       ) : null}
@@ -1172,6 +1499,7 @@ export function GardenGamePage({
             </button>
           ) : null}
           <button
+            ref={bookToggle}
             type="button"
             className="secondary"
             aria-expanded={bookOpen}
@@ -1192,6 +1520,22 @@ export function GardenGamePage({
             colour={ownColour}
             busy={busy}
             onRename={rename}
+            visitors={
+              <GardenVisitors
+                met={metVisitors}
+                names={named}
+                editing={visitorEditing}
+                busy={busy}
+                failed={visitorFailed}
+                onEdit={(kind) => {
+                  setVisitorFailed(null);
+                  setVisitorEditing(kind);
+                }}
+                onName={(kind, name) => void nameVisitor(kind, name)}
+                onCall={callVisitor}
+              />
+            }
+            story={story.book}
           />
         </div>
       ) : null}
@@ -1216,10 +1560,24 @@ export function GardenGamePage({
               })}
         </p>
       ) : null}
-      <p className="garden-status" role="status" aria-live="polite">
-        {status}
-      </p>
+      <div className="garden-status-line">
+        <p className="garden-status" role="status" aria-live="polite">
+          {status}
+        </p>
+        {ask && ask.text === status && !named[ask.kind] ? (
+          <button
+            type="button"
+            className="tertiary garden-status-ask"
+            aria-controls="garden-book"
+            onClick={() => askForName(ask.kind)}
+          >
+            {t(`games.garden.growth.askName.${ask.kind}`)}
+          </button>
+        ) : null}
+        {story.note}
+      </div>
       <p className="garden-footnote">{t('games.garden.footnote')}</p>
+      {story.dialog}
     </div>
   );
 }

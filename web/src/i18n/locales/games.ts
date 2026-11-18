@@ -403,6 +403,64 @@ const games = {
       wokeBody: 'Euer Garten ist wieder wach. Nichts ist verloren gegangen.',
       wokeClose: 'Schön',
     },
+    ambience: {
+      daytime: {
+        morning: 'Es ist Morgen im Garten',
+        day: 'Es ist Tag im Garten',
+        evening: 'Es ist Abend im Garten',
+        night: 'Es ist Nacht im Garten, Sterne stehen am Himmel',
+      },
+      labels: {
+        tree: 'Euer Baum antippen',
+        pond: 'Euer Teich antippen',
+        cloud: 'Wolke antippen',
+        birdhouse: 'Zettel von {{name}} im Vogelhäuschen ansehen',
+      },
+      tap: {
+        tree: 'Es raschelt im Baum, ein Vogel fliegt auf.',
+        treeAutumn: 'Bunte Blätter rieseln herab, ein Vogel fliegt auf.',
+        treeWinter: 'Schnee rieselt von den Zweigen, ein Vogel fliegt auf.',
+        treeNight: 'Psst, im Baum schlafen die Vögel.',
+        pond: 'Platsch! Ein kleiner Fisch springt.',
+        cloud: 'Ein kleiner Schauer. Die Pflanzen freuen sich.',
+        cloudSnow: 'Ein paar Schneeflocken rieseln.',
+        flower: 'Die Blume wippt, ein Schmetterling flattert los.',
+        flowerNight: 'Die Blume wippt. Die Schmetterlinge schlafen schon.',
+        flowerWinter:
+          'Die Blume wippt. Die Schmetterlinge warten auf den Frühling.',
+        sprout: 'Das Pflänzchen wippt.',
+        seed: 'Hier schläft ein Samen in der Erde.',
+      },
+      doubleRainbow: 'Ein doppelter Regenbogen: ihr habt heute beide gegossen',
+      together: {
+        swing:
+          'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
+        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum, ihr habt heute beide einen Samen geschickt',
+        bench:
+          'Ihr zwei sitzt zusammen auf einer Bank, ihr habt heute beide einen Samen geschickt',
+      },
+      birdhouseLabel: 'Im Vogelhäuschen steckt ein Zettel von {{name}}',
+      birdhouseStatus:
+        'Im Vogelhäuschen steckt ein Zettel von {{name}}: „{{words}}“',
+      celebration: {
+        birthdayOwn:
+          'Alles Gute zum Geburtstag! Der Garten ist für dich geschmückt.',
+        birthdayPartner:
+          'Heute hat {{name}} Geburtstag. Der Garten ist geschmückt.',
+        anniversary:
+          'Heute ist euer Jahrestag. Der Garten ist für euch geschmückt.',
+      },
+      firstSnow:
+        'Über Nacht ist der erste Schnee gefallen. Alles schläft warm darunter, nichts geht verloren.',
+      call: {
+        action: 'Rufen',
+        label: '{{name}} rufen',
+        greeted: '{{name}} hat dich gehört und winkt.',
+        greetedPlural: '{{name}} haben dich gehört und winken.',
+        later: '{{name}} kommt später wieder vorbei.',
+        laterPlural: '{{name}} kommen später wieder vorbei.',
+      },
+    },
     stages: {
       '0': 'Gerade: ein Samen in der Erde',
       '1': 'Gerade: ein kleiner Keim',
@@ -533,12 +591,99 @@ const games = {
       },
       reactions: {
         snail: 'Die Schnecke versteckt sich in ihrem Haus.',
-        rabbit: 'Das Kaninchen hoppelt davon.',
+        rabbit: 'Das Kaninchen hoppelt davon und kommt gleich zurück.',
         hedgehog: 'Der Igel rollt sich zusammen.',
         ducks: 'Quak! Die Enten paddeln ein Stück.',
-        squirrel: 'Das Eichhörnchen ist in euren Baum geflitzt.',
-        deer: 'Huch! Das Reh ist erschrocken.',
+        squirrel: 'Das Eichhörnchen flitzt in euren Baum.',
+        deer: 'Huch! Das Reh ist erschrocken und springt davon.',
       },
+      animalLabelNamed: '{{name}}, {{animal}}, antippen',
+      reactionsNamed: {
+        snail: '{{name}} versteckt sich in ihrem Haus.',
+        rabbit: '{{name}} hoppelt davon und kommt gleich zurück.',
+        hedgehog: '{{name}} rollt sich zusammen.',
+        ducks: 'Quak! {{name}} paddeln ein Stück.',
+        squirrel: '{{name}} flitzt in euren Baum.',
+        deer: 'Huch! {{name}} ist erschrocken und springt davon.',
+      },
+      askName: {
+        snail: 'Wie soll sie heißen?',
+        rabbit: 'Wie soll es heißen?',
+        hedgehog: 'Wie soll er heißen?',
+        ducks: 'Wie sollen sie heißen?',
+        squirrel: 'Wie soll es heißen?',
+        deer: 'Wie soll es heißen?',
+      },
+      visitors: {
+        title: 'Eure Besucher',
+        own: {
+          snail: 'Eure Schnecke',
+          rabbit: 'Euer Kaninchen',
+          hedgehog: 'Euer Igel',
+          ducks: 'Euer Entenpaar',
+          squirrel: 'Euer Eichhörnchen',
+          deer: 'Euer Reh',
+        },
+        where: {
+          snail: 'kriecht durchs Beet',
+          rabbit: 'knabbert am Klee',
+          hedgehog: 'schnuppert im Laub',
+          ducks: 'wohnt am Teich',
+          squirrel: 'wohnt in eurem Baum',
+          deer: 'kommt am Waldrand vorbei',
+        },
+        question: {
+          snail: 'Wie heißt eure Schnecke?',
+          rabbit: 'Wie heißt euer Kaninchen?',
+          hedgehog: 'Wie heißt euer Igel?',
+          ducks: 'Wie heißt euer Entenpaar?',
+          squirrel: 'Wie heißt euer Eichhörnchen?',
+          deer: 'Wie heißt euer Reh?',
+        },
+        suggestions: {
+          snail: { a: 'Frieda', b: 'Turbo', c: 'Herbert', d: 'Lotti' },
+          rabbit: { a: 'Hoppel', b: 'Flocke', c: 'Möhrchen', d: 'Ronja' },
+          hedgehog: { a: 'Pieks', b: 'Stachelino', c: 'Hilde', d: 'Igor' },
+          ducks: {
+            a: 'Lotte & Otto',
+            b: 'Pip & Pünktchen',
+            c: 'Kalle & Klara',
+          },
+          squirrel: { a: 'Flitzi', b: 'Nüsschen', c: 'Hasel', d: 'Eddi' },
+          deer: { a: 'Fenja', b: 'Rosalie', c: 'Moos', d: 'Liese' },
+        },
+        namedSub: '{{animal}} · {{where}}',
+        unnamed: 'Hat noch keinen Namen',
+        unknown: 'Noch nicht vorbeigekommen',
+        give: 'Namen geben',
+        rename: 'Umbenennen',
+        placeholder: 'Zum Beispiel {{name}}',
+        suggestionsLabel: 'Vorschläge',
+        counter: '{{count}} / {{max}}',
+        hint: 'Leer lassen, um den Namen zu entfernen.',
+        namedStatus: '{{visitor}} heißt jetzt „{{name}}“.',
+        clearedStatus: '{{visitor}} hat keinen Namen mehr.',
+        failed:
+          'Der Name konnte nicht gespeichert werden. Versucht es gleich noch einmal.',
+      },
+    },
+    // The optional Wir module (Product Owner 2026-11-17).
+    wir: {
+      openAria: '{{title}} öffnen',
+      resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
+      bothWatered: 'Heute habt ihr beide gegossen.',
+      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+    },
+    // A one-time offer inside the game to show the garden on Wir.
+    wirHint: {
+      text: 'Euren Garten auch auf Wir sehen?',
+      accept: 'Auf Wir anzeigen',
+      saving: 'Wird angezeigt …',
+      later: 'Nicht jetzt',
+      done: 'Euer Garten ist jetzt auf Wir.',
+      toWir: 'Zu Wir',
+      failed:
+        'Das hat gerade nicht geklappt. Du kannst es gleich noch einmal versuchen.',
     },
     words: {
       THINKING_OF_YOU: 'Denk an dich',
@@ -546,6 +691,110 @@ const games = {
       LOOKING_FORWARD: 'Freu mich auf dich',
       GOOD_NIGHT: 'Gute Nacht',
       FOR_YOU: 'Für dich',
+    },
+    story: {
+      eyebrow: 'Gewachsen aus eurer Geschichte',
+      memoryLabel: 'Meilenstein „{{title}}“, {{date}}',
+      open: 'Ansehen',
+      openLabel: '„{{title}}“ ansehen',
+      bookTitle: 'Eure Geschichte im Garten',
+      bookIntro:
+        'Eure Meilensteine wachsen in einer stillen Ecke eures Gartens.',
+      bookSub: '{{piece}} · {{date}}',
+      pieceNames: {
+        heartBush: 'Herzbusch',
+        youngTree: 'Junger Baum',
+        lanternFlower: 'Lampionblume',
+        steppingStones: 'Trittsteine',
+        roseTrellis: 'Rosenspalier',
+        memoryStone: 'Erinnerungsstein',
+      },
+      pieces: {
+        heartBush: 'Für diesen Tag wächst ein Herzbusch in eurem Garten.',
+        youngTree: 'Für diesen Tag wächst ein junger Baum in eurem Garten.',
+        lanternFlower:
+          'Für diesen Tag leuchtet eine Lampionblume in eurem Garten.',
+        steppingStones:
+          'Für diesen Tag liegen Trittsteine in eurem Garten, ein Stück gemeinsamer Weg.',
+        roseTrellis:
+          'Für diesen Tag blüht ein kleines Rosenspalier in eurem Garten.',
+        memoryStone:
+          'Für diesen Tag liegt ein Erinnerungsstein in eurem Garten.',
+      },
+      keepsakesTitle: 'Fundstücke',
+      keepsakesIntro:
+        'Kleine Dinge, die eure Besucher für euch dagelassen haben.',
+      keepsakes: {
+        feather: 'Feder',
+        hazelnut: 'Haselnuss',
+        snailShell: 'Schneckenhaus',
+        shinyPebble: 'Glänzender Kiesel',
+        clover: 'Kleeblatt',
+        acorn: 'Eichel',
+        pineCone: 'Tannenzapfen',
+        heartLeaf: 'Herzblatt',
+      },
+      keepsakeLeft: {
+        feather:
+          '{{visitor}} hat euch eine Feder dagelassen. Sie liegt jetzt im Gartenbuch.',
+        hazelnut:
+          '{{visitor}} hat euch eine Haselnuss dagelassen. Sie liegt jetzt im Gartenbuch.',
+        snailShell:
+          '{{visitor}} hat euch ein Schneckenhaus dagelassen. Es liegt jetzt im Gartenbuch.',
+        shinyPebble:
+          '{{visitor}} hat euch einen glänzenden Kiesel dagelassen. Er liegt jetzt im Gartenbuch.',
+        clover:
+          '{{visitor}} hat euch ein Kleeblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+        acorn:
+          '{{visitor}} hat euch eine Eichel dagelassen. Sie liegt jetzt im Gartenbuch.',
+        pineCone:
+          '{{visitor}} hat euch einen Tannenzapfen dagelassen. Er liegt jetzt im Gartenbuch.',
+        heartLeaf:
+          '{{visitor}} hat euch ein Herzblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+      },
+      rare: {
+        owl: {
+          label: 'Eine Eule im Baum',
+          reaction: 'Die Eule dreht den Kopf und blinzelt euch zu.',
+        },
+        fox: {
+          label: 'Ein Fuchs am Wiesenrand',
+          reaction:
+            'Der Fuchs schwingt den buschigen Schwanz und spitzt die Ohren.',
+        },
+        ducklings: {
+          label: 'Entenküken auf dem Teich',
+          reaction: 'Die Küken paddeln im Gänsemarsch eine kleine Runde.',
+        },
+      },
+      playback: {
+        title: 'Euer Gartenjahr',
+        intro: 'Schaut in ein paar Sekunden zu, wie euer Garten gewachsen ist.',
+        play: 'Euer Gartenjahr abspielen',
+        body: 'Vom ersten Samen bis heute.',
+        stillBody: 'Euer Garten am Anfang und heute.',
+        caption: '{{season}} · {{form}}',
+        start: 'Am Anfang',
+        today: 'Heute',
+        seasons: {
+          spring: 'Frühling',
+          summer: 'Sommer',
+          autumn: 'Herbst',
+          winter: 'Winter',
+        },
+        pause: 'Anhalten',
+        resume: 'Weiter',
+        again: 'Noch einmal',
+        close: 'Schließen',
+      },
+      feedback: {
+        title: 'Auf diesem Gerät',
+        sound: 'Geräusche im Garten',
+        soundHint: 'Leise Töne beim Pflanzen, Gießen und bei den Tieren.',
+        vibration: 'Sanftes Vibrieren',
+        vibrationHint:
+          'Ein leichtes Vibrieren, wenn du im Garten etwas antippst.',
+      },
     },
   },
 };

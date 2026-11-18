@@ -439,16 +439,6 @@
     var(--easing-travel) infinite alternate;
 }
 
-.garden-rain {
-  animation: garden-rain var(--duration-connection-draw) var(--easing-exit) both;
-  animation-delay: var(--garden-delay);
-}
-
-.garden-watering {
-  animation: garden-fade calc(var(--duration-gesture-sequence) * 1.33)
-    var(--easing-enter) both;
-}
-
 @keyframes garden-breeze {
   0%,
   100% {
@@ -664,30 +654,6 @@
   }
 }
 
-@keyframes garden-rain {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(26px);
-    opacity: 0;
-  }
-}
-
-@keyframes garden-fade {
-  0%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 @keyframes garden-unfold {
   from {
     transform: scaleY(0.2) rotate(-2deg);
@@ -708,8 +674,7 @@
   }
 
   .garden-butterfly,
-  .garden-pollen,
-  .garden-watering {
+  .garden-pollen {
     display: none;
   }
 }

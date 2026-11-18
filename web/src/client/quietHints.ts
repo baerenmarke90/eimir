@@ -213,6 +213,20 @@ export function useQuietHint(
   return { activeId, dismiss };
 }
 
+/**
+ * Makes a retired hint available again, for a hint that retires when it is
+ * shown but whose offer could not be completed (for example a failed save).
+ */
+export function restoreQuietHint(
+  accountId: string,
+  spaceId: string,
+  id: string,
+) {
+  const key = quietHintKey(accountId, spaceId);
+  if (!readStore(key).hints[id]?.retired) return;
+  updateHint(key, id, (record) => ({ views: record.views }));
+}
+
 /** Lets a screen skip reads that only feed a hint that already retired. */
 export function quietHintRetired(
   accountId: string | undefined,

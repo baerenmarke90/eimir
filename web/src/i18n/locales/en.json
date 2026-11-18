@@ -1090,27 +1090,37 @@
       "recentEmpty": "No shared entries yet.",
       "storySummaryTitle": "Your story",
       "storySummarySettingsTitle": "Your story in numbers",
-      "storySummaryMemories": "Moments",
-      "storySummaryMemoriesCount_one": "{{count}} moment",
-      "storySummaryMemoriesCount_other": "{{count}} moments",
+      "storySummaryMemories": "Memories",
+      "storySummaryMemoriesCount_one": "{{count}} memory",
+      "storySummaryMemoriesCount_other": "{{count}} memories",
       "storySummaryHeartMoments": "Heart moments",
       "storySummaryHeartMomentsCount_one": "{{count}} heart moment",
       "storySummaryHeartMomentsCount_other": "{{count}} heart moments",
       "storySummaryMilestones": "Milestones",
       "storySummaryMilestonesCount_one": "{{count}} milestone",
       "storySummaryMilestonesCount_other": "{{count}} milestones",
-      "storyLifelineCaption_one": "{{formattedCount}} shared memory since {{since}}",
-      "storyLifelineCaption_other": "{{formattedCount}} shared memories since {{since}}",
-      "storyLifelineTotal_one": "{{formattedCount}} shared memory",
-      "storyLifelineTotal_other": "{{formattedCount}} shared memories",
-      "storyLifelineEmpty": "Your first shared memories will appear here.",
+      "storyLifelineCaption_one": "{{formattedCount}} captured moment since {{since}}",
+      "storyLifelineCaption_other": "{{formattedCount}} captured moments since {{since}}",
+      "storyLifelineTotal_one": "{{formattedCount}} captured moment",
+      "storyLifelineTotal_other": "{{formattedCount}} captured moments",
+      "storyLifelineEmpty": "Your first shared moments will appear here.",
       "storyLifelineAria": "Your story over time",
       "storyLifelineToday": "Today",
       "storyLifelineWeekOf": "Week of {{date}}",
-      "storyLifelineEntries_one": "{{count}} memory",
-      "storyLifelineEntries_other": "{{count}} memories",
-      "storyLifelineValue": "{{period}}: {{entries}} · {{title}}",
-      "storyLifelineHint": "Swipe along the line to rediscover memories",
+      "storyLifelineEntries_one": "{{count}} moment",
+      "storyLifelineEntries_other": "{{count}} moments",
+      "storyLifelineValue": "{{period}}: {{entries}} · {{kind}}: {{title}}",
+      "storyLifelineValuePosition": "{{period}}: {{entries}} · {{kind}}: {{title}}, {{position}} of {{total}}",
+      "storyLifelineHint": "Swipe sideways to choose a period, up and down to choose a single moment.",
+      "storyLifelineEntryHint": "Swipe sideways in the card or slide up and down on the line. Tap to open.",
+      "storyLifelineEntryLabel": "Moment {{position}} of {{total}}",
+      "storyLifelineKindMemory": "Memory",
+      "storyLifelineKindHeartMoment": "Heart moment",
+      "storyLifelineKindMilestone": "Milestone",
+      "storyLifelinePosition": "{{position}} of {{total}}",
+      "storyLifelineAll_one": "See the moment from {{period}}",
+      "storyLifelineAll_other": "See all {{count}} from {{period}}",
+      "storyLifelineLoading": "Loading moments",
       "itemFallback": "Shared entry",
       "anniversaryTitle": "Your anniversary"
     },
@@ -3625,6 +3635,56 @@
         "wokeBody": "Your garden is awake again. Nothing was lost.",
         "wokeClose": "Lovely"
       },
+      "ambience": {
+        "daytime": {
+          "morning": "It is morning in the garden",
+          "day": "It is daytime in the garden",
+          "evening": "It is evening in the garden",
+          "night": "It is night in the garden, stars are in the sky"
+        },
+        "labels": {
+          "tree": "Tap your tree",
+          "pond": "Tap your pond",
+          "cloud": "Tap the cloud",
+          "birdhouse": "Read the note from {{name}} in the birdhouse"
+        },
+        "tap": {
+          "tree": "The tree rustles and a bird flies up.",
+          "treeAutumn": "Colourful leaves drift down and a bird flies up.",
+          "treeWinter": "Snow trickles from the branches and a bird flies up.",
+          "treeNight": "Shh, the birds are asleep in the tree.",
+          "pond": "Splash! A little fish jumps.",
+          "cloud": "A little shower. The plants are happy.",
+          "cloudSnow": "A few snowflakes drift down.",
+          "flower": "The flower bobs and a butterfly flutters off.",
+          "flowerNight": "The flower bobs. The butterflies are already asleep.",
+          "flowerWinter": "The flower bobs. The butterflies are waiting for spring.",
+          "sprout": "The little plant bobs.",
+          "seed": "A seed is sleeping in the soil here."
+        },
+        "doubleRainbow": "A double rainbow: you both watered today",
+        "together": {
+          "swing": "The two of you sit together on the swing, you both sent a seed today",
+          "tree": "The two of you sit together on a bench under your tree, you both sent a seed today",
+          "bench": "The two of you sit together on a bench, you both sent a seed today"
+        },
+        "birdhouseLabel": "A note from {{name}} is tucked into the birdhouse",
+        "birdhouseStatus": "A note from {{name}} is tucked into the birdhouse: “{{words}}”",
+        "celebration": {
+          "birthdayOwn": "Happy birthday! The garden is decorated for you.",
+          "birthdayPartner": "It is {{name}}’s birthday today. The garden is decorated.",
+          "anniversary": "It is your anniversary today. The garden is decorated for you both."
+        },
+        "firstSnow": "The first snow fell overnight. Everything sleeps warmly underneath, nothing is lost.",
+        "call": {
+          "action": "Call",
+          "label": "Call {{name}}",
+          "greeted": "{{name}} heard you and waves.",
+          "greetedPlural": "{{name}} heard you and wave.",
+          "later": "{{name}} will come by again later.",
+          "laterPlural": "{{name}} will come by again later."
+        }
+      },
       "stages": {
         "0": "Right now: a seed in the ground",
         "1": "Right now: a little sprout",
@@ -3747,12 +3807,115 @@
         },
         "reactions": {
           "snail": "The snail hides in its shell.",
-          "rabbit": "The rabbit hops away.",
+          "rabbit": "The rabbit hops away and will be right back.",
           "hedgehog": "The hedgehog curls up.",
           "ducks": "Quack! The ducks paddle a little.",
-          "squirrel": "The squirrel dashed up your tree.",
-          "deer": "Oh! The deer got startled."
+          "squirrel": "The squirrel dashes up your tree.",
+          "deer": "Oh! The deer got startled and leaps away."
+        },
+        "animalLabelNamed": "Tap {{name}}, the {{animal}}",
+        "reactionsNamed": {
+          "snail": "{{name}} hides in her shell.",
+          "rabbit": "{{name}} hops away and will be right back.",
+          "hedgehog": "{{name}} curls up.",
+          "ducks": "Quack! {{name}} paddle a little.",
+          "squirrel": "{{name}} dashes up your tree.",
+          "deer": "Oh! {{name}} got startled and leaps away."
+        },
+        "askName": {
+          "snail": "What should she be called?",
+          "rabbit": "What should it be called?",
+          "hedgehog": "What should he be called?",
+          "ducks": "What should they be called?",
+          "squirrel": "What should it be called?",
+          "deer": "What should it be called?"
+        },
+        "visitors": {
+          "title": "Your visitors",
+          "own": {
+            "snail": "Your snail",
+            "rabbit": "Your rabbit",
+            "hedgehog": "Your hedgehog",
+            "ducks": "Your duck pair",
+            "squirrel": "Your squirrel",
+            "deer": "Your deer"
+          },
+          "where": {
+            "snail": "crawls through the flower bed",
+            "rabbit": "nibbles the clover",
+            "hedgehog": "sniffs through the leaves",
+            "ducks": "lives by the pond",
+            "squirrel": "lives in your tree",
+            "deer": "passes by at the edge of the woods"
+          },
+          "question": {
+            "snail": "What is your snail called?",
+            "rabbit": "What is your rabbit called?",
+            "hedgehog": "What is your hedgehog called?",
+            "ducks": "What is your duck pair called?",
+            "squirrel": "What is your squirrel called?",
+            "deer": "What is your deer called?"
+          },
+          "suggestions": {
+            "snail": {
+              "a": "Shelly",
+              "b": "Turbo",
+              "c": "Herbert",
+              "d": "Daisy"
+            },
+            "rabbit": {
+              "a": "Clover",
+              "b": "Flopsy",
+              "c": "Biscuit",
+              "d": "Hazel"
+            },
+            "hedgehog": {
+              "a": "Spike",
+              "b": "Bramble",
+              "c": "Hattie",
+              "d": "Conker"
+            },
+            "ducks": {
+              "a": "Pip & Puddle",
+              "b": "Dot & Dash",
+              "c": "Bill & Bea"
+            },
+            "squirrel": {
+              "a": "Nutmeg",
+              "b": "Acorn",
+              "c": "Scout",
+              "d": "Rusty"
+            },
+            "deer": { "a": "Fern", "b": "Rosie", "c": "Moss", "d": "Willow" }
+          },
+          "namedSub": "{{animal}} · {{where}}",
+          "unnamed": "No name yet",
+          "unknown": "Has not visited yet",
+          "give": "Give a name",
+          "rename": "Rename",
+          "placeholder": "For example {{name}}",
+          "suggestionsLabel": "Suggestions",
+          "counter": "{{count}} / {{max}}",
+          "hint": "Leave it empty to remove the name.",
+          "namedStatus": "{{visitor}} is now called “{{name}}”.",
+          "clearedStatus": "{{visitor}} no longer has a name.",
+          "failed": "The name could not be saved. Please try again in a moment."
         }
+      },
+      "wir": {
+        "openAria": "Open {{title}}",
+        "resting": "Your garden is resting and simply waits for you.",
+        "bothWatered": "You both watered today.",
+        "empty": "Everything is still open. Send each other the first seed."
+      },
+      "wirHint": {
+        "text": "See your garden on Wir too?",
+        "accept": "Show on Wir",
+        "saving": "Adding …",
+        "later": "Not now",
+        "done": "Your garden is on Wir now.",
+        "toWir": "Go to Wir",
+        "failed": "That did not work just now. You can try again in a moment."
       },
       "words": {
         "THINKING_OF_YOU": "Thinking of you",
@@ -3760,6 +3923,94 @@
         "LOOKING_FORWARD": "Can’t wait to see you",
         "GOOD_NIGHT": "Good night",
         "FOR_YOU": "For you"
+      },
+      "story": {
+        "eyebrow": "Grown from your story",
+        "memoryLabel": "Milestone “{{title}}”, {{date}}",
+        "open": "View",
+        "openLabel": "View “{{title}}”",
+        "bookTitle": "Your story in the garden",
+        "bookIntro": "Your milestones grow in a quiet corner of your garden.",
+        "bookSub": "{{piece}} · {{date}}",
+        "pieceNames": {
+          "heartBush": "Heart bush",
+          "youngTree": "Young tree",
+          "lanternFlower": "Lantern flower",
+          "steppingStones": "Stepping stones",
+          "roseTrellis": "Rose trellis",
+          "memoryStone": "Memory stone"
+        },
+        "pieces": {
+          "heartBush": "A heart bush grows in your garden for this day.",
+          "youngTree": "A young tree grows in your garden for this day.",
+          "lanternFlower": "A lantern flower glows in your garden for this day.",
+          "steppingStones": "Stepping stones lie in your garden for this day, a piece of the path you share.",
+          "roseTrellis": "A small rose trellis blooms in your garden for this day.",
+          "memoryStone": "A memory stone rests in your garden for this day."
+        },
+        "keepsakesTitle": "Little finds",
+        "keepsakesIntro": "Small things your visitors left for you.",
+        "keepsakes": {
+          "feather": "Feather",
+          "hazelnut": "Hazelnut",
+          "snailShell": "Snail shell",
+          "shinyPebble": "Shiny pebble",
+          "clover": "Clover leaf",
+          "acorn": "Acorn",
+          "pineCone": "Pine cone",
+          "heartLeaf": "Heart leaf"
+        },
+        "keepsakeLeft": {
+          "feather": "{{visitor}} left you a feather. It is in the garden book now.",
+          "hazelnut": "{{visitor}} left you a hazelnut. It is in the garden book now.",
+          "snailShell": "{{visitor}} left you a snail shell. It is in the garden book now.",
+          "shinyPebble": "{{visitor}} left you a shiny pebble. It is in the garden book now.",
+          "clover": "{{visitor}} left you a clover leaf. It is in the garden book now.",
+          "acorn": "{{visitor}} left you an acorn. It is in the garden book now.",
+          "pineCone": "{{visitor}} left you a pine cone. It is in the garden book now.",
+          "heartLeaf": "{{visitor}} left you a heart leaf. It is in the garden book now."
+        },
+        "rare": {
+          "owl": {
+            "label": "An owl in the tree",
+            "reaction": "The owl turns its head and blinks at you."
+          },
+          "fox": {
+            "label": "A fox at the edge of the meadow",
+            "reaction": "The fox swishes its bushy tail and pricks up its ears."
+          },
+          "ducklings": {
+            "label": "Ducklings on the pond",
+            "reaction": "The ducklings paddle a little round in single file."
+          }
+        },
+        "playback": {
+          "title": "Your garden year",
+          "intro": "Watch your garden grow in a few seconds.",
+          "play": "Play your garden year",
+          "body": "From the first seed to today.",
+          "stillBody": "Your garden at the start and today.",
+          "caption": "{{season}} · {{form}}",
+          "start": "At the start",
+          "today": "Today",
+          "seasons": {
+            "spring": "Spring",
+            "summer": "Summer",
+            "autumn": "Autumn",
+            "winter": "Winter"
+          },
+          "pause": "Pause",
+          "resume": "Continue",
+          "again": "Play again",
+          "close": "Close"
+        },
+        "feedback": {
+          "title": "On this device",
+          "sound": "Sounds in the garden",
+          "soundHint": "Soft sounds when planting, watering and with the animals.",
+          "vibration": "Gentle vibration",
+          "vibrationHint": "A light vibration when you tap something in the garden."
+        }
       }
     }
   },
@@ -4902,6 +5153,29 @@
       "name": "List",
       "hint": "Small previews on a calm timeline."
     }
+  },
+  "discoverStory": {
+    "label": "Your photo story",
+    "roleDescription": "Photo story",
+    "themesLabel": "Photo story themes",
+    "theme": {
+      "photos": "Photos",
+      "heartMoments": "Heart moments",
+      "milestones": "Milestones",
+      "words": "In words"
+    },
+    "themeCount_one": "{{count}} moment",
+    "themeCount_other": "{{count}} moments",
+    "themeSeen": "seen",
+    "slideRoleDescription": "Moment",
+    "slidePosition": "{{position}} of {{count}}",
+    "previous": "Previous moment",
+    "next": "Next moment",
+    "pause": "Pause photo story",
+    "play": "Play photo story",
+    "open": "Open",
+    "openName": "Open: {{kind}} “{{title}}”",
+    "from": "From {{name}}"
   },
   "storyFilters": {
     "title": "Filters",

@@ -10,6 +10,8 @@
 import type { GardenForm } from '../api/generated/models/GardenForm';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
+import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
+import type { GardenVisitorNameView } from '../api/generated/models/GardenVisitorNameView';
 import { GARDEN_MIN_WIDTH } from './garden';
 import { gardenSeason } from './gardenPresentation';
 
@@ -176,6 +178,67 @@ export function availableAnimals(
     }
     return false;
   });
+}
+
+/* Visitor names (#1907 H3 follow-up) ----------------------------------------- */
+
+/** Up to 40 characters after trimming, like the garden name. */
+export const VISITOR_NAME_MAX = 40;
+
+/** The server's closed visitor code for each animal. */
+export const VISITOR_CODE: Record<GardenAnimal, GardenVisitor> = {
+  snail: 'SNAIL',
+  rabbit: 'RABBIT',
+  hedgehog: 'HEDGEHOG',
+  ducks: 'DUCKS',
+  squirrel: 'SQUIRREL',
+  deer: 'DEER',
+};
+
+/** Localized name suggestions per animal (keys below `growth.visitors.suggestions`). */
+export const VISITOR_SUGGESTIONS: Record<
+  GardenAnimal,
+  ReadonlyArray<string>
+> = {
+  snail: ['a', 'b', 'c', 'd'],
+  rabbit: ['a', 'b', 'c', 'd'],
+  hedgehog: ['a', 'b', 'c', 'd'],
+  ducks: ['a', 'b', 'c'],
+  squirrel: ['a', 'b', 'c', 'd'],
+  deer: ['a', 'b', 'c', 'd'],
+};
+
+/** The couple's shared names by animal; unnamed visitors are absent. */
+export function visitorNames(
+  names: ReadonlyArray<GardenVisitorNameView> | undefined,
+): Partial<Record<GardenAnimal, string>> {
+  const byCode = new Map((names ?? []).map((entry) => [entry.animal, entry]));
+  const result: Partial<Record<GardenAnimal, string>> = {};
+  for (const animal of ANIMALS) {
+    const entry = byCode.get(VISITOR_CODE[animal]);
+    if (entry) result[animal] = entry.name;
+  }
+  return result;
+}
+
+/** Collapses whitespace the way the server stores a name. */
+export function cleanVisitorName(name: string): string {
+  return name.split(/\s+/u).filter(Boolean).join(' ');
+}
+
+/** The names with one visitor set (or removed when `name` is empty). */
+export function withVisitorName(
+  names: ReadonlyArray<GardenVisitorNameView> | undefined,
+  animal: GardenAnimal,
+  name: string,
+): GardenVisitorNameView[] {
+  const code = VISITOR_CODE[animal];
+  const rest = (names ?? []).filter((entry) => entry.animal !== code);
+  const next = name ? [...rest, { animal: code, name }] : rest;
+  const order = ANIMALS.map((kind) => VISITOR_CODE[kind]);
+  return next.sort(
+    (left, right) => order.indexOf(left.animal) - order.indexOf(right.animal),
+  );
 }
 
 /** One to three visitors at a time, depending on how far the garden has grown. */

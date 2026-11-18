@@ -53,6 +53,7 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
@@ -399,12 +400,14 @@ function TurnDots({
 
 function Stage({
   names,
+  avatars,
   flight,
   profile,
   distanceLabel,
   sentLabel,
 }: {
   names: { own: string; partner: string };
+  avatars: { own: string | null; partner: string | null };
   flight: 'toPartner' | 'toMe' | null;
   profile: FlightProfile;
   distanceLabel: string | null;
@@ -419,6 +422,7 @@ function Stage({
       <span className="pingpong-avatar person-role-own">
         <PersonIdentity
           displayName={names.own}
+          imageUrl={avatars.own}
           size="medium"
           showName={false}
           imageAlt={names.own}
@@ -442,6 +446,7 @@ function Stage({
       <span className="pingpong-avatar person-role-partner">
         <PersonIdentity
           displayName={names.partner}
+          imageUrl={avatars.partner}
           size="medium"
           showName={false}
           imageAlt={names.partner}
@@ -519,6 +524,22 @@ export function PicturePingPongPage({
     partner?.displayName ?? t('games.pingPong.partnerFallback');
   const names = { own: ownName, partner: partnerName };
   const partnerId = partner?.id ?? null;
+  const avatars = {
+    own: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: currentAccountId,
+      enabled: !services,
+    }),
+    partner: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: partnerId,
+      enabled: !services,
+    }),
+  };
   const partnerNameRef = useRef(partnerName);
   partnerNameRef.current = partnerName;
 
@@ -807,6 +828,7 @@ export function PicturePingPongPage({
         >
           <Stage
             names={names}
+            avatars={avatars}
             flight={null}
             profile={profile}
             distanceLabel={null}
@@ -868,6 +890,7 @@ export function PicturePingPongPage({
 
         <Stage
           names={names}
+          avatars={avatars}
           flight={flight}
           profile={profile}
           distanceLabel={distanceLabel}

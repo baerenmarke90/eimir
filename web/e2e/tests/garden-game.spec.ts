@@ -67,6 +67,7 @@ const UPLOAD_ID = '99999999-9999-4999-8999-999999999999';
 async function installMocks(
   page: Page,
   initial: ReturnType<typeof gardenView> = gardenView(),
+  { birthdays = {} }: { birthdays?: Record<string, string> } = {},
 ) {
   const unexpected: string[] = [];
   const writes: string[] = [];
@@ -115,6 +116,16 @@ async function installMocks(
       version: 0,
     },
     [`${SPACE_PATH}/notifications/unread-count`]: { unreadCount: 0 },
+    // The garden reads the couple's Milestones for its memory corner.
+    [`${SPACE_PATH}/milestones`]: {
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    },
+    // Already on Wir, so the one-time Wir offer (wir-garden.spec.ts) stays away.
+    [`${SPACE_PATH}/dashboard/preferences`]: {
+      items: [{ moduleKey: 'shared_garden', visible: true }],
+    },
   };
   for (const [id, displayName] of [
     [ACCOUNT_ID, 'Lea'],
@@ -124,7 +135,7 @@ async function installMocks(
       id,
       accountId: id,
       displayName,
-      birthday: null,
+      birthday: birthdays[id] ?? null,
       profileAttachmentId: null,
       preferences: [],
       version: 1,
@@ -272,7 +283,15 @@ async function installMocks(
       json: { code: 'E2E_UNEXPECTED_REQUEST' },
     });
   });
-  return { unexpected, writes, moment };
+  return {
+    unexpected,
+    writes,
+    moment,
+    /** The next read (for example the live sync) answers with this view. */
+    update: (next: ReturnType<typeof gardenView>) => {
+      garden = next;
+    },
+  };
 }
 
 async function openGarden(page: Page) {
@@ -563,6 +582,17 @@ async function installGrowthMocks(page: Page) {
         ...garden,
         name: (request.postDataJSON() as { name: string | null }).name,
       };
+    } else if (method === 'PUT' && /^\/visitors\/[A-Z]+\/name$/.test(suffix)) {
+      // One shared name per visitor (#1907 H3 follow-up).
+      const animal = suffix.split('/')[2];
+      const name = (request.postDataJSON() as { name: string | null }).name;
+      const rest = (
+        (garden.visitorNames as Array<{ animal: string }> | undefined) ?? []
+      ).filter((entry) => entry.animal !== animal);
+      garden = {
+        ...garden,
+        visitorNames: name ? [...rest, { animal, name }] : rest,
+      };
     } else if (method !== 'GET') {
       network.unexpected.push(`${method} ${pathname}`);
     }
@@ -767,6 +797,9 @@ for (const scenario of [
       page.getByText(fill(copy.quoted, { words: copy.words.MISS_YOU })),
     ).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: copy.plant }).click();
+    // Let the planting finish first: its confirmation would otherwise replace
+    // the visitor's reaction (and the name question next to it).
+    await expect(page.locator('.garden-status')).toHaveText(copy.plantedStatus);
 
     // A visitor reacts to a tap and the reaction is announced.
     const visitor = page
@@ -778,6 +811,73 @@ for (const scenario of [
     await expect(page.locator('.garden-status')).toHaveText(
       anyOf(Object.values(growth.reactions)),
     );
+
+    // An unnamed visitor asks for a name; the book opens at its editor.
+    const kind = (await visitor.getAttribute('data-testid'))?.replace(
+      'garden-animal-',
+      '',
+    ) as keyof typeof growth.askName;
+    await page.getByRole('button', { name: growth.askName[kind] }).click();
+    const editor = page.getByTestId(`garden-visitor-editor-${kind}`);
+    await expect(
+      editor.getByLabel(growth.visitors.question[kind]),
+    ).toBeFocused();
+    const chosen = growth.visitors.suggestions[kind].a;
+    await editor.getByRole('button', { name: chosen }).click();
+    await expect(editor.getByText(`${chosen.length} / 40`)).toBeVisible();
+    await expectReflow(page);
+    await captureGrowth(
+      page,
+      info,
+      `garden-visitor-editor-${scenario.width}-${scenario.theme}.png`,
+    );
+    await editor.getByRole('button', { name: growth.save }).click();
+    await expect(page.locator('.garden-status')).toHaveText(
+      fill(growth.visitors.namedStatus, {
+        visitor: growth.visitors.own[kind],
+        name: chosen,
+      }),
+    );
+    const row = page.getByTestId(`garden-visitor-${kind}`);
+    await expect(row.getByText(chosen, { exact: true })).toBeVisible();
+    await expect(
+      row.getByText(
+        fill(growth.visitors.namedSub, {
+          animal: growth.animals[kind],
+          where: growth.visitors.where[kind],
+        }),
+      ),
+    ).toBeVisible();
+    await expect(page.getByTestId('garden-visitors')).not.toContainText(
+      growth.animals.deer,
+    );
+    await captureGrowth(
+      page,
+      info,
+      `garden-visitors-${scenario.width}-${scenario.theme}.png`,
+    );
+
+    // The named visitor reacts with its name, which floats above it.
+    const named = page.getByTestId(`garden-animal-${kind}`);
+    await expect(named).toHaveAttribute(
+      'aria-label',
+      fill(growth.animalLabelNamed, {
+        name: chosen,
+        animal: growth.animals[kind],
+      }),
+    );
+    await expect(async () => {
+      await named.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.locator('.garden-status')).toHaveText(
+        fill(growth.reactionsNamed[kind], { name: chosen }),
+        { timeout: 1000 },
+      );
+    }).toPass({ timeout: 20_000 });
+    await expect(page.getByTestId('garden-name-tag')).toHaveText(chosen);
+    await expect(
+      page.getByRole('button', { name: growth.askName[kind] }),
+    ).toHaveCount(0);
 
     // Bind a bouquet from two blooms for the partner.
     await page.getByRole('button', { name: growth.bind }).click();
@@ -820,7 +920,9 @@ for (const scenario of [
     const book = page.getByTestId('garden-book');
     await expect(book.getByText(growth.secret).first()).toBeVisible();
     await expect(book).not.toContainText(/\d/);
-    await book.getByRole('button', { name: growth.rename }).click();
+    await book
+      .getByRole('button', { name: growth.rename, exact: true })
+      .click();
     await book.getByLabel(growth.nameLabel).fill('Unser Eck');
     await book.getByRole('button', { name: growth.save }).click();
     await expect(
@@ -842,6 +944,7 @@ for (const scenario of [
       'POST /news/seen',
       `POST /bouquets/${BOUQUET_ID}/close`,
       `POST /seeds/${PLANE_SEED_ID}/plant`,
+      `PUT /visitors/${kind.toUpperCase()}/name`,
       'POST /bouquets',
       'PUT /name',
     ]);
@@ -873,3 +976,407 @@ for (const [localDate, season, layer] of [
     expect(network.unexpected).toEqual([]);
   });
 }
+
+/* Ambience (#1907 H3 extensions) --------------------------------------------- */
+
+const ambience = copy.ambience;
+const ALL_UNLOCKS = [...UNLOCKS, 'BIRDHOUSE', 'ROSE_ARCH', 'SWING', 'STREAM'];
+const TODAY_SEED_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+function ambientGarden(overrides: Record<string, unknown> = {}) {
+  return grownGarden({
+    incoming: null,
+    news: [],
+    bouquet: null,
+    unlocks: ALL_UNLOCKS,
+    sharedDays: 60,
+    form: 'PARADISE',
+    ...overrides,
+  });
+}
+
+/** The device clock in the page; the time zone is UTC in this block. */
+async function at(page: Page, time: string) {
+  await page.clock.setFixedTime(new Date(time));
+}
+
+async function press(page: Page, name: string | RegExp) {
+  const target = page.getByRole('button', { name }).first();
+  await target.focus();
+  await page.keyboard.press('Enter');
+}
+
+/**
+ * A still of the viewport, for a panned garden: a full-page capture resizes
+ * the viewport, which resets the frame's horizontal scroll.
+ */
+async function captureView(page: Page, info: TestInfo, name: string) {
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
+  await page
+    .getByTestId('garden-frame')
+    .evaluate((frame) =>
+      frame.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    );
+  const output = info.outputPath(name);
+  await page.screenshot({ path: output });
+  if (process.env.VISUAL_EVIDENCE_DIR) {
+    fs.mkdirSync(process.env.VISUAL_EVIDENCE_DIR, { recursive: true });
+    fs.copyFileSync(output, path.join(process.env.VISUAL_EVIDENCE_DIR, name));
+  }
+}
+
+async function pan(page: Page, share: number) {
+  // The tree stands in the wider part of the garden; pan it into view.
+  await page.getByTestId('garden-frame').evaluate(
+    (frame, left) =>
+      frame.scrollTo({
+        left: frame.scrollWidth * left,
+        behavior: 'instant',
+      }),
+    share,
+  );
+}
+
+test.describe('garden ambience', () => {
+  test.use({ timezoneId: 'UTC' });
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`garden follows the device clock from morning to night at 390px ${theme}`, async ({
+      page,
+    }, info) => {
+      const network = await installMocks(page, ambientGarden());
+      const errors = await prepare(page, { width: 390, theme, reduce: false });
+      await at(page, '2026-11-16T07:30:00Z');
+      await openGarden(page);
+      const frame = page.getByTestId('garden-frame');
+      await expect(frame).toHaveAttribute('data-daytime', 'morning');
+      await expect(page.getByTestId('garden-scene')).toHaveAttribute(
+        'aria-label',
+        new RegExp(ambience.daytime.morning),
+      );
+      await expect(page.getByTestId('garden-night-tint')).toHaveCSS(
+        'opacity',
+        '0',
+      );
+      await expect(page.locator('.garden-sun')).toHaveCSS('opacity', '1');
+      await expectReflow(page);
+      await captureGrowth(
+        page,
+        info,
+        `garden-ambient-morning-390-${theme}.png`,
+      );
+
+      // The clock moves on while the garden is open: night, in either theme.
+      await at(page, '2026-11-16T22:30:00Z');
+      await page.evaluate(() =>
+        document.dispatchEvent(new Event('visibilitychange')),
+      );
+      await expect(frame).toHaveAttribute('data-daytime', 'night');
+      await expect(page.getByTestId('garden-night-tint')).toHaveCSS(
+        'opacity',
+        '1',
+      );
+      await expect(page.locator('.garden-moon')).toHaveCSS('opacity', '1');
+      await expect(page.locator('.garden-sun')).toHaveCSS('opacity', '0');
+      await expect(page.locator('.garden-firefly').first()).toBeAttached();
+      await expect(page.getByTestId('garden-scene')).toHaveAttribute(
+        'aria-label',
+        new RegExp(ambience.daytime.night),
+      );
+      await pan(page, 0.36);
+      await captureView(page, info, `garden-ambient-night-390-${theme}.png`);
+      // At night the birds sleep in the tree.
+      await press(page, ambience.labels.tree);
+      await expect(page.locator('.garden-status')).toHaveText(
+        ambience.tap.treeNight,
+      );
+      await expect(page.getByTestId('garden-tap-bird')).toHaveCount(0);
+      await expectReflow(page);
+      await expectNoAxeViolations(page);
+      expect(network.writes).toEqual([]);
+      expect(network.unexpected).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  for (const [season, localDate] of [
+    ['autumn', '2026-11-16'],
+    ['winter', '2027-01-12'],
+  ] as const) {
+    for (const theme of ['light', 'dark'] as const) {
+      test(`garden ambience and taps in ${season} at 390px ${theme}`, async ({
+        page,
+      }, info) => {
+        const network = await installMocks(page, ambientGarden({ localDate }));
+        const errors = await prepare(page, {
+          width: 390,
+          theme,
+          reduce: false,
+        });
+        await at(page, '2026-11-16T12:00:00Z');
+        await openGarden(page);
+        await expect(page.getByTestId('garden-frame')).toHaveAttribute(
+          'data-season',
+          season,
+        );
+        const particles = page.getByTestId('garden-particles');
+        await expect(particles).toHaveAttribute('data-season', season);
+        const count = Number(await particles.getAttribute('data-count'));
+        expect(count).toBeGreaterThanOrEqual(10);
+        expect(count).toBeLessThanOrEqual(24);
+
+        // The tree rustles, leaves (or snow) fall and a bird flies out.
+        await press(page, ambience.labels.tree);
+        await expect(page.locator('.garden-status')).toHaveText(
+          season === 'autumn'
+            ? ambience.tap.treeAutumn
+            : ambience.tap.treeWinter,
+        );
+        await expect(page.getByTestId('garden-tap-leaves')).toBeAttached();
+        await expect(page.getByTestId('garden-tap-bird')).toBeAttached();
+        await pan(page, 0.36);
+        await page.waitForTimeout(500);
+        await captureView(
+          page,
+          info,
+          `garden-ambient-${season}-390-${theme}.png`,
+        );
+
+        // Rings and a fish in the pond; a short shower from a cloud.
+        await press(page, ambience.labels.pond);
+        await expect(page.locator('.garden-status')).toHaveText(
+          ambience.tap.pond,
+        );
+        await expect(page.getByTestId('garden-tap-ripple')).toBeAttached();
+        await expect(page.getByTestId('garden-tap-fish')).toBeAttached();
+        await press(page, ambience.labels.cloud);
+        await expect(page.locator('.garden-status')).toHaveText(
+          season === 'winter' ? ambience.tap.cloudSnow : ambience.tap.cloud,
+        );
+        await expect(page.getByTestId('garden-tap-shower')).toBeAttached();
+
+        // A flower bobs and still opens its story.
+        const flower = page
+          .getByRole('button', {
+            name: fill(copy.plantLabel, {
+              species: copy.species.POPPY.name,
+              name: 'Alex',
+            }),
+          })
+          .first();
+        await flower.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('.garden-status')).toHaveText(
+          season === 'winter' ? ambience.tap.flowerWinter : ambience.tap.flower,
+        );
+        await expect(flower).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.getByText(copy.stages[3])).toBeVisible();
+        await expect(page.getByTestId('garden-tap-petals')).toBeAttached();
+        await expect(page.getByTestId('garden-tap-butterfly')).toHaveCount(
+          season === 'winter' ? 0 : 1,
+        );
+        await expectReflow(page);
+        await expectNoAxeViolations(page);
+        expect(network.writes).toEqual([]);
+        expect(network.unexpected).toEqual([]);
+        expect(errors).toEqual([]);
+      });
+    }
+  }
+
+  for (const scenario of [
+    { width: 390, theme: 'light', reduce: false },
+    { width: 390, theme: 'dark', reduce: false },
+    { width: 360, theme: 'dark', reduce: true },
+  ] as const) {
+    test(`garden shows today's together moments and a birthday at ${scenario.width}px ${scenario.theme}${scenario.reduce ? ' reduced' : ''}`, async ({
+      page,
+    }, info) => {
+      const plants = grownGarden().plants as Array<Record<string, unknown>>;
+      const network = await installMocks(
+        page,
+        ambientGarden({
+          plants: [
+            ...plants,
+            {
+              id: TODAY_SEED_ID,
+              species: 'POPPY',
+              words: 'FOR_YOU',
+              senderId: PARTNER_ID,
+              sentOn: '2026-11-16',
+              stage: 0,
+              slot: 16,
+              inPond: false,
+            },
+          ],
+          sentToday: {
+            id: '77777777-7777-4777-8777-777777777777',
+            species: 'SUNFLOWER',
+            words: null,
+            senderId: ACCOUNT_ID,
+            sentOn: '2026-11-16',
+            stage: 0,
+            slot: null,
+          },
+          partnerSentToday: true,
+          sharedToday: true,
+          wateredToday: plants[0].id,
+          partnerWateredToday: plants[1].id,
+        }),
+        { birthdays: { [PARTNER_ID]: '1992-11-16' } },
+      );
+      const errors = await prepare(page, scenario);
+      await at(page, '2026-11-16T11:00:00Z');
+      await openGarden(page);
+
+      // Derived from today only: both watered, both sent, kind words.
+      await expect(page.getByTestId('garden-double-rainbow')).toBeVisible();
+      await expect(page.getByTestId('garden-together')).toBeAttached();
+      const label = await page
+        .getByTestId('garden-scene')
+        .getAttribute('aria-label');
+      expect(label).toContain(ambience.doubleRainbow);
+      expect(label).toContain(ambience.together.swing);
+      expect(label).toContain(fill(ambience.birdhouseLabel, { name: 'Alex' }));
+      // The partner's birthday decorates the tree, only on the day.
+      await expect(page.getByTestId('garden-celebration')).toHaveText(
+        fill(ambience.celebration.birthdayPartner, { name: 'Alex' }),
+      );
+      await expect(page.getByTestId('garden-celebration')).not.toContainText(
+        /\d/,
+      );
+      await expect(
+        page.getByTestId('garden-celebration-lights'),
+      ).toHaveAttribute('data-lit', 'false');
+      if (scenario.reduce)
+        await expect(page.getByTestId('garden-particles')).toHaveCount(0);
+
+      // The partner's words are tucked into the birdhouse.
+      await press(page, fill(ambience.labels.birdhouse, { name: 'Alex' }));
+      await expect(page.getByTestId('garden-birdhouse-words')).toHaveText(
+        copy.words.FOR_YOU,
+      );
+      await expect(page.locator('.garden-status')).toHaveText(
+        fill(ambience.birdhouseStatus, {
+          name: 'Alex',
+          words: copy.words.FOR_YOU,
+        }),
+      );
+      await expectReflow(page);
+      const suffix = `${scenario.width}-${scenario.theme}${scenario.reduce ? '-reduced' : ''}`;
+      await captureGrowth(page, info, `garden-ambient-birdhouse-${suffix}.png`);
+      // The two of you on the swing under the double rainbow.
+      await pan(page, 0.36);
+      await captureView(page, info, `garden-ambient-together-${suffix}.png`);
+      await expectNoAxeViolations(page);
+      expect(network.writes).toEqual([]);
+      expect(network.unexpected).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`garden waters with a tilting can, a rainbow and the partner's can arriving live at 390px ${theme}`, async ({
+      page,
+    }, info) => {
+      const network = await installMocks(page, gardenView({ incoming: null }));
+      const errors = await prepare(page, { width: 390, theme, reduce: false });
+      await at(page, '2026-11-16T10:30:00Z');
+      await openGarden(page);
+      await page.getByRole('button', { name: copy.water }).click();
+      await page
+        .getByRole('button', {
+          name: fill(copy.waterPlantLabel, {
+            species: copy.species.STARFLOWER.name,
+          }),
+        })
+        .click();
+      const can = page.getByTestId('garden-watering-can');
+      await expect(can).toHaveAttribute('data-who', 'own');
+      await page.waitForTimeout(1_100);
+      // Mid-tilt the spout points down onto the plant (a clockwise tilt).
+      const tilt = await can
+        .locator('.garden-can-tilt')
+        .evaluate(
+          (element) => new DOMMatrix(getComputedStyle(element).transform).b,
+        );
+      expect(tilt).toBeGreaterThan(0.5);
+      await captureGrowth(
+        page,
+        info,
+        `garden-ambient-watering-390-${theme}.png`,
+      );
+      await expect(
+        page.getByText(fill(copy.wateredStatus, { name: 'Alex' })),
+      ).toBeVisible();
+      // By day a rainbow fades in afterwards.
+      await expect(page.getByTestId('garden-rainbow')).toBeAttached({
+        timeout: 4_000,
+      });
+      await expect(can).toHaveCount(0, { timeout: 4_000 });
+
+      // The partner waters too while the garden is open: their can, once,
+      // and the double rainbow fades in.
+      network.update(
+        gardenView({
+          incoming: null,
+          wateredToday: BLOOM_ID,
+          partnerWateredToday: BLOOM_ID,
+        }),
+      );
+      await expect(page.getByTestId('garden-watering-can')).toHaveAttribute(
+        'data-who',
+        'partner',
+        { timeout: 8_000 },
+      );
+      await expect(page.getByTestId('garden-double-rainbow')).toBeVisible();
+      await expectNoAxeViolations(page);
+      expect(network.writes).toEqual(['POST /waterings']);
+      expect(network.unexpected).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test('garden book calls a named visitor who greets', async ({
+    page,
+  }, info) => {
+    const network = await installMocks(
+      page,
+      ambientGarden({ visitorNames: [{ animal: 'SNAIL', name: 'Frieda' }] }),
+    );
+    const errors = await prepare(page, {
+      width: 390,
+      theme: 'light',
+      reduce: false,
+    });
+    await at(page, '2026-11-16T12:00:00Z');
+    await openGarden(page);
+    const toggle = page.getByRole('button', { name: growth.book });
+    await toggle.click();
+    const call = page.getByRole('button', {
+      name: fill(ambience.call.label, { name: 'Frieda' }),
+    });
+    await expect(call).toHaveText(ambience.call.action);
+    await call.click();
+    await expect(page.getByTestId('garden-book')).toHaveCount(0);
+    await expect(toggle).toBeFocused();
+    await expect(page.locator('.garden-status')).toHaveText(
+      fill(ambience.call.greeted, { name: 'Frieda' }),
+    );
+    await expect(page.getByTestId('garden-name-tag')).toHaveText('Frieda', {
+      timeout: 4_000,
+    });
+    await expect(page.getByTestId('garden-greet-hearts')).toBeAttached();
+    await expect(page.getByTestId('garden-animal-snail')).toHaveAttribute(
+      'data-pose',
+      'hello',
+    );
+    await captureGrowth(page, info, 'garden-ambient-call-390-light.png');
+    await expectNoAxeViolations(page);
+    expect(network.writes).toEqual([]);
+    expect(network.unexpected).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+});

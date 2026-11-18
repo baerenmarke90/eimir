@@ -38,9 +38,13 @@ SHARED_FILES: tuple[tuple[str, str], ...] = (
     ("docs/assets/site/tagebuch.webp", "assets/screens/tagebuch.webp"),
     ("docs/assets/site/tagebuch-lang.webp", "assets/screens/tagebuch-lang.webp"),
     ("docs/assets/site/garten.webp", "assets/screens/garten.webp"),
-    ("docs/assets/site/garten-scene.svg", "assets/screens/garten-scene.svg"),
+    ("docs/assets/site/garten-zeitraffer.svg", "assets/screens/garten-zeitraffer.svg"),
     ("docs/assets/site/rueckblicke.webp", "assets/screens/rueckblicke.webp"),
-    ("docs/assets/site/geschichte.webp", "assets/screens/geschichte.webp"),
+    ("docs/assets/site/geschichte-lang.webp", "assets/screens/geschichte-lang.webp"),
+    ("docs/assets/site/geschichte-zeitverlauf-0.webp", "assets/screens/geschichte-zeitverlauf-0.webp"),
+    ("docs/assets/site/geschichte-zeitverlauf-1.webp", "assets/screens/geschichte-zeitverlauf-1.webp"),
+    ("docs/assets/site/geschichte-zeitverlauf-2.webp", "assets/screens/geschichte-zeitverlauf-2.webp"),
+    ("docs/assets/site/geschichte-zeitverlauf-3.webp", "assets/screens/geschichte-zeitverlauf-3.webp"),
 )
 
 PLACEHOLDER = re.compile(r"\[\[[A-Z0-9_]+\]\]")

@@ -35,12 +35,13 @@ from `design/tokens.json`. Literata is used for display headings and Instrument 
 The two overlapping circles use the app's person colors (own blue, partner rose). Favicon, brand
 mark and touch icon are the app's own assets and switch with `prefers-color-scheme`.
 
-Screens: real captures of the Web app inside an iPhone 18 Pro frame. The diary capture scrolls slowly
-down and back in an endless CSS loop. The garden shows the app's own animated garden scene as a
-standalone SVG laid over a still, so the leaves, plants, clouds and animals move endlessly and
-smoothly without a video; nginx compresses the 200 KB file. All motion stops with
-`prefers-reduced-motion`. The intro phones fade in once; the primary button only changes color
-and scale.
+Screens: real captures of the Web app inside an iPhone 18 Pro frame. The diary and Eure Geschichte
+captures scroll slowly down and back in an endless CSS loop; on Eure Geschichte, four frames of the
+timeline cross-fade as if swiping across the months. The garden shows the app's own animated garden
+scene as a standalone SVG: six states over a year cross-fade with a clock chip ("Day 1" to
+"9 months"), and the leaves, plants, clouds and animals keep moving. There is no video; nginx
+compresses the 750 KB SVG. All motion stops with `prefers-reduced-motion`. The intro phones fade in
+once; the primary button only changes color and scale.
 
 The primary action is one filled pill that opens the application (localized per page). Privacy and terms are the
 application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so

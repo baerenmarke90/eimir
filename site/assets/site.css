@@ -193,16 +193,30 @@ img { max-width: 100%; }
 .phone .mockframe .screen { background: var(--color-surface); }
 .phone .screen > img, .screen-stack img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .screen-stack { position: absolute; inset: 0; }
-.screen-scroll img { display: block; width: 100%; height: auto; }
-/* The garden scene is the app's own animated SVG, laid over the still at the scene's position. */
+.screen-scroll, .screen-scroll .track { position: relative; }
+.screen-scroll .track > img:first-child { display: block; width: 100%; height: auto; }
+/* The garden shows a year in time-lapse: the app's own scene in six states, each fading over the previous one from a view further right, with a clock chip. */
 .garden-window { position: absolute; left: 4.93%; top: 34.29%; width: 90.15%; height: 25.6%; overflow: hidden; border-radius: 20px; }
-.garden-live { display: block; width: 152.9%; height: 100%; }
-/* Endless, slow auto-scroll of the long diary capture: down and back again without a seam. */
+.garden-live { display: block; width: 100%; height: 100%; }
+.gt { position: absolute; left: 10px; top: 10px; padding: 4px 16px; border-radius: 999px; background: color-mix(in srgb, var(--color-surface-raised) 86%, transparent); color: var(--color-text); font: 600 22px/1.3 var(--font-ui); opacity: 0; }
+.gt0, .lf0 { opacity: 1; }
+.lifeline-scrub { position: absolute; left: 5.13%; top: 58.05%; width: 89.74%; height: 14.09%; }
+.lf { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+/* Endless, calm auto-scroll of the long captures: down and back again without a seam. */
 @media (prefers-reduced-motion: no-preference) {
-  .screen-scroll img { --shift: 80%; animation: diary-scroll 54s ease-in-out infinite alternate; }
-  .garden-live { animation: garden-pan 28s ease-in-out infinite alternate; }
-  @keyframes diary-scroll { to { transform: translateY(calc(-1 * var(--shift))); } }
-  @keyframes garden-pan { to { transform: translateX(-34.6%); } }
+  .screen-scroll .track { --shift: 80.4%; animation: scroll-down 36s ease-in-out infinite alternate; }
+  .screen-scroll.story .track { --shift: 73.5%; animation-duration: 26s; }
+  .gt { animation: tl-cycle 42s linear infinite both; }
+  .gt0 { animation-delay: -1.4s; } .gt1 { animation-delay: 5.6s; } .gt2 { animation-delay: 12.6s; }
+  .gt3 { animation-delay: 19.6s; } .gt4 { animation-delay: 26.6s; } .gt5 { animation-delay: 33.6s; }
+  .lf { animation-duration: 10.2s; animation-timing-function: linear; animation-iteration-count: infinite; }
+  .lf0 { animation-name: lf-0; } .lf1 { animation-name: lf-1; } .lf2 { animation-name: lf-2; } .lf3 { animation-name: lf-3; }
+  @keyframes scroll-down { to { transform: translateY(calc(-1 * var(--shift))); } }
+  @keyframes tl-cycle { 0% { opacity: 0; } 3.34% { opacity: 1; } 20% { opacity: 1; } 20.01% { opacity: 0; } 100% { opacity: 0; } }
+  @keyframes lf-0 { 0.0% { opacity: 1; } 16.67% { opacity: 1; } 19.12% { opacity: 0; } 100.0% { opacity: 1; } }
+  @keyframes lf-1 { 0.0% { opacity: 0; } 14.22% { opacity: 0; } 16.67% { opacity: 1; } 33.33% { opacity: 1; } 35.78% { opacity: 0; } 80.88% { opacity: 0; } 83.33% { opacity: 1; } 100.0% { opacity: 1; } }
+  @keyframes lf-2 { 0.0% { opacity: 0; } 30.88% { opacity: 0; } 33.33% { opacity: 1; } 50.0% { opacity: 1; } 52.45% { opacity: 0; } 64.22% { opacity: 0; } 66.67% { opacity: 1; } 83.33% { opacity: 1; } 85.78% { opacity: 0; } 100.0% { opacity: 0; } }
+  @keyframes lf-3 { 0.0% { opacity: 0; } 47.55% { opacity: 0; } 50.0% { opacity: 1; } 66.67% { opacity: 1; } 69.12% { opacity: 0; } 100.0% { opacity: 0; } }
 }
 
 /* Intro: display type (Literata 600, -0.02em, 1.08). */

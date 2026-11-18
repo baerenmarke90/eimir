@@ -116,15 +116,10 @@ def _validate_dashboard_visibility(
 
 
 def list_persons(session: Session, context: AuthorizationContext) -> Sequence[RelatedPerson]:
-    return (
-        session.execute(
-            readable(RelatedPerson, context).order_by(
-                RelatedPerson.relationship, RelatedPerson.created_at, RelatedPerson.id
-            )
-        )
-        .scalars()
-        .all()
-    )
+    # Ordered here, not in SQL: the relationship is protected content (#797). The
+    # people of one Space are few, and this keeps the order clients already see.
+    people = session.execute(readable(RelatedPerson, context)).scalars().all()
+    return sorted(people, key=lambda person: (person.relationship, person.created_at, person.id))
 
 
 def get_person(
@@ -253,14 +248,16 @@ def update_person(
 
     _rebind_avatar(session, context, person, avatar_attachment_id)
     person.privacy_class = PrivacyClass.SPACE_SHARED.value
-    person.relationship = relationship.value
-    person.birthday = normalized_birthday
-    person.birthday_year_known = birthday_year_known
-    person.show_birthday_on_dashboard = show_birthday_on_dashboard
     person.payload = RelatedPersonPayload(
         display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
         note=person.payload.note if note is None else note.strip(),
     )
+    # After the payload: relationship and birthday are part of it, and assigning
+    # them also retires their legacy columns and keeps ``has_birthday`` in step.
+    person.relationship = relationship.value
+    person.birthday = normalized_birthday
+    person.birthday_year_known = birthday_year_known
+    person.show_birthday_on_dashboard = show_birthday_on_dashboard
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return person

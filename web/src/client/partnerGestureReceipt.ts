@@ -108,10 +108,16 @@ export const PARTNER_NOTICE_ICONS = {
   WISH_SELECTION_RANDOM_REQUESTED: { badge: 'sparkle', center: 'wuensche' },
   WISH_SELECTION_RANDOM_ACCEPTED: { badge: 'sparkle', center: 'wuensche' },
   WISH_SELECTION_RANDOM_DECLINED: { badge: 'gemeinsam', center: 'wuensche' },
+  HEART_HUNT_HIDDEN: { badge: 'sparkle', center: 'foto' },
+  HEART_HUNT_FOUND: { badge: 'sparkle', center: 'foto' },
+  PICTURE_PING_PONG_TURN: { badge: 'sparkle', center: 'spiele' },
+  GARDEN_SEED_ARRIVED: { badge: 'sparkle', center: 'spiele' },
   PLAN_CREATED: { badge: 'kalender', center: 'kalender' },
   PLAN_CHANGED: { badge: 'kalender', center: 'kalender' },
   PLAN_CANCELLED: { badge: 'close', center: 'kalender' },
   COMMENT_CREATED: { badge: 'nachrichten', center: 'nachrichten' },
+  SHARED_NOTE_CREATED: { badge: 'notes', center: 'notes' },
+  SHARED_NOTE_CHANGED: { badge: 'notes', center: 'notes' },
   PHOTO_REACTION: { badge: 'foto', center: 'foto' },
   COUPLE_EXPERIENCE_SHARED: { badge: 'momente', center: 'momente' },
   REMINDER_CREATED: {
@@ -119,6 +125,7 @@ export const PARTNER_NOTICE_ICONS = {
     center: 'benachrichtigungen',
   },
   PARTNER_JOINED: { badge: 'gemeinsam', center: 'gemeinsam' },
+  COLLECTION_SENT: { badge: 'gemeinsam', center: 'listen' },
   ONCE_MESSAGE_RECEIVED: { badge: 'nachrichten', center: 'nachrichten' },
 } as const satisfies Partial<Record<NotificationKind, PartnerNoticeIcons>>;
 

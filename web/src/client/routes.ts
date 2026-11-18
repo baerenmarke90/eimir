@@ -22,6 +22,7 @@ export type AppRouteIcon =
   | 'people'
   | 'places'
   | 'collections'
+  | 'notes'
   | 'media'
   | 'chapter'
   | 'birthday'
@@ -142,6 +143,11 @@ export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
 export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
+/** Shared Notes (#1969): free text both partners read and edit. */
+export const MORE_NOTES_ROUTE = '/more/notes';
+export const NOTE_CREATE_ROUTE = '/more/notes/new';
+export const NOTE_DETAIL_ROUTE_PATTERN = '/more/notes/:noteId';
+export const NOTE_EDIT_ROUTE_PATTERN = '/more/notes/:noteId/edit';
 /** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Named profile destination in the More account group. */
@@ -174,6 +180,7 @@ export function proPaywallContext(search: string): ProPaywallContext {
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',
+  'shared',
   'notifications',
   'today',
   'memories',
@@ -190,6 +197,7 @@ export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:set
 
 export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
+  shared: `${MORE_SETTINGS_ROUTE}/shared`,
   notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
   today: `${MORE_SETTINGS_ROUTE}/today`,
   memories: `${MORE_SETTINGS_ROUTE}/memories`,
@@ -250,6 +258,9 @@ export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
 export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
+export const GAMES_GARDEN_ROUTE = '/games/garden';
+export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
+export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
 
 /* Story content ---------------------------------------------------------- */
 
@@ -415,6 +426,25 @@ export function planDetailPath(planId: string): string {
   return `/plan/plans/${encodeURIComponent(planId)}`;
 }
 
+/** Resolve the unpadded, URL-safe Base64 UUID written into synced events. */
+export function planPathFromCalendarLink(pathname: string): string | null {
+  const shortId = /^\/p\/([A-Za-z0-9_-]{22})\/?$/.exec(pathname)?.[1];
+  if (!shortId) return null;
+
+  const bytes = atob(shortId.replaceAll('-', '+').replaceAll('_', '/'));
+  const hex = Array.from(bytes, (byte) =>
+    byte.charCodeAt(0).toString(16).padStart(2, '0'),
+  ).join('');
+  const planId = [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
+  return planDetailPath(planId);
+}
+
 export function reminderDetailPath(reminderId: string): string {
   return `/plan/reminders/${encodeURIComponent(reminderId)}`;
 }
@@ -429,6 +459,14 @@ export function chapterDetailPath(chapterId: string): string {
 
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
+}
+
+export function sharedNoteDetailPath(noteId: string): string {
+  return `${MORE_NOTES_ROUTE}/${encodeURIComponent(noteId)}`;
+}
+
+export function sharedNoteEditPath(noteId: string): string {
+  return `${sharedNoteDetailPath(noteId)}/edit`;
 }
 
 /**

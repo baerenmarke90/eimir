@@ -48,7 +48,7 @@ const m5s3 = {
     experiencedPlans: 'Erlebt',
     experiencedPlansEmpty: 'Noch keine gemeinsam erlebten Pläne.',
     experiencedOn: 'Erlebt am {{date}}',
-    openPlansEmpty: 'Gerade keine offenen Pläne.',
+    openPlansEmpty: 'Worauf freut ihr euch als Nächstes?',
     pastOpenPlans: 'Termin liegt zurück',
     wishScope: 'Wünsche anzeigen',
     fulfilledWishes: 'Erfüllt',
@@ -415,7 +415,18 @@ const m5s3 = {
     },
   },
   collection: {
-    menu: { open: 'Menü der Liste' },
+    menu: {
+      open: 'Menü der Liste',
+      send: 'An {{name}} schicken',
+      sendTitle: 'Liste an {{name}} schicken?',
+      sendBody:
+        'Die Liste erscheint auf dem „Wir“ der anderen Person, mit einer kurzen Mitteilung. Ihr bearbeitet weiter dieselbe Liste.',
+      sendConfirm: 'An {{name}} schicken',
+      sendSending: 'Wird geschickt …',
+      sendKeep: 'Nicht jetzt',
+      sendDone: 'An {{name}} geschickt.',
+      partnerFallback: 'deinen Partner',
+    },
     defaultShopping: {
       title: 'Einkauf',
       heading: 'Gemeinsam einkaufen',

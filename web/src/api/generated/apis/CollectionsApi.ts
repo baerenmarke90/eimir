@@ -147,6 +147,11 @@ export interface ReorderCollectionItemsRequest {
     collectionOrder: CollectionOrder;
 }
 
+export interface SendCollectionToPartnerRequest {
+    collectionId: string;
+    spaceId: string;
+}
+
 export interface UpdateCollectionRequest {
     collectionId: string;
     spaceId: string;
@@ -789,6 +794,60 @@ export class CollectionsApi extends runtime.BaseAPI {
     async reorderCollectionItems(requestParameters: ReorderCollectionItemsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CollectionDetail> {
         const response = await this.reorderCollectionItemsRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for sendCollectionToPartner without sending the request
+     */
+    async sendCollectionToPartnerRequestOpts(requestParameters: SendCollectionToPartnerRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling sendCollectionToPartner().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling sendCollectionToPartner().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/send`;
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.
+     * Send a shared list to the partner
+     */
+    async sendCollectionToPartnerRaw(requestParameters: SendCollectionToPartnerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.sendCollectionToPartnerRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * A deliberate gesture: notifies the partner with a neutral message and adds the list at the end of their personal pinned lists. The list itself is unchanged. A repeat within 30 minutes adds nothing and stays silent.
+     * Send a shared list to the partner
+     */
+    async sendCollectionToPartner(requestParameters: SendCollectionToPartnerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.sendCollectionToPartnerRaw(requestParameters, initOverrides);
     }
 
     /**

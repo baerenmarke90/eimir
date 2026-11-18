@@ -8,20 +8,30 @@ less is stored here than would technically be possible: display name,
 relationship type, a birthday and an optional bounded note. No structured
 address, school, or phone-number collection.
 
-The display name, note and label of an important date are the protected parts
-and are stored as `ProtectedPayload`, separate from metadata. Everything
-needed for sorting, linking, and later reminders - relationship, date,
-recurrence, and visibility - remains queryable as columns.
+The display name, note, birthday, relationship and label of an important date
+are the protected parts and are stored as `ProtectedPayload`, separate from
+metadata. Everything needed for linking and later reminders - the date of an
+important date, recurrence, and visibility - remains queryable as columns.
+
+Who a person is to the couple (mother, friend, colleague) was such a column
+until the Product Owner decision of 2026-11-17 (#797): together with a reminder
+it told a dump that a Space has a mother whose birthday is on a given day. The
+list of people is small per Space and is ordered in the application instead.
+
+A person's birthday was such a column until the Product Owner decision of
+2026-11-16 (#797). What stays visible outside the payload is that a birthday
+exists (`has_birthday`) and, through its reminder, on which day of the year it
+falls: the server has to know when to remind. The year is only in the payload.
 """
 
 from __future__ import annotations
 
 from datetime import date
 from enum import StrEnum
-from typing import ClassVar
+from typing import Any, ClassVar
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -32,10 +42,12 @@ from sqlalchemy import (
     SmallInteger,
     String,
     UniqueConstraint,
+    or_,
     text,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.authorization import (
     PrivateResourceMixin,
@@ -99,8 +111,10 @@ and day into separate columns - which would duplicate every date operation -
 a fixed year is used and `birthday_year_known` indicates that the year has
 no meaning. 1904 is a leap year, so February 29 remains representable.
 
-The database enforces the placeholder so that a second code path cannot
-choose another year and make the two populations incomparable.
+The database enforced the placeholder while the birthday was a column. It now
+lives in the protected payload, which the database cannot inspect, so
+`people.service.normalize_birthday` is the one place that applies it; the
+check constraint still guards a value left in the legacy column.
 """
 
 
@@ -109,6 +123,17 @@ class RelatedPersonPayload(ProtectedPayload):
 
     display_name: str = Field(min_length=1, max_length=120)
     note: str = Field(default="", max_length=2000)
+    birthday: date | None = None
+    # None only on a row whose relationship is still in its legacy column.
+    relationship: str | None = None
+
+    @field_validator("relationship")
+    @classmethod
+    def relationship_is_known(cls, value: str | None) -> str | None:
+        # The database check of the same name can only see the legacy column.
+        if value is not None and value not in {item.value for item in PersonRelationship}:
+            raise ValueError("Unknown relationship.")
+        return value
 
 
 class ImportantDatePayload(ProtectedPayload):
@@ -128,8 +153,18 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
         "Related person not found.", "RELATED_PERSON_NOT_FOUND"
     )
 
-    relationship: Mapped[str] = mapped_column(String(16), nullable=False)
-    birthday: Mapped[date | None] = mapped_column(Date)
+    # Legacy plaintext homes of the relationship and the birthday. New writes
+    # keep them NULL and store both in ``payload``; a row written before that
+    # still carries them here until the column backfill
+    # (``eimir.security.column_moves``) has visited it. Read and assign
+    # ``relationship`` and ``birthday`` below, never these.
+    legacy_relationship: Mapped[str | None] = mapped_column("relationship", String(16))
+    legacy_birthday: Mapped[date | None] = mapped_column("birthday", Date)
+    # The one fact queries and constraints still need in SQL: whether a birthday
+    # is recorded. It says nothing about when.
+    has_birthday: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     birthday_year_known: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
@@ -178,8 +213,10 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
             "relationship IN (" + ", ".join(f"'{value}'" for value in PersonRelationship) + ")",
             name="relationship_is_known",
         ),
+        # ``has_birthday`` stands for a birthday in the payload, the column for one
+        # not yet moved there.
         CheckConstraint(
-            "birthday IS NOT NULL OR birthday_year_known IS FALSE",
+            "has_birthday OR birthday IS NOT NULL OR birthday_year_known IS FALSE",
             name="known_year_needs_a_birthday",
         ),
         CheckConstraint(
@@ -188,11 +225,67 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
             name="unknown_year_is_normalized",
         ),
         CheckConstraint(
-            "show_birthday_on_dashboard IS FALSE OR birthday IS NOT NULL",
+            "show_birthday_on_dashboard IS FALSE OR has_birthday OR birthday IS NOT NULL",
             name="dashboard_visibility_needs_a_birthday",
         ),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
     )
+
+    def __init__(
+        self,
+        *,
+        birthday: date | None = None,
+        relationship: str | None = None,
+        **values: Any,
+    ) -> None:
+        """Accept birthday and relationship by their own keywords and store them in the payload."""
+        payload = values.get("payload")
+        if payload is not None:
+            update: dict[str, Any] = {}
+            if birthday is not None:
+                update["birthday"] = birthday
+            if relationship is not None:
+                update["relationship"] = relationship
+            if update:
+                # Validated, unlike ``model_copy``: an unknown relationship is refused.
+                payload = values["payload"] = type(payload)(**{**payload.seal(), **update})
+            values.setdefault("has_birthday", payload.birthday is not None)
+        super().__init__(**values)
+
+    @classmethod
+    def with_birthday(cls) -> ColumnElement[bool]:
+        """SQL filter for people who have a birthday.
+
+        The flag covers every row the application wrote; the column test covers a
+        row that arrived with its birthday still in the legacy column, such as one
+        imported from an older Transfer Bundle, before the backfill reached it.
+        """
+        return or_(cls.has_birthday.is_(True), cls.legacy_birthday.is_not(None))
+
+    @property
+    def birthday(self) -> date | None:
+        """The birthday, from the protected payload or, for a legacy row, its column."""
+        stored = self.payload.birthday
+        return stored if stored is not None else self.legacy_birthday
+
+    @birthday.setter
+    def birthday(self, value: date | None) -> None:
+        self.payload = self.payload.model_copy(update={"birthday": value})
+        self.legacy_birthday = None
+        self.has_birthday = value is not None
+
+    @property
+    def relationship(self) -> str:
+        """The relationship, from the protected payload or, for a legacy row, its column."""
+        stored = self.payload.relationship
+        if stored is not None:
+            return stored
+        return self.legacy_relationship or PersonRelationship.OTHER.value
+
+    @relationship.setter
+    def relationship(self, value: str) -> None:
+        self.payload = RelatedPersonPayload(**{**self.payload.seal(), "relationship": value})
+        self.legacy_relationship = None
 
 
 class ImportantDate(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base):

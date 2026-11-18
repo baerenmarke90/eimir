@@ -10,8 +10,8 @@ describe('ListPeople (#1808)', () => {
     const { container } = render(
       <ListPeople
         people={[
-          { personId: 'anna', displayName: 'Anna Berg', tone: 'a' },
-          { personId: 'ben', displayName: 'Ben', tone: 'b' },
+          { personId: 'anna', displayName: 'Anna Berg', role: 'own' },
+          { personId: 'ben', displayName: 'Ben', role: 'partner' },
         ]}
       />,
     );
@@ -19,8 +19,8 @@ describe('ListPeople (#1808)', () => {
     expect(group?.getAttribute('aria-hidden')).toBe('true');
     const discs = [...container.querySelectorAll('.partner-marker')];
     expect(discs.map((disc) => disc.textContent)).toEqual(['AB', 'BE']);
-    expect(discs[0].className).toContain('partner-marker-a');
-    expect(discs[1].className).toContain('partner-marker-b');
+    expect(discs[0].className).toContain('person-role-own');
+    expect(discs[1].className).toContain('person-role-partner');
   });
 
   it('renders nothing when nobody is known', () => {

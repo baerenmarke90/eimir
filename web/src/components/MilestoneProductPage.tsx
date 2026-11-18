@@ -660,6 +660,7 @@ export function MilestoneProductPage({
           <div className="milestone-hero">
             <span className="milestone-hero-icon" aria-hidden="true">
               <svg
+                className="inline-icon"
                 viewBox="0 0 24 24"
                 width="20"
                 height="20"

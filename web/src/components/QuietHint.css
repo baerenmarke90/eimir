@@ -1,0 +1,108 @@
+/*
+ * Quiet hints (#1907 I1): a tinted note without a border, at the place it
+ * explains. It rises in with the state-transition token and folds away on
+ * dismissal so the content below moves up without a jump.
+ */
+.quiet-hint {
+  display: grid;
+  grid-template-rows: 1fr;
+  max-inline-size: var(--reading-max, 45rem);
+  opacity: 1;
+}
+
+.quiet-hint-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-block-size: 0;
+  overflow: hidden;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-shared-surface);
+  color: var(--color-text);
+}
+
+.quiet-hint[data-tone="new"] .quiet-hint-body {
+  background: var(--color-discovery-surface);
+}
+
+.quiet-hint-icon {
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+  margin-block-start: 0.1rem;
+  color: var(--color-brand-text);
+}
+
+.quiet-hint[data-tone="new"] .quiet-hint-icon,
+.quiet-hint-tag {
+  color: var(--color-discovery);
+}
+
+.quiet-hint-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.quiet-hint-tag {
+  font: var(--font-story-category);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quiet-hint-copy p {
+  margin: 0;
+  font: var(--font-supporting-copy);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.quiet-hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+}
+
+.quiet-hint-action,
+.quiet-hint-dismiss {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand-text);
+  font: var(--font-action-label);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.quiet-hint-dismiss {
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quiet-hint {
+    animation: quiet-hint-in var(--duration-transition) var(--easing-enter);
+    transition:
+      grid-template-rows var(--duration-transition) var(--easing-standard),
+      opacity var(--duration-transition) var(--easing-standard);
+  }
+}
+
+.quiet-hint[data-leaving] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@keyframes quiet-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

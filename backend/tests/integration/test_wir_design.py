@@ -114,16 +114,25 @@ def test_switching_between_the_free_designs_stays_free(client, couple) -> None:
     assert connected.json() == {"designId": "connected", "version": 2}
 
 
-def test_pro_designs_are_exactly_shared_album_modern_and_classic() -> None:
+def test_pro_designs_are_exactly_the_alternative_designs() -> None:
     assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
         WirDesignId.SHARED_ALBUM,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
+        WirDesignId.QUIET_TOGETHER,
+        WirDesignId.HANDWRITING,
     }
 
 
 @pytest.mark.parametrize(
-    "design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.MODERN, WirDesignId.CLASSIC]
+    "design_id",
+    [
+        WirDesignId.SHARED_ALBUM,
+        WirDesignId.MODERN,
+        WirDesignId.CLASSIC,
+        WirDesignId.QUIET_TOGETHER,
+        WirDesignId.HANDWRITING,
+    ],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])

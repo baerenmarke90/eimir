@@ -32,7 +32,10 @@ import org.json.JSONObject;
  * positions other apps or the system already computed and never triggers a
  * measurement itself. A periodic heartbeat reads the last known position
  * without measuring. Uploads need network, run as ordinary jobs and happen only
- * after 1 km of movement or when the last upload is 6 hours old.
+ * after 1 km of movement (200 m for a precise choice) or when the last upload is
+ * 6 hours old. A precise choice (PO 2026-11-17) never starts a measurement
+ * either: the passive provider only delivers what other apps or the system
+ * already computed, and the device rounds each position before storing it.
  *
  * Authorization uses a scoped presence credential that can only replace the
  * owner's snapshot; this code never refreshes the Web session. The credential
@@ -45,6 +48,7 @@ final class PresenceBackground {
     static final int HEARTBEAT_JOB_ID = 0x50520002;
     static final long PASSIVE_MIN_INTERVAL_MS = 15 * 60 * 1000L;
     static final float PASSIVE_MIN_DISTANCE_M = 1000f;
+    static final float PASSIVE_MIN_PRECISE_DISTANCE_M = 200f;
     static final long HEARTBEAT_INTERVAL_MS = 6 * 60 * 60 * 1000L;
     private static final String FILE_NAME = "presence-background-v1";
     private static final String AAD = "eimir-presence-background-v1";
@@ -94,7 +98,17 @@ final class PresenceBackground {
             || context.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
-    static void enable(Context context, String instance, String credential, String expiresAt) throws Exception {
+    /** The precise grant on top of the approximate one; Android 12+ lets people keep "approximate". */
+    static boolean hasFinePermission(Context context) {
+        return context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** Precise only when it was chosen and the system really granted it. */
+    private static boolean preciseActive(Context context, JSONObject state) {
+        return state.optBoolean("precise", false) && hasFinePermission(context);
+    }
+
+    static void enable(Context context, String instance, String credential, String expiresAt, boolean precise) throws Exception {
         if (credential == null || credential.length() < 20 || credential.length() > 256) throw new IOException("Invalid credential");
         Instant expiry = Instant.parse(expiresAt);
         if (!expiry.isAfter(Instant.now())) throw new IOException("Expired credential");
@@ -102,7 +116,8 @@ final class PresenceBackground {
         JSONObject state = new JSONObject()
             .put("instance", validInstance(instance))
             .put("credential", credential)
-            .put("expiresAt", expiry.toString());
+            .put("expiresAt", expiry.toString())
+            .put("precise", precise);
         // Keep the last upload so re-enabling with a fresh credential does not re-send unchanged positions.
         if (previous != null && previous.has("lastPublishedAt")) {
             state.put("lastLatitude", previous.getDouble("lastLatitude"))
@@ -140,8 +155,11 @@ final class PresenceBackground {
         try {
             LocationManager manager = context.getSystemService(LocationManager.class);
             if (manager == null) return;
+            JSONObject state = read(context);
+            float minDistance = state != null && preciseActive(context, state)
+                ? PASSIVE_MIN_PRECISE_DISTANCE_M : PASSIVE_MIN_DISTANCE_M;
             manager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER,
-                PASSIVE_MIN_INTERVAL_MS, PASSIVE_MIN_DISTANCE_M, locationIntent(context));
+                PASSIVE_MIN_INTERVAL_MS, minDistance, locationIntent(context));
         } catch (SecurityException revoked) { disable(context); return; }
         JobScheduler scheduler = context.getSystemService(JobScheduler.class);
         if (scheduler == null) return;
@@ -164,9 +182,14 @@ final class PresenceBackground {
         JSONObject state = read(context);
         if (state == null || location == null) return;
         try {
-            if (!shouldUpload(state, location.getLatitude(), location.getLongitude(), location.getTime(), System.currentTimeMillis())) return;
-            state.put("pendingLatitude", location.getLatitude())
-                .put("pendingLongitude", location.getLongitude())
+            boolean precise = state.optBoolean("precise", false) && PresencePrecision.isPrecise(
+                true, hasFinePermission(context), location.hasAccuracy(), location.getAccuracy());
+            // Round on the device: the raw fix is never stored or sent.
+            double latitude = PresencePrecision.round(location.getLatitude(), precise);
+            double longitude = PresencePrecision.round(location.getLongitude(), precise);
+            if (!shouldUpload(state, latitude, longitude, location.getTime(), System.currentTimeMillis(), precise)) return;
+            state.put("pendingLatitude", latitude)
+                .put("pendingLongitude", longitude)
                 .put("pendingAccuracy", location.hasAccuracy() ? location.getAccuracy() : ApproximateLocationPolicy.UNKNOWN_ACCURACY_METERS)
                 .put("pendingCapturedAt", location.getTime());
             write(context, state);
@@ -174,14 +197,15 @@ final class PresenceBackground {
         } catch (Exception unavailable) { /* The next fix or heartbeat retries. */ }
     }
 
-    static boolean shouldUpload(JSONObject state, double latitude, double longitude, long capturedAt, long now) {
+    static boolean shouldUpload(JSONObject state, double latitude, double longitude, long capturedAt, long now,
+            boolean precise) {
         if (now - capturedAt > ApproximateLocationPlugin.MAX_ACCEPTED_AGE_MS || capturedAt - now > 2 * 60 * 1000L) return false;
         if (!state.has("lastPublishedAt")) return true;
         if (capturedAt <= state.optLong("lastPublishedAt")) {
             return false;
         }
         return PresencePublishRule.due(state.optDouble("lastLatitude"), state.optDouble("lastLongitude"),
-            state.optLong("lastPublishedAt"), latitude, longitude, now);
+            state.optLong("lastPublishedAt"), latitude, longitude, now, precise);
     }
 
     static void scheduleUpload(Context context) {
@@ -199,7 +223,9 @@ final class PresenceBackground {
         LocationManager manager = context.getSystemService(LocationManager.class);
         if (manager == null) return;
         Location best = null;
-        for (String provider : ApproximateLocationPolicy.LAST_KNOWN_PROVIDERS) {
+        JSONObject state = read(context);
+        boolean precise = state != null && preciseActive(context, state);
+        for (String provider : ApproximateLocationPolicy.lastKnownProviders(precise)) {
             try {
                 if (!manager.getAllProviders().contains(provider)) continue;
                 Location candidate = manager.getLastKnownLocation(provider);

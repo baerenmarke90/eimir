@@ -49,6 +49,11 @@ import {
     RelationshipPassportViewToJSON,
 } from '../models/RelationshipPassportView';
 import {
+    type StoryLifelineEntriesView,
+    StoryLifelineEntriesViewFromJSON,
+    StoryLifelineEntriesViewToJSON,
+} from '../models/StoryLifelineEntriesView';
+import {
     type StoryLifelineView,
     StoryLifelineViewFromJSON,
     StoryLifelineViewToJSON,
@@ -64,6 +69,12 @@ export interface GetRelationshipPassportRequest {
 
 export interface GetStoryLifelineRequest {
     spaceId: string;
+}
+
+export interface GetStoryLifelineEntriesRequest {
+    spaceId: string;
+    from: Date;
+    to: Date;
 }
 
 export interface ListDashboardModulePreferencesRequest {
@@ -224,6 +235,75 @@ export class DashboardApi extends runtime.BaseAPI {
      */
     async getStoryLifeline(requestParameters: GetStoryLifelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryLifelineView> {
         const response = await this.getStoryLifelineRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getStoryLifelineEntries without sending the request
+     */
+    async getStoryLifelineEntriesRequestOpts(requestParameters: GetStoryLifelineEntriesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getStoryLifelineEntries().'
+            );
+        }
+
+        if (requestParameters['from'] == null) {
+            throw new runtime.RequiredError(
+                'from',
+                'Required parameter "from" was null or undefined when calling getStoryLifelineEntries().'
+            );
+        }
+
+        if (requestParameters['to'] == null) {
+            throw new runtime.RequiredError(
+                'to',
+                'Required parameter "to" was null or undefined when calling getStoryLifelineEntries().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['from'] != null) {
+            queryParameters['from'] = (requestParameters['from'] as any).toISOString().substring(0,10);
+        }
+
+        if (requestParameters['to'] != null) {
+            queryParameters['to'] = (requestParameters['to'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/story-lifeline/entries`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return the shared entries of one lifeline period, oldest first.  Read lazily when a lifeline column is selected. The entries are exactly those the lifeline counts for the range; at most a bounded number is returned together with the range total.
+     * Get Story Lifeline Entries
+     */
+    async getStoryLifelineEntriesRaw(requestParameters: GetStoryLifelineEntriesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StoryLifelineEntriesView>> {
+        const requestOptions = await this.getStoryLifelineEntriesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => StoryLifelineEntriesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return the shared entries of one lifeline period, oldest first.  Read lazily when a lifeline column is selected. The entries are exactly those the lifeline counts for the range; at most a bounded number is returned together with the range total.
+     * Get Story Lifeline Entries
+     */
+    async getStoryLifelineEntries(requestParameters: GetStoryLifelineEntriesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryLifelineEntriesView> {
+        const response = await this.getStoryLifelineEntriesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

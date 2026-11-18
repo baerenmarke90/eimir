@@ -101,6 +101,15 @@ creates another project. The fragment affects only `api`/`worker` and
 sender credential. Default canonical deployments require no host file. An explicit
 opt-in with a missing host source refuses instead of creating a directory.
 
+The encryption-at-rest key set can be supplied the same way, so that it does not
+appear among the project's environment values in Arcane. Put the JSON key set into a
+private regular file on the Docker host that only runtime UID 10001 can read, set
+`EIMIR_ENCRYPTION_KEYS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/encryption-keys.json`,
+leave `EIMIR_ENCRYPTION_KEYS` empty and apply `deploy/encryption-keys.compose.yaml`
+to the existing project before Deploy/Redeploy. `EIMIR_ENCRYPTION_AT_REST` and
+`EIMIR_ENCRYPTION_ACTIVE_KEY_ID` stay ordinary environment values. Details and
+limits: [ENCRYPTION-AT-REST.md section 9](ENCRYPTION-AT-REST.md#9-key-management-and-rotation).
+
 Released Production still uses the verified release's canonical Compose and
 identity file and the existing `release-guard`. Do not replace those with a source
 checkout or disable the gate to enable push. The immutable operator bundle ships

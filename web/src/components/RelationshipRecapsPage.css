@@ -126,54 +126,87 @@
   margin-block: var(--space-3);
 }
 .recap-period-note {
+  display: block;
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
   margin-block: var(--space-3);
 }
+/* The link to a newer version uses the shared link colour in both themes (#1744). */
+.recap-version-note a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .recap-open {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   margin-block-start: var(--space-5);
   text-decoration: none;
 }
-.recap-archive {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5) var(--space-4);
+.recap-archive,
+.recap-unready {
   margin-block-start: var(--space-10);
 }
-.recap-archive > h2 {
-  grid-column: 1 / -1;
-}
-.recap-archive > h2 {
+.recap-archive > h2,
+.recap-unready > h2 {
   font: var(--font-section-heading);
-  margin-block: 0 var(--space-4);
+  margin-block: 0 var(--space-3);
 }
-.recap-archive .recap-cover {
-  display: grid;
-  align-content: start;
-  gap: var(--space-3);
-}
-.recap-archive .recap-cover-art {
-  border-radius: var(--radius-card);
-  aspect-ratio: 0.8;
-}
-.recap-archive .recap-cover-copy {
+.recap-library-list {
+  list-style: none;
+  margin: 0;
   padding: 0;
 }
-.recap-archive .recap-cover h2 {
+.recap-library-list > :where(li + li) {
+  border-block-start: 1px solid var(--color-border-subtle);
+}
+.recap-archive-row,
+.recap-status-row {
+  color: var(--color-text);
+  text-decoration: none;
+  min-block-size: var(--touch-target-web);
+  padding-block: var(--space-3);
+}
+.recap-archive-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.recap-archive-copy,
+.recap-status-row {
+  display: grid;
+  gap: var(--space-1);
+}
+.recap-archive-copy > strong {
   font: var(--font-content-heading);
-  margin-block: var(--space-2);
 }
-.recap-archive .recap-cover-words {
-  padding: var(--space-3);
+.recap-archive-copy > span,
+.recap-status-row > span {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
 }
-.recap-archive .recap-cover-words p {
-  display: none;
+.recap-archive-copy .recap-period-note {
+  margin: 0;
 }
-.recap-archive .recap-edition-mark {
-  inset-inline-end: var(--space-3);
-  inset-block-start: var(--space-3);
+.recap-archive-row:hover strong,
+a.recap-status-row:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.recap-archive-art {
+  display: block;
+  flex: none;
+  inline-size: var(--space-12);
+  block-size: var(--space-12);
+  overflow: hidden;
+  border-radius: var(--radius-media);
+}
+.recap-archive-art
+  :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
 }
 .recap-text-link,
 .recap-text-button {
@@ -187,12 +220,6 @@
   font: var(--font-ui-label);
   padding: var(--space-2) 0;
 }
-.recap-cover-preparing .recap-cover-art {
-  background: var(--color-surface-subtle);
-}
-.recap-cover-preparing .recap-cover-words {
-  color: var(--color-text-secondary);
-}
 .recap-explanation {
   margin-block: var(--space-5);
   padding-block: var(--space-4);
@@ -203,6 +230,13 @@
   min-block-size: 44px;
   align-content: center;
   font: var(--font-ui-label);
+  list-style: none;
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.recap-explanation summary::-webkit-details-marker {
+  display: none;
 }
 .recap-explanation p {
   line-height: 1.6;
@@ -212,7 +246,7 @@
   padding: var(--space-6);
   background: var(--color-shared-surface);
   border-radius: var(--radius-card);
-  margin-block-end: var(--space-6);
+  margin-block: var(--space-6);
 }
 .recap-gate h2 {
   font: var(--font-section-heading);
@@ -257,6 +291,14 @@
 }
 .recap-reader[data-playing="true"] .recap-step-fill {
   animation-play-state: running;
+}
+/* A year film: one segment per chapter whose scenes fill it without gaps. */
+.recap-progress-chapter {
+  display: flex;
+}
+.recap-progress-chapter > .recap-progress-step {
+  flex: 1;
+  overflow: hidden;
 }
 .recap-playback-center {
   display: grid;
@@ -353,11 +395,10 @@
   margin-block: var(--space-4) var(--space-2);
   font: var(--font-supporting-copy);
 }
-.recap-page-controls > button {
-  flex: none;
-  inline-size: 48px;
-  block-size: 48px;
-  padding: 0;
+.recap-page-controls > button:not(.sr-only) {
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
 }
 .recap-reader-tools {

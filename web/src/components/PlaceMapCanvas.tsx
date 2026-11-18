@@ -5,6 +5,7 @@ import {
   MapLibreMap,
   type MapMouseEvent,
   Marker,
+  type RequestTransformFunction,
   setWorkerUrl,
 } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
@@ -13,6 +14,7 @@ import { createPortal } from 'react-dom';
 import { cssDurationMilliseconds } from '../client/cssDuration';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
 import './PlaceMapPicker.css';
 import { ConnectionOverlay, type MapConnection } from './placeMapConnection';
 import { googleLikeStyle } from './placeMapStyle';
@@ -23,7 +25,17 @@ export type { MapConnection } from './placeMapConnection';
 setWorkerUrl(workerUrl);
 
 /** Keyless vector style built from OpenStreetMap data; see docs/DEPENDENCIES.md. */
-const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_ORIGIN = 'https://tiles.openfreemap.org';
+const MAP_STYLE_URL = `${MAP_ORIGIN}/styles/liberty`;
+
+// Native WebViews do not register the browser map service worker. Reuse the
+// HTTP cache for versioned public tiles, while style and TileJSON can advance
+// to the next tile set under their normal HTTP freshness rules.
+const cacheNativeTiles: RequestTransformFunction = (url, resourceType) =>
+  resourceType === 'Tile' && url.startsWith(`${MAP_ORIGIN}/`)
+    ? { url, cache: 'force-cache' }
+    : undefined;
+
 /**
  * Camera zoom values exchanged with callers use the 256 px raster-tile scale
  * the app started with. MapLibre counts 512 px vector tiles, one level lower.
@@ -59,7 +71,7 @@ export interface MapLocation extends MapPoint {
 /**
  * An approximate area, not a pin (#1792): a circle of at least the disclosed
  * radius with an optional decorative marker in its centre. Areas frame the
- * map once; later updates never move the camera.
+ * map as they arrive, until the viewer takes over the camera.
  */
 export interface MapArea extends MapPoint {
   id: string;
@@ -226,7 +238,6 @@ export default function PlaceMapCanvas({
   const areaEntries = useRef(
     new Map<string, { marker: Marker; circle: HTMLElement; area: MapArea }>(),
   );
-  const areasFramed = useRef(false);
   const framePadding = useRef<number | typeof AREA_PADDING>(40);
   const areasRef = useRef(areas);
   areasRef.current = areas;
@@ -257,6 +268,7 @@ export default function PlaceMapCanvas({
       // same area reuses tiles instead of reloading and re-parsing them. The
       // network side is already cached by the service worker and the browser.
       maxTileCacheZoomLevels: TILE_CACHE_ZOOM_LEVELS,
+      transformRequest: isCapacitorNative() ? cacheNativeTiles : undefined,
       // The page scrolls past an embedded map; zoom stays on buttons, double
       // tap and pinch. Rotation/tilt would need a compass the product lacks.
       scrollZoom: false,
@@ -444,7 +456,6 @@ export default function PlaceMapCanvas({
       map.remove();
       markers.current.clear();
       areaEntries.current.clear();
-      areasFramed.current = false;
       cameraMoving.current = false;
       finishCamera.current = null;
       mapRef.current = null;
@@ -558,6 +569,9 @@ export default function PlaceMapCanvas({
     const map = mapRef.current;
     if (!map) return;
     const liveIds = new Set(areas?.map(({ id }) => id));
+    const membershipChanged =
+      liveIds.size !== areaEntries.current.size ||
+      [...liveIds].some((id) => !areaEntries.current.has(id));
     for (const [id, entry] of areaEntries.current) {
       if (liveIds.has(id)) continue;
       entry.marker.remove();
@@ -593,21 +607,14 @@ export default function PlaceMapCanvas({
       if (host) hosts.push({ id: area.id, host, marker: area.marker });
     }
     setAreaHosts(hosts);
-    // Frame the first areas once; data refreshes never re-centre the map.
-    if (
-      !areasFramed.current &&
-      areas?.length &&
-      !locations?.length &&
-      !focusRef.current &&
-      !restoredViewport.current
-    ) {
-      areasFramed.current = true;
+    // Own and partner areas may arrive independently. Include new areas
+    // while the camera is automatic, and discard bounds of removed areas.
+    if (membershipChanged && !locations?.length && !focusRef.current) {
       framePadding.current = AREA_PADDING;
-      bounds.current = areaBounds(areas);
-      autoFrame.current = true;
-      updateFrame.current?.();
+      bounds.current = areas?.length ? areaBounds(areas) : null;
+      if (autoFrame.current) updateFrame.current?.();
     }
-  }, [areas, t]);
+  }, [areas, locations?.length, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Area and locale changes move or recreate the connection's ends.
   useEffect(() => {

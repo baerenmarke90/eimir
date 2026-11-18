@@ -121,3 +121,29 @@
     transform: none;
   }
 }
+
+@keyframes notification-recap-ready {
+  from {
+    opacity: 0;
+    transform: translateY(28%) scale(0.7);
+  }
+  70% {
+    transform: translateY(-6%) scale(1.06);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes notification-recap-grew {
+  from {
+    opacity: 0;
+    transform: translateX(-22%) rotate(-8deg);
+  }
+  65% {
+    transform: translateX(5%) rotate(3deg);
+  }
+  to {
+    transform: none;
+  }
+}

@@ -229,8 +229,11 @@ class TestCommand:
 
         output = capsys.readouterr().out
         assert "result=FAILED" in output
-        assert "not_enveloped={'memories': 1}" in output
+        # The account of the fixture is reported too: its name is protected
+        # content now, and with encryption disabled it is stored as plaintext.
+        assert "not_enveloped={'accounts': 1, 'memories': 1}" in output
         assert TITLE not in output
+        assert "Audit Anna" not in output
 
     def test_clean_state_exits_zero(
         self,

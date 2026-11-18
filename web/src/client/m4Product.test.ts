@@ -70,6 +70,10 @@ describe('M5 S5/S3 product navigation', () => {
       '/plan/collections/collection-id',
     );
 
+    expect(engagementTargetPath('SHARED_NOTE', 'note-id')).toBe(
+      '/more/notes/note-id',
+    );
+
     expect(engagementTargetPath(null, 'memory-id')).toBeNull();
     expect(engagementTargetPath('MEMORY', null)).toBeNull();
   });

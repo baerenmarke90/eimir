@@ -12,18 +12,35 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import Field
 
+from eimir import config
 from eimir.administration import service as administration
 from eimir.api.deps import DbSession
 from eimir.api.schema import ApiModel
 from eimir.auth.policy import (
     AuthCapabilities,
     AuthPolicy,
+    oidc_signup_supported,
     resolve_auth_capabilities,
     self_service_signup_supported,
 )
 from eimir.legal import terms
 
 router = APIRouter(tags=["instance"])
+
+
+class OidcConnectionView(ApiModel):
+    """A configured external sign-in provider, as an unauthenticated client may know it.
+
+    Only what a sign-in screen needs to draw a button and start the flow. The
+    issuer, client identity and callback addresses stay in configuration.
+    """
+
+    id: str
+    brand: Literal["google", "generic"]
+    label: str = Field(description="Button text for a `generic` provider; empty for `google`.")
+    native_available: bool = Field(
+        description="Whether the Android app has a registered callback for this provider."
+    )
 
 
 class InstanceAccessStatus(ApiModel):
@@ -64,6 +81,21 @@ class InstanceAccessStatus(ApiModel):
             "`self_service` and `registrationAvailable` is true."
         ),
     )
+    oidc_connections: list[OidcConnectionView] = Field(
+        default_factory=list,
+        description=(
+            "External sign-in providers configured here. Empty unless `auth.oidc` is true. "
+            "Whether a provider may also create a new Account is `oidcSignupAvailable`."
+        ),
+    )
+    oidc_signup_available: bool = Field(
+        default=False,
+        description=(
+            "Whether a person may create a new Account through an external provider, without an "
+            "invitation, right now: Cloud, a provider is configured, and the administrator "
+            "admits new Accounts."
+        ),
+    )
     terms_of_use_version: str | None = Field(
         default=None,
         description=(
@@ -88,6 +120,15 @@ def instance_status(
         reason = "administrator"
 
     self_service = self_service_signup_supported()
+    connections = [
+        OidcConnectionView(
+            id=connection.id,
+            brand=connection.provider,
+            label=connection.label,
+            native_available=connection.android_redirect_uri is not None,
+        )
+        for connection in (config.get_settings().oidc_connections if auth_policy.oidc else [])
+    ]
     return InstanceAccessStatus(
         maintenance_mode=state.maintenance_mode,
         registration_available=state.effective_registration_enabled,
@@ -95,5 +136,7 @@ def instance_status(
         auth=auth_policy,
         account_creation="self_service" if self_service else "invitation",
         self_service_signup_available=self_service and state.effective_registration_enabled,
+        oidc_connections=connections,
+        oidc_signup_available=oidc_signup_supported() and state.effective_registration_enabled,
         terms_of_use_version=terms.required_terms_version(),
     )

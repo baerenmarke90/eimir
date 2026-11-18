@@ -23,13 +23,13 @@ jobs:
   pr-critical:
     if: github.event_name == 'pull_request'
     needs: changed-spec-plan
-    name: PR-critical ${{ matrix.shard }}/4
+    name: PR-critical ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -63,7 +63,7 @@ jobs:
           EIMIR_BROWSER_SPECS: ${{ needs.changed-spec-plan.outputs.critical-specs }}
         run: >-
           npm run test:pr --
-          --shard=${{ matrix.shard }}/4
+          --shard=${{ matrix.shard }}/${{ strategy.job-total }}
           --output=test-results-pr-${{ matrix.shard }}
 
       - name: Upload PR failure diagnostics

@@ -177,7 +177,7 @@ jobs:
         run: uv run --frozen pytest -m "not integration" -q
 
   backend_integration_shards:
-    name: Backend Integration Shard ${{ matrix.shard }}/4
+    name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
     runs-on: ubuntu-latest
@@ -185,12 +185,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
 
     # Each shard gets its own runner and PostgreSQL service. The deterministic
     # selector partitions the collected integration node IDs exactly once, so
-    # the gate keeps full coverage without forcing all database tests through a
-    # single ~23-minute runner.
+    # the gate keeps full coverage while lowering the time spent waiting for
+    # the slowest shard.
     services:
       postgres:
         image: postgres:17-alpine
@@ -256,15 +256,15 @@ jobs:
           uv run --frozen pytest -m integration --collect-only -q > "$collection"
           python ../tools/ci/pytest_shard.py \
             --shard "${{ matrix.shard }}" \
-            --shard-count 4 \
+            --shard-count "${{ strategy.job-total }}" \
             < "$collection" > "$selected_file"
           mapfile -t selected < "$selected_file"
           expected="${#selected[@]}"
           if [ "$expected" -eq 0 ]; then
-            echo "Integration shard ${{ matrix.shard }}/4 selected no tests."
+            echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
             exit 1
           fi
-          echo "Integration shard ${{ matrix.shard }}/4 selected $expected tests."
+          echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
           uv run --frozen pytest -m integration -q --durations=20 \
             --junitxml="$report" "${selected[@]}"
           uv run --frozen python - "$report" "$expected" <<'PY'

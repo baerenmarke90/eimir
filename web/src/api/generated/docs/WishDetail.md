@@ -14,6 +14,8 @@ Name | Type
 `followedFromWishId` | string
 `hasMemory` | boolean
 `id` | string
+`linkUrl` | string
+`photoAttachmentId` | string
 `plan` | [WishPlanReference](WishPlanReference.md)
 `seriesId` | string
 `seriesPosition` | number
@@ -39,6 +41,8 @@ const example = {
   "followedFromWishId": null,
   "hasMemory": null,
   "id": null,
+  "linkUrl": null,
+  "photoAttachmentId": null,
   "plan": null,
   "seriesId": null,
   "seriesPosition": null,

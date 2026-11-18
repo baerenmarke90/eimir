@@ -682,6 +682,127 @@ def test_google_denial_consumes_only_the_browser_owned_task(
         exchange.assert_not_called()
 
 
+def begin_google_app(client, owners):
+    response = client.post(
+        path(owners) + "/photo-selections",
+        headers=owners["a"],
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+            "returnTo": "app",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response
+
+
+def test_app_flow_needs_no_cookie_and_the_signed_in_app_finishes_it(
+    client, session, owners, synthetic_google
+):
+    from urllib.parse import urlencode
+
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    started = begin_google_app(client, owners)
+    # The system browser cannot share a cookie with the app, so none is issued or required.
+    assert "set-cookie" not in started.headers
+    identifier = UUID(started.json()["id"])
+    state = states[0]
+    row = session.get(PhotoSelection, identifier)
+    assert row.payload.return_to == "app" and row.payload.browser_binding_hash is None
+    # Google returns to the public callback in a browser without any cookie.
+    back = google_callback(client, state)
+    assert back.status_code == 303
+    assert back.headers["location"] == (
+        "de.eimir.app://photos/google?" + urlencode({"state": state, "code": "synthetic-code"})
+    )
+    exchange.assert_not_called()
+    session.refresh(row)
+    assert row.status == "AUTHORIZING" and row.state_hash == hash_token(state)
+    # The signed-in app finishes it: exchange happens now, once.
+    done = client.post(
+        path(owners) + f"/photo-selections/{identifier}/authorize",
+        headers=owners["a"],
+        json={"state": state, "code": "synthetic-code"},
+    )
+    assert done.status_code == 200, done.text
+    assert done.json()["status"] == "PICKING"
+    assert done.json()["pickerUri"] == "https://photos.google.com/synthetic"
+    exchange.assert_called_once_with(
+        "synthetic-code",
+        state,
+        "synthetic-verifier",
+        client=service.google_photos.client_configuration(),
+    )
+    session.refresh(row)
+    assert row.state_hash is None
+    # The link cannot be replayed.
+    again = client.post(
+        path(owners) + f"/photo-selections/{identifier}/authorize",
+        headers=owners["a"],
+        json={"state": state, "code": "synthetic-code"},
+    )
+    assert again.status_code == 409
+    assert google_callback(client, state).status_code == 200
+    exchange.assert_called_once()
+
+
+def test_app_flow_code_is_useless_to_any_other_session_state_or_flow(
+    client, session, owners, synthetic_google
+):
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    started = begin_google_app(client, owners)
+    identifier = started.json()["id"]
+    state = states[0]
+    endpoint = path(owners) + f"/photo-selections/{identifier}/authorize"
+    body = {"state": state, "code": "stolen-code"}
+    # Another device session of the same Account, another member and an outsider.
+    for headers in (owners["second"], owners["b"], owners["out"]):
+        assert client.post(endpoint, headers=headers, json=body).status_code in {403, 404}
+    # The right session with a different state.
+    wrong = client.post(
+        endpoint, headers=owners["a"], json={"state": "x" * 43, "code": "stolen-code"}
+    )
+    assert wrong.status_code == 409
+    # A browser-flow selection is never completed through the app route.
+    with_cookie = begin_google(client, owners)
+    web = client.post(
+        path(owners) + f"/photo-selections/{with_cookie}/authorize",
+        headers=owners["a"],
+        json={"state": states[1], "code": "stolen-code"},
+    )
+    assert web.status_code == 409
+    exchange.assert_not_called()
+    assert session.get(PhotoSelection, UUID(identifier)).status == "AUTHORIZING"
+    # Unknown fields are refused.
+    extra = client.post(endpoint, headers=owners["a"], json={**body, "token": "x"})
+    assert extra.status_code == 422
+
+
+def test_app_flow_denial_and_closed_gate_return_nothing_usable(
+    client, session, owners, synthetic_google, monkeypatch
+):
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    begin_google_app(client, owners)
+    denied = google_callback(client, states[0], code=None)
+    assert denied.status_code == 303
+    assert denied.headers["location"] == (
+        f"de.eimir.app://photos/google?state={states[0]}&outcome=denied"
+    )
+    # Unknown state: the plain page, never the app link.
+    unknown = google_callback(client, "y" * 43)
+    assert unknown.status_code == 200 and "Location" not in unknown.headers
+    # With the gate closed the callback never hands anything to the app.
+    monkeypatch.setattr(service, "google_import_available", lambda: False)
+    closed = google_callback(client, states[0])
+    assert closed.status_code == 200 and "Location" not in closed.headers
+    exchange.assert_not_called()
+
+
 def test_concurrent_google_callbacks_exchange_only_once_with_real_request_commits(
     production_client, synthetic_google
 ):

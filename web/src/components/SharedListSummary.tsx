@@ -1,6 +1,8 @@
+import type {
+  ListPerson,
+  SharedListSummary as Summary,
+} from '../client/sharedListSummary';
 import { useTranslation } from '../i18n';
-import type { SharedListSummary as Summary } from '../client/sharedListSummary';
-import type { ListPerson } from '../client/sharedListSummary';
 import { ListPeople } from './ListPeople';
 import { PartnerMarker } from './PartnerMarker';
 import './SharedListSummary.css';
@@ -54,7 +56,7 @@ export function SharedListSummary({
         <ul className="shared-list-summary-shares">
           {summary.shares.map((share) => (
             <li key={share.personId}>
-              <PartnerMarker name={share.displayName} tone={share.tone} />
+              <PartnerMarker name={share.displayName} role={share.role} />
               <span>
                 {t(`m5s3.collection.summary.${prefix}Share`, {
                   name: share.displayName,
@@ -78,7 +80,7 @@ export function SharedListBar({ summary }: { summary: Summary }) {
       {summary.shares.map((share) => (
         <span
           key={share.personId}
-          className={`shared-list-summary-fill shared-list-summary-fill-${share.tone}`}
+          className={`shared-list-summary-fill person-role-${share.role}`}
           style={{ flexGrow: share.count }}
         />
       ))}

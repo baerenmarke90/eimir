@@ -23,6 +23,9 @@ class TermsAcceptanceOrigin(StrEnum):
     SIGNUP_REDEMPTION = "signup_redemption"
     """While redeeming a proof that carried no current acceptance."""
 
+    OIDC_SIGNUP = "oidc_signup"
+    """Before leaving for an external identity provider that then created the Account."""
+
 
 class TermsAcceptance(IdMixin, Base):
     """One accepted version of the eimir. Cloud terms of use for one Account.
@@ -48,7 +51,7 @@ class TermsAcceptance(IdMixin, Base):
     __table_args__ = (
         UniqueConstraint("account_id", "version"),
         CheckConstraint(
-            "origin IN ('signup_request', 'signup_redemption')",
+            "origin IN ('signup_request', 'signup_redemption', 'oidc_signup')",
             name="origin_is_known",
         ),
     )

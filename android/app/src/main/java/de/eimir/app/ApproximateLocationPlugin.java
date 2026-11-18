@@ -28,18 +28,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Energy-efficient approximate position for partner distance (#1792,
- * docs/m9/PARTNER-LOCATION.md section 6). Only network/fused providers under
- * the coarse permission are used; this plugin never requests GPS, never keeps
- * listening and never stores or sends a position itself.
+ * docs/m9/PARTNER-LOCATION.md section 6). Under the coarse permission only
+ * network/fused providers are used and GPS is never requested. A precise
+ * measurement (PO 2026-11-17) happens only when the person chose it and the
+ * system grants the precise permission; it is one single measurement on open
+ * or resume, never continuous. This plugin never keeps listening and never
+ * stores or sends a position itself.
  */
 @CapacitorPlugin(name = "ApproximateLocation", permissions = {
     @Permission(alias = "location", strings = {Manifest.permission.ACCESS_COARSE_LOCATION}),
+    @Permission(alias = "preciseLocation", strings = {Manifest.permission.ACCESS_FINE_LOCATION}),
     @Permission(alias = "background", strings = {Manifest.permission.ACCESS_BACKGROUND_LOCATION})
 })
 public class ApproximateLocationPlugin extends Plugin {
     static final long DEFAULT_MAX_AGE_MS = 10 * 60 * 1000L;
     static final long MAX_ACCEPTED_AGE_MS = 24 * 60 * 60 * 1000L;
     static final long TIMEOUT_MS = 20_000L;
+    /** A precise attempt that has a fallback provider waits less before handing over. */
+    static final long FALLBACK_TIMEOUT_MS = 12_000L;
     private static final String DEVICE_PREFERENCES = "eimir-presence-device";
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
@@ -99,9 +105,10 @@ public class ApproximateLocationPlugin extends Plugin {
         String instance = call.getString("instance");
         String credential = call.getString("credential");
         String expiresAt = call.getString("expiresAt");
+        boolean precise = Boolean.TRUE.equals(call.getBoolean("precise", false));
         io.execute(() -> {
             try {
-                PresenceBackground.enable(getContext(), instance, credential, expiresAt);
+                PresenceBackground.enable(getContext(), instance, credential, expiresAt, precise);
                 call.resolve();
             } catch (Exception invalid) {
                 call.reject("Background updates could not be enabled", "LOCATION_UNAVAILABLE");
@@ -141,62 +148,82 @@ public class ApproximateLocationPlugin extends Plugin {
             call.reject("Location services are off", "LOCATION_UNAVAILABLE");
             return;
         }
-        long maxAge = ApproximateLocationPolicy.clampMaxAge(call.getLong("maxAgeMs", DEFAULT_MAX_AGE_MS));
+        // Precise only when requested and the system really granted it (Android 12+ lets the
+        // person keep "approximate"); otherwise the approximate path below runs unchanged.
+        boolean precise = Boolean.TRUE.equals(call.getBoolean("precise", false))
+            && getPermissionState("preciseLocation") == PermissionState.GRANTED;
+        long requestedMaxAge = call.getLong("maxAgeMs", DEFAULT_MAX_AGE_MS);
+        long maxAge = ApproximateLocationPolicy.clampMaxAge(
+            precise ? Math.min(requestedMaxAge, ApproximateLocationPolicy.PRECISE_MAX_AGE_MS) : requestedMaxAge);
         long now = System.currentTimeMillis();
 
-        Location cached = freshestLastKnown(manager, now);
-        if (cached != null && ApproximateLocationPolicy.isFresh(cached.getTime(), now, maxAge)) {
+        Location cached = freshestLastKnown(manager, now, precise);
+        if (cached != null && ApproximateLocationPolicy.isFresh(cached.getTime(), now, maxAge)
+                && ApproximateLocationPolicy.acceptCached(precise, cached.hasAccuracy(), cached.getAccuracy())) {
             call.resolve(result(cached));
             return;
         }
-        String provider = ApproximateLocationPolicy.measurementProvider(
-            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER),
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && manager.isProviderEnabled(LocationManager.FUSED_PROVIDER));
-        if (provider == null) {
-            call.reject("No approximate location provider is available", "LOCATION_UNAVAILABLE");
+        boolean fused = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && manager.isProviderEnabled(LocationManager.FUSED_PROVIDER);
+        boolean network = manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        String[] providers;
+        if (precise) {
+            providers = ApproximateLocationPolicy.preciseMeasurementProviders(
+                fused, manager.isProviderEnabled(LocationManager.GPS_PROVIDER), network);
+        } else {
+            String provider = ApproximateLocationPolicy.measurementProvider(network, fused);
+            providers = provider == null ? new String[0] : new String[] {provider};
+        }
+        if (providers.length == 0) {
+            call.reject("No location provider is available", "LOCATION_UNAVAILABLE");
             return;
         }
-        measure(call, manager, provider);
+        measure(call, manager, providers, 0);
     }
 
-    private Location freshestLastKnown(LocationManager manager, long now) {
+    private Location freshestLastKnown(LocationManager manager, long now, boolean precise) {
         Location best = null;
-        for (String provider : ApproximateLocationPolicy.LAST_KNOWN_PROVIDERS) {
+        for (String provider : ApproximateLocationPolicy.lastKnownProviders(precise)) {
             try {
                 if (!manager.getAllProviders().contains(provider)) continue;
                 Location candidate = manager.getLastKnownLocation(provider);
                 if (candidate == null || candidate.getTime() > now + 2 * 60 * 1000L) continue;
+                if (precise && !ApproximateLocationPolicy.acceptCached(true, candidate.hasAccuracy(), candidate.getAccuracy())) continue;
                 if (best == null || candidate.getTime() > best.getTime()) best = candidate;
             } catch (SecurityException | IllegalArgumentException unavailable) {
-                // A provider that rejects the coarse grant is simply skipped.
+                // A provider that rejects the grant is simply skipped.
             }
         }
         return best;
     }
 
-    private void measure(PluginCall call, LocationManager manager, String provider) {
+    /** Tries the providers in order; a provider that times out or has no fix hands over to the next one. */
+    private void measure(PluginCall call, LocationManager manager, String[] providers, int index) {
+        boolean hasNext = index + 1 < providers.length;
         CancellationSignal cancellation = new CancellationSignal();
         AtomicBoolean settled = new AtomicBoolean(false);
         Handler timeout = new Handler(Looper.getMainLooper());
         Runnable expire = () -> {
             if (settled.compareAndSet(false, true)) {
                 cancellation.cancel();
-                call.reject("No position within the time limit", "TIMEOUT");
+                if (hasNext) measure(call, manager, providers, index + 1);
+                else call.reject("No position within the time limit", "TIMEOUT");
             }
         };
-        timeout.postDelayed(expire, TIMEOUT_MS);
+        timeout.postDelayed(expire, hasNext ? FALLBACK_TIMEOUT_MS : TIMEOUT_MS);
         try {
-            LocationManagerCompat.getCurrentLocation(manager, provider, cancellation,
+            LocationManagerCompat.getCurrentLocation(manager, providers[index], cancellation,
                 ContextCompat.getMainExecutor(getContext()), location -> {
                     if (!settled.compareAndSet(false, true)) return;
                     timeout.removeCallbacks(expire);
-                    if (location == null) call.reject("No position is available", "LOCATION_UNAVAILABLE");
-                    else call.resolve(result(location));
+                    if (location != null) call.resolve(result(location));
+                    else if (hasNext) measure(call, manager, providers, index + 1);
+                    else call.reject("No position is available", "LOCATION_UNAVAILABLE");
                 });
         } catch (SecurityException denied) {
             if (settled.compareAndSet(false, true)) {
                 timeout.removeCallbacks(expire);
-                call.reject("Location permission is not granted", "PERMISSION_DENIED");
+                if (hasNext) measure(call, manager, providers, index + 1);
+                else call.reject("Location permission is not granted", "PERMISSION_DENIED");
             }
         }
     }

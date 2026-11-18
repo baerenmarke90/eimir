@@ -16,6 +16,7 @@ from eimir.auth import action_tokens, tokens
 from eimir.jobs import maintenance
 from eimir.once_messages import service as once_messages
 from eimir.photo_sources import service as photo_sources
+from eimir.presence import service as presence
 from eimir.relationship import invitations, policy
 from eimir.transfer import service as transfer
 
@@ -93,6 +94,12 @@ STATEMENTS = [
         timedelta(minutes=10),
         "Eine Auswahl verfällt nach zehn Minuten",
         id="photo-source-selection",
+    ),
+    pytest.param(
+        presence.SNAPSHOT_TTL,
+        timedelta(hours=24),
+        "spätestens 24 Stunden nach der Messung löschen wir sie",
+        id="partner-location-snapshot",
     ),
 ]
 

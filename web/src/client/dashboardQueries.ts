@@ -24,6 +24,19 @@ export function storyLifelineQueryKey(
 }
 
 /**
+ * The entries of one lifeline period, read when its column is selected. The
+ * key extends the lifeline key, so invalidating the lifeline drops them too.
+ */
+export function storyLifelineEntriesQueryKey(
+  accountId: string,
+  spaceId: string,
+  from: string,
+  to: string,
+): readonly ['story-lifeline', string, string, 'entries', string, string] {
+  return ['story-lifeline', accountId, spaceId, 'entries', from, to] as const;
+}
+
+/**
  * Invalidate the authoritative server Dashboard projection for the given space.
  *
  * The spaceId parameter is strictly mandatory so callers always target the

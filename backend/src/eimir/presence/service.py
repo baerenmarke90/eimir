@@ -28,8 +28,10 @@ from eimir.presence import geo
 from eimir.presence.models import (
     PartnerLocationConsent,
     PresenceDeviceCredential,
+    PresencePositionPayload,
     PresenceSnapshot,
     SharingLevel,
+    SharingPrecision,
 )
 from eimir.relationship.models import Membership, MembershipStatus
 
@@ -65,6 +67,7 @@ class PartnerLocationErrorCode:
 class SettingsView:
     available: bool
     level: SharingLevel
+    precision: SharingPrecision
     state: SharingState
     indefinite: bool
     expires_at: datetime | None
@@ -208,6 +211,11 @@ def _settings_view(
     return SettingsView(
         available=feature_enabled() and entitled and partner_id is not None,
         level=SharingLevel(consent.level) if consent is not None else SharingLevel.OFF,
+        precision=(
+            SharingPrecision(consent.precision)
+            if consent is not None
+            else SharingPrecision.APPROXIMATE
+        ),
         state=consent_state(consent, current_partner_id=partner_id, at=at),
         indefinite=bool(consent and consent.indefinite),
         expires_at=consent.expires_at if consent is not None else None,
@@ -235,17 +243,37 @@ def update_settings(
     level: SharingLevel,
     indefinite: bool,
     expires_at: datetime | None,
+    precision: SharingPrecision | None = None,
 ) -> SettingsView:
-    """Set the owner's sharing level. ``OFF`` is always accepted (non-paywallable)."""
+    """Set the owner's sharing level and precision.
+
+    ``OFF`` and the approximate precision are always accepted (non-paywallable).
+    ``precision=None`` keeps the stored choice (approximate for a new decision).
+    """
     at = now()
     consent = consent_row(session, authorization.space_id, authorization.account_id, lock=True)
 
     if level is SharingLevel.OFF:
+        if precision is SharingPrecision.PRECISE:
+            _require_precise_allowed(session, authorization)
         entitled = has_presence_capability(session, authorization.space_id, lock=False)
         if consent is None:
-            # Nothing was ever shared: stopping needs no stored decision.
+            if precision is SharingPrecision.PRECISE:
+                # The choice is kept without any sharing, so it can be made first.
+                consent = PartnerLocationConsent(
+                    space_id=authorization.space_id,
+                    account_id=authorization.account_id,
+                    generation=1,
+                    level=SharingLevel.OFF.value,
+                    precision=SharingPrecision.PRECISE.value,
+                )
+                session.add(consent)
+            # Nothing was ever shared: stopping needs no other stored decision.
             delete_owner_presence(session, authorization.space_id, authorization.account_id)
-            return _settings_view(session, authorization, None, at=at, entitled=entitled)
+            session.flush()
+            return _settings_view(session, authorization, consent, at=at, entitled=entitled)
+        if precision is not None:
+            consent.precision = precision.value
         consent.level = SharingLevel.OFF.value
         consent.indefinite = False
         consent.expires_at = None
@@ -287,6 +315,8 @@ def update_settings(
         session.add(consent)
     else:
         consent.generation += 1
+    if precision is not None:
+        consent.precision = precision.value
     consent.level = level.value
     consent.recipient_account_id = partner_id
     consent.indefinite = indefinite
@@ -295,6 +325,17 @@ def update_settings(
     delete_owner_presence(session, authorization.space_id, authorization.account_id)
     session.flush()
     return _settings_view(session, authorization, consent, at=at, entitled=True)
+
+
+def _require_precise_allowed(session: Session, authorization: AuthorizationContext) -> None:
+    """Choosing precise needs the Premium capability; lowering never does."""
+    if not feature_enabled():
+        raise ValidationError(
+            "Partner location is disabled on this deployment.",
+            code=PartnerLocationErrorCode.FEATURE_DISABLED,
+        )
+    if not has_presence_capability(session, authorization.space_id, lock=True):
+        raise PremiumEntitlementRequiredError(CAPABILITY)
 
 
 def _validate_capture_time(captured_at: datetime, at: datetime) -> None:
@@ -354,9 +395,16 @@ def publish_snapshot(
             space_id=authorization.space_id, account_id=authorization.account_id
         )
         session.add(snapshot)
-    snapshot.latitude = geo.snap_coordinate(latitude)
-    snapshot.longitude = geo.snap_coordinate(longitude)
-    snapshot.accuracy_meters = geo.stored_accuracy(accuracy_meters)
+    # A precise grid only for a precise choice backed by a precise fix; an
+    # approximate-only device grant is silently stored approximately.
+    precise = consent.precision == SharingPrecision.PRECISE.value and geo.is_precise_fix(
+        accuracy_meters
+    )
+    snapshot.payload = PresencePositionPayload(
+        latitude=geo.snap_coordinate(latitude, precise=precise),
+        longitude=geo.snap_coordinate(longitude, precise=precise),
+        accuracy_meters=geo.stored_accuracy(accuracy_meters, precise=precise),
+    )
     snapshot.captured_at = captured_at
     snapshot.expires_at = captured_at + SNAPSHOT_TTL
     snapshot.consent_generation = consent.generation
@@ -409,6 +457,7 @@ def partner_distance(
     latitude: float,
     longitude: float,
     captured_at: datetime,
+    accuracy_meters: float | None = None,
 ) -> DistanceView:
     at = now()
     _validate_capture_time(captured_at, at)
@@ -423,12 +472,26 @@ def partner_distance(
     snapshot = _readable_partner_snapshot(session, authorization, levels=_DISTANCE_LEVELS, at=at)
     if snapshot is None:
         return UNAVAILABLE_DISTANCE
+    position = snapshot.payload
+    # The coarser side governs: fine bands need both positions to be precise. The
+    # viewer counts as precise only with their own precise choice and fix.
+    viewer = consent_row(session, authorization.space_id, authorization.account_id)
+    viewer_precise = (
+        viewer is not None
+        and viewer.precision == SharingPrecision.PRECISE.value
+        and geo.is_precise_fix(accuracy_meters)
+    )
+    if viewer_precise:
+        latitude = float(geo.snap_coordinate(latitude, precise=True))
+        longitude = float(geo.snap_coordinate(longitude, precise=True))
     kilometres = geo.haversine_km(
-        float(snapshot.latitude), float(snapshot.longitude), latitude, longitude
+        float(position.latitude), float(position.longitude), latitude, longitude
     )
     return DistanceView(
         available=True,
-        band=geo.distance_band(kilometres),
+        band=geo.distance_band(
+            kilometres, fine=viewer_precise and geo.is_precise_stored(position.accuracy_meters)
+        ),
         as_of=min(snapshot.captured_at, captured_at),
     )
 
@@ -451,10 +514,11 @@ def partner_map(session: Session, authorization: AuthorizationContext) -> MapVie
     )
     if snapshot is None:
         return UNAVAILABLE_MAP
+    position = snapshot.payload
     return MapView(
         available=True,
-        latitude=float(snapshot.latitude),
-        longitude=float(snapshot.longitude),
-        radius_meters=geo.map_radius(snapshot.accuracy_meters),
+        latitude=float(position.latitude),
+        longitude=float(position.longitude),
+        radius_meters=geo.map_radius(position.accuracy_meters),
         captured_at=snapshot.captured_at,
     )

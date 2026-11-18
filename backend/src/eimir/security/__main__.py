@@ -2,6 +2,7 @@
 
     python -m eimir.security status
     python -m eimir.security migrate-payloads | rewrap-payloads | verify-payloads
+    python -m eimir.security migrate-columns
     python -m eimir.security migrate-media    | rewrap-media    | verify-media
     python -m eimir.security audit-raw [--media-sample N]
 
@@ -23,16 +24,17 @@ from sqlalchemy.orm import Session
 from eimir.config import get_settings
 from eimir.media import EncryptingMediaStore, build_plain_media_store
 from eimir.media.base import MediaStore
-from eimir.security import lifecycle
+from eimir.security import column_moves, lifecycle
 from eimir.security.errors import EncryptionError
 from eimir.security.keyring import EncryptionMode
-from eimir.security.runtime import key_ring_from_settings
+from eimir.security.runtime import get_payload_protector, key_ring_from_settings
 
 COMMANDS = (
     "status",
     "migrate-payloads",
     "rewrap-payloads",
     "verify-payloads",
+    "migrate-columns",
     "migrate-media",
     "rewrap-media",
     "verify-media",
@@ -69,6 +71,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"{report.table}: crypto_version={dict(report.by_crypto_version)} "
                         f"key_ids={dict(report.by_key_id)} inconsistent={report.inconsistent}"
                     )
+                # Values still waiting in legacy plain columns (see column_moves).
+                print(f"legacy_plain_columns={column_moves.pending(session)}")
                 return 0
 
             if args.command == "audit-raw":
@@ -83,6 +87,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 return 2
 
+            if args.command == "migrate-columns":
+                failed = 0
+                moved = column_moves.move_columns(session, get_payload_protector())
+                for table, result in moved.items():
+                    failed += result.failed
+                    print(
+                        f"{table}: converted={result.converted} "
+                        f"skipped_concurrent={result.skipped_concurrent} failed={result.failed}"
+                    )
+                return 1 if failed else 0
             if args.command.endswith("-payloads"):
                 return _payloads(args.command, session, ring)
             store = EncryptingMediaStore(
@@ -98,8 +112,12 @@ def _audit_raw(session: Session, plain_store: MediaStore, media_sample: int) -> 
     report = lifecycle.RawAuditReport()
     lifecycle.audit_raw_payloads(session, report)
     lifecycle.audit_raw_media(session, plain_store, report, sample=media_sample)
+    for table, count in column_moves.pending(session).items():
+        if count:
+            report.plaintext_columns[table] = count
     print(f"rows={dict(report.rows)}")
     print(f"not_enveloped={dict(report.not_enveloped)}")
+    print(f"legacy_plain_columns={dict(report.plaintext_columns)}")
     print(
         f"media_total={report.objects_total} sampled={report.objects_sampled} "
         f"encrypted={report.objects_encrypted} plaintext={report.objects_plaintext} "

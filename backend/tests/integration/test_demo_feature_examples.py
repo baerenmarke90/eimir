@@ -18,6 +18,7 @@ from eimir.demo.feature_examples import (
     BIRTHDAY_MEMORY_TITLE,
     MULTI_DAY_PLAN_TITLE,
     PROPOSAL_WISH_TITLE,
+    SHARED_NOTE_EXAMPLES,
     SHOPPING_LIST_TITLE,
 )
 from eimir.identity.models import Account
@@ -26,6 +27,7 @@ from eimir.plans.models import Plan
 from eimir.presence import service as presence_service
 from eimir.presence.models import SharingLevel
 from eimir.relationship import profile as relationship_profile
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes import date_proposals
 from eimir.wishes.models import Wish
 from tests.conftest import requires_database
@@ -126,18 +128,38 @@ def _assert_examples(session: Session, result) -> None:  # type: ignore[no-untyp
     assert state.proposal.proposed_by == result.alex_id
     assert state.proposal.recipient_id == result.lea_id
 
+    # Shared notes: a pinned one, a pinned one that shows only its title on Wir,
+    # and one with bullet entries, each written by the intended partner.
+    notes = {
+        note.payload.title: note
+        for note in session.scalars(
+            select(SharedNote).where(SharedNote.space_id == result.space_id)
+        )
+    }
+    assert set(notes) == {example[1] for example in SHARED_NOTE_EXAMPLES}
+    for by_lea, title, body, pinned, title_only in SHARED_NOTE_EXAMPLES:
+        note = notes[title]
+        assert note.owner_id == (result.lea_id if by_lea else result.alex_id)
+        assert note.payload.body == body
+        assert (note.pinned, note.wir_title_only) == (pinned, title_only)
+    assert sum(note.pinned for note in notes.values()) == 2
+    assert any(note.wir_title_only for note in notes.values())
+    assert any("• " in note.payload.body for note in notes.values())
+
 
 def test_canonical_demo_shows_recent_features_across_ensure_and_reset(session: Session) -> None:
     first = _seed(session)
     _assert_examples(session, first)
     memory_count = _count(session, Memory, first.space_id)
     plan_count = _count(session, Plan, first.space_id)
+    note_count = _count(session, SharedNote, first.space_id)
 
     again = _seed(session)
     assert again.created is False
     _assert_examples(session, again)
     assert _count(session, Memory, again.space_id) == memory_count
     assert _count(session, Plan, again.space_id) == plan_count
+    assert _count(session, SharedNote, again.space_id) == note_count
 
     reset = reset_demo_space(
         session,

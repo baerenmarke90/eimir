@@ -1,0 +1,56 @@
+/* Generated from design/tokens.json identity.personColors. Do not edit. */
+
+:root {
+  --color-person-rose: #aa4c86;
+  --color-person-rose-surface: #f9eaf4;
+  --color-person-deeprose: #6b1a4b;
+  --color-person-deeprose-surface: #e9a9cc;
+  --color-person-blue: #5685d1;
+  --color-person-blue-surface: #d6e1f7;
+  --color-person-deepblue: #1b3c80;
+  --color-person-deepblue-surface: #92aee6;
+  --color-person-moss: #6f7d1f;
+  --color-person-moss-surface: #eef1d2;
+  --person-own-accent: var(--color-person-blue);
+  --person-own-surface: var(--color-person-blue-surface);
+  --person-partner-accent: var(--color-person-rose);
+  --person-partner-surface: var(--color-person-rose-surface);
+}
+
+:root[data-theme="dark"] {
+  --color-person-rose: #f1b3d7;
+  --color-person-rose-surface: #46394f;
+  --color-person-deeprose: #d14f97;
+  --color-person-deeprose-surface: #a8457a;
+  --color-person-blue: #aed1fa;
+  --color-person-blue-surface: #303f62;
+  --color-person-deepblue: #4f8deb;
+  --color-person-deepblue-surface: #2c5aa8;
+  --color-person-moss: #c5d36a;
+  --color-person-moss-surface: #414726;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-person-rose: #f1b3d7;
+    --color-person-rose-surface: #46394f;
+    --color-person-deeprose: #d14f97;
+    --color-person-deeprose-surface: #a8457a;
+    --color-person-blue: #aed1fa;
+    --color-person-blue-surface: #303f62;
+    --color-person-deepblue: #4f8deb;
+    --color-person-deepblue-surface: #2c5aa8;
+    --color-person-moss: #c5d36a;
+    --color-person-moss-surface: #414726;
+  }
+}
+
+.person-role-own {
+  --person-accent: var(--person-own-accent);
+  --person-surface: var(--person-own-surface);
+}
+
+.person-role-partner {
+  --person-accent: var(--person-partner-accent);
+  --person-surface: var(--person-partner-surface);
+}

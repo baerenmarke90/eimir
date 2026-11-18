@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import lifelineCopy from '../../src/i18n/locales/m5s5';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { openComposerPlace } from '../support/memoryDiary';
@@ -25,10 +26,52 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 
+const fillLifeline = (
+  template: string,
+  values: Record<string, string | number>,
+) => template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const lifelinePosition = (position: number, total: number) =>
+  fillLifeline(lifelineCopy.dashboard.storyLifelinePosition, {
+    position,
+    total,
+  });
+const lifelineEntry = (position: number, total: number) =>
+  fillLifeline(lifelineCopy.dashboard.storyLifelineEntryLabel, {
+    position,
+    total,
+  });
+
 const TITLE = 'Our weekend by the sea';
 const PLAN = '44444444-4444-4444-8444-444444444444';
 const BASE = `/api/v1/spaces/${SPACE_ID}`;
 const DAY = '2099-11-10';
+
+/** The single entries of the latest lifeline period, read when it opens. */
+const LIFELINE_ENTRIES = {
+  total: 9,
+  items: [
+    ['MEMORY', 'lifeline-3', 'Autumn walk', 'lifeline-photo'],
+    ['HEART_MOMENT', 'period-heart', 'Thank you for the tea', null],
+    ['MILESTONE', 'period-milestone', 'Three years', null],
+    ['MEMORY', 'period-4', 'Mushroom hunt', null],
+    ['MEMORY', 'period-5', 'Rainy Sunday', null],
+    ['MEMORY', 'period-6', 'Cinema night', null],
+    ['HEART_MOMENT', 'period-7', 'Good news shared', null],
+    ['MEMORY', 'period-8', 'Lantern walk', null],
+    ['MEMORY', 'period-9', 'First frost', null],
+  ].map(([type, id, titleOrText, previewAttachmentId], index) => ({
+    type,
+    id,
+    titleOrText,
+    occurredOn: `2026-10-${String(26 + Math.min(index, 3)).padStart(2, '0')}`,
+    scheduledAt: null,
+    createdAt: null,
+    previewAttachmentId,
+    previewIsSensitive: false,
+    previewHasThumbnail: false,
+  })),
+};
+
 async function fixture(
   page: Page,
   options: {
@@ -150,6 +193,16 @@ async function fixture(
         },
       });
     }
+    if (path === `${BASE}/story-lifeline/entries`)
+      return route.fulfill({ json: LIFELINE_ENTRIES });
+    if (path === `${BASE}/attachments/lifeline-photo/read-access`)
+      return route.fulfill({
+        json: {
+          method: 'STREAM',
+          url: `${BASE}/attachments/lifeline-photo/content`,
+          expiresAt: null,
+        },
+      });
     if (path === `${BASE}/relationship-passport`) {
       passportReads++;
       return route.fulfill({
@@ -485,7 +538,7 @@ for (const [width, theme, largeText] of [
     // The shared counts are always part of the overview; there is no opt-in.
     await expect(passport.getByRole('switch')).toHaveCount(0);
     await expect(
-      passport.getByRole('link', {
+      passport.locator('.passport-metrics').getByRole('link', {
         name: `128 ${copy.passport.memories_other}`,
       }),
     ).toBeVisible();
@@ -509,6 +562,7 @@ for (const [width, theme, largeText] of [
       .analyze();
     expect(results.violations).toEqual([]);
     await passport
+      .locator('.passport-metrics')
       .getByRole('link', { name: `128 ${copy.passport.memories_other}` })
       .click();
     await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
@@ -526,6 +580,141 @@ for (const [width, theme, largeText] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+for (const theme of ['light', 'dark'] as const)
+  test(`Eure Geschichte opens single lifeline entries with kind shapes at 390 ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
+    const state = await fixture(page);
+    await signIn(page);
+    await page.goto('/story/our-story');
+    const passport = page.getByRole('region', {
+      name: copy.passport.title,
+      exact: true,
+    });
+    // The three Story kinds keep their shape in the counts; others stay plain.
+    const storyMetrics = passport.locator('.passport-metric-story');
+    await expect(storyMetrics).toHaveCount(3);
+    await expect(
+      storyMetrics.locator('.story-kind-memories circle'),
+    ).toHaveCount(1);
+    await expect(
+      storyMetrics.locator('.story-kind-heartMoments path'),
+    ).toHaveCount(1);
+    await expect(
+      storyMetrics.locator('.story-kind-milestones path'),
+    ).toHaveCount(1);
+    await expect(
+      passport.locator('.passport-metrics li:not(.passport-metric-story) svg'),
+    ).toHaveCount(0);
+    const story = passport.locator('.shared-story-summary');
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '144 festgehaltene Momente seit Juni 2023',
+    );
+    await expect(
+      story.getByRole('link', { name: '128 Erinnerungen', exact: true }),
+    ).toBeVisible();
+    const lifeline = story.getByRole('slider');
+    await lifeline.focus();
+    await page.keyboard.press('ArrowLeft');
+    const preview = story.getByRole('link', { name: /Autumn walk/ });
+    await expect(preview.first()).toBeVisible();
+    // The full variant lists the period below the band, oldest first.
+    const rows = story.locator('.shared-story-lifeline-row');
+    await expect(rows).toHaveCount(6);
+    await expect(rows.first()).toHaveClass(/is-selected/);
+    await expect(rows.first()).toHaveAttribute(
+      'href',
+      '/story/memories/lifeline-3',
+    );
+    await expect(rows.nth(1)).toContainText(copy.passport.heartMoments_one);
+    for (const row of await rows.all()) {
+      const box = await row.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await expect(story.locator('.shared-story-lifeline-all')).toHaveAttribute(
+      'href',
+      '/story?tab=timeline&year=2026&order=ASC',
+    );
+    // Photos now load on this page too, in the floating card and the list.
+    const floating = story.locator('.shared-story-lifeline-preview-main');
+    await expect
+      .poll(() =>
+        floating
+          .locator('img')
+          .first()
+          .evaluate((img: HTMLImageElement) => img.naturalWidth),
+      )
+      .toBeGreaterThan(0);
+    await expect(lifeline).toHaveAttribute(
+      'aria-valuetext',
+      new RegExp(`${lifelinePosition(1, 9)}$`),
+    );
+    await captureScreenshot(page, info, `lifeline-full-${theme}.png`, {
+      fullPage: true,
+    });
+    // Up on the band chooses the next single entry.
+    await page.keyboard.press('ArrowUp');
+    await expect(rows.nth(1)).toHaveClass(/is-selected/);
+    await expect(lifeline).toHaveAttribute(
+      'aria-valuetext',
+      new RegExp(
+        `${lifelineCopy.dashboard.storyLifelineKindHeartMoment}: Thank you for the tea, ${lifelinePosition(2, 9)}$`,
+      ),
+    );
+    await expect(
+      story.locator(
+        '.shared-story-lifeline-column.is-current .shared-story-lifeline-dot.is-selected.story-kind-heartMoments',
+      ),
+    ).toHaveCount(1);
+    // The pagination dots reach any entry without a gesture.
+    await story.getByRole('button', { name: lifelineEntry(5, 9) }).click();
+    await expect(
+      story.getByRole('button', { name: lifelineEntry(5, 9) }),
+    ).toHaveAttribute('aria-current', 'true');
+    await expect(floating).toContainText('Rainy Sunday');
+    await expect(
+      story.locator('.shared-story-lifeline-row.is-selected'),
+    ).toContainText('Rainy Sunday');
+    await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+    await story.screenshot({
+      path: info.outputPath(`lifeline-full-entry-${theme}.png`),
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
+      ),
+    ).toBe(false);
+    const results = await new AxeBuilder({ page })
+      .include('.relationship-passport')
+      .analyze();
+    expect(results.violations).toEqual([]);
+    // Forced colours drop the kind colours; the shapes still tell them apart.
+    await page.emulateMedia({ forcedColors: 'active' });
+    const canvasText = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.color = 'CanvasText';
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    });
+    await expect(
+      story.locator('.shared-story-lifeline-dot .story-kind-glyph').first(),
+    ).toHaveCSS('fill', canvasText);
+    await story.screenshot({
+      path: info.outputPath(`lifeline-full-forced-colors-${theme}.png`),
+    });
+    await page.emulateMedia({ forcedColors: 'none' });
+    // A click elsewhere on the page closes the period.
+    await page
+      .getByRole('heading', { level: 1, name: copy.passport.title })
+      .click();
+    await expect(rows).toHaveCount(0);
+    expect(state.unexpected).toEqual([]);
+  });
 
 test('Free Passport remains reachable from More without requesting Pro counts', async ({
   page,

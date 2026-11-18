@@ -1,14 +1,9 @@
 /**
- * Keeps the Wir opening sequence on one clock.
+ * Keeps the Wir heart line on one clock.
  *
- * The hero's intro is pure CSS, and a CSS animation starts when its element
- * mounts. During start-up the hero can remount while data settles (the space
- * configuration enables the partner actions, the daily check-in splits the
- * avatar pair into two tap targets), which would replay the sequence from the
- * beginning: the portraits vanish and fade in again. Pinning every intro
- * animation to the moment the intro started lets a late element join the
- * sequence where it currently is, or appear in its final state once the
- * sequence is over.
+ * The hero can remount as the daily check-in and partner actions arrive.
+ * Align the replacement CSS animations so the bridge keeps drawing from the
+ * same point and settles once.
  */
 const WIR_INTRO_ANIMATION_PREFIX = 'wir-intro-';
 

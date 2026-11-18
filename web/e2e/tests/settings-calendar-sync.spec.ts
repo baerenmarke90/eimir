@@ -5,7 +5,11 @@ import de from '../../src/i18n/locales/de';
 import proPaywall from '../../src/i18n/locales/proPaywall';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { captureScreenshot } from '../support/storyTimelineFixture';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import {
+  CAPABILITIES,
+  captureScreenshot,
+} from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -109,6 +113,7 @@ async function installApiMocks(
   await page.route('**/api/v1/**', async (route: Route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillEmptyMomentPlaces(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -246,13 +251,23 @@ async function installApiMocks(
       await fulfillJson({ state: 'PENDING', targetStatus: 'ACTIVE' });
       return;
     }
+    if (method === 'GET' && pathname === `${sync}/plans/${PLAN_ID}`) {
+      await fulfillJson({ state: 'SYNCED', targetStatus: 'ACTIVE' });
+      return;
+    }
     if (method === 'GET' && pathname === `${space}/plans/${PLAN_ID}`) {
       await fulfillJson({
         id: PLAN_ID,
         spaceId: SPACE_ID,
         title: 'Lake brunch',
+        description: 'Bring a blanket.',
+        creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+        capabilities: CAPABILITIES,
         discreet: false,
         discreetTitleMode: 'PREVIEW',
+        experiencedOn: null,
+        placeId: null,
+        sourceWishId: null,
         status: 'PLANNED',
         plannedOn: '2026-11-21',
         plannedStart: null,
@@ -262,6 +277,22 @@ async function installApiMocks(
         updatedAt: TEST_NOW,
         createdBy: ACCOUNT_ID,
       });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      [`${space}/places`, `${space}/plans/${PLAN_ID}/comments`].includes(
+        pathname,
+      )
+    ) {
+      await fulfillJson({ items: [], hasMore: false, nextCursor: null });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `${space}/plans/${PLAN_ID}/collections`
+    ) {
+      await fulfillJson([]);
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
@@ -306,6 +337,23 @@ async function installApiMocks(
     }
     if (method === 'GET' && pathname === space) {
       await fulfillJson({ id: SPACE_ID, createdAt: TEST_NOW, partners: [] });
+      return;
+    }
+    if (method === 'GET' && pathname === `${space}/partner-nickname`) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+    if (method === 'GET' && pathname === `${space}/entitlements`) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        tier: state.canSync ? 'PREMIUM' : 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: state.canSync
+          ? ['core', 'integration.external_sync']
+          : ['core'],
+      });
       return;
     }
     if (method === 'GET' && pathname === `${space}/profile`) {
@@ -529,6 +577,38 @@ test('the partner sees the shared status, resolves a conflict and holds no crede
   await expect(
     page.getByRole('button', { name: calendarSync.actions.resume }),
   ).toBeVisible();
+});
+
+test('a calendar short link opens the exact Plan after signing in', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(page, scenario({ targetSet: true }));
+  const planReads: string[] = [];
+  const planApiPath = `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === planApiPath) {
+      planReads.push(request.headers().authorization);
+    }
+  });
+
+  await page.goto('/p/MzMzMzMzQzODMzMzMzMzMw');
+  await expect(page.getByLabel(de.login.email)).toBeVisible();
+  expect(planReads).toHaveLength(0);
+  await page.getByLabel(de.login.email).fill('anna@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+
+  await expect(page).toHaveURL(`/plan/plans/${PLAN_ID}`);
+  const heading = page.getByRole('heading', { name: 'Lake brunch' });
+  await expect(heading).toBeVisible();
+  await expect(page.getByText('Bring a blanket.')).toBeVisible();
+  expect(planReads).toEqual(['Bearer browser-e2e-access-token']);
+  await captureScreenshot(page, testInfo, 'calendar-backlink-390.png');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(heading).toBeVisible();
+  await captureScreenshot(page, testInfo, 'calendar-backlink-1280.png');
 });
 
 test('a Free Space sees one calm Pro explanation and the handoff stays free', async ({

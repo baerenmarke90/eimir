@@ -70,6 +70,7 @@ import {
 } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
+import { EditPencilIcon } from './ListEntryActions';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { MomentMapLink } from './MomentMapLink';
 import { NativeDateInput } from './NativeDateField';
@@ -79,9 +80,9 @@ import {
   ComposerToolRow,
 } from './PageComposer';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
-import { PlanCalendarAction } from './PlanCalendarAction';
-import { PlanCalendarSyncLine } from './PlanCalendarSyncLine';
+import { PlanCalendarSheet } from './PlanCalendarSheet';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanNoteLinks } from './PlanNoteLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
 import {
@@ -100,7 +101,6 @@ import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
-import { EditPencilIcon } from './ListEntryActions';
 import { ComposerHeader } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -165,6 +165,9 @@ export function PlanProductPage({
   const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
+  const [noteToolHost, setNoteToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
   const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [completionTarget, setCompletionTarget] = useState<string | null>(null);
   const completionTrigger = useRef<HTMLButtonElement>(null);
@@ -221,6 +224,8 @@ export function PlanProductPage({
     Boolean(planQuery.data?.discreet) && !isEditing,
   );
   const revealToggle = useRef<HTMLButtonElement>(null);
+  const scheduleButton = useRef<HTMLButtonElement>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const focusRevealToggle = useRef(false);
   useLayoutEffect(() => {
     if (!focusRevealToggle.current) return;
@@ -493,6 +498,9 @@ export function PlanProductPage({
   const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
   const calendar = calendarPresentation(plan, placeName ?? undefined, t);
+  // Only a dated, open Plan has a calendar entry to hand off.
+  const hasCalendarEntry =
+    plan.status !== 'COMPLETED' && Boolean(plan.plannedOn ?? plan.plannedStart);
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
@@ -624,10 +632,23 @@ export function PlanProductPage({
           aria-label={t('m5s3.plan.scheduleFacts')}
         >
           <div className="planen-detail-when-where">
-            <p className="planen-detail-schedule">
-              <EimirIcon name="kalender" />
-              {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
-            </p>
+            {hasCalendarEntry ? (
+              <button
+                ref={scheduleButton}
+                type="button"
+                className="planen-detail-schedule planen-detail-schedule-action"
+                aria-haspopup="dialog"
+                onClick={() => setCalendarOpen(true)}
+              >
+                <EimirIcon name="kalender" />
+                {scheduleLabel}
+              </button>
+            ) : (
+              <p className="planen-detail-schedule">
+                <EimirIcon name="kalender" />
+                {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+              </p>
+            )}
             {!isEditing && placeName && concealed ? (
               <span className="planen-schedule-place">
                 <EimirIcon name="orte" />
@@ -667,20 +688,25 @@ export function PlanProductPage({
               onRetry={() => void linkedPlaceQuery.refetch()}
             />
           ) : null}
-          {!isEditing && plan.status !== 'COMPLETED' ? (
-            <PlanCalendarAction
+          {hasCalendarEntry ? (
+            <PlanCalendarSheet
+              open={calendarOpen}
+              onClose={() => setCalendarOpen(false)}
+              restoreFocusRef={scheduleButton}
               plan={calendar.plan}
               location={calendar.location}
-            />
-          ) : null}
-          {!isEditing && apiBaseUrl && accessToken && accountId ? (
-            <PlanCalendarSyncLine
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={accountId}
-              spaceId={plan.spaceId}
-              planId={plan.id}
-              planVersion={plan.version}
+              sync={
+                apiBaseUrl && accessToken && accountId
+                  ? {
+                      apiBaseUrl,
+                      accessToken,
+                      accountId,
+                      spaceId: plan.spaceId,
+                      planId: plan.id,
+                      planVersion: plan.version,
+                    }
+                  : undefined
+              }
             />
           ) : null}
           {plan.status === 'COMPLETED' ? (
@@ -930,6 +956,30 @@ export function PlanProductPage({
                   : null
               }
             />
+            <PlanNoteLinks
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
+              plan={plan}
+              editing
+              disabled={writesPending || !online}
+              onNavigate={(destination) =>
+                editorLifecycle.requestClose(destination)
+              }
+              renderTrigger={(open) =>
+                noteToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="notes"
+                        label={t('sharedNotes.plan.tool')}
+                        disabled={writesPending}
+                        onClick={open}
+                      />,
+                      noteToolHost,
+                    )
+                  : null
+              }
+            />
             <MemoryTagChoices
               presentation="composer"
               parentType="PLAN"
@@ -1119,6 +1169,20 @@ export function PlanProductPage({
               plan={plan}
               disabled={writesPending || !online}
             />
+            <PlanNoteLinks
+              key={JSON.stringify([
+                'notes',
+                apiBaseUrl,
+                accountId,
+                spaceId,
+                plan.id,
+              ])}
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
+              plan={plan}
+              disabled={writesPending || !online}
+            />
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}
@@ -1283,6 +1347,7 @@ export function PlanProductPage({
               onClick={() => setPlaceOpen(true)}
             />
             <span className="composer-tool-slot" ref={setListToolHost} />
+            <span className="composer-tool-slot" ref={setNoteToolHost} />
             <span className="composer-tool-slot" ref={setTagToolHost} />
           </ComposerToolRow>
           <ShortTaskSheet

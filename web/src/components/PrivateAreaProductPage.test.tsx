@@ -1,12 +1,25 @@
-import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+// @vitest-environment jsdom
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import privateArea from '../i18n/locales/privateArea';
 import { PrivateAreaProductPage } from './PrivateAreaProductPage';
 
+vi.mock('./PrivateNotesPage', () => ({
+  PrivateNotesListPage: () => <p>notes-list</p>,
+  PrivateNoteCreatePage: () => null,
+  PrivateNoteDetailPage: () => null,
+  PrivateNoteEditPage: () => null,
+}));
+
+function Where() {
+  return <output data-testid="where">{useLocation().pathname}</output>;
+}
+
 function renderPrivateArea(path: string) {
-  return renderToStaticMarkup(
+  return render(
     <MemoryRouter initialEntries={[path]}>
+      <Where />
       <Routes>
         <Route
           path="/more/private/*"
@@ -24,34 +37,20 @@ function renderPrivateArea(path: string) {
 }
 
 describe('PrivateAreaProductPage', () => {
-  it('renders the private hub instead of redirecting to notes', () => {
-    const html = renderPrivateArea('/more/private');
+  it('opens on the first section instead of a second picker', () => {
+    renderPrivateArea('/more/private');
 
-    expect(html).toContain('private-area-reference-overview');
-    expect(html).not.toContain('class="back-link"');
-    expect(html).not.toContain(privateArea.backToMore);
-    expect(html).not.toContain('private-area-privacy-banner');
-    // The same OWNER_ONLY header is rendered on every nested private route.
-    // It must not imply secrecy outside the server-enforced in-app boundary.
+    expect(screen.getByTestId('where').textContent).toBe('/more/private/notes');
+    expect(screen.getByText('notes-list')).toBeTruthy();
+    // The chips are the only way between sections; no card hub exists.
+    const nav = screen.getByRole('navigation', {
+      name: privateArea.navigation.aria,
+    });
+    expect(nav.querySelectorAll('a')).toHaveLength(4);
+    expect(document.querySelector('.private-area-destination-card')).toBeNull();
+    // The OWNER_ONLY header must not imply secrecy outside the server-enforced
+    // in-app boundary.
     expect(privateArea.intro).toContain('eimir.');
-    expect(html).toContain(
-      `<p class="private-area-intro-text">${privateArea.entry.privacy}</p>`,
-    );
-    expect(html).toContain(privateArea.entry.privacy);
-    // Privacy copy must identify its in-app access boundary, not imply
-    // absolute secrecy beyond the server-enforced OWNER_ONLY policy.
-    expect(privateArea.entry.privacy).toContain('eimir.');
-    expect(html).toContain('href="/more/private/notes"');
-    expect(html).toContain('href="/more/private/gift-ideas"');
-    expect(html).toContain('href="/more/private/collections"');
-    expect(html).toContain('href="/more/private/partner-notes"');
-    expect(html).toContain(privateArea.partnerNotes.title);
-    expect(html).not.toContain(privateArea.notes.intro);
-    expect(html).not.toContain(privateArea.gifts.intro);
-    expect(html).not.toContain(privateArea.collections.intro);
-    for (const name of ['nurfuer', 'notes', 'geschenk', 'listen']) {
-      expect(html).toContain(`eimir-icon-${name}`);
-    }
-    expect(html).not.toContain('class="private-area-nav"');
+    expect(screen.getByText(privateArea.intro)).toBeTruthy();
   });
 });

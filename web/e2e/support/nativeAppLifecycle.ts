@@ -50,10 +50,12 @@ export async function installNativeAppLifecycle(
         },
         {
           name: 'NativeSessionStorage',
-          methods: ['read', 'write', 'clear'].map((name) => ({
-            name,
-            rtype: 'promise',
-          })),
+          methods: ['read', 'write', 'clear', 'mediaKey', 'clearMediaKey'].map(
+            (name) => ({
+              name,
+              rtype: 'promise',
+            }),
+          ),
         },
         ...(planFiles
           ? [
@@ -97,6 +99,20 @@ export async function installNativeAppLifecycle(
         }
         if (plugin === 'NativeSessionStorage') {
           const key = 'native-continuity-test-session';
+          const mediaKey = 'native-continuity-test-media-key';
+          if (method === 'mediaKey') {
+            let value = sessionStorage.getItem(mediaKey);
+            if (!value) {
+              const raw = crypto.getRandomValues(new Uint8Array(32));
+              value = btoa(String.fromCharCode(...raw));
+              sessionStorage.setItem(mediaKey, value);
+            }
+            return { value };
+          }
+          // Like the device: logout deletes the media key with the session.
+          if (method === 'clearMediaKey' || method === 'clear')
+            sessionStorage.removeItem(mediaKey);
+          if (method === 'clearMediaKey') return {};
           if (method === 'write')
             sessionStorage.setItem(key, options?.value ?? '');
           if (method === 'clear') sessionStorage.removeItem(key);

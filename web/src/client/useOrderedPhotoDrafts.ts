@@ -51,7 +51,10 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     existing: OrderedAttachmentSummary[];
     order: string[];
     coverKey: string | null;
+    /** Draft id -> saved attachment id the edited draft replaces (#1907 G1). */
+    replaces?: Record<string, string>;
   }>({ scope, existing: [], order: [], coverKey: null });
+  const replaces = (state.scope === scope && state.replaces) || {};
   const existing = state.scope === scope ? state.existing : [];
   const coverKey = state.scope === scope ? state.coverKey : null;
   const uploads = useAttachmentDrafts({
@@ -92,8 +95,18 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     const id =
       item.existing?.id ??
       (item.draft?.status === 'ready' ? item.draft.attachmentId : undefined);
+    const replacesAttachmentId = item.draft
+      ? replaces[item.draft.id]
+      : undefined;
     return id
-      ? [{ attachmentId: id, position, isSensitive: item.isSensitive }]
+      ? [
+          {
+            attachmentId: id,
+            position,
+            isSensitive: item.isSensitive,
+            ...(replacesAttachmentId ? { replacesAttachmentId } : {}),
+          },
+        ]
       : [];
   });
   const load = useCallback(
@@ -116,6 +129,24 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
       coverKey: coverKey === item.key ? null : coverKey,
       existing: existing.filter((photo) => photo.id !== item.existing?.id),
       order: keys.filter((key) => key !== item.key),
+      replaces,
+    });
+  }
+  /** Put an edited version in place of a saved photo; saving replaces it. */
+  function replaceSaved(item: OrderedPhotoDraftItem, file: File) {
+    const saved = item.existing;
+    if (!saved) return;
+    const [draftId] = uploads.restore([
+      { file, isSensitive: item.isSensitive },
+    ]);
+    if (!draftId) return;
+    const key = `draft:${draftId}`;
+    setState({
+      scope,
+      existing: existing.filter((photo) => photo.id !== saved.id),
+      order: keys.map((current) => (current === item.key ? key : current)),
+      coverKey: coverKey === item.key ? key : coverKey,
+      replaces: { ...replaces, [draftId]: saved.id },
     });
   }
   function move(key: string, offset: -1 | 1) {
@@ -123,7 +154,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     const target = index + offset;
     if (index < 0 || target < 0 || target >= keys.length) return;
     const order = movePhotoKey(keys, key, offset);
-    setState({ scope, existing, order, coverKey });
+    setState({ scope, existing, order, coverKey, replaces });
   }
   function setSensitive(item: OrderedPhotoDraftItem, value: boolean) {
     if (item.draft) uploads.setSensitive(item.draft.id, value);
@@ -132,6 +163,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
         scope,
         order: keys,
         coverKey,
+        replaces,
         existing: existing.map((photo) =>
           photo.id === item.existing?.id
             ? { ...photo, isSensitive: value }
@@ -150,14 +182,16 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
       items.find((item) => item.key === coverKey)?.draft?.attachmentId ??
       null,
     selectCover: (key: string | null) =>
-      setState({ scope, existing, order: keys, coverKey: key }),
+      setState({ scope, existing, order: keys, coverKey: key, replaces }),
     reorder: (order: string[]) =>
       setState({
         scope,
         existing,
         order: orderedPhotoKeys(keys, order),
         coverKey,
+        replaces,
       }),
+    replaceSaved,
     uploads,
     load,
     remove,

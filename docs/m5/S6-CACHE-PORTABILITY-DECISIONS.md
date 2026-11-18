@@ -20,7 +20,8 @@ change these semantics.
 2. **M2-D18 is DECIDED.** Persistent client read caches are always bound to
    Account + Space + Privacy/owner scope, have a hard maximum age of seven days,
    and are completely removed on logout, Account change, or Space change. There
-   is no Offline Write.
+   is no Offline Write. Authorized image bytes are bounded by item count and
+   storage instead of age (Product Owner exception of 2026-11-16, see below).
 3. **Web does not persist `OWNER_ONLY` ProtectedPayloads.** The Web persistent
    cache uses IndexedDB only for explicitly approved `SPACE_SHARED` read
    snapshots. Private Web data remains session-memory-only.
@@ -155,6 +156,32 @@ last successful network refresh. Expired entries are deleted before use. Cache
 age is based on a server/client technical timestamp recorded when an authorized
 network response was received; changing device wall-clock time must not extend
 retention indefinitely where a monotonic/runtime-safe comparison is available.
+
+**Exception for authorized image bytes (Product Owner decision, 2026-11-16).**
+The client store of immutable attachment image bytes (`durableMediaStore`) has
+no maximum age. It is bounded by 2000 media items and the platform storage
+quota instead, and it is still cleared on logout, session invalidation,
+Account change and Space change. Whether stored bytes are shown is decided by
+the parent read data the view renders, which keeps the seven-day rule above;
+a denied parent list or read evicts the affected bytes, and Media overview
+deletes the bytes of items its refreshed list no longer contains. Details:
+`docs/frontend/web.md`. In browsers the exception covers `SPACE_SHARED` image
+bytes only: rule 3 above still applies, so images of `OWNER_ONLY` parents stay
+session-memory-only on Web and a copy stored before a parent became private
+is removed. The Android app applies rule 4 instead (Product Owner decision,
+2026-11-16): it stores every image, shared and private, only as AES-GCM
+ciphertext under a per-login key that Android Keystore wraps (the
+`NativeSessionStorage` media key). Logout deletes that key natively together
+with the session, so stored images are unreadable even before their rows are
+removed, and the app names what signing out deletes before it happens.
+
+**Sealed read-cache rows in the Android app (requested by the Product Owner,
+2026-11-16).** The Android app stores the payload of every persistent read-cache
+row, including the list outbox, as AES-GCM ciphertext under the same per-login
+key. Namespace fields stay readable for lookup, expiry and purge. The seven-day
+rule, the `SPACE_SHARED`-only scope and every clearing rule are unchanged.
+The owner-local Memory diary draft store seals its text and photo bytes under
+the same key. Browsers and iOS keep plaintext rows.
 
 Logout, session invalidation, Account change, and active Space change clear all
 eimir. persistent read-cache data on that client, not merely the currently

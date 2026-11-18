@@ -172,6 +172,8 @@ class PlanCalendarLink(IdMixin, TimestampMixin, Base):
     state: Mapped[str] = mapped_column(String(16), nullable=False, default=LinkState.PENDING)
     reason: Mapped[str | None] = mapped_column(String(48))
     synced_plan_version: Mapped[int | None] = mapped_column(Integer)
+    backlink_plan_version: Mapped[int | None] = mapped_column(Integer)
+    """Plan version last written with a backlink, absent for old or discreet events."""
     synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     crypto_version: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=2)
     payload: Mapped[PlanCalendarLinkPayload] = mapped_column(

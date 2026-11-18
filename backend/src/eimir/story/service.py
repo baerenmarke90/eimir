@@ -293,6 +293,7 @@ def read_shared_story_rows(
     context: AuthorizationContext,
     *,
     through: date,
+    since: date | None = None,
 ) -> list[StoryRow]:
     """Return the key of every relationship-shared Story entry up to a day.
 
@@ -300,6 +301,7 @@ def read_shared_story_rows(
     that `read_shared_story_counts` counts, so its dots always add up to the
     shared totals and a private HeartMoment never appears in it. Only the
     sort key is projected; callers load the few entries they display.
+    `since` (inclusive) narrows the set to one lifeline period.
     """
     experiences.reconcile(session, context)
     combined = union_all(
@@ -312,7 +314,10 @@ def read_shared_story_rows(
             combined.c.created_at,
             combined.c.id,
         )
-        .where(combined.c.effective_date <= through)
+        .where(
+            combined.c.effective_date <= through,
+            *([combined.c.effective_date >= since] if since is not None else []),
+        )
         .order_by(
             combined.c.effective_date,
             combined.c.created_at,

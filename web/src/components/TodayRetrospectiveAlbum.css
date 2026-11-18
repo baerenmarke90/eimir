@@ -4,6 +4,13 @@
  * hangs from a clothespin and swings in once; a memory without a photo is a
  * calm, static warm note (see `retrospectiveTone`). */
 
+/* The card itself sits in the warm colour world, which remaps the tinted
+   surface token to lavender. Read the token here, outside that world, so the
+   card gets the same tint as the plans, notes and activity cards. */
+.today-section-retrospective {
+  --rediscovery-card-surface: var(--color-surface-subtle);
+}
+
 .today-living-retrospective[data-diary-layout="album"] {
   position: relative;
   gap: var(--space-3);
@@ -11,10 +18,11 @@
   overflow: hidden;
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-sheet);
-  /* A calm plain surface one step below the Polaroid. The ruled wall texture
-     looked out of place on Wir; only the clothespin and the Polaroid stay
-     scrapbook. */
-  background: var(--color-surface);
+  /* The same tinted surface as the plans, notes and activity cards on Wir, so
+     the Polaroid (raised paper) lifts off it. The ruled wall texture looked
+     out of place on Wir; only the clothespin and the Polaroid stay scrapbook.
+     Momente > Erinnerungen uses the identical card (StoryHandmadeDiscover.css). */
+  background: var(--rediscovery-card-surface);
   box-shadow: var(--shadow-raised);
 }
 
@@ -35,7 +43,7 @@
   position: relative;
   display: grid;
   gap: var(--space-3);
-  width: min(100%, 18.5rem);
+  width: min(100%, var(--polaroid-width));
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-3) var(--space-3) 0;

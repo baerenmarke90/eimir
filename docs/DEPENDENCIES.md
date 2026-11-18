@@ -490,7 +490,7 @@ storage and remote notifications without another SDK.
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
 | Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.6.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |

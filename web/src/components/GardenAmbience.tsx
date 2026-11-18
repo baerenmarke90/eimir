@@ -42,7 +42,7 @@ import {
   type GardenDaytime,
   gardenDaytime,
   localCalendarDay,
-  rainbowWeather,
+  moonbowWeather,
   type TogetherMoments,
   togetherSeat,
 } from '../client/gardenAmbience';
@@ -345,12 +345,16 @@ function LightString({
 
 const RAINBOW_BANDS = [1, 2, 3, 4, 5, 6] as const;
 
-/** A rainbow; the double one has a fainter second bow with mirrored colours. */
+/**
+ * A rainbow; the double one has a fainter second bow with mirrored colours.
+ * At night it is a moonbow (#2048): the same bows in pale, silvery bands.
+ */
 export function Rainbow({
   cx,
   width,
   double,
   mode,
+  moon = false,
   delay = 0,
 }: {
   cx: number;
@@ -358,8 +362,11 @@ export function Rainbow({
   double: boolean;
   /** `moment` fades in and out once; `stay` fades in and remains. */
   mode: 'moment' | 'stay';
+  moon?: boolean;
   delay?: number;
 }) {
+  const band = (index: number) =>
+    `var(--garden-${moon ? 'moonbow' : 'rainbow'}-${index})`;
   const radius = Math.min(132, width * 0.36);
   const x = Math.max(radius + 6, Math.min(width - radius - 6, cx));
   const cy = groundBack(x) + 10;
@@ -367,27 +374,28 @@ export function Rainbow({
     `M${r1(x - r)} ${r1(cy)} A${r1(r)} ${r1(r)} 0 0 1 ${r1(x + r)} ${r1(cy)}`;
   return (
     <g
-      className={`garden-rainbow is-${mode}`}
+      className={`garden-rainbow is-${mode}${moon ? ' is-moon' : ''}`}
       style={{ '--garden-delay': `${delay}ms` } as Style}
       data-testid={double ? 'garden-double-rainbow' : 'garden-rainbow'}
+      data-bow={moon ? 'moon' : 'sun'}
       fill="none"
       strokeLinecap="round"
     >
-      {RAINBOW_BANDS.map((band, k) => (
+      {RAINBOW_BANDS.map((index, k) => (
         <path
-          key={band}
+          key={index}
           d={bow(radius - k * 3.2)}
-          stroke={`var(--garden-rainbow-${band})`}
+          stroke={band(index)}
           strokeWidth={3.4}
         />
       ))}
       {double ? (
         <g opacity={0.5}>
-          {RAINBOW_BANDS.map((band, k) => (
+          {RAINBOW_BANDS.map((index, k) => (
             <path
-              key={band}
+              key={index}
               d={bow(radius + 14 + (5 - k) * 2.6)}
-              stroke={`var(--garden-rainbow-${band})`}
+              stroke={band(index)}
               strokeWidth={2.6}
             />
           ))}
@@ -591,9 +599,11 @@ export function useGardenAmbience({
     top: number;
     who: 'own' | 'partner';
   } | null>(null);
-  const [rainbow, setRainbow] = useState<{ key: number; cx: number } | null>(
-    null,
-  );
+  const [rainbow, setRainbow] = useState<{
+    key: number;
+    cx: number;
+    moon: boolean;
+  } | null>(null);
   const [reveal, setReveal] = useState<number | null>(null);
   const timers = useRef<number[]>([]);
   const sequence = useRef(0);
@@ -657,9 +667,12 @@ export function useGardenAmbience({
     );
     later(() => {
       const now = latest.current.ambience;
-      if (!now || !rainbowWeather(now.daytime) || now.together.bothWatered)
-        return;
-      setRainbow({ key: event.key, cx: top.x });
+      if (!now || now.together.bothWatered) return;
+      setRainbow({
+        key: event.key,
+        cx: top.x,
+        moon: moonbowWeather(now.daytime),
+      });
       later(
         () =>
           setRainbow((current) =>
@@ -820,17 +833,17 @@ export function useGardenAmbience({
   const hasArch = unlocks.includes('ROSE_ARCH');
   const visibleWidth = Math.min(width, 340);
 
-  const doubleRainbow =
-    together?.bothWatered && !night ? (
-      <Rainbow
-        key={`double-${arrival?.bothWatered ? arrival.key : 0}`}
-        cx={visibleWidth * 0.45}
-        width={width}
-        double
-        mode="stay"
-        delay={arrival?.bothWatered && can ? RAINBOW_AT_MS : 0}
-      />
-    ) : null;
+  const doubleRainbow = together?.bothWatered ? (
+    <Rainbow
+      key={`double-${arrival?.bothWatered ? arrival.key : 0}`}
+      cx={visibleWidth * 0.45}
+      width={width}
+      double
+      moon={night}
+      mode="stay"
+      delay={arrival?.bothWatered && can ? RAINBOW_AT_MS : 0}
+    />
+  ) : null;
   const sky = (
     <g data-testid="garden-ambience-sky">
       {doubleRainbow}
@@ -840,6 +853,7 @@ export function useGardenAmbience({
           cx={rainbow.cx}
           width={width}
           double={false}
+          moon={rainbow.moon}
           mode="moment"
         />
       ) : null}

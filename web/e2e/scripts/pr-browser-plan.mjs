@@ -16,7 +16,7 @@ const root = resolve(dirname(script), '../../..');
 // sharding (fullyParallel) splits it across isolated one-worker runners. Never
 // plan more shards than spec files: each file holds at least one test, so no
 // shard can be empty, and a small selection does not pay for idle runner setup.
-export const MAX_ADDITIONAL_SHARDS = 3;
+const MAX_ADDITIONAL_SHARDS = 6;
 
 export function additionalShards(additional) {
   const total = Math.min(MAX_ADDITIONAL_SHARDS, Math.max(additional.length, 1));

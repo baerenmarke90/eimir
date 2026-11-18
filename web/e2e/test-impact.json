@@ -204,6 +204,7 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
@@ -219,6 +220,7 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/GamesProductArea.tsx",
         "web/src/components/OurMomentsGamePage.tsx",
@@ -522,6 +524,7 @@
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",
+        "web/src/components/WhoOfUsGamePage.tsx",
         "web/src/components/OurMomentsGamePage.tsx",
         "web/src/components/GamesProductArea.tsx"
       ]
@@ -1296,6 +1299,18 @@
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "lists-tab.spec.ts": {
+      "roots": [
+        "web/src/client/routes.ts",
+        "web/src/components/CollectionsOverviewPage.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/SharedNotesOverviewPage.tsx",
+        "web/src/components/SharedNoteReadPage.tsx",
+        "web/src/components/SharedContentTabs.tsx",
+        "web/src/components/CollapsibleSearch.tsx",
+        "web/src/components/ItemActions.tsx"
       ]
     },
     "map-place-stacks.spec.ts": {

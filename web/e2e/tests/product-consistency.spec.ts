@@ -25,6 +25,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { pinDiaryLayout } from '../support/diaryLayout';
+import { editViaMenu } from '../support/itemMenu';
 
 // These checks describe the compact composition, not the Album default.
 test.beforeEach(async ({ page }) => {
@@ -270,9 +271,7 @@ for (const scenario of [
         .locator('.composer-tool-row')
         .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(0);
-    await page
-      .getByRole('link', { name: memoryProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, memoryProduct.edit);
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
     await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: copy.add });
@@ -565,9 +564,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
   await mockMapTiles(page, { fail: true });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await openComposerPlace(page);
   const picker = page.getByRole('dialog', { name: copy.add });

@@ -24,6 +24,7 @@ import {
 } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { editViaMenu } from '../support/itemMenu';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -1324,9 +1325,7 @@ test('edit header Back and Browser Back keep the selected Memory origin', async 
     page.getByRole('heading', { name: firstPage[0].title, exact: true }),
   ).toBeVisible();
   for (const exit of ['header', 'browser']) {
-    await page
-      .getByRole('link', { name: memoryProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, memoryProduct.edit);
     await expect(
       page.getByRole('heading', {
         name: memoryProduct.editHeading,
@@ -1370,9 +1369,7 @@ test('leaving the Memory editor reuses the detail entry so Back returns to the o
   });
   await expect(detailHeading).toBeVisible();
   const detailIndex = await page.evaluate(() => window.history.state?.idx);
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   await expect(
     page.getByRole('heading', {
       name: memoryProduct.editHeading,

@@ -11,7 +11,10 @@ export function usePrimaryNavigation() {
   const navigate = useNavigate();
   const { captureOrigin, primaryDestination } = useTaskOrigin();
   const isRoot = PRIMARY_APP_ROUTES.some(
-    (route) => route.path === location.pathname,
+    (route) =>
+      route.path === location.pathname ||
+      ('peerPaths' in route &&
+        route.peerPaths.some((path) => path === location.pathname)),
   );
 
   const destinationFor = useCallback(

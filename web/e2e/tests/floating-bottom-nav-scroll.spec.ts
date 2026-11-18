@@ -1,5 +1,5 @@
 import AxeBuilder from '../support/axe';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -389,6 +389,18 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+}
+
+const LISTEN_ROUTE = '/more/collections';
+
+/**
+ * A primary tab link by its root. Listen lives under /more, so the bare prefix
+ * of the Mehr root also matches it and is excluded.
+ */
+function primaryTabLink(nav: Locator, root: string): Locator {
+  return root === LISTEN_ROUTE
+    ? nav.locator(`a[href="${LISTEN_ROUTE}"]`)
+    : nav.locator(`a[href^="${root}"]:not([href="${LISTEN_ROUTE}"])`);
 }
 
 async function addScrollFixture(page: Page): Promise<void> {
@@ -1066,7 +1078,7 @@ test('native primary tab switching replaces root history but keeps nested task r
   const nav = page.locator('.mobile-bottom-nav');
   const historyLength = await page.evaluate(() => history.length);
   for (const root of ['/story', '/plan', '/more', '/today', '/plan', '/more']) {
-    await nav.locator(`a[href^="${root}"]`).click();
+    await primaryTabLink(nav, root).click();
     await expect(page).toHaveURL(new RegExp(`${root}$`));
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
   }
@@ -1141,18 +1153,18 @@ async function expectRestoredScroll(page: Page, desired: number) {
 
 async function expectPrimaryReadingSurface(page: Page) {
   const surfaceForRoute: Record<string, string> = {
-    '/today': '.today-page',
-    '/story': '.story-page',
-    '/plan': '.planen-overview',
-    '/more': '.more-page',
+    '/today': 'main > .primary-tab-panel:not([hidden]) .today-page',
+    '/story': 'main > .primary-tab-panel:not([hidden]) .story-page',
+    '/plan': 'main > .primary-tab-panel:not([hidden]) .planen-overview',
+    // Listen is a routed page of its own, not a kept-alive tab panel.
+    '/more/collections': 'main .shared-content-page',
+    '/more': 'main > .primary-tab-panel:not([hidden]) .more-page',
   };
   const selector = surfaceForRoute[new URL(page.url()).pathname];
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
-  await expect(
-    page.locator(`main > .primary-tab-panel:not([hidden]) ${selector}`),
-  ).toBeVisible();
-  if (selector === '.today-page') {
+  await expect(page.locator(selector)).toBeVisible();
+  if (selector.endsWith('.today-page')) {
     // Use the settled reading surface. During cold startup the loading node
     // can disappear between hit-testing and the native touch sequence.
     await expect(page.locator('main .today-hero')).toBeVisible();
@@ -1408,10 +1420,11 @@ test.describe('primary tab touch navigation', () => {
       );
       await swipePrimary(page, 'previous');
       await expect(page).toHaveURL(/\/today$/);
-      for (const destination of ['/story', '/plan', '/more']) {
+      // The order is Wir, Momente, Planen, Listen, Mehr.
+      for (const destination of ['/story', '/plan', LISTEN_ROUTE, '/more']) {
         await swipePrimary(page, 'next');
         await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(nav.locator(`a[href^="${destination}"]`)).toHaveAttribute(
+        await expect(primaryTabLink(nav, destination)).toHaveAttribute(
           'aria-current',
           'page',
         );
@@ -1424,10 +1437,10 @@ test.describe('primary tab touch navigation', () => {
       });
       await swipePrimary(page, 'next');
       await expect(page).toHaveURL(/\/more$/);
-      for (const destination of ['/plan', '/story', '/today']) {
+      for (const destination of [LISTEN_ROUTE, '/plan', '/story', '/today']) {
         await swipePrimary(page, 'previous');
         await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(nav.locator(`a[href^="${destination}"]`)).toHaveAttribute(
+        await expect(primaryTabLink(nav, destination)).toHaveAttribute(
           'aria-current',
           'page',
         );

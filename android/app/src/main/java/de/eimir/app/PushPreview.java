@@ -117,6 +117,15 @@ public final class PushPreview {
             case "COLLECTION_SENT": return R.string.push_collection_sent;
             // The picture never appears in a preview; only whose turn it is (#1907 H3).
             case "PICTURE_PING_PONG_TURN": return R.string.push_picture_turn;
+            // A shared note's title and words never reach a lock screen; only who did what (#1969).
+            case "SHARED_NOTE_CREATED": return R.string.push_shared_note_created;
+            case "SHARED_NOTE_CHANGED": return R.string.push_shared_note_changed;
+            case "PICTURE_PING_PONG_FINISHED": return R.string.push_picture_finished;
+            // A remote couple game names only the game, never answers, clues,
+            // guesses, wishes or moments.
+            case "COUPLE_GAME_TURN": return "WHO_OF_US_GAME".equals(targetType) ? R.string.push_game_who_of_us
+                : "WISH_DETECTIVE_GAME".equals(targetType) ? R.string.push_game_wish_detective
+                : "OUR_MOMENTS_GAME".equals(targetType) ? R.string.push_game_our_moments : 0;
             // A garden seed never shows its attached words; a bouquet reuses the
             // seed notice with its own text (#1907 H3).
             case "GARDEN_SEED_ARRIVED": return "GARDEN_BOUQUET".equals(targetType)
@@ -203,7 +212,11 @@ public final class PushPreview {
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :
             "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
             "COLLECTION".equals(targetType) ? R.string.push_view_list :
-            "PICTURE_GAME".equals(targetType) ? R.string.push_view_picture :
+            "SHARED_NOTE".equals(targetType) ? R.string.push_view_note :
+            "PICTURE_GAME".equals(targetType) ? ("PICTURE_PING_PONG_FINISHED".equals(kind)
+                ? R.string.push_view_finished_picture : R.string.push_view_picture) :
+            "WHO_OF_US_GAME".equals(targetType) || "WISH_DETECTIVE_GAME".equals(targetType)
+                || "OUR_MOMENTS_GAME".equals(targetType) ? R.string.push_view_game :
             "GARDEN_SEED".equals(targetType) || "GARDEN_BOUQUET".equals(targetType) ? R.string.push_view_garden :
             "RECAP".equals(targetType) ? R.string.push_view_recap :
             "WISH".equals(targetType) ? R.string.push_view_wish :

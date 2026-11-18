@@ -25,6 +25,8 @@ from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
+from eimir.couple_games import service as couple_games
+from eimir.couple_games.models import CoupleGameKind
 from eimir.domain.events import EventType
 from eimir.engagement import (
     email_delivery,
@@ -41,6 +43,8 @@ from eimir.engagement.models import (
     EngagementTarget,
     Notification,
     NotificationKind,
+    PushDelivery,
+    PushDeliveryStatus,
 )
 from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
@@ -102,6 +106,16 @@ _TARGET_MODELS: dict[EngagementTarget, Any] = {
     EngagementTarget.CHAPTER: Chapter,
     EngagementTarget.COLLECTION: Collection,
     EngagementTarget.SHARED_NOTE: SharedNote,
+}
+
+# Remote couple games share one notice kind; the target names the game.
+_COUPLE_GAME_TARGETS: dict[EngagementTarget, CoupleGameKind] = {
+    EngagementTarget.WHO_OF_US_GAME: CoupleGameKind.WHO_OF_US,
+    EngagementTarget.WISH_DETECTIVE_GAME: CoupleGameKind.WISH_DETECTIVE,
+    EngagementTarget.OUR_MOMENTS_GAME: CoupleGameKind.OUR_MOMENTS,
+}
+_COUPLE_GAME_SUBJECTS: dict[str, EngagementTarget] = {
+    couple_games.SUBJECT_TYPES[kind]: target for target, kind in _COUPLE_GAME_TARGETS.items()
 }
 
 _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
@@ -429,6 +443,24 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             event.subject_id,
             NotificationKind.PICTURE_PING_PONG_TURN,
         )
+    if event_type is EventType.PICTURE_PING_PONG_FINISHED:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.PICTURE_GAME,
+            event.subject_id,
+            NotificationKind.PICTURE_PING_PONG_FINISHED,
+        )
+    if event_type is EventType.COUPLE_GAME_TURN:
+        game_target = _COUPLE_GAME_SUBJECTS.get(event.subject_type)
+        if game_target is not None:
+            _project_target_notification(
+                session,
+                event,
+                game_target,
+                event.subject_id,
+                NotificationKind.COUPLE_GAME_TURN,
+            )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
         if _has_photo_reaction(session, event.subject_id, event.actor_id):
             _project_target_notification(
@@ -649,6 +681,7 @@ def _project_target_notification(
             target_type,
             target_id,
             allow_private_heart=notification_kind is NotificationKind.VIDEO_PROCESSING_FAILED,
+            picture_finished=notification_kind is NotificationKind.PICTURE_PING_PONG_FINISHED,
         )
     ):
         return
@@ -674,9 +707,13 @@ def _project_target_notification(
         **notice_id,
     )
     if notification_kind.value in COALESCED_NOTIFICATION_KINDS:
+        if notification_kind is NotificationKind.SHARED_NOTE_CHANGED and target_id is not None:
+            _reopen_read_note_push(session, event, recipient_id, target_id)
         statement = insert.on_conflict_do_update(
             index_elements=["recipient_account_id", "space_id", "kind", "target_type", "target_id"],
-            index_where=Notification.kind.in_(list(COALESCED_NOTIFICATION_KINDS)),
+            # A literal predicate: a bound-parameter one stops matching the partial
+            # unique index once the driver prepares this statement server-side.
+            index_where=_COALESCED_PREDICATE,
             set_={
                 "created_at": insert.excluded.created_at,
                 "source_event_id": insert.excluded.source_event_id,
@@ -698,6 +735,50 @@ def _project_target_notification(
     session.execute(statement)
 
 
+_COALESCED_PREDICATE = text(
+    "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
+)
+
+
+def _reopen_read_note_push(
+    session: Session, event: OutboxEvent, recipient_id: UUID, note_id: UUID
+) -> None:
+    """Let a note change push again once the partner has seen the earlier notice.
+
+    A coalesced notice keeps one identity, so it owns at most one delivery per
+    device. Edits made while the earlier notice is still unread stay silent; a
+    change after it was read drops the finished delivery so it can notify afresh.
+    An older event replayed later never reaches this far: it must be the newer one.
+    """
+    read_notices = select(Notification.id).where(
+        or_(
+            Notification.created_at < event.created_at,
+            and_(
+                Notification.created_at == event.created_at,
+                Notification.source_event_id < event.id,
+            ),
+        ),
+        Notification.space_id == event.space_id,
+        Notification.recipient_account_id == recipient_id,
+        Notification.kind == NotificationKind.SHARED_NOTE_CHANGED.value,
+        Notification.target_type == EngagementTarget.SHARED_NOTE.value,
+        Notification.target_id == note_id,
+        Notification.read_at.is_not(None),
+    )
+    session.execute(
+        delete(PushDelivery).where(
+            PushDelivery.notification_id.in_(read_notices),
+            PushDelivery.status.in_(
+                (
+                    PushDeliveryStatus.SUCCEEDED.value,
+                    PushDeliveryStatus.FAILED.value,
+                    PushDeliveryStatus.UNAVAILABLE.value,
+                )
+            ),
+        )
+    )
+
+
 def _target_is_projectable(
     session: Session,
     context: AuthorizationContext,
@@ -705,6 +786,7 @@ def _target_is_projectable(
     target_id: UUID,
     *,
     allow_private_heart: bool = False,
+    picture_finished: bool = False,
 ) -> bool:
     if target_type is EngagementTarget.ONCE_MESSAGE:
         return (
@@ -738,7 +820,21 @@ def _target_is_projectable(
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
     if target_type is EngagementTarget.PICTURE_GAME:
-        return session.scalar(_picture_turn_exists(context, target_id)) is not None
+        statement = (
+            _picture_finished_exists(context, target_id)
+            if picture_finished
+            else _picture_turn_exists(context, target_id)
+        )
+        return session.scalar(statement) is not None
+    if target_type in _COUPLE_GAME_TARGETS:
+        return (
+            session.scalar(
+                couple_games.notice_is_current(
+                    context, target_id, _COUPLE_GAME_TARGETS[target_type]
+                )
+            )
+            is not None
+        )
     if target_type is EngagementTarget.RECAP:
         return session.scalar(_recap_is_readable(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
@@ -771,6 +867,14 @@ def _picture_turn_exists(context: AuthorizationContext, target_id: Any) -> Any:
     )
 
 
+def _picture_finished_exists(context: AuthorizationContext, target_id: Any) -> Any:
+    return select(PicturePingPong.id).where(
+        PicturePingPong.id == target_id,
+        PicturePingPong.space_id == context.space_id,
+        PicturePingPong.status == PictureStatus.FINISHED.value,
+    )
+
+
 def _projectable_predicate(
     target_type_column: Any,
     target_id_column: Any,
@@ -781,13 +885,34 @@ def _projectable_predicate(
     notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
-    # A turn notice is current only while it is still the recipient's turn.
+    # A turn notice is current only while it is still the recipient's turn; a
+    # finished notice only while that picture is finished (not restarted).
+    picture_turn = _picture_turn_exists(context, target_id_column).exists()
     clauses.append(
         and_(
             target_type_column == EngagementTarget.PICTURE_GAME.value,
-            _picture_turn_exists(context, target_id_column).exists(),
+            picture_turn
+            if notification_kind_column is None
+            else or_(
+                and_(
+                    notification_kind_column != NotificationKind.PICTURE_PING_PONG_FINISHED.value,
+                    picture_turn,
+                ),
+                and_(
+                    notification_kind_column == NotificationKind.PICTURE_PING_PONG_FINISHED.value,
+                    _picture_finished_exists(context, target_id_column).exists(),
+                ),
+            ),
         )
     )
+    # A game notice is current only while the game still waits on the reader.
+    for game_target, game_kind in _COUPLE_GAME_TARGETS.items():
+        clauses.append(
+            and_(
+                target_type_column == game_target.value,
+                couple_games.notice_is_current(context, target_id_column, game_kind).exists(),
+            )
+        )
     clauses.append(
         and_(
             target_type_column == EngagementTarget.RECAP.value,

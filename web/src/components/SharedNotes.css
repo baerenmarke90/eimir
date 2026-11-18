@@ -1,47 +1,6 @@
 /* Shared Notes (#1969): overview, reading page, editor notices and menu. */
 
 /* ---------- overview ---------- */
-.shared-notes-page .shared-note-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-block-size: var(--touch-target-comfortable);
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-}
-.shared-note-search:focus-within {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
-}
-.shared-note-search .eimir-icon {
-  flex: none;
-  inline-size: var(--space-5);
-  block-size: var(--space-5);
-}
-.shared-note-search input {
-  flex: 1;
-  min-inline-size: 0;
-  min-block-size: var(--touch-target-comfortable);
-  padding: 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  outline: none;
-  font: var(--font-reading-body);
-  color: var(--color-text);
-}
-.shared-note-search-clear {
-  flex: none;
-  display: grid;
-  place-items: center;
-  inline-size: var(--touch-target-web);
-  block-size: var(--touch-target-web);
-  min-inline-size: 0;
-  padding: 0;
-  border-radius: var(--radius-pill);
-}
 .shared-notes-results {
   display: grid;
   gap: var(--space-3);
@@ -141,6 +100,13 @@
   font: var(--font-content-heading);
   overflow-wrap: anywhere;
 }
+/* The same fine line the editor draws under the title, so reading and writing
+   separate title and text alike. */
+.shared-note-read .shared-note-body {
+  padding-block-start: var(--space-3);
+  border-block-start: var(--border-divider-width) solid
+    var(--color-border-subtle);
+}
 .shared-note-body {
   display: grid;
   gap: var(--space-3);
@@ -167,15 +133,6 @@
   gap: var(--space-2);
   margin-block: var(--space-2);
 }
-.shared-note-menu-trigger {
-  display: grid;
-  place-items: center;
-  inline-size: var(--touch-target-comfortable);
-  block-size: var(--touch-target-comfortable);
-  min-inline-size: 0;
-  padding: 0;
-  border-radius: var(--radius-pill);
-}
 .shared-note-live {
   display: flex;
   align-items: center;
@@ -186,48 +143,6 @@
   background: var(--color-success-surface);
   font: var(--font-supporting-copy);
   font-weight: 600;
-}
-
-/* ---------- menu sheet ---------- */
-.shared-note-menu {
-  display: grid;
-  gap: var(--space-1);
-}
-.shared-note-menu-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  inline-size: 100%;
-  min-block-size: var(--touch-target-comfortable);
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-medium);
-  background: none;
-  color: var(--color-text);
-  text-align: start;
-}
-.shared-note-menu-option:active {
-  background: var(--color-surface);
-}
-.shared-note-menu-option .eimir-icon {
-  flex: none;
-  inline-size: var(--space-6);
-  block-size: var(--space-6);
-}
-.shared-note-menu-copy {
-  display: grid;
-  min-inline-size: 0;
-}
-.shared-note-menu-copy strong {
-  font: var(--font-action-label);
-}
-.shared-note-menu-copy span {
-  color: var(--color-text-secondary);
-  font: var(--font-supporting-copy);
-}
-.shared-note-menu-option[data-danger] strong,
-.shared-note-menu-option[data-danger] .eimir-icon {
-  color: var(--color-error);
 }
 
 /* ---------- editor ---------- */

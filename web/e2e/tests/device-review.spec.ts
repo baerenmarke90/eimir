@@ -19,6 +19,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 for (const [width, theme] of [
   [360, 'light'],
@@ -142,7 +143,7 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('button', { name: memory.planning.add, exact: true }),
     ).toHaveCount(0);
-    await page.getByRole('link', { name: memory.edit, exact: true }).click();
+    await editViaMenu(page, memory.edit);
     const linked = page.getByRole('region', { name: memory.planning.heading });
     for (const kind of ['plans', 'wishes'] as const) {
       await page
@@ -267,7 +268,7 @@ for (const [width, theme] of [
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     }
-    await page.getByRole('link', { name: memory.edit, exact: true }).click();
+    await editViaMenu(page, memory.edit);
     await linked
       .getByRole('button', {
         name: memory.planning.remove.replace('{{title}}', plan.title),

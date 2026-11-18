@@ -26,6 +26,10 @@ from eimir.outbox.models import OutboxEvent
 
 # These kinds deliberately never enter native content presentation.
 NEUTRAL_ONLY_KINDS = frozenset({NotificationKind.ONCE_MESSAGE_RECEIVED.value})
+# These kinds name the actor but never the target's title or text on a device.
+SHARED_NOTE_KINDS = frozenset(
+    {NotificationKind.SHARED_NOTE_CREATED.value, NotificationKind.SHARED_NOTE_CHANGED.value}
+)
 
 
 def _label(value: str, limit: int) -> str:
@@ -86,6 +90,20 @@ def _content(session: Session, notification: Notification, context: Authorizatio
     return ""
 
 
+def _recipient_nickname_for(
+    session: Session, context: AuthorizationContext, actor_id: object
+) -> str:
+    """The nickname the recipient gave this actor, or an empty string."""
+    # Imported here: profiles depends on engagement-adjacent modules.
+    from eimir.profiles import service as profiles
+
+    partner_id, row = profiles.partner_nickname(session, context)
+    if row is None or partner_id != actor_id:
+        return ""
+    nickname = row.payload.nickname
+    return _label(nickname, 80) if nickname else ""
+
+
 def for_notification(
     session: Session,
     notification: Notification,
@@ -112,6 +130,13 @@ def for_notification(
         else None
     )
     name = _label(actor.display_name, 80) if actor is not None and actor.is_active else ""
+    if actor is not None and actor.is_active:
+        # The recipient's own private nickname for their partner wins over the
+        # partner's display name. The preview is encrypted for the recipient's
+        # own devices, so it never reaches anyone else.
+        nickname = _recipient_nickname_for(session, context, actor.id)
+        if nickname:
+            name = nickname
     title = ""
     concealed = False
     if not neutral and notification.target_type is not None and notification.target_id is not None:
@@ -127,6 +152,8 @@ def for_notification(
             and notification.kind != NotificationKind.WISH_REMINDER_DUE.value
             # A sent list may be a surprise (a gift list): never its title (#1907 E2).
             and notification.kind != NotificationKind.COLLECTION_SENT.value
+            # A shared note's title is its own words: only who did what (#1969).
+            and notification.kind not in SHARED_NOTE_KINDS
             # A garden seed never shows its attached words (#1907 H3).
             and notification.kind != NotificationKind.GARDEN_SEED_ARRIVED.value
             and not (

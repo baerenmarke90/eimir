@@ -5,7 +5,6 @@ const sharedNotes = {
     destination: 'Gemeinsame Notizen',
     destinationSubtitle: 'Adressen, Gedanken, Tipps für euch beide',
     untitled: 'Ohne Titel',
-    audience: 'Für euch beide',
     audienceEditing: 'Für euch beide sichtbar',
     create: 'Notiz anlegen',
     createFirst: 'Erste Notiz anlegen',
@@ -40,11 +39,10 @@ const sharedNotes = {
     },
     pinnedBadge: 'Angeheftet',
     editedBy: 'Zuletzt von {{name}} · {{when}}',
-    editedByYou: 'Zuletzt von dir · {{when}}',
     writtenBy: 'Geschrieben von {{name}}',
     writtenByYou: 'Geschrieben von dir',
     changedBy: 'Zuletzt geändert von {{name}} · {{when}}',
-    changedByYou: 'Zuletzt geändert von dir · {{when}}',
+    changedAt: 'Zuletzt geändert · {{when}}',
     read: {
       edit: 'Bearbeiten',
       itemLabel: 'Gemeinsame Notiz',
@@ -62,8 +60,7 @@ const sharedNotes = {
       wirTitleOnlyHint: 'Gut für Türcodes und Passwörter',
       wirExcerpt: 'Auszug auf Wir zeigen',
       wirExcerptHint: 'Der Anfang des Textes steht auf Wir',
-      delete: 'Löschen …',
-      deleteHint: 'Für euch beide',
+      delete: 'Löschen',
     },
     toast: {
       saved: 'Gespeichert.',
@@ -78,7 +75,7 @@ const sharedNotes = {
     delete: {
       title: 'Notiz löschen?',
       body: '„{{title}}“ wird für euch beide gelöscht. Falls sie mit einem Plan verknüpft ist, verschwindet sie auch dort. Das lässt sich nicht rückgängig machen.',
-      confirm: 'Löschen',
+      confirm: 'Endgültig löschen',
       pending: 'Wird gelöscht …',
     },
     edit: {

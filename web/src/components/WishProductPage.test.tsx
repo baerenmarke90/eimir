@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import type { WishToPlanResponse } from '../api/generated/models/WishToPlanResponse';
@@ -90,6 +90,7 @@ function renderWish(
   completeWish = vi.fn().mockResolvedValue(completedWish()),
   places: Array<{ id: string; name: string }> = [],
   convertWishToPlan = vi.fn().mockResolvedValue(conversionResponse()),
+  deleteWish = vi.fn().mockResolvedValue(undefined),
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -116,6 +117,7 @@ function renderWish(
         return result;
       },
       getWish: vi.fn(async () => serverWish),
+      deleteWish,
     },
   } as unknown as SharedPlanningApis;
 
@@ -134,8 +136,91 @@ function renderWish(
     </QueryClientProvider>,
   );
 
-  return { completeWish, convertWishToPlan, queryClient };
+  return { completeWish, convertWishToPlan, deleteWish, queryClient };
 }
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+/** "Continue the wish" (complete it or turn it into a plan) lives in the menu. */
+function openContinue() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.wish.actionsHeading') }),
+  );
+}
+
+describe('WishProductPage actions menu', () => {
+  it('offers Edit first and Delete last in the menu and nowhere else', async () => {
+    const user = userEvent.setup();
+    renderWish(OPEN_WISH);
+    expect(
+      screen.queryByRole('button', { name: i18n.t('common.edit') }),
+    ).toBeNull();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    );
+    const rows = (await screen.findAllByRole('button'))
+      .filter((button) => button.classList.contains('item-menu-option'))
+      .map((button) => button.textContent);
+    expect(rows).toEqual([
+      i18n.t('common.edit'),
+      i18n.t('m5s3.wish.actionsHeading'),
+      i18n.t('m5s3.common.delete'),
+    ]);
+
+    await user.click(screen.getByText(i18n.t('common.edit')));
+    await screen.findByRole('button', {
+      name: i18n.t('m5s3.common.saveChanges'),
+    });
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    ).toBeNull();
+  });
+
+  it('deletes only after the confirmation sheet', async () => {
+    const user = userEvent.setup();
+    const { deleteWish } = renderWish(OPEN_WISH);
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    );
+    const confirmation = await screen.findByRole('alertdialog');
+    expect(confirmation.textContent).toContain(
+      i18n.t('m5s3.wish.deleteConsequence'),
+    );
+    expect(deleteWish).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.confirmDelete') }),
+    );
+    await waitFor(() => expect(deleteWish).toHaveBeenCalledTimes(1));
+    expect(deleteWish.mock.calls[0][0]).toMatchObject({
+      spaceId: 'space-1',
+      wishId: OPEN_WISH.id,
+      ifMatch: '1',
+    });
+  });
+
+  it('offers no menu without edit or delete permission', () => {
+    renderWish({
+      ...OPEN_WISH,
+      capabilities: { canComment: false, canDelete: false, canEdit: false },
+    });
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    ).toBeNull();
+  });
+});
 
 describe('WishProductPage conversion', () => {
   it('opens the authoritative converted Plan while preserving request semantics', async () => {
@@ -150,7 +235,7 @@ describe('WishProductPage conversion', () => {
       convertWishToPlan,
     );
 
-    await user.click(screen.getByText(i18n.t('m5s3.wish.actionsHeading')));
+    openContinue();
     await user.type(
       screen.getByLabelText(i18n.t('m5s3.wish.planTitle')),
       'Requested Plan title',
@@ -187,6 +272,7 @@ describe('WishProductPage conversion', () => {
 describe('WishProductPage direct completion', () => {
   it('reads conversion places from the canonical selector cache', () => {
     renderWish(OPEN_WISH, undefined, [{ id: 'place-lake', name: 'Lake' }]);
+    openContinue();
 
     expect(screen.getByRole('option', { name: 'Lake' })).toBeTruthy();
   });
@@ -228,6 +314,7 @@ describe('WishProductPage direct completion', () => {
 
   it('offers direct completion only while the Wish is open', () => {
     renderWish(OPEN_WISH);
+    openContinue();
 
     expect(
       screen.getByRole('button', { name: i18n.t('m5s3.wish.complete') }),
@@ -241,6 +328,7 @@ describe('WishProductPage direct completion', () => {
     const user = userEvent.setup();
     const completeWish = vi.fn().mockResolvedValue(completedWish());
     const { convertWishToPlan } = renderWish(OPEN_WISH, completeWish);
+    openContinue();
 
     await user.click(
       screen.getByRole('button', { name: i18n.t('m5s3.wish.complete') }),
@@ -276,6 +364,7 @@ describe('WishProductPage direct completion', () => {
   it('hands completion to the canonical Memory composer without publishing Wish text in the URL', async () => {
     const user = userEvent.setup();
     renderWish(OPEN_WISH);
+    openContinue();
 
     await user.click(
       screen.getByRole('button', { name: i18n.t('m5s3.wish.complete') }),

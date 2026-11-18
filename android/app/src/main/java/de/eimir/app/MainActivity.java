@@ -67,7 +67,11 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SystemThemePlugin.class);
         registerPlugin(ApproximateLocationPlugin.class);
         registerPlugin(PasskeysPlugin.class);
+        registerPlugin(ScreenOrientationPlugin.class);
         super.onCreate(savedInstanceState);
+        // A fresh start owns no composer, so no earlier camera capture may stay
+        // (#2048). A restored Activity keeps it: the camera may still return.
+        if (savedInstanceState == null) PhotoCapture.clear(this);
         if (getBridge() != null) {
             applyStartupBackground();
             // Touch scrolling follows the platform convention without a

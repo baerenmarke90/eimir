@@ -8,7 +8,13 @@
  * rather than a client-local convention.
  */
 
-export type AppRouteId = 'today' | 'story' | 'plan' | 'games' | 'more';
+export type AppRouteId =
+  | 'today'
+  | 'story'
+  | 'plan'
+  | 'games'
+  | 'shared'
+  | 'more';
 
 export type AppRouteIcon =
   | 'today'
@@ -46,6 +52,10 @@ export interface AppRouteDefinition {
 }
 
 export const MEMORY_MAP_ROUTE = '/story/map';
+/** Shared Lists: the home peer of the Gemeinsam primary destination. */
+export const MORE_COLLECTIONS_ROUTE = '/more/collections';
+/** Shared Notes (#1969): free text both partners read and edit. */
+export const MORE_NOTES_ROUTE = '/more/notes';
 
 /** Stable top-level route registry. Primary shell destinations are derived below. */
 export const APP_ROUTES = [
@@ -76,6 +86,14 @@ export const APP_ROUTES = [
     path: '/games',
     labelKey: 'navigation.games',
     icon: 'games',
+    end: false,
+  },
+  {
+    id: 'shared',
+    path: MORE_COLLECTIONS_ROUTE,
+    peerPaths: [MORE_NOTES_ROUTE],
+    labelKey: 'navigation.shared',
+    icon: 'collections',
     end: false,
   },
   {
@@ -141,10 +159,7 @@ export const ACTIVITY_ROUTE = '/today/activity';
 
 export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
-export const MORE_COLLECTIONS_ROUTE = '/more/collections';
 export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
-/** Shared Notes (#1969): free text both partners read and edit. */
-export const MORE_NOTES_ROUTE = '/more/notes';
 export const NOTE_CREATE_ROUTE = '/more/notes/new';
 export const NOTE_DETAIL_ROUTE_PATTERN = '/more/notes/:noteId';
 export const NOTE_EDIT_ROUTE_PATTERN = '/more/notes/:noteId/edit';
@@ -263,6 +278,8 @@ export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 export const GAMES_GARDEN_ROUTE = '/games/garden';
 export const GAMES_HEART_HUNT_ROUTE = '/games/heart-hunt';
 export const GAMES_PICTURE_PING_PONG_ROUTE = '/games/picture-ping-pong';
+/** The remote Who of us game played on two devices. */
+export const GAMES_WHO_OF_US_ROUTE = '/games/who-of-us';
 
 /* Story content ---------------------------------------------------------- */
 
@@ -376,11 +393,19 @@ export function activeNavigationArea(pathname: string): AppRouteId | null {
     return 'story';
   }
   if (pathname === '/games' || pathname.startsWith('/games/')) return 'more';
+  // Lists and Notes share one primary destination; their detail pages stay in it.
+  if (
+    [MORE_COLLECTIONS_ROUTE, MORE_NOTES_ROUTE].some(
+      (root) => pathname === root || pathname.startsWith(`${root}/`),
+    ) ||
+    pathname.startsWith('/plan/collections')
+  ) {
+    return 'shared';
+  }
   if (
     pathname === '/more' ||
     pathname.startsWith('/more/') ||
-    pathname.startsWith('/plan/places') ||
-    pathname.startsWith('/plan/collections')
+    pathname.startsWith('/plan/places')
   ) {
     return 'more';
   }

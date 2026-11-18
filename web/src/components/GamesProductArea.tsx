@@ -27,15 +27,25 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
 const GAME_ENTRIES = [
+  'garden',
   'moments',
   'wishes',
   'perspective',
   'heartHunt',
   'pingPong',
-  'garden',
 ] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
+
+/** Each game keeps its own symbol, whatever its place in the list. */
+const GAME_ICONS = {
+  garden: 'spiele',
+  moments: 'foto',
+  wishes: 'wuensche',
+  perspective: 'gemeinsam',
+  heartHunt: 'momente',
+  pingPong: 'spiele',
+} as const satisfies Record<GameEntry, EimirIconName>;
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
@@ -108,6 +118,7 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
+          currentAccountId={accountId}
           onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />
@@ -142,27 +153,14 @@ export function GamesProductArea({
         />
       ) : (
         <section className="games-shelf" aria-label={t('games.title')}>
-          {GAME_ENTRIES.map((entry, index) => {
+          {GAME_ENTRIES.map((entry) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
             const localGameAvailable = gamesUnlocked && entry === 'perspective';
             const playable = Boolean(route || localGameAvailable);
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  <EimirIcon
-                    name={
-                      (
-                        [
-                          'foto',
-                          'wuensche',
-                          'gemeinsam',
-                          'momente',
-                          'spiele',
-                          'spiele',
-                        ] satisfies EimirIconName[]
-                      )[index]
-                    }
-                  />
+                  <EimirIcon name={GAME_ICONS[entry]} />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">

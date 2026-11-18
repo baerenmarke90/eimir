@@ -48,8 +48,14 @@
     "today": "Us",
     "plan": "Planning",
     "games": "Games",
+    "shared": "Lists",
+    "sharedHeading": "Together",
+    "sharedLists": "Lists",
+    "sharedNotes": "Notes",
+    "sharedViewsAria": "Shared lists and notes",
     "more": "More",
     "searchAll": "Search eimir.",
+    "searchPrompt": "What are you looking for?",
     "operatorArea": "For operators",
     "search": "Search",
     "notifications": "Notifications",
@@ -614,6 +620,7 @@
       "planFallback": "A shared plan"
     },
     "wish": {
+      "menu": "Wish menu",
       "heading": "Wishes",
       "intro": "Ideas for later that you capture together and turn into a plan when you are ready.",
       "create": "Add wish",
@@ -666,6 +673,7 @@
       }
     },
     "plan": {
+      "menu": "Plan menu",
       "linkWish": "Link a wish",
       "linkWishHelp": "The plan stays. Completing it also fulfils the wish. You can undo the plan later with “Back to wish”.",
       "chooseWish": "Choose an open wish",
@@ -810,6 +818,7 @@
       "help": "Optional. This image belongs to your shared plan."
     },
     "place": {
+      "menu": "Place menu",
       "scope": "Filter places",
       "scopeACTIVE": "Active",
       "scopeARCHIVED": "Archived",
@@ -819,7 +828,6 @@
       "archived": "Place archived. Your links are retained.",
       "restored": "Place restored.",
       "emptyArchive": "Your archived places will appear here.",
-      "archiveSaveFirst": "Save or discard your changes first.",
       "heading": "Places",
       "intro": "A name is enough. You can add an address and location.",
       "emptyOverview": "No shared places saved yet. Capture places that matter to your plans or moments here.",
@@ -842,6 +850,7 @@
       "deleteConsequence": "The place and its links will be deleted. Memories, heart moments and milestones themselves will be kept."
     },
     "chapter": {
+      "menu": "Chapter menu",
       "ongoing": "Ongoing chapters",
       "since": "Since {{date}}",
       "until": "Until {{date}}",
@@ -945,6 +954,8 @@
       "progress": "{{count}} entries · {{completed}} done",
       "progress_one": "{{count}} entry · {{completed}} done",
       "progress_other": "{{count}} entries · {{completed}} done",
+      "previewMore": "+ {{count}} more",
+      "previewLess": "Show less",
       "openItem": "Edit “{{title}}”",
       "itemActions": "Actions for “{{title}}”",
       "editItem": "Edit entry",
@@ -958,7 +969,6 @@
       "create": "Add list",
       "loading": "Loading list …",
       "detailEyebrow": "Shared list",
-      "pinLabel": "On Us",
       "pinToToday": "Show on Us",
       "unpinFromToday": "Stop showing on Us",
       "itemCount_one": "{{count}} entry",
@@ -994,8 +1004,7 @@
       "suggestions": {
         "heading": "Bought before",
         "add": "Add {{title}} again",
-        "remove": "Remove suggestion “{{title}}”",
-        "note": "From your finished trips. Only the two of you see this."
+        "remove": "Remove suggestion “{{title}}”"
       },
       "finish": {
         "action": "Finish trip",
@@ -1058,6 +1067,9 @@
       "newSpaceEmpty": "Welcome to your shared home.",
       "newSpaceIntro": "Everything is ready for your story together.",
       "newSpaceAction": "Capture your first moment",
+      "newSpaceSolo": "Welcome, {{name}}.",
+      "newSpaceSoloIntro": "This is where your shared place begins. As soon as your person joins, you are here together.",
+      "partnerPlace": "Your person",
       "eyebrow": "Overview",
       "title": "Your shared home",
       "intro": "What matters in your shared space, at a glance.",
@@ -1170,10 +1182,6 @@
         "retrospectiveAction": "View memory",
         "retrospectiveDismissToday": "Hide for today",
         "retrospectiveDismissed": "Recap hidden for today"
-      },
-      "momentGallery": {
-        "pause": "Pause the picture changes",
-        "play": "Resume the picture changes"
       },
       "monthly": {
         "title": "Your {{month}}",
@@ -1927,7 +1935,7 @@
       "PRIVATE": "Only for me"
     },
     "viewPhoto": "View photo of {{name}}",
-    "moreActions": "More actions",
+    "menuLabel": "Actions for {{name}}",
     "addBirthday": "Add birthday",
     "optionalYear": "Year (optional)",
     "photoAction": "View profile photo",
@@ -2008,7 +2016,7 @@
       "intro": "You can include recurring celebrations alongside your personal dates.",
       "toggle": "Show common occasions",
       "description": "For example Easter, Christmas, New Year, Pentecost and Valentine's Day.",
-      "deviceNote": "This choice applies on this device only. Your saved dates do not change.",
+      "deviceNote": "This choice is just for you and applies on all your devices. Your saved dates do not change.",
       "manage": "Common occasion settings"
     },
     "holidays": {
@@ -2045,7 +2053,7 @@
     "delete": "Delete",
     "deleting": "Deleting …",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Keep",
+    "menuLabel": "Actions for {{name}}",
     "deleteConfirmTitle": "Really delete?",
     "deleteConfirmBody": "This content will only be deleted from your personal area.",
     "navigation": {
@@ -2375,19 +2383,23 @@
     "originalLanguage": "Original in {{language}}",
     "catalog": {
       "categories": {
-        "love": "Love & relationships",
-        "life": "Life & wisdom",
-        "philosophy": "Philosophy",
-        "mindfulness": "Mindfulness",
-        "serenity": "Serenity",
-        "motivation": "Courage & motivation"
+        "love": "Love & partnership",
+        "friendship": "Friendship",
+        "motivation": "Motivation & success",
+        "humor": "Humor & fun",
+        "life": "Life wisdom",
+        "nature": "Nature & calm",
+        "travel": "Travel & adventure",
+        "courage": "Courage & fresh starts",
+        "selfcare": "Self-care & serenity",
+        "together": "Shared experiences & everyday life"
       }
     },
     "quoteText": "“{{text}}”"
   },
   "notificationSettings": {
     "title": "Which messages you receive",
-    "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
+    "sharedActivityDescription": "Comments, photo reactions, shared notes, new reminders and due reminders.",
     "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
@@ -2403,7 +2415,7 @@
     "recapReady": "Finished recaps",
     "comment": "Comments",
     "commentDescription": "New comments are collected in your inbox.",
-    "commentPushDescription": "Push notifications for new comments and photo reactions from your partner. Quiet hours apply to both.",
+    "commentPushDescription": "Push notifications for new comments, photo reactions and shared notes from your partner. Quiet hours apply to both.",
     "commentEmailDescription": "At most one neutral email per hour.",
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
@@ -3197,10 +3209,10 @@
       "history": "What you have captured together",
       "wirStatisticsTitle": "Your story in numbers",
       "wirStatisticsToggle": "Show statistics on Us",
-      "wirStatisticsHelp": "Optional for you on this device. Also show your shared counts on Us here. The setting in your recaps is independent.",
+      "wirStatisticsHelp": "Optional and just for you, on all your devices. Also show your shared counts on Us here. The setting in your recaps is independent.",
       "wirStatisticsPro": "Available with your recaps in Pro.",
       "statisticsToggle": "Show shared statistics",
-      "statisticsHelp": "Optional for you on this device. Your shared counts appear here with your recaps.",
+      "statisticsHelp": "Optional and just for you, on all your devices. Your shared counts appear here with your recaps.",
       "nextChapter": "The next chapter",
       "anniversary": "Your anniversary: {{count}} years",
       "roundDay": "{{days}} days together",
@@ -3297,17 +3309,17 @@
         "description": "Playfully compare how you see the two of you."
       },
       "pingPong": {
-        "role": "Feel close",
+        "role": "Paint",
         "title": "Picture ping-pong",
         "description": "Take turns adding to one picture until it is finished."
       },
       "heartHunt": {
-        "role": "Be close",
+        "role": "Seek",
         "title": "Heart hunt",
         "description": "Hide a heart in a photo. Who finds it?"
       },
       "garden": {
-        "role": "Being close",
+        "role": "Grow",
         "title": "Our garden",
         "description": "Send each other a seed every day, wherever you are."
       }
@@ -3368,6 +3380,9 @@
         "photoLabel": "The photo with the found heart",
         "swap": "Hide one yourself",
         "keep": "Keep photo as a moment",
+        "nameLabel": "What should the moment be called?",
+        "nameMissing": "Give the moment a name, then we keep the photo.",
+        "keepConfirm": "Save as a moment",
         "keeping": "Saving …",
         "kept": "Saved in Moments",
         "keepFailed": "The photo could not be saved as a moment. Please try again.",
@@ -3429,7 +3444,9 @@
       "finishKeep": "Keep drawing",
       "doneTitle": "Your picture is finished",
       "doneBody": "Give it a name and keep it, if you like.",
-      "titleLegend": "What should it be called?",
+      "titleLegend": "What is your picture called?",
+      "nameSuggestions": "Name suggestions",
+      "nameMissing": "Give your picture a name, then we put it into Moments.",
       "saveToMoments": "Put into Moments",
       "saving": "Saving …",
       "saved": "Put into Moments.",
@@ -3479,10 +3496,13 @@
       "loadingBody": "We only load open wishes from your shared space.",
       "coupleRequiredTitle": "This game belongs to both of you",
       "coupleRequiredBody": "Wish detective is designed for a shared space with exactly two partners.",
-      "sparseEyebrow": "A few more wishes to collect",
-      "sparseTitle": "A few more shared wishes are needed for a fair round.",
-      "sparseBody": "Your first round can start once you have each captured at least two open wishes. Private gift ideas are never used for this.",
-      "sparseAction": "Add wishes",
+      "sparseEyebrow": "Almost ready",
+      "sparseTitleBoth": "You each still need a wish.",
+      "sparseTitleYou": "You still need a wish.",
+      "sparseTitlePartner": "{{name}} still needs a wish.",
+      "sparseBody": "Each of you needs at least one open wish. Private gift ideas are never used for this.",
+      "sparseBodyPartner": "Your wishes are enough. As soon as {{name}} captures a wish, your first round can start.",
+      "sparseAction": "Capture a wish",
       "interruptedEyebrow": "Round interrupted",
       "interruptedTitle": "The wish stays hidden.",
       "interruptedBody": "You left the round during handoff or guessing. Hand the device back and start a new round from Play together.",
@@ -3520,6 +3540,67 @@
         "duplicate": "Use a different word for each clue.",
         "wishWord": "This word is already in the wish. Use another clue."
       }
+    },
+    "remote": {
+      "end": "End the game",
+      "endConfirm": "End it for real? The open game then ends for both of you.",
+      "endConfirmAction": "Yes, end it",
+      "keepPlaying": "Keep playing",
+      "newGame": "New game",
+      "ended": "This game has ended.",
+      "endedByPartner": "{{name}} ended the game.",
+      "waitingBody": "You will be told as soon as it continues.",
+      "whoOfUs": {
+        "me": "Me",
+        "you": "You",
+        "partnerProgress": "{{name}} has answered {{count}} of {{total}} questions.",
+        "hidden": "You see {{name}}'s answer as soon as you have answered yourself.",
+        "partnerAnswered": "{{name}} has already answered. You will see in a moment whether you agree.",
+        "doneTitle": "You are done.",
+        "doneBody": "{{name}} is still playing. You will be told as soon as your result is ready.",
+        "answers": "You: {{you}} · {{name}}: {{partner}}"
+      },
+      "wishDetective": {
+        "giveTitle": "Your wish for {{name}}",
+        "giveBody": "Give three clues of one word each.",
+        "clueLabel": "Clue {{number}}",
+        "sendClues": "Send to {{name}}",
+        "skip": "Take another wish ({{count}} left)",
+        "skipGone": "Take another wish",
+        "wishGone": "This wish is no longer there. Take another one.",
+        "guessTitle": "{{name}} sent you three clues.",
+        "guessLabel": "Which wish is it?",
+        "guess": "Guess",
+        "pass": "I can't think of it",
+        "waitingClues": "{{name}} is thinking of clues.",
+        "waitingGuess": "{{name}} is guessing.",
+        "itWas": "It was: {{title}}",
+        "yourGuess": "Your guess: {{guess}}",
+        "lastRound": "Last round: {{title}} –",
+        "finishEyebrow": "All rounds played",
+        "finishTitle": "How well you know your wishes",
+        "result": {
+          "correct": "Guessed right!",
+          "incorrect": "Close, but no.",
+          "passed": "Not this time.",
+          "void": "The wish has been deleted in the meantime."
+        }
+      },
+      "ourMoments": {
+        "yourTurn": "Your turn",
+        "partnerTurn": "{{name}}'s turn",
+        "partnerMatched": "{{name}} just found a pair.",
+        "partnerMissed": "{{name}} turned two cards but found no pair."
+      }
+    },
+    "playMode": {
+      "legend": "How do you want to play?",
+      "apart": "Each on your own phone",
+      "apartBody": "You don't need to be together. {{name}} is told as soon as it continues.",
+      "together": "Together on one phone",
+      "togetherBody": "You sit together and pass the phone back and forth.",
+      "start": "Start the game",
+      "starting": "Starting …"
     },
     "whoOfUs": {
       "back": "Back to Games",
@@ -3594,6 +3675,11 @@
       "sceneLabel_one": "Your garden with {{count}} plant",
       "sceneLabel_other": "Your garden with {{count}} plants",
       "panHint": "Swipe to see the whole garden",
+      "fullscreen": {
+        "open": "Garden in full screen",
+        "close": "Close full screen",
+        "rotate": "Turn your phone to see the whole garden."
+      },
       "close": "Close",
       "storySent": "Sent by {{name}}, {{date}}",
       "youDative": "you",
@@ -3665,6 +3751,7 @@
           "seed": "A seed is sleeping in the soil here."
         },
         "doubleRainbow": "A double rainbow: you both watered today",
+        "doubleMoonbow": "A double moonbow: you both watered today",
         "together": {
           "swing": "The two of you sit together on the swing, you both sent a seed today",
           "tree": "The two of you sit together on a bench under your tree, you both sent a seed today",
@@ -4007,7 +4094,7 @@
           "close": "Close"
         },
         "feedback": {
-          "title": "On this device",
+          "title": "Just for you",
           "sound": "Sounds in the garden",
           "soundHint": "Soft sounds when planting, watering and with the animals.",
           "vibration": "Gentle vibration",
@@ -4035,6 +4122,11 @@
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
       "PICTURE_PING_PONG_TURN": "{{name}} added to your picture. It is your turn.",
+      "PICTURE_PING_PONG_FINISHED": "{{name}} finished your picture.",
+      "COUPLE_GAME_TURN": "{{name}} played one of your games. Take a look.",
+      "COUPLE_GAME_TURN_WHO_OF_US": "{{name}} played “Which of you?”. Take a look.",
+      "COUPLE_GAME_TURN_WISH_DETECTIVE": "{{name}} played Wish detective. Take a look.",
+      "COUPLE_GAME_TURN_OUR_MOMENTS": "{{name}} played “Our moments”. Take a look.",
       "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
@@ -4448,7 +4540,7 @@
     "deleteConfirmTitle": "Really delete this memory?",
     "deleteConfirmBody": "The memory will be permanently removed from your shared space.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Memory menu",
     "deleting": "Deleting …",
     "editEyebrow": "Edit memory",
     "editHeading": "Edit memory",
@@ -4520,7 +4612,7 @@
     "deleteConfirmTitle": "Really delete this heart moment?",
     "deleteConfirmBody": "The heart moment will be permanently removed.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Heart moment menu",
     "deleting": "Deleting …",
     "commentsPrivate": "Private heart moments have no shared comments.",
     "savedTitle": "Heart moment saved."
@@ -4558,7 +4650,7 @@
     "deleteConfirmTitle": "Really delete this milestone?",
     "deleteConfirmBody": "The milestone will be permanently removed.",
     "deleteConfirm": "Delete permanently",
-    "deleteCancel": "Do not delete",
+    "menu": "Milestone menu",
     "deleting": "Deleting …",
     "savedTitle": "Milestone saved."
   },
@@ -5147,7 +5239,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us – on all your devices.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."
@@ -5565,6 +5657,7 @@
     "singleView": "View once",
     "message": "Your message",
     "photo": "Photo",
+    "takePhoto": "Take a photo",
     "voice": "Voice message",
     "record": "Record",
     "importVoice": "Import audio",
@@ -5798,10 +5891,10 @@
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
     "mapLoading": "Loading map …",
-    "mapPartnerArea": "{{partner}} · approximate area",
+    "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",
     "mapPartnerAsOf": "As of: {{time}}",
-    "mapYou": "You · only visible to you",
+    "mapYou": "You",
     "mapYouMissing": "You · your location is missing",
     "mapOwnSharesMap": "{{partner}} sees your approximate area",
     "mapOwnSharesDistance": "{{partner}} sees only the distance",
@@ -6436,7 +6529,6 @@
     "destination": "Shared notes",
     "destinationSubtitle": "Addresses, thoughts, tips for both of you",
     "untitled": "Untitled",
-    "audience": "For both of you",
     "audienceEditing": "Visible to both of you",
     "create": "Add note",
     "createFirst": "Add the first note",
@@ -6471,11 +6563,10 @@
     },
     "pinnedBadge": "Pinned",
     "editedBy": "Last edited by {{name}} · {{when}}",
-    "editedByYou": "Last edited by you · {{when}}",
     "writtenBy": "Written by {{name}}",
     "writtenByYou": "Written by you",
     "changedBy": "Last changed by {{name}} · {{when}}",
-    "changedByYou": "Last changed by you · {{when}}",
+    "changedAt": "Last changed · {{when}}",
     "read": {
       "edit": "Edit",
       "itemLabel": "Shared note",
@@ -6493,8 +6584,7 @@
       "wirTitleOnlyHint": "Good for door codes and passwords",
       "wirExcerpt": "Show an excerpt on Us",
       "wirExcerptHint": "The start of the text appears on Us",
-      "delete": "Delete …",
-      "deleteHint": "For both of you"
+      "delete": "Delete"
     },
     "toast": {
       "saved": "Saved.",
@@ -6509,7 +6599,7 @@
     "delete": {
       "title": "Delete note?",
       "body": "“{{title}}” is deleted for both of you. If it is linked to a plan, it disappears there too. This cannot be undone.",
-      "confirm": "Delete",
+      "confirm": "Delete permanently",
       "pending": "Deleting …"
     },
     "edit": {

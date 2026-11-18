@@ -2,7 +2,7 @@ const people = {
   invalidBirthday: 'Bitte prüfe den Geburtstag.',
   photoAction: 'Profilfoto ansehen',
   viewPhoto: 'Foto von {{name}} ansehen',
-  moreActions: 'Weitere Aktionen',
+  menuLabel: 'Aktionen für {{name}}',
   addBirthday: 'Geburtstag ergänzen',
   optionalYear: 'Jahr (optional)',
   eyebrow: 'Wichtige Menschen',

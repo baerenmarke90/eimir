@@ -390,7 +390,10 @@ function AuthenticatedAppShell({
             id="main-content"
             className="product-main"
             data-area={
-              location.pathname.startsWith('/more') ? 'more' : undefined
+              activeNavigationArea(location.pathname) === 'more' &&
+              location.pathname.startsWith('/more')
+                ? 'more'
+                : undefined
             }
             tabIndex={-1}
           >

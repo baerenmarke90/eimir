@@ -31,10 +31,12 @@ import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { CollapsibleSearch } from './CollapsibleSearch';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { SharedContentTabs } from './SharedContentTabs';
 import { NoteEditorLine } from './SharedNoteParts';
 import { StatusScope } from './StatusScope';
 import { UiState } from './UiState';
@@ -261,7 +263,7 @@ export function SharedNotesOverviewPage({
     <div className="page shared-content-page shared-notes-page">
       <PageHeader
         className="content-overview-heading"
-        title={t('sharedNotes.title')}
+        title={t('navigation.sharedHeading')}
         action={
           firstUse ? undefined : (
             <AddActionButton
@@ -280,43 +282,26 @@ export function SharedNotesOverviewPage({
         }
       />
 
-      <StatusScope<NoteScope>
-        label={t('sharedNotes.scopeLabel')}
-        value={scope}
-        options={(['ALL', 'PINNED'] as const).map((value) => ({
-          value,
-          label: t(`sharedNotes.scope.${value}`),
-        }))}
-        onChange={changeScope}
-      />
+      <SharedContentTabs activeView="notes" />
 
-      <div className="shared-note-search">
-        <EimirIcon name="suche" />
-        <input
-          ref={searchRef}
-          type="search"
-          enterKeyHint="search"
-          autoComplete="off"
+      <div className="planen-panel">
+        <CollapsibleSearch
+          label={t('sharedNotes.search')}
+          clearLabel={t('sharedNotes.searchClear')}
           value={query}
+          onChange={setQuery}
+          inputRef={searchRef}
           maxLength={200}
-          placeholder={t('sharedNotes.search')}
-          aria-label={t('sharedNotes.search')}
-          onChange={(event) => setQuery(event.target.value)}
         />
-        {query ? (
-          <button
-            type="button"
-            className="shared-note-search-clear tertiary"
-            aria-label={t('sharedNotes.searchClear')}
-            title={t('sharedNotes.searchClear')}
-            onClick={() => {
-              setQuery('');
-              searchRef.current?.focus();
-            }}
-          >
-            <EimirIcon name="close" />
-          </button>
-        ) : null}
+        <StatusScope<NoteScope>
+          label={t('sharedNotes.scopeLabel')}
+          value={scope}
+          options={(['ALL', 'PINNED'] as const).map((value) => ({
+            value,
+            label: t(`sharedNotes.scope.${value}`),
+          }))}
+          onChange={changeScope}
+        />
       </div>
 
       {notes.data &&

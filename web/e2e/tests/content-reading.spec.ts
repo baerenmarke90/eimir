@@ -12,6 +12,7 @@ import {
   installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
+import { itemMenuRow, openItemMenu } from '../support/itemMenu';
 
 for (const [width, theme, large] of [
   [360, 'light', false],
@@ -192,7 +193,12 @@ test('partner edits shared words while author identity and destructive controls 
   );
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await page.getByRole('link', { name: memoryCopy.edit, exact: true }).click();
+  // The partner may edit the shared words, but the menu offers no deletion.
+  await openItemMenu(page);
+  await expect(
+    page.locator('.item-menu-option').filter({ hasText: memoryCopy.delete }),
+  ).toHaveCount(0);
+  await itemMenuRow(page, memoryCopy.edit).click();
   await page
     .locator('textarea[name="body"]')
     .fill('The original words, with a thought from the partner.');

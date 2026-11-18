@@ -1,0 +1,97 @@
+/* How a couple game is played (#2048). */
+.play-mode {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.play-mode-options {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.play-mode-legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  color: var(--color-text);
+  font: var(--font-section-heading);
+}
+
+.play-mode-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-content);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.play-mode-option.is-selected {
+  background: var(--color-surface-subtle);
+}
+
+.play-mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.play-mode-option:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.play-mode-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.play-mode-glyph svg {
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.play-mode-text {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.play-mode-title {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.play-mode-body {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.play-mode-start {
+  justify-self: stretch;
+  min-block-size: 3rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+  font: var(--font-action-label);
+  cursor: pointer;
+}
+
+.play-mode-start:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

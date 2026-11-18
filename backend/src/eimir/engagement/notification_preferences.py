@@ -36,6 +36,8 @@ INHERITED_KINDS = {
     NotificationKind.HEART_HUNT_HIDDEN: NotificationKind.THINKING_OF_YOU,
     NotificationKind.HEART_HUNT_FOUND: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PICTURE_PING_PONG_TURN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PICTURE_PING_PONG_FINISHED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.COUPLE_GAME_TURN: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,

@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -352,11 +353,33 @@ describe('PicturePingPongPage', () => {
     renderPage(api);
     await screen.findByText(games.pingPong.doneBody);
     expect(api.saveToMoments).not.toHaveBeenCalled();
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    // #2048: the name is asked when saving, prefilled with a suggestion.
+    const name = screen.getByRole('textbox', {
+      name: games.pingPong.titleLegend,
+    }) as HTMLInputElement;
+    expect(name.value).not.toBe('');
+    expect(
+      within(
+        screen.getByRole('group', { name: games.pingPong.nameSuggestions }),
+      ).getAllByRole('button'),
+    ).toHaveLength(3);
+    // An empty name does not save.
+    fireEvent.change(name, { target: { value: '   ' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: games.pingPong.saveToMoments }),
+    );
+    expect(await screen.findByText(games.pingPong.nameMissing)).toBeTruthy();
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(api.saveToMoments).not.toHaveBeenCalled();
+    // The own name becomes the Moment title.
+    fireEvent.change(name, { target: { value: '  Sun bunny  ' } });
     fireEvent.click(
       screen.getByRole('button', { name: games.pingPong.saveToMoments }),
     );
     await waitFor(() => expect(api.saveToMoments).toHaveBeenCalledTimes(1));
+    expect(api.saveToMoments).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Sun bunny' }),
+    );
     await waitFor(() => expect(api.markSaved).toHaveBeenCalledWith('memory-1'));
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

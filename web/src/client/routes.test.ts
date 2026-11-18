@@ -56,19 +56,21 @@ import {
 } from './routes';
 
 describe('primary navigation', () => {
-  it('keeps four primary destinations while preserving the stable Games route', () => {
+  it('keeps five primary destinations while preserving the stable Games route', () => {
     expect(PRIMARY_APP_ROUTES.map((route) => route.id)).toEqual([
       'today',
       'story',
       'plan',
+      'shared',
       'more',
     ]);
-    expect(PRIMARY_APP_ROUTES).toHaveLength(4);
+    expect(PRIMARY_APP_ROUTES).toHaveLength(5);
     expect(APP_ROUTES.map((route) => route.id)).toEqual([
       'today',
       'story',
       'plan',
       'games',
+      'shared',
       'more',
     ]);
     expect(DEFAULT_APP_ROUTE).toBe('/today');
@@ -79,6 +81,8 @@ describe('primary navigation', () => {
     expect(appRoutePath('story')).toBe('/story');
     expect(appRoutePath('plan')).toBe('/plan');
     expect(appRoutePath('games')).toBe('/games');
+    // Lists are the home of Gemeinsam; Notes are its peer view.
+    expect(appRoutePath('shared')).toBe('/more/collections');
     expect(GAMES_MOMENTS_ROUTE).toBe('/games/our-moments');
     expect(GAMES_WISH_DETECTIVE_ROUTE).toBe('/games/wish-detective');
     expect(GAMES_PICTURE_PING_PONG_ROUTE).toBe('/games/picture-ping-pong');
@@ -89,7 +93,14 @@ describe('primary navigation', () => {
     const withSubRoutes = APP_ROUTES.filter((route) => !route.end).map(
       (route) => route.id,
     );
-    expect(withSubRoutes).toEqual(['today', 'story', 'plan', 'games', 'more']);
+    expect(withSubRoutes).toEqual([
+      'today',
+      'story',
+      'plan',
+      'games',
+      'shared',
+      'more',
+    ]);
   });
 
   it('keeps Games out of the primary shell while preserving its canonical route', () => {
@@ -256,8 +267,11 @@ describe('content deep links', () => {
     expect(activeNavigationArea('/more')).toBe('more');
     expect(activeNavigationArea('/more/places')).toBe('more');
     expect(activeNavigationArea('/plan/places/p1')).toBe('more');
-    expect(activeNavigationArea('/more/collections')).toBe('more');
-    expect(activeNavigationArea('/plan/collections/k1')).toBe('more');
+    expect(activeNavigationArea('/more/collections')).toBe('shared');
+    expect(activeNavigationArea('/more/collections/new')).toBe('shared');
+    expect(activeNavigationArea('/plan/collections/k1')).toBe('shared');
+    expect(activeNavigationArea('/more/notes')).toBe('shared');
+    expect(activeNavigationArea('/more/notes/n1/edit')).toBe('shared');
     expect(activeNavigationArea('/more/people')).toBe('more');
     expect(activeNavigationArea('/more/private/notes')).toBe('more');
     expect(activeNavigationArea('/plan')).toBe('plan');

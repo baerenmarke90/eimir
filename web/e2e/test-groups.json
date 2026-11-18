@@ -625,6 +625,11 @@
       "baselineTests": 7,
       "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column, the pinned Wir tile that opens the note, and creating a Plan with notes chosen in the draft, linked after the save and retried after a failed link. Linking to an existing Plan, conflict and offline paths stay in component tests. No always-run expansion."
     },
+    "lists-tab.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "Feature-owned Listen destination, the fifth primary tab: entered from the bottom bar, Listen and Notizen as two views of one Gemeinsam heading with Listen staying the active destination, the list card unfolding its remaining entries, a ticked entry saved at once with its version and completed state, the card heading opening the list, the notes search resting as an icon with the shared prompt, and the note's single actions menu with Edit first, Delete last and no separate Edit button. No always-run expansion."
+    },
     "map-place-stacks.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,

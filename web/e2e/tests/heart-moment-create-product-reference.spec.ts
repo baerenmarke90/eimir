@@ -37,6 +37,7 @@ import {
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -85,12 +86,7 @@ async function expectHeartDetailContainment(page: Page): Promise<void> {
   }
   const action = await page
     .locator('.composer-audience > button')
-    .or(
-      page.getByRole('link', {
-        name: storyProducts.heartMomentProduct.edit,
-        exact: true,
-      }),
-    )
+    .or(itemMenuTrigger(page))
     .boundingBox();
   expect(action?.width).toBeGreaterThanOrEqual(44);
   expect(action?.height).toBeGreaterThanOrEqual(44);
@@ -541,12 +537,7 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
 }
 
 async function openHeartEditor(page: Page) {
-  await page
-    .getByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
-      exact: true,
-    })
-    .click();
+  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
   await expect(page).toHaveURL(/\/heart-moments\/[^/]+\/edit$/);
   await expect(
     page.getByLabel(storyProducts.heartMomentProduct.textLabel, {
@@ -1289,12 +1280,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   });
   await page.reload();
   await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
-  await page
-    .getByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
-      exact: true,
-    })
-    .click();
+  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
   await showContextTags(page);
   await page
     .getByRole('checkbox', {

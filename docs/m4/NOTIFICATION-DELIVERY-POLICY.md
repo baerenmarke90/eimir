@@ -20,6 +20,12 @@ neutral immediate delivery without the list title, its own recipient switch,
 Quiet Hours and no email choice; see the
 [module workflow](../product/notification-workflow.md).
 
+A shared note a partner creates or changes (#1969, `SHARED_NOTE_CREATED` and
+`SHARED_NOTE_CHANGED`) uses neutral immediate delivery that names only the
+partner and the action, never the note's title or text. It inherits the
+comment Push choice and Quiet Hours and offers no email. Edits of one note share
+a coalesced notice; a change adds no Push while the partner has not yet read
+the note's earlier notice, and notifies again once it was read.
 A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
 immediate delivery without the attached words, its own recipient switch,
 Quiet Hours and no email choice; the notice is current only while the seed
@@ -27,6 +33,17 @@ waits to be planted. A bouquet from the partner reuses the same kind with the
 target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
 while its card waits; a person gets at most one garden notice per local day,
 so a later seed or bouquet on that day stays silent and waits in the garden.
+
+A finished shared picture (`PICTURE_PING_PONG_FINISHED`, target `PICTURE_GAME`)
+tells the partner of whoever completed it (last turn or early finish), and a
+remote couple game (`COUPLE_GAME_TURN`, targets `WHO_OF_US_GAME`,
+`WISH_DETECTIVE_GAME` and `OUR_MOMENTS_GAME`) tells the partner the game waits
+on them: their turn, or a result once the game is finished. Both use neutral
+immediate delivery that never shows the picture, answers, clues, guesses,
+wishes or moments, follow the picture turn notice's switch (inherited from
+thinking of you) and Quiet Hours, coalesce per recipient and target, and are
+current only while the picture stays finished or the game still waits on the
+reader.
 
 A retained recap (#1744, `RECAP_READY`, target `RECAP`) and a newer version of
 a retained recap after late entries (`RECAP_GREW`) use neutral immediate

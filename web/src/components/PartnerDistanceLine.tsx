@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
@@ -136,6 +136,40 @@ function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
 }
 
 /**
+ * The value on the Wir hero axis. A changed value fades over: the previous one
+ * leaves as a short-lived copy while the new one arrives, instead of the text
+ * jumping. The leaving copy exists only under `no-preference` (it is
+ * `display: none` otherwise), so it never lingers with reduced motion. The
+ * first value and a re-render with the same value do not animate.
+ */
+function HeroDistanceValue({ value }: { value: string }) {
+  const [shown, setShown] = useState(value);
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [swapped, setSwapped] = useState(false);
+  if (value !== shown) {
+    // Derived during render so the old text never flashes in its final state.
+    setLeaving(shown);
+    setShown(value);
+    setSwapped(true);
+  }
+  return (
+    <span className="wir-hero-distance-value" aria-hidden="true">
+      {leaving === null ? null : (
+        <span
+          className="wir-hero-distance-leaving"
+          onAnimationEnd={() => setLeaving(null)}
+        >
+          {leaving}
+        </span>
+      )}
+      <span key={shown} className={swapped ? 'is-arriving' : undefined}>
+        {shown}
+      </span>
+    </span>
+  );
+}
+
+/**
  * The quiet distance signal inside the Wir couple hero (#1792). Absent
  * without a placeholder or reason whenever nothing may be shown.
  */
@@ -201,19 +235,22 @@ export function PartnerDistanceLine({
         {/* Always the familiar distance pin (Product Owner, 2026-11-16); an
             earlier value is named in the accessible description. */}
         <Glyph kind="pin" />
-        <span aria-hidden="true">{value}</span>
+        <HeroDistanceValue value={value} />
       </>
     );
+    // A current position is marked (pin colour, one quiet wiggle); an earlier
+    // one stays grey and still.
+    const heroClass = `wir-hero-distance ${compactFresh ? 'is-fresh' : 'is-earlier'}`;
     return line.mapAvailable ? (
       <Link
-        className="wir-hero-distance"
+        className={heroClass}
         to={PARTNER_LOCATION_MAP_ROUTE}
         aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
       >
         {compactContent}
       </Link>
     ) : (
-      <p className="wir-hero-distance">
+      <p className={heroClass}>
         {compactContent}
         <span className="sr-only">{compactDescription}</span>
       </p>

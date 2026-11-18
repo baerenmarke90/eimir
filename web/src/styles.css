@@ -67,6 +67,9 @@
   --content-max: 1200px;
   --reading-max: 720px;
   --rail-width: 21rem;
+  /* Width of the hanging Polaroid on the rediscovery cards (Wir and Momente).
+     On a phone it fills the card like a diary entry does. */
+  --polaroid-width: 22rem;
   --topbar-height: 72px;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);

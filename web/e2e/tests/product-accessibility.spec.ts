@@ -16,6 +16,7 @@ import {
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
@@ -852,6 +853,14 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
       .getByRole('link', { name: navigation.plan, exact: true })
       .click();
     await expect(page).toHaveURL(/\/plan$/);
+    return;
+  }
+
+  if (path === '/more/collections') {
+    await page
+      .getByRole('link', { name: navigation.shared, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/collections$/);
     return;
   }
 
@@ -1972,7 +1981,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -2024,7 +2033,7 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -2067,9 +2076,10 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await page.goto('/');
   await signIn(page);
 
+  // Editing starts from the item menu; the menu button gets focus back.
   await page.goto('/plan/places/place-1');
-  const placeEdit = page.getByRole('button', { name: de.common.edit });
-  await placeEdit.click();
+  const placeEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   const placeName = page.getByLabel(m5s3.place.name);
   await expect(placeName).toBeFocused();
   await placeName.fill('Lakeside park');
@@ -2088,15 +2098,15 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(placeEdit).toBeFocused();
 
   await page.goto('/plan/collections/collection-1');
-  const collectionEdit = page.getByRole('button', { name: de.common.edit });
-  await collectionEdit.click();
+  const collectionEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await page.goBack();
   await expect(collectionEdit).toBeFocused();
 
   await page.goto('/plan/chapters/chapter-1');
-  const chapterEdit = page.getByRole('button', { name: de.common.edit });
-  await chapterEdit.click();
+  const chapterEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2108,7 +2118,7 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(chapterEdit).toBeFocused();
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await chapterEdit.click();
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2169,7 +2179,7 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
     });
 
     await page.goto('/plan/places/place-1');
-    await page.getByRole('button', { name: de.common.edit }).click();
+    await editViaMenu(page, de.common.edit);
     await page
       .getByRole('dialog')
       .locator('summary', { hasText: m5s3.place.technicalDetails })
@@ -2215,6 +2225,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         [navigation.today, '/today'],
         [navigation.story, '/story'],
         [navigation.plan, '/plan'],
+        [navigation.shared, '/more/collections'],
         [navigation.more, '/more'],
       ]) {
         const link = navigationRegion.getByRole('link', { name, exact: true });

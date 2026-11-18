@@ -60,7 +60,8 @@ The patterns below are platform-appropriate defaults, not a mandatory formula: t
 The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); the Android wrapper renders the same Web shell ([ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md) is historical). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
 
 - Primary destinations are the intentional de-DE product labels **Wir, Momente,
-  Planen, Mehr**. Discovery experiences remain product behavior inside `Momente`
+  Planen, Listen, Mehr** (`Listen`, route ID `shared`, added by PR #2044; Lists
+  and Notes are its peer views under the heading **Gemeinsam**). Discovery experiences remain product behavior inside `Momente`
   and do not consume a persistent primary-navigation slot. `Spielen` is a
   first-class product area entered under `Mehr`; while inside Games, `Mehr`
   remains the active primary destination. See

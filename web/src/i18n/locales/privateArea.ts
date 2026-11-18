@@ -18,7 +18,7 @@ const privateArea = {
   delete: 'Löschen',
   deleting: 'Wird gelöscht …',
   deleteConfirm: 'Endgültig löschen',
-  deleteCancel: 'Behalten',
+  menuLabel: 'Aktionen für {{name}}',
   deleteConfirmTitle: 'Wirklich löschen?',
   deleteConfirmBody:
     'Dieser Inhalt wird nur aus deinem persönlichen Bereich gelöscht.',

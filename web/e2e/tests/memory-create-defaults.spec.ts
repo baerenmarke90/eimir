@@ -35,6 +35,7 @@ import {
 } from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1254,9 +1255,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
       .locator('.memory-tag-summary')
       .getByText('Ostsee 2026', { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   await showContextTags(page);
   await page
     .getByRole('checkbox', {
@@ -2536,9 +2535,7 @@ for (const [width, colorScheme] of [
     await expect.poll(() => photos.ready.size).toBe(3);
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
-    await page
-      .getByRole('link', { name: memoryProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, memoryProduct.edit);
     await openComposerMediaSources(page);
     await page.locator('#memory-edit-images-source').setInputFiles({
       name: 'later.jpg',

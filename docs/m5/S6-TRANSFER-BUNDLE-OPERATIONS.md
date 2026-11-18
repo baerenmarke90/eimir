@@ -49,6 +49,11 @@ is export-only settings metadata: additive import ignores it and never activates
 a paid icon or changes installed-app metadata from an untrusted bundle. Existing
 member mapping and source-member authorization remain unchanged.
 
+PERSONAL exports also include `personalSettings` (the caller's Account-wide
+choices under `account` and their choices in the exported Space under `space`,
+with `schemaVersion`). SHARED exports omit it. Like `personalAppearance` it is
+export-only: additive import ignores it.
+
 New v1 exports also record `exportedBySourceId` in `manifest.json`. During
 import that source member must map to the currently authenticated target member.
 For a normal eimir. couple Space, which is limited to at most two active

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { DashboardMedia } from '../api/generated/models/DashboardMedia';
 import { MediaType } from '../api/generated/models/MediaType';
-import { WirMomentControls, WirMomentSlides } from './WirMomentGallery';
+import { WirMomentSlides } from './WirMomentGallery';
 
 const media: DashboardMedia[] = [
   { attachmentId: 'a-photo', mediaType: MediaType.IMAGE },
@@ -65,53 +65,5 @@ describe('WirMomentSlides', () => {
       slide.getAttribute('data-state'),
     );
     expect(states).toEqual(['next', 'leaving', 'active']);
-  });
-});
-
-describe('WirMomentControls', () => {
-  it('offers pause while running and resume while paused, never as a link', () => {
-    const toggle = vi.fn();
-    const { rerender } = render(
-      <WirMomentControls
-        count={3}
-        index={1}
-        paused={false}
-        onToggle={toggle}
-      />,
-    );
-    const button = screen.getByRole('button');
-    expect(button.getAttribute('aria-pressed')).toBe('false');
-    expect(button.closest('a')).toBeNull();
-    fireEvent.click(button);
-    expect(toggle).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <WirMomentControls count={3} index={1} paused onToggle={toggle} />,
-    );
-    expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe(
-      'true',
-    );
-  });
-
-  it('marks the current picture quietly, hidden from assistive technology', () => {
-    const { container } = render(
-      <WirMomentControls
-        count={4}
-        index={2}
-        paused={false}
-        onToggle={() => undefined}
-      />,
-    );
-    const marks = [...container.querySelectorAll('.wir-moment-mark')];
-    expect(marks).toHaveLength(4);
-    expect(marks.map((mark) => mark.hasAttribute('data-current'))).toEqual([
-      false,
-      false,
-      true,
-      false,
-    ]);
-    expect(
-      container.querySelector('.wir-moment-marks')?.getAttribute('aria-hidden'),
-    ).toBe('true');
   });
 });

@@ -49,6 +49,10 @@ describe('M5 Web S6 canonical Deep Links', () => {
     expect(validateAppRelativeReturnTarget('/plan/reminders/reminder-1')).toBe(
       '/plan/reminders/reminder-1',
     );
+    // A shared note opened from a push survives a sign-in in between (#1969).
+    expect(validateAppRelativeReturnTarget('/more/notes/note-1')).toBe(
+      '/more/notes/note-1',
+    );
   });
 
   it('binds a reminder return to the Account and Space that admitted it', () => {

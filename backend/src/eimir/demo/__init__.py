@@ -49,7 +49,7 @@ def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> 
         result.lea_id,
         enabled=True,
         selected_source_ids=["poetic_wisdom", "classic_literature"],
-        selected_category_ids=["love", "mindfulness"],
+        selected_category_ids=["love", "together"],
         locale="de",
     )
     quote_preference_service.update_preference(
@@ -57,7 +57,7 @@ def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> 
         result.alex_id,
         enabled=True,
         selected_source_ids=["stoic_philosophy"],
-        selected_category_ids=["philosophy", "serenity"],
+        selected_category_ids=["life", "nature"],
         locale="de",
     )
 

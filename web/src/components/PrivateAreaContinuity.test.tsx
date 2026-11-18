@@ -165,7 +165,14 @@ describe('P1 private task continuity', () => {
       await screen.findByRole('heading', { name: note.title }),
     ).toBeDefined();
 
-    fireEvent.click(screen.getByRole('link', { name: privateArea.edit }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: privateArea.menuLabel.replace('{{name}}', note.title),
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: privateArea.edit }),
+    );
     expect(
       await screen.findByRole('heading', { name: privateArea.notes.editTitle }),
     ).toBeDefined();

@@ -1,0 +1,173 @@
+/*
+ * The shared moment rotates through its pictures (Wir).
+ *
+ * The frame is the same box the single photograph has; the pictures sit on
+ * top of each other and cross-fade. Presentation only: the link, the title and
+ * the date around it never change, only the active picture is exposed to
+ * assistive technology, and reduced motion shows the first picture and nothing
+ * else (the rotation never starts, see useMomentRotation).
+ */
+.wir-moment-frame {
+  position: relative;
+}
+
+.wir-moment-gallery {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+@container product-content (min-width: 47.5rem) {
+  .wir-moment-gallery {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+.wir-moment-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.wir-moment-slide[data-state="active"] {
+  opacity: 1;
+}
+
+/* Inside the frame the pictures fill it; the single photograph's own ratio
+   no longer applies to them. */
+.wir-moment-slide .story-media-preview,
+.wir-moment-slide .story-media-skeleton,
+.wir-moment-slide .story-media-placeholder {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
+}
+
+.wir-moment-clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wir-moment-controls {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wir-moment-marks {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-overlay) 56%, transparent);
+}
+
+.wir-moment-mark {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  opacity: 0.55;
+  transition:
+    opacity var(--duration-transition) var(--easing-standard),
+    scale var(--duration-transition) var(--easing-standard);
+}
+
+.wir-moment-mark[data-current] {
+  background: var(--color-text);
+  opacity: 1;
+  scale: 1.25;
+}
+
+/* A round glass control with a full-size touch target around the glyph. */
+.wir-moment-toggle {
+  position: relative;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface-overlay) 56%, transparent);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wir-moment-toggle::after {
+  position: absolute;
+  inset: -0.25rem;
+  content: "";
+}
+
+.wir-moment-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .wir-moment-marks,
+  .wir-moment-toggle {
+    -webkit-backdrop-filter: blur(var(--navigation-backdrop-blur)) saturate(1.3);
+    backdrop-filter: blur(var(--navigation-backdrop-blur)) saturate(1.3);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .wir-moment-marks,
+  .wir-moment-toggle {
+    background: var(--color-surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The next picture arrives from a slow zoom while the last one fades. */
+  .wir-moment-slide[data-state="active"][data-entering] {
+    animation: wir-moment-in var(--duration-gesture-moment) var(--easing-enter)
+      both;
+  }
+
+  .wir-moment-slide[data-state="leaving"] {
+    opacity: 1;
+    animation: wir-moment-out var(--duration-gesture-moment)
+      var(--easing-standard) both;
+  }
+}
+
+@keyframes wir-moment-in {
+  from {
+    opacity: 0;
+    scale: 1.06;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes wir-moment-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}

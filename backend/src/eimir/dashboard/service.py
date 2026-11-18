@@ -19,8 +19,8 @@ from sqlalchemy import Date, and_, case, cast, exists, extract, func, or_, selec
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from eimir.attachments.binding import attachments_of_memories, cover_of
-from eimir.attachments.models import AttachmentStatus
+from eimir.attachments.binding import BoundAttachment, attachments_of_memories, cover_of
+from eimir.attachments.models import AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.collections.models import Collection
@@ -84,6 +84,19 @@ class RelationshipDuration:
     display_mode: DurationDisplayMode
 
 
+# The Today Keepsake rotates through at most this many photos and clips.
+KEEPSAKE_GALLERY_LIMIT = 5
+
+
+@dataclass(frozen=True)
+class DashboardMedia:
+    """One photo or clip the Keepsake may rotate through."""
+
+    attachment_id: UUID
+    media_type: MediaType
+    has_thumbnail: bool
+
+
 @dataclass(frozen=True)
 class DashboardItem:
     type: DashboardItemType
@@ -97,6 +110,8 @@ class DashboardItem:
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    gallery: tuple[DashboardMedia, ...] = ()
+    """Keepsake only: ready, non-sensitive photos and clips, at least two."""
     concealed: bool = False
     """Only the list title may show: a discreet Plan (#1790 F3)."""
 
@@ -779,8 +794,31 @@ def _keepsake(
                 preview_attachment_id=preview_id,
                 preview_is_sensitive=preview_sensitive,
                 preview_has_thumbnail=preview_has_thumbnail,
+                gallery=_keepsake_gallery(galleries.get(memory.id, [])),
             )
     return None
+
+
+def _keepsake_gallery(bound_attachments: list[BoundAttachment]) -> tuple[DashboardMedia, ...]:
+    """The photos and clips the Keepsake may rotate through.
+
+    Only ready, non-sensitive photos and clips qualify: sensitive media never
+    rotates on its own, and audio or documents are not pictures. A single usable
+    item is not a rotation, so the gallery is then empty and the Keepsake keeps
+    showing its one preview.
+    """
+    media = [
+        DashboardMedia(
+            attachment_id=bound.attachment.id,
+            media_type=MediaType(bound.attachment.media_type),
+            has_thumbnail=bound.attachment.has_thumbnail,
+        )
+        for bound in bound_attachments
+        if bound.attachment.status == AttachmentStatus.READY
+        and bound.attachment.media_type in (MediaType.IMAGE.value, MediaType.VIDEO.value)
+        and not bound.attachment.payload.is_sensitive
+    ][:KEEPSAKE_GALLERY_LIMIT]
+    return tuple(media) if len(media) >= 2 else ()
 
 
 def _upcoming(

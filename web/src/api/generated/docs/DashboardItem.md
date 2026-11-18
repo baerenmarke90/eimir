@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `concealed` | boolean
 `createdAt` | Date
+`gallery` | [Array&lt;DashboardMedia&gt;](DashboardMedia.md)
 `id` | string
 `occurredOn` | Date
 `previewAttachmentId` | string
@@ -28,6 +29,7 @@ import type { DashboardItem } from ''
 const example = {
   "concealed": null,
   "createdAt": null,
+  "gallery": null,
   "id": null,
   "occurredOn": null,
   "previewAttachmentId": null,

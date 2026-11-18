@@ -7,6 +7,7 @@ import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath } from '../client/routes';
+import { useRemoteWishDetectiveGame } from '../client/useRemoteCoupleGames';
 import {
   type ClueValidationError,
   createLocalWishDetectiveSession,
@@ -17,6 +18,7 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { CoupleGameModes, RemoteWishDetectiveView } from './RemoteCoupleGames';
 import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 
@@ -165,6 +167,68 @@ function SparseWishes({
         </Link>
       ) : null}
     </section>
+  );
+}
+
+/*
+ * #2048: one phone together or each partner on their own phone. An open game
+ * at a distance always resumes; without enough wishes neither mode starts.
+ */
+function WishDetectiveModes({
+  setup,
+  hiddenRoundStorageKey,
+  apiBaseUrl,
+  accessToken,
+  spaceId,
+}: {
+  setup: WishDetectiveGameSetup & {
+    participants: readonly [WishDetectiveParticipant, WishDetectiveParticipant];
+  };
+  hiddenRoundStorageKey: string;
+  apiBaseUrl: string;
+  accessToken: string;
+  spaceId: string;
+}) {
+  const [me, partner] = setup.participants;
+  const people = { me, partner };
+  const remote = useRemoteWishDetectiveGame({
+    spaceId,
+    currentAccountId: me.id,
+    apiBaseUrl,
+    accessToken,
+  });
+  const sparse = setup.rounds.length === 0;
+  const openRemote = remote.state?.game?.status === 'OPEN';
+  if (sparse && !openRemote && !remote.isLoading) {
+    return (
+      <SparseWishes partnerName={partner.displayName} missing={setup.missing} />
+    );
+  }
+  return (
+    <CoupleGameModes
+      partnerName={partner.displayName}
+      remote={remote}
+      renderLocal={() =>
+        sparse ? (
+          <SparseWishes
+            partnerName={partner.displayName}
+            missing={setup.missing}
+          />
+        ) : (
+          <WishDetectiveSessionView
+            setup={{ participants: setup.participants, rounds: setup.rounds }}
+            hiddenRoundStorageKey={hiddenRoundStorageKey}
+          />
+        )
+      }
+      renderRemote={(onNewGame) => (
+        <RemoteWishDetectiveView
+          game={remote}
+          people={people}
+          onNewGame={onNewGame}
+        />
+      )}
+    />
   );
 }
 
@@ -543,18 +607,17 @@ export function WishDetectiveGamePage({
           title={t('games.wishDetective.coupleRequiredTitle')}
           body={t('games.wishDetective.coupleRequiredBody')}
         />
-      ) : setupQuery.data.rounds.length === 0 ? (
-        <SparseWishes
-          partnerName={setupQuery.data.participants[1].displayName}
-          missing={setupQuery.data.missing}
-        />
       ) : (
-        <WishDetectiveSessionView
+        <WishDetectiveModes
           setup={{
             participants: setupQuery.data.participants,
             rounds: setupQuery.data.rounds,
+            missing: setupQuery.data.missing,
           }}
           hiddenRoundStorageKey={hiddenRoundStorageKey}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          spaceId={spaceId}
         />
       )}
     </div>

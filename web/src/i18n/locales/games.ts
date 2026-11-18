@@ -282,6 +282,63 @@ const games = {
         'Dieses Wort steckt bereits im Wunsch. Nimm einen anderen Hinweis.',
     },
   },
+  // #2048: the couple games at a distance.
+  remote: {
+    end: 'Spiel beenden',
+    endConfirm: 'Wirklich beenden? Das offene Spiel endet dann für euch beide.',
+    endConfirmAction: 'Ja, beenden',
+    keepPlaying: 'Weiterspielen',
+    newGame: 'Neues Spiel',
+    ended: 'Dieses Spiel ist beendet.',
+    endedByPartner: '{{name}} hat das Spiel beendet.',
+    waitingBody: 'Du bekommst Bescheid, sobald es weitergeht.',
+    whoOfUs: {
+      me: 'Ich',
+      you: 'Du',
+      partnerProgress:
+        '{{name}} hat {{count}} von {{total}} Fragen beantwortet.',
+      hidden:
+        'Die Antwort von {{name}} siehst du, sobald du selbst geantwortet hast.',
+      partnerAnswered:
+        '{{name}} hat schon geantwortet. Gleich siehst du, ob ihr euch einig seid.',
+      doneTitle: 'Du bist fertig.',
+      doneBody:
+        '{{name}} ist noch dran. Du bekommst Bescheid, sobald eure Auflösung da ist.',
+      answers: 'Du: {{you}} · {{name}}: {{partner}}',
+    },
+    wishDetective: {
+      giveTitle: 'Dein Wunsch für {{name}}',
+      giveBody: 'Gib drei Hinweise mit je einem Wort.',
+      clueLabel: 'Hinweis {{number}}',
+      sendClues: 'An {{name}} schicken',
+      skip: 'Anderen Wunsch nehmen ({{count}} übrig)',
+      skipGone: 'Anderen Wunsch nehmen',
+      wishGone: 'Dieser Wunsch ist nicht mehr da. Nimm einen anderen.',
+      guessTitle: '{{name}} hat dir drei Hinweise geschickt.',
+      guessLabel: 'Welcher Wunsch ist es?',
+      guess: 'Raten',
+      pass: 'Ich komme nicht drauf',
+      waitingClues: '{{name}} denkt sich gerade Hinweise aus.',
+      waitingGuess: '{{name}} rät gerade.',
+      itWas: 'Es war: {{title}}',
+      yourGuess: 'Dein Tipp: {{guess}}',
+      lastRound: 'Letzte Runde: {{title}} –',
+      finishEyebrow: 'Alle Runden gespielt',
+      finishTitle: 'So gut kennt ihr eure Wünsche',
+      result: {
+        correct: 'Richtig geraten!',
+        incorrect: 'Knapp daneben.',
+        passed: 'Diesmal nicht.',
+        void: 'Der Wunsch wurde inzwischen gelöscht.',
+      },
+    },
+    ourMoments: {
+      yourTurn: 'Du bist dran',
+      partnerTurn: '{{name}} ist dran',
+      partnerMatched: '{{name}} hat gerade ein Paar gefunden.',
+      partnerMissed: '{{name}} hat zwei Karten aufgedeckt, aber kein Paar.',
+    },
+  },
   // #2048: how a couple game is played.
   playMode: {
     legend: 'Wie wollt ihr spielen?',

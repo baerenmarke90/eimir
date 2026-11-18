@@ -176,6 +176,17 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
+    // #2048: no game at a distance is open.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/games/wish-detective`
+    ) {
+      await fulfillJson({
+        game: null,
+        readiness: { ownWishesAvailable: true, partnerWishesAvailable: true },
+      });
+      return;
+    }
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/games/wishes/candidates`
@@ -254,6 +265,14 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
+/** #2048: the play-mode choice comes first; this journey plays on one phone. */
+async function playTogether(page: Page) {
+  await page
+    .getByRole('radio', { name: new RegExp(games.playMode.together) })
+    .check();
+  await page.getByRole('button', { name: games.playMode.start }).click();
+}
+
 test.describe('Wish Detective Product Reference (#864)', () => {
   test('390/320 handoff keeps the secret hidden and stays accessible', async ({
     page,
@@ -264,6 +283,7 @@ test.describe('Wish Detective Product Reference (#864)', () => {
     await page.goto('/login');
     await signIn(page);
     await page.goto('/games/wish-detective');
+    await playTogether(page);
 
     await expect(
       page.getByRole('heading', {

@@ -3537,6 +3537,58 @@
         "wishWord": "This word is already in the wish. Use another clue."
       }
     },
+    "remote": {
+      "end": "End the game",
+      "endConfirm": "End it for real? The open game then ends for both of you.",
+      "endConfirmAction": "Yes, end it",
+      "keepPlaying": "Keep playing",
+      "newGame": "New game",
+      "ended": "This game has ended.",
+      "endedByPartner": "{{name}} ended the game.",
+      "waitingBody": "You will be told as soon as it continues.",
+      "whoOfUs": {
+        "me": "Me",
+        "you": "You",
+        "partnerProgress": "{{name}} has answered {{count}} of {{total}} questions.",
+        "hidden": "You see {{name}}'s answer as soon as you have answered yourself.",
+        "partnerAnswered": "{{name}} has already answered. You will see in a moment whether you agree.",
+        "doneTitle": "You are done.",
+        "doneBody": "{{name}} is still playing. You will be told as soon as your result is ready.",
+        "answers": "You: {{you}} · {{name}}: {{partner}}"
+      },
+      "wishDetective": {
+        "giveTitle": "Your wish for {{name}}",
+        "giveBody": "Give three clues of one word each.",
+        "clueLabel": "Clue {{number}}",
+        "sendClues": "Send to {{name}}",
+        "skip": "Take another wish ({{count}} left)",
+        "skipGone": "Take another wish",
+        "wishGone": "This wish is no longer there. Take another one.",
+        "guessTitle": "{{name}} sent you three clues.",
+        "guessLabel": "Which wish is it?",
+        "guess": "Guess",
+        "pass": "I can't think of it",
+        "waitingClues": "{{name}} is thinking of clues.",
+        "waitingGuess": "{{name}} is guessing.",
+        "itWas": "It was: {{title}}",
+        "yourGuess": "Your guess: {{guess}}",
+        "lastRound": "Last round: {{title}} –",
+        "finishEyebrow": "All rounds played",
+        "finishTitle": "How well you know your wishes",
+        "result": {
+          "correct": "Guessed right!",
+          "incorrect": "Close, but no.",
+          "passed": "Not this time.",
+          "void": "The wish has been deleted in the meantime."
+        }
+      },
+      "ourMoments": {
+        "yourTurn": "Your turn",
+        "partnerTurn": "{{name}}'s turn",
+        "partnerMatched": "{{name}} just found a pair.",
+        "partnerMissed": "{{name}} turned two cards but found no pair."
+      }
+    },
     "playMode": {
       "legend": "How do you want to play?",
       "apart": "Each on your own phone",

@@ -118,6 +118,7 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
+          currentAccountId={accountId}
           onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />

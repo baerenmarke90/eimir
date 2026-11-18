@@ -1,0 +1,243 @@
+/* Couple games at a distance (#2048). */
+.remote-game-start,
+.remote-game-session {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.remote-game-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-content);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.remote-game-card h2 {
+  margin: 0;
+  font: var(--font-content-heading);
+}
+
+.remote-game-card p {
+  margin: 0;
+}
+
+.remote-game-status,
+.remote-game-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.remote-game-wish {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.remote-game-progress {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.remote-game-progress > span {
+  flex: 1;
+  block-size: 0.375rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.remote-game-progress > span.is-done {
+  background: var(--color-action-primary);
+}
+
+.remote-game-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.remote-game-choices legend {
+  grid-column: 1 / -1;
+  margin-bottom: var(--space-3);
+  padding: 0;
+  color: var(--color-text);
+  font: var(--font-content-heading);
+}
+
+.remote-game-primary,
+.remote-game-danger {
+  min-block-size: 3rem;
+  padding-inline: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-action-label);
+  cursor: pointer;
+}
+
+.remote-game-primary {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.remote-game-danger {
+  background: var(--color-error);
+  color: var(--color-on-action-primary);
+}
+
+.remote-game-primary:disabled,
+.remote-game-danger:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.remote-game-quiet {
+  justify-self: center;
+  min-block-size: var(--touch-target-web);
+  padding-inline: var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--color-brand-text);
+  font: var(--font-action-label);
+  cursor: pointer;
+}
+
+.remote-game-confirm {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.remote-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.remote-game-waiting {
+  justify-items: center;
+  text-align: center;
+}
+
+/* A calm "the other one is playing" dot; still with reduced motion. */
+.remote-game-pulse {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-action-primary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .remote-game-pulse {
+    animation: remote-game-pulse 2.4s var(--easing-standard, ease-in-out)
+      infinite;
+  }
+}
+
+@keyframes remote-game-pulse {
+  50% {
+    opacity: 0.35;
+    scale: 0.8;
+  }
+}
+
+.remote-game-answers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.remote-game-answers > div {
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.remote-game-answers dt {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.remote-game-answers dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.remote-game-result-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remote-game-result-list li {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.remote-game-result-answers {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.remote-game-score {
+  font-weight: 700;
+}
+
+.remote-game-clues {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.remote-game-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.remote-game-field label {
+  font-weight: 600;
+}
+
+.remote-game-field input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.remote-game-error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+.remote-game-clue-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remote-game-clue-list li {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* The partner's last miss shows briefly before the cards turn back. */
+.our-moments-card.is-replay {
+  opacity: 0.75;
+}

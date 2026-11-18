@@ -87,6 +87,7 @@ import {
 } from '../client/routes';
 import { WIR_NOTE_LIMIT } from '../client/sharedNotes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   type LivingModule,
   livingModuleContentId,
@@ -1194,6 +1195,16 @@ export function TodayPage({
   // daily check-in once; the flag is removed so Back never reopens it.
   const location = useLocation();
   const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  // #2048: alone in the Space, the empty partner place invites.
+  const partnerInviteRoute = `${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`;
+  const openPartnerInvite = () => {
+    const taskOriginKey = captureOrigin({ selectedKey: 'wir-invite-place' });
+    void navigate(
+      partnerInviteRoute,
+      taskOriginKey ? { state: { taskOriginKey } } : undefined,
+    );
+  };
   const openOwnCheckIn = dailyCheckIn?.ownAction.onActivate;
   useEffect(() => {
     const state = location.state as Record<string, unknown> | null;
@@ -1711,6 +1722,14 @@ export function TodayPage({
         }
         secondaryLabel={partner ? partnerName : undefined}
         status={partnerPresenceStatus}
+        onInviteClick={partner ? undefined : openPartnerInvite}
+        waitingAvatarAdornment={
+          partner ? undefined : (
+            <span className="wir-stage-name is-waiting" aria-hidden="true">
+              {t('m5s5.dashboard.partnerPlace')}
+            </span>
+          )
+        }
         relationshipDuration={heroBridge ? undefined : heroDurationText}
         avatarAdornment={
           heroBridge ? (
@@ -2020,7 +2039,8 @@ export function TodayPage({
         isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <TodayModulePlaceholder kind="shared-experience" />
       ) : null,
-    daily_quote: dailyQuote,
+    // #2048: a brand-new, empty Space starts calm, without a Pro teaser.
+    daily_quote: isSparse ? null : dailyQuote,
     relationship_presence: (
       <>
         {/* The shared couple identity stays above the personal section stack,
@@ -2477,13 +2497,17 @@ export function TodayPage({
                   ? t('m5s5.dashboard.newSpacePartner', {
                       name: partnerName,
                     })
-                  : t('m5s5.dashboard.newSpaceEmpty')}
+                  : connectedDesign
+                    ? t('m5s5.dashboard.newSpaceSolo', { name: heroOwnName })
+                    : t('m5s5.dashboard.newSpaceEmpty')}
               </h2>
               <p className="new-space-body">
                 {t(
                   partner
                     ? 'm5s5.dashboard.newSpaceIntro'
-                    : 'quietHints.moveIn.solo',
+                    : connectedDesign
+                      ? 'm5s5.dashboard.newSpaceSoloIntro'
+                      : 'quietHints.moveIn.solo',
                 )}
               </p>
               <span className="new-space-wall" aria-hidden="true">

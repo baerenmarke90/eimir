@@ -267,6 +267,30 @@
   gap: var(--space-3);
 }
 
+/* #2048: the picture's own name, asked when it is saved. */
+.pingpong-name {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pingpong-name label {
+  font-weight: 600;
+}
+
+.pingpong-name input {
+  width: 100%;
+}
+
+.pingpong-name input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.pingpong-name-missing {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
 .pingpong-titles {
   display: flex;
   flex-wrap: wrap;
@@ -276,24 +300,17 @@
   padding: 0;
 }
 
-.pingpong-titles legend {
-  margin-bottom: var(--space-2);
-  padding: 0;
-}
-
 .pingpong-title-chip {
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
   padding-inline: var(--space-4);
+  border: 0;
   border-radius: 999px;
   background: var(--color-brand-surface);
+  color: var(--color-text);
+  font: inherit;
   cursor: pointer;
-}
-
-.pingpong-title-chip input {
-  position: absolute;
-  opacity: 0;
 }
 
 .pingpong-title-chip.is-selected {
@@ -301,7 +318,7 @@
   color: var(--color-on-accent);
 }
 
-.pingpong-title-chip:focus-within {
+.pingpong-title-chip:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }

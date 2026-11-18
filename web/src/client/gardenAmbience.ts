@@ -33,9 +33,12 @@ export function gardenDaytime(now: Date): GardenDaytime {
   return 'night';
 }
 
-/** A rainbow needs the sun: only in the morning and by day. */
-export function rainbowWeather(daytime: GardenDaytime): boolean {
-  return daytime === 'morning' || daytime === 'day';
+/**
+ * Watering always ends with a bow. At night there is no sun, so it is a pale
+ * moonbow (#2048); otherwise a rainbow.
+ */
+export function moonbowWeather(daytime: GardenDaytime): boolean {
+  return daytime === 'night';
 }
 
 /** Where the sun (or, at night, the moon) stands in the sky. */

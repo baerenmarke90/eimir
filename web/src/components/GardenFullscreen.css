@@ -1,0 +1,133 @@
+/* The garden in full screen (#2048). */
+.garden-stage {
+  position: relative;
+}
+
+.garden-fullscreen-open {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+
+.garden-fullscreen-open:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.short-task-sheet.garden-fullscreen {
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: var(--color-background);
+}
+
+.garden-fullscreen .short-task-sheet-header {
+  position: absolute;
+  inset-block-start: max(var(--space-3), env(safe-area-inset-top, 0px));
+  inset-inline-start: max(var(--space-3), env(safe-area-inset-left, 0px));
+  z-index: 2;
+}
+
+.garden-fullscreen .short-task-sheet-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+.garden-fullscreen .short-task-sheet-title {
+  position: absolute;
+  inset-block-start: max(var(--space-4), env(safe-area-inset-top, 0px));
+  inset-inline: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: calc(100% - 8rem);
+  margin: 0 auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.garden-fullscreen-stage.garden-game-page {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.garden-fullscreen-frame.garden-frame {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.garden-fullscreen-frame::-webkit-scrollbar {
+  display: none;
+}
+
+.garden-fullscreen-frame .garden-scene {
+  width: auto !important;
+  min-width: 100%;
+  height: 100%;
+}
+
+.garden-fullscreen-pan,
+.garden-fullscreen-rotate {
+  position: absolute;
+  inset-block-end: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  inset-inline: 0;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--space-4));
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .garden-fullscreen-pan {
+    animation: garden-fullscreen-hint var(--duration-transition, 180ms)
+      var(--easing-enter, ease-out);
+  }
+}
+
+@keyframes garden-fullscreen-hint {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
+/* The turn hint only matters while the phone is still upright. */
+@media (orientation: landscape) {
+  .garden-fullscreen-rotate {
+    display: none;
+  }
+}

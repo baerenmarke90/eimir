@@ -40,6 +40,8 @@ export interface CouplePresenceProps {
   primaryAvatarAction?: PartnerAvatarAction;
   primaryAvatarAdornment?: ReactNode;
   secondaryAvatarAdornment?: ReactNode;
+  /** Shown under the empty partner place while nobody has joined. */
+  waitingAvatarAdornment?: ReactNode;
   actions?: ReactNode;
   /** A quiet relationship signal directly under the duration line (#1792). */
   signal?: ReactNode;
@@ -74,6 +76,7 @@ export function CouplePresence({
   primaryAvatarAction,
   primaryAvatarAdornment,
   secondaryAvatarAdornment,
+  waitingAvatarAdornment,
   actions,
   signal,
   context,
@@ -153,6 +156,7 @@ export function CouplePresence({
         primaryAction={primaryAvatarAction}
         primaryAdornment={primaryAvatarAdornment}
         secondaryAdornment={secondaryAvatarAdornment}
+        waitingAdornment={waitingAvatarAdornment}
       />
       {avatarAdornment ? (
         <div className="couple-presence-avatar-adornment">

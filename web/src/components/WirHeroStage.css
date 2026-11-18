@@ -7,7 +7,9 @@
  * - on a portrait: only what can be opened there (a gesture, an unread note).
  */
 .today-page .wir-stage {
-  --wir-avatar: clamp(6.25rem, 32vw, 8rem);
+  /* #2048: the lower bound also follows the width, so two portraits still
+     fit side by side at 320 CSS px with doubled text. */
+  --wir-avatar: clamp(min(6.25rem, 34vw), 32vw, 8rem);
   --wir-ring: 5px;
   /* How far the marks ride outward past the photo's edge, per axis. */
   --wir-mark-out: 0.4rem;
@@ -131,6 +133,29 @@
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * #2048: alone in the Space, the partner's place is a dashed invitation with a
+ * person-plus glyph and a quiet "your person" line under it.
+ */
+.wir-stage-name.is-waiting {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-size: 1rem;
+}
+
+.today-page
+  .wir-stage
+  .today-hero
+  .partner-avatar-stack
+  > :has(> .partner-avatar-waiting)::before {
+  border-style: dashed;
+}
+
+.today-hero .partner-avatar-waiting .partner-avatar-waiting-glyph {
+  inline-size: 38%;
+  block-size: 38%;
 }
 
 /* Today's state is a quiet line under the name, not a mark on the photo. */

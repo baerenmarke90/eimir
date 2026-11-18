@@ -75,6 +75,11 @@ import {
   BouquetReceivedCard,
 } from './GardenBouquet';
 import {
+  GardenFullscreenButton,
+  GardenFullscreenSheet,
+  useGardenFullscreen,
+} from './GardenFullscreen';
+import {
   GardenReunionSoonCard,
   GardenReunionTodayCard,
   GardenSleepCard,
@@ -497,6 +502,7 @@ export function GardenGamePage({
   const occasions = occasionsOverride ?? readOccasions;
   const greeted = useRef<string | null>(null);
   const frame = useRef<HTMLDivElement | null>(null);
+  const fullscreen = useGardenFullscreen();
   const defaultSaveMoment = useGardenMomentSaver({
     apiBaseUrl,
     accessToken,
@@ -914,8 +920,14 @@ export function GardenGamePage({
   const firstSnowText = firstSnow ? t('games.garden.ambience.firstSnow') : null;
   const ambienceSentences = [
     t(`games.garden.ambience.daytime.${clock.daytime}`),
-    ...(together.bothWatered && clock.daytime !== 'night'
-      ? [t('games.garden.ambience.doubleRainbow')]
+    ...(together.bothWatered
+      ? [
+          t(
+            clock.daytime === 'night'
+              ? 'games.garden.ambience.doubleMoonbow'
+              : 'games.garden.ambience.doubleRainbow',
+          ),
+        ]
       : []),
     ...(together.bothSent
       ? [t(`games.garden.ambience.together.${togetherSeat(unlocks)}`)]
@@ -1310,20 +1322,62 @@ export function GardenGamePage({
         distanceLabel={distanceLabel}
         colour={ownColour}
       />
-      <div
-        ref={frame}
-        className={`garden-frame${width > 340 ? ' is-wide' : ''}`}
-        data-testid="garden-frame"
-        data-season={presentation.season}
-        data-sleep={presentation.sleep}
-        data-daytime={clock.daytime}
+      <div className="garden-stage">
+        <div
+          ref={frame}
+          className={`garden-frame${width > 340 ? ' is-wide' : ''}`}
+          data-testid="garden-frame"
+          data-season={presentation.season}
+          data-sleep={presentation.sleep}
+          data-daytime={clock.daytime}
+        >
+          <GardenScene
+            plants={scenePlants}
+            width={width}
+            selectedId={selected}
+            watering={watering}
+            onSelect={(plantId) => void choosePlant(plantId)}
+            gustKey={gustKey}
+            celebrationKey={celebrationKey}
+            lively
+            label={[
+              `${title}, ${t(`games.garden.growth.forms.${form}`)}: ${t('games.garden.sceneLabel', { count: garden.plants.length })}`,
+              ...sceneSentences,
+              ...ambienceSentences,
+            ].join('. ')}
+            layers={presentation.layers(width)}
+            growth={growth}
+            ambience={ambience}
+            story={story.scene}
+          />
+        </div>
+        <GardenFullscreenButton
+          trigger={fullscreen.trigger}
+          onOpen={fullscreen.openFullscreen}
+        />
+      </div>
+      <GardenFullscreenSheet
+        open={fullscreen.open}
+        title={title}
+        rotateHint={fullscreen.rotateHint}
+        trigger={fullscreen.trigger}
+        onClose={fullscreen.closeFullscreen}
+        frameAttributes={{
+          season: presentation.season,
+          sleep: String(presentation.sleep),
+          daytime: clock.daytime,
+        }}
       >
         <GardenScene
           plants={scenePlants}
           width={width}
           selectedId={selected}
           watering={watering}
-          onSelect={(plantId) => void choosePlant(plantId)}
+          onSelect={(plantId) => {
+            // A plant opens its story on the page, so full screen closes.
+            fullscreen.closeFullscreen();
+            void choosePlant(plantId);
+          }}
           gustKey={gustKey}
           celebrationKey={celebrationKey}
           lively
@@ -1337,7 +1391,7 @@ export function GardenGamePage({
           ambience={ambience}
           story={story.scene}
         />
-      </div>
+      </GardenFullscreenSheet>
       {width > 340 ? (
         <p className="garden-pan-hint">{t('games.garden.panHint')}</p>
       ) : null}

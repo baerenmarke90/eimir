@@ -104,6 +104,9 @@ const games = {
       photoLabel: 'Das Foto mit dem gefundenen Herz',
       swap: 'Selbst eins verstecken',
       keep: 'Foto als Moment behalten',
+      nameLabel: 'Wie soll der Moment heißen?',
+      nameMissing: 'Gib dem Moment einen Namen, dann behalten wir das Foto.',
+      keepConfirm: 'Als Moment speichern',
       keeping: 'Wird gespeichert …',
       kept: 'Liegt in Momente',
       keepFailed:
@@ -173,7 +176,9 @@ const games = {
     finishKeep: 'Weitermalen',
     doneTitle: 'Euer Bild ist fertig',
     doneBody: 'Gebt ihm einen Namen und hebt es auf, wenn ihr mögt.',
-    titleLegend: 'Wie soll es heißen?',
+    titleLegend: 'Wie heißt euer Bild?',
+    nameSuggestions: 'Namensvorschläge',
+    nameMissing: 'Gebt eurem Bild einen Namen, dann legen wir es in Momente.',
     saveToMoments: 'In Momente legen',
     saving: 'Wird gelegt …',
     saved: 'In Momente gelegt.',
@@ -354,6 +359,11 @@ const games = {
     sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
     sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
     panHint: 'Wischen, um den ganzen Garten zu sehen',
+    fullscreen: {
+      open: 'Garten im Vollbild',
+      close: 'Vollbild schließen',
+      rotate: 'Dreh dein Handy, dann siehst du den ganzen Garten.',
+    },
     close: 'Schließen',
     storySent: 'Geschickt von {{name}}, {{date}}',
     youDative: 'dir',
@@ -432,6 +442,8 @@ const games = {
         seed: 'Hier schläft ein Samen in der Erde.',
       },
       doubleRainbow: 'Ein doppelter Regenbogen: ihr habt heute beide gegossen',
+      doubleMoonbow:
+        'Ein doppelter Mondregenbogen: ihr habt heute beide gegossen',
       together: {
         swing:
           'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',

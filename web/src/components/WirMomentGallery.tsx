@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { DashboardMedia } from '../api/generated/models/DashboardMedia';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import type { VideoSource } from '../client/video';
-import { useTranslation } from '../i18n';
 import { MemoryPreview } from './MemoryPreview';
 import './WirMomentGallery.css';
 
@@ -118,6 +117,7 @@ export function WirMomentSlides({
             key={item.attachmentId}
             className="wir-moment-slide"
             data-state={state}
+            data-index={position}
             data-entering={
               state === 'active' && previous !== null ? true : undefined
             }
@@ -143,58 +143,6 @@ export function WirMomentSlides({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-/** The pause control and the quiet progress marks, outside the moment's link. */
-export function WirMomentControls({
-  count,
-  index,
-  paused,
-  onToggle,
-}: {
-  count: number;
-  index: number;
-  paused: boolean;
-  onToggle: () => void;
-}) {
-  const { t } = useTranslation();
-  const label = paused
-    ? t('m5s5.today.momentGallery.play')
-    : t('m5s5.today.momentGallery.pause');
-  return (
-    <div className="wir-moment-controls">
-      <span className="wir-moment-marks" aria-hidden="true">
-        {Array.from({ length: count }, (_, mark) => (
-          <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: The marks are positional and carry no identity.
-            key={mark}
-            className="wir-moment-mark"
-            data-current={mark === index || undefined}
-          />
-        ))}
-      </span>
-      <button
-        type="button"
-        className="wir-moment-toggle"
-        aria-label={label}
-        aria-pressed={paused}
-        onClick={onToggle}
-      >
-        <svg
-          className="inline-icon"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
-        >
-          {paused ? (
-            <path d="M8 5.5v13l10.5-6.5L8 5.5z" />
-          ) : (
-            <path d="M8.5 5.5v13M15.5 5.5v13" />
-          )}
-        </svg>
-      </button>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useWirReveal } from './useWirReveal';
+import { resetWirStageSettleForTests, useWirReveal } from './useWirReveal';
 
 function Module({ className }: { className: string }) {
   const { ref, revealProps } = useWirReveal<HTMLElement>(className);
@@ -82,5 +82,84 @@ describe('useWirReveal', () => {
     vi.stubGlobal('IntersectionObserver', undefined);
     render(<Module className="today-section today-section-reveal-none" />);
     await vi.waitFor(() => expect(phases()).not.toContain('pending'));
+  });
+});
+
+describe('useWirReveal waits for the hero and the quote to settle', () => {
+  function addStage(quoteLoading: boolean) {
+    const stage = document.createElement('div');
+    stage.className = 'wir-stage';
+    const quote = document.createElement('section');
+    quote.className = 'daily-quote-card';
+    if (quoteLoading) {
+      const line = document.createElement('p');
+      line.className = 'is-loading';
+      quote.append(line);
+    }
+    document.body.append(stage, quote);
+    return { stage, quote };
+  }
+
+  afterEach(() => {
+    for (const element of document.querySelectorAll(
+      '.wir-stage, .daily-quote-card',
+    ))
+      element.remove();
+    resetWirStageSettleForTests();
+  });
+
+  it('shows the module a moment after the stage has stopped changing', async () => {
+    resetWirStageSettleForTests();
+    addStage(false);
+    const observer = installObserver();
+    render(<Module className="today-section today-section-settle-quiet" />);
+    await observer.reach();
+    // Reached, but it still waits for a quiet stage.
+    expect(phases()).toEqual(['pending']);
+    await vi.waitFor(() => expect(phases()).not.toContain('pending'), {
+      timeout: 1500,
+    });
+  });
+
+  it('keeps the module hidden while the quote is loading and shows it once it is known', async () => {
+    resetWirStageSettleForTests();
+    const { quote } = addStage(true);
+    const observer = installObserver();
+    render(<Module className="today-section today-section-settle-loading" />);
+    await observer.reach();
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(phases()).toEqual(['pending']);
+
+    quote.querySelector('.is-loading')?.remove();
+    await vi.waitFor(() => expect(phases()).not.toContain('pending'), {
+      timeout: 1500,
+    });
+  });
+
+  it('never hides the module longer than the cap when the quote does not arrive', async () => {
+    resetWirStageSettleForTests();
+    addStage(true);
+    const observer = installObserver();
+    render(<Module className="today-section today-section-settle-cap" />);
+    await observer.reach();
+    await vi.waitFor(() => expect(phases()).not.toContain('pending'), {
+      timeout: 3500,
+    });
+  });
+
+  it('shows a module reached by scrolling at once', async () => {
+    resetWirStageSettleForTests();
+    addStage(true);
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 300,
+    });
+    const observer = installObserver();
+    render(<Module className="today-section today-section-settle-scrolled" />);
+    await observer.reach();
+    await vi.waitFor(() => expect(phases()).not.toContain('pending'), {
+      timeout: 500,
+    });
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
   });
 });

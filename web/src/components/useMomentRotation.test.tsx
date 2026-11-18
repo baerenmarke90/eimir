@@ -17,12 +17,8 @@ function Probe({ count, clips = [] }: { count: number; clips?: number[] }) {
           previous: rotation.previous,
           rotates: rotation.rotates,
           running: rotation.running,
-          paused: rotation.paused,
         })}
       </output>
-      <button type="button" onClick={rotation.togglePaused}>
-        toggle
-      </button>
     </div>
   );
 }
@@ -93,21 +89,17 @@ describe('useMomentRotation', () => {
     expect(state().index).toBe(1);
   });
 
-  it('pauses when the person pauses it and when it leaves the screen', () => {
+  it('pauses when it leaves the screen and resumes when it returns', () => {
     stubEnvironment();
     render(<Probe count={3} />);
     seen(true);
-    act(() => screen.getByText('toggle').click());
-    expect(state()).toMatchObject({ paused: true, running: false });
-    act(() => vi.advanceTimersByTime(MOMENT_PHOTO_DWELL_MS * 3));
-    expect(state().index).toBe(0);
-
-    act(() => screen.getByText('toggle').click());
     expect(state().running).toBe(true);
     seen(false);
     expect(state().running).toBe(false);
     act(() => vi.advanceTimersByTime(MOMENT_PHOTO_DWELL_MS * 3));
     expect(state().index).toBe(0);
+    seen(true);
+    expect(state().running).toBe(true);
   });
 
   it('pauses while the page is hidden', () => {

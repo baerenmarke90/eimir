@@ -362,7 +362,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-candidate.yml`: validates release inputs (`android_api_base_url`, `release_version`), forwards them to `release-evidence.yml`, and binds the immutable release candidate manifest.
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
-  - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
+  - Pinned Actions: Node.js `26.13.1` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
   - Pinned Gradle Wrapper: distribution SHA-256 `f20c816177c0ff192881874852260771b462903aef3e794b0dac4759d1fda284`; wrapper JAR SHA-256 `621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.

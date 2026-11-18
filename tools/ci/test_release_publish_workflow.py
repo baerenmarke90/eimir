@@ -247,7 +247,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (
-            "Set up Node.js 24.21.0",
+            "Set up Node.js 26.13.1",
             "Set up JDK 21",
             "Set up Gradle cache and validate wrapper",
             "Verify pinned Gradle wrapper JAR",
@@ -602,7 +602,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
         self.assertIn('java-version: "21"', self.workflow)
-        self.assertIn('node-version: "24.21.0"', self.workflow)
+        self.assertIn('node-version: "26.13.1"', self.workflow)
         self.assertIn("621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8", self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:

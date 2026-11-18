@@ -287,7 +287,7 @@ server-side lossy encoding is not a fallback. See [operations](operations/on-dev
 |---|---|---|---|
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
-| @types/node | 24.19.1 | npm | MIT |
+| @types/node | 26.6.6 | npm | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -332,10 +332,11 @@ Its updated matcher augmentation preserves the custom focus assertion and
 uses the declared return/received type parameters. Compatibility is checked
 against the locked Vite and Node versions by the existing gates. The [upstream migration guide](https://vitest.dev/guide/migration/)
 was reviewed; object-URL and callback mocks now declare their actual callable
-signatures. Node 24 types are explicit because the removed transitive type
-dependency previously supplied the existing filesystem/layout tests. Existing
-test assertions and timeouts remain unchanged. The
-lockfile also advances Vite/PostCSS's transitive `source-map-js` to 1.2.2.
+signatures. The Web manifest declares `@types/node` directly because the
+removed transitive type dependency previously supplied the filesystem and layout
+tests. The types match the Node.js 26 build toolchain. Existing test assertions
+and timeouts remain unchanged. The lockfile also advances Vite/PostCSS's
+transitive `source-map-js` to 1.2.2.
 These are test/build dependencies and do not add a production feature or
 runtime provider. Core behavior and Cloud/Self-Hosted tiers are unchanged.
 
@@ -393,9 +394,13 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 
 ## Web — Container toolchain
 
+The Web image builder and Linux browser CI use the same digest-pinned Node.js
+26.13.1 LTS image. Capacitor Android and release workflows use the official
+Node.js 26.13.1 distribution through the pinned `actions/setup-node` action.
+
 | Component | Version | Source | License |
 |---|---|---|---|
-| Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
+| Node.js build image | 26.13.1-bookworm-slim, `sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
 | nginx-unprivileged | 1.31.8, `sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
@@ -514,7 +519,7 @@ pinned to commit SHAs.
 |---|---|---|---|
 | python | 3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
-| node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
+| node | 26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 
 ## Build-time tools
 

@@ -269,6 +269,8 @@ export const LEGAL_TERMS_ROUTE = '/legal/terms';
 /** Public, login-free reading page for the eimir. Cloud privacy policy. */
 export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
 
+export const LEGAL_MENTRIA_LICENSE_ROUTE = '/legal/mentria-license';
+
 /* Games content ---------------------------------------------------------- */
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';

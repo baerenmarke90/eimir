@@ -23,15 +23,18 @@ Verifies:
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from threading import Barrier
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
+from pydantic import SecretStr
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.config import Deployment, Environment
+from eimir.config import Deployment, Environment, Settings
 from eimir.core.clock import now
 from eimir.demo import create_demo_space
 from eimir.entitlements import service as entitlement_service
@@ -41,7 +44,7 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.quotes import catalog
+from eimir.quotes import catalog, resolver
 from eimir.quotes import service as preference_service
 from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship import service as relationship_service
@@ -240,6 +243,48 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     assert saying["text"] == translation.text
     assert saying["rightsClassification"] == translation.rights_classification
     assert saying["sourceDisplay"] == translation.source_display
+
+
+def test_central_quote_uses_existing_pro_route_and_gate(
+    client, session: Session, couple, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    space_id = couple["space"].id
+    headers = auth(couple["token_a"])
+    path = f"/api/v1/spaces/{space_id}/daily-quote"
+    settings = Settings(
+        daily_quote_service_url="https://quotes.example.com",
+        daily_quote_service_token=SecretStr("A" * 43),
+    )
+    quote = catalog.DailyQuote(
+        id="mentria-001",
+        text="Du kannst neu anfangen.",
+        author_display="Mentria",
+        source_display="Motivational Quotes · Apache-2.0 · Deutsche Übersetzung",
+        source_id="poetic_wisdom",
+        category_ids=("motivation",),
+        locale="de",
+        rights_classification=catalog.RightsClassification.EDITORIAL_CURATED,
+        attribution_required=True,
+    )
+    provider = MagicMock(return_value=quote)
+    monkeypatch.setattr(resolver, "get_settings", lambda: settings)
+    monkeypatch.setattr(resolver.central_client, "get_quote", provider)
+    assert client.get(path, headers=headers).status_code == 403
+    provider.assert_not_called()
+
+    _grant_quote_capability(session, space_id, couple["anna"].id)
+    response = client.get(path, headers=headers)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert response.json()["quote"]["id"] == quote.id
+    assert response.json()["quote"]["locale"] == "de"
+    assert response.json()["quote"]["sourceDisplay"] == quote.source_display
+    provider.assert_called_once_with(
+        settings.daily_quote_service_url,
+        settings.daily_quote_service_token,
+        "de",
+        date.fromisoformat(response.json()["checkedOn"]),
+    )
 
 
 def test_daily_quote_preferences_crud_and_optimistic_concurrency(

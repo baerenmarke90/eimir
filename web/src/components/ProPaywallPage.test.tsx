@@ -96,6 +96,12 @@ describe('billing contract', () => {
 });
 
 describe('ProPaywallPage', () => {
+  it('explains the central quote service and local fallback in the general Pro offer', () => {
+    renderPaywall('/more/pro');
+    expect(screen.getByText(proPaywall.terms.selfHosted.title)).toBeTruthy();
+    expect(screen.getByText(proPaywall.terms.selfHosted.body)).toBeTruthy();
+  });
+
   it.each([
     ['dateIdeas', proPaywall.contexts.dateIdeas],
     ['recaps', proPaywall.contexts.recaps],

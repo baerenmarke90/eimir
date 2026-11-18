@@ -329,6 +329,8 @@ services:
     restart: unless-stopped
     environment:
       <<: [*self-hosted-runtime-environment, *push-runtime-environment]
+      EIMIR_DAILY_QUOTE_SERVICE_URL: "${EIMIR_DAILY_QUOTE_SERVICE_URL:-}"
+      EIMIR_DAILY_QUOTE_SERVICE_TOKEN: "${EIMIR_DAILY_QUOTE_SERVICE_TOKEN:-}"
       EIMIR_BOOTSTRAP_TOKEN: "${EIMIR_BOOTSTRAP_TOKEN:-${SBS_BOOTSTRAP_TOKEN:-}}"
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-127.0.0.1}"
     volumes:
@@ -395,6 +397,8 @@ services:
     restart: unless-stopped
     environment:
       <<: [*cloud-runtime-environment, *push-runtime-environment]
+      EIMIR_DAILY_QUOTE_SERVICE_URL: "${EIMIR_DAILY_QUOTE_SERVICE_URL:-}"
+      EIMIR_DAILY_QUOTE_SERVICE_TOKEN: "${EIMIR_DAILY_QUOTE_SERVICE_TOKEN:-}"
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-}"
     volumes:
       - cloud_media_data:/var/lib/eimir/media

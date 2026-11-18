@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const termsOfUseDe: LegalDocument = {
   document: 'terms-of-use',
   locale: 'de-DE',
-  version: '2026-11-06.draft-2',
+  version: '2026-11-18.draft-3',
   status: 'draft',
   title: 'Nutzungsbedingungen für eimir.',
   placeholders: [
@@ -904,7 +904,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.',
+              text: 'Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Für Mentria-Tagessprüche braucht die Installation einen eingerichteten Zugang zu unserem Zitatedienst und eine Internetverbindung. Ohne Einrichtung oder Verbindung verwendet eimir. den lokalen Zitatkatalog. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.',
             },
           ],
           children: [],

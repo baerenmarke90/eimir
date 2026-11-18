@@ -5549,6 +5549,9 @@
     "privacyLink": "Privacy",
     "privacySheetTitle": "Privacy notice",
     "privacySheetClose": "Close the privacy notice",
+    "mentriaLicenseTitle": "Mentria · Apache License 2.0",
+    "mentriaLicenseLink": "Apache license text",
+    "mentriaLicenseClose": "Close the license text",
     "privacyNotice": "Our <privacyLink>privacy notice</privacyLink> explains how we handle your data.",
     "draftBadge": "Draft · not yet in force",
     "documentLanguageNotice": "This document is available in {{language}} only. That version is binding.",
@@ -6236,6 +6239,10 @@
     "statusRetry": "Check again",
     "termsTitle": "Good to know",
     "terms": {
+      "selfHosted": {
+        "title": "Daily quote on Self-Hosted",
+        "body": "Your installation needs access to the eimir. quote service and an internet connection to get Mentria quotes. If the service is unavailable or has not been set up, eimir. shows a local quote."
+      },
       "renewal": {
         "title": "Renewal",
         "body": "The subscription renews automatically for the chosen period until it is cancelled."

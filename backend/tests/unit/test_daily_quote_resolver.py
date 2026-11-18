@@ -4,9 +4,12 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import SecretStr
 
 from eimir.authorization import AuthorizationContext
+from eimir.config import Settings
 from eimir.core.errors import ConflictError
+from eimir.identity.models import Account
 from eimir.quotes import resolver
 from eimir.quotes.catalog import DailyQuote, RightsClassification
 from eimir.quotes.models import DailyQuotePreference
@@ -16,6 +19,8 @@ from eimir.relationship.models import SpaceConfiguration
 def _mock_session_with_preference(
     preference: DailyQuotePreference | None,
     configuration: SpaceConfiguration | None = None,
+    *,
+    account: Account | None = None,
 ) -> MagicMock:
     session = MagicMock()
 
@@ -27,7 +32,7 @@ def _mock_session_with_preference(
         elif "daily_quote_preferences" in stmt_str:
             res.scalar_one_or_none.return_value = preference
         else:
-            res.scalar_one_or_none.return_value = None
+            res.scalar_one_or_none.return_value = account
         return res
 
     session.execute.side_effect = _execute
@@ -50,6 +55,57 @@ def test_resolver_is_deterministic_on_same_day() -> None:
     assert res1.quote.id == res2.quote.id
     assert res1.checked_on == res2.checked_on
     assert res1.enabled is True
+
+
+def test_central_quote_uses_app_language_and_preserves_local_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    auth = AuthorizationContext(account_id=uuid4(), space_id=uuid4())
+    preference = DailyQuotePreference(
+        account_id=auth.account_id,
+        enabled=True,
+        selected_source_ids=[],
+        selected_category_ids=["motivation"],
+        locale="de",
+        version=1,
+    )
+    session = _mock_session_with_preference(preference, account=Account(locale="en-US"))
+    at = datetime(2026, 11, 18, 10, tzinfo=UTC)
+    token = SecretStr("A" * 43)
+    settings = Settings(
+        daily_quote_service_url="https://quotes.example.com", daily_quote_service_token=token
+    )
+    quote = DailyQuote(
+        id="mentria-001",
+        text="You can begin again.",
+        author_display="Mentria",
+        source_display="Apache-2.0",
+        source_id="poetic_wisdom",
+        category_ids=("motivation",),
+        locale="en",
+        rights_classification=RightsClassification.EDITORIAL_CURATED,
+        attribution_required=True,
+    )
+    provider = MagicMock(return_value=quote)
+    monkeypatch.setattr(resolver, "get_settings", lambda: settings)
+    monkeypatch.setattr(resolver.central_client, "get_quote", provider)
+    assert resolver.resolve_daily_quote(session, auth, at=at).quote == quote
+    provider.assert_called_once_with(settings.daily_quote_service_url, token, "en", at.date())
+
+    provider.return_value = None
+    fallback = resolver.resolve_daily_quote(session, auth, at=at).quote
+    assert fallback is not None
+    assert fallback.locale == "de"
+    assert fallback.id != quote.id
+
+    provider.reset_mock()
+    preference.selected_category_ids = ["love"]
+    local = resolver.resolve_daily_quote(session, auth, at=at).quote
+    assert local is not None and "love" in local.category_ids
+    preference.selected_category_ids = ["motivation"]
+    preference.enabled = False
+    assert resolver.resolve_daily_quote(session, auth, at=at).quote is None
+    provider.assert_not_called()
 
 
 def test_resolver_different_accounts_receive_personalized_selection() -> None:

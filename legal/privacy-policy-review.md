@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-06.draft-2`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-18.draft-5`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -11,11 +11,12 @@ Baseline: `main` at `aa62b721aafcb6fd56d4176f46f9f0dcda07d578` (includes the voi
 
 ## Scope
 
-The notice covers eimir. Cloud and the official apps (`legal/README.md`).
-Self-Hosted operators are their own controllers and receive no Cloud legal
-texts; the Web app shows the notice only where the instance publishes a Cloud
-terms version. The notice is informational: it is never accepted, never part of
-the terms acceptance and never blocks a flow (Art. 13 GDPR, terms § 7).
+The notice covers eimir. Cloud, the official apps and the central Daily Quote
+service (`legal/README.md`). Self-Hosted operators are their own controllers for
+their installations. Automatic notices in onboarding and the More footer use
+the instance's Cloud terms signal. The public notice is also reachable from
+the Pro information page. It is informational and never blocks a flow
+(Art. 13 GDPR, terms § 7).
 
 ## Data-flow inventory
 
@@ -24,6 +25,7 @@ Where a feature is not yet available, the draft says so explicitly.
 
 | Draft section | Statement | Repository source |
 | --- | --- | --- |
+| 2 | The optional central Daily Quote service receives the calling installation's IP address, language code and scoped access token. Access tokens stay out of logs. The operator applies the section 16 deletion period to any access logs for this endpoint. | `backend/src/eimir/quotes/central_client.py`, `backend/src/eimir/quotes/central_service.py`, [service runbook](../docs/operations/central-daily-quote.md) |
 | 3 | Account fields: email and verification, display name, optional avatar and birthday, locale/time zone/quiet hours/notification settings | `backend/src/eimir/identity/models.py` (`Account`, `AccountEmail`) |
 | 3 | Cloud signup needs only the email address; an omitted display name falls back to a neutral default | `backend/src/eimir/api/v1/auth.py` (`SignupConsumeRequest`), `backend/src/eimir/identity/service.py` |
 | 3 | Terms acceptance: version, time and origin (`signup_request` / `signup_redemption`), no IP or device data, deleted with the Account | `backend/src/eimir/legal/models.py`, `docs/product/design/references/terms-of-use-acceptance/README.md` |

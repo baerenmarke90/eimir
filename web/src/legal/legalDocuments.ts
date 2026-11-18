@@ -1,9 +1,14 @@
-import { LEGAL_PRIVACY_ROUTE, LEGAL_TERMS_ROUTE } from '../client/routes';
+import {
+  LEGAL_MENTRIA_LICENSE_ROUTE,
+  LEGAL_PRIVACY_ROUTE,
+  LEGAL_TERMS_ROUTE,
+} from '../client/routes';
 import { privacyPolicyDe } from '../i18n/locales/legalDocuments/privacyPolicy.de.generated';
 import { termsOfUseDe } from '../i18n/locales/legalDocuments/termsOfUse.de.generated';
+import apacheLicenseText from './apache-2.0.txt?raw';
 import type { LegalDocument } from './legalDocument';
 
-export type LegalDocumentId = 'terms' | 'privacy';
+export type LegalDocumentId = 'terms' | 'privacy' | 'mentriaLicense';
 
 type LegalDocumentEntry = {
   route: string;
@@ -15,7 +20,7 @@ type LegalDocumentEntry = {
   closeKey: string;
 };
 
-/** The eimir. Cloud legal documents the Web app delivers from its bundle. */
+/** The legal documents the app delivers from its bundle. */
 export const LEGAL_DOCUMENTS: Readonly<
   Record<LegalDocumentId, LegalDocumentEntry>
 > = {
@@ -32,6 +37,21 @@ export const LEGAL_DOCUMENTS: Readonly<
     titleKey: 'legal.privacySheetTitle',
     linkKey: 'legal.privacyLink',
     closeKey: 'legal.privacySheetClose',
+  },
+  mentriaLicense: {
+    route: LEGAL_MENTRIA_LICENSE_ROUTE,
+    document: {
+      document: 'mentria-license',
+      locale: 'en',
+      version: '2.0',
+      status: 'published',
+      title: 'Mentria · Apache License 2.0',
+      placeholders: [],
+      blocks: [{ kind: 'verbatim', text: apacheLicenseText }],
+    },
+    titleKey: 'legal.mentriaLicenseTitle',
+    linkKey: 'legal.mentriaLicenseLink',
+    closeKey: 'legal.mentriaLicenseClose',
   },
 };
 

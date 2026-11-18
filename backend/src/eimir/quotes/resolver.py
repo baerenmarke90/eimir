@@ -19,13 +19,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
+from eimir.config import get_settings
 from eimir.core import clock
 from eimir.daily_checkins.context import resolve_space_day
 from eimir.identity.models import Account
-from eimir.quotes import catalog
+from eimir.quotes import catalog, central_client
 from eimir.quotes import service as preference_service
 from eimir.quotes.catalog import DailyQuote
-from eimir.quotes.models import DailyQuotePreference
+from eimir.quotes.central_contract import QuoteLanguage
 from eimir.relationship import configuration as configuration_service
 
 
@@ -54,15 +55,10 @@ def _resolve_day(
     return clock.ensure_utc(instant).date()
 
 
-def _resolve_locale(
+def _resolve_account_locale(
     session: Session,
     authorization: AuthorizationContext,
-    preference: DailyQuotePreference,
 ) -> str:
-    """Resolve effective locale: personal quote preference -> account profile -> 'de' default."""
-    if preference.locale and preference.locale.strip():
-        return preference.locale.strip().lower()
-
     account = session.execute(
         select(Account).where(Account.id == authorization.account_id)
     ).scalar_one_or_none()
@@ -87,15 +83,33 @@ def resolve_daily_quote(
     """Deterministically resolve today's quote for the authorized caller.
 
     Requires that the caller's Space possesses the `daily.quote` Pro capability.
+    Central quotes use the UTC publication day. Local quotes use the Space day.
     """
-    checked_on = _resolve_day(session, authorization, at=at)
+    instant = at if at is not None else clock.now()
+    checked_on = _resolve_day(session, authorization, at=instant)
 
     preference = preference_service.get_or_default_preference(session, authorization.account_id)
 
     if not preference.enabled:
         return ResolvedDailyQuote(quote=None, checked_on=checked_on, enabled=False)
 
-    effective_locale = _resolve_locale(session, authorization, preference)
+    account_locale = _resolve_account_locale(session, authorization)
+    selected_categories = set(preference.selected_category_ids)
+    if custom_quote_pool is None and (
+        not selected_categories or "motivation" in selected_categories
+    ):
+        settings = get_settings()
+        token = settings.daily_quote_service_token
+        if settings.daily_quote_service_url and token is not None:
+            app_language: QuoteLanguage = "en" if _normalize_lang(account_locale) == "en" else "de"
+            central_day = clock.ensure_utc(instant).date()
+            quote = central_client.get_quote(
+                settings.daily_quote_service_url, token, app_language, central_day
+            )
+            if quote is not None:
+                return ResolvedDailyQuote(quote=quote, checked_on=central_day, enabled=True)
+
+    effective_locale = (preference.locale or "").strip() or account_locale
     target_lang = _normalize_lang(effective_locale)
 
     # 1. Base pool: active quotes
@@ -109,7 +123,6 @@ def resolve_daily_quote(
     if not locale_pool:
         locale_pool = active_quotes
 
-    selected_categories = set(preference.selected_category_ids)
     # Legacy source preferences are retained by the preference API for older clients.
     category_pool = [q for q in locale_pool if not selected_categories.isdisjoint(q.category_ids)]
     candidate_pool = category_pool or locale_pool

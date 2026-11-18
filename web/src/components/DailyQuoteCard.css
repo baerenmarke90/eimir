@@ -103,6 +103,10 @@
   overflow-wrap: break-word;
 }
 
+.daily-quote-block footer a {
+  color: var(--color-link-text);
+}
+
 .daily-quote-state {
   display: grid;
   align-content: center;

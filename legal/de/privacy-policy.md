@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-17.draft-4
+version: 2026-11-18.draft-5
 status: draft
 effective: null
 legal_review: pending
@@ -31,10 +31,11 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 ## 2. Wofür diese Hinweise gelten
 
-1. Diese Hinweise gelten für eimir. Cloud, den von uns betriebenen Online-Dienst eimir., den du über die Web-App und die offiziellen Apps nutzt. Sie gelten für alle, die eimir. Cloud nutzen, also für dich und deinen Partner gleichermaßen.
-2. eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für eine solche Installation ist ihr Betreiber verantwortlich, nicht wir. Verbindest du eine offizielle App mit einer Installation, die nicht wir betreiben, gehen deine Daten an diese Installation und nicht an uns.
-3. Lädst du eine offizielle App aus einem App-Store herunter, zum Beispiel bei Google Play, verarbeitet der Betreiber des Stores dabei Daten in eigener Verantwortung.
-4. eimir. Cloud ist für Erwachsene ab 18 Jahren bestimmt.
+1. Diese Hinweise gelten für eimir. Cloud, den von uns betriebenen Online-Dienst eimir., den du über die Web-App und die offiziellen Apps nutzt. Sie gelten für dich und deinen Partner gleichermaßen und auch für den zentralen Zitatedienst (Nummer 3).
+2. eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für den Betrieb und die dort gespeicherten Daten ist der Betreiber dieser Installation verantwortlich. Die offizielle App verbindet sich mit dieser Installation. Für den optionalen Abruf von Mentria-Tagessprüchen bei uns gilt Nummer 3.
+3. Ist der zentrale Zitatedienst für deine Installation eingerichtet, ruft ihr Server den Mentria-Tagesspruch bei uns ab. Dafür verarbeitet unser Dienst die IP-Adresse der anfragenden Installation, den Sprachcode und ihr Zugangstoken. Die Installation übermittelt dabei keine Kontokennungen, E-Mail-Adressen oder Inhalte aus eurem Space. Wir verwenden diese Angaben, um den Zugang zu prüfen, den Spruch in der gewählten Sprache zu liefern und den Dienst vor Missbrauch zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an der Bereitstellung und dem sicheren Betrieb des Zitatedienstes (Art. 6 Abs. 1 lit. f DSGVO). Wir protokollieren das Zugangstoken nicht. Für technische Zugriffsprotokolle und ihre Löschung gilt Abschnitt 16.
+4. Lädst du eine offizielle App aus einem App-Store herunter, zum Beispiel bei Google Play, verarbeitet der Betreiber des Stores dabei Daten in eigener Verantwortung.
+5. eimir. Cloud ist für Erwachsene ab 18 Jahren bestimmt.
 
 ## 3. Dein Konto und deine Anmeldung
 

@@ -953,8 +953,11 @@
     },
     "today-daily-quote.spec.ts": {
       "roots": [
+        "web/src/components/DailyQuoteCard.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/legal/legalDocuments.ts",
+        "web/src/legal/apache-2.0.txt"
       ]
     },
     "today-freshness.spec.ts": {

@@ -139,7 +139,6 @@ export function SpaceOffboardingPanel({
         aria-labelledby="space-offboarding-title"
       >
         <div className="space-offboarding-copy">
-          <p className="eyebrow">{t('spaceOffboarding.eyebrow')}</p>
           <h3 id="space-offboarding-title">{t('spaceOffboarding.title')}</h3>
           <p>{t('spaceOffboarding.intro')}</p>
         </div>

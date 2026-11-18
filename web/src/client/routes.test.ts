@@ -10,6 +10,7 @@ import {
   collectionDetailPath,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
@@ -39,6 +40,7 @@ import {
   PRIMARY_APP_ROUTES,
   placeDetailPath,
   planDetailPath,
+  planPathFromCalendarLink,
   recapDetailPath,
   rewriteLegacyPath,
   SEARCH_ROUTE,
@@ -79,6 +81,7 @@ describe('primary navigation', () => {
     expect(appRoutePath('games')).toBe('/games');
     expect(GAMES_MOMENTS_ROUTE).toBe('/games/our-moments');
     expect(GAMES_WISH_DETECTIVE_ROUTE).toBe('/games/wish-detective');
+    expect(GAMES_PICTURE_PING_PONG_ROUTE).toBe('/games/picture-ping-pong');
     expect(appRoutePath('more')).toBe('/more');
   });
 
@@ -126,6 +129,7 @@ describe('settings category routes', () => {
     );
     expect(SETTINGS_CATEGORY_ROUTES).toEqual({
       relationship: '/more/settings/relationship',
+      shared: '/more/settings/shared',
       notifications: '/more/settings/notifications',
       today: '/more/settings/today',
       memories: '/more/settings/memories',
@@ -216,7 +220,24 @@ describe('content deep links', () => {
     );
   });
 
+  it('expands a calendar short link into the existing Plan detail path', () => {
+    const shortPath = '/p/_-7dzLuqSZiId2ZVRDMiEQ';
+    const target = '/plan/plans/ffeeddcc-bbaa-4998-8877-665544332211';
+    expect(planPathFromCalendarLink(shortPath)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/`)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/edit`)).toBeNull();
+    expect(planPathFromCalendarLink('/p/new')).toBeNull();
+    expect(planPathFromCalendarLink(`/other${shortPath}`)).toBeNull();
+    expect(planPathFromCalendarLink(target)).toBeNull();
+  });
+
   it('treats Activity as a More destination for its shell Back fallback', () => {
+    expect(subpageParentPath('/more/notes/new')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1/edit')).toBe(
+      '/more/notes/note-1',
+    );
+    expect(subpageParentPath('/more/notes')).toBe('/more');
     expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
     expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
     expect(subpageParentPath('/today/only-you/x')).toBe('/today');

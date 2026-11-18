@@ -1,8 +1,9 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoCrop from '../../src/i18n/locales/photoCrop';
+import photoEdit from '../../src/i18n/locales/photoEdit';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import AxeBuilder from '../support/axe';
 import { waitForSettledMotion } from '../support/settledMotion';
 import {
   ACCOUNT_ID,
@@ -427,4 +428,41 @@ test('the crop step fits a small phone without overflow', async ({
     ),
   ).toBe(true);
   await captureScreenshot(page, info, 'profile-photo-crop-320-light.png');
+});
+
+test('turning the photo before cropping saves it turned (#1907 G1)', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await installProfileUpload(page);
+  await openProfileEditing(page);
+  const sheet = await choosePhoto(page, await landscapePhoto(page));
+
+  // A quarter turn to the left brings the warm left half to the bottom.
+  const turn = sheet.getByRole('button', {
+    name: photoEdit.turn,
+    exact: true,
+  });
+  await turn.click();
+  await expect(turn).toBeEnabled();
+  await expect(
+    sheet.getByRole('application', { name: photoCrop.stageLabel }),
+  ).toHaveAttribute('data-orientation', 'portrait');
+  await waitForSettledMotion(page);
+  await captureScreenshot(page, info, 'profile-photo-turned-390-light.png');
+
+  await sheet
+    .getByRole('button', { name: photoCrop.confirm, exact: true })
+    .click();
+  await expect(sheet).toHaveCount(0);
+  await expect.poll(() => state.bodies.length).toBe(1);
+  const top = await inspectUpload(page, state.bodies[0], { x: 0.5, y: 0.1 });
+  const bottom = await inspectUpload(page, state.bodies[0], {
+    x: 0.5,
+    y: 0.9,
+  });
+  expect(top.width).toBe(top.height);
+  expect(top.blue).toBeGreaterThan(top.red + 40);
+  expect(bottom.red).toBeGreaterThan(bottom.blue + 40);
 });

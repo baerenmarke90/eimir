@@ -85,6 +85,17 @@ meets that requirement. Story Preview/Gallery instead preserve unchanged keyed
 resources within the mounted consumer so parent re-renders do not trigger
 redundant requests/Object URLs.
 
+Authorized story media additionally share decoded URLs through
+`sharedMediaObjectUrls` (reference-counted, keyed by login scope, Space, parent,
+attachment and variant). Since the Product Owner decision of 2026-11-16 an entry
+that still exists may be handed to a remounted view synchronously:
+`useObjectUrlResources` starts loaders before paint inside
+`captureSynchronousMediaObjectUrl`, takes the separate handle an authorized
+loader offers for its exact key, and releases the handle the loader promise
+resolves with. Eviction, logout and Space changes delete entries, so an offered
+handle is never one a wipe or denial already withdrew. See
+`docs/frontend/web.md` for the display and revalidation contract.
+
 ## 4. Invariants to test
 
 The shared lifecycle must cover:

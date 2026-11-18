@@ -135,17 +135,15 @@ are served only through the Pro-gated API.
 
 `backend/src/eimir/quotes/daily_sayings.json` contains an eimir. selection
 of German public-domain literary excerpts, aphorisms and traditional sayings
-with English translations of the same entries.
-Each collection records the edition or digital source and its rights basis.
-The original texts are in the public domain in Germany under §§ 64 and 69
-UrhG. The authors of the added literary texts died by 1934. Traditional
-sayings are documented in 19th-century printed collections.
+with equivalent German and English versions. Each collection records the
+edition or digital source and the basis for reuse. Public-domain selections
+include historical literature and documented traditional sayings. Contemporary
+sayings carry eimir. credit and the repository license.
 
-The English versions are catalog translations from the German source texts.
-These new English translations are contributed under
-[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
-The catalog retains the original author, work and source edition. The English
-card identifies attributed texts as translations.
+Catalog translations of historical works and public remarks are contributed
+under [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+The underlying works retain their source credits and reuse terms. The catalog
+records the author, work and edition for each quotation.
 
 - **Poetry.** The original texts and bibliographic fields were selected from
   the [TextGrid Poetry Corpus](https://github.com/linhd-postdata/textgrid-poetry/tree/33a990cbf8e078edf3615f9ff35c4239065270b1),
@@ -169,6 +167,21 @@ card identifies attributed texts as translations.
   (H. L. Brönner, 1846).
   The catalog uses original proverb wording with corrected transcription and
   occasional spelling normalization.
+
+- **Additional editions.** The 1893 [Ebner-Eschenbach scan](https://archive.org/details/aphorismen00escgoog)
+  supplies numbered aphorisms with normalized historical typography.
+  [*Selbstbetrachtungen*](https://www.gutenberg.org/ebooks/15028) uses the
+  F. C. Schneider translation edited by Alexander von Gleichen-Rußwurm.
+  Khalil Gibran's [*The Prophet*](https://standardebooks.org/ebooks/kahlil-gibran/the-prophet)
+  uses the 1923 English text. The catalog identifies the edition used for each
+  excerpt from *A Room of One's Own*, *Emma*, and the other English works.
+- **Public remarks.** The catalog records the transcript, date and reuse policy
+  for quotations from the twentieth and twenty-first centuries. Beehive's
+  [copyright policy](https://www.beehive.govt.nz/copyright) authorizes accurate
+  reproduction and translation with source credit. Official White House and
+  NASA quotations use the sources identified in the individual catalog entries.
+- **Contemporary sayings.** The eimir. editorial collection contains original
+  sayings in German and English. Their author credit is `eimir.`.
 
 The licensing terms above apply to the supplied source data independently of
 the application license. Source and rights metadata stay in the repository.

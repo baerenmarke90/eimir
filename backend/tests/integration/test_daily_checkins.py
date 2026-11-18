@@ -8,6 +8,7 @@ from threading import Barrier
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError as PayloadValidationError
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -330,13 +331,22 @@ class TestPersistenceAndEnergy:
             )
             session.flush()
 
+        # The value now lives in the protected payload, whose model rejects it
+        # before a row exists; the column check still guards a legacy row.
+        with pytest.raises(PayloadValidationError):
+            DailyCheckIn(
+                space_id=couple["space"].id,
+                account_id=couple["manager"].id,
+                checked_on=day,
+                vibe="INVENTED_MOOD",
+            )
         with pytest.raises(IntegrityError), session.begin_nested():
             session.add(
                 DailyCheckIn(
                     space_id=couple["space"].id,
                     account_id=couple["manager"].id,
                     checked_on=day,
-                    vibe="INVENTED_MOOD",
+                    legacy_vibe="INVENTED_MOOD",
                 )
             )
             session.flush()
@@ -443,13 +453,20 @@ class TestVibeContract:
         assert invalid.status_code == 422
         assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
 
+        with pytest.raises(PayloadValidationError):
+            DailyCheckIn(
+                space_id=couple["space"].id,
+                account_id=couple["manager"].id,
+                checked_on=date(2026, 9, 20),
+                vibe="INVENTED_MOOD",
+            )
         with pytest.raises(IntegrityError), session.begin_nested():
             session.add(
                 DailyCheckIn(
                     space_id=couple["space"].id,
                     account_id=couple["manager"].id,
                     checked_on=date(2026, 9, 20),
-                    vibe="INVENTED_MOOD",
+                    legacy_vibe="INVENTED_MOOD",
                 )
             )
             session.flush()

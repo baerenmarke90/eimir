@@ -23,3 +23,6 @@ ba642c7cd8d02cad331b9b79321130ce0cad85f0:docs/product/design/references/today-cl
 
 # Historical #565 OpenAPI source SHA-256, verified against the exact public source commit; not a credential.
 db31e7acfdc85d726a44702687035a7a63065d03:docs/design/eimir/565-fcm/evidence/reconciliation-2026-11-01.json:generic-api-key:8
+
+# Random base64url ciphertext of an encrypted push preview fixture (#1907 H3) that matched a token pattern; regenerated, not a credential.
+59a5cfea0dadb36863b40dc97810c862d28b4246:android/app/src/androidTest/assets/push-preview-catalog.json:github-pat:1562

@@ -20,6 +20,9 @@ import {
   TINY_PNG,
 } from '../support/storyTimelineFixture';
 
+// Light maps share the app-wide muted paper tone (design token mapAppearance.paperTileFilter).
+const PAPER_TILE_FILTER = 'saturate(0.6) contrast(0.97) brightness(1.04)';
+
 const comments = storyProducts.comments;
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const photo = readFileSync(
@@ -99,7 +102,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   expect(imageBounds.height).toBeLessThanOrEqual(frameBounds.height);
 
   await page.emulateMedia({ colorScheme: 'light' });
-  await expect(tiles).toHaveCSS('filter', 'none');
+  await expect(tiles).toHaveCSS('filter', PAPER_TILE_FILTER);
   await expect(marker).toHaveAttribute('src', source);
   await page
     .getByRole('tab', { name: de.story.tabTimeline, exact: true })
@@ -135,8 +138,9 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
       'data-theme',
       preference,
     );
-    if (preference === 'light') await expect(tiles).toHaveCSS('filter', 'none');
-    else await expect(tiles).not.toHaveCSS('filter', 'none');
+    if (preference === 'light')
+      await expect(tiles).toHaveCSS('filter', PAPER_TILE_FILTER);
+    else await expect(tiles).not.toHaveCSS('filter', PAPER_TILE_FILTER);
     await captureScreenshot(page, info, `map-explicit-${preference}-390.png`, {
       fullPage: true,
     });

@@ -1,16 +1,21 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import navigation from '../../src/i18n/locales/navigation';
-import productTour from '../../src/i18n/locales/productTour';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { pinDiaryLayout } from '../support/diaryLayout';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -405,6 +410,73 @@ const canonicalItemLabels = [
   'Wochenendtrip nach Trier',
 ];
 
+const story = storyProducts.discoverStory;
+
+// Fotostory themes (direction C): photos, heart moments, milestones and
+// memories told in words, each in the canonical backend order.
+const STORY_THEMES = ['photos', 'heartMoments', 'milestones', 'words'];
+const storyThemeOf: Record<string, string> = {
+  'Danke, dass du heute einfach zugehört hast.': 'heartMoments',
+  'Ein Wochenende am Wasser': 'photos',
+  'Ein Jahr in unserer Wohnung': 'milestones',
+  Konzertabend: 'photos',
+  'Spontaner Tagesausflug': 'photos',
+  'Picknick im Grünen': 'photos',
+  'Sonnenuntergang nach Feierabend': 'photos',
+  'Erster gemeinsamer Umzug': 'milestones',
+  'Drei Jahre wir': 'milestones',
+  'Filmabend auf dem Sofa': 'words',
+  'Wochenendtrip nach Trier': 'photos',
+};
+const canonicalStoryOrder = STORY_THEMES.flatMap((theme) =>
+  canonicalItemLabels
+    .filter((label) => storyThemeOf[label] === theme)
+    .map((label) => ({ theme, label })),
+);
+
+/** Stop autoplay, if motion allows it, so a walk reads stable slides. */
+async function pauseStory(page: Page): Promise<void> {
+  const pause = page.getByRole('button', { name: story.pause, exact: true });
+  if (await pause.count()) await pause.click();
+}
+
+/** Page through every slide with the visible "next" control. */
+async function walkStory(
+  page: Page,
+  total: number,
+): Promise<Array<{ theme: string; label: string; href: string }>> {
+  await pauseStory(page);
+  const viewer = page.locator('.momente-story-viewer');
+  const open = viewer.getByRole('link', {
+    name: new RegExp(`^${story.open}:`),
+  });
+  const steps = [];
+  for (let index = 0; index < total; index++) {
+    await expect(open).toBeVisible();
+    steps.push({
+      theme: (await viewer.getAttribute('data-story-theme')) ?? '',
+      label: (await open.getAttribute('aria-label')) ?? '',
+      href: (await open.getAttribute('href')) ?? '',
+    });
+    await page.getByRole('button', { name: story.next, exact: true }).click();
+  }
+  return steps;
+}
+
+async function expectCanonicalStory(page: Page): Promise<void> {
+  const steps = await walkStory(page, canonicalStoryOrder.length);
+  expect(steps.map((step) => step.theme)).toEqual(
+    canonicalStoryOrder.map((step) => step.theme),
+  );
+  for (const [index, step] of steps.entries())
+    expect(step.label).toContain(canonicalStoryOrder[index].label);
+  expect(new Set(steps.map((step) => step.href)).size).toBe(steps.length);
+  // Bubbles name each theme with its number of moments.
+  await expect(
+    page.getByRole('list', { name: story.themesLabel }).getByRole('button'),
+  ).toHaveCount(STORY_THEMES.length);
+}
+
 async function verifyDiaryAndReturnToDiscover(page: Page): Promise<void> {
   const diaryTab = page.getByRole('tab', {
     name: de.story.tabTimeline,
@@ -464,9 +536,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
     retrospective.locator('.momente-retrospective-media'),
   ).toHaveCount(1);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
-    canonicalItemLabels.length,
-  );
+  await expectCanonicalStory(page);
   await verifyDiaryAndReturnToDiscover(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
@@ -535,7 +605,7 @@ for (const [width, theme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`long retrospective uses one full reading row without stretching its neighboring photo at ${width} ${theme}`, async ({
+  test(`long retrospective keeps one full reading row above an unstretched Fotostory at ${width} ${theme}`, async ({
     page,
   }, info) => {
     const longText = localizedFixture.appContinuity.longRetrospective;
@@ -559,34 +629,28 @@ for (const [width, theme] of [
     const retrospective = page.locator('.momente-retrospective-compact');
     await expect(retrospective).toHaveCount(1);
     await retrospective.scrollIntoViewIfNeeded();
-    const grid = page.locator('.momente-tapestry').first();
     const geometry = await retrospective.evaluate((node) => ({
       width: node.getBoundingClientRect().width,
-      gridWidth: node.parentElement!.getBoundingClientRect().width,
-      right: node.getBoundingClientRect().right,
+      columnWidth: node.parentElement!.getBoundingClientRect().width,
     }));
-    expect(geometry.width).toBeCloseTo(geometry.gridWidth, 0);
-    const photo = grid.locator('.momente-tapestry-media').first();
+    expect(geometry.width).toBeCloseTo(geometry.columnWidth, 0);
+    const viewer = page.locator('.momente-story-viewer');
     const bounds = await retrospective.boundingBox();
-    const photoBounds = await photo.boundingBox();
-    expect(photoBounds!.y).toBeGreaterThanOrEqual(
+    const viewerBounds = await viewer.boundingBox();
+    expect(viewerBounds!.y).toBeGreaterThanOrEqual(
       bounds!.y + bounds!.height - 1,
     );
-    const frame = photo.locator('.momente-tapestry-media-frame');
-    const shape = await frame.evaluate((node) => ({
-      width: node.getBoundingClientRect().width,
-      height: node.getBoundingClientRect().height,
-      ratio: getComputedStyle(node).aspectRatio,
-    }));
-    const [numerator, denominator] = shape.ratio.split('/').map(Number);
-    expect(shape.width / shape.height).toBeCloseTo(numerator / denominator, 1);
+    // The photo slide keeps its 4:5 story shape next to the long text.
+    expect(viewerBounds!.height / viewerBounds!.width).toBeCloseTo(1.25, 1);
     await retrospective.evaluate((node) =>
       window.scrollTo(
         0,
         window.scrollY + node.getBoundingClientRect().top - 24,
       ),
     );
-    await expect(photo.locator('img').first()).toBeVisible();
+    await expect(
+      viewer.locator('.momente-story-slide[data-state="current"] img').first(),
+    ).toBeVisible();
     await page.screenshot({
       path: info.outputPath(
         `story-retrospective-full-row-${width}-${theme}.png`,
@@ -598,7 +662,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
+test('Momente Discover preserves canonical order inside each Fotostory theme on Expanded and stays axe-clean', async ({
   page,
 }, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -613,32 +677,28 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   await expect(page.locator('.momente-hero-highlight')).toContainText(
     'Danke, dass du heute für mich da warst.',
   );
-
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
-    canonicalItemLabels.length,
-  );
-  const tapestryLinkTitles = await page
-    .locator('.momente-tapestry-item')
-    .evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute('aria-label')),
-    );
-  expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
-  for (const [index, label] of tapestryLinkTitles.entries())
-    expect(label).toContain(canonicalItemLabels[index]);
+  await expectCanonicalStory(page);
   await verifyDiaryAndReturnToDiscover(page);
 
-  const grid = page.locator('.momente-tapestry').first();
-  await expect(grid).toBeVisible();
-  const gridStyle = await grid.evaluate((element) => {
-    const style = getComputedStyle(element);
+  // One centred story viewer with a sensible Expanded size, no card grid.
+  await expect(page.locator('.momente-tapestry')).toHaveCount(0);
+  const viewer = page.locator('.momente-story-viewer');
+  const geometry = await viewer.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const column = node
+      .closest('.momente-discover-page')!
+      .getBoundingClientRect();
     return {
-      display: style.display,
-      columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+      width: box.width,
+      height: box.height,
+      leftGap: box.left - column.left,
+      rightGap: column.right - box.right,
+      rem: parseFloat(getComputedStyle(document.documentElement).fontSize),
     };
   });
-  expect(gridStyle.display).toBe('grid');
-  expect(gridStyle.columns).toBe(2);
-  await expect(page.locator('.momente-tapestry-column')).toHaveCount(0);
+  expect(geometry.width).toBeLessThanOrEqual(32 * geometry.rem + 1);
+  expect(geometry.height / geometry.width).toBeCloseTo(1.25, 1);
+  expect(Math.abs(geometry.leftGap - geometry.rightGap)).toBeLessThan(2);
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -655,7 +715,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   });
 });
 
-test('Momente Discover tapestry is axe-clean in dark mode', async ({
+test('Momente Discover Fotostory is axe-clean in dark mode', async ({
   page,
 }, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -668,7 +728,20 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   await expect(
     page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
+  await expect(page.locator('.momente-story-viewer')).toBeVisible();
+  await pauseStory(page);
   await expectNoWcagViolations(page);
+  // Every slide kind stays axe-clean in dark mode.
+  for (const theme of STORY_THEMES.slice(1)) {
+    await page
+      .locator(`.momente-story-bubble[data-story-theme="${theme}"]`)
+      .click();
+    await expect(page.locator('.momente-story-viewer')).toHaveAttribute(
+      'data-story-theme',
+      theme,
+    );
+    await expectNoWcagViolations(page);
+  }
   expect(unexpectedRequests).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath('1300-discover-1440-dark.png'),
@@ -676,125 +749,180 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   });
 });
 
-test('Momente Discover mixes narrow and full-width memories with natural heights and no horizontal overflow', async ({
+for (const width of [320, 390, 430] as const) {
+  test(`Momente Discover Fotostory fills the Compact column at ${width} without overflow or a renew button`, async ({
+    page,
+  }, info) => {
+    const unexpectedRequests = await installDiscoverApiMocks(page);
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+
+    await expect(
+      page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(de.story.discoverInvitation, { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.discover-toolbar')).toHaveCount(0);
+    // Compact keeps pull-to-refresh as its only renew gesture.
+    await expect(
+      page.getByRole('button', { name: de.story.discoverRenew, exact: true }),
+    ).toHaveCount(0);
+    await expectCanonicalStory(page);
+    await verifyDiaryAndReturnToDiscover(page);
+
+    const viewer = page.locator('.momente-story-viewer');
+    const geometry = await viewer.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const column = node
+        .closest('.momente-discover-page')!
+        .getBoundingClientRect();
+      return { width: box.width, height: box.height, column: column.width };
+    });
+    expect(geometry.width).toBeCloseTo(geometry.column, 0);
+    expect(geometry.height / geometry.width).toBeGreaterThanOrEqual(1.24);
+    // The authorized photo of the first slide fills the viewer.
+    const photo = viewer
+      .locator(
+        '.momente-story-slide[data-state="current"] .momente-story-photo img',
+      )
+      .first();
+    await expect(photo).toBeVisible();
+    expect(await photo.getAttribute('src')).toMatch(/^blob:/);
+    // Theme bubbles share the column and keep a comfortable target.
+    const themes = page.getByRole('list', { name: story.themesLabel });
+    for (const bubble of await themes.getByRole('button').all()) {
+      const box = await bubble.boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+    await viewer.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: info.outputPath(`fotostory-${width}-light.png`),
+      fullPage: true,
+    });
+    await expectNoWcagViolations(page);
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
+
+test('Momente Discover Fotostory autoplays only with motion, pauses on request and pages by keyboard', async ({
   page,
-}, info) => {
+}) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
-  await page.setViewportSize({ width: 390, height: 1800 });
+  await page.setViewportSize({ width: 390, height: 1000 });
   await page.goto('/story?tab=discover');
   await signIn(page);
   await page.goto('/story?tab=discover');
+  const viewer = page.locator('.momente-story-viewer');
+  await viewer.scrollIntoViewIfNeeded();
+  const fill = viewer.locator(
+    '.momente-story-segment[data-state="current"] .momente-story-segment-fill',
+  );
+  await expect(fill).toHaveCSS('animation-name', 'momente-story-progress');
+  await expect(fill).toHaveCSS('animation-play-state', 'running');
+  const zoom = viewer.locator(
+    '.momente-story-slide[data-state="current"] .momente-story-photo > *',
+  );
+  await expect(zoom).toHaveCSS('animation-name', 'momente-story-ken-burns');
 
+  // WCAG 2.2.2: a visible, named pause toggle.
+  const pause = page.getByRole('button', { name: story.pause, exact: true });
+  await expect(pause).toBeVisible();
+  await pause.click();
+  await expect(fill).toHaveCSS('animation-play-state', 'paused');
   await expect(
-    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
+    page.getByRole('button', { name: story.play, exact: true }),
   ).toBeVisible();
 
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
-    canonicalItemLabels.length,
-  );
-  await expect(
-    page.getByText(de.story.discoverInvitation, { exact: true }),
-  ).toHaveCount(0);
-  await expect(page.locator('.discover-toolbar')).toHaveCount(0);
-  await expect(
-    page.getByRole('button', { name: de.story.discoverRenew, exact: true }),
-  ).toHaveCount(0);
-  const tapestryLinkTitles = await page
-    .locator('.momente-tapestry-item')
-    .evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute('aria-label')),
-    );
-  expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
-  for (const [index, label] of tapestryLinkTitles.entries())
-    expect(label).toContain(canonicalItemLabels[index]);
-  await verifyDiaryAndReturnToDiscover(page);
-
-  const grid = page.locator('.momente-tapestry').first();
-  const columnCount = await grid.evaluate(
-    (element) =>
-      getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean)
-        .length,
-  );
-  expect(columnCount).toBe(2);
-  const frames = page.locator('.momente-tapestry-media-frame');
-  await expect(frames).toHaveCount(6);
-  const ratios = await frames.evaluateAll((elements) =>
-    elements.map((element) => getComputedStyle(element).aspectRatio),
-  );
-  expect(ratios).toContain('2 / 3');
-  expect(ratios).toContain('4 / 3');
-  expect(ratios).toContain('16 / 10');
-  const accent = grid
-    .locator('.momente-tapestry-media[data-discover-wide="true"]')
-    .first();
-  const accentBounds = await accent.boundingBox();
-  const gridBounds = await grid.boundingBox();
-  expect(accentBounds?.width).toBeCloseTo(gridBounds!.width, 0);
-  const layoutBounds = await grid.evaluate((element) => ({
-    gridBottom: element.getBoundingClientRect().bottom,
-    contentBottom: Math.max(
-      ...Array.from(element.children).map(
-        (child) => child.getBoundingClientRect().bottom,
-      ),
-    ),
-    rowUnit: parseFloat(getComputedStyle(element).gridAutoRows),
-    gap: parseFloat(getComputedStyle(element).rowGap),
-  }));
-  expect(
-    layoutBounds.gridBottom - layoutBounds.contentBottom,
-  ).toBeLessThanOrEqual(layoutBounds.rowUnit + layoutBounds.gap);
-
-  const vacantRows = await grid.evaluate((element) => {
-    const children = Array.from(element.children) as HTMLElement[];
-    return children.flatMap((item, index) => {
-      if (
-        item.offsetWidth >= element.clientWidth - 1 ||
-        (index > 0 && item.offsetTop === children[index - 1].offsetTop)
-      )
-        return [];
-      const next = children[index + 1];
-      // Inline milestone labels center in their tracks; material cards fill them.
-      if (
-        item.matches('.momente-tapestry-milestone') ||
-        next?.matches('.momente-tapestry-milestone')
-      )
-        return [];
-      if (
-        !next ||
-        Math.abs(item.offsetTop - next.offsetTop) > 1 ||
-        Math.abs(
-          item.offsetTop +
-            item.offsetHeight -
-            next.offsetTop -
-            next.offsetHeight,
-        ) > 1
-      )
-        return [index];
-      return [];
-    });
+  // Keyboard paging once the viewer has focus.
+  const open = viewer.getByRole('link', {
+    name: new RegExp(`^${story.open}:`),
   });
-  expect(vacantRows).toEqual([]);
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
+  await viewer.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-2');
+  await page.keyboard.press('ArrowLeft');
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
 
-  // Browse the real reveal lifecycle before capturing the entire album.
-  for (const card of await grid.locator('.momente-tapestry-item').all()) {
-    await card.scrollIntoViewIfNeeded();
-    await expect(card).toHaveCSS('opacity', '1');
+  // Autoplay continues to the next slide after its dwell time.
+  await page.getByRole('button', { name: story.play, exact: true }).click();
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-2', {
+    timeout: 8_000,
+  });
+
+  // Reduced motion: no autoplay, no Ken Burns, no toggle; paging still works.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.momente-story')).toHaveAttribute(
+    'data-autoplay',
+    'false',
+  );
+  await expect(fill).toHaveCSS('animation-name', 'none');
+  await expect(zoom).toHaveCSS('animation-name', 'none');
+  await expect(
+    page.getByRole('button', { name: story.pause, exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: story.next, exact: true }).click();
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-3');
+  await page.waitForTimeout(6_000);
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-3');
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('Momente Discover Fotostory never shows sensitive photos unblurred', async ({
+  page,
+}) => {
+  const unexpectedRequests = await installDiscoverApiMocks(page);
+  const sensitive = memoryItem(
+    'mem-private',
+    'Only for the two of us',
+    '2026-08-20',
+    true,
+  );
+  sensitive.memory.attachments[0].isSensitive = true;
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/discover`, (route) =>
+    route.fulfill({
+      json: {
+        selectionDate: '2026-09-17',
+        lead: DISCOVER_ITEMS[0],
+        items: [sensitive, DISCOVER_ITEMS[2]],
+        leadContext: null,
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+  const viewer = page.locator('.momente-story-viewer');
+  const slide = viewer.locator('.momente-story-slide[data-state="current"]');
+  await expect(slide.locator('.sensitive-media-cover')).toHaveCount(1);
+  await expect(slide).toContainText(sensitiveMedia.label);
+  // Every image in the sensitive slide and its bubble stays inside the blur.
+  for (const scope of [
+    slide,
+    page.locator('.momente-story-bubble[data-story-theme="photos"]'),
+  ]) {
+    const unblurred = await scope
+      .locator('img')
+      .evaluateAll(
+        (images) =>
+          images.filter((image) => !image.closest('.sensitive-media-blurred'))
+            .length,
+      );
+    expect(unblurred).toBe(0);
   }
-  await page
-    .getByRole('heading', { level: 1 })
-    .first()
-    .scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: info.outputPath('1614-moments-390-light.png'),
-    fullPage: true,
-  });
-
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
-
+  await expect(
+    viewer.getByRole('button', { name: sensitiveMedia.show }),
+  ).toHaveCount(0);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 });
@@ -813,10 +941,6 @@ test('Diary uses its filter and keeps annual history reachable under More', asyn
   await expect(page.getByRole('tab')).toHaveCount(3);
   await expect(page.locator('.story-filter-toggle')).toBeVisible();
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await page
-    .locator('.product-tour')
-    .getByRole('button', { name: productTour.later, exact: true })
-    .click();
   const years = page.getByRole('link', {
     name: de.more.destinations.yearsAndRecaps,
     exact: true,
@@ -1074,56 +1198,69 @@ for (const [width, theme, textScale] of [
         content: `html { font-size: ${textScale}%; }`,
       });
 
-    const links = page.locator('.momente-tapestry-note');
-    await expect(links).toHaveCount(emotions.length);
-    // The emotion badge replaces the corner glyph, the surface follows the feeling.
+    // Six Heart Moments form one theme; every slide wears its feeling.
     await expect(
-      page.locator('.momente-tapestry-note .momente-tapestry-kind'),
-    ).toHaveCount(0);
-    const surfaces = await links.evaluateAll((nodes) =>
-      nodes.map((node) => {
+      page.locator('.momente-story-bubble[data-story-theme="heartMoments"]'),
+    ).toHaveCount(1);
+    const viewer = page.locator('.momente-story-viewer');
+    await expect(viewer.locator('.momente-story-segment')).toHaveCount(
+      emotions.length,
+    );
+    const slide = viewer.locator('.momente-story-slide[data-state="current"]');
+    const surfaces: string[] = [];
+    for (const [index, emotion] of emotions.entries()) {
+      await expect(slide).toHaveAttribute('data-heart-emotion', emotion);
+      const surface = await slide.evaluate((node) => {
         const probe = document.createElement('span');
         probe.style.backgroundColor = 'var(--heart-emotion-surface)';
         node.append(probe);
         const expected = getComputedStyle(probe).backgroundColor;
         probe.remove();
         return { background: getComputedStyle(node).backgroundColor, expected };
-      }),
-    );
-    expect(new Set(surfaces.map((s) => s.background)).size).toBe(
-      emotions.length,
-    );
-    for (const surface of surfaces)
+      });
       expect(surface.background).toBe(surface.expected);
-    for (const [index, emotion] of emotions.entries()) {
+      surfaces.push(surface.background);
       const label = storyProducts.heartEmotion[emotion];
-      const link = links.nth(index);
-      await expect(link.locator('.heart-emotion-label')).toHaveText(label);
-      await expect(link).toHaveAttribute(
-        'aria-label',
-        new RegExp(
-          `${storyProducts.heartMomentProduct.emotionLabel}: ${label}$`,
-        ),
+      await expect(slide.locator('.heart-emotion-label')).toHaveText(label);
+      await expect(
+        slide.getByRole('img', {
+          name: `${storyProducts.heartMomentProduct.emotionLabel}: ${label}`,
+        }),
+      ).toHaveCount(1);
+      await expect(slide).toContainText(
+        localizedFixture.diaryCategoryNotes[index],
       );
+      // Badge and text stay inside their slide, also with enlarged text.
+      const overflow = await slide.evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const badge = node
+          .querySelector('.heart-emotion-badge')
+          ?.getBoundingClientRect();
+        return (
+          !badge ||
+          badge.left < box.left - 1 ||
+          badge.right > box.right + 1 ||
+          node.scrollWidth > node.clientWidth + 1
+        );
+      });
+      expect(overflow).toBe(false);
+      if (index === 0) {
+        await viewer.scrollIntoViewIfNeeded();
+        await expectNoWcagViolations(page);
+      }
+      if (index < emotions.length - 1)
+        await page
+          .getByRole('button', { name: story.next, exact: true })
+          .click();
     }
-    await links.first().scrollIntoViewIfNeeded();
-    // Badge and label stay inside their note, also with enlarged text.
-    const overflow = await links.evaluateAll(
-      (nodes) =>
-        nodes.filter((node) => {
-          const note = node.getBoundingClientRect();
-          const badge = node
-            .querySelector('.heart-emotion-badge')
-            ?.getBoundingClientRect();
-          return (
-            !badge ||
-            badge.left < note.left - 1 ||
-            badge.right > note.right + 1 ||
-            node.scrollWidth > node.clientWidth + 1
-          );
-        }).length,
-    );
-    expect(overflow).toBe(0);
+    expect(new Set(surfaces).size).toBe(emotions.length);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
     await expectNoWcagViolations(page);
     await page.screenshot({
       path: info.outputPath(
@@ -1166,21 +1303,26 @@ for (const [width, theme] of [
     await page.goto('/story?tab=discover');
     await signIn(page);
     await page.goto('/story?tab=discover');
-    const card = page.locator(
-      '.momente-tapestry-item[data-discover-wide="true"]',
+    await page
+      .locator('.momente-story-bubble[data-story-theme="heartMoments"]')
+      .click();
+    const slide = page.locator(
+      '.momente-story-slide[data-state="current"][data-story-slide="heart"]',
     );
-    await expect(card).toHaveCount(1);
-    await expect(card).toContainText(longText);
-    const grid = page.locator('.momente-tapestry').first();
-    await expect(grid).toHaveAttribute('data-discover-measured', 'true');
-    const bounds = await card.boundingBox();
-    const gridBounds = await grid.boundingBox();
-    expect(bounds?.width).toBeCloseTo(gridBounds?.width ?? 0, 0);
-    await expect(card.locator('.momente-tapestry-quote')).toHaveCSS(
-      '-webkit-line-clamp',
-      'none',
-    );
-    await card.scrollIntoViewIfNeeded();
+    await expect(slide).toContainText(longText);
+    const quote = slide.locator('.momente-story-quote');
+    await expect(quote).toHaveAttribute('data-length', 'long');
+    await expect(quote).toHaveCSS('-webkit-line-clamp', 'none');
+    // The whole text stays readable: the slide grows instead of clipping.
+    const fits = await slide.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const text = node
+        .querySelector('.momente-story-quote')!
+        .getBoundingClientRect();
+      return text.top >= box.top - 1 && text.bottom <= box.bottom + 1;
+    });
+    expect(fits).toBe(true);
+    await slide.scrollIntoViewIfNeeded();
     await expectNoWcagViolations(page);
     expect(
       await page.evaluate(
@@ -1294,7 +1436,69 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   );
   await pullDiscover(page);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(0);
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(0);
+  await expect(page.locator('.momente-story')).toHaveCount(0);
+});
+
+test('Discover renewal stays visible on Expanded and replaces the Fotostory', async ({
+  page,
+}, info) => {
+  const unexpectedRequests = await installDiscoverApiMocks(page);
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+  const renew = page.getByRole('button', {
+    name: de.story.discoverRenew,
+    exact: true,
+  });
+  await expect(renew).toBeVisible();
+  const open = page
+    .locator('.momente-story-viewer')
+    .getByRole('link', { name: new RegExp(`^${story.open}:`) });
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
+  let release: () => void = () => {};
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/discover/renew`,
+    async (route) => {
+      await waiting;
+      await route.fulfill({
+        json: {
+          selectionDate: '2026-09-17',
+          lead: DISCOVER_ITEMS[4],
+          items: [DISCOVER_ITEMS[3], DISCOVER_ITEMS[1]],
+          leadContext: null,
+        },
+      });
+    },
+  );
+  await renew.click();
+  const busy = page.getByRole('button', {
+    name: de.story.discoverRenewing,
+    exact: true,
+  });
+  await expect(busy).toBeDisabled();
+  release();
+  await expect(page.locator('.momente-hero-highlight')).toContainText(
+    'Konzertabend',
+  );
+  await expect(
+    page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),
+  ).toBeAttached();
+  // A renewed selection starts again with its first theme.
+  await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-2');
+  await expect(
+    page.getByRole('list', { name: story.themesLabel }).getByRole('button'),
+  ).toHaveCount(2);
+  await expect(renew).toBeEnabled();
+  await page.screenshot({
+    path: info.outputPath('fotostory-renewed-1280-light.png'),
+    fullPage: false,
+  });
+  expect(unexpectedRequests).toEqual([]);
 });
 
 /** Exercise the shared touch primitive, including pending duplicate gestures. */

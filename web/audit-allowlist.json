@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "scope": "development",
+      "reason": "ReDoS in picomatch <=4.0.7 reached only through the dev tools vite, vitest, tinyglobby and fdir. No fixed version is published (4.0.7 is the latest). It is absent from the production tree (npm audit --omit=dev reports no vulnerabilities).",
+      "expires": "2026-12-17"
+    }
+  ]
+}

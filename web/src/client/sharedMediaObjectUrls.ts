@@ -1,9 +1,9 @@
-import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import {
+  MEDIA_CACHE_MAX_AGE_MS,
   MEDIA_CACHE_MAX_BYTES,
   MEDIA_CACHE_MAX_ENTRIES,
-  MEDIA_CACHE_MAX_AGE_MS,
 } from './mediaCacheLimits';
+import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 
 interface Entry {
   resource: OwnedObjectUrl;
@@ -89,7 +89,49 @@ export function acquireMediaObjectUrl(
     };
     entries.set(key, entry);
   }
-  const owned = entry;
+  return handleFor(key, entry);
+}
+
+/**
+ * Takes another handle on an existing, still retained entry without bytes or
+ * transport. Eviction, wipe and expiry delete entries, so a hit is current.
+ */
+export function reacquireMediaObjectUrl(key: string): OwnedObjectUrl | null {
+  prune();
+  const entry = entries.get(key);
+  return entry?.retained ? handleFor(key, entry) : null;
+}
+
+let synchronousCapture: { handle: OwnedObjectUrl | null } | null = null;
+
+/**
+ * Runs a loader and returns a handle it could satisfy synchronously. The
+ * caller owns that handle; the loader's promise result is a separate handle.
+ */
+export function captureSynchronousMediaObjectUrl<T>(run: () => T): {
+  result: T;
+  handle: OwnedObjectUrl | null;
+} {
+  const previous = synchronousCapture;
+  const current: { handle: OwnedObjectUrl | null } = { handle: null };
+  synchronousCapture = current;
+  try {
+    return { result: run(), handle: current.handle };
+  } catch (error) {
+    current.handle?.dispose();
+    throw error;
+  } finally {
+    synchronousCapture = previous;
+  }
+}
+
+/** Offered only by authorized loaders for the exact key they serve. */
+export function offerSynchronousMediaObjectUrl(key: string): void {
+  if (!synchronousCapture || synchronousCapture.handle) return;
+  synchronousCapture.handle = reacquireMediaObjectUrl(key);
+}
+
+function handleFor(key: string, owned: Entry): OwnedObjectUrl {
   owned.consumers++;
   owned.idleAt = null;
   let released = false;

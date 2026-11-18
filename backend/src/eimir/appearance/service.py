@@ -1,5 +1,7 @@
 """Versioned personal icon preferences with serialized initial creation."""
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -8,6 +10,7 @@ from eimir.appearance.models import (
     DEFAULT_WIR_DESIGN,
     AppIconId,
     AppIconPreference,
+    PersonColoursId,
     WirDesignId,
 )
 from eimir.authorization import AuthorizationContext
@@ -56,6 +59,19 @@ def save_wir_design(
     return _save_selection(session, authorization, expected_token, design_id=design_id)
 
 
+def save_person_colours(
+    session: Session,
+    authorization: AuthorizationContext,
+    colours: PersonColoursId | None,
+    expected_token: str,
+) -> AppIconPreference:
+    """Save the personal colour pair; ``None`` returns to the automatic look."""
+    return _save_selection(session, authorization, expected_token, person_colours=colours)
+
+
+_UNSET: Any = object()
+
+
 def _save_selection(
     session: Session,
     authorization: AuthorizationContext,
@@ -63,6 +79,7 @@ def _save_selection(
     *,
     icon_id: AppIconId | None = None,
     design_id: WirDesignId | None = None,
+    person_colours: PersonColoursId | None = _UNSET,
 ) -> AppIconPreference:
     preference = read_preference(session, authorization, for_update=True)
     if concurrency_token(preference, authorization) != expected_token:
@@ -81,6 +98,11 @@ def _save_selection(
                 space_id=authorization.space_id,
                 icon_id=icon_id.value if icon_id else AppIconId.ORIGINAL.value,
                 wir_design=design_id.value if design_id else DEFAULT_WIR_DESIGN.value,
+                person_colours=(
+                    person_colours.value
+                    if person_colours is not _UNSET and person_colours is not None
+                    else None
+                ),
                 version=1,
             )
             .on_conflict_do_nothing(index_elements=["account_id", "space_id"])
@@ -96,6 +118,8 @@ def _save_selection(
             preference.icon_id = icon_id.value
         if design_id is not None:
             preference.wir_design = design_id.value
+        if person_colours is not _UNSET:
+            preference.person_colours = person_colours.value if person_colours else None
         preference.version += 1
     session.flush()
     return preference

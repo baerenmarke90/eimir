@@ -292,14 +292,17 @@ describe('runMemoryMediaStoryFlow', () => {
           attachments: [{ attachmentId: 'attachment-1', position: 0 }],
         },
       });
-      expect(apis.attachments.createAttachmentReadAccess).toHaveBeenCalledWith({
-        spaceId: 'space-1',
-        attachmentId: 'attachment-1',
-        attachmentReadRequest: {
-          parentType: 'MEMORY',
-          parentId: 'memory-1',
+      expect(apis.attachments.createAttachmentReadAccess).toHaveBeenCalledWith(
+        {
+          spaceId: 'space-1',
+          attachmentId: 'attachment-1',
+          attachmentReadRequest: {
+            parentType: 'MEMORY',
+            parentId: 'memory-1',
+          },
         },
-      });
+        { signal: expect.any(AbortSignal) },
+      );
       expect(result.memory).toBe(boundMemory);
       expect(result.story).toBe(story);
       expect(result.imageUrl).toBe('blob:reference-flow');

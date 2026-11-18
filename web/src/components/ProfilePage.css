@@ -631,7 +631,6 @@
   height: 1rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -694,26 +693,6 @@
   font-weight: 600;
 }
 
-.relationship-notification-hint-row {
-  margin-top: var(--space-1);
-}
-
-.relationship-notification-hint-link {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color var(--duration-feedback) var(--easing-standard);
-}
-
-.relationship-notification-hint-link:hover,
-.relationship-notification-hint-link:focus-visible {
-  color: var(--color-brand);
-}
-
 @media (max-width: 599px) {
   .profile-preferences-section .profile-section {
     padding-inline: 0;
@@ -738,8 +717,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .profile-preference-chip,
-  .relationship-notification-hint-link {
+  .profile-preference-chip {
     transition: none;
   }
 }

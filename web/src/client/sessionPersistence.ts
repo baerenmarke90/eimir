@@ -14,6 +14,7 @@ import {
   readNativeSessionSnapshot,
   writeNativeSessionSnapshot,
 } from './nativeSessionStorage';
+import { clearPersonColourPreferences } from './personColoursStore';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
@@ -321,6 +322,7 @@ export function clearStoredSession(): Promise<void> {
   clearBackgroundVideoTransfers();
   clearAuthorizedMediaCache();
   clearWirDesignPreferences();
+  clearPersonColourPreferences();
   clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;

@@ -1,10 +1,10 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import dailyInsights from '../../src/i18n/locales/dailyInsights';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import weeklyInsights from '../../src/i18n/locales/weeklyInsights';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -439,15 +439,18 @@ async function openInsightsFromMore(
   await entry.click();
   await expect(page).toHaveURL(/\/more\/insights$/);
   await expect(
-    page.getByRole('heading', { level: 1, name: dailyInsights.week.title }),
+    page.getByRole('heading', { level: 1, name: dailyInsights.title }),
   ).toBeVisible();
 }
 
 /** Loads the previous week so charts, statements and highlights have data. */
 async function goToPreviousWeek(page: Page) {
-  await page.getByRole('button', { name: dailyInsights.week.previous }).click();
+  await page
+    .getByRole('group', { name: dailyInsights.week.picker })
+    .getByRole('button', { name: /14\..*20\. Sept/ })
+    .click();
   await expect(
-    page.getByRole('heading', { name: dailyInsights.week.vibeTitle }),
+    page.getByRole('heading', { name: dailyInsights.patterns.vibeRow }),
   ).toBeVisible();
 }
 
@@ -458,6 +461,23 @@ async function visitViews(
 ) {
   await openInsightsFromMore(page, testInfo, label);
   await goToPreviousWeek(page);
+  await expect(
+    page
+      .getByRole('navigation', { name: dailyInsights.nav.label })
+      .getByRole('link'),
+  ).toHaveCount(2);
+  const dates = page.getByRole('group', { name: dailyInsights.chart.dayGroup });
+  await expect(dates.getByRole('button')).toHaveCount(7);
+  await dates.getByRole('button', { name: /^Donnerstag/ }).click();
+  await expect(page.locator('.insight-plot-selection')).toHaveCount(2);
+  await expect(
+    page.locator('.insight-week-detail').getByRole('heading', {
+      name: /^Donnerstag/,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: dailyInsights.week.summary }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
@@ -476,13 +496,14 @@ async function visitViews(
     fullPage: true,
   });
 
-  await page.getByRole('link', { name: dailyInsights.nav.recap }).click();
+  await page.getByRole('link', { name: dailyInsights.nav.week }).click();
+  await expect(page).toHaveURL(/week=2026-09-14$/);
+  await page.goto('/more/insights/recap?week=2026-09-14');
+  await expect(page).toHaveURL(
+    /\/more\/insights\?week=2026-09-14#wochenrueckblick$/,
+  );
   await expect(
-    page.getByText(dailyInsights.recap.heroLabel, { exact: true }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: dailyInsights.week.previous }).click();
-  await expect(
-    page.getByRole('heading', { name: dailyInsights.recap.noticedTitle }),
+    page.getByRole('region', { name: dailyInsights.week.summary }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -506,7 +527,7 @@ test('Pro insights are absent from Today and open from More on Compact', async (
   // The free daily ritual stays on Today, but weekly insights do not.
   await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
   await expect(
-    page.getByRole('link', { name: dailyInsights.week.title }),
+    page.getByRole('link', { name: dailyInsights.title }),
   ).toHaveCount(0);
   await page.screenshot({
     path: testInfo.outputPath('today-without-weekly-insights-390-light.png'),
@@ -527,7 +548,7 @@ test('Pro insights reflow from More at 320px with large text, Dark and Reduced M
     document.documentElement.style.fontSize = '200%';
   });
   await expect(
-    page.getByRole('link', { name: dailyInsights.week.title }),
+    page.getByRole('link', { name: dailyInsights.title }),
   ).toHaveCount(0);
   await visitViews(page, testInfo, '320-dark-200pct');
 });
@@ -610,7 +631,7 @@ for (const state of [
     ).toHaveAttribute('aria-pressed', 'true');
     expect(requests.inference).toBe(1);
     await expect(
-      page.getByRole('link', { name: dailyInsights.week.closingCta }),
+      page.getByRole('region', { name: dailyInsights.week.summary }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
     expect(

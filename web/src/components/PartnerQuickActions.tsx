@@ -27,8 +27,10 @@ import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
+import { postSnackbar } from '../client/snackbar';
 import { DestinationIcon } from './DestinationIcon';
 import { EimirIcon } from './EimirIcon';
+import { type GestureFlight, startGestureFlight } from './gestureFlight';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
@@ -40,6 +42,12 @@ import {
 import './PartnerQuickActions.css';
 
 const EXPANDED_QUERY = '(min-width: 840px)';
+
+const SENT_SNACKBAR: Record<PartnerAction, string> = {
+  THINKING: 'snackbar.partnerQuickActionThinkingSent',
+  KISS: 'snackbar.partnerQuickActionKissSent',
+  CHECK_IN: 'snackbar.partnerQuickActionCheckInSent',
+};
 
 interface FeedbackState {
   tone: 'success' | 'error';
@@ -240,7 +248,50 @@ export function PartnerQuickActions({
       extendedCooldowns.CHECK_IN.getTime() > cooldownNow,
   );
 
-  const submit = (action: PartnerAction) => gesture.send(action);
+  // A sent gesture lifts out of the sheet, waits for the server, then the sheet
+  // closes and it flies to the partner avatar. Without a flight (reduced
+  // motion, no top-layer support) everything stays as it was.
+  const flightRef = useRef<GestureFlight | null>(null);
+  useEffect(
+    () => () => {
+      flightRef.current?.cancel();
+      flightRef.current = null;
+    },
+    [],
+  );
+  const submit = (action: PartnerAction, button?: HTMLElement) => {
+    const holder: { flight: GestureFlight | null } = { flight: null };
+    const accepted = gesture.send(action, (succeeded) => {
+      const flight = holder.flight;
+      if (!flight) return;
+      if (flightRef.current === flight) flightRef.current = null;
+      if (succeeded) {
+        close();
+        postSnackbar(SENT_SNACKBAR[action]);
+      }
+      void flight.settle(succeeded);
+    });
+    const icon = button?.querySelector('.partner-quick-action-icon');
+    const avatar = triggerRef.current;
+    if (!accepted || !icon || !avatar) return;
+    // The partner portrait is the target; with a split trigger the own portrait
+    // sits in the neighbouring button of the same stack.
+    const partnerPortrait =
+      avatar.querySelector('.partner-avatar-secondary') ?? avatar;
+    const own =
+      avatar.querySelector('.partner-avatar-primary') ??
+      avatar
+        .closest('.partner-avatar-stack')
+        ?.querySelector('.partner-avatar-primary') ??
+      null;
+    holder.flight = startGestureFlight({
+      kind: action,
+      source: icon,
+      target: partnerPortrait,
+      own,
+    });
+    flightRef.current = holder.flight;
+  };
 
   const navigateToPro = () => {
     if (gesture.isInFlight()) return;
@@ -319,10 +370,10 @@ export function PartnerQuickActions({
           className="partner-quick-action"
           disabled={thinkingCoolingDown}
           aria-disabled={gesture.isPending || undefined}
-          onClick={() => void submit('THINKING')}
+          onClick={(event) => submit('THINKING', event.currentTarget)}
         >
           <span className="partner-quick-action-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="inline-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
             </svg>
           </span>
@@ -356,12 +407,18 @@ export function PartnerQuickActions({
               className="partner-quick-action"
               disabled={hasExtendedCapability && kissCoolingDown}
               aria-disabled={gesture.isPending || undefined}
-              onClick={() =>
-                hasExtendedCapability ? void submit('KISS') : navigateToPro()
+              onClick={(event) =>
+                hasExtendedCapability
+                  ? submit('KISS', event.currentTarget)
+                  : navigateToPro()
               }
             >
               <span className="partner-quick-action-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                <svg
+                  className="inline-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
                   <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
                   <path d="m18.2 3 .5 1.3L20 4.8l-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5Z" />
                 </svg>
@@ -382,9 +439,9 @@ export function PartnerQuickActions({
               className="partner-quick-action"
               disabled={hasExtendedCapability && checkInCoolingDown}
               aria-disabled={gesture.isPending || undefined}
-              onClick={() =>
+              onClick={(event) =>
                 hasExtendedCapability
-                  ? void submit('CHECK_IN')
+                  ? submit('CHECK_IN', event.currentTarget)
                   : navigateToPro()
               }
             >

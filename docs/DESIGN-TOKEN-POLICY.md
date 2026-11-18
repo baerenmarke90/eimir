@@ -64,6 +64,10 @@ This policy does not require creating tokens for every possible number or isolat
 - The existing CSS custom-property structure in `web/src/styles.css` is the current Web implementation basis and should be reused before creating new abstractions.
 - Full replacement of existing literals is not required by this policy; future changes should follow this rule.
 
+## Personal designs
+
+A personal design is a set of semantic tokens plus at most one layout mode, defined in one file per design. The contract, its bounded presets and the roles every design must leave untouched are in [Design Token Sets](DESIGN-TOKEN-SETS.md) (#1907 C1). Do not add component CSS keyed by a design id.
+
 ## Reference
 
 Issue #221 is the motivating example: the login hero contrast correction uses a semantic token instead of adding another component-specific color literal.

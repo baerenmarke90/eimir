@@ -58,17 +58,18 @@ def compute(
     partners = _partners(session, space_id)
     if partners is None or not _vibe_enabled(session, space_id):
         return None
-    rows = session.execute(
-        select(DailyCheckIn.checked_on, DailyCheckIn.account_id, DailyCheckIn.vibe).where(
+    # The vibe is protected content: rows are loaded and filtered in Python.
+    check_ins = session.execute(
+        select(DailyCheckIn).where(
             DailyCheckIn.space_id == space_id,
             DailyCheckIn.account_id.in_(partners),
             DailyCheckIn.checked_on.between(starts_on, through_on),
-            DailyCheckIn.vibe.is_not(None),
         )
-    ).all()
+    ).scalars()
     by_day: dict[date, dict[UUID, str]] = {}
-    for day, account_id, vibe in rows:
-        by_day.setdefault(day, {})[account_id] = vibe
+    for check_in in check_ins:
+        if check_in.vibe is not None:
+            by_day.setdefault(check_in.checked_on, {})[check_in.account_id] = check_in.vibe
     return rhythm(kind, starts_on, through_on, by_day)
 
 

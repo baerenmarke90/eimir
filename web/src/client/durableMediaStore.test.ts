@@ -5,14 +5,50 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   captureDurableMediaEpoch,
   clearDurableMediaStore,
+  DURABLE_MEDIA_MAX_ENTRIES,
+  evictDurableMedia,
   readDurableMedia,
   writeDurableMedia,
-  evictDurableMedia,
-  DURABLE_MEDIA_MAX_AGE_MS,
-  DURABLE_MEDIA_MAX_ENTRIES,
 } from './durableMediaStore';
 
 const image = (parts: BlobPart[]) => new Blob(parts, { type: 'image/jpeg' });
+
+function withMetadata<T>(
+  run: (store: IDBObjectStore, done: (value: T) => void) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('eimir-authorized-media-v1', 3);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('metadata', 'readwrite');
+      let value: T;
+      run(tx.objectStore('metadata'), (next) => {
+        value = next;
+      });
+      tx.oncomplete = () => {
+        db.close();
+        resolve(value);
+      };
+      tx.onerror = () => reject(tx.error);
+    };
+  });
+}
+const seedMetadataRows = (rows: object[]) =>
+  withMetadata<void>((store, done) => {
+    for (const row of rows) store.put(row);
+    done();
+  });
+const countMetadataRows = () =>
+  withMetadata<number>((store, done) => {
+    const request = store.count();
+    request.onsuccess = () => done(request.result);
+  });
+const hasMetadataRow = (key: string) =>
+  withMetadata<boolean>((store, done) => {
+    const request = store.get(key);
+    request.onsuccess = () => done(request.result !== undefined);
+  });
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -111,29 +147,48 @@ describe('App-owned media persistence', () => {
     ).toBeUndefined();
     expect((await readDurableMedia('other/photo', epoch))?.size).toBe(1);
   });
-  it('evicts least recently used entries at the count limit', async () => {
+  it('keeps 2000 media items without a byte cap and evicts the least recently used item', async () => {
     const epoch = captureDurableMediaEpoch()!;
-    for (let index = 0; index < DURABLE_MEDIA_MAX_ENTRIES; index++) {
-      await writeDurableMedia(
-        `photo-${index}`,
+    const item = (index: number, variant = 'thumbnail') =>
+      JSON.stringify(['epoch', 'account', 'space', 'photo-' + index, variant]);
+    // Seed one row below the limit directly; 2000 sequential writes are slow.
+    await writeDurableMedia(item(0), epoch, image(['x']), () => true);
+    await seedMetadataRows(
+      Array.from({ length: DURABLE_MEDIA_MAX_ENTRIES - 2 }, (_, index) => ({
+        key: item(index + 1),
         epoch,
-        image(['x']),
-        () => true,
-      );
-    }
-    await readDurableMedia('photo-0', epoch);
-    await writeDurableMedia('new-photo', epoch, image(['y']), () => true);
-    expect(await readDurableMedia('photo-1', epoch)).toBeUndefined();
-    expect((await readDurableMedia('photo-0', epoch))?.size).toBe(1);
+        bytes: 64 * 1024 * 1024,
+        savedAt: Date.now() - 60_000,
+        usedAt: Date.now() - 60_000 + index,
+      })),
+    );
+    await writeDurableMedia(
+      item(0, 'original'),
+      epoch,
+      image(['y']),
+      () => true,
+    );
+    // Thumbnail and original share one slot: nothing was evicted yet.
+    expect((await readDurableMedia(item(0), epoch))?.size).toBe(1);
+    expect(await countMetadataRows()).toBe(DURABLE_MEDIA_MAX_ENTRIES);
+    // The 2000th item still fits, although the rows claim far beyond 128 MB.
+    await writeDurableMedia('new-photo', epoch, image(['z']), () => true);
+    expect(await hasMetadataRow(item(1))).toBe(true);
+    await writeDurableMedia('newer-photo', epoch, image(['z']), () => true);
+    // The 2001st item evicts the least recently used one (item 1).
+    expect(await hasMetadataRow(item(1))).toBe(false);
+    expect(await countMetadataRows()).toBe(DURABLE_MEDIA_MAX_ENTRIES + 1);
+    expect((await readDurableMedia(item(0, 'original'), epoch))?.size).toBe(1);
     expect((await readDurableMedia('new-photo', epoch))?.size).toBe(1);
   });
-  it('expires saved bytes without extending retention on reads', async () => {
+  it('keeps saved bytes without an age limit until the item limit or logout', async () => {
     const epoch = captureDurableMediaEpoch()!;
     await writeDurableMedia('photo', epoch, image(['old']), () => true);
-    vi.spyOn(Date, 'now').mockReturnValue(
-      Date.now() + DURABLE_MEDIA_MAX_AGE_MS + 1,
-    );
-    expect(await readDurableMedia('photo', epoch)).toBeUndefined();
+    const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + tenYears);
+    expect((await readDurableMedia('photo', epoch))?.size).toBe(3);
     vi.restoreAllMocks();
+    clearDurableMediaStore();
+    expect(await readDurableMedia('photo', epoch)).toBeUndefined();
   });
 });

@@ -6,7 +6,7 @@ import Security
 final class IosSessionStorage: CAPPlugin, CAPBridgedPlugin {
     let identifier = "NativeSessionStorage"
     let jsName = "NativeSessionStorage"
-    let pluginMethods = [
+    let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "read", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "write", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise)

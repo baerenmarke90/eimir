@@ -88,6 +88,9 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         *LIFECYCLE,
         f"{DETAIL}/collections",
         f"{DETAIL}/collections/{{collectionId}}",
+        # Shared notes linked to a Plan by the Planning system (#1969).
+        f"{DETAIL}/notes",
+        f"{DETAIL}/notes/{{sharedNoteId}}",
         f"{DETAIL}/comments",
         f"{DETAIL}/story",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",

@@ -1,9 +1,6 @@
-import { DiaryChapterPeriods } from './DiaryChapterPeriods';
-import { AutoLoadMore } from './AutoLoadMore';
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import {
@@ -11,36 +8,39 @@ import {
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
+import { groupDiaryEntries } from '../client/diaryEntries';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
-import type { ReferenceApis } from '../client/referenceFlow';
 import { useHideProFeatureMarks } from '../client/proPresentation';
+import type { ReferenceApis } from '../client/referenceFlow';
 import { STORY_RECAPS_ROUTE, storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
   parseStoryYear,
   storyCacheResourceId,
+  storyItemKey,
   storyRequest,
   storyYearFilters,
   storyYearsIndexRequest,
 } from '../client/storyProduct';
-import { resolvedLocale, useTranslation } from '../i18n';
-import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
-import { DiaryList } from './DiaryList';
-import { groupDiaryEntries } from '../client/diaryEntries';
-import { storyItemKey } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
-import { UiState } from './UiState';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
+import { DiaryList } from './DiaryList';
 import { EimirIcon } from './EimirIcon';
+import { PageHeader } from './PageHeader';
+import { ProblemState } from './ProblemState';
 import { TaskOriginLink } from './TodayDestinationLink';
+import { UiState } from './UiState';
 import './StoryYearsPage.css';
 
 const INDEX_RESOURCE_ID = 'years:diary-v2';
@@ -293,6 +293,7 @@ export function StoryYearDetailPage({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -300,7 +301,7 @@ export function StoryYearDetailPage({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );

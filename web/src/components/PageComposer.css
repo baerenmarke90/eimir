@@ -7,10 +7,24 @@
 }
 .page-composer .composer-header.page-heading {
   position: sticky;
-  inset-block-start: var(--composer-viewport-top, 0px);
+  /* Holds below the native status bar: the app draws edge to edge, so the
+     header sticks at the safe-area inset and paints the ground behind it. */
+  inset-block-start: calc(
+    var(--composer-viewport-top, 0px) +
+    var(--shell-header-safe-top, 0px)
+  );
   z-index: 100;
+  isolation: isolate;
   padding-block: var(--space-2);
   background: var(--composer-ground);
+}
+.page-composer .composer-header.page-heading::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--shell-header-safe-top, 0px)) 0 0;
+  background: var(--composer-ground);
+  pointer-events: none;
 }
 .page-composer
   .composer-header
@@ -540,6 +554,7 @@ body:has(.page-composer)
 }
 .page-composer .composer-photo-draft .photo-draft-stage-cover,
 .page-composer .composer-photo-draft .photo-draft-stage-remove,
+.page-composer .composer-photo-draft .photo-draft-stage-edit,
 .page-composer .composer-photo-draft .photo-draft-stage-retry {
   position: absolute;
   z-index: 4;
@@ -576,6 +591,11 @@ body:has(.page-composer)
   inset-block-end: var(--space-3);
   inset-inline-start: var(--space-3);
 }
+/* #1907 G1: the free corner opposite the sensitive control. */
+.page-composer .composer-photo-draft .photo-draft-stage-edit {
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-3);
+}
 .page-composer .composer-photo-draft .photo-draft-stage-retry {
   inset-block-start: 50%;
   inset-inline-start: 50%;
@@ -584,7 +604,11 @@ body:has(.page-composer)
 .page-composer
   .composer-photo-draft
   .photo-draft-stage
-  :is(.photo-draft-stage-cover, .photo-draft-stage-remove)
+  :is(
+    .photo-draft-stage-cover,
+    .photo-draft-stage-remove,
+    .photo-draft-stage-edit
+  )
   > .eimir-icon {
   flex: none;
   inline-size: var(--space-5);
@@ -642,6 +666,7 @@ body:has(.page-composer)
     justify-self: end;
   }
   .page-composer .composer-photo-draft .photo-draft-stage-cover,
+  .page-composer .composer-photo-draft .photo-draft-stage-edit,
   .page-composer .composer-photo-draft .photo-draft-stage-sensitive {
     inline-size: var(--touch-target-web);
     max-inline-size: none;
@@ -650,6 +675,7 @@ body:has(.page-composer)
     padding: var(--space-1);
   }
   .page-composer .composer-photo-draft .photo-draft-stage-cover > span,
+  .page-composer .composer-photo-draft .photo-draft-stage-edit > span,
   .page-composer .composer-photo-draft .photo-draft-stage-sensitive > span {
     position: absolute;
     inline-size: 1px;

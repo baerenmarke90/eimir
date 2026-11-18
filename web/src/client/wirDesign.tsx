@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -15,6 +16,11 @@ import {
   type WirDesignPreferenceView,
   WirDesignPreferenceViewFromJSON,
 } from '../api/generated/models/WirDesignPreferenceView';
+import {
+  APP_DESIGNS,
+  type AppDesignLayout,
+} from '../design/appDesigns.generated';
+import { syncDocumentThemeColor } from '../theme';
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
 import {
   ClientProblemError,
@@ -40,6 +46,8 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.warm,
   WirDesignId.modern,
   WirDesignId.classic,
+  WirDesignId.quiet_together,
+  WirDesignId.handwriting,
 ];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
@@ -50,6 +58,15 @@ export const FREE_WIR_DESIGNS: readonly WirDesignId[] = [
 ];
 export function isFreeWirDesign(design: WirDesignId): boolean {
   return FREE_WIR_DESIGNS.includes(design);
+}
+/**
+ * The layout mode of a design with a token file in design/designs/ (#1907
+ * C1). Undefined for designs that still style Wir through their own CSS.
+ */
+export function wirDesignLayout(
+  design: WirDesignId,
+): AppDesignLayout | undefined {
+  return APP_DESIGNS[design]?.layout;
 }
 export interface WirDesignSnapshot {
   preference: WirDesignPreferenceView;
@@ -266,6 +283,20 @@ export function WirDesignProvider(
   props: Parameters<typeof useWirDesignState>[0] & { children: ReactNode },
 ) {
   const state = useWirDesignState(props);
+  const applied = state.presentationReady ? state.current : undefined;
+  // The design's semantic tokens hang off the root, so every tab, sheet and
+  // the browser theme colour follow it. A layout effect applies them in the
+  // same frame as the Wir composition.
+  useLayoutEffect(() => {
+    if (!applied) return;
+    const root = document.documentElement;
+    root.setAttribute('data-app-design', applied);
+    syncDocumentThemeColor();
+    return () => {
+      root.removeAttribute('data-app-design');
+      syncDocumentThemeColor();
+    };
+  }, [applied]);
   return <Context.Provider value={state}>{props.children}</Context.Provider>;
 }
 export function useWirDesign() {

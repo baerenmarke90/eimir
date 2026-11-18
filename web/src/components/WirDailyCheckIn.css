@@ -521,6 +521,146 @@
 
 /* ---------- Motion ---------- */
 
+/*
+ * Send flight (Fertig): the chosen values lift out of the sheet and fly to the
+ * own badge. The layer lives in the top layer, above the modal sheet; it is
+ * decoration only. Durations and easings come from the motion roles in the
+ * script, so reduced motion (zero durations) never creates it.
+ */
+.wir-checkin-flight-ghost.is-vibe {
+  --identity-icon-accent: var(--color-on-action-primary);
+
+  width: 3rem;
+  height: 3rem;
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-flight-ghost.is-vibe svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.wir-checkin-flight-ghost.is-energy {
+  padding: 0.4rem 0.8rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-energy svg {
+  width: 2rem;
+  height: 1.05rem;
+}
+
+.wir-checkin-flight-ghost.is-note {
+  max-width: 12rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-large);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* The control a value lifted from keeps its place, faintly. */
+.wir-checkin-panel-inner [data-flight-source] {
+  opacity: 0.18;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+.wir-checkin-slot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The old feeling stays visible in its slot while the new one rises, then
+ * shrinks away; the slot itself is invisible until the new one lands. */
+.wir-checkin-farewell {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  visibility: visible;
+  pointer-events: none;
+}
+
+/* Own note on the badge: a small bubble on its corner. */
+.wir-checkin-badge-note {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-badge-note .eimir-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.wir-checkin-badge [data-flight-hidden="true"] {
+  visibility: hidden;
+}
+
+.wir-checkin-badge [data-flight-landing="true"] {
+  animation: wir-checkin-slot-land var(--duration-context)
+    var(--easing-standard);
+}
+
+/* Partner arrival: the values rise out of the partner avatar and settle in. */
+.wir-checkin-flight-ghost.is-arrival {
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-vibe {
+  --identity-icon-accent: var(--color-brand-text);
+
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note {
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  max-width: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.wir-checkin-note-dot[data-flight-hidden="true"] {
+  visibility: hidden;
+}
+
+.wir-checkin-note-dot[data-flight-landing="true"] {
+  animation: wir-checkin-slot-land var(--duration-context)
+    var(--easing-standard);
+}
+
+@keyframes wir-checkin-slot-land {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.2);
+  }
+}
+
 @keyframes wir-checkin-badge-in {
   from {
     opacity: 0;
@@ -550,6 +690,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wir-checkin-badge .wir-checkin-badge-content,
+  .wir-checkin-badge [data-flight-landing="true"],
+  .wir-checkin-note-dot[data-flight-landing="true"],
   .wir-checkin-note-dot,
   .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
     animation: none;
@@ -557,6 +699,7 @@
 }
 
 @media (forced-colors: active) {
+  .wir-checkin-flight-ghost,
   .wir-checkin-badge,
   .wir-checkin-partner-block {
     border: 1px solid CanvasText;

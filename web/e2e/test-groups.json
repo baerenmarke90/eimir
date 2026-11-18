@@ -2,9 +2,9 @@
   "version": 1,
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
-    "specFiles": 48,
-    "tests": 329,
-    "prCriticalTests": 165
+    "specFiles": 49,
+    "tests": 332,
+    "prCriticalTests": 168
   },
   "dispositions": {
     "PR_CRITICAL": "Eligible for the four PR shards: always-run core plus affected product dependencies. Always included in full regression.",
@@ -148,9 +148,15 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13
     },
-    "optional-product-tour.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 2
+    "momente-album.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 20,
+      "reason": "Feature-owned Moments Album design (#1960): Album default, Compact and Expanded, Light and Dark, 320px and 200% text reflow, reduced motion, axe, and the setting that restores the compact list."
+    },
+    "quiet-hints.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 3,
+      "reason": "Feature-owned #1907 I1 acceptance: Wir move-in with its one action and invitation link, the one-time connected moment and its same-day line after reload, one action in empty Momente, plans and wishes, and the personal wish-to-plan tip that retires after Got it across reload, with focus, axe, reflow and Compact/Expanded Light/Dark captures."
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -163,7 +169,7 @@
     },
     "plan-files.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Plan-owned PDF create/edit, retry, browser download and native runtime viewer handoff."
     },
     "plan-inline-place-create.spec.ts": {
@@ -293,7 +299,7 @@
     "story-discover-tapestry.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 16,
-      "reason": "Canonical source/return and natural content layout, explicit bounded renewal with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
+      "reason": "Canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture and Expanded button) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -310,6 +316,11 @@
     "story-years-product-reference.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
+    },
+    "story-waymarks.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "#1907 F1 feature-owned acceptance for the story overview waymarks: reached round days and Milestone anniversaries as one quiet thread, four shown and the rest opened in place, Milestone rows opening their Milestone, the omitted state, the Free Pro entry, 390 Light/Dark, 360 at 200 percent text and Expanded, with accessibility and reflow checks."
     },
     "theme-forced-colors.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -353,9 +364,15 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
     },
+    "picture-ping-pong.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Picture ping-pong (#1907 H3 B): start, draw, send, wait read-only and finish; the starting choice between the squiggle and a blank page; the partner's turn arriving live while the page stays open, in Compact Light/Dark with axe, and the bounded Expanded column."
+    },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 9,
+      "reason": "Personal pin, list tile and sheet, optimistic checks and reorder plus sending a list to the partner after asking, in Compact Light, Dark and the wider phone width (#1907 E2)."
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -371,6 +388,21 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
     },
+    "heart-hunt.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Herzversteck (#1907 H3): the seeker clears fog and reads warmth without the heart ever being in the page before the server reports it found, the hider uploads a photo, moves and sends the heart, roles swap, in Compact Light/Dark and reduced motion."
+    },
+    "garden-game.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 24,
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser; the ambience from the device clock (morning to night with moon, stars and fireflies in either theme), seasonal particles, taps on the tree, the pond, the clouds and a flower, the watering can tilting onto the plant with a rainbow, the partner's watering arriving live, today's together moments, the note in the birdhouse, a birthday decoration and calling a named visitor from the book, with reflow, Light/Dark, reduced motion and axe."
+    },
+    "garden-story.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "The couple's story in the shared garden (#1907 H3 follow-up): Milestones grow as named plants with a card and a link to the Milestone, a failed Milestone read leaves the garden unchanged, a visitor leaves a find that the garden book lists without empty slots or counts, sounds stay off by default and vibration is absent outside the native app, the garden-year replay pauses, ends on today and returns focus (start and today side by side with reduced motion), and a rare owl comes on an evening without joining the visitor list, in Compact Light/Dark with reflow and axe."
+    },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,
@@ -383,7 +415,7 @@
     },
     "session-retention.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
     },
     "photo-places.spec.ts": {
@@ -398,8 +430,8 @@
     },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
+      "baselineTests": 13,
+      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded; Eure Geschichte lifeline kind shapes, lazily read single entries, period list and photos in Light/Dark."
     },
     "webview-update-notice.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -408,7 +440,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 22,
+      "baselineTests": 24,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
@@ -438,8 +470,8 @@
     },
     "date-inspiration.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, active Pro, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+      "baselineTests": 12,
+      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, Account feature overview for Free and active Pro with keyboard and reduced-motion coverage, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -453,8 +485,8 @@
     },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, and the Momente entry with its redirects from the former More addresses for #1744."
+      "baselineTests": 23,
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, the Momente entry with its redirects from the former More addresses, the monthly film's scene layouts with caption/picture separation, reflow and axe at 390 Light, 430 Dark and 1280 Dark, and the year film's month chapters, firsts, climax, cover montage and chapter progress in the browser and the native container, and the film variety's frozen forms, accents caught mid-flight and year forms with caption/picture separation, reflow and axe for #1744."
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -536,8 +568,13 @@
     },
     "profile-photo-crop.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition."
+      "baselineTests": 9,
+      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition. Turning before cropping saves the turned photo (#1907 G1)."
+    },
+    "photo-edit.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned photo edit step before upload (#1907 G1): turn, frame handles, wheel zoom and pan under the fixed frame, pen, text with a typeface and the resize grip, then the edited photo replaces the draft and keeps its EXIF date and place; Compact 360/390/430 and Expanded 1280, Light and Dark, with and without reduced motion. A saved diary photo is editable only from the entry editor and is replaced on save, with its cover and the replaced id sent to the gallery write."
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -546,12 +583,12 @@
     },
     "polish-root-refresh.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
     },
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 2,
+      "baselineTests": 5,
       "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {
@@ -579,6 +616,11 @@
       "baselineTests": 8,
       "reason": "Feature-owned Plan-list disclosure and safe navigation, bidirectional persisted Plan/Story context, source capture, private HeartMoment isolation, scopes and responsive accessibility evidence."
     },
+    "shared-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Feature-owned shared notes (#1969): browse, read, edit and save with draft-safe return, first-use state, dark theme, expanded reading column, the pinned Wir tile that opens the note, and creating a Plan with notes chosen in the draft, linked after the save and retried after a failed link. Linking to an existing Plan, conflict and offline paths stay in component tests. No always-run expansion."
+    },
     "map-place-stacks.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
@@ -586,7 +628,7 @@
     },
     "partner-location-settings.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10,
+      "baselineTests": 20,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
     "partner-distance-wir.spec.ts": {
@@ -601,8 +643,8 @@
     },
     "settings-calendar-sync.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 7,
-      "reason": "Feature-owned acceptance for Settings > Kalender verbinden (#1895): CalDAV connect, Google consent with explicit account confirmation, calendar choice with read-only calendars disabled, exact If-Match on the shared target, partner view without credentials, conflict resolution, pause/resume, calm Free explanation, rejected credentials, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
+      "baselineTests": 8,
+      "reason": "Feature-owned acceptance for Settings > Kalender verbinden (#1895): CalDAV connect, Google consent with explicit account confirmation, calendar choice with read-only calendars disabled, exact If-Match on the shared target, partner view without credentials, conflict resolution, pause/resume, calm Free explanation, rejected credentials, the external short link returning to its exact Plan after sign-in, accessibility and Compact/Expanded Light/Dark composition. The complete feature spec stays out of the always-run core."
     },
     "settings-google-account.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -613,6 +655,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
       "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
+    },
+    "wir-garden.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion; the one-time in-game offer after a first garden moment at 390 Light/Dark with axe, accepted through the Wir preference, leading to the module on Wir and not offered again. No always-run expansion."
     }
   }
 }

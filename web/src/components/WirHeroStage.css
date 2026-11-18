@@ -261,6 +261,27 @@
   height: 1rem;
 }
 
+/* A current position carries the brand colour on its pin; an earlier one
+   stays in the quiet muted tone. */
+.wir-hero-distance.is-fresh .partner-distance-glyph {
+  color: var(--color-brand-text);
+}
+
+.wir-hero-distance-value {
+  position: relative;
+  display: inline-block;
+}
+
+/* The copy that leaves on a value change is shown by the motion rules only. */
+.wir-hero-distance-leaving {
+  display: none;
+}
+
+/* The pin tips about its point when it wiggles (WirMotion.css). */
+.wir-hero-distance .partner-distance-glyph.is-pin {
+  transform-origin: 50% 87.5%;
+}
+
 .wir-hero-distance.is-action {
   color: var(--color-brand-text);
 }

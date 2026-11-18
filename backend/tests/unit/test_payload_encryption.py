@@ -27,6 +27,7 @@ PINNED_CONTEXTS = {
     "accounts": "AccountPayload",
     "once_messages": "OnceEnvelope",
     "context_tag_suggestions": "TagSuggestionPayload",
+    "couple_games": "CoupleGamePayload",
     "attachments": "AttachmentPayload",
     "chapters": "ChapterPayload",
     "collection_items": "CollectionItemPayload",

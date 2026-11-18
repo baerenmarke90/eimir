@@ -370,6 +370,7 @@ export function GardenScene({
   ambience,
   story,
   variant = 'game',
+  cover = false,
 }: {
   plants: ScenePlant[];
   width: number;
@@ -408,6 +409,11 @@ export function GardenScene({
    * technology because the surrounding link names it.
    */
   variant?: 'game' | 'preview';
+  /**
+   * Full screen (#2048): the picture covers its box like a photo and keeps
+   * the ground in view; only sky is cut when the box is wider.
+   */
+  cover?: boolean;
 }) {
   const preview = variant === 'preview';
   const id = useId().replace(/:/g, '');
@@ -532,7 +538,7 @@ export function GardenScene({
       ref={svg}
       className={`garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}${preview ? ' is-preview' : ''}`}
       viewBox={`0 0 ${width} ${GARDEN_HEIGHT}`}
-      preserveAspectRatio={preview ? 'xMidYMax slice' : undefined}
+      preserveAspectRatio={preview || cover ? 'xMidYMax slice' : undefined}
       style={
         preview ? undefined : { width: `${((width / 340) * 100).toFixed(1)}%` }
       }

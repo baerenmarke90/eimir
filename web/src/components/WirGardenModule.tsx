@@ -18,6 +18,7 @@ import {
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
+import { useGardenClock } from './GardenAmbience';
 import { useGardenPresentation } from './GardenPresentation';
 import { GardenScene, type ScenePlant } from './GardenScene';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -162,6 +163,8 @@ export function WirGardenModule({
   // The one-shot wake and falling leaves belong to the game; Wir shows the
   // garden as it is.
   const presentation = useGardenPresentation(gardenQuery.data, true);
+  // #2048: sun or moon follow the device clock here too, not the theme.
+  const clock = useGardenClock();
 
   if (!allowed) return null;
   const garden = gardenQuery.data;
@@ -214,6 +217,7 @@ export function WirGardenModule({
             className="garden-frame wir-garden-frame"
             data-season={presentation.season}
             data-sleep={presentation.sleep}
+            data-daytime={clock.daytime}
           >
             <GardenScene
               variant="preview"

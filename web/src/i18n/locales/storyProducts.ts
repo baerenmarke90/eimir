@@ -14,7 +14,7 @@ const storyProducts = {
   momentsLayout: {
     title: 'Momente-Design',
     intro:
-      'Diese Ansicht gilt für Erinnerungen, das Tagebuch, Kapitel und „Wir“. Nur auf diesem Gerät.',
+      'Diese Ansicht gilt für Erinnerungen, das Tagebuch, Kapitel und „Wir“ – auf all deinen Geräten.',
     album: {
       name: 'Album',
       hint: 'Wie ein Fotoalbum: große Fotos als Polaroids, dazu kleine Zettel.',

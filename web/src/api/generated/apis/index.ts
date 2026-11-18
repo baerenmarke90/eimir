@@ -30,6 +30,7 @@ export * from './NotificationsApi';
 export * from './OnceMessagesApi';
 export * from './PartnerLocationApi';
 export * from './PeopleApi';
+export * from './PersonalSettingsApi';
 export * from './PhotoSourcesApi';
 export * from './PlaceRelationsApi';
 export * from './PlacesApi';

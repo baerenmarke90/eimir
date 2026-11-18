@@ -34,6 +34,13 @@
   --garden-rainbow-4: #8fcf86;
   --garden-rainbow-5: #7fb8ea;
   --garden-rainbow-6: #b39ddb;
+  /* #2048: the moonbow, pale and silvery with only a hint of colour. */
+  --garden-moonbow-1: #e9dbe4;
+  --garden-moonbow-2: #ece3d6;
+  --garden-moonbow-3: #eeeacf;
+  --garden-moonbow-4: #dde9de;
+  --garden-moonbow-5: #d9e4f1;
+  --garden-moonbow-6: #e2dcef;
   --garden-reveal-ink: var(--color-text);
   /* The theme's crown colour, resolved here so autumn can tint it below. */
   --garden-base-tree: var(--garden-tree);
@@ -67,6 +74,13 @@
   --garden-rainbow-4: #6fa86a;
   --garden-rainbow-5: #6597c4;
   --garden-rainbow-6: #8f7cb8;
+  /* #2048: the moonbow, pale and silvery with only a hint of colour. */
+  --garden-moonbow-1: #e9dbe4;
+  --garden-moonbow-2: #ece3d6;
+  --garden-moonbow-3: #eeeacf;
+  --garden-moonbow-4: #dde9de;
+  --garden-moonbow-5: #d9e4f1;
+  --garden-moonbow-6: #e2dcef;
 }
 
 /* Time of day ---------------------------------------------------------------- */
@@ -287,7 +301,12 @@
 
 /* Rainbows fade in; a single one fades out again after a while. */
 .garden-rainbow {
-  opacity: 0.62;
+  --garden-bow-opacity: 0.62;
+  opacity: var(--garden-bow-opacity);
+}
+
+.garden-rainbow.is-moon {
+  --garden-bow-opacity: 0.42;
 }
 
 .garden-scene.is-lively .garden-rainbow.is-stay {
@@ -602,7 +621,7 @@
     opacity: 0;
   }
   to {
-    opacity: 0.62;
+    opacity: var(--garden-bow-opacity);
   }
 }
 
@@ -612,7 +631,7 @@
   }
   25%,
   70% {
-    opacity: 0.66;
+    opacity: var(--garden-bow-opacity);
   }
   100% {
     opacity: 0;

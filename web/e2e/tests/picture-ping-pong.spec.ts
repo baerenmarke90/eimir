@@ -408,7 +408,7 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
       fullPage: true,
     });
 
-    // Either partner may call it finished; the picture then offers three titles.
+    // Either partner may call it finished; the picture then asks for its name.
     await page
       .getByRole('button', { name: games.pingPong.finishEarly })
       .click();
@@ -418,7 +418,15 @@ test.describe('Picture ping-pong (#1907 H3 B)', () => {
     await expect(
       page.getByRole('heading', { name: games.pingPong.doneTitle }),
     ).toBeVisible();
-    await expect(page.getByRole('radio')).toHaveCount(3);
+    // #2048: the name is asked when saving, prefilled with a suggestion.
+    await expect(
+      page.getByRole('textbox', { name: games.pingPong.titleLegend }),
+    ).not.toHaveValue('');
+    await expect(
+      page
+        .getByRole('group', { name: games.pingPong.nameSuggestions })
+        .getByRole('button'),
+    ).toHaveCount(3);
     await expect(
       page.getByRole('button', { name: games.pingPong.saveToMoments }),
     ).toBeVisible();

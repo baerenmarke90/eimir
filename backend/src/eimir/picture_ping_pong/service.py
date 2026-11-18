@@ -2,8 +2,10 @@
 
 The server owns whose turn it is. A hand-over appends one bounded batch of
 strokes for the current drawer and passes the turn on; either partner may call
-the picture finished early. There are no timers, streaks or penalties: an open
-picture simply waits. Distance and location never reach this module.
+the picture finished early. Whoever completes the picture (last turn or early
+finish) lets the partner know with one notice that never shows the picture.
+There are no timers, streaks or penalties: an open picture simply waits.
+Distance and location never reach this module.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from sqlalchemy.orm import Session
 from eimir.authorization import AuthorizationContext, readable
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.engagement.models import Notification, NotificationKind
 from eimir.memories.models import Memory
 from eimir.outbox import service as outbox_service
 from eimir.picture_ping_pong.models import (
@@ -81,6 +84,27 @@ def _partner_of(session: Session, context: AuthorizationContext) -> UUID:
     return others[0]
 
 
+def _announce(
+    session: Session,
+    context: AuthorizationContext,
+    picture: PicturePingPong,
+    event_type: EventType,
+    recipient: UUID,
+) -> None:
+    outbox_service.record(
+        session,
+        DomainEvent(
+            type=event_type,
+            space_id=context.space_id,
+            actor_id=context.account_id,
+            subject_type="picture_ping_pong",
+            subject_id=picture.id,
+            resource_version=picture.version,
+            payload=PublicEventPayload(recipient_id=recipient),
+        ),
+    )
+
+
 def get_picture(session: Session, context: AuthorizationContext) -> PicturePingPong | None:
     return session.scalar(
         select(PicturePingPong).where(PicturePingPong.space_id == context.space_id)
@@ -136,6 +160,14 @@ def start(
         )
         session.add(picture)
     else:
+        # The row is reused, so the previous picture's finished notice retires.
+        session.execute(
+            delete(Notification).where(
+                Notification.space_id == context.space_id,
+                Notification.kind == NotificationKind.PICTURE_PING_PONG_FINISHED.value,
+                Notification.target_id == picture.id,
+            )
+        )
         picture.started_by = context.account_id
         picture.status = PictureStatus.DRAWING.value
         picture.drawer_id = context.account_id
@@ -204,19 +236,15 @@ def hand_over(
     else:
         picture.drawer_id = partner
     session.flush()
-    if picture.drawer_id is not None:
-        outbox_service.record(
-            session,
-            DomainEvent(
-                type=EventType.PICTURE_PING_PONG_TURN,
-                space_id=context.space_id,
-                actor_id=context.account_id,
-                subject_type="picture_ping_pong",
-                subject_id=picture.id,
-                resource_version=picture.version,
-                payload=PublicEventPayload(recipient_id=partner),
-            ),
-        )
+    _announce(
+        session,
+        context,
+        picture,
+        EventType.PICTURE_PING_PONG_TURN
+        if picture.drawer_id is not None
+        else EventType.PICTURE_PING_PONG_FINISHED,
+        partner,
+    )
     return picture
 
 
@@ -225,7 +253,7 @@ def finish(
 ) -> PicturePingPong:
     """Either partner may call the picture finished once something was drawn."""
     relationship.lock_space(session, context.space_id)
-    _partner_of(session, context)
+    partner = _partner_of(session, context)
     picture = get_picture(session, context)
     if picture is None or picture.turns_done != expected_turns_done:
         raise _stale()
@@ -239,6 +267,7 @@ def finish(
     picture.drawer_id = None
     picture.finished_early = True
     session.flush()
+    _announce(session, context, picture, EventType.PICTURE_PING_PONG_FINISHED, partner)
     return picture
 
 

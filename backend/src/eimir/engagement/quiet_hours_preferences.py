@@ -33,6 +33,8 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.HEART_HUNT_HIDDEN,
         NotificationKind.HEART_HUNT_FOUND,
         NotificationKind.PICTURE_PING_PONG_TURN,
+        NotificationKind.PICTURE_PING_PONG_FINISHED,
+        NotificationKind.COUPLE_GAME_TURN,
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.PARTNER_KISS,

@@ -271,7 +271,12 @@ describe('CollectionsOverviewPage short way to a shopping list (#1808)', () => {
 });
 
 describe('CollectionsOverviewPage cards show and tick the entries', () => {
-  const item = (id: string, title: string, position: number, completed = false) => ({
+  const item = (
+    id: string,
+    title: string,
+    position: number,
+    completed = false,
+  ) => ({
     id,
     title,
     position,

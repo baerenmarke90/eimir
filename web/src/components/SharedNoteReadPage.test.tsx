@@ -76,7 +76,7 @@ describe('SharedNoteReadPage', () => {
       screen.getAllByRole('listitem').map((item) => item.textContent),
     ).toEqual(expect.arrayContaining(['bins on Monday', 'quiet hours at ten']));
     // The page header already says it is a shared note; no audience badge.
-    expect(screen.queryByText('Für euch beide')).toBeNull();
+    expect(document.querySelector('.visibility-badge')).toBeNull();
     // account-1 wrote it, the partner changed it last: both lines appear, and
     // only the partner carries a marker.
     expect(screen.getByText(text.writtenByYou)).toBeTruthy();

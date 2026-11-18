@@ -8,6 +8,11 @@ import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { privateAreaQueryKeys } from '../client/privateArea';
 import de from '../i18n/locales/de';
 import privateArea from '../i18n/locales/privateArea';
+
+/** The item menu's accessible name starts with the localized label. */
+const itemMenuName = new RegExp(
+  `^${privateArea.menuLabel.replace('{{name}}', '')}`,
+);
 import {
   PrivateCollectionDetailPage,
   PrivateCollectionEditPage,
@@ -327,9 +332,7 @@ describe('PrivateCollectionsPage', () => {
         }),
       ).toBeNull();
     });
-    expect(
-      screen.getByRole('button', { name: /^Aktionen für / }),
-    ).toBeDefined();
+    expect(screen.getByRole('button', { name: itemMenuName })).toBeDefined();
   });
 
   it('uses translated saving copy while a title update is pending', async () => {
@@ -402,9 +405,7 @@ describe('PrivateCollectionsPage', () => {
       version: 2,
     });
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /^Aktionen für / }),
-      ).toBeDefined();
+      expect(screen.getByRole('button', { name: itemMenuName })).toBeDefined();
     });
   });
 });

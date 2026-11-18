@@ -623,7 +623,7 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
       // Milk is on the list already.
       expect(within(chips).queryByText('Milch')).toBeNull();
       // The heading says where the chips come from; no extra explanation.
-      expect(within(chips).queryByText(/Nur ihr beide/)).toBeNull();
+      expect(chips.querySelector('.shared-list-suggestions-note')).toBeNull();
     });
 
     it('adds a suggestion with its quantity in one tap', async () => {

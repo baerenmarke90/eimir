@@ -742,7 +742,9 @@ export function WishProductPage({
           <ItemMenuOption
             icon="benachrichtigungen"
             title={t(
-              reminderAt ? 'm5s3.wish.reminder.edit' : 'm5s3.wish.reminder.action',
+              reminderAt
+                ? 'm5s3.wish.reminder.edit'
+                : 'm5s3.wish.reminder.action',
             )}
             hint={
               reminderAt

@@ -29,7 +29,10 @@ import {
 } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
-import { planningIfMatch, type SharedPlanningApis } from '../client/sharedPlanning';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
@@ -389,79 +392,80 @@ export function CollectionsOverviewPage({
               const hiddenCount = previewHiddenCount(collection.items);
               const expanded = expandedIds.has(collection.id);
               return (
-              <li className="planning-card-item" key={collection.id}>
-                <Link
-                  ref={(element) => {
-                    if (element)
-                      collectionRefs.current.set(collection.id, element);
-                    else collectionRefs.current.delete(collection.id);
-                  }}
-                  className="content-overview-row collection-card"
-                  to={collectionDetailPath(collection.id)}
-                  onClick={(event) => {
-                    if (
-                      event.button ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.altKey ||
-                      event.shiftKey
-                    )
-                      return;
-                    event.preventDefault();
-                    void navigate(collectionDetailPath(collection.id), {
-                      state: {
-                        taskOriginKey: captureOrigin({
-                          selectedKey: collection.id,
-                        }),
-                      },
-                    });
-                  }}
-                >
-                  <div className="content-overview-copy">
-                    <h2>{collection.title}</h2>
-                    <p>
-                      {t('m5s3.collection.progress', {
-                        count: collection.items.length,
-                        completed: collection.items.filter(
-                          (item) => item.completed,
-                        ).length,
-                      })}
-                    </p>
-                  </div>
-                </Link>
-                <CollectionCardPreview
-                  items={collection.items}
-                  expanded={expanded}
-                  canEdit={collection.capabilities.canEdit}
-                  pendingItemId={
-                    toggleItem.isPending
-                      ? (toggleItem.variables?.item.id ?? null)
-                      : null
-                  }
-                  onToggle={(item) => toggleItem.mutate({ collection, item })}
-                />
-                {hiddenCount > 0 ? (
-                  <button
-                    type="button"
-                    className="collection-card-toggle tertiary"
-                    aria-expanded={expanded}
-                    onClick={() =>
-                      setExpandedIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(collection.id)) next.delete(collection.id);
-                        else next.add(collection.id);
-                        return next;
-                      })
-                    }
+                <li className="planning-card-item" key={collection.id}>
+                  <Link
+                    ref={(element) => {
+                      if (element)
+                        collectionRefs.current.set(collection.id, element);
+                      else collectionRefs.current.delete(collection.id);
+                    }}
+                    className="content-overview-row collection-card"
+                    to={collectionDetailPath(collection.id)}
+                    onClick={(event) => {
+                      if (
+                        event.button ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.altKey ||
+                        event.shiftKey
+                      )
+                        return;
+                      event.preventDefault();
+                      void navigate(collectionDetailPath(collection.id), {
+                        state: {
+                          taskOriginKey: captureOrigin({
+                            selectedKey: collection.id,
+                          }),
+                        },
+                      });
+                    }}
                   >
-                    {expanded
-                      ? t('m5s3.collection.previewLess')
-                      : t('m5s3.collection.previewMore', {
-                          count: hiddenCount,
+                    <div className="content-overview-copy">
+                      <h2>{collection.title}</h2>
+                      <p>
+                        {t('m5s3.collection.progress', {
+                          count: collection.items.length,
+                          completed: collection.items.filter(
+                            (item) => item.completed,
+                          ).length,
                         })}
-                  </button>
-                ) : null}
-              </li>
+                      </p>
+                    </div>
+                  </Link>
+                  <CollectionCardPreview
+                    items={collection.items}
+                    expanded={expanded}
+                    canEdit={collection.capabilities.canEdit}
+                    pendingItemId={
+                      toggleItem.isPending
+                        ? (toggleItem.variables?.item.id ?? null)
+                        : null
+                    }
+                    onToggle={(item) => toggleItem.mutate({ collection, item })}
+                  />
+                  {hiddenCount > 0 ? (
+                    <button
+                      type="button"
+                      className="collection-card-toggle tertiary"
+                      aria-expanded={expanded}
+                      onClick={() =>
+                        setExpandedIds((current) => {
+                          const next = new Set(current);
+                          if (next.has(collection.id))
+                            next.delete(collection.id);
+                          else next.add(collection.id);
+                          return next;
+                        })
+                      }
+                    >
+                      {expanded
+                        ? t('m5s3.collection.previewLess')
+                        : t('m5s3.collection.previewMore', {
+                            count: hiddenCount,
+                          })}
+                    </button>
+                  ) : null}
+                </li>
               );
             })}
           </ul>

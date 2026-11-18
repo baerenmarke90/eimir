@@ -170,69 +170,69 @@ export function SharedNoteReadPage({
         onClose={() => setMenuOpen(false)}
       >
         {current.capabilities.canEdit ? (
-            <ItemMenuOption
-              icon="pen"
-              title={t('sharedNotes.read.edit')}
-              hint={t('sharedNotes.menu.editHint')}
-              onClick={() => {
-                setMenuOpen(false);
-                edit();
-              }}
-            />
-          ) : null}
-          {current.capabilities.canEdit ? (
-            <ItemMenuOption
-              icon="highlights"
-              title={
-                current.pinned
-                  ? t('sharedNotes.menu.unpin')
-                  : t('sharedNotes.menu.pin')
-              }
-              hint={
-                current.pinned
-                  ? t('sharedNotes.menu.unpinHint')
-                  : t('sharedNotes.menu.pinHint')
-              }
-              disabled={presentation.isPending}
-              onClick={() => setPresentation({ pinned: !current.pinned })}
-            />
-          ) : null}
-          {current.capabilities.canEdit && current.pinned ? (
-            <ItemMenuOption
-              icon={current.wirTitleOnly ? 'eye' : 'eye-off'}
-              title={
-                current.wirTitleOnly
-                  ? t('sharedNotes.menu.wirExcerpt')
-                  : t('sharedNotes.menu.wirTitleOnly')
-              }
-              hint={
-                current.wirTitleOnly
-                  ? t('sharedNotes.menu.wirExcerptHint')
-                  : t('sharedNotes.menu.wirTitleOnlyHint')
-              }
-              disabled={presentation.isPending}
-              onClick={() =>
-                setPresentation({ wirTitleOnly: !current.wirTitleOnly })
-              }
-            />
-          ) : null}
-          {current.capabilities.canDelete ? (
-            <ItemMenuOption
-              icon="trash"
-              danger
-              title={t('sharedNotes.menu.delete')}
-              hint={t('sharedNotes.menu.deleteHint')}
-              disabled={presentation.isPending}
-              onClick={() => {
-                setMenuOpen(false);
-                remove.reset();
-                setDeleteOpen(true);
-              }}
-            />
-          ) : null}
-          {presentation.error ? (
-            <ProblemState error={presentation.error} />
-          ) : null}
+          <ItemMenuOption
+            icon="pen"
+            title={t('sharedNotes.read.edit')}
+            hint={t('sharedNotes.menu.editHint')}
+            onClick={() => {
+              setMenuOpen(false);
+              edit();
+            }}
+          />
+        ) : null}
+        {current.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="highlights"
+            title={
+              current.pinned
+                ? t('sharedNotes.menu.unpin')
+                : t('sharedNotes.menu.pin')
+            }
+            hint={
+              current.pinned
+                ? t('sharedNotes.menu.unpinHint')
+                : t('sharedNotes.menu.pinHint')
+            }
+            disabled={presentation.isPending}
+            onClick={() => setPresentation({ pinned: !current.pinned })}
+          />
+        ) : null}
+        {current.capabilities.canEdit && current.pinned ? (
+          <ItemMenuOption
+            icon={current.wirTitleOnly ? 'eye' : 'eye-off'}
+            title={
+              current.wirTitleOnly
+                ? t('sharedNotes.menu.wirExcerpt')
+                : t('sharedNotes.menu.wirTitleOnly')
+            }
+            hint={
+              current.wirTitleOnly
+                ? t('sharedNotes.menu.wirExcerptHint')
+                : t('sharedNotes.menu.wirTitleOnlyHint')
+            }
+            disabled={presentation.isPending}
+            onClick={() =>
+              setPresentation({ wirTitleOnly: !current.wirTitleOnly })
+            }
+          />
+        ) : null}
+        {current.capabilities.canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('sharedNotes.menu.delete')}
+            hint={t('sharedNotes.menu.deleteHint')}
+            disabled={presentation.isPending}
+            onClick={() => {
+              setMenuOpen(false);
+              remove.reset();
+              setDeleteOpen(true);
+            }}
+          />
+        ) : null}
+        {presentation.error ? (
+          <ProblemState error={presentation.error} />
+        ) : null}
       </ItemMenuSheet>
 
       <ItemDeleteSheet

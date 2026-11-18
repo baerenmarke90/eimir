@@ -116,7 +116,7 @@ For a `pull_request` touching `web/**` or the workflow itself:
 
 1. a planning job validates both inventories, proves the planner with deterministic tests and resolves the complete GitHub PR Files response, bound to the event's head SHA;
 2. six PR-critical jobs run `npm run test:pr -- --shard=1/6` through `--shard=6/6` against the validated core-plus-impact selection;
-3. when required, isolated additional jobs run affected or changed non-critical specs completely through native sharding; the plan emits `min(3, selected additional files)` shards so no shard is empty and a small selection pays for one runner only. Critical files are already covered by step 2 and are not executed twice;
+3. when required, isolated additional jobs run affected or changed non-critical specs completely through native sharding; the plan emits `min(6, selected additional files)` shards. A one-file selection uses one runner. Critical files run in step 2;
 4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
 5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
 

@@ -13,7 +13,7 @@ import { CAPABILITIES } from '../support/storyTimelineFixture';
  * The couple's story in the shared garden (#1907 H3 follow-up): Milestones
  * grow as special plants with a card and a link, visitors leave finds, the
  * garden book lists both, "Euer Gartenjahr" replays the garden with pause and
- * close (side by side with reduced motion), sound stays off until chosen and
+ * close (start and today next to each other with reduced motion), sound stays off until chosen and
  * a rare owl comes on an evening, in Compact Light/Dark with axe and reflow.
  */
 
@@ -373,7 +373,7 @@ for (const scenario of [
     const dialog = page.getByRole('dialog', { name: story.playback.title });
     await expect(dialog).toBeVisible();
     if (scenario.reduce) {
-      // Reduced motion: the start and today side by side, nothing plays.
+      // Reduced motion: the start and today next to each other, nothing plays.
       await expect(dialog.getByTestId('garden-playback-pair')).toBeVisible();
       await expect(dialog.locator('figure')).toHaveCount(2);
       await expect(

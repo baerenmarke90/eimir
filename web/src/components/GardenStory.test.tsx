@@ -293,7 +293,7 @@ describe('Euer Gartenjahr', () => {
     expect(document.activeElement).toBe(play);
   });
 
-  it('shows the start and today side by side with reduced motion', async () => {
+  it('shows the start and today next to each other with reduced motion', async () => {
     renderPage(services(view()));
     const book = await openBook();
     fireEvent.click(

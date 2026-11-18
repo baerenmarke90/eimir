@@ -349,7 +349,7 @@ server stores nothing new.
 - **Motion:** a tapped piece sways once; a find lands and glints once; rare
   visitors blink or bob only in the lively scene and play one short reaction;
   plants pop and grow during the replay. With reduced motion nothing sways,
-  glints or plays: the replay shows the start and today side by side, a
+  glints or plays: the replay shows the start and today next to each other, a
   reaction is a still pose described in the status line.
 - **Focus and keyboard:** pieces and rare visitors are named buttons
   (Enter/Space) placed under the plants; the replay takes focus on its first

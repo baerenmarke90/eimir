@@ -206,7 +206,7 @@ function Figure({ x, colour }: { x: number; colour: string }) {
   );
 }
 
-/** The two of you side by side, with a small heart floating between. */
+/** The two of you next to each other, with a small heart floating between. */
 function TwoTogether({ arriving }: { arriving: boolean }) {
   return (
     <g

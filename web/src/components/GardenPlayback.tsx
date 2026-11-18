@@ -7,7 +7,7 @@
  * moment of the replay instead of drawing anything twice.
  *
  * With reduced motion nothing plays: the dialog shows the start and today
- * side by side.
+ * next to each other.
  */
 
 import {

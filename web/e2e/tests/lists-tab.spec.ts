@@ -190,7 +190,7 @@ test('Listen opens from the bottom bar, switches between Listen and Notizen, tic
     name: ENTRY_TITLES[0],
     exact: true,
   });
-  await entry.check();
+  await entry.click();
   await expect(entry).toBeChecked();
   await expect.poll(() => patches.length).toBe(1);
   expect(patches[0].itemId).toBe('entry-0');

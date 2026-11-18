@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Every single-item detail page offers Edit and Delete through one actions
@@ -31,12 +31,16 @@ export async function chooseItemMenuRow(
   await itemMenuRow(page, title).click();
 }
 
-/** Edit through the menu; `editLabel` is the localized "Edit" text. */
+/**
+ * Edit through the menu; `editLabel` is the localized "Edit" text. Returns
+ * once the menu sheet is gone, so the next step never meets its dialog.
+ */
 export async function editViaMenu(
   page: Page,
   editLabel: string | RegExp,
 ): Promise<void> {
   await chooseItemMenuRow(page, editLabel);
+  await expect(page.locator('.item-menu')).toHaveCount(0);
 }
 
 /** Delete through the menu; confirmation is a separate step of the spec. */

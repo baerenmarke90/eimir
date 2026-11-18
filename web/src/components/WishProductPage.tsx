@@ -174,11 +174,13 @@ export function WishProductPage({
     setEditingWish(null);
   }, [completion.confirmedResult]);
 
+  // The continue dialog is modal, so the heading can take focus only once it
+  // has closed.
   useEffect(() => {
-    if (!showCompletionContinuation) return;
+    if (!showCompletionContinuation || continueOpen) return;
     completionHeadingRef.current?.focus();
     completionHeadingRef.current?.scrollIntoView?.({ block: 'center' });
-  }, [showCompletionContinuation]);
+  }, [showCompletionContinuation, continueOpen]);
 
   const wishQuery = useQuery({
     queryKey: key,
@@ -317,7 +319,9 @@ export function WishProductPage({
   const wishStatus = wishQuery.data?.status;
   useEffect(() => {
     if (wishStatus && wishStatus !== 'OPEN' && continueOpen)
-      continueSheet.current?.closeForNavigation(() => setContinueOpen(false));
+      continueSheet.current?.closeForNavigation(() => setContinueOpen(false), {
+        animateExit: false,
+      });
   }, [wishStatus, continueOpen]);
 
   if (!wishId) {

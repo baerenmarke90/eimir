@@ -856,6 +856,14 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
     return;
   }
 
+  if (path === '/more/collections') {
+    await page
+      .getByRole('link', { name: navigation.shared, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/collections$/);
+    return;
+  }
+
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
   await page.locator(`a[href="${path}"]`).first().click();

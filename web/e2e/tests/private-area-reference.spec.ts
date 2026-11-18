@@ -481,6 +481,8 @@ async function openPrivateItemEdit(page: Page, title: string) {
   await page
     .getByRole('button', { name: privateArea.edit, exact: true })
     .click();
+  // The menu sheet leaves with an exit animation; later steps wait for it.
+  await expect(page.locator('.item-menu')).toHaveCount(0);
 }
 
 async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {

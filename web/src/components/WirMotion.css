@@ -78,12 +78,13 @@
 
   .today-section[data-wir-reveal="shown"] .today-section-header {
     animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
-      var(--wir-reveal-delay, 0ms) both;
+      var(--wir-reveal-delay) both;
   }
 
   .today-section[data-wir-reveal="shown"] .today-section-body {
     animation: wir-reveal-body calc(var(--duration-context) * 1.4)
-      var(--easing-enter) calc(var(--wir-reveal-delay, 0ms) + 60ms) both;
+      var(--easing-enter)
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 0.3) both;
   }
 
   /* The upcoming plans fade in one after another, so the row reads as a
@@ -96,10 +97,12 @@
   .today-section[data-wir-reveal="shown"] .today-agenda-list > * {
     animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
       calc(
-        var(--wir-reveal-delay, 0ms) +
-        120ms +
+        var(--wir-reveal-delay) +
+        var(--duration-sequence-beat) *
+        0.6 +
         var(--wir-reveal-step, 0) *
-        70ms
+        var(--duration-sequence-beat) *
+        0.35
       )
       both;
   }
@@ -123,7 +126,8 @@
 
   .today-section-moment[data-wir-reveal="shown"] .today-moment-caption {
     animation: wir-reveal-fade var(--duration-gesture-moment)
-      var(--easing-enter) calc(var(--wir-reveal-delay, 0ms) + 320ms) both;
+      var(--easing-enter)
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 1.6) both;
   }
 
   /* A rediscovered memory rises a little, like the other modules. */

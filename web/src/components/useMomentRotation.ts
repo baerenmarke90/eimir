@@ -17,6 +17,8 @@ const LEAVING_CLEANUP_MS = 2000;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function subscribeReducedMotion(onChange: () => void) {
+  // Old WebViews and test environments may not know media queries at all.
+  if (typeof window.matchMedia !== 'function') return () => undefined;
   const query = window.matchMedia(REDUCED_MOTION_QUERY);
   query.addEventListener('change', onChange);
   return () => query.removeEventListener('change', onChange);
@@ -25,7 +27,9 @@ function subscribeReducedMotion(onChange: () => void) {
 function usePrefersReducedMotion() {
   return useSyncExternalStore(
     subscribeReducedMotion,
-    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () =>
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(REDUCED_MOTION_QUERY).matches,
     () => false,
   );
 }
@@ -65,7 +69,8 @@ export function useMomentRotation(
   const [engaged, setEngaged] = useState(false);
   const [inView, setInView] = useState(false);
   const [pageVisible, setPageVisible] = useState(
-    () => document.visibilityState !== 'hidden',
+    () =>
+      typeof document === 'undefined' || document.visibilityState !== 'hidden',
   );
 
   const rotates = count > 1 && !reducedMotion;

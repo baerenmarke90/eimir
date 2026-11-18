@@ -36,7 +36,7 @@
   position: relative;
   display: grid;
   gap: var(--space-3);
-  width: min(100%, 18.5rem);
+  width: min(100%, var(--polaroid-width));
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-3) var(--space-3) 0;

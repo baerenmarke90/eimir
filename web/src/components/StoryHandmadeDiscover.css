@@ -62,7 +62,7 @@
   .momente-hero-link.has-media {
   position: relative;
   display: block;
-  width: min(100%, 22rem);
+  width: min(100%, var(--polaroid-width));
   margin-inline: auto;
   padding: var(--space-3) var(--space-3) var(--space-4);
   border-radius: 3px;

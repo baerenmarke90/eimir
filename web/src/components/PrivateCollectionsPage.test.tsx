@@ -3,10 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { privateAreaQueryKeys } from '../client/privateArea';
-import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import privateArea from '../i18n/locales/privateArea';
 import {
@@ -18,6 +17,28 @@ import {
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
 const COLLECTION_ID = 'collection-1';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+function menuTrigger(title = 'Packing list') {
+  return screen.getByRole('button', {
+    name: privateArea.menuLabel.replace('{{name}}', title),
+  });
+}
+
+async function startEditing(title = 'Packing list') {
+  fireEvent.click(menuTrigger(title));
+  fireEvent.click(
+    await screen.findByRole('button', { name: privateArea.edit }),
+  );
+}
 
 function collection() {
   return {
@@ -161,7 +182,7 @@ describe('PrivateCollectionsPage', () => {
     expect(html).not.toContain('private-area-badge');
   });
 
-  it('discloses collection management controls only in edit mode', () => {
+  it('discloses collection management controls only in edit mode', async () => {
     const sampleCollection = {
       ...collection(),
       items: [
@@ -211,7 +232,7 @@ describe('PrivateCollectionsPage', () => {
     ).toBeNull();
     expect(screen.queryByLabelText(privateArea.collections.rename)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+    await startEditing();
 
     expect(
       screen.getByPlaceholderText(privateArea.collections.itemTitleLabel),
@@ -225,7 +246,7 @@ describe('PrivateCollectionsPage', () => {
     ).toBeDefined();
   });
 
-  it('resets isEditing and confirmDelete on successful title update', async () => {
+  it('leaves edit mode without offering deletion on successful title update', async () => {
     const sampleCollection = collection();
 
     const updatePrivateCollectionMock = vi
@@ -273,22 +294,20 @@ describe('PrivateCollectionsPage', () => {
       </QueryClientProvider>,
     );
 
-    const editBtn = screen.getByRole('button', { name: de.common.edit });
-    fireEvent.click(editBtn);
+    await startEditing();
 
     const input = screen.getByRole('textbox', {
       name: /titel|privatearea\.collections\.titlelabel/i,
     });
     expect(input).toBeDefined();
 
-    const deleteTrigger = screen.getByRole('button', { name: /^löschen$/i });
-    fireEvent.click(deleteTrigger);
-
+    // Deletion belongs to the item menu, never to the edit mode.
     expect(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.common.confirmDelete'),
-      }),
-    ).toBeDefined();
+      screen.queryByRole('button', { name: privateArea.delete }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: privateArea.deleteConfirm }),
+    ).toBeNull();
 
     fireEvent.change(input, { target: { value: 'New Private Packing list' } });
 
@@ -308,13 +327,9 @@ describe('PrivateCollectionsPage', () => {
         }),
       ).toBeNull();
     });
-    expect(screen.getByRole('button', { name: de.common.edit })).toBeDefined();
-
     expect(
-      screen.queryByRole('button', {
-        name: i18n.t('m5s3.common.confirmDelete'),
-      }),
-    ).toBeNull();
+      screen.getByRole('button', { name: /^Aktionen für / }),
+    ).toBeDefined();
   });
 
   it('uses translated saving copy while a title update is pending', async () => {
@@ -366,7 +381,7 @@ describe('PrivateCollectionsPage', () => {
       </QueryClientProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+    await startEditing();
     const input = screen.getByRole('textbox', {
       name: /titel|privatearea\.collections\.titlelabel/i,
     });
@@ -388,7 +403,7 @@ describe('PrivateCollectionsPage', () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: de.common.edit }),
+        screen.getByRole('button', { name: /^Aktionen für / }),
       ).toBeDefined();
     });
   });

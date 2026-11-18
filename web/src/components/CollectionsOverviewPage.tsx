@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Link,
@@ -8,8 +12,12 @@ import {
 } from 'react-router-dom';
 import type { CollectionScope } from '../api/generated/models/CollectionScope';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import type { CollectionKind } from '../api/generated/models/CollectionKind';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import {
+  authorSummaryQueryKeys,
+  invalidateCollectionConsumers,
+} from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   type DeleteFocusTarget,
@@ -21,17 +29,17 @@ import {
 } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
-import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { planningIfMatch, type SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
 import { DefaultShoppingListCard } from './DefaultShoppingListCard';
-import { DestinationIcon } from './DestinationIcon';
+import { SharedContentTabs } from './SharedContentTabs';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
+import { SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import { StatusScope } from './StatusScope';
@@ -50,6 +58,59 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
+const PREVIEW_ITEM_LIMIT = 4;
+
+type PreviewItem = CollectionItemDetail;
+
+function previewHiddenCount(items: readonly PreviewItem[]): number {
+  return Math.max(0, items.length - PREVIEW_ITEM_LIMIT);
+}
+
+/**
+ * The first entries of the list on its card, open ones first. Each entry is a
+ * real checkbox that saves at once, so a list can be ticked off without
+ * opening it; the card heading above opens the list.
+ */
+function CollectionCardPreview({
+  items,
+  expanded,
+  canEdit,
+  pendingItemId,
+  onToggle,
+}: {
+  items: readonly PreviewItem[];
+  /** Expanded cards show every entry instead of the first few. */
+  expanded: boolean;
+  canEdit: boolean;
+  pendingItemId: string | null;
+  onToggle: (item: PreviewItem) => void;
+}) {
+  if (items.length === 0) return null;
+  const ordered = [...items].sort(
+    (a, b) =>
+      Number(a.completed) - Number(b.completed) || a.position - b.position,
+  );
+  const shown = expanded ? ordered : ordered.slice(0, PREVIEW_ITEM_LIMIT);
+  return (
+    <ul className="collection-card-items">
+      {shown.map((item) => (
+        <li key={item.id} className={item.completed ? 'is-done' : undefined}>
+          <label className="collection-card-check">
+            <input
+              type="checkbox"
+              className="collection-card-input"
+              checked={item.completed}
+              disabled={!canEdit || pendingItemId === item.id}
+              onChange={() => onToggle(item)}
+            />
+            <span className="collection-card-mark" aria-hidden="true" />
+            <span>{item.title}</span>
+          </label>
+        </li>
+      ))}
+    </ul>
+  );
+}
 function nextCursor<T>(page: PageShape<T>): string | undefined {
   return page.nextCursor ?? undefined;
 }
@@ -73,6 +134,10 @@ export function CollectionsOverviewPage({
       : searchParams.get('scope') === 'ALL'
         ? 'ALL'
         : 'OPEN';
+  // Cards whose entries are all shown; the rest show the first few.
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const createInFlightRef = useRef(false);
   const openingCreatedRef = useRef(false);
   const [createOpen, setCreateOpen] = useState(initialCreate);
@@ -123,6 +188,68 @@ export function CollectionsOverviewPage({
         queryKey: ['m5-s3', 'collections', spaceId],
       });
     },
+  });
+
+  // Ticking an entry on its card saves at once and shows the change first.
+  const toggleItem = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: ({
+      collection,
+      item,
+    }: {
+      collection: CollectionDetail;
+      item: CollectionItemDetail;
+    }) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.collections.updateCollectionItem({
+          spaceId,
+          collectionId: collection.id,
+          itemId: item.id,
+          ifMatch: planningIfMatch(item),
+          collectionItemUpdate: { completed: !item.completed },
+        });
+      }),
+    onMutate: async ({ collection, item }) => {
+      const key = ['m5-s3', 'collections', spaceId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const snapshots = queryClient.getQueriesData<
+        InfiniteData<PageShape<CollectionDetail>>
+      >({ queryKey: key });
+      queryClient.setQueriesData<InfiniteData<PageShape<CollectionDetail>>>(
+        { queryKey: key },
+        // Other queries share this key prefix (for example the default
+        // shopping list); only the paged overviews are patched.
+        (data) =>
+          !data || !Array.isArray(data.pages)
+            ? data
+            : {
+                ...data,
+                pages: data.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((entry) =>
+                    entry.id === collection.id
+                      ? {
+                          ...entry,
+                          items: entry.items.map((row) =>
+                            row.id === item.id
+                              ? { ...row, completed: !row.completed }
+                              : row,
+                          ),
+                        }
+                      : entry,
+                  ),
+                })),
+              },
+      );
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      for (const [key, data] of context?.snapshots ?? [])
+        queryClient.setQueryData(key, data);
+    },
+    onSettled: () => invalidateCollectionConsumers(queryClient, spaceId),
   });
 
   const collectionItems =
@@ -191,7 +318,7 @@ export function CollectionsOverviewPage({
     <div className="page shared-content-page">
       <PageHeader
         className="content-overview-heading"
-        title={t('m5s3.collection.overviewHeading')}
+        title={t('navigation.sharedHeading')}
         action={
           <AddActionButton
             floating
@@ -207,6 +334,8 @@ export function CollectionsOverviewPage({
           />
         }
       />
+
+      <SharedContentTabs activeView="lists" />
 
       <DefaultShoppingListCard
         apis={apis}
@@ -248,6 +377,7 @@ export function CollectionsOverviewPage({
             onRetry={() => void collections.refetch()}
           />
         ) : null}
+        {toggleItem.error ? <ProblemState error={toggleItem.error} /> : null}
 
         {collectionItems.length === 0 &&
         !collections.isLoading &&
@@ -255,7 +385,10 @@ export function CollectionsOverviewPage({
           <p className="planning-empty">{t('m5s3.collection.emptyScope')}</p>
         ) : (
           <ul className="content-overview-list content-overview-lists">
-            {collectionItems.map((collection) => (
+            {collectionItems.map((collection) => {
+              const hiddenCount = previewHiddenCount(collection.items);
+              const expanded = expandedIds.has(collection.id);
+              return (
               <li className="planning-card-item" key={collection.id}>
                 <Link
                   ref={(element) => {
@@ -263,7 +396,7 @@ export function CollectionsOverviewPage({
                       collectionRefs.current.set(collection.id, element);
                     else collectionRefs.current.delete(collection.id);
                   }}
-                  className="content-overview-row"
+                  className="content-overview-row collection-card"
                   to={collectionDetailPath(collection.id)}
                   onClick={(event) => {
                     if (
@@ -284,9 +417,6 @@ export function CollectionsOverviewPage({
                     });
                   }}
                 >
-                  <span className="content-overview-icon">
-                    <DestinationIcon icon="collections" />
-                  </span>
                   <div className="content-overview-copy">
                     <h2>{collection.title}</h2>
                     <p>
@@ -297,20 +427,43 @@ export function CollectionsOverviewPage({
                         ).length,
                       })}
                     </p>
-                    {collection.items.length ? (
-                      <p className="content-overview-preview">
-                        {[...collection.items]
-                          .sort((a, b) => a.position - b.position)
-                          .slice(0, 3)
-                          .map((item) => item.title)
-                          .join(' · ')}
-                      </p>
-                    ) : null}
                   </div>
-                  <ContentChevron />
                 </Link>
+                <CollectionCardPreview
+                  items={collection.items}
+                  expanded={expanded}
+                  canEdit={collection.capabilities.canEdit}
+                  pendingItemId={
+                    toggleItem.isPending
+                      ? (toggleItem.variables?.item.id ?? null)
+                      : null
+                  }
+                  onToggle={(item) => toggleItem.mutate({ collection, item })}
+                />
+                {hiddenCount > 0 ? (
+                  <button
+                    type="button"
+                    className="collection-card-toggle tertiary"
+                    aria-expanded={expanded}
+                    onClick={() =>
+                      setExpandedIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(collection.id)) next.delete(collection.id);
+                        else next.add(collection.id);
+                        return next;
+                      })
+                    }
+                  >
+                    {expanded
+                      ? t('m5s3.collection.previewLess')
+                      : t('m5s3.collection.previewMore', {
+                          count: hiddenCount,
+                        })}
+                  </button>
+                ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 

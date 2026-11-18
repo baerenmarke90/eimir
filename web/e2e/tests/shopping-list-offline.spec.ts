@@ -1064,7 +1064,6 @@ test('suggestions from earlier trips are added in one tap, removed on their own 
     name: m5s3.collection.suggestions.heading,
   });
   await expect(chips).toBeVisible();
-  await expect(chips.getByText(m5s3.collection.suggestions.note)).toBeVisible();
   await expectNoOverflow(page);
   await page.screenshot({
     path: testInfo.outputPath('shopping-list-suggestions-390-light.png'),

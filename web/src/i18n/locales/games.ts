@@ -24,18 +24,18 @@ const games = {
       description: 'Vergleicht spielerisch eure Sicht auf euch beide.',
     },
     pingPong: {
-      role: 'Nah sein',
+      role: 'Malen',
       title: 'Bild-Pingpong',
       description: 'Malt abwechselnd an einem Bild weiter, bis es fertig ist.',
     },
     garden: {
-      role: 'Nah sein',
+      role: 'Wachsen',
       title: 'Unser Garten',
       description:
         'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
     },
     heartHunt: {
-      role: 'Nah sein',
+      role: 'Suchen',
       title: 'Herzversteck',
       description: 'Versteckt ein Herz in einem Foto. Wer findet es?',
     },

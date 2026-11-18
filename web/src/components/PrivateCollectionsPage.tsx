@@ -24,6 +24,7 @@ import {
 } from '../client/privateArea';
 import { clientProblemKind } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { AddActionButton, AddActionLink } from './AddAction';
@@ -37,7 +38,10 @@ import {
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   PrivateItemLabel,
+  PrivateItemMenuSheets,
+  PrivateItemMenuTrigger,
   PrivateItemPrivacy,
+  usePrivateItemMenu,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
@@ -861,7 +865,8 @@ export function PrivateCollectionDetailPage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { query } = usePrivateCollection(api, accountId, spaceId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const menu = usePrivateItemMenu();
+  const captureDeleteOwnership = useTaskActivation(true);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [showTitleSaved, showTitleSavedForFeedbackWindow] =
@@ -918,7 +923,6 @@ export function PrivateCollectionDetailPage({
         );
         if (!current) return;
         setIsEditing(false);
-        setConfirmDelete(false);
         setTitleDraft(current.title);
         showTitleSavedForFeedbackWindow();
       });
@@ -952,7 +956,7 @@ export function PrivateCollectionDetailPage({
         context.remove();
         return;
       }
-      closeCollectionEdit(() => {
+      menu.deleteSheet.current?.closeForNavigation(() => {
         const shouldNavigate = context.isCurrentTask();
         if (context.remove() && shouldNavigate) {
           navigate(PRIVATE_COLLECTIONS_PATH, { replace: true });
@@ -966,7 +970,6 @@ export function PrivateCollectionDetailPage({
     ? titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title
     : false;
   const {
-    captureOwnership: captureDeleteOwnership,
     showDiscardConfirm: showEditDiscard,
     keepEditing: keepCollectionEditing,
     closeConfirmed: closeCollectionEdit,
@@ -980,7 +983,6 @@ export function PrivateCollectionDetailPage({
       itemOperationPending,
     onClose: () => {
       setIsEditing(false);
-      setConfirmDelete(false);
       if (collection) setTitleDraft(collection.title);
     },
   });
@@ -1071,14 +1073,10 @@ export function PrivateCollectionDetailPage({
           </span>
         }
         titleAction={
-          collection.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => setIsEditing(true)}
-              disabled={itemOperationPending || Boolean(query.error)}
-            />
+          (collection.capabilities.canEdit ||
+            collection.capabilities.canDelete) &&
+          !isEditing ? (
+            <PrivateItemMenuTrigger menu={menu} name={collection.title} />
           ) : undefined
         }
         titleEditor={
@@ -1169,59 +1167,18 @@ export function PrivateCollectionDetailPage({
         onPendingChange={setItemOperationPending}
       />
 
-      {isEditing && collection.capabilities.canDelete ? (
-        <section
-          className="planning-danger-zone"
-          aria-labelledby="private-collection-delete-heading"
-        >
-          <h2 id="private-collection-delete-heading">
-            {t('m5s3.common.deleteHeading')}
-          </h2>
-          <p>{t('privateArea.deleteConfirmBody')}</p>
-          {!confirmDelete ? (
-            <button
-              type="button"
-              className="danger"
-              onClick={() => setConfirmDelete(true)}
-              disabled={
-                collectionOperationBlocked || updateCollectionMutation.isPending
-              }
-            >
-              {t('m5s3.common.delete')}
-            </button>
-          ) : (
-            <div className="planning-confirm-row">
-              <button
-                type="button"
-                className="danger"
-                onClick={() => deleteMutation.mutate(collection)}
-                disabled={
-                  deleteMutation.isPending ||
-                  updateCollectionMutation.isPending ||
-                  collectionOperationBlocked
-                }
-              >
-                {deleteMutation.isPending
-                  ? t('m5s3.common.deleting')
-                  : t('m5s3.common.confirmDelete')}
-              </button>
-              <button
-                type="button"
-                className="tertiary"
-                onClick={() => setConfirmDelete(false)}
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          )}
-          {deleteMutation.error ? (
-            <ProblemState
-              error={deleteMutation.error}
-              onRetry={() => void query.refetch()}
-            />
-          ) : null}
-        </section>
-      ) : null}
+      <PrivateItemMenuSheets
+        menu={menu}
+        title={collection.title}
+        canEdit={collection.capabilities.canEdit}
+        canDelete={collection.capabilities.canDelete}
+        onEdit={() => setIsEditing(true)}
+        disabled={collectionOperationBlocked}
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onDeleteRequested={() => deleteMutation.reset()}
+        onConfirmDelete={() => deleteMutation.mutate(collection)}
+      />
       <PrivateEditorDiscardSheet
         open={showEditDiscard}
         onKeep={keepCollectionEditing}

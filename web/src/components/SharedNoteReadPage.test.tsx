@@ -66,7 +66,7 @@ afterEach(() => {
 });
 
 describe('SharedNoteReadPage', () => {
-  it('shows the note for reading with both authors and the audience', async () => {
+  it('shows the note for reading with the writer and the partner who last changed it', async () => {
     renderRead(sharedNote({ id: 'note-1' }));
     expect(
       await screen.findByRole('heading', { name: 'Holiday flat' }),
@@ -75,17 +75,38 @@ describe('SharedNoteReadPage', () => {
     expect(
       screen.getAllByRole('listitem').map((item) => item.textContent),
     ).toEqual(expect.arrayContaining(['bins on Monday', 'quiet hours at ten']));
-    expect(screen.getByText(text.audience)).toBeTruthy();
-    expect(screen.getByText(/Alex|Jonas/, { selector: 'span' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: text.read.edit })).toBeTruthy();
+    // The page header already says it is a shared note; no audience badge.
+    expect(screen.queryByText('Für euch beide')).toBeNull();
+    // account-1 wrote it, the partner changed it last: both lines appear, and
+    // only the partner carries a marker.
+    expect(screen.getByText(text.writtenByYou)).toBeTruthy();
+    expect(screen.getByText(/Jonas/, { selector: 'span' })).toBeTruthy();
+    expect(document.querySelectorAll('.partner-marker').length).toBe(1);
+    // Editing lives in the menu, like every other detail page.
+    expect(screen.queryByRole('button', { name: text.read.edit })).toBeNull();
   });
 
-  it('opens the full editor from the filled edit action', async () => {
+  it('keeps only one quiet line for a note nobody else changed', async () => {
+    renderRead(
+      sharedNote({
+        id: 'note-1',
+        creator: { id: 'account-1', displayName: 'Alex Example' },
+        editor: { id: 'account-1', displayName: 'Alex Example' },
+      }),
+    );
+    await screen.findByRole('heading', { name: 'Holiday flat' });
+    expect(screen.queryByText(text.writtenByYou)).toBeNull();
+    expect(document.querySelectorAll('.partner-marker').length).toBe(0);
+    expect(document.querySelectorAll('.shared-note-meta').length).toBe(1);
+  });
+
+  it('opens the full editor from the menu', async () => {
     const user = userEvent.setup();
     renderRead(sharedNote({ id: 'note-1' }));
     await user.click(
-      await screen.findByRole('button', { name: text.read.edit }),
+      await screen.findByRole('button', { name: text.read.menu }),
     );
+    await user.click(screen.getByText(text.read.edit));
     expect(await screen.findByText('editor page')).toBeTruthy();
   });
 

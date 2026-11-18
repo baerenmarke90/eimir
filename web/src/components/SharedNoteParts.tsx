@@ -75,17 +75,16 @@ export function NoteEditorLine({
   const role = personRoleResolver(accountId)(person.id);
   const when = formatRelativeTime(note.editedAt, t);
   const own = role === 'own';
+  // Your own edits are quiet: only when. The name and marker appear when the
+  // partner changed the note, so what is new from them stands out.
   return (
     <p className="shared-note-meta">
-      <PartnerMarker name={person.displayName} role={role} />
+      {own ? null : <PartnerMarker name={person.displayName} role={role} />}
       <span>
         {own
-          ? t(
-              variant === 'edited'
-                ? 'sharedNotes.editedByYou'
-                : 'sharedNotes.changedByYou',
-              { when },
-            )
+          ? variant === 'edited'
+            ? when
+            : t('sharedNotes.changedAt', { when })
           : t(
               variant === 'edited'
                 ? 'sharedNotes.editedBy'
@@ -97,18 +96,25 @@ export function NoteEditorLine({
   );
 }
 
+/**
+ * Who wrote the note matters only once someone else changed it; while the
+ * author is also the last editor the editor line already says everything.
+ */
 export function NoteCreatorLine({
   note,
   accountId,
 }: {
-  note: Pick<SharedNoteDetail, 'creator'>;
+  note: Pick<SharedNoteDetail, 'creator' | 'editor'>;
   accountId: string;
 }) {
   const { t } = useTranslation();
+  if (!note.editor || note.editor.id === note.creator.id) return null;
   const role = personRoleResolver(accountId)(note.creator.id);
   return (
     <p className="shared-note-meta">
-      <PartnerMarker name={note.creator.displayName} role={role} />
+      {role === 'own' ? null : (
+        <PartnerMarker name={note.creator.displayName} role={role} />
+      )}
       <span>
         {role === 'own'
           ? t('sharedNotes.writtenByYou')

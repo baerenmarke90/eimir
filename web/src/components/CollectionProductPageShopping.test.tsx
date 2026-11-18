@@ -622,7 +622,8 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
       expect(within(chips).getByText('Butter')).toBeTruthy();
       // Milk is on the list already.
       expect(within(chips).queryByText('Milch')).toBeNull();
-      expect(within(chips).getByText(suggestionText.note)).toBeTruthy();
+      // The heading says where the chips come from; no extra explanation.
+      expect(within(chips).queryByText(/Nur ihr beide/)).toBeNull();
     });
 
     it('adds a suggestion with its quantity in one tap', async () => {

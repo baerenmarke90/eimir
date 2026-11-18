@@ -135,10 +135,17 @@ function setup() {
   const view = render(<Application />);
   async function privateChoice() {
     const user = userEvent.setup();
-    const edit = screen.queryByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
+    const menu = screen.queryByRole('button', {
+      name: storyProducts.heartMomentProduct.menu,
     });
-    if (edit) await user.click(edit);
+    if (menu) {
+      await user.click(menu);
+      await user.click(
+        await screen.findByRole('button', {
+          name: storyProducts.heartMomentProduct.edit,
+        }),
+      );
+    }
     await user.click(
       screen.getByRole('button', {
         name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,

@@ -270,7 +270,10 @@
   justify-content: flex-end;
   margin: 0;
 }
-.quiet-composer .composer-header .page-heading-action > button {
+.quiet-composer
+  .composer-header
+  .page-heading-action
+  > button:not(.item-menu-trigger) {
   inline-size: auto;
   max-inline-size: 100%;
   min-block-size: var(--touch-target-comfortable);
@@ -280,7 +283,10 @@
   color: var(--color-on-action-emphasis);
   font: var(--font-action-label);
 }
-.quiet-composer .composer-header .page-heading-action > button:disabled {
+.quiet-composer
+  .composer-header
+  .page-heading-action
+  > button:not(.item-menu-trigger):disabled {
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
 }

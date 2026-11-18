@@ -16,16 +16,22 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { privateAreaQueryKeys } from '../client/privateArea';
 import { ClientProblemError } from '../client/problemDetails';
-import de from '../i18n/locales/de';
-import m5s3 from '../i18n/locales/m5s3';
 import privateArea from '../i18n/locales/privateArea';
-import { GiftIdeaEditPage } from './GiftIdeasPage';
+import { GiftIdeaDetailPage } from './GiftIdeasPage';
 import { PrivateCollectionDetailPage } from './PrivateCollectionsPage';
-import { PrivateNoteEditPage } from './PrivateNotesPage';
+import { PrivateNoteDetailPage } from './PrivateNotesPage';
 
 const accountId = 'account-1';
 const spaceId = 'space-1';
@@ -40,30 +46,30 @@ const base = {
   createdAt: new Date('2026-10-16T09:00:00Z'),
   updatedAt: new Date('2026-10-16T09:00:00Z'),
 };
+// Deletion lives in the item menu of each detail page, not in its editor.
 const definitions = [
   {
     name: 'private note',
-    Editor: PrivateNoteEditPage,
+    Page: PrivateNoteDetailPage,
     resource: { ...base, body: 'Private text', pinned: false },
-    path: `/more/private/notes/${resourceId}/edit`,
-    route: '/more/private/notes/:noteId/edit',
+    path: `/more/private/notes/${resourceId}`,
+    route: '/more/private/notes/:noteId',
     home: '/more/private/notes',
     key: privateAreaQueryKeys.note(accountId, spaceId, resourceId),
     listKey: privateAreaQueryKeys.notes(accountId, spaceId),
     idField: 'noteId',
-    inline: false,
   },
   {
     name: 'gift idea',
-    Editor: GiftIdeaEditPage,
+    Page: GiftIdeaDetailPage,
     resource: {
       ...base,
       description: 'Private surprise',
       status: 'IDEA',
       pinned: false,
     },
-    path: `/more/private/gift-ideas/${resourceId}/edit`,
-    route: '/more/private/gift-ideas/:giftIdeaId/edit',
+    path: `/more/private/gift-ideas/${resourceId}`,
+    route: '/more/private/gift-ideas/:giftIdeaId',
     home: '/more/private/gift-ideas',
     key: privateAreaQueryKeys.giftIdea(accountId, spaceId, resourceId),
     listKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
@@ -72,7 +78,7 @@ const definitions = [
   },
   {
     name: 'private collection',
-    Editor: PrivateCollectionDetailPage,
+    Page: PrivateCollectionDetailPage,
     resource: { ...base, items: [] },
     path: `/more/private/collections/${resourceId}`,
     route: '/more/private/collections/:collectionId',
@@ -80,7 +86,6 @@ const definitions = [
     key: privateAreaQueryKeys.collection(accountId, spaceId, resourceId),
     listKey: privateAreaQueryKeys.collections(accountId, spaceId),
     idField: 'collectionId',
-    inline: true,
   },
 ] as const;
 
@@ -104,6 +109,14 @@ function Navigation() {
     </>
   );
 }
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 beforeEach(() => window.history.replaceState({}, '', '/'));
 afterEach(() => {
   cleanup();
@@ -132,7 +145,6 @@ for (const d of definitions) {
         if (deleted) throw new ClientProblemError('notFound', 404, 'NOT_FOUND');
         return d.resource;
       };
-      const update = vi.fn(() => new Promise<unknown>(() => {}));
       const api = {
         getPrivateNote: get,
         getGiftIdea: get,
@@ -140,15 +152,12 @@ for (const d of definitions) {
         deletePrivateNote: remove,
         deleteGiftIdea: remove,
         deletePrivateCollection: remove,
-        updatePrivateNote: update,
-        updateGiftIdea: update,
-        updatePrivateCollection: update,
       } as unknown as PrivateAreaApi;
       let hide!: () => void;
       function Harness() {
         const [visible, setVisible] = useState(true);
         hide = () => setVisible(false);
-        const Editor = d.Editor;
+        const Page = d.Page;
         return (
           <QueryClientProvider client={client}>
             <MemoryRouter initialEntries={[d.path]}>
@@ -158,11 +167,7 @@ for (const d of definitions) {
                   path={d.route}
                   element={
                     visible ? (
-                      <Editor
-                        api={api}
-                        accountId={accountId}
-                        spaceId={spaceId}
-                      />
+                      <Page api={api} accountId={accountId} spaceId={spaceId} />
                     ) : (
                       <p>Session ended</p>
                     )
@@ -183,18 +188,17 @@ for (const d of definitions) {
       }
       render(<Harness />);
       async function submit() {
-        if (d.inline)
-          fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
         fireEvent.click(
           screen.getByRole('button', {
-            name: d.inline ? m5s3.common.delete : privateArea.delete,
+            name: privateArea.menuLabel.replace('{{name}}', base.title),
           }),
         );
         fireEvent.click(
-          screen.getByRole('button', {
-            name: d.inline
-              ? m5s3.common.confirmDelete
-              : privateArea.deleteConfirm,
+          await screen.findByRole('button', { name: privateArea.delete }),
+        );
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: privateArea.deleteConfirm,
           }),
         );
         await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
@@ -204,7 +208,7 @@ for (const d of definitions) {
           ifMatch: '1',
         });
       }
-      return { client, write, remove, update, submit, hide };
+      return { client, write, remove, submit, hide };
     }
 
     it.each([true, false])(
@@ -364,67 +368,6 @@ for (const d of definitions) {
       expect(h.client.getQueryState(siblingKey)?.isInvalidated).toBe(false);
     });
 
-    it('rejects edit submission while deletion is pending', async () => {
-      const h = setup();
-      await h.submit();
-      const input = screen.getByLabelText(
-        d.inline
-          ? privateArea.collections.titleLabel
-          : d.idField === 'noteId'
-            ? privateArea.notes.titleLabel
-            : privateArea.gifts.titleLabel,
-      );
-      fireEvent.change(input, { target: { value: 'Conflicting edit' } });
-      fireEvent.submit(input.closest('form') as HTMLFormElement);
-      await act(async () => {});
-      expect(h.update).not.toHaveBeenCalled();
-      await act(async () => h.write.resolve());
-    });
-
-    it.each([false, true])(
-      'blocks deletion while an edit is pending (confirmation open: %s)',
-      async (confirmFirst) => {
-        const h = setup();
-        if (d.inline)
-          fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
-        if (confirmFirst)
-          fireEvent.click(
-            screen.getByRole('button', {
-              name: d.inline ? m5s3.common.delete : privateArea.delete,
-            }),
-          );
-        const input = screen.getByLabelText(
-          d.inline
-            ? privateArea.collections.titleLabel
-            : d.idField === 'noteId'
-              ? privateArea.notes.titleLabel
-              : privateArea.gifts.titleLabel,
-        );
-        fireEvent.change(input, { target: { value: 'Submitted edit' } });
-        fireEvent.submit(input.closest('form') as HTMLFormElement);
-        await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
-        const trigger = screen.getByRole('button', {
-          name: confirmFirst
-            ? d.inline
-              ? m5s3.common.confirmDelete
-              : privateArea.deleteConfirm
-            : d.inline
-              ? m5s3.common.delete
-              : privateArea.delete,
-        });
-        expect((trigger as HTMLButtonElement).disabled).toBe(true);
-        fireEvent.click(trigger);
-        const confirm = screen.queryByRole('button', {
-          name: d.inline
-            ? m5s3.common.confirmDelete
-            : privateArea.deleteConfirm,
-        });
-        if (confirm) fireEvent.click(confirm);
-        await act(async () => {});
-        expect(h.remove).not.toHaveBeenCalled();
-      },
-    );
-
     it('leaves content and navigation intact when deletion fails', async () => {
       const h = setup();
       await h.submit();
@@ -435,9 +378,7 @@ for (const d of definitions) {
       expect(
         (
           (await screen.findByRole('button', {
-            name: d.inline
-              ? m5s3.common.confirmDelete
-              : privateArea.deleteConfirm,
+            name: privateArea.deleteConfirm,
           })) as HTMLButtonElement
         ).disabled,
       ).toBe(false);

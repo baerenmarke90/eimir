@@ -5,7 +5,6 @@ const sharedNotes = {
     destination: 'Gemeinsame Notizen',
     destinationSubtitle: 'Adressen, Gedanken, Tipps für euch beide',
     untitled: 'Ohne Titel',
-    audience: 'Für euch beide',
     audienceEditing: 'Für euch beide sichtbar',
     create: 'Notiz anlegen',
     createFirst: 'Erste Notiz anlegen',
@@ -40,11 +39,10 @@ const sharedNotes = {
     },
     pinnedBadge: 'Angeheftet',
     editedBy: 'Zuletzt von {{name}} · {{when}}',
-    editedByYou: 'Zuletzt von dir · {{when}}',
     writtenBy: 'Geschrieben von {{name}}',
     writtenByYou: 'Geschrieben von dir',
     changedBy: 'Zuletzt geändert von {{name}} · {{when}}',
-    changedByYou: 'Zuletzt geändert von dir · {{when}}',
+    changedAt: 'Zuletzt geändert · {{when}}',
     read: {
       edit: 'Bearbeiten',
       itemLabel: 'Gemeinsame Notiz',
@@ -54,6 +52,7 @@ const sharedNotes = {
     },
     menu: {
       title: 'Notiz',
+      editHint: 'Titel und Text ändern',
       pin: 'Anheften',
       pinHint: 'Steht oben in der Liste und auf Wir',
       unpin: 'Lösen',

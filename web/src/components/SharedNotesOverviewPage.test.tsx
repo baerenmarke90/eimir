@@ -173,6 +173,8 @@ describe('SharedNotesOverviewPage', () => {
     });
     await screen.findByRole('link', { name: /Restaurant tips/ });
 
+    // The search rests as an icon, like Planning, and opens on demand.
+    await user.click(screen.getByRole('button', { name: text.search }));
     await user.type(
       screen.getByRole('searchbox', { name: text.search }),
       'fish',

@@ -379,6 +379,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(
     page.getByRole('button', { name: m5s3.relations.addLabel, exact: true }),
   ).toBeFocused();
+  await page.getByRole('button', { name: m5s3.place.menu }).click();
   await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
   let dialog = page.getByRole('dialog');
   await dialog
@@ -588,7 +589,7 @@ test('Places archive and restore keep linked moments and the selected scope on r
     filters.getByRole('button', { name: m5s3.place.scopeACTIVE, exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('link', { name: /Volkspark/ }).click();
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await page.getByRole('button', { name: m5s3.place.menu }).click();
   await page
     .getByRole('button', { name: m5s3.place.archive, exact: true })
     .click();
@@ -607,7 +608,7 @@ test('Places archive and restore keep linked moments and the selected scope on r
   await expect(page.getByRole('link', { name: /Volkspark/ })).toBeVisible();
   await captureScreenshot(page, info, 'places-archived-390-dark.png');
   await page.getByRole('link', { name: /Volkspark/ }).click();
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await page.getByRole('button', { name: m5s3.place.menu }).click();
   await page
     .getByRole('button', { name: m5s3.place.restore, exact: true })
     .click();

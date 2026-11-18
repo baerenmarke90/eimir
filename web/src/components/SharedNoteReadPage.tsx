@@ -10,12 +10,15 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { AddActionButton } from './AddAction';
-import { EimirIcon, type EimirIconName } from './EimirIcon';
-import { ListEntryIconButton } from './ListEntryActions';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+} from './ItemActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { NoteBody, NoteCreatorLine, NoteEditorLine } from './SharedNoteParts';
 import {
   useSharedNote,
@@ -23,40 +26,7 @@ import {
   useSharedNotePresentation,
 } from './sharedNoteHooks';
 import { UiState } from './UiState';
-import { VisibilityBadge } from './VisibilityBadge';
 import './SharedNotes.css';
-
-function MenuOption({
-  icon,
-  title,
-  hint,
-  danger = false,
-  disabled = false,
-  onClick,
-}: {
-  icon: EimirIconName;
-  title: string;
-  hint: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="shared-note-menu-option"
-      data-danger={danger || undefined}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <EimirIcon name={icon} />
-      <span className="shared-note-menu-copy">
-        <strong>{title}</strong>
-        <span>{hint}</span>
-      </span>
-    </button>
-  );
-}
 
 /** Reading comes before editing: the page shows the note, then offers to change it. */
 export function SharedNoteReadPage({
@@ -160,14 +130,11 @@ export function SharedNoteReadPage({
       <PageHeader
         itemLabel={t('sharedNotes.read.itemLabel')}
         titleAction={
-          <ListEntryIconButton
-            ref={menuTrigger}
-            icon="more"
-            className="tertiary shared-note-menu-trigger"
+          <ItemMenuTrigger
+            triggerRef={menuTrigger}
             label={t('sharedNotes.read.menu')}
-            aria-haspopup="dialog"
-            aria-expanded={menuOpen}
-            onClick={() => {
+            open={menuOpen}
+            onOpen={() => {
               presentation.reset();
               setMenuOpen(true);
             }}
@@ -177,13 +144,6 @@ export function SharedNoteReadPage({
           <span ref={headingRef} tabIndex={-1}>
             {displayTitle}
           </span>
-        }
-        metadata={
-          <VisibilityBadge
-            visibility="SPACE_SHARED"
-            size="small"
-            customLabel={t('sharedNotes.audience')}
-          />
         }
       />
 
@@ -202,26 +162,26 @@ export function SharedNoteReadPage({
         />
       </div>
 
-      {current.capabilities.canEdit ? (
-        <div>
-          <AddActionButton
-            label={t('sharedNotes.read.edit')}
-            icon="pen"
-            onClick={edit}
-          />
-        </div>
-      ) : null}
-
-      <ShortTaskSheet
+      <ItemMenuSheet
         open={menuOpen}
         title={t('sharedNotes.menu.title')}
         restoreFocusRef={menuTrigger}
         isCloseBlocked={presentation.isPending}
         onClose={() => setMenuOpen(false)}
       >
-        <div className="shared-note-menu">
+        {current.capabilities.canEdit ? (
+            <ItemMenuOption
+              icon="pen"
+              title={t('sharedNotes.read.edit')}
+              hint={t('sharedNotes.menu.editHint')}
+              onClick={() => {
+                setMenuOpen(false);
+                edit();
+              }}
+            />
+          ) : null}
           {current.capabilities.canEdit ? (
-            <MenuOption
+            <ItemMenuOption
               icon="highlights"
               title={
                 current.pinned
@@ -238,7 +198,7 @@ export function SharedNoteReadPage({
             />
           ) : null}
           {current.capabilities.canEdit && current.pinned ? (
-            <MenuOption
+            <ItemMenuOption
               icon={current.wirTitleOnly ? 'eye' : 'eye-off'}
               title={
                 current.wirTitleOnly
@@ -257,7 +217,7 @@ export function SharedNoteReadPage({
             />
           ) : null}
           {current.capabilities.canDelete ? (
-            <MenuOption
+            <ItemMenuOption
               icon="trash"
               danger
               title={t('sharedNotes.menu.delete')}
@@ -273,56 +233,36 @@ export function SharedNoteReadPage({
           {presentation.error ? (
             <ProblemState error={presentation.error} />
           ) : null}
-        </div>
-      </ShortTaskSheet>
+      </ItemMenuSheet>
 
-      <ShortTaskSheet
-        ref={deleteSheet}
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
         open={deleteOpen}
-        role="alertdialog"
         title={t('sharedNotes.delete.title')}
+        body={t('sharedNotes.delete.body', { title: displayTitle })}
+        confirmLabel={t('sharedNotes.delete.confirm')}
+        pendingLabel={t('sharedNotes.delete.pending')}
+        pending={remove.isPending}
+        error={remove.error}
         restoreFocusRef={menuTrigger}
-        isCloseBlocked={remove.isPending}
         onClose={() => setDeleteOpen(false)}
-      >
-        <p>{t('sharedNotes.delete.body', { title: displayTitle })}</p>
-        {remove.error ? <ProblemState error={remove.error} /> : null}
-        <div className="form-actions">
-          <button
-            type="button"
-            className="secondary"
-            disabled={remove.isPending}
-            onClick={() => deleteSheet.current?.requestClose()}
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="danger"
-            disabled={remove.isPending}
-            onClick={() =>
-              remove.mutate(current, {
-                onSuccess: () => {
-                  postSnackbar('sharedNotes.toast.deleted');
-                  deleteSheet.current?.closeForNavigation(() => {
-                    requestReturn(originKey, MORE_NOTES_ROUTE);
-                    client.removeQueries({
-                      queryKey: authorSummaryQueryKeys.sharedNoteDetail(
-                        spaceId,
-                        current.id,
-                      ),
-                    });
-                  });
-                },
-              })
-            }
-          >
-            {remove.isPending
-              ? t('sharedNotes.delete.pending')
-              : t('sharedNotes.delete.confirm')}
-          </button>
-        </div>
-      </ShortTaskSheet>
+        onConfirm={() =>
+          remove.mutate(current, {
+            onSuccess: () => {
+              postSnackbar('sharedNotes.toast.deleted');
+              deleteSheet.current?.closeForNavigation(() => {
+                requestReturn(originKey, MORE_NOTES_ROUTE);
+                client.removeQueries({
+                  queryKey: authorSummaryQueryKeys.sharedNoteDetail(
+                    spaceId,
+                    current.id,
+                  ),
+                });
+              });
+            },
+          })
+        }
+      />
     </div>
   );
 }

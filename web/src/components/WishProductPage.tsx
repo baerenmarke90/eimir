@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-query';
 import {
   type FormEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -44,7 +45,12 @@ import { AddActionButton } from './AddAction';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { ContextTagList } from './ContextTagList';
 import { ExpandableDescription } from './ExpandableDescription';
-import { ListEntryIconButton } from './ListEntryActions';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+} from './ItemActions';
 import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardSheet,
@@ -83,7 +89,7 @@ export function WishProductPage({
   apis: SharedPlanningApis;
   spaceId: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { wishId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,10 +97,15 @@ export function WishProductPage({
   const taskState = location.state as { taskOriginKey?: unknown } | null;
   const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
   const [repeatOpen, setRepeatOpen] = useState(false);
   const repeatTrigger = useRef<HTMLButtonElement>(null);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [continueOpen, setContinueOpen] = useState(false);
+  const continueSheet = useRef<ShortTaskSheetHandle>(null);
+  const [reminderAt, setReminderAt] = useState<Date | null>(null);
   const [editSnapshot, setEditingWish] = useState<WishDetail | null>(null);
   const editingWish =
     editSnapshot &&
@@ -109,7 +120,7 @@ export function WishProductPage({
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const tagEditor = useRef<ContextTagEditorHandle>(null);
   const editFocus = useRef<HTMLDivElement>(null);
-  const editTrigger = useRef<HTMLButtonElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
   const [dismissedCompletion, setDismissedCompletion] =
     useState<WishDetail | null>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -122,8 +133,8 @@ export function WishProductPage({
   );
   const convertHeadingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (convertDraft)
-      convertHeadingRef.current?.scrollIntoView({ block: 'start' });
+    // A kept draft reopens the continue dialog where the couple left it.
+    if (convertDraft) setContinueOpen(true);
   }, [convertDraft]);
   const key = authorSummaryQueryKeys.wishDetail(spaceId, wishId);
   const online = useSyncExternalStore(
@@ -153,18 +164,14 @@ export function WishProductPage({
     isDirty: editDirty,
     isPending: writesPending,
     initialFocusRef: editFocus,
-    restoreFocusRef: editTrigger,
+    restoreFocusRef: menuTrigger,
     onEscape: () => Boolean(document.querySelector('dialog[open]')),
-    onClose: () => {
-      setEditingWish(null);
-      setConfirmDelete(false);
-    },
+    onClose: () => setEditingWish(null),
   });
 
   useEffect(() => {
     if (!completion.confirmedResult) return;
     setEditingWish(null);
-    setConfirmDelete(false);
   }, [completion.confirmedResult]);
 
   useEffect(() => {
@@ -291,10 +298,8 @@ export function WishProductPage({
         queryKey: ['m5-s3', 'wishes', spaceId],
       });
       deleteSheet.current?.closeForNavigation(() => {
-        editorLifecycle.closeConfirmed(() => {
-          queryClient.removeQueries({ queryKey: key });
-          navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
-        });
+        queryClient.removeQueries({ queryKey: key });
+        navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
       });
     },
   });
@@ -305,6 +310,15 @@ export function WishProductPage({
       queryClient.isMutating({ mutationKey: wishWriteKey, exact: true }) > 0
     );
   }
+
+  // Once the wish is no longer open the continue dialog has done its job. It
+  // closes without returning focus to the menu, so the continuation heading
+  // keeps it.
+  const wishStatus = wishQuery.data?.status;
+  useEffect(() => {
+    if (wishStatus && wishStatus !== 'OPEN' && continueOpen)
+      continueSheet.current?.closeForNavigation(() => setContinueOpen(false));
+  }, [wishStatus, continueOpen]);
 
   if (!wishId) {
     return (
@@ -368,6 +382,16 @@ export function WishProductPage({
     });
   }
 
+  function startEdit() {
+    if (!wish || isWishWritePending()) return;
+    updateMutation.reset();
+    setEditTitle(wish.title);
+    setEditDescription(wish.description ?? '');
+    setEditTags(wish.tags ?? []);
+    setTagDraftDirty(false);
+    setEditingWish(wish);
+  }
+
   function openMemoryComposer() {
     if (!wish) return;
     const continuationOriginKey = captureOrigin({
@@ -425,60 +449,6 @@ export function WishProductPage({
             }
           />
         ) : null}
-        {wish.capabilities.canDelete ? (
-          <div>
-            <button
-              type="button"
-              className="tertiary"
-              disabled={writesPending}
-              onClick={() => {
-                if (isWishWritePending()) return;
-                deleteMutation.reset();
-                setConfirmDelete(true);
-              }}
-            >
-              {t('m5s3.common.delete')}
-            </button>
-          </div>
-        ) : null}
-        <ShortTaskSheet
-          ref={deleteSheet}
-          open={confirmDelete}
-          title={t('m5s3.common.deleteHeading')}
-          role="alertdialog"
-          isCloseBlocked={writesPending}
-          onClose={() => setConfirmDelete(false)}
-        >
-          <p>{t('m5s3.wish.deleteConsequence')}</p>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={writesPending}
-              onClick={() => deleteSheet.current?.requestClose()}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={writesPending}
-              onClick={() => {
-                if (!isWishWritePending()) deleteMutation.mutate(wish);
-              }}
-            >
-              {deleteMutation.isPending
-                ? t('m5s3.common.deleting')
-                : t('m5s3.common.confirmDelete')}
-            </button>
-          </div>
-          {deleteMutation.error ? (
-            <ProblemState
-              error={deleteMutation.error}
-              onRetry={() => void wishQuery.refetch()}
-            />
-          ) : null}
-        </ShortTaskSheet>
         <PlanningDiscardSheet
           open={editorLifecycle.showDiscardConfirm}
           onKeepEditing={editorLifecycle.keepEditing}
@@ -511,22 +481,12 @@ export function WishProductPage({
         }
         title={t('m5s3.wish.detailEyebrow')}
         action={
-          wish.capabilities.canEdit ? (
-            <ListEntryIconButton
-              ref={editTrigger}
-              icon="edit"
-              className="tertiary composer-detail-edit"
-              label={t('common.edit')}
-              onClick={() => {
-                if (isWishWritePending()) return;
-                updateMutation.reset();
-                setEditTitle(wish.title);
-                setEditDescription(wish.description ?? '');
-                setEditTags(wish.tags ?? []);
-                setTagDraftDirty(false);
-                setEditingWish(wish);
-              }}
-              disabled={writesPending}
+          wish.capabilities.canEdit || wish.capabilities.canDelete ? (
+            <ItemMenuTrigger
+              triggerRef={menuTrigger}
+              label={t('m5s3.wish.menu')}
+              open={menuOpen}
+              onOpen={() => setMenuOpen(true)}
             />
           ) : undefined
         }
@@ -557,6 +517,13 @@ export function WishProductPage({
           {t('m5s3.wish.completePending')}
         </p>
       ) : null}
+      {/* Outside the dialog, so a failed completion stays visible after it closes. */}
+      {completion.error ? (
+        <ProblemState
+          error={completion.error}
+          onRetry={() => void wishQuery.refetch()}
+        />
+      ) : null}
 
       {wish.description ? (
         <div className="page-reading planen-section planen-section-content">
@@ -578,6 +545,10 @@ export function WishProductPage({
           spaceId={spaceId}
           wishId={wish.id}
           api={apis.wishes}
+          open={reminderOpen}
+          onOpenChange={setReminderOpen}
+          onSavedChange={setReminderAt}
+          restoreFocusRef={menuTrigger}
         />
       ) : null}
       {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
@@ -666,14 +637,14 @@ export function WishProductPage({
           </section>
         ) : null}
 
-        {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
-          <details
-            className="planen-operations wish-operations"
-            open={convertDraft ? true : undefined}
+        {wish.capabilities.canEdit ? (
+          <ShortTaskSheet
+            ref={continueSheet}
+            open={continueOpen}
+            title={t('m5s3.wish.actionsHeading')}
+            restoreFocusRef={menuTrigger}
+            onClose={() => setContinueOpen(false)}
           >
-            <summary className="button-link">
-              {t('m5s3.wish.actionsHeading')}
-            </summary>
             <section className="planning-subsection">
               <h2>{t('m5s3.wish.completeHeading')}</h2>
               <p>{t('m5s3.wish.completeIntro')}</p>
@@ -689,12 +660,6 @@ export function WishProductPage({
                   ? t('m5s3.wish.completing')
                   : t('m5s3.wish.complete')}
               </button>
-              {completion.error ? (
-                <ProblemState
-                  error={completion.error}
-                  onRetry={() => void wishQuery.refetch()}
-                />
-              ) : null}
             </section>
             <section className="planning-subsection">
               <h2 ref={convertHeadingRef}>{t('m5s3.wish.convertHeading')}</h2>
@@ -752,9 +717,91 @@ export function WishProductPage({
                 ) : null}
               </form>
             </section>
-          </details>
+          </ShortTaskSheet>
         ) : null}
       </div>
+
+      <ItemMenuSheet
+        open={menuOpen}
+        title={t('m5s3.wish.detailEyebrow')}
+        restoreFocusRef={menuTrigger}
+        onClose={() => setMenuOpen(false)}
+      >
+        {wish.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('common.edit')}
+            disabled={writesPending}
+            onClick={() => {
+              setMenuOpen(false);
+              startEdit();
+            }}
+          />
+        ) : null}
+        {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+          <ItemMenuOption
+            icon="benachrichtigungen"
+            title={t(
+              reminderAt ? 'm5s3.wish.reminder.edit' : 'm5s3.wish.reminder.action',
+            )}
+            hint={
+              reminderAt
+                ? t('m5s3.wish.reminder.scheduled', {
+                    date: new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(reminderAt),
+                  })
+                : undefined
+            }
+            onClick={() => {
+              setMenuOpen(false);
+              setReminderOpen(true);
+            }}
+          />
+        ) : null}
+        {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="sparkle"
+            title={t('m5s3.wish.actionsHeading')}
+            disabled={writesPending}
+            onClick={() => {
+              setMenuOpen(false);
+              setContinueOpen(true);
+            }}
+          />
+        ) : null}
+        {wish.capabilities.canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('m5s3.common.delete')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isWishWritePending()) return;
+              setMenuOpen(false);
+              deleteMutation.reset();
+              setConfirmDelete(true);
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
+        open={confirmDelete}
+        title={t('m5s3.common.deleteHeading')}
+        body={t('m5s3.wish.deleteConsequence')}
+        confirmLabel={t('m5s3.common.confirmDelete')}
+        pendingLabel={t('m5s3.common.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          if (!isWishWritePending()) deleteMutation.mutate(wish);
+        }}
+      />
     </div>
   );
 }

@@ -330,13 +330,13 @@ describe('AppShell', () => {
     vi.restoreAllMocks();
   });
 
-  it('integrates Quick Create into floating bottom shell with four primary destinations (#882/#905)', () => {
+  it('integrates Quick Create into floating bottom shell with five primary destinations (#882/#905)', () => {
     const html = renderShell('/today');
     const shellIndex = html.indexOf('mobile-bottom-shell');
     expect(shellIndex).toBeGreaterThanOrEqual(0);
     const bottomShell = html.slice(shellIndex);
 
-    // Navigation landmark has exactly the 4 primary product destinations.
+    // Navigation landmark has exactly the 5 primary product destinations.
     const navMatch = bottomShell.match(
       /<nav\b[^>]*class="mobile-bottom-nav"[^>]*>([\s\S]*?)<\/nav>/,
     );
@@ -345,7 +345,7 @@ describe('AppShell', () => {
 
     const navLinks =
       navContent.match(/<a\b[^>]*class="shell-nav-link[^"]*"[^>]*>/g) ?? [];
-    expect(navLinks).toHaveLength(4);
+    expect(navLinks).toHaveLength(5);
 
     expect(navContent).toContain('href="/today"');
     expect(navContent).toContain(`>${navigation.today}<`);
@@ -353,6 +353,8 @@ describe('AppShell', () => {
     expect(navContent).toContain(`>${navigation.story}<`);
     expect(navContent).toContain('href="/plan"');
     expect(navContent).toContain(`>${navigation.plan}<`);
+    expect(navContent).toContain('href="/more/collections"');
+    expect(navContent).toContain(`>${navigation.shared}<`);
     expect(navContent).not.toContain('href="/games"');
     expect(navContent).toContain('href="/more"');
     expect(navContent).toContain(`>${navigation.more}<`);

@@ -10,7 +10,7 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
@@ -65,6 +65,15 @@ vi.mock('./PlaceMapCanvas', () => ({
   ),
 }));
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -72,6 +81,16 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const label = () => i18n.t('relationshipReflections.anticipation.show');
+
+/** Edit lives in the Plan page's actions menu, like on every detail page. */
+async function openPlanEditor() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.plan.menu') }),
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+}
 
 function setupPlan(send?: () => Promise<PlanDetail>) {
   let saved: PlanDetail = {
@@ -217,9 +236,7 @@ describe('Special Plan anticipation', () => {
     const { update } = setupPlan();
     expect(screen.queryByRole('switch', { name: label() })).toBeNull();
     expect(screen.queryByText(i18n.t('m5s3.plan.actionsHeading'))).toBeNull();
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     expect(update).not.toHaveBeenCalled();
     fireEvent.click(
@@ -243,9 +260,7 @@ describe('Special Plan anticipation', () => {
   it('keeps the staged choice after failure and deliberately retries the same intent', async () => {
     const { update } = setupPlan();
     update.mockRejectedValueOnce(new ClientProblemError('server'));
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
@@ -275,9 +290,7 @@ describe('Special Plan anticipation', () => {
   it('never queues an offline edit for reconnect', async () => {
     const { update } = setupPlan();
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),

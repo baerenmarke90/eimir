@@ -673,7 +673,12 @@ async function openPerson(page: Page) {
   );
 }
 async function openEditor(page: Page) {
-  await page.getByRole('link', { name: people.edit, exact: true }).click();
+  await page
+    .getByRole('button', {
+      name: people.menuLabel.replace('{{name}}', LONG_PERSON_NAME),
+    })
+    .click();
+  await page.getByRole('button', { name: people.edit, exact: true }).click();
   await expect(
     page.getByLabel(people.nameLabel, { exact: true }),
   ).toBeVisible();

@@ -14,7 +14,7 @@ ACTION = ROOT / ".github/actions/attest-release-artifact/action.yml"
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1",
-    "actions/setup-java": "de7274f081f381c8f8158605e0321c36c376e2e6",
+    "actions/setup-java": "77dd5b2ce225ea11469928ac317850245a74ae78",
     "gradle/actions/setup-gradle": "8da46b539cd8fe6ab27ca75128919a18d757604c",
     "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "actions/download-artifact": "9000827ccba6bdab643e8b6fd33ac0654aef8333",

@@ -254,7 +254,7 @@ The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
-| maplibre-gl | 6.16.0 | npm / MapLibre | BSD-3-Clause |
+| maplibre-gl | 6.18.0 | npm / MapLibre | BSD-3-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
 Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
@@ -396,7 +396,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 | Component | Version | Source | License |
 |---|---|---|---|
 | Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.8, `sha256:e4264279b179f0e654579a90a1a9c1eab3ba9124c17551794bee20f68a38b5ce` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| nginx-unprivileged | 1.31.8, `sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;
@@ -416,7 +416,7 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
-| @capacitor/android (native bridge) | 8.6.0 | npm | MIT |
+| @capacitor/android (native bridge) | 8.6.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
@@ -479,7 +479,7 @@ runs on the eimir. Cloud backend with the already adopted `google-auth` and
 
 ## iOS — Capacitor wrapper runtime
 
-The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+The official Capacitor iOS runtime and Swift Package Manager template (8.6.2,
 MIT) wrap the same React product. The existing Capacitor App and Browser packages
 provide platform integration. Apple Security and UserNotifications supply Keychain
 storage and remote notifications without another SDK.

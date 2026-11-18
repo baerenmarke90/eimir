@@ -20,12 +20,16 @@
   .momente-discover-page[data-diary-layout="album"]
   .momente-hero-highlight {
   position: relative;
-  margin-block-start: var(--space-8);
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  margin-block-start: 0;
+  /* The same card as "Erinnert ihr euch?" on Wir (TodayRetrospectiveAlbum.css):
+     the tinted surface of the plans/notes cards, with the Polaroid hanging
+     inside it. The string is clipped to the card, as on Wir. */
+  padding: var(--space-10) var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface-subtle);
+  box-shadow: var(--shadow-raised);
 }
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]
@@ -34,15 +38,18 @@
 }
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="calm"] {
+  padding-block-start: var(--space-5);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
   .momente-hero-highlight[data-tone="playful"]::before {
   content: "";
   position: absolute;
   z-index: 0;
-  /* The string dips to the clothespin: its lowest point sits just above the
-     card edge, so the pin visibly grips both string and photo. */
-  top: calc(var(--space-6) * -1 - 0.4rem);
-  inset-inline: calc(var(--page-gutter) * -1);
-  height: var(--space-6);
+  top: calc(var(--space-6) * -1);
+  inset-inline: calc(var(--space-6) * -1);
+  height: calc(var(--space-6) + var(--space-8));
   border-bottom: 2px solid var(--color-text-muted);
   border-radius: 0 0 50% 50% / 0 0 100% 100%;
   pointer-events: none;

@@ -11,10 +11,11 @@
   overflow: hidden;
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-sheet);
-  /* A calm plain surface one step below the Polaroid. The ruled wall texture
-     looked out of place on Wir; only the clothespin and the Polaroid stay
-     scrapbook. */
-  background: var(--color-surface);
+  /* The same tinted surface as the plans, notes and activity cards on Wir, so
+     the Polaroid (raised paper) lifts off it. The ruled wall texture looked
+     out of place on Wir; only the clothespin and the Polaroid stay scrapbook.
+     Momente > Erinnerungen uses the identical card (StoryHandmadeDiscover.css). */
+  background: var(--color-surface-subtle);
   box-shadow: var(--shadow-raised);
 }
 

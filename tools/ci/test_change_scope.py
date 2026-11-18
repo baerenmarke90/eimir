@@ -83,6 +83,27 @@ class ChangeScopeTest(unittest.TestCase):
         )
         self.assert_scope(["ios/App/App/Info.plist"], enabled=set())
 
+    def test_public_site_only_uses_its_own_preflight(self) -> None:
+        site_paths = [
+            "site/index.html",
+            "site/Dockerfile",
+            "site/security-headers.conf",
+            "docs/assets/site/preview.webp",
+            "tools/site/build_main_site.py",
+            "tools/ci/test_main_site.py",
+        ]
+        self.assert_scope(site_paths, enabled=set())
+        self.assert_scope(
+            [*site_paths, "backend/src/eimir/main.py"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "self_hosted",
+                "deployment_guard",
+                "recovery",
+            },
+        )
+
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:
         self.assert_scope(["backend/tests/test_config.py"], enabled={"backend"})
 

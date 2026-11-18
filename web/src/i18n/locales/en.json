@@ -2,7 +2,6 @@
   "composer": {
     "diaryEntry": "Diary entry",
     "saved": "Saved",
-    "viewLinkedPlan": "View linked plan",
     "emptyContent": "Add a photo, a title or your words.",
     "linkRecovery": "Your entry is saved. Its links are still missing. You can retry them without creating another entry.",
     "planSavedLinkFailed": "Your plan is saved. The links could not be applied yet. Please try again.",
@@ -354,7 +353,6 @@
     "featuredKicker": "Remember when?",
     "onThisDay_one": "One year ago today",
     "onThisDay_other": "{{count}} years ago today",
-    "retrospectiveHeading": "Recaps",
     "retrospectiveSubhead": "A moment from your shared story.",
     "retrospectiveOpen": "Open memory",
     "milestonesTitle": "Milestones",
@@ -4420,6 +4418,7 @@
   "memoryProduct": {
     "planning": {
       "heading": "Linked wishes and plans",
+      "detailHeading": "Linked to",
       "add": "Link wish or plan",
       "plans": "Plans",
       "wishes": "Wishes",

@@ -864,7 +864,7 @@ for (const view of [
       const reverse = page.getByRole('region', {
         name:
           source.kind === 'MEMORY'
-            ? memoryCopy.planning.heading
+            ? memoryCopy.planning.detailHeading
             : copy.planStory.plansHeading,
       });
       if (source.kind === 'HEART_MOMENT') {

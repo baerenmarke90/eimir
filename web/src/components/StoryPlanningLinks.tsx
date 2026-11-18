@@ -77,10 +77,13 @@ function ScopedStoryPlanningLinks({
   onInitialPlanConsumed,
 }: StoryPlanningLinksProps) {
   const { t } = useTranslation();
+  const groupedDetail = presentation === 'detail' && !editing;
   const heading = t(
-    sourceKind === 'MEMORY'
-      ? 'memoryProduct.planning.heading'
-      : 'm5s3.planStory.plansHeading',
+    groupedDetail
+      ? 'memoryProduct.planning.detailHeading'
+      : sourceKind === 'MEMORY'
+        ? 'memoryProduct.planning.heading'
+        : 'm5s3.planStory.plansHeading',
   );
   const addLabel = t(
     sourceKind === 'MEMORY'
@@ -357,12 +360,17 @@ function ScopedStoryPlanningLinks({
   if (!editing && !targets.length && !linked.error && !mutation.error)
     return null;
   return (
-    <section className="memory-planning-links" aria-label={heading}>
+    <section
+      className={
+        groupedDetail
+          ? 'memory-planning-links memory-planning-links-detail'
+          : 'memory-planning-links'
+      }
+      aria-label={heading}
+    >
       {targets.length ? (
         <>
-          <h2 className={presentation === 'detail' ? 'sr-only' : undefined}>
-            {heading}
-          </h2>
+          <h2>{heading}</h2>
           <ul>
             {targets.map((target) => (
               <li key={`${target.kind}:${target.id}`}>
@@ -396,18 +404,19 @@ function ScopedStoryPlanningLinks({
                       name={target.kind === 'plans' ? 'kalender' : 'wuensche'}
                     />
                     <span>
+                      {groupedDetail ? <strong>{target.title}</strong> : null}
                       <span className="memory-planning-kind">
                         {t(
-                          presentation === 'detail'
+                          groupedDetail
                             ? target.kind === 'plans'
-                              ? 'composer.viewLinkedPlan'
-                              : 'm5s3.plan.openWish'
+                              ? 'm5s5.kind.PLAN'
+                              : 'm5s5.kind.WISH'
                             : target.kind === 'plans'
                               ? 'memoryProduct.planning.linkedPlan'
                               : 'memoryProduct.planning.linkedWish',
                         )}
                       </span>
-                      <strong>{target.title}</strong>
+                      {groupedDetail ? null : <strong>{target.title}</strong>}
                     </span>
                     <EimirIcon name="chevron-right" />
                   </TodayDestinationLink>

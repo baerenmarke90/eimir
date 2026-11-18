@@ -137,7 +137,7 @@ describe('Momente #1790 C2 featured rediscovery wording', () => {
   });
 });
 
-describe('Momente retrospective integration (#601)', () => {
+describe('Momente and the Wir retrospective', () => {
   const selectionDate = new Date('2026-08-24T00:00:00Z');
   const lead = {
     kind: 'MEMORY',
@@ -168,104 +168,41 @@ describe('Momente retrospective integration (#601)', () => {
     retrospective,
   };
 
-  it('shows the real Today candidate alongside Discover without reselecting Story items', () => {
+  it('keeps the dashboard-only retrospective out of Momente', () => {
     const html = renderStoryPage('/story?tab=discover', discover, {
       selectionDate,
       dashboard,
     });
-    expect(html).toContain('momente-retrospective');
-    expect(html).toContain('That day by the lake');
-    expect(html).toContain('href="/story/memories/historic-memory"');
-    expect(html).toContain('data-media-deferred="true"');
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).not.toContain('That day by the lake');
+    expect(html).not.toContain('href="/story/memories/historic-memory"');
     expect(html).toContain('Unser aktueller Moment');
   });
 
-  it('does not render the same authorized content twice when it is already the featured lead', () => {
+  it('includes the same memory in the Fotostory when Discover selects it', () => {
+    const historicMemory = {
+      ...lead,
+      effectiveDate: retrospective.occurredOn,
+      memory: {
+        ...lead.memory,
+        id: retrospective.id,
+        title: retrospective.titleOrText,
+        happenedOn: retrospective.occurredOn,
+      },
+    };
     const html = renderStoryPage(
       '/story?tab=discover',
-      {
-        ...discover,
-        items: [{ ...lead, memory: { ...lead.memory, id: retrospective.id } }],
-      },
+      { ...discover, items: [lead, historicMemory] },
       { selectionDate, dashboard },
     );
     expect(html).not.toContain('momente-retrospective');
-    expect(html).toContain('momente-hero-highlight');
-  });
-
-  it('shows the complete authorized selection without duplicating the lead or retrospective', () => {
-    const items = Array.from({ length: 8 }, (_, index) => ({
-      ...lead,
-      memory: {
-        ...lead.memory,
-        id: `memory-${index}`,
-        title: `Keepsake ${index}`,
-      },
-    }));
-    const html = renderStoryPage(
-      '/story',
-      { ...discover, items },
-      {
-        selectionDate,
-        dashboard: {
-          ...dashboard,
-          retrospective: { ...retrospective, id: 'memory-4' },
-        },
-      },
-    );
-    const discovery = html.slice(
-      html.indexOf('class="momente-discover-page"'),
-      html.indexOf('id="momente-diary"'),
-    );
-    const destinations = Array.from(
-      discovery.matchAll(/href="(\/story\/memories\/[^"\s]+)"/g),
-      (match) => match[1],
-    );
-    // Lead, retrospective and the Fotostory's visible slide, each once.
-    expect(destinations).toEqual([
-      '/story/memories/memory-0',
-      '/story/memories/memory-4',
-      '/story/memories/memory-1',
-    ]);
-    // The story holds the remaining six entries, without lead or retrospective.
-    const story = discovery.slice(discovery.indexOf('class="momente-story"'));
+    const story = html.slice(html.indexOf('class="momente-story"'));
+    expect(story).toContain('That day by the lake');
+    expect(story).toContain('href="/story/memories/historic-memory"');
+    expect(story).not.toContain('Unser aktueller Moment');
     expect(story).toContain(
-      `, ${storyProducts.discoverStory.themeCount_other.replace('{{count}}', '6')}`,
+      `, ${storyProducts.discoverStory.themeCount_one.replace('{{count}}', '1')}`,
     );
-    expect(story).not.toContain('Keepsake 0');
-    expect(story).not.toContain('Keepsake 4');
-  });
-
-  it('suppresses stale or absent candidates rather than inventing a moment', () => {
-    const stale = renderStoryPage('/story?tab=discover', discover, {
-      selectionDate: new Date('2026-08-23T00:00:00Z'),
-      dashboard,
-    });
-    const absent = renderStoryPage('/story?tab=discover', discover, {
-      selectionDate,
-      dashboard: { ...dashboard, retrospective: null },
-    });
-    const missingCalendarContext = renderStoryPage(
-      '/story?tab=discover',
-      discover,
-      { dashboard: { retrospective } },
-    );
-    expect(stale).not.toContain('momente-retrospective');
-    expect(absent).not.toContain('momente-retrospective');
-    expect(missingCalendarContext).not.toContain('momente-retrospective');
-    expect(stale).toContain('Unser aktueller Moment');
-    expect(absent).toContain('Unser aktueller Moment');
-  });
-
-  it('keeps Timeline independent from the Today retrospective', () => {
-    const html = renderStoryPage('/story?tab=timeline', discover, {
-      selectionDate,
-      dashboard,
-    });
-    expect(html).not.toContain('momente-retrospective');
-    expect(html).toContain('role="tablist"');
-    expect(html).not.toContain('momente-diary-title');
-    expect(html).not.toContain('momente-discover-title');
   });
 });
 

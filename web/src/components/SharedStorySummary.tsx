@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -288,10 +289,10 @@ function periodLabel(
 }
 
 interface DragState {
+  pointerId: number;
   x: number;
   y: number;
   axis: 'x' | 'y' | null;
-  moved: boolean;
   startEntry: number | null;
 }
 
@@ -326,8 +327,11 @@ function LifelineBand({
     direction: 0,
     at: 0,
   });
-  const [scrubbing, setScrubbing] = useState(false);
   const [hintSeen, setHintSeen] = useState(readHintSeen);
+  const hintUsed = useRef(false);
+  const retireUsedHint = useCallback(() => {
+    if (hintUsed.current) setHintSeen(true);
+  }, []);
   const ticksRef = useRef<HTMLDivElement>(null);
   const [axis, setAxis] = useState(DEFAULT_AXIS);
   const columns = model.columns;
@@ -396,12 +400,14 @@ function LifelineBand({
     // detached by now and would otherwise count as outside.
     const dismiss = (event: Event) => {
       const container = containerRef.current;
-      if (container && !event.composedPath().includes(container))
+      if (container && !event.composedPath().includes(container)) {
         setActive(null);
+        retireUsedHint();
+      }
     };
     document.addEventListener('click', dismiss);
     return () => document.removeEventListener('click', dismiss);
-  }, [active]);
+  }, [active, retireUsedHint]);
 
   // Axis labels must not collide at any width or text size.
   useLayoutEffect(() => {
@@ -425,13 +431,15 @@ function LifelineBand({
   }, []);
 
   const markEntryInteraction = () => {
-    if (hintSeen) return;
-    setHintSeen(true);
+    if (hintSeen || hintUsed.current) return;
+    // Keep the page height stable while the active period is being browsed.
+    hintUsed.current = true;
     rememberHintSeen();
   };
 
   const selectColumn = (index: number | null) => {
     if (index === active) return;
+    retireUsedHint();
     setActive(index);
     setEntryChoice(null);
     setRequestedDot(null);
@@ -487,23 +495,21 @@ function LifelineBand({
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (
+      dragRef.current ||
+      (event.pointerType === 'mouse' && event.button !== 0)
+    )
+      return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setScrubbing(true);
-    const column = columnAt(event.clientX);
-    const sameColumn = column === active;
-    if (!sameColumn) selectColumn(column);
     dragRef.current = {
+      pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
       axis: null,
-      moved: false,
-      startEntry: sameColumn ? selected : null,
+      startEntry: selected,
     };
   };
-  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
+  const updateDrag = (drag: DragState, event: PointerEvent<HTMLDivElement>) => {
     const dx = event.clientX - drag.x;
     const dy = event.clientY - drag.y;
     if (
@@ -512,32 +518,37 @@ function LifelineBand({
     )
       drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (drag.axis === 'x') {
-      drag.moved = true;
       selectColumn(columnAt(event.clientX));
     } else if (drag.axis === 'y' && selected !== null) {
-      drag.moved = true;
       drag.startEntry ??= selected;
       chooseEntry(drag.startEntry + Math.round(-dy / DRAG_ENTRY_STEP));
     }
   };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (drag && drag.pointerId === event.pointerId) updateDrag(drag, event);
+  };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
     dragRef.current = null;
-    setScrubbing(false);
-    if (!drag || drag.moved || active === null || !current) return;
-    const dot = dotAt(active, event.clientX, event.clientY);
+    updateDrag(drag, event);
+    if (drag.axis) return;
+    const column = columnAt(event.clientX);
+    if (column === null) return;
+    const dot = dotAt(column, event.clientX, event.clientY);
+    selectColumn(column);
     if (dot === null) return;
     markEntryInteraction();
-    if (!entries) {
+    if (column !== active || !current || !entries) {
       setRequestedDot(dot);
       return;
     }
     const index = dotEntry(current, kinds, dot);
     if (index >= 0) chooseEntry(index);
   };
-  const endScrub = () => {
-    dragRef.current = null;
-    setScrubbing(false);
+  const endScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -624,7 +635,7 @@ function LifelineBand({
   return (
     <div
       ref={containerRef}
-      className={`shared-story-lifeline${current ? ' is-active' : ''}${scrubbing ? ' is-scrubbing' : ''}`}
+      className={`shared-story-lifeline${current ? ' is-active' : ''}`}
     >
       <div className="shared-story-lifeline-stage">
         <div
@@ -642,6 +653,7 @@ function LifelineBand({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={endScrub}
+          onLostPointerCapture={endScrub}
           onKeyDown={onKeyDown}
         >
           {columns.map((column, index) => (
@@ -931,6 +943,7 @@ function LifelinePreview({
     // biome-ignore lint/a11y/noStaticElementInteractions: see above.
     <div
       className="shared-story-lifeline-preview-card"
+      data-primary-tab-swipe-block="true"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(event) => endSwipe(event, true)}

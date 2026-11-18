@@ -784,6 +784,8 @@
     },
     "relationship-reflections.spec.ts": {
       "roots": [
+        "web/src/components/SharedStorySummary.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/RelationshipPassport.tsx",
         "web/src/components/RelationshipStoryPage.tsx",
         "web/src/components/RelationshipRecapsPage.tsx",
@@ -1070,6 +1072,8 @@
         "web/src/components/MemoryPlanningLinks.tsx",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/StoryPlanningLinks.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
         "web/src/components/CommentsPanel.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/HeartMomentProductPage.tsx"

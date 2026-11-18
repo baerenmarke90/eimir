@@ -6,6 +6,7 @@ import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -544,12 +545,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
         .focus();
       const destination = page
-        .locator('.memory-planning-links')
+        .getByRole('region', {
+          name: memoryProduct.planning.detailHeading,
+          exact: true,
+        })
         .getByRole('link', {
-          name: new RegExp(localeFixture.photoPlaces.title),
+          name: `${localeFixture.photoPlaces.title} ${m5s5.kind.PLAN}`,
+          exact: true,
         });
-      await expect(destination).toContainText(composer.viewLinkedPlan);
-      await expect(destination).toContainText(localeFixture.photoPlaces.title);
       await expect(destination).toHaveAttribute(
         'href',
         '/plan/plans/plan-canal',

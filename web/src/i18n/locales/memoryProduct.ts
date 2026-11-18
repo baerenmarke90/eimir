@@ -1,6 +1,7 @@
 const memoryProduct = {
   planning: {
     heading: 'Verknüpfte Wünsche und Pläne',
+    detailHeading: 'Verknüpft mit',
     linkedPlan: 'Verknüpfter Plan',
     linkedWish: 'Verknüpfter Wunsch',
     add: 'Wunsch oder Plan verknüpfen',

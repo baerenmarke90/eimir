@@ -126,27 +126,6 @@ export function useTimelineReveal(options: {
   useFirstEntryReveal({ ...options, attrPrefix: 'timeline' });
 }
 
-/**
- * Discover tapestry's own first-entry reveal (#977). Reuses the same core
- * and session-scoped registry as #975's `useTimelineReveal`, but under
- * `data-discover-reveal-key`/`data-discover-revealed` so Discover never
- * shares DOM attribute names (or CSS) with Timeline.
- *
- * `revision` must be the tapestry's ordered content identity (e.g. the
- * joined item keys), not just a count: the authoritative Discover selection
- * can be replaced in place by a different, same-length set on refresh, and
- * a count-only revision would never re-run the observe pass for the new
- * keyed nodes React mounts in that case.
- */
-export function useDiscoverReveal(options: {
-  rootRef: RefObject<HTMLElement | null>;
-  enabled: boolean;
-  scopeKey: string;
-  revision: string;
-}) {
-  useFirstEntryReveal({ ...options, attrPrefix: 'discover' });
-}
-
 export function useTimelineAutoPagination({
   sentinelRef,
   enabled,

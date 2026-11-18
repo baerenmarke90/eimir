@@ -11,11 +11,13 @@ import {
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { i18n } from '../i18n';
 import dateIdeas from '../i18n/locales/dateIdeas';
 import m5s3 from '../i18n/locales/m5s3';
+import sharedNotes from '../i18n/locales/sharedNotes';
 import taskBoundary from '../i18n/locales/taskBoundary';
-import { i18n } from '../i18n';
 import { PlanningCreatePage } from './PlanningCreatePage';
+import { sharedNote } from './sharedNoteFixtures';
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -86,7 +88,119 @@ function renderCreate(
   return { createPlan, createWish, locations, unmount };
 }
 
+const noteText = sharedNotes.sharedNotes;
+
+/** A Plan draft that already has a title, with one shared note on offer. */
+function renderCreateWithNotes(linkPlanNote: ReturnType<typeof vi.fn>) {
+  const notes = [
+    sharedNote({ id: 'note-a', title: 'Packing list' }),
+    sharedNote({ id: 'note-b', title: 'Door codes' }),
+  ];
+  const createPlan = vi.fn().mockResolvedValue({ id: 'saved-plan' });
+  const rendered = renderCreate('plan', {
+    plans: {
+      createPlan,
+      linkPlanNote,
+    } as unknown as SharedPlanningApis['plans'],
+    sharedNotes: {
+      listSharedNotes: vi
+        .fn()
+        .mockResolvedValue({ items: notes, nextCursor: null, hasMore: false }),
+    } as unknown as SharedPlanningApis['sharedNotes'],
+  });
+  fireEvent.change(
+    screen.getByRole('textbox', { name: m5s3.plan.intentionLabel }),
+    { target: { value: 'A picnic together' } },
+  );
+  return { ...rendered, createPlan };
+}
+
+async function chooseNotes(...titles: string[]) {
+  fireEvent.click(screen.getByRole('button', { name: noteText.plan.tool }));
+  const dialog = await screen.findByRole('dialog');
+  for (const title of titles)
+    fireEvent.click(
+      await within(dialog).findByRole('checkbox', { name: new RegExp(title) }),
+    );
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: noteText.plan.link }),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+}
+
 describe('PlanningCreatePage', () => {
+  it('offers the Notiz tool, keeps the chosen notes locally and links them only after the Plan is saved', async () => {
+    const linkPlanNote = vi.fn().mockResolvedValue(undefined);
+    const { createPlan } = renderCreateWithNotes(linkPlanNote);
+    await chooseNotes('Packing list', 'Door codes');
+    // Nothing is sent before the Plan exists; the choice is visible as chips.
+    expect(linkPlanNote).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Packing list' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Door codes' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText('Plan result');
+    expect(createPlan).toHaveBeenCalledTimes(1);
+    expect(
+      linkPlanNote.mock.calls.map(([request]) => request.sharedNoteId).sort(),
+    ).toEqual(['note-a', 'note-b']);
+    expect(linkPlanNote.mock.calls[0][0]).toMatchObject({
+      spaceId: 'space-1',
+      planId: 'saved-plan',
+    });
+  });
+
+  it('lets a chosen note be removed again before saving and never offers to leave the draft', async () => {
+    const linkPlanNote = vi.fn().mockResolvedValue(undefined);
+    renderCreateWithNotes(linkPlanNote);
+    fireEvent.click(screen.getByRole('button', { name: noteText.plan.tool }));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByRole('checkbox', { name: /Packing list/ });
+    // Starting a new note would discard the unsaved Plan, so it is not offered.
+    expect(
+      within(dialog).queryByRole('button', {
+        name: noteText.plan.createNew,
+      }),
+    ).toBeNull();
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /Packing list/ }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: noteText.plan.link }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('sharedNotes.plan.unlink', { title: 'Packing list' }),
+      }),
+    );
+    expect(screen.queryByRole('button', { name: 'Packing list' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText('Plan result');
+    expect(linkPlanNote).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed note link honestly and retries without creating a second Plan', async () => {
+    const linkPlanNote = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue(undefined);
+    const { createPlan } = renderCreateWithNotes(linkPlanNote);
+    await chooseNotes('Packing list');
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    // The Plan is saved, the link is not: the page says exactly that and stays.
+    await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
+    expect(screen.queryByText('Plan result')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(linkPlanNote).toHaveBeenCalledTimes(2);
+    expect(createPlan).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the confirmed Plan after list-link failure and retries without creating a second Plan', async () => {
     const link = vi
       .fn()

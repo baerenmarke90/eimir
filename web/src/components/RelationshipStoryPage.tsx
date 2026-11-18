@@ -3,7 +3,10 @@ import { STORY_RECAPS_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import type { ProfilePageProps } from './ProfilePage';
-import { RelationshipPassport } from './RelationshipPassport';
+import {
+  type PassportImageLoader,
+  RelationshipPassport,
+} from './RelationshipPassport';
 import './RelationshipStoryPage.css';
 
 /**
@@ -13,7 +16,9 @@ import './RelationshipStoryPage.css';
  * together used to sit collapsed at the end of the recap library. Here it is
  * the destination behind the heart line on Wir.
  */
-export function RelationshipStoryPage(props: ProfilePageProps) {
+export function RelationshipStoryPage(
+  props: ProfilePageProps & { loadMemoryImage?: PassportImageLoader },
+) {
   const { t } = useTranslation();
   return (
     <div className="page relationship-story-page">

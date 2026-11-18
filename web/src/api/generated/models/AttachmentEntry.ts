@@ -37,6 +37,12 @@ export interface AttachmentEntry {
      * @memberof AttachmentEntry
      */
     position: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof AttachmentEntry
+     */
+    replacesAttachmentId?: string | null;
 }
 
 /**
@@ -61,6 +67,7 @@ export function AttachmentEntryFromJSONTyped(json: any, ignoreDiscriminator: boo
         'attachmentId': json['attachmentId'],
         'isSensitive': json['isSensitive'] === undefined ? undefined : json['isSensitive'] === null ? null : json['isSensitive'],
         'position': json['position'],
+        'replacesAttachmentId': json['replacesAttachmentId'] === undefined ? undefined : json['replacesAttachmentId'] === null ? null : json['replacesAttachmentId'],
     };
 }
 
@@ -78,6 +85,7 @@ export function AttachmentEntryToJSONTyped(value?: AttachmentEntry | null, ignor
         'attachmentId': value['attachmentId'],
         'isSensitive': value['isSensitive'],
         'position': value['position'],
+        'replacesAttachmentId': value['replacesAttachmentId'],
     };
 }
 

@@ -45,11 +45,11 @@ export function SharedAchievementCelebration({
     >
       <span className="shared-achievement-mark" aria-hidden="true">
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden="true"
           stroke="currentColor"
-          strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
         >

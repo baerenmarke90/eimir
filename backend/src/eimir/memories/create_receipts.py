@@ -11,14 +11,14 @@ rolled back, both vanish. Two simultaneous equivalent requests serialize on the
 unique index: the loser waits for the winner's commit and then replays, or
 proceeds if the winner rolled back.
 
-Only a fingerprint of the normalized request is retained, never its content,
-and only for ``RECEIPT_RETENTION``.
+Only a keyed fingerprint of the normalized request is retained, never its
+content, and only for ``RECEIPT_RETENTION``. Without the installation secret the
+stored value cannot be tested against a guessed request
+(``eimir.core.request_fingerprint``).
 """
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, readable
 from eimir.core import clock
+from eimir.core import request_fingerprint as request_fingerprints
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError
 from eimir.domain.experiences import ExperienceKind
 from eimir.memories.models import Memory, MemoryCreateReceipt
@@ -101,7 +102,7 @@ def fingerprint(
         ensure_ascii=False,
         separators=(",", ":"),
     )
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return request_fingerprints.digest(canonical)
 
 
 def claim(
@@ -122,7 +123,8 @@ def claim(
             space_id=context.space_id,
             account_id=context.account_id,
             idempotency_key=key,
-            request_fingerprint=request_fingerprint,
+            # A plain string: only the keyed digest is stored.
+            request_fingerprint=str(request_fingerprint),
             # Assigned once the Memory exists, within the same transaction.
             memory_id=None,
         )
@@ -159,7 +161,7 @@ def replay(
             MemoryCreateReceipt.idempotency_key == key,
         )
     ).scalar_one()
-    if not hmac.compare_digest(receipt.request_fingerprint, request_fingerprint):
+    if not request_fingerprints.matches(receipt.request_fingerprint, request_fingerprint):
         raise ConflictError(
             "The Idempotency-Key was already used for a different request.",
             ErrorCode.IDEMPOTENCY_KEY_REUSED,

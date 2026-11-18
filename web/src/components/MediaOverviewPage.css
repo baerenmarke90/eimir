@@ -61,6 +61,18 @@
   background: var(--color-surface-subtle);
   box-shadow: none;
 }
+/* A tile the refreshed list no longer contains leaves instead of vanishing. */
+.media-overview-tile[data-departing="true"] {
+  pointer-events: none;
+  animation: media-overview-tile-depart var(--duration-context)
+    var(--easing-exit) forwards;
+}
+@keyframes media-overview-tile-depart {
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
 .media-overview-tile .story-media-preview,
 .media-overview-tile .story-media-skeleton,
 .media-overview-tile .story-media-placeholder {

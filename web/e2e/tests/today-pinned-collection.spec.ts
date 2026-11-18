@@ -1,5 +1,3 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -7,6 +5,8 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectToday } from '../support/today';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -104,6 +104,7 @@ async function installMocks(
       ),
     );
   }
+  const sentCollectionIds: string[] = [];
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
@@ -451,6 +452,23 @@ async function installMocks(
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-nickname`
+    ) {
+      await json({ nickname: null, partnerId: PARTNER_ID });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/send`
+    ) {
+      sentCollectionIds.push(COLLECTION_ID);
+      await route.fulfill({ status: 204 });
+      return;
+    }
+
     await json(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -464,6 +482,7 @@ async function installMocks(
 
   return {
     itemWrites,
+    sentCollectionIds: () => [...sentCollectionIds],
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
     pin: (selectedCollectionId: string | null) => {
@@ -1277,6 +1296,63 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
     pinnedSection.getByRole('link', { name: openListName }),
   ).toBeFocused();
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '360-dark', width: 360, scheme: 'dark' as const },
+  { name: '430-light', width: 430, scheme: 'light' as const },
+]) {
+  test(`sends a shared list to the partner only after asking and confirms it calmly in ${view.name} (#1907 E2)`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    const mocks = await installMocks(page);
+    await signIn(page);
+
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
+    const sendName = m5s3.collection.menu.send.replace('{{name}}', 'Ben');
+    await page.getByRole('button', { name: sendName }).click();
+
+    // The first tap only asks; nothing was sent yet.
+    const sheet = page.getByRole('dialog');
+    await expect(
+      sheet.getByRole('heading', {
+        name: m5s3.collection.menu.sendTitle.replace('{{name}}', 'Ben'),
+      }),
+    ).toBeVisible();
+    expect(mocks.sentCollectionIds()).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`send-list-sheet-${view.name}.png`),
+      animations: 'disabled',
+    });
+
+    await sheet
+      .getByRole('button', {
+        name: m5s3.collection.menu.sendConfirm.replace('{{name}}', 'Ben'),
+      })
+      .click();
+    await expect(
+      page.getByRole('status').filter({
+        hasText: m5s3.collection.menu.sendDone.replace('{{name}}', 'Ben'),
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(mocks.sentCollectionIds()).toEqual([COLLECTION_ID]);
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`send-list-confirmed-${view.name}.png`),
+      animations: 'disabled',
+    });
+  });
+}
 
 test('keeps the list tile compact on Expanded Web and its add link opens the list with the input focused', async ({
   page,

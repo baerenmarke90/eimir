@@ -236,9 +236,10 @@ empty and populated views. Apply the binding [Button contract](docs/COMPONENT-CO
 rather than styling an icon/text or tertiary action as the main creation control
 (Product Owner correction #1688). Preserve the single-primary-action hierarchy.
 All create/add entry points reuse the shared `AddActionButton`, `AddActionLink`
-or `AddActionContent` presentation: a filled canonical-blue pill with the shared
-contextual icon (defaulting to the plus) and a visible localized action label,
-as in Planning. The Product Owner correction #1724 uses photo, photo-library,
+or `AddActionContent` presentation: a filled pill in the active design's action
+colour (Verbunden: the canonical blue; Product Owner decision 2026-11-17) with
+the shared contextual icon (defaulting to the plus) and a visible localized
+action label, as in Planning. The Product Owner correction #1724 uses photo, photo-library,
 Place, list and tag motifs for the corresponding enrichment actions. This includes
 People, important days, authored tags, media and inline insertion controls.
 The Product Owner correction #1697 supersedes #1693's icon-only circular

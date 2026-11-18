@@ -48,8 +48,7 @@
 }
 
 .m4-toolbar-row,
-.m4-item-actions,
-.m4-notification-summary {
+.m4-item-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -75,7 +74,6 @@
   height: 1.05rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -104,11 +102,6 @@
 
 .m4-toolbar-submit {
   flex: 0 0 auto;
-}
-
-.m4-notification-summary {
-  align-items: center;
-  justify-content: space-between;
 }
 
 .m4-summary-card h2,
@@ -247,34 +240,46 @@
   }
 }
 
-/*
- * A quiet status line rather than an inbox counter: the panel carries the
- * brand tint so the number reads as "where you two stand", not a task badge.
- */
-.m4-notification-summary-panel {
-  border-color: var(--color-brand-glow);
-  background: linear-gradient(
-    120deg,
-    var(--color-surface-panel) 60%,
-    var(--color-brand-surface)
-  );
+/* Feeds (Activity, Notifications) read as one calm list: tight rhythm, no
+   panel around panels, a small status line instead of a summary card. */
+.m4-feed-page {
+  gap: var(--space-3);
 }
 
-.m4-unread-badge {
-  display: inline-flex;
+.m4-feed-page > .page-heading {
+  margin-block-end: 0;
+  padding-block-end: 0;
+}
+
+.m4-feed-page .m4-list {
+  gap: var(--space-2);
+}
+
+.m4-feed-page .m4-item {
+  padding: var(--space-3) var(--space-4);
+}
+
+.m4-notification-bar {
+  display: flex;
   align-items: center;
-  min-height: 2rem;
-  border: var(--border-surface-width) solid var(--color-brand-glow);
-  border-radius: 999px;
-  padding: 0.2rem 0.8rem;
-  background: var(--color-surface-raised);
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* The count is a chip: a tinted fill, no outline. */
+.m4-unread-line {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
   color: var(--color-brand-text);
-  font-weight: 700;
+  font: var(--font-supporting-copy);
+  font-weight: 600;
 }
 
 @media (max-width: 760px) {
-  .m4-toolbar-row,
-  .m4-notification-summary {
+  .m4-toolbar-row {
     flex-direction: column;
     align-items: stretch;
   }
@@ -554,6 +559,7 @@
 
 .m4-notification-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
@@ -564,7 +570,7 @@
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
-  flex: 1;
+  flex: 1 1 11rem;
 }
 
 .m4-notification-title {

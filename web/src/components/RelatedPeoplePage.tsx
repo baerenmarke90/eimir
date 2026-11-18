@@ -11,6 +11,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
@@ -63,6 +64,7 @@ function PersonPhoto({
     attachmentsApi,
     spaceId,
     person.avatarAttachmentId,
+    person.visibility === ContentVisibility.SHARED,
   );
   return (
     <AvatarPhoto

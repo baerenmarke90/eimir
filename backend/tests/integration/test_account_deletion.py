@@ -88,10 +88,9 @@ def _private_partner_note(
         profile_id=None,
         account_id=subject_id,
         category=PreferenceCategory.OTHER.value,
-        topic="account-deletion-test",
         sentiment=PreferenceSentiment.LIKE.value,
         visibility=ProfileVisibility.PRIVATE_PARTNER_NOTE.value,
-        payload=ProfilePreferencePayload(value=value),
+        payload=ProfilePreferencePayload(value=value, topic="account-deletion-test"),
     )
     session.add(preference)
     session.flush()

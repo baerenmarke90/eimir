@@ -30,6 +30,12 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const picture = readFileSync(

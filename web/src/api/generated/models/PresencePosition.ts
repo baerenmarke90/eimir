@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface PresencePosition {
     /**
+     * Reported accuracy of the position. Required to publish; for a distance read it only lets a precise choice count when the fix itself is precise.
+     * @type {number}
+     * @memberof PresencePosition
+     */
+    accuracyMeters?: number | null;
+    /**
      * 
      * @type {Date}
      * @memberof PresencePosition
@@ -59,6 +65,7 @@ export function PresencePositionFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'accuracyMeters': json['accuracyMeters'] === undefined ? undefined : json['accuracyMeters'] === null ? null : json['accuracyMeters'],
         'capturedAt': (new Date(json['capturedAt'])),
         'latitude': json['latitude'],
         'longitude': json['longitude'],
@@ -76,6 +83,7 @@ export function PresencePositionToJSONTyped(value?: PresencePosition | null, ign
 
     return {
         
+        'accuracyMeters': value['accuracyMeters'],
         'capturedAt': value['capturedAt'].toISOString(),
         'latitude': value['latitude'],
         'longitude': value['longitude'],

@@ -1,15 +1,23 @@
+import { type ReactNode, useRef, useState } from 'react';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
 import { DeviceMediaPicker } from './DeviceMediaPicker';
 import { DraftMediaPreview } from './DraftMediaPreview';
-import { PhotoDraftGallery } from './PhotoDraftGallery';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
-import { AttachmentMediaDropZone } from './MediaDropZone';
-import type { VideoCaptureContext } from './VideoUploadAction';
-import { type ReactNode, useRef, useState } from 'react';
 import { EimirIcon } from './EimirIcon';
 import { MediaActionGroup } from './MediaActionGroup';
+import { AttachmentMediaDropZone } from './MediaDropZone';
+import { PhotoDraftGallery } from './PhotoDraftGallery';
+import { PhotoEditTask } from './PhotoEditTask';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
+import type { VideoCaptureContext } from './VideoUploadAction';
+
+/** Open the edit step for a photo; the edited file goes to `apply`. */
+export type EditPhotoFile = (
+  file: Promise<File> | File,
+  apply: (file: File) => void,
+) => void;
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -17,6 +25,8 @@ export interface AttachmentDraftPickerController {
   cancel: (id: string) => void;
   remove: (id: string) => void;
   retry: (draft: AttachmentDraft) => void;
+  /** Swap a selected photo for its edited version (#1907 G1). */
+  replaceFile?: (id: string, file: File) => void;
   reorder?: (keys: string[]) => void;
   move?: (id: string, offset: -1 | 1) => void;
   hasPending: boolean;
@@ -45,7 +55,19 @@ export function AttachmentDraftPicker({
   mediaTrigger?: (open: () => void) => ReactNode;
   pageWideDrop?: boolean;
   additionalActions?: ReactNode;
-  gallery?: ReactNode | ((addAction: ReactNode) => ReactNode);
+  /**
+   * A custom gallery. `editDraft` opens the edit step for a selected, not yet
+   * saved photo by its draft id; `editFile` opens it for any photo, such as
+   * the original of a saved one, and hands the edited file to `apply`. Both
+   * exist only when this picker can replace drafts.
+   */
+  gallery?:
+    | ReactNode
+    | ((
+        addAction: ReactNode,
+        editDraft?: (draftId: string) => void,
+        editFile?: EditPhotoFile,
+      ) => ReactNode);
   hasMedia?: boolean;
   id: string;
   selectedCoverKey?: string | null;
@@ -68,6 +90,43 @@ export function AttachmentDraftPicker({
   const openSource = useRef<() => void>(() => {});
   // #1790 D1: with an external source the diary intake opens the shared sheet.
   const [externalSources, setExternalSources] = useState(false);
+  const [editing, setEditing] = useState<{
+    source: PhotoCropSource;
+    replacesSaved: boolean;
+    apply: (file: File) => void;
+  } | null>(null);
+  const [editUnavailable, setEditUnavailable] = useState(false);
+  const replaceFile = attachments.replaceFile;
+  async function startEdit(
+    file: Promise<File> | File,
+    apply: (file: File) => void,
+    replacesSaved: boolean,
+  ) {
+    setEditUnavailable(false);
+    let source: PhotoCropSource | null = null;
+    try {
+      source = await loadPhotoCropSource(await file);
+    } catch {
+      source = null;
+    }
+    if (source) setEditing({ source, replacesSaved, apply });
+    else setEditUnavailable(true);
+  }
+  const editable = Boolean(replaceFile) && presentation !== 'default';
+  const editDraft = editable
+    ? (draftId: string) => {
+        const draft = attachments.items.find((item) => item.id === draftId);
+        if (draft)
+          void startEdit(
+            draft.file,
+            (file) => replaceFile?.(draftId, file),
+            false,
+          );
+      }
+    : undefined;
+  const editFile: EditPhotoFile | undefined = editable
+    ? (file, apply) => void startEdit(file, apply, true)
+    : undefined;
   const populated =
     hasMedia ?? (attachments.items.length > 0 || Boolean(gallery));
   const addAction =
@@ -121,7 +180,9 @@ export function AttachmentDraftPicker({
         data-has-media={populated}
       >
         <MediaActionGroup unframed>
-          {typeof gallery === 'function' ? gallery(addAction) : gallery}
+          {typeof gallery === 'function'
+            ? gallery(addAction, editDraft, editFile)
+            : gallery}
           {showItems && attachments.items.length > 0 ? (
             <PhotoDraftGallery
               key={JSON.stringify([
@@ -176,8 +237,18 @@ export function AttachmentDraftPicker({
                 const draft = attachments.items.find((item) => item.id === key);
                 if (draft) attachments.retry(draft);
               }}
+              onEdit={editDraft}
             />
           ) : null}
+          <PhotoEditTask
+            source={editing?.source ?? null}
+            replacesSaved={editing?.replacesSaved}
+            onCancel={() => setEditing(null)}
+            onConfirm={(file) => {
+              if (editing && file) editing.apply(file);
+              setEditing(null);
+            }}
+          />
 
           <div
             className={
@@ -266,6 +337,11 @@ export function AttachmentDraftPicker({
                 ? 'video.pendingSave'
                 : 'memory.photoPendingSave',
             )}
+          </p>
+        ) : null}
+        {editUnavailable ? (
+          <p className="field-help" role="status" aria-live="polite">
+            {t('photoEdit.unavailable')}
           </p>
         ) : null}
         {attachments.rejectedCount ? (

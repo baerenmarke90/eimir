@@ -7,8 +7,9 @@ import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
-import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
+import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
@@ -45,8 +46,16 @@ import './product-reflow.css';
 import './components/FreeComposer.css';
 import './components/StoryReading.css';
 import './design/identity-roles.css';
+import './design/person-colors.css';
 import './design/identity-components.css';
+import './design/app-designs.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
+
+// Resolve calendar links before the router and sign-in read the entry URL.
+const calendarPlanPath = planPathFromCalendarLink(window.location.pathname);
+if (calendarPlanPath) {
+  window.history.replaceState(window.history.state, '', calendarPlanPath);
+}
 
 markNativeRuntime();
 initializeTheme();

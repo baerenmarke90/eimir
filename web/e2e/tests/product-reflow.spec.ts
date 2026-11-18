@@ -1,3 +1,4 @@
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -429,6 +430,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
     }
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

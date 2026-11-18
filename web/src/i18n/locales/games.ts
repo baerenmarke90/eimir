@@ -23,6 +23,171 @@ const games = {
       title: 'Wer von euch?',
       description: 'Vergleicht spielerisch eure Sicht auf euch beide.',
     },
+    pingPong: {
+      role: 'Nah sein',
+      title: 'Bild-Pingpong',
+      description: 'Malt abwechselnd an einem Bild weiter, bis es fertig ist.',
+    },
+    garden: {
+      role: 'Nah sein',
+      title: 'Unser Garten',
+      description:
+        'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
+    },
+    heartHunt: {
+      role: 'Nah sein',
+      title: 'Herzversteck',
+      description: 'Versteckt ein Herz in einem Foto. Wer findet es?',
+    },
+  },
+  heartHunt: {
+    intro:
+      'Versteckt ein Herz in einem Foto aus eurem Tag. Wer sucht, tastet sich durch den Nebel.',
+    loadingTitle: 'Das Versteck wird geöffnet',
+    loadingBody: 'Wir laden nur Fotos, die für euch beide bestimmt sind.',
+    coupleRequiredTitle: 'Dieses Spiel gehört euch beiden',
+    coupleRequiredBody:
+      'Herzversteck ist für einen gemeinsamen Bereich mit genau zwei Partnern gedacht.',
+    keyboardHint:
+      'Mit den Pfeiltasten zielen, mit Eingabe oder Leertaste tippen.',
+    memoryTitle: 'Herzversteck',
+    band: {
+      between: 'Zwischen euch: {{label}}',
+      plain: 'Du und {{name}}',
+    },
+    hide: {
+      title: 'Versteck ein Herz für {{name}}',
+      body: 'Nimm ein Foto von dort, wo du gerade bist, und tipp auf die Stelle fürs Herz.',
+      pickPhoto: 'Foto aufnehmen oder wählen',
+      changePhoto: 'Anderes Foto wählen',
+      pickHint: 'Kamera oder Galerie',
+      photoLabel: 'Dein Foto. Tippe, um das Herz zu platzieren.',
+      uploading: 'Foto wird vorbereitet …',
+      placeHint: 'Tipp ins Foto, um das Herz zu verstecken.',
+      placed: 'Gutes Versteck. Du kannst es noch verschieben.',
+      send: 'Verstecken und an {{name}} schicken',
+      uploadFailed:
+        'Das Foto konnte nicht vorbereitet werden. Versuch es noch einmal.',
+      sendFailed:
+        'Das Herz konnte nicht losgeschickt werden. Versuch es noch einmal.',
+      roundOpen:
+        'Dein letztes Herz ist noch versteckt. Warte, bis es gefunden wurde.',
+      partnerHidToo:
+        '{{name}} hat dir inzwischen auch ein Herz versteckt. Du kannst gleich danach suchen.',
+    },
+    waiting: {
+      title: '{{name}} sucht jetzt',
+      body: 'Du bekommst Bescheid, sobald das Herz gefunden ist.',
+      searching_one: '{{name}} hat schon einmal getippt.',
+      searching_other: '{{name}} hat schon {{count}}-mal getippt.',
+      photoLabel: 'Dein Foto mit dem versteckten Herz',
+    },
+    seek: {
+      title: '{{name}} hat ein Herz versteckt',
+      tapHint: 'Tipp irgendwo ins Bild',
+      meterLabel: 'Wärme',
+      photoLabel: 'Foto unter Nebel. Tippe, um zu suchen.',
+      quiet: 'Kein Zeitlimit, keine Punkte. Jeder Tipp wischt etwas Nebel weg.',
+      tapFailed: 'Dieser Tipp ist nicht angekommen. Tipp noch einmal.',
+    },
+    warmth: {
+      cold: 'Noch kalt',
+      lukewarm: 'Lauwarm',
+      warm: 'Warm',
+      hot: 'Ganz heiß!',
+    },
+    found: {
+      title: 'Gefunden!',
+      bodySeeker:
+        '{{name}} hatte das Herz {{place}} versteckt. {{name}} erfährt, dass du es gefunden hast.',
+      bodyHider: '{{name}} hat dein Herz gefunden. Es steckte {{place}}.',
+      photoLabel: 'Das Foto mit dem gefundenen Herz',
+      swap: 'Selbst eins verstecken',
+      keep: 'Foto als Moment behalten',
+      keeping: 'Wird gespeichert …',
+      kept: 'Liegt in Momente',
+      keepFailed:
+        'Das Foto konnte nicht als Moment gespeichert werden. Versuch es noch einmal.',
+      deleteNote:
+        'Das Foto wird am {{date}} gelöscht, wenn ihr es nicht als Moment behaltet.',
+      keptNote: 'Das Foto mit dem Herz liegt jetzt in euren Momenten.',
+    },
+    places: {
+      topLeft: 'oben links',
+      top: 'oben',
+      topRight: 'oben rechts',
+      left: 'links',
+      center: 'in der Mitte',
+      right: 'rechts',
+      bottomLeft: 'unten links',
+      bottom: 'unten',
+      bottomRight: 'unten rechts',
+    },
+  },
+  pingPong: {
+    intro:
+      'Ein Bild, zwei Hände: Jeder malt bis zu drei Striche und schickt es weiter.',
+    loadingTitle: 'Euer Bild wird geholt',
+    loadingBody: 'Gleich seht ihr, wer dran ist.',
+    emptyEyebrow: 'Noch kein Bild',
+    emptyTitle: 'Fangt ein Bild an.',
+    emptyBody:
+      'Fangt mit einer kleinen Kritzellinie oder einem leeren Blatt an. Danach malt ihr abwechselnd, sechs Züge lang.',
+    newPicture: 'Neues Bild anfangen',
+    starterLegend: 'Wie wollt ihr anfangen?',
+    starterSquiggle: 'Mit Vorlage',
+    starterSquiggleHint: 'Eine kleine Kritzellinie als Anfang',
+    starterBlank: 'Leeres Blatt',
+    starterBlankHint: 'Ihr malt alles selbst',
+    startAction: 'Bild anfangen',
+    starterCancel: 'Doch nicht',
+    partnerStarted: '{{name}} hat gerade ein neues Bild angefangen.',
+    partnerFinished: '{{name}} hat das Bild gerade fertig gemacht.',
+    canvasLabel: 'Euer gemeinsames Bild',
+    you: 'Du',
+    partnerFallback: 'Partner',
+    turnYou: 'Du bist dran',
+    turnPartner: '{{name}} ist dran',
+    strokesUsed: '{{count}} von {{max}} Strichen',
+    turnsLabel: 'Züge',
+    turnDone: 'gemalt',
+    turnCurrent: 'jetzt dran',
+    turnOpen: 'noch offen',
+    turnDot: 'Zug {{turn}} von {{total}}, {{name}}, {{state}}',
+    colourLegend: 'Farbe wählen',
+    colourOwn: 'Deine Farbe',
+    colourInk: 'Tinte',
+    colourSun: 'Sonnengelb',
+    undo: 'Strich zurücknehmen',
+    send: 'An {{name}} schicken',
+    sentNote:
+      'Geschickt. {{name}} ist jetzt dran, du bekommst Bescheid, wenn es weitergeht.',
+    waitingNote:
+      'Das Bild wartet auf {{name}}. Du bekommst Bescheid, sobald du wieder dran bist.',
+    changedMeanwhile:
+      'Zwischendurch hat sich etwas verändert. Das Bild wurde neu geladen.',
+    finishEarly: 'Bild jetzt fertig machen',
+    finishConfirm:
+      'Dann ist das Bild abgeschlossen und ihr könnt es in Momente legen.',
+    finishConfirmAction: 'Ja, fertig',
+    finishKeep: 'Weitermalen',
+    doneTitle: 'Euer Bild ist fertig',
+    doneBody: 'Gebt ihm einen Namen und hebt es auf, wenn ihr mögt.',
+    titleLegend: 'Wie soll es heißen?',
+    saveToMoments: 'In Momente legen',
+    saving: 'Wird gelegt …',
+    saved: 'In Momente gelegt.',
+    openMoment: 'Moment ansehen',
+    memoryBody: 'Gemeinsam gemalt mit {{name}}.',
+    backToGames: 'Zurück zu Spielen',
+    titles: {
+      one: 'Unser Kunstwerk',
+      two: 'Zwischen uns gemalt',
+      three: 'Kleine Kritzelei',
+      four: 'Zwei Hände, ein Bild',
+      five: 'Von hier nach dort',
+      six: 'Unser Gekritzel',
+    },
   },
   momentsGame: {
     back: 'Zurück zu Spielen',
@@ -152,6 +317,484 @@ const games = {
       wrongLyrics: 'Wer singt häufiger falsche Liedtexte mit?',
       snack: 'Wer würde eher noch einen Snack holen?',
       packing: 'Wer braucht beim Packen mehr Platz?',
+    },
+  },
+  garden: {
+    title: 'Unser Garten',
+    you: 'Du',
+    partnerFallback: 'Dein Schatz',
+    loading: 'Der Garten wird geöffnet …',
+    changedMeanwhile:
+      'Im Garten hat sich gerade etwas getan. Wir haben ihn neu geladen.',
+    sentStatus: '{{messenger}} hat deinen Samen zu {{name}} gebracht.',
+    plantedStatus: 'Eingepflanzt.',
+    wateredStatus: 'Gegossen. {{name}} sieht die Tropfen.',
+    waterTitle: 'Welche Pflanze gießt du?',
+    waterBody:
+      'Tipp im Garten auf eine Pflanze. {{name}} sieht danach die Tropfen.',
+    cancel: 'Abbrechen',
+    arrivedTitle: '{{name}} hat dir einen Samen geschickt',
+    quoted: '„{{words}}“',
+    foldedCard: 'Ein Kärtchen mit lieben Worten',
+    unfold: 'Aufklappen',
+    plant: 'Einpflanzen',
+    todayTitle: 'Heute für {{name}}',
+    todayBody: 'Such einen Samen aus. {{messenger}} bringt ihn zu {{name}}.',
+    chooseSeed: 'Samen auswählen',
+    wordsQuestion: 'Liebe Worte dazu?',
+    yourWords: 'Deine Worte: „{{words}}“',
+    change: 'Ändern',
+    send: 'Samen losschicken',
+    waitingTitle: 'Dein Samen ist bei {{name}}',
+    waitingBody:
+      'Sobald {{name}} reinschaut, wird er eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
+    sharedTitle: 'Ihr wart heute beide im Garten',
+    sharedBody:
+      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neue Samen.',
+    sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
+    sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
+    panHint: 'Wischen, um den ganzen Garten zu sehen',
+    close: 'Schließen',
+    storySent: 'Geschickt von {{name}}, {{date}}',
+    youDative: 'dir',
+    water: 'Eine Pflanze gießen',
+    partnerWatered: '{{name}} hat heute eure {{species}} gegossen.',
+    partnerWateredYours:
+      '{{name}} hat heute die {{species}} gegossen, die du geschickt hast.',
+    footnote:
+      'Tipp auf eine Pflanze, um ihre Geschichte zu sehen. Kein Tag geht verloren: wenn ihr mal nicht reinschaut, wartet der Garten einfach.',
+    plantLabel: '{{species}} von {{name}}',
+    waterPlantLabel: '{{species}} gießen',
+    seasons: {
+      spring: 'Im Garten ist Frühling',
+      summer: 'Im Garten ist Sommer',
+      autumn: 'Im Garten ist Herbst',
+      winter: 'Im Garten ist Winter, Schnee liegt auf den Hügeln',
+    },
+    lanterns: {
+      both: 'Eure beiden Laternen leuchten, ihr wart heute beide im Garten',
+      own: 'Deine Laterne leuchtet, du warst heute im Garten',
+      partner:
+        'Die Laterne von {{name}} leuchtet, {{name}} war heute im Garten',
+    },
+    reunion: {
+      eyebrow: 'Aus Planen',
+      soonTitle: 'Wiedersehen am {{date}}',
+      soonBody:
+        'An dem Tag blüht euer ganzer Garten auf, egal wie weit er ist.',
+      gateLabel: 'Ein Gartentor wartet auf euer Wiedersehen am {{date}}',
+      todayTitle: 'Heute seht ihr euch wieder',
+      todayBody:
+        'Euer ganzer Garten blüht für euch. Heute müsst ihr keine Samen schicken.',
+      buntingLabel: 'Alles blüht, und eine Wimpelkette hängt über dem Garten',
+      save: 'Wiedersehensgarten als Moment speichern',
+      saving: 'Wird gespeichert …',
+      saved: 'In Momente gespeichert.',
+      openMoment: 'Moment ansehen',
+      memoryTitle: 'Unser Garten zum Wiedersehen',
+      memoryBody:
+        'Am Tag unseres Wiedersehens hat unser ganzer Garten geblüht.',
+    },
+    sleep: {
+      title: 'Euer Garten schläft',
+      body: 'Er hat ein paar Tage geruht. Gleich wacht er auf.',
+      sceneLabel: 'Nebel liegt über dem Garten, die Blüten sind geschlossen',
+      wokeTitle: 'Schön, dass du da bist',
+      wokeBody: 'Euer Garten ist wieder wach. Nichts ist verloren gegangen.',
+      wokeClose: 'Schön',
+    },
+    ambience: {
+      daytime: {
+        morning: 'Es ist Morgen im Garten',
+        day: 'Es ist Tag im Garten',
+        evening: 'Es ist Abend im Garten',
+        night: 'Es ist Nacht im Garten, Sterne stehen am Himmel',
+      },
+      labels: {
+        tree: 'Euer Baum antippen',
+        pond: 'Euer Teich antippen',
+        cloud: 'Wolke antippen',
+        birdhouse: 'Zettel von {{name}} im Vogelhäuschen ansehen',
+      },
+      tap: {
+        tree: 'Es raschelt im Baum, ein Vogel fliegt auf.',
+        treeAutumn: 'Bunte Blätter rieseln herab, ein Vogel fliegt auf.',
+        treeWinter: 'Schnee rieselt von den Zweigen, ein Vogel fliegt auf.',
+        treeNight: 'Psst, im Baum schlafen die Vögel.',
+        pond: 'Platsch! Ein kleiner Fisch springt.',
+        cloud: 'Ein kleiner Schauer. Die Pflanzen freuen sich.',
+        cloudSnow: 'Ein paar Schneeflocken rieseln.',
+        flower: 'Die Blume wippt, ein Schmetterling flattert los.',
+        flowerNight: 'Die Blume wippt. Die Schmetterlinge schlafen schon.',
+        flowerWinter:
+          'Die Blume wippt. Die Schmetterlinge warten auf den Frühling.',
+        sprout: 'Das Pflänzchen wippt.',
+        seed: 'Hier schläft ein Samen in der Erde.',
+      },
+      doubleRainbow: 'Ein doppelter Regenbogen: ihr habt heute beide gegossen',
+      together: {
+        swing:
+          'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
+        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum, ihr habt heute beide einen Samen geschickt',
+        bench:
+          'Ihr zwei sitzt zusammen auf einer Bank, ihr habt heute beide einen Samen geschickt',
+      },
+      birdhouseLabel: 'Im Vogelhäuschen steckt ein Zettel von {{name}}',
+      birdhouseStatus:
+        'Im Vogelhäuschen steckt ein Zettel von {{name}}: „{{words}}“',
+      celebration: {
+        birthdayOwn:
+          'Alles Gute zum Geburtstag! Der Garten ist für dich geschmückt.',
+        birthdayPartner:
+          'Heute hat {{name}} Geburtstag. Der Garten ist geschmückt.',
+        anniversary:
+          'Heute ist euer Jahrestag. Der Garten ist für euch geschmückt.',
+      },
+      firstSnow:
+        'Über Nacht ist der erste Schnee gefallen. Alles schläft warm darunter, nichts geht verloren.',
+      call: {
+        action: 'Rufen',
+        label: '{{name}} rufen',
+        greeted: '{{name}} hat dich gehört und winkt.',
+        greetedPlural: '{{name}} haben dich gehört und winken.',
+        later: '{{name}} kommt später wieder vorbei.',
+        laterPlural: '{{name}} kommen später wieder vorbei.',
+      },
+    },
+    stages: {
+      '0': 'Gerade: ein Samen in der Erde',
+      '1': 'Gerade: ein kleiner Keim',
+      '2': 'Gerade: eine Knospe',
+      '3': 'Gerade: in voller Blüte',
+    },
+    messengers: {
+      ladybug: 'Ein Marienkäfer',
+      bee: 'Eine Biene',
+      bird: 'Ein Vogel',
+      balloon: 'Ein kleiner Ballon',
+    },
+    species: {
+      POPPY: {
+        name: 'Mohn',
+        arrived: 'Ein Mohn. {{messenger}} hat ihn gebracht.',
+      },
+      BELLFLOWER: {
+        name: 'Glockenblume',
+        arrived: 'Eine Glockenblume. {{messenger}} hat sie gebracht.',
+      },
+      STARFLOWER: {
+        name: 'Sternblume',
+        arrived: 'Eine Sternblume. {{messenger}} hat sie gebracht.',
+      },
+      SUNFLOWER: {
+        name: 'Sonnenblume',
+        arrived: 'Eine Sonnenblume. {{messenger}} hat sie gebracht.',
+      },
+      TULIP: {
+        name: 'Tulpenzwiebel',
+        arrived:
+          'Eine Tulpenzwiebel. {{messenger}} hat sie gebracht. Sie blüht im Frühling.',
+      },
+      WATER_LILY: {
+        name: 'Seerose',
+        arrived:
+          'Eine Seerose für euren Teich. {{messenger}} hat sie gebracht.',
+      },
+      STRAWBERRY: {
+        name: 'Erdbeere',
+        arrived: 'Eine Erdbeere. {{messenger}} hat sie gebracht.',
+      },
+      MOONFLOWER: {
+        name: 'Mondblume',
+        arrived: 'Eine Mondblume. {{messenger}} hat sie gebracht.',
+      },
+      SURPRISE: {
+        name: 'Überraschung',
+        arrived:
+          'Eine Überraschung. {{messenger}} hat sie gebracht. Was es wird, seht ihr, wenn es blüht.',
+      },
+    },
+    growth: {
+      forms: {
+        BED: 'Ein Beet',
+        MEADOW: 'Eine Wiese',
+        GARDEN: 'Ein Garten',
+        PARADISE: 'Euer kleines Paradies',
+      },
+      finds: {
+        PATH: 'Ein Weg',
+        POND: 'Ein Teich mit Seerosen',
+        BENCH: 'Eine Bank für euch zwei',
+        TREE: 'Euer Baum',
+        MORE_ROOM: 'Mehr Platz zum Pflanzen',
+        BIRDHOUSE: 'Ein Vogelhäuschen',
+        ROSE_ARCH: 'Ein Rosenbogen',
+        SWING: 'Eine Schaukel am Baum',
+        STREAM: 'Ein kleiner Bach',
+        EVEN_MORE_ROOM: 'Noch mehr Platz',
+      },
+      newSeeds: 'Neue Samen: {{species}}',
+      newsEyebrow: 'Neu im Garten',
+      newsBody:
+        'Weil ihr euch gemeinsam gekümmert habt. Nichts davon geht wieder verloren.',
+      newsDone: 'Schön',
+      book: 'Gartenbuch',
+      bookPlants: 'Eure Pflanzen',
+      bookFinds: 'Im Garten entdeckt',
+      undiscovered: 'Noch nicht entdeckt',
+      secret: 'Noch ein Geheimnis',
+      bookFootnote:
+        'Neues taucht von selbst auf, wenn ihr euch weiter gemeinsam kümmert. Es gibt keinen Zähler, und nichts geht verloren, auch nicht nach einer Pause.',
+      rename: 'Umbenennen',
+      nameLabel: 'Wie heißt euer Garten?',
+      nameHint: 'Bis zu 40 Zeichen. Leer lassen für „Unser Garten“.',
+      save: 'Speichern',
+      renamedStatus: 'Euer Garten heißt jetzt „{{name}}“.',
+      bind: 'Strauß binden',
+      bindTitle: 'Strauß binden',
+      bindBody:
+        'Tipp bis zu drei blühende Blumen an. Für jede bleibt ein Samen in der Erde und wächst neu.',
+      bindCount_one: '{{count}} von 3 im Strauß',
+      bindCount_other: '{{count}} von 3 im Strauß',
+      bindSend: 'An {{name}} schenken',
+      bindPlantLabel: '{{species}} für den Strauß',
+      bouquetSentStatus:
+        'Der Strauß ist bei {{name}}. Neue Samen liegen in der Erde.',
+      bouquetTitle: '{{name}} hat dir einen Strauß geschenkt',
+      bouquetBody: '{{messenger}} hat ihn gebracht.',
+      bouquetLabel: 'Ein Strauß aus {{flowers}}',
+      bouquetThanks: 'Danke',
+      bouquetKeep: 'In Momente legen',
+      bouquetKept: 'Der Strauß liegt jetzt in Momente.',
+      bouquetMemoryTitle: 'Ein Strauß von {{name}}',
+      bouquetMemoryBody: 'Aus unserem Garten.',
+      planeNote: 'Liebe Worte kommen per Luftpost',
+      planeOpen: 'Ansehen',
+      restingTulip: 'Gerade: schläft bis zum Frühling',
+      moonGlow: 'Sie leuchtet nachts.',
+      moonRevealed: 'Eine Mondblume! Sie leuchtet nachts.',
+      yearTitle: 'Euer Gartenjahr {{year}}',
+      yearBody:
+        'Haltet euren Garten als Bild in Momente fest. Dann erscheint er auch in eurem Jahresrückblick. Nur wenn ihr wollt.',
+      yearSave: 'Als Moment speichern',
+      yearSaved: 'Euer Garten liegt jetzt in Momente.',
+      yearMemoryTitle: 'Unser Garten {{year}}',
+      animalLabel: '{{animal}} antippen',
+      quack: 'Quak!',
+      animals: {
+        snail: 'Schnecke',
+        rabbit: 'Kaninchen',
+        hedgehog: 'Igel',
+        ducks: 'Entenpaar',
+        squirrel: 'Eichhörnchen',
+        deer: 'Reh',
+      },
+      reactions: {
+        snail: 'Die Schnecke versteckt sich in ihrem Haus.',
+        rabbit: 'Das Kaninchen hoppelt davon und kommt gleich zurück.',
+        hedgehog: 'Der Igel rollt sich zusammen.',
+        ducks: 'Quak! Die Enten paddeln ein Stück.',
+        squirrel: 'Das Eichhörnchen flitzt in euren Baum.',
+        deer: 'Huch! Das Reh ist erschrocken und springt davon.',
+      },
+      animalLabelNamed: '{{name}}, {{animal}}, antippen',
+      reactionsNamed: {
+        snail: '{{name}} versteckt sich in ihrem Haus.',
+        rabbit: '{{name}} hoppelt davon und kommt gleich zurück.',
+        hedgehog: '{{name}} rollt sich zusammen.',
+        ducks: 'Quak! {{name}} paddeln ein Stück.',
+        squirrel: '{{name}} flitzt in euren Baum.',
+        deer: 'Huch! {{name}} ist erschrocken und springt davon.',
+      },
+      askName: {
+        snail: 'Wie soll sie heißen?',
+        rabbit: 'Wie soll es heißen?',
+        hedgehog: 'Wie soll er heißen?',
+        ducks: 'Wie sollen sie heißen?',
+        squirrel: 'Wie soll es heißen?',
+        deer: 'Wie soll es heißen?',
+      },
+      visitors: {
+        title: 'Eure Besucher',
+        own: {
+          snail: 'Eure Schnecke',
+          rabbit: 'Euer Kaninchen',
+          hedgehog: 'Euer Igel',
+          ducks: 'Euer Entenpaar',
+          squirrel: 'Euer Eichhörnchen',
+          deer: 'Euer Reh',
+        },
+        where: {
+          snail: 'kriecht durchs Beet',
+          rabbit: 'knabbert am Klee',
+          hedgehog: 'schnuppert im Laub',
+          ducks: 'wohnt am Teich',
+          squirrel: 'wohnt in eurem Baum',
+          deer: 'kommt am Waldrand vorbei',
+        },
+        question: {
+          snail: 'Wie heißt eure Schnecke?',
+          rabbit: 'Wie heißt euer Kaninchen?',
+          hedgehog: 'Wie heißt euer Igel?',
+          ducks: 'Wie heißt euer Entenpaar?',
+          squirrel: 'Wie heißt euer Eichhörnchen?',
+          deer: 'Wie heißt euer Reh?',
+        },
+        suggestions: {
+          snail: { a: 'Frieda', b: 'Turbo', c: 'Herbert', d: 'Lotti' },
+          rabbit: { a: 'Hoppel', b: 'Flocke', c: 'Möhrchen', d: 'Ronja' },
+          hedgehog: { a: 'Pieks', b: 'Stachelino', c: 'Hilde', d: 'Igor' },
+          ducks: {
+            a: 'Lotte & Otto',
+            b: 'Pip & Pünktchen',
+            c: 'Kalle & Klara',
+          },
+          squirrel: { a: 'Flitzi', b: 'Nüsschen', c: 'Hasel', d: 'Eddi' },
+          deer: { a: 'Fenja', b: 'Rosalie', c: 'Moos', d: 'Liese' },
+        },
+        namedSub: '{{animal}} · {{where}}',
+        unnamed: 'Hat noch keinen Namen',
+        unknown: 'Noch nicht vorbeigekommen',
+        give: 'Namen geben',
+        rename: 'Umbenennen',
+        placeholder: 'Zum Beispiel {{name}}',
+        suggestionsLabel: 'Vorschläge',
+        counter: '{{count}} / {{max}}',
+        hint: 'Leer lassen, um den Namen zu entfernen.',
+        namedStatus: '{{visitor}} heißt jetzt „{{name}}“.',
+        clearedStatus: '{{visitor}} hat keinen Namen mehr.',
+        failed:
+          'Der Name konnte nicht gespeichert werden. Versucht es gleich noch einmal.',
+      },
+    },
+    // The optional Wir module (Product Owner 2026-11-17).
+    wir: {
+      openAria: '{{title}} öffnen',
+      resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
+      bothWatered: 'Heute habt ihr beide gegossen.',
+      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+    },
+    // A one-time offer inside the game to show the garden on Wir.
+    wirHint: {
+      text: 'Euren Garten auch auf Wir sehen?',
+      accept: 'Auf Wir anzeigen',
+      saving: 'Wird angezeigt …',
+      later: 'Nicht jetzt',
+      done: 'Euer Garten ist jetzt auf Wir.',
+      toWir: 'Zu Wir',
+      failed:
+        'Das hat gerade nicht geklappt. Du kannst es gleich noch einmal versuchen.',
+    },
+    words: {
+      THINKING_OF_YOU: 'Denk an dich',
+      MISS_YOU: 'Vermiss dich',
+      LOOKING_FORWARD: 'Freu mich auf dich',
+      GOOD_NIGHT: 'Gute Nacht',
+      FOR_YOU: 'Für dich',
+    },
+    story: {
+      eyebrow: 'Gewachsen aus eurer Geschichte',
+      memoryLabel: 'Meilenstein „{{title}}“, {{date}}',
+      open: 'Ansehen',
+      openLabel: '„{{title}}“ ansehen',
+      bookTitle: 'Eure Geschichte im Garten',
+      bookIntro:
+        'Eure Meilensteine wachsen in einer stillen Ecke eures Gartens.',
+      bookSub: '{{piece}} · {{date}}',
+      pieceNames: {
+        heartBush: 'Herzbusch',
+        youngTree: 'Junger Baum',
+        lanternFlower: 'Lampionblume',
+        steppingStones: 'Trittsteine',
+        roseTrellis: 'Rosenspalier',
+        memoryStone: 'Erinnerungsstein',
+      },
+      pieces: {
+        heartBush: 'Für diesen Tag wächst ein Herzbusch in eurem Garten.',
+        youngTree: 'Für diesen Tag wächst ein junger Baum in eurem Garten.',
+        lanternFlower:
+          'Für diesen Tag leuchtet eine Lampionblume in eurem Garten.',
+        steppingStones:
+          'Für diesen Tag liegen Trittsteine in eurem Garten, ein Stück gemeinsamer Weg.',
+        roseTrellis:
+          'Für diesen Tag blüht ein kleines Rosenspalier in eurem Garten.',
+        memoryStone:
+          'Für diesen Tag liegt ein Erinnerungsstein in eurem Garten.',
+      },
+      keepsakesTitle: 'Fundstücke',
+      keepsakesIntro:
+        'Kleine Dinge, die eure Besucher für euch dagelassen haben.',
+      keepsakes: {
+        feather: 'Feder',
+        hazelnut: 'Haselnuss',
+        snailShell: 'Schneckenhaus',
+        shinyPebble: 'Glänzender Kiesel',
+        clover: 'Kleeblatt',
+        acorn: 'Eichel',
+        pineCone: 'Tannenzapfen',
+        heartLeaf: 'Herzblatt',
+      },
+      keepsakeLeft: {
+        feather:
+          '{{visitor}} hat euch eine Feder dagelassen. Sie liegt jetzt im Gartenbuch.',
+        hazelnut:
+          '{{visitor}} hat euch eine Haselnuss dagelassen. Sie liegt jetzt im Gartenbuch.',
+        snailShell:
+          '{{visitor}} hat euch ein Schneckenhaus dagelassen. Es liegt jetzt im Gartenbuch.',
+        shinyPebble:
+          '{{visitor}} hat euch einen glänzenden Kiesel dagelassen. Er liegt jetzt im Gartenbuch.',
+        clover:
+          '{{visitor}} hat euch ein Kleeblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+        acorn:
+          '{{visitor}} hat euch eine Eichel dagelassen. Sie liegt jetzt im Gartenbuch.',
+        pineCone:
+          '{{visitor}} hat euch einen Tannenzapfen dagelassen. Er liegt jetzt im Gartenbuch.',
+        heartLeaf:
+          '{{visitor}} hat euch ein Herzblatt dagelassen. Es liegt jetzt im Gartenbuch.',
+      },
+      rare: {
+        owl: {
+          label: 'Eine Eule im Baum',
+          reaction: 'Die Eule dreht den Kopf und blinzelt euch zu.',
+        },
+        fox: {
+          label: 'Ein Fuchs am Wiesenrand',
+          reaction:
+            'Der Fuchs schwingt den buschigen Schwanz und spitzt die Ohren.',
+        },
+        ducklings: {
+          label: 'Entenküken auf dem Teich',
+          reaction: 'Die Küken paddeln im Gänsemarsch eine kleine Runde.',
+        },
+      },
+      playback: {
+        title: 'Euer Gartenjahr',
+        intro: 'Schaut in ein paar Sekunden zu, wie euer Garten gewachsen ist.',
+        play: 'Euer Gartenjahr abspielen',
+        body: 'Vom ersten Samen bis heute.',
+        stillBody: 'Euer Garten am Anfang und heute.',
+        caption: '{{season}} · {{form}}',
+        start: 'Am Anfang',
+        today: 'Heute',
+        seasons: {
+          spring: 'Frühling',
+          summer: 'Sommer',
+          autumn: 'Herbst',
+          winter: 'Winter',
+        },
+        pause: 'Anhalten',
+        resume: 'Weiter',
+        again: 'Noch einmal',
+        close: 'Schließen',
+      },
+      feedback: {
+        title: 'Auf diesem Gerät',
+        sound: 'Geräusche im Garten',
+        soundHint: 'Leise Töne beim Pflanzen, Gießen und bei den Tieren.',
+        vibration: 'Sanftes Vibrieren',
+        vibrationHint:
+          'Ein leichtes Vibrieren, wenn du im Garten etwas antippst.',
+      },
     },
   },
 };

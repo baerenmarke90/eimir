@@ -203,6 +203,16 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["backend"] = True
             known = True
 
+        # Canonical design tokens feed the Backend's service-mail palette, which
+        # a Backend unit test compares with design/tokens.json. The Web image
+        # builds from the checked-in generated adapter and Web S8 checks token
+        # drift itself, so design changes need neither PostgreSQL integration
+        # nor container gates. The whole design/ tree keeps the fast Backend
+        # gate so a future Backend consumer of design data stays covered.
+        if path.startswith("design/"):
+            result["backend"] = True
+            known = True
+
         # PostgreSQL/Alembic integration is relevant for runtime backend code,
         # migrations, integration fixtures/tests and Python dependency changes.
         if _matches(

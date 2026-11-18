@@ -13,12 +13,12 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { M4ProductApis } from '../client/m4Product';
 import {
-  notificationUnreadCountQueryKey,
   notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
 } from '../client/notificationQueries';
 import { ClientProblemError } from '../client/problemDetails';
 import { i18n } from '../i18n';
@@ -143,7 +143,14 @@ describe('Notifications bulk mark-read ownership', () => {
     expect(context.markAllNotificationsRead).toHaveBeenCalledWith({
       spaceId: SPACE_ID,
     });
-    expect(context.button().hasAttribute('disabled')).toBe(true);
+    // With nothing unread there is nothing to mark: the action is gone.
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', {
+          name: i18n.t('m5s5.notifications.markAllRead'),
+        }),
+      ).toBeNull(),
+    );
   });
 
   it('fails offline immediately and does not send the bulk action on reconnect', async () => {

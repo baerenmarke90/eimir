@@ -8,11 +8,11 @@ import {
 } from 'react';
 
 /** How long a photograph stays before the next picture takes over. */
-export const MOMENT_PHOTO_DWELL_MS = 5500;
+export const MOMENT_PHOTO_DWELL_MS = 8000;
 /** The longest a clip plays before the next picture takes over. */
-export const MOMENT_CLIP_MAX_MS = 6000;
-/** Presentation cleanup after a picture has faded out (a bit over one beat). */
-const LEAVING_CLEANUP_MS = 1200;
+export const MOMENT_CLIP_MAX_MS = 10_000;
+/** Presentation cleanup after a picture has faded out (a bit over the slow cross-fade). */
+const LEAVING_CLEANUP_MS = 2000;
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 

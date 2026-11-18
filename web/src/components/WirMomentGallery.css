@@ -137,15 +137,15 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* The next picture arrives from a slow zoom while the last one fades. */
+  /* The next picture fades in slowly over the last one. No zoom, no movement. */
   .wir-moment-slide[data-state="active"][data-entering] {
-    animation: wir-moment-in var(--duration-gesture-moment) var(--easing-enter)
-      both;
+    animation: wir-moment-in var(--duration-gesture-sequence)
+      var(--easing-standard) both;
   }
 
   .wir-moment-slide[data-state="leaving"] {
     opacity: 1;
-    animation: wir-moment-out var(--duration-gesture-moment)
+    animation: wir-moment-out var(--duration-gesture-sequence)
       var(--easing-standard) both;
   }
 }
@@ -153,12 +153,10 @@
 @keyframes wir-moment-in {
   from {
     opacity: 0;
-    scale: 1.06;
   }
 
   to {
     opacity: 1;
-    scale: 1;
   }
 }
 

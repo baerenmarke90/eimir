@@ -293,8 +293,8 @@ server stores nothing new.
 
 ### What is added
 
-- **Milestones grow as special plants** ("Eure Geschichte wächst im
-  Garten"). The page reads the couple's Milestones through the existing Story
+- **Milestones grow as special plants** (the couple's story grows in the
+  garden). The page reads the couple's Milestones through the existing Story
   path (`useStoryMilestones`, the same authorized `listMilestones` read and
   cache as the Story overview). Each Milestone that already happened maps to
   one of six pieces drawn in the garden's style (heart bush, young tree,
@@ -304,7 +304,7 @@ server stores nothing new.
   left of the pond and between the stems of the planting lane, so no unlock
   ever collides with them. A tap gives a gentle sway and a small card (title,
   date, piece sentence, `Ansehen` to the Milestone route, `Schließen`). The
-  garden book lists them under "Eure Geschichte im Garten". Without
+  garden book lists them in a story section. Without
   Milestones, or when the read fails, the garden and the book are unchanged:
   no placeholder and no empty corner.
 - **Finds.** From fixed shared days on (2, 5, 9, 14, 20, 28, 38, 50) the
@@ -312,27 +312,27 @@ server stores nothing new.
   pebble, clover, acorn, pine cone, heart leaf), in an order seeded by the
   space id, so both partners find the same things. The next visitor tap after
   a new find lets it land and glint once where the visitor stands and adds a
-  line below the status ("Euer Igel hat euch eine Feder dagelassen …"); a
+  line below the status (for example, that the hedgehog left a feather); a
   device-local note keeps it from glinting twice. The book lists only what was
-  found under "Fundstücke": no empty slots and no count.
+  found in its section `Fundstücke`: no empty slots and no count.
 - **Rare visitors** that cannot be named: an owl on the couple's tree in the
   evening and at night, a fox at the meadow edge in winter (early morning and
   dusk), ducklings on the pond in spring (daytime). Each comes on about every
   other day of its window, chosen from the space id and the couple's day, so
   both partners see it on the same days. They are named buttons with a short
-  reaction in the status line and stay out of "Eure Besucher".
-- **"Euer Gartenjahr abspielen"** in the book opens a dialog that replays the
+  reaction in the status line and stay out of the `Eure Besucher` list.
+- **Garden-year playback** (`Euer Gartenjahr abspielen`) in the book opens a dialog that replays the
   garden in about 13 seconds with the real scene: plantings in the order of
   their planted dates growing to their stage of today, the unlocks in server
   order (the meadow, garden and paradise forms arrive with pond, tree and rose
   arch), seasons from spring to winter (real seasons for a garden of about a
   year), ending on today. `Anhalten`/`Weiter`, `Noch einmal` at the end and
   `Schließen`.
-- **Sounds and vibration.** "Auf diesem Gerät" in the book holds
-  "Geräusche im Garten" (Web Audio synthesis: a plop when planting, drops when
+- **Sounds and vibration.** The book's per-device section holds a sound
+  switch (Web Audio synthesis: a plop when planting, drops when
   watering, a chirp when a bird carries the seed, a quack for the ducks and
   ducklings, a hoot for the owl, a chime for a find) and, in the native app
-  only, "Sanftes Vibrieren" (a light vibration on garden taps and reactions).
+  only, a vibration switch (a light vibration on garden taps and reactions).
   Both are off by default and stored per device.
 
 ### Contract deltas

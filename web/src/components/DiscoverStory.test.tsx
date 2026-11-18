@@ -63,7 +63,7 @@ function milestone(id: string, title: string): StoryItem {
 
 // Canonical order of the curated selection (deliberately mixed).
 const ITEMS = [
-  heart('h-1', 'Danke für gestern'),
+  heart('h-1', 'Thank you for yesterday'),
   memory('m-1', 'Am See', true),
   milestone('s-1', 'Eingezogen'),
   memory('m-2', 'Konzertabend', true),

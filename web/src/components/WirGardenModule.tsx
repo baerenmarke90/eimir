@@ -91,8 +91,8 @@ function isEntitlementRequired(error: unknown): boolean {
 }
 
 /**
- * The optional Wir module (Product Owner 2026-11-17, "Den Garten auf Wir
- * anzeigen lassen, wenn man möchte"): the couple's shared garden as a calm,
+ * The optional Wir module (Product Owner 2026-11-17: show the garden on Wir
+ * for those who want it): the couple's shared garden as a calm,
  * read-only picture that leads into the game.
  *
  * - Off by default; `visible` is the person's own Wir choice.

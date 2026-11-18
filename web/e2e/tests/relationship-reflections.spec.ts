@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import lifelineCopy from '../../src/i18n/locales/m5s5';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { openComposerPlace } from '../support/memoryDiary';
@@ -24,6 +25,21 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+
+const fillLifeline = (
+  template: string,
+  values: Record<string, string | number>,
+) => template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const lifelinePosition = (position: number, total: number) =>
+  fillLifeline(lifelineCopy.dashboard.storyLifelinePosition, {
+    position,
+    total,
+  });
+const lifelineEntry = (position: number, total: number) =>
+  fillLifeline(lifelineCopy.dashboard.storyLifelineEntryLabel, {
+    position,
+    total,
+  });
 
 const TITLE = 'Our weekend by the sea';
 const PLAN = '44444444-4444-4444-8444-444444444444';
@@ -632,7 +648,10 @@ for (const theme of ['light', 'dark'] as const)
           .evaluate((img: HTMLImageElement) => img.naturalWidth),
       )
       .toBeGreaterThan(0);
-    await expect(lifeline).toHaveAttribute('aria-valuetext', /1 von 9$/);
+    await expect(lifeline).toHaveAttribute(
+      'aria-valuetext',
+      new RegExp(`${lifelinePosition(1, 9)}$`),
+    );
     await captureScreenshot(page, info, `lifeline-full-${theme}.png`, {
       fullPage: true,
     });
@@ -641,7 +660,9 @@ for (const theme of ['light', 'dark'] as const)
     await expect(rows.nth(1)).toHaveClass(/is-selected/);
     await expect(lifeline).toHaveAttribute(
       'aria-valuetext',
-      /Herzmoment: Thank you for the tea, 2 von 9$/,
+      new RegExp(
+        `${lifelineCopy.dashboard.storyLifelineKindHeartMoment}: Thank you for the tea, ${lifelinePosition(2, 9)}$`,
+      ),
     );
     await expect(
       story.locator(
@@ -649,9 +670,9 @@ for (const theme of ['light', 'dark'] as const)
       ),
     ).toHaveCount(1);
     // The pagination dots reach any entry without a gesture.
-    await story.getByRole('button', { name: 'Moment 5 von 9' }).click();
+    await story.getByRole('button', { name: lifelineEntry(5, 9) }).click();
     await expect(
-      story.getByRole('button', { name: 'Moment 5 von 9' }),
+      story.getByRole('button', { name: lifelineEntry(5, 9) }),
     ).toHaveAttribute('aria-current', 'true');
     await expect(floating).toContainText('Rainy Sunday');
     await expect(

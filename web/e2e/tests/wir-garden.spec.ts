@@ -12,8 +12,8 @@ import {
 } from '../support/storyTimelineFixture';
 
 /**
- * The optional Wir garden module (Product Owner 2026-11-17, "Den Garten auf
- * Wir anzeigen lassen, wenn man möchte"): off by default, turned on in
+ * The optional Wir garden module (Product Owner 2026-11-17: show the garden
+ * on Wir for those who want it): off by default, turned on in
  * Settings › Wir, Premium (`games.couple`), a read-only scene with one status
  * line that leads into the game. No garden read happens while it is off or
  * without the capability.

@@ -173,7 +173,7 @@ describe('GardenWirHint', () => {
     expect(offer()).toBeNull();
   });
 
-  it('retires for good after "Nicht jetzt"', async () => {
+  it('retires for good after the decline action', async () => {
     const api = services();
     setup(api, 1);
     await waitFor(() => expect(offer()).not.toBeNull(), { timeout: 3_000 });

@@ -21,6 +21,13 @@ import {
   type SharedStorySummaryVariant,
 } from './SharedStorySummary';
 
+const fillCopy = (template: string, values: Record<string, string | number>) =>
+  template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const positionOf = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelinePosition, { position, total });
+const entryOf = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelineEntryLabel, { position, total });
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -364,7 +371,7 @@ describe('SharedStorySummary lifeline', () => {
     ).toContain('is-from-right');
     expect(
       screen
-        .getByRole('button', { name: 'Moment 4 von 4' })
+        .getByRole('button', { name: entryOf(4, 4) })
         .getAttribute('aria-current'),
     ).toBe('true');
     // Moving to another period starts again from its highlight.
@@ -386,13 +393,13 @@ describe('SharedStorySummary lifeline', () => {
     });
     const band = await screen.findByRole('slider');
     fireEvent.keyDown(band, { key: 'End' });
-    const pager = await screen.findByRole('group', { name: '3 von 4' });
+    const pager = await screen.findByRole('group', { name: positionOf(3, 4) });
     const dots = within(pager).getAllByRole('button');
     expect(dots.map((dot) => dot.getAttribute('aria-label'))).toEqual([
-      'Moment 1 von 4',
-      'Moment 2 von 4',
-      'Moment 3 von 4',
-      'Moment 4 von 4',
+      entryOf(1, 4),
+      entryOf(2, 4),
+      entryOf(3, 4),
+      entryOf(4, 4),
     ]);
     expect(dots[2].getAttribute('aria-current')).toBe('true');
     // A dot is the non-gesture way to any entry; the preview stays open.
@@ -473,7 +480,7 @@ describe('SharedStorySummary lifeline', () => {
     fireEvent.pointerDown(band, { pointerType: 'touch', clientX: 298 });
     fireEvent.pointerUp(band, { pointerType: 'touch', clientX: 298 });
     await vi.waitFor(() =>
-      expect(band.getAttribute('aria-valuetext')).toContain('3 von 4'),
+      expect(band.getAttribute('aria-valuetext')).toContain(positionOf(3, 4)),
     );
     const dots = [
       ...document.querySelectorAll<HTMLElement>(
@@ -582,7 +589,14 @@ describe('SharedStorySummary lifeline', () => {
     expect(rows[0].getAttribute('href')).toBe('/story/memories/m2');
     expect(
       screen
-        .getByRole('link', { name: 'Alle 9 aus Woche vom 9. November ansehen' })
+        .getByRole('link', {
+          name: fillCopy(m5s5.dashboard.storyLifelineAll_other, {
+            count: 9,
+            period: fillCopy(m5s5.dashboard.storyLifelineWeekOf, {
+              date: '9. November',
+            }),
+          }),
+        })
         .getAttribute('href'),
     ).toBe('/story?tab=timeline&year=2026&order=ASC');
     // The chosen entry still floats inside the graphic in the full variant.

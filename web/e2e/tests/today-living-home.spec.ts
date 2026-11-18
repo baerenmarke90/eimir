@@ -1,7 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
@@ -9,7 +8,15 @@ import recaps from '../../src/i18n/locales/recaps';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import localeFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+
+const fillCopy = (template: string, values: Record<string, string | number>) =>
+  template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const lifelinePosition = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelinePosition, { position, total });
+const lifelineEntry = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelineEntryLabel, { position, total });
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -2133,25 +2140,25 @@ for (const [width, theme, largeText] of [
         ).toHaveCount(1);
         // Pagination dots are the non-gesture way through the week.
         const pager = story.locator('.shared-story-lifeline-pager');
-        await expect(pager).toHaveAccessibleName('3 von 3');
+        await expect(pager).toHaveAccessibleName(lifelinePosition(3, 3));
         const dots = pager.getByRole('button');
         await expect(dots).toHaveCount(3);
         await expect(
-          pager.getByRole('button', { name: 'Moment 3 von 3' }),
+          pager.getByRole('button', { name: lifelineEntry(3, 3) }),
         ).toHaveAttribute('aria-current', 'true');
         for (const dot of await dots.all()) {
           const box = await dot.boundingBox();
           expect(box?.width).toBeGreaterThanOrEqual(24);
           expect(box?.height).toBeGreaterThanOrEqual(24);
         }
-        await pager.getByRole('button', { name: 'Moment 1 von 3' }).click();
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
         const milestone = story.getByRole('link', {
           name: /Moved in together/,
         });
         await expect(milestone).toBeVisible();
-        await expect(pager).toHaveAccessibleName('1 von 3');
+        await expect(pager).toHaveAccessibleName(lifelinePosition(1, 3));
         await expect(
-          pager.getByRole('button', { name: 'Moment 1 von 3' }),
+          pager.getByRole('button', { name: lifelineEntry(1, 3) }),
         ).toHaveAttribute('aria-current', 'true');
         // A left swipe on the card brings the next entry without opening
         // the one under the pointer.
@@ -2172,7 +2179,7 @@ for (const [width, theme, largeText] of [
         await expect(
           story.getByRole('link', { name: /Picnic at the lake/ }),
         ).toBeVisible();
-        await pager.getByRole('button', { name: 'Moment 1 von 3' }).click();
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
         await expect(milestone).toBeVisible();
         // Compact on Wir: the preview floats inside the graphic, no list.
         await expect(story.locator('.shared-story-lifeline-fan')).toHaveCount(

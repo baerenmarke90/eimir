@@ -1,16 +1,16 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import navigation from '../../src/i18n/locales/navigation';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
-import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { pinDiaryLayout } from '../support/diaryLayout';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 // These checks describe the compact composition, not the Album default.
 test.beforeEach(async ({ page }) => {
@@ -882,7 +882,7 @@ test('Momente Discover Fotostory never shows sensitive photos unblurred', async 
   const unexpectedRequests = await installDiscoverApiMocks(page);
   const sensitive = memoryItem(
     'mem-private',
-    'Nur für uns',
+    'Only for the two of us',
     '2026-08-20',
     true,
   );

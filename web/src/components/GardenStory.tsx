@@ -1,5 +1,5 @@
 /**
- * "Eure Geschichte wächst im Garten" (#1907 H3 follow-up): the couple's
+ * The couple's story grows in the garden (#1907 H3 follow-up): the couple's
  * Milestones stand as special plants in a calm memory corner on the back
  * hill. A tap shows a small card with the Milestone and a link to it; the
  * garden book lists them. Without Milestones (or when they cannot be read)
@@ -413,7 +413,7 @@ export function MemoryPlantCard({
   );
 }
 
-/** "Eure Geschichte im Garten" in the garden book; absent without Milestones. */
+/** The garden book's story section; absent without Milestones. */
 export function GardenStoryBookSection({
   plants,
 }: {

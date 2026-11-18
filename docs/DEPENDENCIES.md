@@ -416,7 +416,7 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
-| @capacitor/android (native bridge) | 8.6.0 | npm | MIT |
+| @capacitor/android (native bridge) | 8.6.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |

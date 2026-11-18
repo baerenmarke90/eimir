@@ -141,7 +141,10 @@ export function useStoryOccasions(
  * always shared, so both partners derive the same waymarks from them. A failed
  * or pending read yields an empty list and never blocks the page.
  */
-export function useStoryMilestones(scope: StoryScope): MilestoneRef[] {
+export function useStoryMilestones(
+  scope: StoryScope,
+  { enabled = true }: { enabled?: boolean } = {},
+): MilestoneRef[] {
   const apis = useStoryApis(scope);
   const milestones = useQuery({
     queryKey: ['story-overview', 'milestones', scope.accountId, scope.spaceId],
@@ -154,6 +157,7 @@ export function useStoryMilestones(scope: StoryScope): MilestoneRef[] {
         }),
       ),
     retry: false,
+    enabled,
   });
   return useMemo(
     () =>

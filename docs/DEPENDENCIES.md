@@ -76,8 +76,13 @@ container installations run exclusively in frozen/locked mode;
 
 `web/package-lock.json` is the binding npm resolution for the thin M2-S8 Web
 reference flow. Direct versions are pinned exactly in `web/package.json`, CI
-installs exclusively with `npm ci`, and `npm audit --audit-level=high` blocks
-known vulnerabilities at high severity and above. The Node CI and Web build
+installs exclusively with `npm ci`, and `scripts/audit-gate.mjs` blocks
+known vulnerabilities at high severity and above. It runs `npm audit` and
+accepts an advisory only if `web/audit-allowlist.json` names its exact id with
+a reason, marks it as a development-only dependency and gives an expiry date.
+The gate still fails for any other advisory, for an expired entry and for an
+allowlisted advisory that appears in the production tree
+(`npm audit --omit=dev`). The Node CI and Web build
 image is additionally pinned by digest. The static production build runs in
 an unprivileged Nginx image that is also pinned by digest.
 

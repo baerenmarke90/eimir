@@ -3,7 +3,7 @@
 Every route resolves authentication and Space membership first and then asks
 the central entitlement authority for ``games.couple``. The garden holds closed
 codes, dates, stages and slots only: no location, no distance and no free text
-apart from the garden's own short name.
+apart from the garden's own short name and the short names of its visitors.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from eimir.garden.models import (
     GardenPlant,
     GardenSpecies,
     GardenUnlock,
+    GardenVisitor,
     GardenWords,
 )
 
@@ -58,6 +59,11 @@ class GardenBouquetView(ApiModel):
     giver_id: UUID
     given_on: date
     flowers: list[GardenBouquetFlower] = Field(description="One to three flowers.")
+
+
+class GardenVisitorNameView(ApiModel):
+    animal: GardenVisitor
+    name: str = Field(description="The couple's shared name for this visitor.")
 
 
 class GardenView(ApiModel):
@@ -99,6 +105,10 @@ class GardenView(ApiModel):
         default_factory=list, description="Species in the garden book."
     )
     name: str | None = Field(default=None, description="The couple's name for the garden.")
+    visitor_names: list[GardenVisitorNameView] = Field(
+        default_factory=list,
+        description="Names the couple gave to visiting animals; unnamed visitors are absent.",
+    )
     bouquet: GardenBouquetView | None = Field(
         default=None, description="A bouquet from the partner that waits on its card."
     )
@@ -127,6 +137,16 @@ class GardenNameInput(ApiModel):
         default=None,
         max_length=200,
         description="Up to 40 characters after trimming; empty restores the default title.",
+    )
+
+
+class GardenVisitorNameInput(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Up to 40 characters after trimming; empty removes the name.",
     )
 
 
@@ -193,6 +213,10 @@ def _view(state: service.GardenState) -> GardenView:
         news=state.news,
         discovered=state.discovered,
         name=state.name,
+        visitor_names=[
+            GardenVisitorNameView(animal=animal, name=name)
+            for animal, name in state.visitor_names.items()
+        ],
         bouquet=_bouquet_view(state.bouquet),
         gave_bouquet_today=state.gave_bouquet_today,
     )
@@ -309,6 +333,25 @@ def rename_garden(
     _ensure_games(session, authorization, write=True)
     response.headers["Cache-Control"] = "private, no-store"
     return _view(service.rename(session, authorization, body.name))
+
+
+@router.put(
+    f"{_BASE}/visitors/{{animal}}/name",
+    response_model=GardenView,
+    operation_id="nameGardenVisitor",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def name_garden_visitor(
+    body: GardenVisitorNameInput,
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    animal: Annotated[GardenVisitor, Path()],
+) -> GardenView:
+    """Name a visiting animal; both partners see the same name (the duck pair shares one)."""
+    _ensure_games(session, authorization, write=True)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _view(service.name_visitor(session, authorization, animal, body.name))
 
 
 @router.post(

@@ -14,7 +14,9 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { PictureColour } from '../api/generated/models/PictureColour';
 import type { PicturePingPongState } from '../api/generated/models/PicturePingPongState';
 import type { PicturePingPongView } from '../api/generated/models/PicturePingPongView';
+import type { PictureStarter } from '../api/generated/models/PictureStarter';
 import { Configuration } from '../client/apiConfiguration';
+import { liveGameQueryOptions } from '../client/liveGameSync';
 import {
   createMemoryWithReadyAttachments,
   uploadMemoryDraftAttachment,
@@ -51,6 +53,7 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import { useMemberAvatarUrl } from '../client/useMemberAvatarUrl';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { useDistanceShortText } from './PartnerDistanceLine';
@@ -66,6 +69,10 @@ const COLOURS = [
   'INK',
   'SUN',
 ] as const satisfies readonly PictureColour[];
+const STARTERS = [
+  'SQUIGGLE',
+  'BLANK',
+] as const satisfies readonly PictureStarter[];
 const TITLE_KEYS = [
   'games.pingPong.titles.one',
   'games.pingPong.titles.two',
@@ -77,7 +84,7 @@ const TITLE_KEYS = [
 
 export interface PicturePingPongServices {
   load: () => Promise<PicturePingPongState>;
-  start: () => Promise<PicturePingPongState>;
+  start: (starter: PictureStarter) => Promise<PicturePingPongState>;
   handOver: (
     turnsDone: number,
     strokes: DrawnStroke[],
@@ -117,7 +124,11 @@ function useDefaultServices({
     const apis: ReferenceApis = createReferenceApis(apiBaseUrl, accessToken);
     return {
       load: () => api.getPicturePingPong({ spaceId }),
-      start: () => api.startPicturePingPong({ spaceId }),
+      start: (starter) =>
+        api.startPicturePingPong({
+          spaceId,
+          pictureStartInput: { starter },
+        }),
       handOver: (turnsDone, strokes) =>
         api.handOverPicturePingPongTurn({
           spaceId,
@@ -281,6 +292,66 @@ function strokeClass(
   return stroke.authorId === me ? 'is-own' : 'is-partner';
 }
 
+function pictureSignature(picture: PicturePingPongView | null): string {
+  return picture
+    ? `${picture.id}:${picture.turnsDone}:${picture.status}`
+    : 'none';
+}
+
+/** The opener's choice: begin with the seed squiggle or a blank page. */
+function StarterChoice({
+  value,
+  onChange,
+}: {
+  value: PictureStarter;
+  onChange: (value: PictureStarter) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <fieldset className="pingpong-starters">
+      <legend>{t('games.pingPong.starterLegend')}</legend>
+      {STARTERS.map((option) => {
+        const squiggle = option === 'SQUIGGLE';
+        return (
+          <label
+            key={option}
+            className={`pingpong-starter${value === option ? ' is-selected' : ''}`}
+          >
+            <input
+              type="radio"
+              name="pingpong-starter"
+              value={option}
+              checked={value === option}
+              onChange={() => onChange(option)}
+            />
+            <span className="pingpong-starter-preview" aria-hidden="true">
+              <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                {squiggle ? <path d="M9 30 Q17 12 24 25 T39 20" /> : null}
+              </svg>
+            </span>
+            <span className="pingpong-starter-text">
+              <span className="pingpong-starter-title">
+                {t(
+                  squiggle
+                    ? 'games.pingPong.starterSquiggle'
+                    : 'games.pingPong.starterBlank',
+                )}
+              </span>
+              <span className="pingpong-starter-hint">
+                {t(
+                  squiggle
+                    ? 'games.pingPong.starterSquiggleHint'
+                    : 'games.pingPong.starterBlankHint',
+                )}
+              </span>
+            </span>
+          </label>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 function TurnDots({
   picture,
   me,
@@ -329,12 +400,14 @@ function TurnDots({
 
 function Stage({
   names,
+  avatars,
   flight,
   profile,
   distanceLabel,
   sentLabel,
 }: {
   names: { own: string; partner: string };
+  avatars: { own: string | null; partner: string | null };
   flight: 'toPartner' | 'toMe' | null;
   profile: FlightProfile;
   distanceLabel: string | null;
@@ -349,6 +422,7 @@ function Stage({
       <span className="pingpong-avatar person-role-own">
         <PersonIdentity
           displayName={names.own}
+          imageUrl={avatars.own}
           size="medium"
           showName={false}
           imageAlt={names.own}
@@ -372,6 +446,7 @@ function Stage({
       <span className="pingpong-avatar person-role-partner">
         <PersonIdentity
           displayName={names.partner}
+          imageUrl={avatars.partner}
           size="medium"
           showName={false}
           imageAlt={names.partner}
@@ -409,6 +484,7 @@ export function PicturePingPongPage({
   });
   const api = services ?? defaults;
   const queryKey = picturePingPongQueryKey(currentAccountId, spaceId);
+  const [busy, setBusy] = useState(false);
 
   const pictureQuery = useQuery({
     queryKey,
@@ -420,17 +496,9 @@ export function PicturePingPongPage({
       }
     },
     retry: false,
-    // A waiting picture needs no timer, only a gentle look when the partner
-    // may have handed it over; this reads the same single resource.
-    refetchOnWindowFocus: true,
-    refetchInterval: (query) => {
-      const picture = query.state.data?.picture;
-      return picture?.status === 'DRAWING' &&
-        picture.drawerId !== currentAccountId
-        ? 20_000
-        : false;
-    },
-    refetchIntervalInBackground: false,
+    // Live while open: the partner's hand-over, an early finish or a new
+    // picture shows up while both are on this page (see liveGameSync).
+    ...liveGameQueryOptions({ paused: busy }),
   });
 
   const spaceQuery = useQuery({
@@ -456,6 +524,24 @@ export function PicturePingPongPage({
     partner?.displayName ?? t('games.pingPong.partnerFallback');
   const names = { own: ownName, partner: partnerName };
   const partnerId = partner?.id ?? null;
+  const avatars = {
+    own: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: currentAccountId,
+      enabled: !services,
+    }),
+    partner: useMemberAvatarUrl({
+      apiBaseUrl,
+      accessToken,
+      spaceId,
+      accountId: partnerId,
+      enabled: !services,
+    }),
+  };
+  const partnerNameRef = useRef(partnerName);
+  partnerNameRef.current = partnerName;
 
   const picture = pictureQuery.data?.picture ?? null;
   const myTurn =
@@ -480,15 +566,23 @@ export function PicturePingPongPage({
   const [colour, setColour] = useState<PictureColour>('PERSON');
   const [flight, setFlight] = useState<'toPartner' | 'toMe' | null>(null);
   const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const [starter, setStarter] = useState<PictureStarter>('SQUIGGLE');
+  const [choosingStarter, setChoosingStarter] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [titleIndex, setTitleIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const flightTimer = useRef<number | null>(null);
-  const previous = useRef<{ id: string; turnsDone: number } | null>(null);
+  const previous = useRef<{
+    id: string;
+    turnsDone: number;
+    status: string;
+  } | null>(null);
+  // The picture this device just wrote itself, so the live-change notes
+  // below only speak about what the partner did.
+  const ownWrite = useRef<string | null>(null);
 
   const pictureId = picture?.id ?? null;
   const pictureTurns = picture?.turnsDone ?? null;
@@ -526,8 +620,13 @@ export function PicturePingPongPage({
     [],
   );
 
-  // A turn that arrives while the page is open flies in from the partner.
+  // A turn that arrives while the page is open flies in from the partner;
+  // an early finish or a new picture by the partner is named once.
   useEffect(() => {
+    const own =
+      ownWrite.current !== null &&
+      ownWrite.current === pictureSignature(picture);
+    ownWrite.current = null;
     if (!picture) {
       previous.current = null;
       return;
@@ -542,11 +641,32 @@ export function PicturePingPongPage({
       playFlight('toMe');
       setSent(false);
     }
-    previous.current = { id: picture.id, turnsDone: picture.turnsDone };
-  }, [currentAccountId, picture, playFlight]);
+    if (before && !own) {
+      if (before.id !== picture.id) {
+        setSent(false);
+        setChoosingStarter(false);
+        setNotice(
+          t('games.pingPong.partnerStarted', { name: partnerNameRef.current }),
+        );
+      } else if (before.status === 'DRAWING' && picture.status === 'FINISHED') {
+        setSent(false);
+        setNotice(
+          t('games.pingPong.partnerFinished', {
+            name: partnerNameRef.current,
+          }),
+        );
+      }
+    }
+    previous.current = {
+      id: picture.id,
+      turnsDone: picture.turnsDone,
+      status: picture.status,
+    };
+  }, [currentAccountId, picture, playFlight, t]);
 
   const apply = useCallback(
     (state: PicturePingPongState) => {
+      ownWrite.current = pictureSignature(state.picture ?? null);
       queryClient.setQueryData(queryKey, state);
     },
     [queryClient, queryKey],
@@ -559,6 +679,8 @@ export function PicturePingPongPage({
       setNotice(null);
       try {
         const state = await action();
+        // A live read that started before this write must not land after it.
+        await queryClient.cancelQueries({ queryKey });
         apply(state);
         return state;
       } catch (error) {
@@ -681,7 +803,9 @@ export function PicturePingPongPage({
       </div>
     );
   }
-  if (pictureQuery.error) {
+  // A failed live read keeps the picture on screen; only a first read that
+  // never arrived replaces the page with the problem state.
+  if (pictureQuery.error && !pictureQuery.data) {
     return (
       <div className="page pingpong-page">
         {header}
@@ -704,6 +828,7 @@ export function PicturePingPongPage({
         >
           <Stage
             names={names}
+            avatars={avatars}
             flight={null}
             profile={profile}
             distanceLabel={null}
@@ -712,11 +837,12 @@ export function PicturePingPongPage({
           <p className="eyebrow">{t('games.pingPong.emptyEyebrow')}</p>
           <h2 id="pingpong-empty-title">{t('games.pingPong.emptyTitle')}</h2>
           <p>{t('games.pingPong.emptyBody')}</p>
+          <StarterChoice value={starter} onChange={setStarter} />
           <button
             type="button"
             className="pingpong-primary"
             disabled={busy}
-            onClick={() => void run(() => api.start())}
+            onClick={() => void run(() => api.start(starter))}
           >
             {t('games.pingPong.newPicture')}
           </button>
@@ -764,6 +890,7 @@ export function PicturePingPongPage({
 
         <Stage
           names={names}
+          avatars={avatars}
           flight={flight}
           profile={profile}
           distanceLabel={distanceLabel}
@@ -868,14 +995,35 @@ export function PicturePingPongPage({
                 </button>
               </>
             )}
-            <button
-              type="button"
-              className="pingpong-secondary"
-              disabled={busy}
-              onClick={() => void run(() => api.start())}
-            >
-              {t('games.pingPong.newPicture')}
-            </button>
+            {choosingStarter ? (
+              <div className="pingpong-restart eimir-motion-disclosure">
+                <StarterChoice value={starter} onChange={setStarter} />
+                <button
+                  type="button"
+                  className="pingpong-secondary"
+                  disabled={busy}
+                  onClick={() => void run(() => api.start(starter))}
+                >
+                  {t('games.pingPong.startAction')}
+                </button>
+                <button
+                  type="button"
+                  className="pingpong-quiet"
+                  onClick={() => setChoosingStarter(false)}
+                >
+                  {t('games.pingPong.starterCancel')}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="pingpong-secondary"
+                disabled={busy}
+                onClick={() => setChoosingStarter(true)}
+              >
+                {t('games.pingPong.newPicture')}
+              </button>
+            )}
             <TaskBackLink to={appRoutePath('games')} inline>
               {t('games.pingPong.backToGames')}
             </TaskBackLink>

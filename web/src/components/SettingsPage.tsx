@@ -15,8 +15,8 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import {
-  appUpdatesAvailable,
   type AppUpdatesAdapter,
+  appUpdatesAvailable,
 } from '../client/appUpdates';
 import { isDemoModeConfigured } from '../client/demoMode';
 import type { DevicePushController } from '../client/devicePush';
@@ -31,7 +31,6 @@ import {
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
-import { SignInMethodsPanel } from './SignInMethodsPanel';
 import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
@@ -51,7 +50,9 @@ import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { ProSettingsRow } from './ProSettingsRow';
-import { SettingsIndex } from './SettingsIndex';
+import { SettingsIndexLive } from './SettingsIndexLive';
+import { SettingsScopeNote } from './SettingsScopeNote';
+import { SignInMethodsPanel } from './SignInMethodsPanel';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
@@ -163,12 +164,18 @@ export function SettingsPage(props: SettingsPageProps) {
           accountId={props.account.id}
           spaceId={props.spaceId}
         />
+        <PartnerConnectionPanel {...props} />
+      </div>
+    );
+  } else if (categoryId === 'shared') {
+    categoryContent = (
+      <div className="settings-category-content settings-shared-features">
+        <SettingsScopeNote scope="shared" />
         <SpaceConfigurationPanel
           spacesApi={spacesApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />
-        <PartnerConnectionPanel {...props} />
       </div>
     );
   } else if (categoryId === 'notifications') {
@@ -178,6 +185,7 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-functional-panel"
         aria-label={t('profileIdentity.settingsNotifications')}
       >
+        <SettingsScopeNote scope="personal" />
         <NotificationSettingsPanel
           notificationsApi={notificationsApi}
           accountId={props.account.id}
@@ -219,6 +227,7 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'today') {
     categoryContent = (
       <div className="settings-category-content">
+        <SettingsScopeNote scope="personal" />
         <WirDashboardSettingsPanel
           apiBaseUrl={props.apiBaseUrl}
           accessToken={props.accessToken}
@@ -333,9 +342,6 @@ export function SettingsPage(props: SettingsPageProps) {
           aria-labelledby="settings-sensitive-heading"
         >
           <div className="settings-sensitive-head">
-            <p className="eyebrow">
-              {t('profileIdentity.settingsSensitiveEyebrow')}
-            </p>
             <h2 id="settings-sensitive-heading">
               {t('profileIdentity.settingsSensitiveTitle')}
             </h2>
@@ -372,7 +378,9 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today' || categoryId === 'notifications'
+          categoryId === 'today' ||
+          categoryId === 'notifications' ||
+          categoryId === 'shared'
             ? undefined
             : category
               ? t(category.descriptionKey)
@@ -383,7 +391,14 @@ export function SettingsPage(props: SettingsPageProps) {
       {category ? (
         categoryContent
       ) : (
-        <SettingsIndex updatesAdapter={props.updatesAdapter} />
+        <SettingsIndexLive
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          demoMode={demoMode}
+          updatesAdapter={props.updatesAdapter}
+        />
       )}
     </div>
   );

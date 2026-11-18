@@ -221,10 +221,19 @@ describe('Momente retrospective integration (#601)', () => {
       discovery.matchAll(/href="(\/story\/memories\/[^"\s]+)"/g),
       (match) => match[1],
     );
-    expect(destinations).toHaveLength(8);
-    expect(new Set(destinations).size).toBe(8);
-    for (const item of items)
-      expect(destinations).toContain(`/story/memories/${item.memory.id}`);
+    // Lead, retrospective and the Fotostory's visible slide, each once.
+    expect(destinations).toEqual([
+      '/story/memories/memory-0',
+      '/story/memories/memory-4',
+      '/story/memories/memory-1',
+    ]);
+    // The story holds the remaining six entries, without lead or retrospective.
+    const story = discovery.slice(discovery.indexOf('class="momente-story"'));
+    expect(story).toContain(
+      `, ${storyProducts.discoverStory.themeCount_other.replace('{{count}}', '6')}`,
+    );
+    expect(story).not.toContain('Keepsake 0');
+    expect(story).not.toContain('Keepsake 4');
   });
 
   it('suppresses stale or absent candidates rather than inventing a moment', () => {
@@ -305,11 +314,11 @@ describe('StoryProductPage', () => {
     expect(html).toContain('aria-labelledby="momente-tab-timeline" hidden=""');
     expect(html).not.toContain('class="story-timeline"');
     expect(html).toContain('Summer Lake Vacation');
-    expect(html).toContain('momente-tapestry');
+    expect(html).toContain('class="momente-story"');
     expect(html).toContain('I love you more each day');
   });
 
-  it('renders Discover as an asymmetric tapestry, not a fixed-width horizontal carousel of equal cards (regression #790)', () => {
+  it('renders the curated Discover selection as a Fotostory, not equal cards or the Tagebuch list (regression #790)', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -361,16 +370,25 @@ describe('StoryProductPage', () => {
     expect(html).not.toContain('momente-stream-track');
     expect(html).not.toContain('momente-stream-card');
 
-    // The asymmetric multi-column tapestry replaces it
-    expect(html).toContain('momente-tapestry"');
+    // Direction C: theme bubbles above one story viewer replace the tapestry.
+    expect(html).not.toContain('momente-tapestry');
+    expect(html).toContain('momente-story-viewer');
+    expect(
+      Array.from(
+        html.matchAll(/data-story-theme="([a-zA-Z]+)"/g),
+        (match) => match[1],
+      ),
+    ).toEqual(['heartMoments', 'milestones', 'heartMoments']);
 
-    // Each content type keeps a distinct presentation role, not one shared
-    // equal-sized card shell (regression #790)
+    // Each content type keeps a distinct slide, not one shared card shell
+    // (regression #790): the Heart Moment as a quote, then the stamp.
     expect(html).toContain('momente-hero-media');
-    expect(html).toContain('momente-tapestry-note');
-    expect(html).toContain('momente-tapestry-milestone');
-    // The Heart Moment renders as a quoted note, not a titled card
-    expect(html).toContain('momente-tapestry-quote');
+    expect(html).toContain('data-story-slide="heart" data-state="current"');
+    expect(html).toContain('momente-story-quote');
+    expect(html).toContain(
+      'data-story-slide="milestone" data-state="upcoming"',
+    );
+    expect(html).toContain('momente-keepsake-stamp-mark');
     expect(html).toContain('First apartment together');
   });
 
@@ -404,48 +422,58 @@ describe('StoryProductPage', () => {
         creator: { id: 'author-2', displayName: 'Taylor' },
       },
     });
-    const renderNoteLink = (emotion?: string): string => {
+    const renderHeartSlide = (emotion?: string): string => {
       const html = renderStoryPage('/story', {
         items: [lead, heartMoment(emotion)],
         hasMore: false,
         nextCursor: null,
       });
-      const link = /<a [^>]*momente-tapestry-note[^>]*>[\s\S]*?<\/a>/.exec(
-        html,
-      );
-      if (!link) throw new Error('The Discover note link did not render.');
-      return link[0];
+      const slide =
+        /<article [^>]*momente-story-slide-heart[^>]*>[\s\S]*?<\/article>/.exec(
+          html,
+        );
+      if (!slide) throw new Error('The Discover heart slide did not render.');
+      return slide[0];
     };
 
-    it('shows the shared emotion badge and the emotion surface instead of the corner glyph', () => {
-      const link = renderNoteLink('LOVED');
+    it('fills the slide with the emotion surface and names the feeling with the shared badge', () => {
+      const slide = renderHeartSlide('LOVED');
 
-      expect(link).toContain('data-heart-emotion="LOVED"');
-      expect(link).toContain('heart-emotion-badge');
-      expect(link).toContain(storyProducts.heartEmotion.LOVED);
-      expect(link).not.toContain('momente-tapestry-kind');
-    });
-
-    it('names the emotion in the accessible name of the note', () => {
-      expect(renderNoteLink('SEEN')).toContain(
-        `aria-label="${storyProducts.storyItem.note}: I love you more each day. ${storyProducts.heartMomentProduct.emotionLabel}: ${storyProducts.heartEmotion.SEEN}"`,
+      expect(slide).toContain('data-heart-emotion="LOVED"');
+      expect(slide).toContain('heart-emotion-badge');
+      expect(slide).toContain(
+        `aria-label="${storyProducts.heartMomentProduct.emotionLabel}: ${storyProducts.heartEmotion.LOVED}"`,
+      );
+      expect(slide).toContain('I love you more each day');
+      expect(slide).toContain(
+        storyProducts.discoverStory.from.replace('{{name}}', 'Taylor'),
       );
     });
 
-    it('keeps the previous corner glyph for a note without an emotion', () => {
-      const link = renderNoteLink();
-
-      expect(link).not.toContain('data-heart-emotion');
-      expect(link).not.toContain('heart-emotion-badge');
-      expect(link).toContain('momente-tapestry-kind');
-      expect(link).toContain(
-        `aria-label="${storyProducts.storyItem.note}: I love you more each day"`,
+    it('names the Heart Moment in the visible open action', () => {
+      const html = renderStoryPage('/story', {
+        items: [lead, heartMoment('SEEN')],
+        hasMore: false,
+        nextCursor: null,
+      });
+      const open = /<a [^>]*momente-story-open[^>]*>/.exec(html)?.[0] ?? '';
+      expect(open).toContain('href="/story/heart-moments/heart-1"');
+      expect(open).toContain(
+        `aria-label="${storyProducts.discoverStory.open}: ${de.story.kind.heartMoment} „I love you more each day“"`,
       );
+    });
+
+    it('keeps a neutral surface without an emotion', () => {
+      const slide = renderHeartSlide();
+
+      expect(slide).not.toContain('data-heart-emotion');
+      expect(slide).not.toContain('heart-emotion-badge');
+      expect(slide).toContain('momente-story-quote');
     });
   });
 
   describe('issue #977: curated reveal and viewport-aware media loading', () => {
-    it('gives tapestry entries a reveal key/class and defers their media until near the viewport, while the Discover page wrapper no longer replays a generic mount animation', () => {
+    it('mounts only the visible and the next story slide and defers their media until near the viewport, while the Discover page wrapper no longer replays a generic mount animation', () => {
       const html = renderStoryPage('/story', {
         items: [
           {
@@ -490,6 +518,33 @@ describe('StoryProductPage', () => {
               },
             },
           },
+          ...[
+            ['mem-3', 'Evening Swim'],
+            ['mem-4', 'Morning Run'],
+          ].map(([id, title], index) => ({
+            kind: 'MEMORY',
+            effectiveDate: new Date(Date.UTC(2026, 7, 18 - index)),
+            memory: {
+              id,
+              title,
+              occurredOn: new Date(Date.UTC(2026, 7, 18 - index)),
+              createdAt: new Date(Date.UTC(2026, 7, 18 - index)),
+              attachments: [
+                {
+                  id: `att-${id}`,
+                  mediaType: 'image/jpeg',
+                  isSensitive: false,
+                },
+              ],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          })),
         ],
         hasMore: false,
         nextCursor: null,
@@ -508,26 +563,24 @@ describe('StoryProductPage', () => {
 
       // The lead highlight's media loads eagerly: no deferred skeleton.
       const heroStart = html.indexOf('momente-hero-media');
-      const tapestryStart = html.indexOf('momente-tapestry-bands');
-      const heroHtml = html.slice(heroStart, tapestryStart);
+      const storyStart = html.indexOf('class="momente-story"');
+      const heroHtml = html.slice(heroStart, storyStart);
       expect(heroHtml).not.toContain('data-media-deferred="true"');
 
-      // Tapestry entries carry their own reveal key/class...
-      const tapestryHtml = html.slice(
-        tapestryStart,
+      // Only the visible slide and the next one are mounted and may load.
+      const storyHtml = html.slice(
+        storyStart,
         html.indexOf('id="momente-diary"'),
       );
-      expect(tapestryHtml).toContain('momente-tapestry-reveal');
-      expect(tapestryHtml).toContain(
-        'data-discover-reveal-key="item:memory-mem-2"',
-      );
-      // ...and never the Timeline's own reveal attribute/class.
-      expect(tapestryHtml).not.toContain('data-timeline-reveal-key');
-      expect(tapestryHtml).not.toContain('story-timeline-progressive-reveal');
+      expect(storyHtml).toContain('Weekend Hike');
+      expect(storyHtml).toContain('Evening Swim');
+      expect(storyHtml).not.toContain('Morning Run');
+      expect(storyHtml).not.toContain('data-timeline-reveal-key');
+      expect(storyHtml).not.toContain('story-timeline-progressive-reveal');
 
-      // Tapestry media is viewport-aware: it renders the deferred skeleton
+      // Story media is viewport-aware: it renders the deferred skeleton
       // instead of eagerly resolving the authenticated loader.
-      expect(tapestryHtml).toContain('data-media-deferred="true"');
+      expect(storyHtml).toContain('data-media-deferred="true"');
     });
   });
 
@@ -742,14 +795,14 @@ describe('StoryProductPage', () => {
             nextCursor: null,
           });
 
-          const tapestryStart = html.indexOf('momente-tapestry-bands');
-          expect(tapestryStart).toBeGreaterThan(-1);
+          const storyStart = html.indexOf('class="momente-story"');
+          expect(storyStart).toBeGreaterThan(-1);
 
           // Canonical backend order: Spring Picnic is BEFORE Late August Vacation
           const springPicnicIndex = html.indexOf('Spring Picnic');
           const lateAugustIndex = html.indexOf(
             'Late August Vacation',
-            tapestryStart,
+            storyStart,
           );
 
           expect(springPicnicIndex).toBeGreaterThan(-1);
@@ -783,16 +836,21 @@ describe('StoryProductPage', () => {
         nextCursor: null,
       });
 
-      const tapestryStart = html.indexOf('momente-tapestry-bands');
-      expect(tapestryStart).toBeGreaterThan(-1);
-      const tapestryHtml = html.slice(tapestryStart);
+      const storyStart = html.indexOf('class="momente-story"');
+      expect(storyStart).toBeGreaterThan(-1);
+      const storyHtml = html.slice(storyStart);
 
-      // The lead appears once, outside the uncapped backend selection.
+      // The lead appears once, outside the uncapped backend selection; the
+      // story plays all 13 remaining entries, starting with the first.
       expect(html).toContain('Moment 0');
-      expect(tapestryHtml).not.toContain('Moment 0');
-      expect(tapestryHtml).toContain('Moment 11');
-      expect(tapestryHtml).toContain('Moment 12');
-      expect(tapestryHtml).toContain('Moment 13');
+      expect(storyHtml).not.toContain('Moment 0<');
+      expect(storyHtml).toContain('>Moment 1<');
+      expect(storyHtml).toContain(
+        `, ${storyProducts.discoverStory.themeCount_other.replace('{{count}}', '13')}`,
+      );
+      expect(
+        storyHtml.match(/class="momente-story-segment"/g) ?? [],
+      ).toHaveLength(13);
     });
   });
 

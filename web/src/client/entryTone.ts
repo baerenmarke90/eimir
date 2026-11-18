@@ -46,20 +46,3 @@ export function retrospectiveTone(
 ): EntryTone {
   return item.previewAttachmentId ? 'playful' : 'calm';
 }
-
-export type TapestryRole = 'media' | 'text' | 'note' | 'milestone';
-
-/**
- * Tone of a Discover tapestry entry. Same principle as the timeline: photos,
- * Heart Moments and Milestones are light-hearted; a text-only memory is calm
- * unless it is shared happiness, and a Time Travel answer is always calm.
- */
-export function tapestryEntryTone(
-  role: TapestryRole,
-  experienceKind: 'HAPPINESS' | 'TIME_TRAVEL' | null | undefined,
-): EntryTone {
-  if (experienceKind === 'TIME_TRAVEL') return 'calm';
-  if (role === 'text')
-    return experienceKind === 'HAPPINESS' ? 'playful' : 'calm';
-  return 'playful';
-}

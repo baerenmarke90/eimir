@@ -2,6 +2,7 @@ import type { DashboardModulePreferenceList } from '../api/generated/models/Dash
 import {
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
+  dashboardModuleDefaultVisible,
 } from './dashboardModules';
 
 export const DEFAULT_UPCOMING_ITEM_LIMIT = 1;
@@ -13,7 +14,11 @@ export const COUPLE_HERO_MODULE_KEY: DashboardModuleKey =
   'relationship_presence';
 export const UPCOMING_ITEM_LIMITS = [1, 2, 3] as const;
 
-/** Absence of an explicit override resolves to visible, the product default. */
+/**
+ * Absence of an explicit override resolves to visible, the product default,
+ * except for an opt-in module such as `shared_garden`, which stays hidden
+ * until the person turns it on (`dashboardModuleDefaultVisible`).
+ */
 export const DEFAULT_MODULE_VISIBLE = true;
 
 export type UpcomingItemLimit = (typeof UPCOMING_ITEM_LIMITS)[number];
@@ -51,9 +56,10 @@ export function limitUpcomingItems<T>(
  * Effective per-user visibility for one registered Dashboard module (#817).
  *
  * Absence of an explicit override — including while the preferences query is
- * still loading or unavailable — resolves to `DEFAULT_MODULE_VISIBLE` so a
- * transient fetch hiccup never hides real content the user never chose to
- * hide.
+ * still loading or unavailable — resolves to the module's default
+ * (`DEFAULT_MODULE_VISIBLE` for every standard module) so a transient fetch
+ * hiccup never hides real content the user never chose to hide, and never
+ * reveals an opt-in module the user never chose to show.
  */
 export function isDashboardModuleVisible(
   preferences: DashboardModulePreferenceList | undefined,
@@ -64,7 +70,7 @@ export function isDashboardModuleVisible(
   const value = preferences?.items.find(
     (item) => item.moduleKey === moduleKey,
   )?.visible;
-  return value ?? DEFAULT_MODULE_VISIBLE;
+  return value ?? dashboardModuleDefaultVisible(moduleKey);
 }
 
 /** The server orders complete preference lists; older/incomplete cached data uses the catalog. */
@@ -83,6 +89,8 @@ export function orderedDashboardModuleKeys(
         key === 'partner_distance' ||
         // #1969: older saved orders predate the pinned notes module.
         key === 'pinned_note' ||
+        // 2026-11-17: older saved orders predate the shared garden module.
+        key === 'shared_garden' ||
         keys.includes(key),
     );
   if (
@@ -121,7 +129,10 @@ export function withDashboardModuleOrder(
   return {
     items: keys.map(
       (moduleKey) =>
-        byKey.get(moduleKey) ?? { moduleKey, visible: DEFAULT_MODULE_VISIBLE },
+        byKey.get(moduleKey) ?? {
+          moduleKey,
+          visible: dashboardModuleDefaultVisible(moduleKey),
+        },
     ),
   };
 }

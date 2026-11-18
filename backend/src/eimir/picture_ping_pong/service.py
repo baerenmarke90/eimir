@@ -30,6 +30,7 @@ from eimir.picture_ping_pong.models import (
     SEED_TURN,
     PicturePayload,
     PicturePingPong,
+    PictureStarter,
     PictureStatus,
     PictureStroke,
 )
@@ -103,8 +104,17 @@ def _seed_stroke() -> PictureStroke:
     return PictureStroke(turn=SEED_TURN, author_id=None, colour="INK", points=values)
 
 
-def start(session: Session, context: AuthorizationContext) -> PicturePingPong:
-    """Open a new picture; the partner who opens it draws first."""
+def start(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    starter: PictureStarter = PictureStarter.SQUIGGLE,
+) -> PicturePingPong:
+    """Open a new picture; the partner who opens it draws first.
+
+    The opener chooses whether the picture begins with the seed squiggle or
+    with a blank page; the squiggle stays the default for older clients.
+    """
     relationship.lock_space(session, context.space_id)
     _partner_of(session, context)
     picture = get_picture(session, context)
@@ -113,7 +123,7 @@ def start(session: Session, context: AuthorizationContext) -> PicturePingPong:
             "A picture is still open. Finish it before starting a new one.",
             "PICTURE_PING_PONG_ALREADY_OPEN",
         )
-    payload = PicturePayload(strokes=[_seed_stroke()])
+    payload = PicturePayload(strokes=[_seed_stroke()] if starter == PictureStarter.SQUIGGLE else [])
     if picture is None:
         picture = PicturePingPong(
             space_id=context.space_id,

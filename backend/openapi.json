@@ -4531,6 +4531,14 @@
             "title": "Unlocks",
             "type": "array"
           },
+          "visitorNames": {
+            "description": "Names the couple gave to visiting animals; unnamed visitors are absent.",
+            "items": {
+              "$ref": "#/components/schemas/GardenVisitorNameView"
+            },
+            "title": "Visitornames",
+            "type": "array"
+          },
           "wateredToday": {
             "anyOf": [
               {
@@ -4555,6 +4563,57 @@
           "reunionToday"
         ],
         "title": "GardenView",
+        "type": "object"
+      },
+      "GardenVisitor": {
+        "description": "Animals that visit the garden; the couple may give each one a name.",
+        "enum": [
+          "SNAIL",
+          "RABBIT",
+          "HEDGEHOG",
+          "DUCKS",
+          "SQUIRREL",
+          "DEER"
+        ],
+        "title": "GardenVisitor",
+        "type": "string"
+      },
+      "GardenVisitorNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 40 characters after trimming; empty removes the name.",
+            "title": "Name"
+          }
+        },
+        "title": "GardenVisitorNameInput",
+        "type": "object"
+      },
+      "GardenVisitorNameView": {
+        "properties": {
+          "animal": {
+            "$ref": "#/components/schemas/GardenVisitor"
+          },
+          "name": {
+            "description": "The couple's shared name for this visitor.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "animal",
+          "name"
+        ],
+        "title": "GardenVisitorNameView",
         "type": "object"
       },
       "GardenWateringInput": {
@@ -9667,6 +9726,27 @@
         ],
         "title": "PictureSavedInput",
         "type": "object"
+      },
+      "PictureStartInput": {
+        "additionalProperties": false,
+        "properties": {
+          "starter": {
+            "$ref": "#/components/schemas/PictureStarter",
+            "default": "SQUIGGLE",
+            "description": "`SQUIGGLE` begins with a small seed line, `BLANK` with an empty page."
+          }
+        },
+        "title": "PictureStartInput",
+        "type": "object"
+      },
+      "PictureStarter": {
+        "description": "How a new picture begins: with the gentle seed squiggle or a blank page.",
+        "enum": [
+          "SQUIGGLE",
+          "BLANK"
+        ],
+        "title": "PictureStarter",
+        "type": "string"
       },
       "PictureStrokeInput": {
         "additionalProperties": false,
@@ -16841,6 +16921,27 @@
         ],
         "title": "StoryKind",
         "type": "string"
+      },
+      "StoryLifelineEntriesView": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "StoryLifelineEntriesView",
+        "type": "object"
       },
       "StoryLifelineView": {
         "properties": {
@@ -31782,6 +31883,107 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name": {
+      "put": {
+        "description": "Name a visiting animal; both partners see the same name (the duck pair shares one).",
+        "operationId": "nameGardenVisitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "animal",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GardenVisitor"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GardenVisitorNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Name Garden Visitor",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/games/garden/waterings": {
       "post": {
         "description": "Water one plant; a daily gesture that never changes growth.",
@@ -32351,7 +32553,7 @@
         ]
       },
       "post": {
-        "description": "Open a new picture; the partner who opens it draws first.",
+        "description": "Open a new picture; the partner who opens it draws first.\n\nWithout a body the picture begins with the seed squiggle.",
         "operationId": "startPicturePingPong",
         "parameters": [
           {
@@ -32364,6 +32566,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PictureStartInput"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -48768,6 +48987,103 @@
           }
         },
         "summary": "Get Story Lifeline",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/story-lifeline/entries": {
+      "get": {
+        "description": "Return the shared entries of one lifeline period, oldest first.\n\nRead lazily when a lifeline column is selected. The entries are exactly\nthose the lifeline counts for the range; at most a bounded number is\nreturned together with the range total.",
+        "operationId": "getStoryLifelineEntries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of the range (inclusive).",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the range (inclusive).",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the range (exclusive).",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Day after the range (exclusive).",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryLifelineEntriesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Story Lifeline Entries",
         "tags": [
           "dashboard"
         ]

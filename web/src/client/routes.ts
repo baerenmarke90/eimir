@@ -180,6 +180,7 @@ export function proPaywallContext(search: string): ProPaywallContext {
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',
+  'shared',
   'notifications',
   'today',
   'memories',
@@ -197,6 +198,7 @@ export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:set
 
 export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
+  shared: `${MORE_SETTINGS_ROUTE}/shared`,
   notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
   today: `${MORE_SETTINGS_ROUTE}/today`,
   memories: `${MORE_SETTINGS_ROUTE}/memories`,

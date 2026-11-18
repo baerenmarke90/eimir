@@ -99,9 +99,11 @@ function services(initial: GardenView): Required<GardenServices> {
     saveMoment: vi.fn(),
     acknowledgeNews: vi.fn().mockResolvedValue({ ...initial, news: [] }),
     rename: vi.fn(),
+    nameVisitor: vi.fn(),
     giveBouquet: vi.fn(),
     closeBouquet: vi.fn().mockResolvedValue({ ...initial, bouquet: null }),
     saveToMoments: vi.fn().mockResolvedValue({ memoryId: 'memory-1' }),
+    loadMilestones: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -389,5 +391,163 @@ describe('garden growth and life', () => {
         fill(copy.quoted, { words: copy.words.MISS_YOU }),
       ),
     ).toBeTruthy();
+  });
+
+  it('lists met visitors in the garden book and names one for both partners', async () => {
+    const api = services(view());
+    let resolve: (value: GardenView) => void = () => undefined;
+    vi.mocked(api.nameVisitor).mockReturnValue(
+      new Promise<GardenView>((done) => {
+        resolve = done;
+      }),
+    );
+    renderPage(api);
+    fireEvent.click(await screen.findByRole('button', { name: growth.book }));
+    const visitors = screen.getByTestId('garden-visitors');
+    expect(
+      within(visitors).getByRole('heading', { name: growth.visitors.title }),
+    ).toBeTruthy();
+    // Met visitors carry their default name; the deer has not come by yet.
+    const hedgehog = within(visitors).getByTestId('garden-visitor-hedgehog');
+    expect(
+      within(hedgehog).getByText(growth.visitors.own.hedgehog),
+    ).toBeTruthy();
+    expect(within(hedgehog).getByText(growth.visitors.unnamed)).toBeTruthy();
+    expect(within(visitors).queryByTestId('garden-visitor-deer')).toBeNull();
+    expect(within(visitors).queryByText(growth.animals.deer)).toBeNull();
+    expect(within(visitors).getAllByText(growth.visitors.unknown).length).toBe(
+      1,
+    );
+    // No counter, bar or number while nothing is being edited.
+    expect(visitors.textContent).not.toMatch(/\d/);
+
+    fireEvent.click(
+      within(hedgehog).getByRole('button', {
+        name: `${growth.visitors.give}: ${growth.visitors.own.hedgehog}`,
+      }),
+    );
+    const input = within(hedgehog).getByLabelText(
+      growth.visitors.question.hedgehog,
+    );
+    expect(input.getAttribute('maxlength')).toBe('40');
+    expect(document.activeElement).toBe(input);
+    fireEvent.click(
+      within(hedgehog).getByRole('button', {
+        name: growth.visitors.suggestions.hedgehog.a,
+      }),
+    );
+    expect((input as HTMLInputElement).value).toBe('Pieks');
+    expect(within(hedgehog).getByText('5 / 40')).toBeTruthy();
+    fireEvent.click(
+      within(hedgehog).getByRole('button', { name: growth.save }),
+    );
+
+    // Optimistic: the name shows before the server answers.
+    expect(await within(hedgehog).findByText('Pieks')).toBeTruthy();
+    expect(api.nameVisitor).toHaveBeenCalledWith('HEDGEHOG', 'Pieks');
+    await act(async () => {
+      resolve(view({ visitorNames: [{ animal: 'HEDGEHOG', name: 'Pieks' }] }));
+    });
+    expect(
+      await screen.findByText(
+        fill(growth.visitors.namedStatus, {
+          visitor: growth.visitors.own.hedgehog,
+          name: 'Pieks',
+        }),
+      ),
+    ).toBeTruthy();
+    expect(
+      within(hedgehog).getByText(
+        fill(growth.visitors.namedSub, {
+          animal: growth.animals.hedgehog,
+          where: growth.visitors.where.hedgehog,
+        }),
+      ),
+    ).toBeTruthy();
+    expect(
+      within(hedgehog).getByRole('button', {
+        name: `${growth.visitors.rename}: Pieks`,
+      }),
+    ).toBeTruthy();
+  });
+
+  it('rolls a visitor name back and keeps the draft when saving fails', async () => {
+    const api = services(view());
+    vi.mocked(api.nameVisitor).mockRejectedValue(new TypeError('offline'));
+    renderPage(api);
+    fireEvent.click(await screen.findByRole('button', { name: growth.book }));
+    const snail = screen.getByTestId('garden-visitor-snail');
+    fireEvent.click(
+      within(snail).getByRole('button', {
+        name: `${growth.visitors.give}: ${growth.visitors.own.snail}`,
+      }),
+    );
+    fireEvent.change(
+      within(snail).getByLabelText(growth.visitors.question.snail),
+      { target: { value: 'Schnecki' } },
+    );
+    fireEvent.click(within(snail).getByRole('button', { name: growth.save }));
+
+    expect(await within(snail).findByText(growth.visitors.failed)).toBeTruthy();
+    const input = within(snail).getByLabelText(
+      growth.visitors.question.snail,
+    ) as HTMLInputElement;
+    expect(input.value).toBe('Schnecki');
+    expect(within(snail).getByText(growth.visitors.own.snail)).toBeTruthy();
+    expect(within(snail).queryByText('Schnecki')).toBeNull();
+  });
+
+  it('uses the name in the reaction and floats it above the visitor', async () => {
+    const api = services(
+      view({
+        sharedDays: 0,
+        unlocks: [],
+        visitorNames: [{ animal: 'SNAIL', name: 'Frieda' }],
+      }),
+    );
+    renderPage(api);
+    const snail = await screen.findByTestId('garden-animal-snail', undefined, {
+      timeout: 4000,
+    });
+    expect(snail.getAttribute('aria-label')).toBe(
+      fill(growth.animalLabelNamed, {
+        name: 'Frieda',
+        animal: growth.animals.snail,
+      }),
+    );
+    fireEvent.click(snail);
+    expect(
+      await screen.findByText(
+        fill(growth.reactionsNamed.snail, { name: 'Frieda' }),
+      ),
+    ).toBeTruthy();
+    const tag = screen.getByTestId('garden-name-tag');
+    expect(tag.textContent).toBe('Frieda');
+    expect(tag.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      screen.queryByRole('button', { name: growth.askName.snail }),
+    ).toBeNull();
+    // With reduced motion the reaction is a still pose.
+    expect(snail.getAttribute('data-pose')).toBe('hide');
+  });
+
+  it('asks how an unnamed visitor should be called and opens its editor', async () => {
+    const api = services(view({ sharedDays: 0, unlocks: [] }));
+    renderPage(api);
+    fireEvent.click(
+      await screen.findByTestId('garden-animal-snail', undefined, {
+        timeout: 4000,
+      }),
+    );
+    expect(await screen.findByText(growth.reactions.snail)).toBeTruthy();
+    expect(screen.queryByTestId('garden-name-tag')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: growth.askName.snail }));
+
+    const editor = await screen.findByTestId('garden-visitor-editor-snail');
+    const input = within(editor).getByLabelText(growth.visitors.question.snail);
+    expect(document.activeElement).toBe(input);
+    expect(
+      within(editor).getAllByRole('button', { pressed: false }).length,
+    ).toBe(4);
   });
 });

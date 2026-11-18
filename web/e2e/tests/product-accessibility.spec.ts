@@ -234,6 +234,22 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    // The Settings overview reads the calendar connection for its row status.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/calendar-sync`
+    ) {
+      await fulfillJson({
+        available: false,
+        canSync: false,
+        connections: [],
+        services: [],
+        target: null,
+        targetToken: 'calendar-target-token',
+      });
+      return;
+    }
+
     // Partner distance (#1792): an unpaired Free Space shares nothing.
     if (
       method === 'GET' &&
@@ -1316,7 +1332,7 @@ test('Space configuration is touch operable, reload-safe, responsive, and axe-cl
 
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings/relationship');
+  await page.goto('/more/settings/shared');
 
   await expect(
     page.getByRole('heading', {
@@ -1377,7 +1393,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
 
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
 
     const energySwitch = page.getByRole('switch', {
       name: profileIdentity.energyCheckInToggle,
@@ -1495,6 +1511,10 @@ const SETTINGS_PAGES = [
     heading: profileIdentity.settingsRelationship,
   },
   {
+    path: '/more/settings/shared',
+    heading: profileIdentity.spaceConfigurationTitle,
+  },
+  {
     path: '/more/settings/notifications',
     heading: profileIdentity.settingsNotifications,
   },
@@ -1582,7 +1602,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     const unexpectedRequests = await installAuthorizedApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });

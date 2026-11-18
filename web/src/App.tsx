@@ -12,6 +12,7 @@ import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
+import { GamesApi } from './api/generated/apis/GamesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
@@ -452,6 +453,16 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const gamesApi = useMemo(
+    () =>
+      new GamesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
@@ -575,6 +586,7 @@ function AuthenticatedApp({
           profilesApi={profilesApi}
           account={account}
           partnerLocationApi={partnerLocationApi}
+          gamesApi={gamesApi}
         />
       ),
     },
@@ -974,6 +986,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
                 />
               }
             />

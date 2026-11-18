@@ -34,6 +34,10 @@
   color: var(--color-text-secondary);
 }
 
+.heart-hunt-live {
+  margin: 0;
+}
+
 .heart-hunt-quiet {
   margin: 0;
   text-align: center;

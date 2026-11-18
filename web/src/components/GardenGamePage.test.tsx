@@ -11,6 +11,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GardenView } from '../api/generated/models/GardenView';
 import { gardenFlight } from '../client/garden';
+import { LIVE_GAME_REFRESH_MS } from '../client/liveGameSync';
 import games from '../i18n/locales/games';
 import { GardenGamePage, type GardenServices } from './GardenGamePage';
 
@@ -267,6 +268,35 @@ describe('GardenGamePage', () => {
     fireEvent.click(screen.getByRole('button', { name: copy.plant }));
     await waitFor(() => expect(api.plant).toHaveBeenCalledWith('seed-2'));
     await screen.findByText(copy.plantedStatus);
+  });
+
+  it('shows a seed the partner sends while the garden is open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const api = services(view());
+      renderPage(api);
+      await screen.findByRole('heading', {
+        name: fill(copy.todayTitle, { name: 'Alex' }),
+      });
+      (api.load as ReturnType<typeof vi.fn>).mockResolvedValue(
+        view({
+          incoming: {
+            ...plant('seed-3', 0, 0),
+            slot: null,
+            species: 'POPPY',
+            words: null,
+          },
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(LIVE_GAME_REFRESH_MS + 100);
+      expect(
+        await screen.findByRole('heading', {
+          name: fill(copy.arrivedTitle, { name: 'Alex' }),
+        }),
+      ).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows a plant story and waters a plant once a day', async () => {

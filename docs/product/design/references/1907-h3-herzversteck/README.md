@@ -83,3 +83,9 @@ synthetic one-pixel photo) at 390 px Light and 360 px Dark.
 | Typing | None: the only inputs are a photo and taps. |
 | Keyboard | The frame is one focusable control: arrow keys move a visible reticle, Enter or Space taps it. |
 | Visual acceptance | Compact 360/390 Light/Dark and reduced motion in `web/e2e/tests/heart-hunt.spec.ts`; Pixel check by the Product Owner. |
+
+## Update 2026-11-17: live partner sync
+
+The Herzversteck page reads its state live while it is open, so the partner's moves
+appear without leaving the page. Contract, reuse and business review:
+[live partner sync](../1907-h3-live-sync/README.md).

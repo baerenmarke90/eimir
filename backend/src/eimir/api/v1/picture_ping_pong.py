@@ -26,6 +26,7 @@ from eimir.picture_ping_pong.models import (
     MIN_STROKE_VALUES,
     PictureColour,
     PicturePingPong,
+    PictureStarter,
 )
 
 router = APIRouter(tags=["games"])
@@ -60,6 +61,15 @@ class PicturePingPongView(ApiModel):
 
 class PicturePingPongState(ApiModel):
     picture: PicturePingPongView | None = None
+
+
+class PictureStartInput(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    starter: PictureStarter = Field(
+        default=PictureStarter.SQUIGGLE,
+        description="`SQUIGGLE` begins with a small seed line, `BLANK` with an empty page.",
+    )
 
 
 class PictureStrokeInput(ApiModel):
@@ -154,12 +164,19 @@ def get_picture_ping_pong(
     responses=problem_responses(401, 403, 404, 409),
 )
 def start_picture_ping_pong(
-    authorization: Authorization, session: DbSession, response: Response
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: PictureStartInput | None = None,
 ) -> PicturePingPongState:
-    """Open a new picture; the partner who opens it draws first."""
+    """Open a new picture; the partner who opens it draws first.
+
+    Without a body the picture begins with the seed squiggle.
+    """
     _ensure_games(session, authorization, write=True)
     response.headers["Cache-Control"] = "private, no-store"
-    return _view(service.start(session, authorization))
+    starter = body.starter if body is not None else PictureStarter.SQUIGGLE
+    return _view(service.start(session, authorization, starter=starter))
 
 
 @router.post(

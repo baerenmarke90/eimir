@@ -129,6 +129,7 @@ describe('settings category routes', () => {
     );
     expect(SETTINGS_CATEGORY_ROUTES).toEqual({
       relationship: '/more/settings/relationship',
+      shared: '/more/settings/shared',
       notifications: '/more/settings/notifications',
       today: '/more/settings/today',
       memories: '/more/settings/memories',

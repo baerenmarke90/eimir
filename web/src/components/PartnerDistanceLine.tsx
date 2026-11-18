@@ -9,6 +9,7 @@ import {
   deviceLanguages,
   distanceBandWords,
   distanceUnitFor,
+  formatCloseBand,
   formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine as PartnerDistanceLineState,
@@ -86,6 +87,16 @@ export function useDistanceText() {
     const words = distanceBandWords(band);
     if (words) return t(WORDS[words].sentence);
     const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnder', { distance: close.value })
+        : t('partnerLocation.distanceBetween', { distance: close.value });
+    }
     const distance = formatDistanceBand(
       band,
       locale,
@@ -100,7 +111,7 @@ export function useDistanceText() {
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg
-      className={`partner-distance-glyph is-${kind}`}
+      className={`inline-icon partner-distance-glyph is-${kind}`}
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
@@ -161,13 +172,24 @@ export function PartnerDistanceLine({
     }
     const locale = resolvedLocale();
     const words = distanceBandWords(line.band);
+    const close = formatCloseBand(
+      line.band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
     const value = words
       ? t(WORDS[words].short)
-      : (formatDistanceBand(
-          line.band,
-          locale,
-          distanceUnitFor(locale, deviceLanguages()),
-        ) ?? t('partnerLocation.distanceNearShort'));
+      : close
+        ? close.under
+          ? t('partnerLocation.distanceCloseUnderShort', {
+              distance: close.value,
+            })
+          : close.value
+        : (formatDistanceBand(
+            line.band,
+            locale,
+            distanceUnitFor(locale, deviceLanguages()),
+          ) ?? t('partnerLocation.distanceNearShort'));
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)
@@ -338,4 +360,35 @@ export function WirPartnerDistance({
       compact={compact}
     />
   );
+}
+
+/**
+ * The band as the short H4 word or value, for compact captions such as the
+ * Herzversteck flight (#1907 H3); never more precise than the server band.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnderShort', {
+            distance: close.value,
+          })
+        : close.value;
+    }
+    const distance = formatDistanceBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    return distance ?? t('partnerLocation.distanceNearShort');
+  };
 }

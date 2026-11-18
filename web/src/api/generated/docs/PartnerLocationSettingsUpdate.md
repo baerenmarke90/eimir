@@ -9,6 +9,7 @@ Name | Type
 `expiresAt` | Date
 `indefinite` | boolean
 `level` | [SharingLevel](SharingLevel.md)
+`precision` | [SharingPrecision](SharingPrecision.md)
 
 ## Example
 
@@ -20,6 +21,7 @@ const example = {
   "expiresAt": null,
   "indefinite": null,
   "level": null,
+  "precision": null,
 } satisfies PartnerLocationSettingsUpdate
 
 console.log(example)

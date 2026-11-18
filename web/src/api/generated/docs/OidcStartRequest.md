@@ -6,7 +6,10 @@
 
 Name | Type
 ------------ | -------------
+`acceptedTermsVersion` | string
+`client` | string
 `invitationToken` | string
+`signup` | boolean
 
 ## Example
 
@@ -15,7 +18,10 @@ import type { OidcStartRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "acceptedTermsVersion": null,
+  "client": null,
   "invitationToken": null,
+  "signup": null,
 } satisfies OidcStartRequest
 
 console.log(example)

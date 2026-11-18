@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
@@ -11,6 +12,11 @@ from eimir.engagement.models import EngagementTarget
 from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.reminders.models import Reminder, ReminderSource
+
+
+def recap_period_key(kind: str, year: int, month: int) -> str:
+    """``YYYY`` for a year recap, ``YYYY-MM`` for a month recap."""
+    return f"{year:04d}" if kind == "YEAR" else f"{year:04d}-{month:02d}"
 
 
 def target_titles(
@@ -30,6 +36,18 @@ def target_titles(
             EngagementTarget.TRANSFER_EXPORT,
             EngagementTarget.TRANSFER_IMPORT,
         }:
+            continue
+        if target_type is EngagementTarget.RECAP:
+            # A recap presents only its period as a machine key ("2026-10" or
+            # "2026") that clients localize; never a title or source content.
+            from eimir.recaps.models import RecapEdition
+
+            for row in session.execute(
+                select(
+                    RecapEdition.id, RecapEdition.kind, RecapEdition.year, RecapEdition.month
+                ).where(RecapEdition.id.in_(ids), RecapEdition.space_id == context.space_id)
+            ):
+                titles[(target_type, row.id)] = recap_period_key(row.kind, row.year, row.month)
             continue
         model = service._TARGET_MODELS.get(target_type)
         if model is None:

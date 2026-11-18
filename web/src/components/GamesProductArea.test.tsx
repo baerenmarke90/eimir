@@ -7,6 +7,8 @@ import { EntitlementStatus } from '../api/generated/models/EntitlementStatus';
 import { EntitlementTier } from '../api/generated/models/EntitlementTier';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import {
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
@@ -69,6 +71,9 @@ function expectThreeGameEntries(): void {
   expect(screen.getByText(games.entries.moments.title)).toBeTruthy();
   expect(screen.getByText(games.entries.wishes.title)).toBeTruthy();
   expect(screen.getByText(games.entries.perspective.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.garden.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.heartHunt.title)).toBeTruthy();
+  expect(screen.getByText(games.entries.pingPong.title)).toBeTruthy();
 }
 
 function expectGameStatus(status: string, count: number): void {
@@ -148,7 +153,7 @@ describe('GamesProductArea', () => {
 
     await screen.findByText(games.entries.moments.title);
     expectThreeGameEntries();
-    expectGameStatus(games.status.premium, 3);
+    expectGameStatus(games.status.premium, 6);
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expect(screen.queryByText('Premium ansehen')).toBeNull();
     expect(
@@ -172,7 +177,7 @@ describe('GamesProductArea', () => {
     expectThreeGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
     expectGameStatus(games.status.comingSoon, 0);
-    expectGameStatus(games.status.playNow, 3);
+    expectGameStatus(games.status.playNow, 6);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);
@@ -183,10 +188,21 @@ describe('GamesProductArea', () => {
     expect(wishesLink.textContent).toContain(games.status.playNow);
     expect(wishesLink.getAttribute('href')).toBe(GAMES_WISH_DETECTIVE_ROUTE);
 
+    const heartHuntLink = screen.getByRole('link', {
+      name: new RegExp(games.entries.heartHunt.title),
+    });
+    expect(heartHuntLink.textContent).toContain(games.status.playNow);
+    expect(heartHuntLink.getAttribute('href')).toBe(GAMES_HEART_HUNT_ROUTE);
+
     const perspectiveButton = screen.getByRole('button', {
       name: new RegExp(games.entries.perspective.title),
     });
     expect(perspectiveButton.textContent).toContain(games.status.playNow);
+
+    const gardenLink = screen.getByRole('link', {
+      name: new RegExp(games.entries.garden.title),
+    });
+    expect(gardenLink.getAttribute('href')).toBe(GAMES_GARDEN_ROUTE);
   });
 
   it('starts the perspective game as a hidden-answer handoff flow from the hub under StrictMode', async () => {

@@ -25,6 +25,16 @@ public class PresencePublishRuleTest {
     }
 
     @Test
+    public void aPreciseChoiceAlsoPublishesAfterTwoHundredMetres() {
+        long recent = NOW - 60_000L;
+        // About 245 m north: below one kilometre, above the precise threshold.
+        assertFalse(PresencePublishRule.due(HAMBURG_LAT, HAMBURG_LON, recent, 53.5533, HAMBURG_LON, NOW, false));
+        assertTrue(PresencePublishRule.due(HAMBURG_LAT, HAMBURG_LON, recent, 53.5533, HAMBURG_LON, NOW, true));
+        // About 110 m north stays quiet even when precise.
+        assertFalse(PresencePublishRule.due(HAMBURG_LAT, HAMBURG_LON, recent, 53.5521, HAMBURG_LON, NOW, true));
+    }
+
+    @Test
     public void oneKilometreOfMovementPublishesImmediately() {
         assertTrue(PresencePublishRule.due(HAMBURG_LAT, HAMBURG_LON, NOW - 60_000L, 53.565, HAMBURG_LON, NOW));
     }

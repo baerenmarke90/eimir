@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type MouseEvent,
   type PointerEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -23,12 +24,20 @@ import {
 } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';
-import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
 import type { RecapView } from '../api/generated/models/RecapView';
 import { Configuration } from '../client/apiConfiguration';
 import { isCapacitorNativePlatform } from '../client/config';
 import { normalizeClientError } from '../client/problemDetails';
 import {
+  type FilmScene,
+  filmChapters,
+  filmSceneLeadMedia,
+  filmSceneSource,
+  filmSerif,
+  recapFilmScenes,
+} from '../client/recapFilm';
+import {
+  type RecapScene,
   recapDate,
   recapHeadline,
   recapPeriodKey,
@@ -62,9 +71,9 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import type { ProfilePageProps } from './ProfilePage';
 import { ProMark } from './ProMark';
+import { RecapFilmScene } from './RecapFilmScene';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
-import { RelationshipPassport } from './RelationshipPassport';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
@@ -83,29 +92,45 @@ async function authorized<T>(operation: Promise<T>): Promise<T> {
   }
 }
 
-function PeriodNote({ value }: { value: RecapView }) {
+function PeriodNote({
+  value,
+  canCompose,
+}: {
+  value: RecapView;
+  canCompose: boolean;
+}) {
   const { t } = useTranslation();
+  const locale = resolvedLocale();
   return (
-    <p className="recap-period-note">
-      {recapPeriodStatus(value, resolvedLocale(), t)}
-    </p>
+    <span className="recap-period-note">
+      {value.supersededById
+        ? t('recaps.versionEarlier')
+        : value.supersedesId
+          ? t('recaps.versionGrown')
+          : !canCompose && value.isPartial && !value.savedAt
+            ? t('recaps.partialThrough', {
+                date: recapDate(value.throughOn, locale),
+              })
+            : recapPeriodStatus(value, locale, t)}
+    </span>
   );
 }
 
-function Cover({
+function RecapEditionLink({
   value,
-  featured,
-  ...media
-}: RecapMediaProps & { value: RecapView; featured: boolean }) {
-  const { t } = useTranslation();
+  className,
+  children,
+}: {
+  value: Pick<RecapView, 'id' | 'kind'>;
+  className: string;
+  children: ReactNode;
+}) {
   const { captureOrigin } = useTaskOrigin();
   const navigate = useNavigate();
-  const source = value.sources.find((item) => item.available);
-  const hasPhoto = Boolean(source?.previewAttachmentId);
-  const label = recapPeriodLabel(value, resolvedLocale());
   const detailPath = `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`;
-  function openReader(event: MouseEvent<HTMLAnchorElement>, to: string) {
+  function openReader(event: MouseEvent<HTMLAnchorElement>) {
     if (
+      event.defaultPrevented ||
       event.ctrlKey ||
       event.metaKey ||
       event.shiftKey ||
@@ -114,13 +139,33 @@ function Cover({
     )
       return;
     event.preventDefault();
-    void navigate(to, { state: { taskOriginKey: captureOrigin() } });
+    void navigate(detailPath, { state: { taskOriginKey: captureOrigin() } });
   }
 
   return (
-    <article
-      className={`recap-cover${featured ? ' recap-cover-featured' : ''}${value.kind === 'YEAR' ? ' recap-cover-year' : ''}`}
+    <Link
+      className={className}
+      to={detailPath}
+      onClick={openReader}
+      state={{ taskOriginKey: null }}
     >
+      {children}
+    </Link>
+  );
+}
+
+function Cover({
+  value,
+  canCompose,
+  ...media
+}: RecapMediaProps & { value: RecapView; canCompose: boolean }) {
+  const { t } = useTranslation();
+  const source = value.sources.find((item) => item.available);
+  const hasPhoto = Boolean(source?.previewAttachmentId);
+  const locale = resolvedLocale();
+  const label = recapPeriodLabel(value, locale);
+  return (
+    <article className="recap-cover recap-cover-featured">
       <div className={`recap-cover-art${hasPhoto ? ' has-photo' : ''}`}>
         {source && hasPhoto ? (
           <RecapMedia {...media} source={source} />
@@ -133,7 +178,7 @@ function Cover({
         <span className="recap-edition-mark" aria-hidden="true">
           {value.kind === 'YEAR'
             ? value.year
-            : new Intl.NumberFormat(resolvedLocale(), {
+            : new Intl.NumberFormat(locale, {
                 minimumIntegerDigits: 2,
               }).format(value.month ?? 1)}
         </span>
@@ -141,61 +186,52 @@ function Cover({
       <div className="recap-cover-copy">
         <div className="recap-cover-kicker">
           <span>{label}</span>
-          {value.savedAt && value.isPartial ? (
-            <span>{t('recaps.saved')}</span>
-          ) : null}
         </div>
         <h2 lang={value.headline ? value.locale : undefined}>
-          {value.status === 'EMPTY'
-            ? t('recaps.emptyTitle')
-            : recapHeadline(value, t)}
+          {recapHeadline(value, t)}
         </h2>
-        {featured ? (
-          <p lang={value.introduction ? value.locale : undefined}>
-            {value.introduction ?? t('recaps.fallbackIntro')}
-          </p>
-        ) : null}
-        <PeriodNote value={value} />
-        <Link
-          className={featured ? 'button-link recap-open' : 'recap-text-link'}
-          to={detailPath}
-          onClick={(event) => openReader(event, detailPath)}
-          state={{ taskOriginKey: null }}
-        >
-          {value.status === 'PENDING'
-            ? t('recaps.pendingTitle')
-            : t('recaps.open')}
-          <span aria-hidden="true"> →</span>
-        </Link>
+        <p lang={value.introduction ? value.locale : undefined}>
+          {value.introduction ?? t('recaps.fallbackIntro')}
+        </p>
+        <PeriodNote value={value} canCompose={canCompose} />
+        <RecapEditionLink className="button-link recap-open" value={value}>
+          {t('recaps.open')}
+        </RecapEditionLink>
       </div>
     </article>
   );
 }
 
-/** A period the server is still compiling; it becomes a cover without a request. */
-function PreparingCover({ value }: { value: RecapPeriod }) {
+function ArchiveRow({
+  value,
+  canCompose,
+  ...media
+}: RecapMediaProps & { value: RecapView; canCompose: boolean }) {
   const { t } = useTranslation();
+  // Sensitive previews have their own reveal control in the reader.
+  const photo = value.sources.find(
+    (source) =>
+      source.available &&
+      source.previewAttachmentId &&
+      source.previewIsSensitive === false,
+  );
   return (
-    <article className="recap-cover recap-cover-preparing">
-      <div className="recap-cover-art">
-        <div className="recap-cover-words">
-          <EimirIcon name="kapitel" />
-        </div>
-        <span className="recap-edition-mark" aria-hidden="true">
-          {value.kind === 'YEAR'
-            ? value.year
-            : new Intl.NumberFormat(resolvedLocale(), {
-                minimumIntegerDigits: 2,
-              }).format(value.month ?? 1)}
-        </span>
-      </div>
-      <div className="recap-cover-copy">
-        <div className="recap-cover-kicker">
+    <li>
+      <RecapEditionLink className="recap-archive-row" value={value}>
+        <span className="recap-archive-copy">
           <span>{recapPeriodLabel(value, resolvedLocale())}</span>
-        </div>
-        <p className="recap-period-note">{t('recaps.preparing')}</p>
-      </div>
-    </article>
+          <strong lang={value.headline ? value.locale : undefined}>
+            {recapHeadline(value, t)}
+          </strong>
+          <PeriodNote value={value} canCompose={canCompose} />
+        </span>
+        {photo ? (
+          <div className="recap-archive-art" aria-hidden="true">
+            <RecapMedia {...media} source={photo} />
+          </div>
+        ) : null}
+      </RecapEditionLink>
+    </li>
   );
 }
 
@@ -301,6 +337,10 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
       ]),
     ).values(),
   ].filter((item) => item.kind === kind);
+  const ready = editions.filter((item) => item.status === 'READY');
+  const featured = ready.find((item) => item.isPartial && !item.savedAt);
+  const archive = ready.filter((item) => item.id !== featured?.id);
+  const unready = editions.filter((item) => item.status !== 'READY');
   const periods =
     query.data?.pages[0]?.periods.filter(
       (period) =>
@@ -365,30 +405,67 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
         id="recap-library-panel"
         aria-labelledby={`recap-tab-${kind}`}
       >
-        {!query.isPending && !query.error && !allowed ? (
-          <section className="recap-gate">
-            <h2>{t('recaps.gateTitle')}</h2>
-            <p>{t('recaps.gateBody')}</p>
-            <Link to={proPaywallPath('recaps')}>{t('recaps.gateLink')}</Link>
-          </section>
-        ) : null}
-        {editions.length > 0 ? (
+        {featured ? (
           <>
             <p className="recap-section-label">{t('recaps.current')}</p>
-            <Cover {...props} value={editions[0]} featured />
+            <Cover {...props} value={featured} canCompose={allowed} />
           </>
         ) : null}
-        {editions.length > 1 || (allowed && periods.length > 0) ? (
-          <section className="recap-archive" aria-label={t('recaps.archive')}>
-            <h2>{t('recaps.archive')}</h2>
-            {editions.slice(1).map((value) => (
-              <Cover key={value.id} {...props} value={value} featured={false} />
-            ))}
-            {allowed
-              ? periods.map((period) => (
-                  <PreparingCover key={recapPeriodKey(period)} value={period} />
-                ))
-              : null}
+        {archive.length > 0 ? (
+          <section
+            className="recap-archive"
+            aria-labelledby="recap-archive-title"
+          >
+            <h2 id="recap-archive-title">{t('recaps.archive')}</h2>
+            <ul className="recap-library-list">
+              {archive.map((value) => (
+                <ArchiveRow
+                  key={value.id}
+                  {...props}
+                  value={value}
+                  canCompose={allowed}
+                />
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        {unready.length > 0 || (allowed && periods.length > 0) ? (
+          <section
+            className="recap-unready"
+            aria-labelledby="recap-unready-title"
+          >
+            <h2 id="recap-unready-title">{t('recaps.otherPeriods')}</h2>
+            <ul className="recap-library-list">
+              {unready.map((value) => (
+                <li key={value.id}>
+                  <RecapEditionLink className="recap-status-row" value={value}>
+                    <strong>{recapPeriodLabel(value, resolvedLocale())}</strong>
+                    <span>
+                      {t(
+                        value.status === 'EMPTY'
+                          ? 'recaps.emptyTitle'
+                          : value.status === 'PAUSED'
+                            ? 'recaps.generationPaused'
+                            : 'recaps.preparing',
+                      )}
+                    </span>
+                  </RecapEditionLink>
+                </li>
+              ))}
+              {allowed
+                ? periods.map((period) => (
+                    <li
+                      className="recap-status-row"
+                      key={recapPeriodKey(period)}
+                    >
+                      <strong>
+                        {recapPeriodLabel(period, resolvedLocale())}
+                      </strong>
+                      <span>{t('recaps.preparing')}</span>
+                    </li>
+                  ))
+                : null}
+            </ul>
           </section>
         ) : null}
         {allowed && !query.isPending && !editions.length && !periods.length ? (
@@ -411,6 +488,13 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           >
             {t('recaps.more')}
           </AutoLoadMore>
+        ) : null}
+        {!query.isPending && !query.error && !allowed ? (
+          <section className="recap-gate">
+            <h2>{t('recaps.gateTitle')}</h2>
+            <p>{t('recaps.gateBody')}</p>
+            <Link to={proPaywallPath('recaps')}>{t('recaps.gateLink')}</Link>
+          </section>
         ) : null}
       </div>
       <details className="recap-explanation">
@@ -475,8 +559,19 @@ function RecapReader({
     capability: 'relationship.passport',
   });
   const value = query.data;
-  const scenes = useMemo(() => (value ? recapScenes(value) : []), [value]);
-  const pageCount = scenes.length || 2;
+  // A monthly or yearly film edition plays its timed scenes; every other
+  // edition keeps the established reader unchanged.
+  const filmScenes = useMemo(
+    () => (value ? recapFilmScenes(value) : null),
+    [value],
+  );
+  const scenes = useMemo(
+    () => (value && !filmScenes ? recapScenes(value) : []),
+    [value, filmScenes],
+  );
+  const sceneKeys = (filmScenes ?? scenes).map(({ key: step }) => step);
+  const chapters = useMemo(() => filmChapters(filmScenes), [filmScenes]);
+  const pageCount = sceneKeys.length || 2;
   const requestedPage = Number(search.get('page'));
   const page = Number.isInteger(requestedPage)
     ? Math.max(0, Math.min(pageCount - 1, requestedPage))
@@ -500,8 +595,26 @@ function RecapReader({
       state: { ...location.state, inPlaceRouteUpdate: automatic },
     });
   };
-  const scene = scenes[page];
-  const source = scene?.type === 'highlight' ? scene.source : undefined;
+  const filmScene: FilmScene | undefined = filmScenes?.[page];
+  // The rhythm scene keeps its established composition inside a film too.
+  const scene: RecapScene | undefined = filmScenes
+    ? filmScene?.type === 'rhythm'
+      ? {
+          type: 'rhythm',
+          key: filmScene.key,
+          buckets: filmScene.buckets,
+          leading: filmScene.leading,
+          total: filmScene.total,
+        }
+      : undefined
+    : scenes[page];
+  const filmOwnsPage = Boolean(filmScene && filmScene.type !== 'rhythm');
+  const source =
+    scene?.type === 'highlight'
+      ? scene.source
+      : filmScene
+        ? (filmSceneSource(filmScene) ?? undefined)
+        : undefined;
   const mosaic = useMemo(
     () =>
       (value?.sources ?? [])
@@ -521,30 +634,39 @@ function RecapReader({
     setSearch(update, { replace: true, state: location.state });
   }, [location.state, ownsRouteEntry, search, setSearch]);
   const pageKey = `${recapId}:${page}:${value?.version ?? 0}`;
-  const pageMedia =
-    scene?.type === 'cover'
+  const filmMedia = filmScene ? filmSceneLeadMedia(filmScene) : null;
+  const pageMedia = filmScene
+    ? undefined
+    : scene?.type === 'cover'
       ? cover
       : source?.available && source.previewAttachmentId
         ? source
         : undefined;
-  const mediaKey = `${pageKey}:${pageMedia?.key ?? ''}:${pageMedia?.previewAttachmentId ?? ''}`;
+  const mediaKey = filmScene
+    ? `${pageKey}:film:${filmMedia?.attachmentId ?? ''}`
+    : `${pageKey}:${pageMedia?.key ?? ''}:${pageMedia?.previewAttachmentId ?? ''}`;
   const [settledMedia, setSettledMedia] = useState<string | null>(null);
   const settleMedia = useCallback(() => setSettledMedia(mediaKey), [mediaKey]);
-  const duration = storyReadingDuration(
-    scene?.type === 'facts'
-      ? 'count label '.repeat(scene.lines.length + 2)
-      : scene?.type === 'rhythm'
-        ? 'count label '.repeat(scene.buckets.length + 2)
-        : !scene || scene.type === 'cover'
-          ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
-          : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
-  );
+  const duration = filmScene
+    ? filmScene.ms
+    : storyReadingDuration(
+        scene?.type === 'facts'
+          ? 'count label '.repeat(scene.lines.length + 2)
+          : scene?.type === 'rhythm'
+            ? 'count label '.repeat(scene.buckets.length + 2)
+            : !scene || scene.type === 'cover'
+              ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+              : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+      );
   const playback = useStoryPlayback({
     pageKey,
     duration,
     autoStart,
     ready:
-      value?.status === 'READY' && (!pageMedia || settledMedia === mediaKey),
+      value?.status === 'READY' &&
+      (filmOwnsPage
+        ? settledMedia === mediaKey
+        : !pageMedia || settledMedia === mediaKey),
     blocked: Boolean(
       task ||
         query.isError ||
@@ -652,7 +774,16 @@ function RecapReader({
   const native = isCapacitorNativePlatform();
   // The toggle sits centred on the stage like a video control. The closing
   // scene keeps it in the control row: its own actions occupy the stage.
-  const overlayPlay = Boolean(scene && scene.type !== 'closing');
+  const overlayPlay = filmScene
+    ? filmScene.type !== 'closing'
+    : Boolean(scene && scene.type !== 'closing');
+  // In a film the toggle sits on the pictures; text-led scenes keep it below.
+  const filmPictured = Boolean(
+    filmScene &&
+      (filmScene.type === 'photo' ||
+        filmScene.type === 'duo' ||
+        (filmScene.type === 'cover' && filmScene.media.length > 0)),
+  );
   const centredOnStage =
     scene?.type === 'facts' ||
     scene?.type === 'rhythm' ||
@@ -685,6 +816,74 @@ function RecapReader({
         {overlay ? <span className="sr-only">{toggleLabel}</span> : toggleLabel}
       </button>
     ) : null;
+  const sourceLink = (item: NonNullable<typeof source>) => (
+    <Link
+      className="recap-text-link"
+      to={recapSourcePath(item)}
+      state={{ taskOriginKey: null }}
+      onClick={(event) => {
+        const origin = captureOrigin();
+        // React Router receives the scoped opaque return key through navigation.
+        if (
+          origin &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          event.button === 0
+        ) {
+          event.preventDefault();
+          void navigate(recapSourcePath(item), {
+            state: { taskOriginKey: origin },
+          });
+        }
+      }}
+    >
+      {t('recaps.source')}
+    </Link>
+  );
+  const closingExtras = value ? (
+    <>
+      {value.reflections.map((note) => (
+        <blockquote className="recap-reflection" key={note.id}>
+          <p>{note.text}</p>
+          <footer>{t('recaps.sharedBy', { name: note.displayName })}</footer>
+        </blockquote>
+      ))}
+      {value.ownDraft ? (
+        <div className="recap-private-draft">
+          <EimirIcon name="nurfuer" />
+          <strong>{t('recaps.privateDraft')}</strong>
+          <p>{value.ownDraft.text}</p>
+        </div>
+      ) : null}
+      {capability.data || value.ownDraft ? (
+        <button type="button" onClick={() => setTask('reflection')}>
+          {t('recaps.ownWords')}
+        </button>
+      ) : null}
+      {value.reflections.some((note) => note.ownerId === props.account.id) ? (
+        <button
+          type="button"
+          className="recap-text-button"
+          onClick={() => setTask('reflection')}
+        >
+          {t('recaps.withdraw')}
+        </button>
+      ) : null}
+      {value.supersededById ? (
+        // Late entries produced a newer version; this one stays readable (#1744).
+        <p className="recap-period-note recap-version-note">
+          {t('recaps.versionNewer')}{' '}
+          <Link to={recapDetailPath(value.supersededById)}>
+            {t('recaps.versionOpen')}
+          </Link>
+        </p>
+      ) : null}
+      {value.savedAt ? (
+        <p className="recap-period-note">{t('recaps.savedHelp')}</p>
+      ) : null}
+    </>
+  ) : null;
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
@@ -757,26 +956,79 @@ function RecapReader({
             />
           ) : (
             <>
-              <div className="recap-progress" aria-hidden="true">
-                {scenes.map(({ key: step }, index) => (
-                  <span
-                    key={step}
-                    data-complete={index < page}
-                    data-current={index === page}
-                  >
-                    <span
-                      className="recap-step-fill"
-                      key={`${step}:${pageKey}`}
-                    />
-                  </span>
-                ))}
+              <div
+                className="recap-progress"
+                aria-hidden="true"
+                data-chapters={chapters ? 'true' : undefined}
+              >
+                {chapters
+                  ? // A year film orients by month: one segment per chapter,
+                    // filled scene by scene (PO 2026-11-17).
+                    chapters.map((chapter) => (
+                      <span
+                        key={chapter.chapter}
+                        className="recap-progress-chapter"
+                        data-chapter={chapter.chapter}
+                        data-complete={page >= chapter.start + chapter.count}
+                        data-current={
+                          page >= chapter.start &&
+                          page < chapter.start + chapter.count
+                        }
+                      >
+                        {sceneKeys
+                          .slice(chapter.start, chapter.start + chapter.count)
+                          .map((step, offset) => {
+                            const index = chapter.start + offset;
+                            return (
+                              <span
+                                key={step}
+                                className="recap-progress-step"
+                                data-complete={index < page}
+                                data-current={index === page}
+                              >
+                                <span
+                                  className="recap-step-fill"
+                                  key={`${step}:${pageKey}`}
+                                />
+                              </span>
+                            );
+                          })}
+                      </span>
+                    ))
+                  : sceneKeys.map((step, index) => (
+                      <span
+                        key={step}
+                        className="recap-progress-step"
+                        data-complete={index < page}
+                        data-current={index === page}
+                      >
+                        <span
+                          className="recap-step-fill"
+                          key={`${step}:${pageKey}`}
+                        />
+                      </span>
+                    ))}
               </div>
               <article
-                className={`recap-spread recap-scene-${scene?.type ?? 'cover'}${
+                className={`recap-spread recap-scene-${filmScene?.type ?? scene?.type ?? 'cover'}${
                   scene?.type === 'highlight'
                     ? ` recap-layout-${scene.layout}`
                     : ''
-                }`}
+                }${filmScene ? ' recap-film' : ''}`}
+                data-mood={filmScene ? value.film?.mood : undefined}
+                data-serif={
+                  filmScene && value.film
+                    ? filmSerif(value.film.mood)
+                    : undefined
+                }
+                data-transition={filmScene?.transition}
+                data-motion={filmScene?.motion}
+                data-layout={filmScene?.layout || undefined}
+                data-climax={filmScene?.climax || undefined}
+                data-beat={filmScene?.beat ?? undefined}
+                data-pace={
+                  filmScene ? (value.film?.pace ?? undefined) : undefined
+                }
                 key={`${recapId}:${page}`}
                 onPointerDownCapture={beginGesture}
                 onPointerUp={endGesture}
@@ -811,7 +1063,24 @@ function RecapReader({
                 })}
               >
                 {centredOnStage ? playbackToggle(true, true) : null}
-                {!scene || scene.type === 'cover' ? (
+                {filmScene && filmOwnsPage ? (
+                  <>
+                    {filmPictured ? playbackToggle(true) : null}
+                    <RecapFilmScene
+                      {...props}
+                      scene={filmScene}
+                      value={value}
+                      playing={playback.running}
+                      reducedMotion={playback.reducedMotion}
+                      onSettled={settleMedia}
+                      sourceLink={sourceLink}
+                      closing={closingExtras}
+                    />
+                    {!filmPictured && filmScene.type !== 'closing'
+                      ? playbackToggle(true, true)
+                      : null}
+                  </>
+                ) : !scene || scene.type === 'cover' ? (
                   <>
                     {mosaic.length ? (
                       <div className="recap-mosaic" data-count={mosaic.length}>
@@ -839,7 +1108,10 @@ function RecapReader({
                           ? t('recaps.emptyTitle')
                           : recapHeadline(value, t)}
                       </h1>
-                      <PeriodNote value={value} />
+                      <PeriodNote
+                        value={value}
+                        canCompose={capability.data !== false}
+                      />
                       <p
                         className="recap-reader-intro"
                         lang={value.introduction ? value.locale : undefined}
@@ -1033,6 +1305,7 @@ function RecapReader({
                         <p className="recap-reaction-line">
                           {source.mutualReaction === 'LOVE' ? (
                             <svg
+                              className="inline-icon"
                               viewBox="0 0 24 24"
                               aria-hidden="true"
                               focusable="false"
@@ -1046,31 +1319,7 @@ function RecapReader({
                           {t(`recaps.mutualReaction.${source.mutualReaction}`)}
                         </p>
                       ) : null}
-                      {source.available ? (
-                        <Link
-                          className="recap-text-link"
-                          to={recapSourcePath(source)}
-                          state={{ taskOriginKey: null }}
-                          onClick={(event) => {
-                            const origin = captureOrigin();
-                            // React Router receives the scoped opaque return key through navigation.
-                            if (
-                              origin &&
-                              !event.ctrlKey &&
-                              !event.metaKey &&
-                              !event.shiftKey &&
-                              event.button === 0
-                            ) {
-                              event.preventDefault();
-                              void navigate(recapSourcePath(source), {
-                                state: { taskOriginKey: origin },
-                              });
-                            }
-                          }}
-                        >
-                          {t('recaps.source')} ↗
-                        </Link>
-                      ) : null}
+                      {source.available ? sourceLink(source) : null}
                     </div>
                   </>
                 ) : (
@@ -1083,45 +1332,7 @@ function RecapReader({
                     >
                       {t('recaps.finishBody')}
                     </p>
-                    {value.reflections.map((note) => (
-                      <blockquote className="recap-reflection" key={note.id}>
-                        <p>{note.text}</p>
-                        <footer>
-                          {t('recaps.sharedBy', { name: note.displayName })}
-                        </footer>
-                      </blockquote>
-                    ))}
-                    {value.ownDraft ? (
-                      <div className="recap-private-draft">
-                        <EimirIcon name="nurfuer" />
-                        <strong>{t('recaps.privateDraft')}</strong>
-                        <p>{value.ownDraft.text}</p>
-                      </div>
-                    ) : null}
-                    {capability.data || value.ownDraft ? (
-                      <button
-                        type="button"
-                        onClick={() => setTask('reflection')}
-                      >
-                        {t('recaps.ownWords')}
-                      </button>
-                    ) : null}
-                    {value.reflections.some(
-                      (note) => note.ownerId === props.account.id,
-                    ) ? (
-                      <button
-                        type="button"
-                        className="recap-text-button"
-                        onClick={() => setTask('reflection')}
-                      >
-                        {t('recaps.withdraw')}
-                      </button>
-                    ) : null}
-                    {value.savedAt ? (
-                      <p className="recap-period-note">
-                        {t('recaps.savedHelp')}
-                      </p>
-                    ) : null}
+                    {closingExtras}
                   </div>
                 )}
               </article>
@@ -1137,7 +1348,7 @@ function RecapReader({
                   aria-label={t('recaps.previous')}
                   onClick={() => setPage(page - 1)}
                 >
-                  ←
+                  {t('recaps.previous')}
                 </button>
                 <div className="recap-playback-center">
                   {overlayPlay ? null : playbackToggle(false)}
@@ -1152,7 +1363,7 @@ function RecapReader({
                   aria-label={t('recaps.next')}
                   onClick={() => setPage(page + 1)}
                 >
-                  →
+                  {t('recaps.next')}
                 </button>
               </nav>
               {page === 0 ? (

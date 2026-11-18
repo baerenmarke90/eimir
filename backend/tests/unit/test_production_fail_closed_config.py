@@ -12,6 +12,8 @@ that an operator who leaves one of them unset in a real ``cloud`` deployment
 string, or an empty list) still cannot boot the application.
 """
 
+import json
+
 import pytest
 from pydantic import SecretStr, ValidationError
 
@@ -35,6 +37,59 @@ def _cloud_settings(**overrides: object) -> Settings:
     }
     values.update(overrides)
     return Settings.model_validate(values)
+
+
+def _key_file(tmp_path, content: str):  # type: ignore[no-untyped-def]
+    path = tmp_path / "encryption-keys.json"
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def test_key_set_can_come_from_a_private_file_instead_of_the_environment(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    key = encoded_key()
+    path = _key_file(tmp_path, json.dumps({"cloud-2026-09": key}))
+
+    settings = _cloud_settings(encryption_keys={}, encryption_keys_file=str(path))
+
+    assert settings.encryption_mode is EncryptionMode.REQUIRED
+    assert settings.encryption_keys["cloud-2026-09"].get_secret_value() == key
+    assert key not in repr(settings)
+
+
+def test_key_file_and_inline_keys_are_mutually_exclusive(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    path = _key_file(tmp_path, json.dumps({"cloud-2026-09": encoded_key()}))
+    with pytest.raises(ValidationError, match="not both"):
+        _cloud_settings(encryption_keys_file=str(path))
+
+
+def test_key_file_must_be_an_absolute_path() -> None:
+    with pytest.raises(ValidationError, match="absolute file path"):
+        _cloud_settings(encryption_keys={}, encryption_keys_file="keys.json")
+
+
+@pytest.mark.parametrize(
+    "content", ["", "not json", '["a"]', '{"cloud-2026-09": 5}', '"secret-looking-text"']
+)
+def test_unusable_key_file_fails_closed_without_quoting_its_content(tmp_path, content: str) -> None:  # type: ignore[no-untyped-def]
+    path = _key_file(tmp_path, content)
+    with pytest.raises(ValidationError, match="readable JSON file") as error:
+        _cloud_settings(encryption_keys={}, encryption_keys_file=str(path))
+    if content:
+        assert content not in str(error.value)
+
+
+def test_missing_key_file_fails_closed(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    with pytest.raises(ValidationError, match="readable JSON file"):
+        _cloud_settings(encryption_keys={}, encryption_keys_file=str(tmp_path / "absent.json"))
+
+
+def test_key_file_content_is_validated_like_inline_keys(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    path = _key_file(tmp_path, json.dumps({"cloud-2026-09": "replace-with-a-real-key"}))
+    with pytest.raises(ValidationError):
+        _cloud_settings(encryption_keys={}, encryption_keys_file=str(path))
+    other = _key_file(tmp_path, json.dumps({"other-id": encoded_key()}))
+    with pytest.raises(ValidationError, match="active encryption key id"):
+        _cloud_settings(encryption_keys={}, encryption_keys_file=str(other))
 
 
 def test_cloud_settings_are_otherwise_valid() -> None:

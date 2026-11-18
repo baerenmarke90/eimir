@@ -5,12 +5,13 @@
  * check in from a value the Mutual Reveal rule keeps closed.
  */
 const dailyInsights = {
+  title: 'Einblicke',
   pro: 'Pro',
   proBrand: 'eimir. Pro',
   nav: {
     label: 'Ansicht wechseln',
     week: 'Woche',
-    patterns: 'Muster',
+    patterns: 'Monat',
     recap: 'Rückblick',
   },
   loading: 'Euer Verlauf wird geladen …',
@@ -62,12 +63,12 @@ const dailyInsights = {
   },
   lanes: {
     VERY_GOOD: 'Sehr gut',
-    GOOD: 'Gut',
-    OKAY: 'Okay',
+    GOOD: 'Entspannt',
+    OKAY: 'Geht so',
     NEEDS_CONNECTION: 'Nähe',
     NEEDS_SPACE: 'Ruhe',
-    STRESSED: 'Anstrengend',
-    SAD: 'Nicht so gut',
+    STRESSED: 'Gestresst',
+    SAD: 'Traurig',
   },
   bands: {
     veryHigh: 'Sehr viel',
@@ -78,7 +79,7 @@ const dailyInsights = {
   },
   week: {
     title: 'Eure Woche',
-    subtitle: 'Vibe & Energie im Überblick',
+    subtitle: 'Vibe & Energie',
     accent: 'Kleine Daten. Große Momente.',
     handwriting: 'Gemeinsame Einblicke. Tiefere Nähe.',
     range: '{{start}} – {{end}}',
@@ -86,6 +87,9 @@ const dailyInsights = {
     next: 'Nächste Woche',
     current: 'Diese Woche',
     picker: 'Woche wählen',
+    summary: 'Wochenfazit',
+    noHighlights:
+      'Für diese Woche gibt es kein gemeinsames Highlight aus den sichtbaren Check-ins.',
     vibeTitle: 'Euer Vibe',
     vibeSubtitle: 'Wie ihr euch gefühlt habt.',
     energyTitle: 'Eure Energie',
@@ -151,7 +155,7 @@ const dailyInsights = {
     highlightsAll: 'Alle Tage ansehen',
     highlightsEmpty:
       'Diese Woche ist kein besonderer gemeinsamer Tag dabei – auch ein ruhiger Verlauf ist völlig in Ordnung.',
-    highlightBothGood: 'Beiden ging es gut',
+    highlightBothGood: 'Beide mit gutem Vibe',
     highlightBothGoodBody: 'Ihr habt beide einen guten Vibe geteilt.',
     highlightBothEnergy: 'Beide mit viel Energie',
     highlightBothEnergyBody: 'Ihr hattet beide viel Energie.',

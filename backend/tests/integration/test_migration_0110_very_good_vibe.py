@@ -1,4 +1,8 @@
-"""The additive Vibe constraint must upgrade and roll back without losing a check-in."""
+"""The additive Vibe constraint must upgrade and roll back without losing a check-in.
+
+Revision 0110 constrains the plain ``vibe`` column, which was the value's home at
+that revision, so the row is built the way it existed then.
+"""
 
 from datetime import date
 
@@ -20,7 +24,7 @@ def test_very_good_vibe_upgrade_and_compatible_rollback(session):  # type: ignor
     account = make_account(session, "Migration author")
     space = make_space(session, account)
     check_in = DailyCheckIn(
-        account_id=account.id, space_id=space.id, checked_on=date(2026, 11, 4), vibe="GOOD"
+        account_id=account.id, space_id=space.id, checked_on=date(2026, 11, 4), legacy_vibe="GOOD"
     )
     session.add(check_in)
     session.flush()
@@ -31,13 +35,13 @@ def test_very_good_vibe_upgrade_and_compatible_rollback(session):  # type: ignor
     with Operations.context(context):
         migration.downgrade()
         with pytest.raises(IntegrityError), session.begin_nested():
-            check_in.vibe = "VERY_GOOD"
+            check_in.legacy_vibe = "VERY_GOOD"
             session.flush()
         migration.upgrade()
-        check_in.vibe = "VERY_GOOD"
+        check_in.legacy_vibe = "VERY_GOOD"
         session.flush()
         migration.downgrade()
         session.refresh(check_in)
-        assert check_in.vibe == "GOOD"
+        assert check_in.legacy_vibe == "GOOD"
         assert check_in.checked_on == date(2026, 11, 4)
         migration.upgrade()

@@ -128,7 +128,7 @@ export function MonthlyRecapInvitation({
           to={STORY_RECAPS_ROUTE}
           className="monthly-recap-library-link"
         >
-          {t('recaps.profileLink')} <span aria-hidden="true">→</span>
+          {t('recaps.profileLink')}
         </TodayDestinationLink>
       ) : null}
     </div>

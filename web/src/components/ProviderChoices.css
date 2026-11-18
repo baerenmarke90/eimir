@@ -1,0 +1,63 @@
+.provider-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.login-card button.provider-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 0;
+  box-shadow: none;
+}
+
+.login-card button.provider-button:hover:not(:disabled) {
+  transform: none;
+  background: var(--color-surface-subtle);
+  box-shadow: none;
+}
+
+.login-card button.provider-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.provider-mark {
+  inline-size: 20px;
+  block-size: 20px;
+  flex: none;
+}
+
+.provider-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.provider-divider::before,
+.provider-divider::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--color-border);
+  opacity: 0.6;
+}
+
+.login-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.login-error-copy {
+  margin: 0;
+}

@@ -1348,6 +1348,78 @@ export function ImportantDatesPanel({
     const daysUntilNext = next
       ? Math.round((next.date.getTime() - today.getTime()) / DAY_MS)
       : 0;
+    // The banner also names the next dated Plan, so what is coming up reads
+    // as one thing: the occasion and the Plan, nearest first.
+    const nextPlan = [...calendarPlans].sort(
+      (a, b) => a.first.getTime() - b.first.getTime(),
+    )[0];
+    const daysUntilPlan = nextPlan
+      ? Math.round((nextPlan.first.getTime() - today.getTime()) / DAY_MS)
+      : 0;
+    const planFirst = Boolean(
+      nextPlan && (!next || nextPlan.first.getTime() < next.date.getTime()),
+    );
+    const occasionRow = next ? (
+      <button
+        key="occasion"
+        type="button"
+        className="occasions-next"
+        aria-haspopup="dialog"
+        onClick={(event) => {
+          readerReturnRef.current = event.currentTarget;
+          openReader(next.key);
+        }}
+      >
+        <span className="occasions-next-when">
+          {relative.format(daysUntilNext, 'day')}
+        </span>
+        <strong className="occasions-next-title">{next.label}</strong>
+        <time
+          className="occasions-next-date"
+          dateTime={dateInputValue(next.date)}
+        >
+          {dateFormats.detail.format(next.date)}
+        </time>
+      </button>
+    ) : null;
+    const planRow = nextPlan ? (
+      <Link
+        key="plan"
+        className="occasions-next-plan"
+        to={planDetailPath(nextPlan.plan.id)}
+        onClick={(event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          )
+            return;
+          event.preventDefault();
+          openPlan(nextPlan, event.currentTarget);
+        }}
+      >
+        <span className="occasions-next-when">
+          {relative.format(daysUntilPlan, 'day')}
+          <span aria-hidden="true"> · </span>
+          {t('importantDates.planKind')}
+        </span>
+        <strong className="occasions-next-title">
+          {nextPlan.title}
+          {nextPlan.plan.discreet ? (
+            <DiscreetLock className="occasion-plan-lock" />
+          ) : null}
+        </strong>
+        <time
+          className="occasions-next-date"
+          dateTime={dateInputValue(nextPlan.first)}
+        >
+          {dateFormats.detail.format(nextPlan.first)}
+        </time>
+      </Link>
+    ) : null;
     const todayKey = dateInputValue(today);
     const weekdays = Array.from({ length: 7 }, (_, index) => ({
       id: `weekday-${index + 1}`,
@@ -1361,27 +1433,11 @@ export function ImportantDatesPanel({
 
     return (
       <div className="occasions-calendar">
-        {next ? (
-          <button
-            type="button"
-            className="occasions-next"
-            aria-haspopup="dialog"
-            onClick={(event) => {
-              readerReturnRef.current = event.currentTarget;
-              openReader(next.key);
-            }}
-          >
-            <span className="occasions-next-when">
-              {relative.format(daysUntilNext, 'day')}
-            </span>
-            <strong className="occasions-next-title">{next.label}</strong>
-            <time
-              className="occasions-next-date"
-              dateTime={dateInputValue(next.date)}
-            >
-              {dateFormats.detail.format(next.date)}
-            </time>
-          </button>
+        {occasionRow || planRow ? (
+          <div className="occasions-next-card">
+            {planFirst ? planRow : occasionRow}
+            {planFirst ? occasionRow : planRow}
+          </div>
         ) : null}
 
         <div className="occasions-band">

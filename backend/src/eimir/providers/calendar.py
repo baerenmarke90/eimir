@@ -12,6 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
+from html import escape
 
 
 class CalendarProviderError(Exception):
@@ -63,6 +64,26 @@ class CalendarSummary:
 
 
 @dataclass(frozen=True)
+class CalendarEventLink:
+    """A first-party Plan link shown before the event description."""
+
+    url: str
+    label: str
+
+    def plain_description(self, notes: str | None) -> str:
+        first_line = f"{self.label} · {self.url}"
+        return f"{first_line}\n\n{notes}" if notes else first_line
+
+    def html_description(self, notes: str | None) -> str:
+        anchor = f'<a href="{escape(self.url)}">{escape(self.label)}</a>'
+        if not notes:
+            return anchor
+        normalized = notes.replace("\r\n", "\n").replace("\r", "\n")
+        body = escape(normalized).replace("\n", "<br>")
+        return f"{anchor}<br><br>{body}"
+
+
+@dataclass(frozen=True)
 class CalendarEvent:
     """One eimir.-managed event. All-day dates are inclusive start, exclusive end."""
 
@@ -75,6 +96,7 @@ class CalendarEvent:
     end_date: date | None = None
     start: datetime | None = None
     end: datetime | None = None
+    backlink: CalendarEventLink | None = None
 
     @property
     def all_day(self) -> bool:

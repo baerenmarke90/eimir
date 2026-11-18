@@ -9,7 +9,9 @@ Name | Type
 `approximateKm` | number
 `kind` | string
 `maxKm` | number
+`maxMeters` | number
 `minKm` | number
+`minMeters` | number
 
 ## Example
 
@@ -21,7 +23,9 @@ const example = {
   "approximateKm": null,
   "kind": null,
   "maxKm": null,
+  "maxMeters": null,
   "minKm": null,
+  "minMeters": null,
 } satisfies DistanceBandView
 
 console.log(example)

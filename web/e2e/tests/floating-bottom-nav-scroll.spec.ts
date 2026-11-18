@@ -943,8 +943,15 @@ for (const variant of [
         .click();
     await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tablist')).toHaveCount(1);
+    // Discover plays its curated entries as one Fotostory; the Diary lists them.
     await expect(
-      page.getByText('Cooked fresh pasta together', { exact: true }).first(),
+      variant.view === 'discover'
+        ? page
+            .locator('.momente-story-slide[data-state="current"]')
+            .getByText('Summer picnic memories', { exact: true })
+        : page
+            .getByText('Cooked fresh pasta together', { exact: true })
+            .first(),
     ).toBeVisible();
     if (variant.view === 'timeline')
       await expect(page.locator('.story-timeline').first()).toBeVisible();

@@ -215,11 +215,11 @@ jobs:
             ./web
           docker image save --output release-evidence/web-runtime.image.tar "$image"
 
-      - name: Set up Node.js 24.21.0
+      - name: Set up Node.js 26.13.1
         if: env.INCLUDE_ANDROID == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24.21.0"
+          node-version: "26.13.1"
 
       - name: Set up JDK 21
         if: env.INCLUDE_ANDROID == 'true'

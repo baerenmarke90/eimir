@@ -110,7 +110,7 @@ with deprecated `sbs*` fallback).
 
 Only Android-inclusive releases require `android_api_base_url` to build the embedded Web
 bundle (`VITE_EIMIR_API_BASE_URL`), synchronize native assets via `npm run cap:sync`,
-and build packages with pinned Node 24.21.0, JDK 21, and strict Gradle dependency
+and build packages with pinned Node 26.13.1, JDK 21, and strict Gradle dependency
 verification. A Self-Hosted/Web-only release deliberately has no fixed Android API origin:
 each Self-Hosted installation owns its own public origin.
 

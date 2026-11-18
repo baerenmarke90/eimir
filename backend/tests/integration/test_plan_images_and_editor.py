@@ -588,3 +588,45 @@ def test_empty_gallery_creation_keeps_the_initial_plan_version(client, couple, s
     )
     assert updated.status_code == 200, updated.text
     assert updated.json()["version"] == 2
+
+
+def test_an_edited_photo_replaces_its_original_only_on_update(client, couple, session):  # type: ignore[no-untyped-def]
+    original = ready_attachment(client, couple, session)
+    created = client.post(
+        path(couple),
+        json={"title": "Gallery", "attachments": [{"attachmentId": original, "position": 0}]},
+        headers=auth(couple["token_a"]),
+    )
+    assert created.status_code == 201, created.text
+    plan = created.json()
+    edited = ready_attachment(client, couple, session)
+    replaced = client.patch(
+        f"{path(couple)}/{plan['id']}",
+        json={
+            "attachments": [
+                {"attachmentId": edited, "position": 0, "replacesAttachmentId": original}
+            ]
+        },
+        headers={**auth(couple["token_a"]), "If-Match": str(plan["version"])},
+    )
+    assert replaced.status_code == 200, replaced.text
+    assert [photo["id"] for photo in replaced.json()["attachments"]] == [edited]
+    session.expire_all()
+    assert session.get(Attachment, UUID(original)).status == "DELETING"
+    # A new Plan has nothing to replace.
+    rejected = client.post(
+        path(couple),
+        json={
+            "title": "Other",
+            "attachments": [
+                {
+                    "attachmentId": ready_attachment(client, couple, session),
+                    "position": 0,
+                    "replacesAttachmentId": edited,
+                }
+            ],
+        },
+        headers=auth(couple["token_a"]),
+    )
+    assert rejected.status_code == 422
+    assert "ATTACHMENT_REPLACEMENT_INVALID" in rejected.text

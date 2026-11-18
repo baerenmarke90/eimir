@@ -7,6 +7,7 @@
   inline-size: var(--space-6);
   block-size: var(--space-6);
   border-radius: var(--radius-pill);
+  background: var(--person-surface);
   color: var(--color-text);
   font: var(--font-supporting-copy);
   font-weight: 600;
@@ -14,9 +15,15 @@
   letter-spacing: 0;
   user-select: none;
 }
-.partner-marker-a {
-  background: var(--color-partner-a-surface);
+
+.partner-marker.has-image {
+  overflow: hidden;
+  background: var(--color-surface);
 }
-.partner-marker-b {
-  background: var(--color-partner-b-surface);
+
+.partner-marker-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }

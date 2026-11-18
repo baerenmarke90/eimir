@@ -3,6 +3,7 @@ import { type MouseEvent, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { personRoleResolver } from '../client/personColours';
 import { normalizeClientError } from '../client/problemDetails';
 import { collectionDetailPath } from '../client/routes';
 import { listPeople, summarizeSharedList } from '../client/sharedListSummary';
@@ -147,7 +148,10 @@ export function WirLists({
       <ul className={wide ? 'wir-lists-single' : 'wir-lists-row'}>
         {loaded.map((collection) => {
           const shopping = collection.kind === 'SHOPPING';
-          const summary = summarizeSharedList(collection, collection.items);
+          const summary = summarizeSharedList(
+            collection.items,
+            personRoleResolver(accountId),
+          );
           const prefix = shopping ? 'shopping' : 'generic';
           const peek = collection.items
             .filter((item) => !item.completed)
@@ -195,7 +199,11 @@ export function WirLists({
                   </p>
                   {summary.total > 0 ? (
                     <ListPeople
-                      people={listPeople(collection, collection.items)}
+                      people={listPeople(
+                        collection,
+                        collection.items,
+                        personRoleResolver(accountId),
+                      )}
                     />
                   ) : null}
                 </div>

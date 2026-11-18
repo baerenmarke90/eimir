@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
+import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
@@ -9,6 +10,7 @@ import { DateRepeat } from '../api/generated/models/DateRepeat';
 import { Configuration } from '../client/apiConfiguration';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
 import { chapterDetailPath } from '../client/routes';
+import type { MilestoneRef } from '../client/storyWaymarks';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import type { MapLocation } from './PlaceMapCanvas';
@@ -59,6 +61,7 @@ function useStoryApis({ apiBaseUrl, accessToken }: StoryScope) {
     });
     return {
       chapters: new ChaptersApi(configuration),
+      milestones: new MilestonesApi(configuration),
       people: new PeopleApi(configuration),
       places: new PlacesApi(configuration),
       wishes: new WishesApi(configuration),
@@ -131,6 +134,40 @@ export function useStoryOccasions(
       })
       .slice(0, 3);
   }, [dates.data, partnerBirthday?.date, partnerBirthday?.name, t]);
+}
+
+/**
+ * The couple's own authored Milestones, read across all pages. Milestones are
+ * always shared, so both partners derive the same waymarks from them. A failed
+ * or pending read yields an empty list and never blocks the page.
+ */
+export function useStoryMilestones(
+  scope: StoryScope,
+  { enabled = true }: { enabled?: boolean } = {},
+): MilestoneRef[] {
+  const apis = useStoryApis(scope);
+  const milestones = useQuery({
+    queryKey: ['story-overview', 'milestones', scope.accountId, scope.spaceId],
+    queryFn: () =>
+      readAllPages((cursor) =>
+        apis.milestones.listMilestones({
+          spaceId: scope.spaceId,
+          cursor,
+          limit: PAGE_LIMIT,
+        }),
+      ),
+    retry: false,
+    enabled,
+  });
+  return useMemo(
+    () =>
+      (milestones.data ?? []).map(({ id, title, happenedOn }) => ({
+        id,
+        title,
+        happenedOn,
+      })),
+    [milestones.data],
+  );
 }
 
 /** Fulfilled wishes, counted across all pages. */

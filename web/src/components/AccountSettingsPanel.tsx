@@ -239,14 +239,11 @@ export function AccountSettingsPanel({
         className="form-card account-settings-panel"
         aria-labelledby="account-settings-title"
       >
-        <p className="eyebrow">{t('accountSettings.title')}</p>
-        <h3 id="account-settings-title">{t('accountSettings.title')}</h3>
-        <p>{t('accountSettings.intro')}</p>
-
         <div className="account-danger-zone">
           <div className="account-danger-copy">
-            <p className="eyebrow">{t('accountSettings.dangerEyebrow')}</p>
-            <h4>{t('accountSettings.dangerTitle')}</h4>
+            <h3 id="account-settings-title">
+              {t('accountSettings.dangerTitle')}
+            </h3>
             <p>{t('accountSettings.dangerIntro')}</p>
           </div>
 

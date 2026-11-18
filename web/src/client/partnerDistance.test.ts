@@ -3,6 +3,7 @@ import {
   DISTANCE_FRESH_MS,
   distanceBandWords,
   distanceUnitFor,
+  formatCloseBand,
   formatDistanceBand,
   isDistanceFresh,
   readPartnerDistanceLine,
@@ -53,6 +54,7 @@ describe('readPartnerDistanceLine', () => {
       presencePosition: {
         latitude: 50.94,
         longitude: 6.96,
+        accuracyMeters: position.accuracyMeters,
         capturedAt: position.capturedAt,
       },
     });
@@ -183,6 +185,76 @@ describe('formatDistanceBand', () => {
     expect(
       formatDistanceBand({ kind: 'RANGE', minKm: 2, maxKm: 5 }, 'en', 'mile'),
     ).toBe('1–3 mi');
+  });
+});
+
+describe('fine bands for two precise positions', () => {
+  const close = (minMeters: number, maxMeters: number) => ({
+    kind: 'CLOSE' as const,
+    minMeters,
+    maxMeters,
+  });
+
+  it('formats the three tiers in metres and kilometres', () => {
+    expect(formatCloseBand(close(0, 300), 'de', 'kilometer')).toEqual({
+      under: true,
+      value: '300 m',
+    });
+    expect(formatCloseBand(close(300, 1000), 'de', 'kilometer')).toEqual({
+      under: false,
+      value: '300 m–1 km',
+    });
+    expect(formatCloseBand(close(1000, 2000), 'de', 'kilometer')).toEqual({
+      under: false,
+      value: '1–2 km',
+    });
+    expect(formatCloseBand({ kind: 'NEARBY' }, 'de', 'kilometer')).toBeNull();
+  });
+
+  it('keeps converted miles and feet as coarse as the metre band', () => {
+    expect(formatCloseBand(close(0, 300), 'en', 'mile')?.value).toBe(
+      '1,000 ft',
+    );
+    expect(formatCloseBand(close(300, 1000), 'en', 'mile')?.value).toBe(
+      '1,000 ft–0.6 mi',
+    );
+    expect(formatCloseBand(close(1000, 2000), 'en', 'mile')?.value).toBe(
+      '0.6–1.2 mi',
+    );
+  });
+
+  it('has no words for them and never reads as "nearby"', () => {
+    expect(distanceBandWords(close(0, 300))).toBeNull();
+    expect(formatDistanceBand(close(300, 1000), 'de', 'kilometer')).toBe(
+      '300 m–1 km',
+    );
+  });
+
+  it('measures precisely and rounds on the device for a precise choice', async () => {
+    const api = fakeApi();
+    const measure = vi.fn(async () => ({
+      ...position,
+      latitude: 50.94117,
+      longitude: 6.96271,
+      accuracyMeters: 20,
+    }));
+    await readPartnerDistanceLine({
+      api,
+      spaceId: 'space-1',
+      ownSharingActive: false,
+      precision: 'PRECISE',
+      permission: async () => 'granted',
+      measure,
+    });
+    expect(api.getPartnerDistance).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      presencePosition: {
+        latitude: 50.941,
+        longitude: 6.963,
+        accuracyMeters: 20,
+        capturedAt: position.capturedAt,
+      },
+    });
   });
 });
 

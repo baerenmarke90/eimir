@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import Annotated, Literal
+from urllib.parse import urlencode
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Request, Response, status
@@ -69,6 +70,20 @@ class PhotoSelectionCreate(ApiModel):
             "default; the server then marks every video as not allowed."
         ),
     )
+    return_to: Literal["web", "app"] = Field(
+        default="web",
+        description=(
+            "web: Google returns to the browser that started the selection (cookie proof). "
+            "app: Google returns to the installed eimir. app's own link and the app finishes "
+            "the sign-in through the authorize call."
+        ),
+    )
+
+
+class PhotoSelectionAuthorize(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    state: str = Field(min_length=1, max_length=1024)
+    code: str = Field(min_length=1, max_length=4096)
 
 
 class PhotoSelectionItemView(ApiModel):
@@ -242,7 +257,7 @@ def start(
     body: PhotoSelectionCreate,
     response: Response,
 ) -> PhotoSelectionView:
-    proof = generate_token() if body.source == "google" else None
+    proof = generate_token() if body.source == "google" and body.return_to == "web" else None
     row, url = service.start(
         session,
         authorization,
@@ -252,11 +267,33 @@ def start(
         browser_binding=proof,
         media_recovery_policy=body.media_recovery_policy,
         allow_video=body.allow_video,
+        return_to=body.return_to,
     )
     response.headers.update(_HEADERS)
     if proof and row.payload.oauth_state:
         browser_binding.set_cookie(response, row.payload.oauth_state, proof)
     return _view(row, url)
+
+
+@router.post(
+    "/spaces/{spaceId}/photo-selections/{selectionId}/authorize",
+    response_model=PhotoSelectionView,
+    operation_id="authorizePhotoSelection",
+    responses=problem_responses(401, 403, 404, 409, 422, 429, 503),
+)
+def authorize(
+    authorization: Authorization,
+    device: CurrentSession,
+    session: DbSession,
+    selection_id: Annotated[str, Path(alias="selectionId")],
+    body: PhotoSelectionAuthorize,
+    response: Response,
+) -> PhotoSelectionView:
+    """Finish an app-flow Google sign-in with the state and code from the app's return link."""
+    row = service.owned(session, authorization, device, selection_id)
+    service.authorize_from_app(session, row, body.state, body.code)
+    response.headers.update(_HEADERS)
+    return _view(row)
 
 
 @router.post(
@@ -368,6 +405,15 @@ def callback(
     state: Annotated[str, Query(max_length=1024)] = "",
     code: Annotated[str | None, Query(max_length=4096)] = None,
 ) -> Response:
+    if service.app_return_pending(session, state):
+        # The installed app owns this selection. Hand it the state and code (or the denial)
+        # through its own link; the app's signed-in session completes the exchange.
+        query = urlencode(
+            {"state": state, "code": code} if code else {"state": state, "outcome": "denied"}
+        )
+        return RedirectResponse(
+            f"{service.APP_RETURN_URL}?{query}", status_code=303, headers=_HEADERS
+        )
     uri = service.callback(
         session,
         state,

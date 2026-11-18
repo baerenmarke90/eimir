@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v12)
+## Current module workflow (v16)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -14,6 +14,27 @@ and Quiet Hours.
 Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.
+
+A shared list a partner deliberately sends (#1907 E2, `COLLECTION_SENT`) uses
+neutral immediate delivery without the list title, its own recipient switch,
+Quiet Hours and no email choice; see the
+[module workflow](../product/notification-workflow.md).
+
+A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
+immediate delivery without the attached words, its own recipient switch,
+Quiet Hours and no email choice; the notice is current only while the seed
+waits to be planted. A bouquet from the partner reuses the same kind with the
+target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
+while its card waits; a person gets at most one garden notice per local day,
+so a later seed or bouquet on that day stays silent and waits in the garden.
+
+A retained recap (#1744, `RECAP_READY`, target `RECAP`) and a newer version of
+a retained recap after late entries (`RECAP_GREW`) use neutral immediate
+delivery to both partners: the device preview names only the period (a machine
+key such as `2026-10` that the device localizes), never a title or photo. Both
+follow the recipient's own recap switch (`RECAP_GREW` inherits it), Quiet Hours
+and the Space's 09:00 to 21:00 window, and are never offered by email. Several
+earlier recaps at once share one `RECAP_READY` notice without a target.
 
 The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
 uses immediate delivery for deliberate proposals, counters and acceptance.
@@ -41,6 +62,7 @@ authoritative ahead of delivery decisions.
 | --- | --- | --- |
 | `THINKING_OF_YOU` | IMMEDIATE | Existing content-free generic push for an explicit, server-paced Free/Core signal. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | IMMEDIATE | Existing content-free generic push when a permitted extended gesture is sent; Premium only governs sending. |
+| `HEART_HUNT_HIDDEN`, `HEART_HUNT_FOUND` | IMMEDIATE | Herzversteck (#1907 H3): content-free generic push naming no photo; the recipient can read the partner name in the encrypted preview where that is already allowed. Premium only governs playing. |
 | `REMINDER_DUE` | IMMEDIATE | Existing generic push for an already due recipient-specific reminder; source rule/preference controls whether it exists. |
 | `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; bounded generic Push and EMAIL digests each require a separate explicit Account opt-in. No per-comment external delivery. |
 
@@ -50,6 +72,7 @@ authoritative ahead of delivery decisions.
 | --- | --- |
 | `THINKING_OF_YOU` | One sender/Space request per 30 minutes, with client-request replay and per-event delivery uniqueness. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | The same 30-minute pacing per sender/Space/gesture kind, with request replay and per-event delivery uniqueness. Different deliberate gestures remain independent. |
+| `HEART_HUNT_HIDDEN`, `HEART_HUNT_FOUND` | At most one hidden and one found notice per round, and one open round per hider; per-event delivery uniqueness. Quiet Hours defer them like other explicit partner signals. |
 | `REMINDER_DUE` | One generated occurrence per recipient, rule and due key; the chosen reminder schedule governs delivery, with source-event and channel receipt uniqueness. |
 | `COMMENT_CREATED` | One opted-in generic Push per recipient/Space/endpoint/fixed UTC hour and one separately opted-in generic EMAIL per recipient/Space/hour. Quiet Hours additionally coalesces held external receipts. |
 

@@ -14,6 +14,7 @@ import localeFixture from '../fixtures/locales/de';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -487,6 +488,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
       return;
     }
     if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     await route.fallback();
   });
   return {

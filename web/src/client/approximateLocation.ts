@@ -2,18 +2,24 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import type {
   PartnerLocationApi,
   PartnerLocationSettingsView,
+  SharingPrecision,
 } from '../api/generated';
 import { isAndroidApp } from './config';
 
 /**
- * Energy-efficient approximate position for partner distance (#1792).
+ * Energy-efficient position for partner distance (#1792).
  *
  * The Android app uses the native `ApproximateLocation` plugin (network/fused
  * providers only, cached fix first). Browsers use the Geolocation API with
- * `enableHighAccuracy: false` and a reusable cached fix. Positions are never
- * written to durable client storage; the last publication is remembered in
- * memory only. See docs/m9/PARTNER-LOCATION.md section 6.
+ * `enableHighAccuracy: false` and a reusable cached fix. Only a person's own
+ * "precise" choice (PO 2026-11-17) asks for a better fix: one measurement on
+ * open or resume, never continuous, and the device rounds it to a 0.001 degree
+ * grid (about 111 m) before anything is sent. Positions are never written to
+ * durable client storage; the last publication is remembered in memory only.
+ * See docs/m9/PARTNER-LOCATION.md sections 4 and 6.
  */
+
+export type LocationPrecision = SharingPrecision;
 
 export interface ApproximatePosition {
   latitude: number;
@@ -42,12 +48,19 @@ export type LocationPermission =
   | 'unsupported';
 
 export const REUSE_CACHED_FIX_MS = 10 * 60 * 1000;
+/** A precise fix is reused for a shorter time; coarse cached fixes never count as precise. */
+export const REUSE_PRECISE_FIX_MS = 3 * 60 * 1000;
+/** A fix reported as less accurate than this is not precise; the server agrees. */
+export const PRECISE_MAX_ACCURACY_METERS = 500;
 export const MEASUREMENT_TIMEOUT_MS = 20_000;
 export const MIN_PUBLISH_DISPLACEMENT_KM = 1;
+export const MIN_PRECISE_PUBLISH_DISPLACEMENT_KM = 0.2;
 export const MAX_PUBLISH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 interface NativePermissionStatus {
   location: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
+  /** The Android fine-location grant that sits on top of `location`. */
+  preciseLocation?: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
 }
 
 interface NativePosition {
@@ -60,9 +73,12 @@ interface NativePosition {
 interface ApproximateLocationPlugin {
   checkPermissions(): Promise<NativePermissionStatus>;
   requestPermissions(options: {
-    permissions: Array<'location'>;
+    permissions: Array<'location' | 'preciseLocation'>;
   }): Promise<NativePermissionStatus>;
-  current(options: { maxAgeMs: number }): Promise<NativePosition>;
+  current(options: {
+    maxAgeMs: number;
+    precise?: boolean;
+  }): Promise<NativePosition>;
   deviceId(): Promise<{ deviceId: string }>;
   backgroundStatus(): Promise<{
     permission: 'granted' | 'denied' | 'prompt';
@@ -75,6 +91,7 @@ interface ApproximateLocationPlugin {
     instance: string;
     credential: string;
     expiresAt: string;
+    precise?: boolean;
   }): Promise<void>;
   disableBackground(): Promise<void>;
   openAppSettings(): Promise<void>;
@@ -117,19 +134,48 @@ export async function locationPermission(): Promise<LocationPermission> {
 }
 
 /**
- * Requests only the approximate permission. In browsers the permission prompt
- * is part of the first measurement, so this resolves after one measurement.
+ * Whether this device also granted the precise permission: `approximate-only`
+ * when Android 12+ gave only the approximate grant, `unknown` where the
+ * platform cannot tell (browsers, plugin missing).
  */
-export async function requestLocationPermission(): Promise<LocationPermission> {
+export type DevicePreciseAccess = 'granted' | 'approximate-only' | 'unknown';
+
+export async function devicePreciseAccess(): Promise<DevicePreciseAccess> {
+  if (!usesNativePlugin()) return 'unknown';
+  try {
+    const status = await nativeLocation.checkPermissions();
+    if (status.location !== 'granted') return 'unknown';
+    return status.preciseLocation === 'granted'
+      ? 'granted'
+      : 'approximate-only';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Requests the approximate permission, plus the precise one only after a
+ * precise choice (one request, so Android 12+ shows its Precise/Approximate
+ * switch). In browsers the permission prompt is part of the first
+ * measurement, so this resolves after one measurement.
+ */
+export async function requestLocationPermission(
+  precision: LocationPrecision = 'APPROXIMATE',
+): Promise<LocationPermission> {
   if (usesNativePlugin()) {
-    // Only the approximate grant; background is a separate, later step.
+    // Background is a separate, later step.
     return nativePermission(
-      await nativeLocation.requestPermissions({ permissions: ['location'] }),
+      await nativeLocation.requestPermissions({
+        permissions:
+          precision === 'PRECISE'
+            ? ['location', 'preciseLocation']
+            : ['location'],
+      }),
     );
   }
   if (!browserGeolocation()) return 'unsupported';
   try {
-    await currentApproximatePosition();
+    await currentApproximatePosition(REUSE_CACHED_FIX_MS, precision);
     return 'granted';
   } catch (error) {
     if (
@@ -168,10 +214,14 @@ function browserError(
 
 export async function currentApproximatePosition(
   maxAgeMs: number = REUSE_CACHED_FIX_MS,
+  precision: LocationPrecision = 'APPROXIMATE',
 ): Promise<ApproximatePosition> {
+  const precise = precision === 'PRECISE';
   if (usesNativePlugin()) {
     try {
-      const position = await nativeLocation.current({ maxAgeMs });
+      const position = await nativeLocation.current(
+        precise ? { maxAgeMs, precise: true } : { maxAgeMs },
+      );
       return {
         latitude: position.latitude,
         longitude: position.longitude,
@@ -195,8 +245,10 @@ export async function currentApproximatePosition(
         }),
       (error) => reject(browserError(error)),
       {
-        enableHighAccuracy: false,
-        maximumAge: maxAgeMs,
+        enableHighAccuracy: precise,
+        maximumAge: precise
+          ? Math.min(maxAgeMs, REUSE_PRECISE_FIX_MS)
+          : maxAgeMs,
         timeout: MEASUREMENT_TIMEOUT_MS,
       },
     );
@@ -220,6 +272,30 @@ export function distanceKm(
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/**
+ * Rounds a position on the device before it is published or sent for a
+ * distance: 0.001 degrees (about 111 m) for a precise choice backed by a
+ * precise fix, 0.01 degrees (about 1.1 km) otherwise. The raw fix never leaves
+ * the device (docs/m9/PARTNER-LOCATION.md section 4).
+ */
+export function roundToGrid(
+  position: Pick<
+    ApproximatePosition,
+    'latitude' | 'longitude' | 'accuracyMeters'
+  >,
+  precision: LocationPrecision,
+): { latitude: number; longitude: number } {
+  const precise =
+    precision === 'PRECISE' &&
+    position.accuracyMeters <= PRECISE_MAX_ACCURACY_METERS;
+  const grid = precise ? 1000 : 100;
+  const round = (degrees: number) => Math.round(degrees * grid) / grid;
+  return {
+    latitude: round(position.latitude),
+    longitude: round(position.longitude),
+  };
+}
+
 export interface LastPublication {
   latitude: number;
   longitude: number;
@@ -230,15 +306,20 @@ export interface LastPublication {
 /** Publish only after meaningful movement or before the shared value goes stale. */
 export function shouldPublish(
   last: LastPublication | undefined,
-  next: ApproximatePosition,
+  next: Pick<ApproximatePosition, 'latitude' | 'longitude'>,
   generation: number,
   now: Date = new Date(),
+  precision: LocationPrecision = 'APPROXIMATE',
 ): boolean {
   if (!last || last.generation !== generation) return true;
   if (now.getTime() - last.publishedAt.getTime() >= MAX_PUBLISH_INTERVAL_MS) {
     return true;
   }
-  return distanceKm(last, next) >= MIN_PUBLISH_DISPLACEMENT_KM;
+  const threshold =
+    precision === 'PRECISE'
+      ? MIN_PRECISE_PUBLISH_DISPLACEMENT_KM
+      : MIN_PUBLISH_DISPLACEMENT_KM;
+  return distanceKm(last, next) >= threshold;
 }
 
 const lastPublications = new Map<string, LastPublication>();
@@ -267,19 +348,27 @@ export async function publishOwnPositionIfDue({
   api: Pick<PartnerLocationApi, 'publishPartnerLocationSnapshot'>;
   spaceId: string;
   accountId: string;
-  settings: Pick<PartnerLocationSettingsView, 'state' | 'generation'>;
+  settings: Pick<
+    PartnerLocationSettingsView,
+    'state' | 'generation' | 'precision'
+  >;
   now?: Date;
 }): Promise<PartnerLocationSettingsView | null> {
   if (settings.state !== 'ACTIVE') return null;
   if ((await locationPermission()) !== 'granted') return null;
-  const position = await currentApproximatePosition();
+  const position = await currentApproximatePosition(
+    undefined,
+    settings.precision,
+  );
+  const rounded = roundToGrid(position, settings.precision);
   const key = publicationKey(spaceId, accountId);
   if (
     !shouldPublish(
       lastPublications.get(key),
-      position,
+      rounded,
       settings.generation,
       now,
+      settings.precision,
     )
   ) {
     return null;
@@ -287,8 +376,8 @@ export async function publishOwnPositionIfDue({
   const view = await api.publishPartnerLocationSnapshot({
     spaceId,
     presencePublish: {
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: rounded.latitude,
+      longitude: rounded.longitude,
       accuracyMeters: position.accuracyMeters,
       capturedAt: position.capturedAt,
       consentGeneration: settings.generation,
@@ -296,8 +385,8 @@ export async function publishOwnPositionIfDue({
   });
   if (view.state === 'ACTIVE') {
     lastPublications.set(key, {
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: rounded.latitude,
+      longitude: rounded.longitude,
       publishedAt: now,
       generation: settings.generation,
     });
@@ -359,10 +448,12 @@ export async function enableBackgroundSharing({
   api,
   spaceId,
   instance,
+  precision = 'APPROXIMATE',
 }: {
   api: DeviceCredentialApi;
   spaceId: string;
   instance: string;
+  precision?: LocationPrecision;
 }): Promise<void> {
   if (!usesNativePlugin()) {
     throw new ApproximateLocationError('UNSUPPORTED');
@@ -380,6 +471,7 @@ export async function enableBackgroundSharing({
     instance,
     credential: issued.credential,
     expiresAt: issued.expiresAt.toISOString(),
+    ...(precision === 'PRECISE' ? { precise: true } : {}),
   });
 }
 
@@ -416,7 +508,7 @@ export async function syncBackgroundSharing({
   api: DeviceCredentialApi;
   spaceId: string;
   instance: string;
-  settings: Pick<PartnerLocationSettingsView, 'state'>;
+  settings: Pick<PartnerLocationSettingsView, 'state' | 'precision'>;
 }): Promise<'enabled' | 'disabled' | 'unchanged'> {
   if (!usesNativePlugin()) return 'unchanged';
   const status = await nativeLocation.backgroundStatus();
@@ -425,6 +517,11 @@ export async function syncBackgroundSharing({
     await disableBackgroundSharing({ api, spaceId });
     return 'disabled';
   }
-  await enableBackgroundSharing({ api, spaceId, instance });
+  await enableBackgroundSharing({
+    api,
+    spaceId,
+    instance,
+    precision: settings.precision,
+  });
   return 'enabled';
 }

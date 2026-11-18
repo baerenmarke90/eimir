@@ -3,6 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { MediaGalleryItem } from '../api/generated/models/MediaGalleryItem';
 import {
+  captureMediaCacheLease,
+  evictAuthorizedMedia,
+} from '../client/authorizedMediaCache';
+import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -26,6 +30,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import { UiState } from './UiState';
+import { useDepartingItems } from './useDepartingItems';
 import { VoiceNotePreview } from './VoiceNotePlayer';
 import './MediaOverviewPage.css';
 
@@ -89,7 +94,9 @@ export function MediaOverviewPage({
       staleTime: isPrivate ? 0 : undefined,
       retry: false,
     },
-    { persist: !isPrivate },
+    // A restored gallery is shown at once and always asked again: the fresh
+    // list is what removes media deleted while the app was closed.
+    { persist: !isPrivate, revalidateOnRestore: true },
   );
   const forbidden =
     mediaQuery.isError &&
@@ -201,21 +208,48 @@ export function MediaOverviewPage({
         item.parentType,
         item.parentId,
         item.attachment.id,
-        { signal, variant },
+        // Private media stays in session memory only (M2-D18 #3).
+        { signal, variant, persist: !isPrivate },
       ).catch(handleMediaReadError),
-    [apis, spaceId, handleMediaReadError],
+    [apis, spaceId, isPrivate, handleMediaReadError],
   );
 
+  const scope = `media-overview:${accountId}:${spaceId}:${visibility}`;
+  // A refreshed list is the server's answer to what is gone: deleted items
+  // leave with motion and their stored bytes are removed from this device.
+  const forgetRemoved = useCallback(
+    (removed: readonly MediaGalleryItem[]) => {
+      for (const item of removed) {
+        const parent = ['attachment', item.parentType, item.parentId];
+        try {
+          evictAuthorizedMedia(
+            captureMediaCacheLease(apis.attachments, spaceId, parent),
+            [...parent, item.attachment.id],
+          );
+        } catch {
+          // A replaced login or Space owns no bytes of this list.
+        }
+      }
+    },
+    [apis, spaceId],
+  );
+  const { entries: tiles, containerRef: tilesRef } = useDepartingItems(
+    items,
+    mediaResourceId,
+    scope,
+    forgetRemoved,
+  );
   const months = new Map<
     string,
-    Array<{ item: MediaGalleryItem; index: number }>
+    Array<{ item: MediaGalleryItem; index: number; departing: boolean }>
   >();
-  items.forEach((item, index) => {
+  let galleryIndex = 0;
+  for (const { item, departing } of tiles) {
     const month = item.effectiveDate.toISOString().slice(0, 7);
     const group = months.get(month) ?? [];
-    group.push({ item, index });
+    group.push({ item, index: departing ? -1 : galleryIndex++, departing });
     months.set(month, group);
-  });
+  }
   const dateLabel = (item: MediaGalleryItem) =>
     item.effectiveDate.toLocaleDateString(locale, {
       timeZone: 'UTC',
@@ -223,7 +257,6 @@ export function MediaOverviewPage({
       month: 'long',
       year: 'numeric',
     });
-  const scope = `media-overview:${accountId}:${spaceId}:${visibility}`;
   const itemsByResourceId = new Map(
     items.map((item) => [mediaResourceId(item), item]),
   );
@@ -371,7 +404,7 @@ export function MediaOverviewPage({
             }}
             dismissWithHistory
             renderPreviews={(open) => (
-              <div className="media-overview-months">
+              <div className="media-overview-months" ref={tilesRef}>
                 {Array.from(months, ([month, group]) => (
                   <section key={month} aria-labelledby={`media-${month}`}>
                     <h2 id={`media-${month}`}>
@@ -382,29 +415,42 @@ export function MediaOverviewPage({
                       })}
                     </h2>
                     <div className="media-overview-grid">
-                      {group.map(({ item, index }) => (
-                        <button
-                          key={item.attachment.id}
-                          type="button"
-                          className="media-overview-tile"
-                          data-media-id={item.attachment.id}
-                          onClick={() => open(index)}
-                          aria-label={t(
-                            `mediaOverview.open.${item.attachment.mediaType}`,
-                            {
-                              index: index + 1,
-                              date: dateLabel(item),
-                            },
-                          )}
-                          aria-description={
-                            item.attachment.isSensitive
-                              ? t('sensitiveMedia.label')
-                              : undefined
-                          }
-                        >
-                          {renderTilePreview(item)}
-                        </button>
-                      ))}
+                      {group.map(({ item, index, departing }) =>
+                        departing ? (
+                          <span
+                            key={item.attachment.id}
+                            className="media-overview-tile"
+                            data-motion-key={mediaResourceId(item)}
+                            data-departing="true"
+                            aria-hidden="true"
+                          >
+                            {renderTilePreview(item)}
+                          </span>
+                        ) : (
+                          <button
+                            key={item.attachment.id}
+                            type="button"
+                            className="media-overview-tile"
+                            data-media-id={item.attachment.id}
+                            data-motion-key={mediaResourceId(item)}
+                            onClick={() => open(index)}
+                            aria-label={t(
+                              `mediaOverview.open.${item.attachment.mediaType}`,
+                              {
+                                index: index + 1,
+                                date: dateLabel(item),
+                              },
+                            )}
+                            aria-description={
+                              item.attachment.isSensitive
+                                ? t('sensitiveMedia.label')
+                                : undefined
+                            }
+                          >
+                            {renderTilePreview(item)}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </section>
                 ))}

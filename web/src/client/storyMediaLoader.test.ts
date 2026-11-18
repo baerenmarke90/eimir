@@ -1,9 +1,9 @@
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
-import type { ReferenceApis } from './referenceFlow';
-import { loadAuthorizedStoryImage } from './storyMediaLoader';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { ClientProblemError, classifyProblemStatus } from './problemDetails';
+import type { ReferenceApis } from './referenceFlow';
+import { loadAuthorizedStoryImage } from './storyMediaLoader';
 
 beforeEach(clearAuthorizedMediaCache);
 
@@ -55,7 +55,7 @@ describe('loadAuthorizedStoryImage', () => {
           variant: 'thumbnail',
         },
       },
-      { signal: controller.signal },
+      { signal: expect.any(AbortSignal) },
     );
     expect(getAttachmentContentRaw).toHaveBeenCalledWith(
       { spaceId: 'space-1', attachmentId: 'image-1', variant: 'thumbnail' },
@@ -81,14 +81,17 @@ describe('loadAuthorizedStoryImage', () => {
       { createObjectUrl },
     );
 
-    expect(createAttachmentReadAccess).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      attachmentId: 'att-heart',
-      attachmentReadRequest: {
-        parentType: AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
-        parentId: 'heart-1',
+    expect(createAttachmentReadAccess).toHaveBeenCalledWith(
+      {
+        spaceId: 'space-1',
+        attachmentId: 'att-heart',
+        attachmentReadRequest: {
+          parentType: AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
+          parentId: 'heart-1',
+        },
       },
-    });
+      { signal: expect.any(AbortSignal) },
+    );
     expect(getAttachmentContentRaw).toHaveBeenCalledWith(
       { spaceId: 'space-1', attachmentId: 'att-heart' },
       { signal: expect.any(AbortSignal) },
@@ -161,7 +164,7 @@ describe('loadAuthorizedStoryImage', () => {
     expect(result).toBe('blob:signed-image');
   });
 
-  it('reauthorizes every read but downloads a previously viewed photo only once', async () => {
+  it('reuses a previously viewed photo without a new read grant or download', async () => {
     const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
       storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
     const options = { createObjectUrl: vi.fn(() => 'blob:photo') };
@@ -181,7 +184,7 @@ describe('loadAuthorizedStoryImage', () => {
       'photo',
       options,
     );
-    expect(createAttachmentReadAccess).toHaveBeenCalledTimes(2);
+    expect(createAttachmentReadAccess).toHaveBeenCalledTimes(1);
     expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
     expect(options.createObjectUrl).toHaveBeenCalledTimes(2);
   });
@@ -191,14 +194,17 @@ describe('loadAuthorizedStoryImage', () => {
     async (status) => {
       const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
         storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
-      const options = { createObjectUrl: () => 'blob:photo' };
+      const thumbnail = {
+        createObjectUrl: () => 'blob:photo',
+        variant: 'thumbnail' as const,
+      };
       await loadAuthorizedStoryImage(
         apis,
         'space',
         'HEART_MOMENT',
         'heart',
         'photo',
-        options,
+        thumbnail,
       );
       createAttachmentReadAccess.mockRejectedValueOnce(
         new ClientProblemError(classifyProblemStatus(status), status),
@@ -210,7 +216,7 @@ describe('loadAuthorizedStoryImage', () => {
           'HEART_MOMENT',
           'heart',
           'photo',
-          options,
+          { createObjectUrl: thumbnail.createObjectUrl },
         ),
       ).rejects.toBeInstanceOf(ClientProblemError);
       expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
@@ -220,13 +226,13 @@ describe('loadAuthorizedStoryImage', () => {
         'HEART_MOMENT',
         'heart',
         'photo',
-        options,
+        thumbnail,
       );
       expect(getAttachmentContentRaw).toHaveBeenCalledTimes(2);
     },
   );
 
-  it('does not use cached bytes as fallback when read authorization is unavailable', async () => {
+  it('keeps showing stored bytes while the server is unreachable', async () => {
     const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
       storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
     const options = { createObjectUrl: () => 'blob:photo' };
@@ -238,7 +244,7 @@ describe('loadAuthorizedStoryImage', () => {
       'photo',
       options,
     );
-    createAttachmentReadAccess.mockRejectedValueOnce(new TypeError('Offline'));
+    createAttachmentReadAccess.mockRejectedValue(new TypeError('Offline'));
     await expect(
       loadAuthorizedStoryImage(
         apis,
@@ -248,7 +254,8 @@ describe('loadAuthorizedStoryImage', () => {
         'photo',
         options,
       ),
-    ).rejects.toThrow('Offline');
+    ).resolves.toBe('blob:photo');
+    expect(createAttachmentReadAccess).toHaveBeenCalledTimes(1);
     expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
   });
 

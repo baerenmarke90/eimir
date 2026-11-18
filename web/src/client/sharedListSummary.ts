@@ -1,25 +1,11 @@
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-
-/**
- * The two people on a shared list, as a colour role. The person who created
- * the list is partner A (rose), everyone else is partner B (blue). The role
- * belongs to the person, not to the viewer, so both phones show the same
- * colours (#1808, Product Owner decision 2026-11-14).
- */
-export type PartnerTone = 'a' | 'b';
-
-export function partnerTone(
-  collection: Pick<CollectionDetail, 'createdBy'>,
-  personId: string | null | undefined,
-): PartnerTone {
-  return personId && personId === collection.createdBy ? 'a' : 'b';
-}
+import { type PersonRole, type PersonRoleOf, roleOrder } from './personColours';
 
 export interface PartnerShare {
   personId: string;
   displayName: string;
-  tone: PartnerTone;
+  role: PersonRole;
   count: number;
 }
 
@@ -27,18 +13,19 @@ export interface SharedListSummary {
   total: number;
   open: number;
   done: number;
-  /** Who completed the finished entries, rose first. Empty when none is done. */
+  /** Who completed the finished entries, you first. Empty when none is done. */
   shares: PartnerShare[];
 }
 
 /**
  * Count the entries and split the finished ones by the person who completed
- * them. An entry completed before completion actors were recorded has no
+ * them. The colour belongs to the role (you or your partner), see
+ * `personColours.ts`. An entry completed before completion actors were recorded has no
  * completer; it counts as done but belongs to nobody's share.
  */
 export function summarizeSharedList(
-  collection: Pick<CollectionDetail, 'createdBy'>,
   items: readonly CollectionItemDetail[],
+  roleOf: PersonRoleOf,
 ): SharedListSummary {
   const byPerson = new Map<string, PartnerShare>();
   let done = 0;
@@ -50,7 +37,7 @@ export function summarizeSharedList(
     const share = byPerson.get(completer.id) ?? {
       personId: completer.id,
       displayName: completer.displayName,
-      tone: partnerTone(collection, completer.id),
+      role: roleOf(completer.id),
       count: 0,
     };
     share.count += 1;
@@ -58,7 +45,7 @@ export function summarizeSharedList(
   }
   const shares = [...byPerson.values()].sort(
     (left, right) =>
-      Number(left.tone === 'b') - Number(right.tone === 'b') ||
+      roleOrder(left.role) - roleOrder(right.role) ||
       left.displayName.localeCompare(right.displayName),
   );
   return {
@@ -72,17 +59,18 @@ export function summarizeSharedList(
 export interface ListPerson {
   personId: string;
   displayName: string;
-  tone: PartnerTone;
+  role: PersonRole;
 }
 
 /**
  * The people the list already knows: its creator and anyone who added or
- * completed an entry, rose first. A partner who has not touched the list yet
+ * completed an entry, you first. A partner who has not touched the list yet
  * is not known to it and does not appear until they do (#1808).
  */
 export function listPeople(
-  collection: Pick<CollectionDetail, 'createdBy' | 'creator'>,
+  collection: Pick<CollectionDetail, 'creator'>,
   items: readonly CollectionItemDetail[],
+  roleOf: PersonRoleOf,
 ): ListPerson[] {
   const byId = new Map<string, ListPerson>();
   const remember = (
@@ -93,7 +81,7 @@ export function listPeople(
     byId.set(person.id, {
       personId: person.id,
       displayName: person.displayName,
-      tone: partnerTone(collection, person.id),
+      role: roleOf(person.id),
     });
   };
   remember(collection.creator);
@@ -103,7 +91,7 @@ export function listPeople(
   }
   return [...byId.values()].sort(
     (left, right) =>
-      Number(left.tone === 'b') - Number(right.tone === 'b') ||
+      roleOrder(left.role) - roleOrder(right.role) ||
       left.displayName.localeCompare(right.displayName),
   );
 }

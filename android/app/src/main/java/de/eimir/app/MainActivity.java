@@ -55,6 +55,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundMediaUploadsPlugin.class);
         registerPlugin(SystemThemePlugin.class);
         registerPlugin(ApproximateLocationPlugin.class);
+        registerPlugin(PasskeysPlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null) {
             applyStartupBackground();

@@ -33,6 +33,8 @@ interface MockOptions {
   partnerEnergy?: number | null;
   partnerNote?: string | null;
   failFirstPatch?: boolean;
+  /** Hold every PATCH response, to observe the waiting state. */
+  patchDelayMs?: number;
 }
 
 async function installMocks(page: Page, options: MockOptions = {}) {
@@ -224,6 +226,10 @@ async function installMocks(page: Page, options: MockOptions = {}) {
       if (method === 'PATCH') {
         const patch = request.postDataJSON() as Record<string, unknown>;
         patches.push(patch);
+        if (options.patchDelayMs)
+          await new Promise((resolve) =>
+            setTimeout(resolve, options.patchDelayMs),
+          );
         if (options.failFirstPatch && patches.length === 1) {
           return json(
             { code: 'SERVICE_UNAVAILABLE', status: 503, title: 'Unavailable' },
@@ -662,3 +668,267 @@ for (const { width, theme, large, reduced } of [
     await saveEvidence(page, `1790a-${label}-4-after-deletion`);
   });
 }
+
+/**
+ * Send flight (Fertig): the chosen feeling, battery and note lift out of the
+ * sheet, wait for the server, then fly to the own badge while the sheet
+ * closes. The flight layer lives in the top layer, above the modal sheet.
+ */
+const flightGhosts = (page: Page) =>
+  page.locator('.wir-checkin-flight-layer .wir-checkin-flight-ghost');
+
+async function fillOwnDay(panel: ReturnType<Page['getByRole']>) {
+  await panel.getByRole('button', { name: 'Entspannt', exact: true }).click();
+  await panel
+    .getByRole('slider', { name: wirCheckIn.energySliderLabel })
+    .press('ArrowRight');
+  await panel
+    .getByRole('textbox', { name: wirCheckIn.noteLabel })
+    .fill('Denk an dich');
+}
+
+for (const { width, theme } of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 430, theme: 'light' },
+] as const) {
+  test(`Fertig flies feeling, battery and note to the own badge (${width} ${theme})`, async ({
+    page,
+  }) => {
+    const state = await installMocks(page, { patchDelayMs: 900 });
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({ colorScheme: theme });
+    await signIn(page);
+    await ownAvatar(page).click();
+    const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+    await fillOwnDay(panel);
+    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+
+    // Waiting for the server: all three hover in the top layer above the
+    // sheet, the sheet stays, and nothing has landed on the badge yet.
+    await expect(flightGhosts(page)).toHaveCount(3);
+    const layer = page.locator('.wir-checkin-flight-layer');
+    await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(await layer.evaluate((node) => node.matches(':popover-open'))).toBe(
+      true,
+    );
+    const pointer = await flightGhosts(page)
+      .first()
+      .evaluate((node) => getComputedStyle(node).pointerEvents);
+    expect(pointer).toBe('none');
+    await expect(panel).toBeVisible();
+    const badge = page.getByTestId('wir-checkin-own-badge');
+    await expect(badge.locator('[data-flight-slot="vibe"]')).toHaveAttribute(
+      'data-flight-hidden',
+      'true',
+    );
+    await saveEvidence(page, `send-flight-${width}-${theme}-hover`);
+
+    // Confirmed: the sheet closes and everything lands on the badge.
+    await expect(panel).toBeHidden();
+    await expect(flightGhosts(page)).toHaveCount(0);
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+    await expect(
+      badge.locator('[data-flight-slot="vibe"]'),
+    ).not.toHaveAttribute('data-flight-hidden', 'true');
+    await expect(badge.locator('[data-flight-slot="energy"]')).toBeVisible();
+    await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
+    await expectInsideViewport(page, 'wir-checkin-own-badge');
+    await saveEvidence(page, `send-flight-${width}-${theme}-landed`);
+    expect(state.unexpectedRequests).toEqual([]);
+    expect(state.patches.length).toBeGreaterThanOrEqual(3);
+  });
+}
+
+test('a failed save returns the value and keeps Dein Tag open', async ({
+  page,
+}) => {
+  await installMocks(page, { failFirstPatch: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await panel.getByRole('button', { name: 'Fröhlich', exact: true }).click();
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel.getByText(wirCheckIn.saveError)).toBeVisible();
+  await expect(panel).toBeVisible();
+  await expect(flightGhosts(page)).toHaveCount(0);
+  await expect(page.locator('[data-flight-hidden="true"]')).toHaveCount(0);
+  // The failed feeling is not on the badge.
+  await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
+    wirCheckIn.ownPrompt,
+  );
+});
+
+test('reduced motion closes calmly: no flight layer is ever created', async ({
+  page,
+}) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await fillOwnDay(panel);
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+  const badge = page.getByTestId('wir-checkin-own-badge');
+  await expect(badge.locator('[data-flight-slot="vibe"]')).toBeVisible();
+  await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
+});
+
+test('Fertig without a change closes at once and flies nothing', async ({
+  page,
+}) => {
+  await installMocks(page, { ownVibe: 'GOOD' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await ownAvatar(page).click();
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
+  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+});
+
+/**
+ * Partner arrival: the partner's revealed values that are new or changed since
+ * this device last saw them rise out of the partner avatar together and fly
+ * into the partner badge, once.
+ */
+const ARRIVAL_SEEN_KEY = `eimir.wir.partnerArrivalSeen:${ACCOUNT_ID}:${SPACE_ID}`;
+
+/** Slows every animation down so the movement can be observed. */
+async function slowAnimations(page: Page) {
+  await page.addInitScript(() => {
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const animation = original.apply(this, args);
+      animation.playbackRate = 0.25;
+      return animation;
+    };
+  });
+}
+
+const arrivalGhosts = (page: Page) =>
+  page.locator('.wir-checkin-flight-layer .is-arrival');
+
+for (const { width, theme } of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 430, theme: 'light' },
+] as const) {
+  test(`the partner's new day arrives once as one movement (${width} ${theme})`, async ({
+    page,
+  }) => {
+    await slowAnimations(page);
+    await installMocks(page, {
+      ownVibe: 'GOOD',
+      partnerVibe: 'OKAY',
+      partnerEnergy: 40,
+      partnerNote: fixtureCopy.wirCheckIn.partnerShortNote,
+    });
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({ colorScheme: theme });
+    await signIn(page);
+
+    await expect(arrivalGhosts(page)).toHaveCount(3);
+    const layer = page.locator('.wir-checkin-flight-layer');
+    await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(await layer.evaluate((node) => node.matches(':popover-open'))).toBe(
+      true,
+    );
+    const pointer = await arrivalGhosts(page)
+      .first()
+      .evaluate((node) => getComputedStyle(node).pointerEvents);
+    expect(pointer).toBe('none');
+    const badge = page.getByTestId('wir-checkin-partner-badge');
+    await expect(badge.locator('[data-flight-slot="vibe"]')).toHaveAttribute(
+      'data-flight-hidden',
+      'true',
+    );
+    await saveEvidence(page, `partner-arrival-${width}-${theme}-rise`);
+
+    // Everything landed: no flight element is left and the values are in place.
+    await expect(arrivalGhosts(page)).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+    await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
+    await expect(badge.locator('.daily-energy-battery-icon')).toBeVisible();
+    await expect(page.getByTestId('wir-checkin-note-dot')).toBeVisible();
+    await expectInsideViewport(page, 'wir-checkin-partner-badge');
+    await saveEvidence(page, `partner-arrival-${width}-${theme}-landed`);
+
+    // Opening Wir again with nothing new plays nothing.
+    await page.reload();
+    await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
+    await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+  });
+}
+
+test('only what changed since the last visit arrives again', async ({
+  page,
+}) => {
+  await slowAnimations(page);
+  await page.addInitScript(
+    ([key]) => {
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          day: '2026-11-13:Europe/Berlin',
+          vibe: 'GOOD',
+          energy: 40,
+          note: null,
+        }),
+      );
+    },
+    [ARRIVAL_SEEN_KEY],
+  );
+  await installMocks(page, {
+    ownVibe: 'GOOD',
+    partnerVibe: 'OKAY',
+    partnerEnergy: 40,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  // Only the feeling changed: one value travels, the battery stays in place.
+  await expect(arrivalGhosts(page)).toHaveCount(1);
+  const badge = page.getByTestId('wir-checkin-partner-badge');
+  await expect(badge.locator('.daily-energy-battery-icon')).toBeVisible();
+  // The old feeling waits in its place and shrinks away while the new one rises.
+  await expect(badge.locator('[data-flight-farewell]')).toHaveCount(1);
+  await expect(arrivalGhosts(page)).toHaveCount(0, { timeout: 15_000 });
+  await expect(badge.locator('[data-flight-farewell]')).toHaveCount(0);
+  await expect(badge.locator('[data-vibe-icon="OKAY"]')).toBeVisible();
+});
+
+test('a hidden partner value never arrives, reduced motion shows values at once', async ({
+  page,
+}) => {
+  await installMocks(page, {
+    visibility: 'MUTUAL_REVEAL',
+    partnerVibe: 'OKAY',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await expect(page.getByTestId('wir-checkin-partner-badge')).toHaveAttribute(
+    'data-state',
+    'hidden',
+  );
+  await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+
+  const reduced = await page.context().newPage();
+  await installMocks(reduced, {
+    ownVibe: 'GOOD',
+    partnerVibe: 'OKAY',
+    partnerEnergy: 40,
+  });
+  await reduced.emulateMedia({ reducedMotion: 'reduce' });
+  await reduced.setViewportSize({ width: 390, height: 844 });
+  await signIn(reduced);
+  await expect(
+    reduced
+      .getByTestId('wir-checkin-partner-badge')
+      .locator('[data-vibe-icon="OKAY"]'),
+  ).toBeVisible();
+  await expect(reduced.locator('.wir-checkin-flight-layer')).toHaveCount(0);
+});

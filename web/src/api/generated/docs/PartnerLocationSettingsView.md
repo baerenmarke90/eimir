@@ -13,6 +13,7 @@ Name | Type
 `indefinite` | boolean
 `lastPublishedAt` | Date
 `level` | [SharingLevel](SharingLevel.md)
+`precision` | [SharingPrecision](SharingPrecision.md)
 `state` | [SharingState](SharingState.md)
 
 ## Example
@@ -28,6 +29,7 @@ const example = {
   "indefinite": null,
   "lastPublishedAt": null,
   "level": null,
+  "precision": null,
   "state": null,
 } satisfies PartnerLocationSettingsView
 

@@ -90,6 +90,9 @@ class PhotoSelectionPayload(ProtectedPayload):
     device_session_id: UUID
     oauth_state: str | None = Field(default=None, repr=False)
     browser_binding_hash: str | None = Field(default=None, repr=False)
+    # "app": the Android app finishes the sign-in itself (no browser cookie can reach its system
+    # browser); "web": the browser that started it must return with the proof cookie.
+    return_to: Literal["web", "app"] = "web"
     media_recovery_policy: str | None = None
     google_client_binding: str | None = Field(default=None, repr=False)
     google_poll_deadline: datetime | None = None

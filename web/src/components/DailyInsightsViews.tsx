@@ -1,11 +1,9 @@
 import type { TFunction } from 'i18next';
 import { type ReactNode, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   compact,
   type DerivedInsight,
   daysWithValues,
-  deriveBothGood,
   deriveEnergyVersusPrevious,
   deriveHighlights,
   derivePartnerEnergyVibe,
@@ -27,17 +25,11 @@ import {
   VIBE_GLYPHS,
   weekDates,
 } from '../client/dailyInsightsModel';
-import {
-  MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
-  MORE_INSIGHTS_ROUTE,
-} from '../client/routes';
 import { useTranslation } from '../i18n';
 import {
   type ChartDimension,
   daySummary,
-  EnergyWeekChart,
-  VibeWeekChart,
+  WeekCharts,
 } from './DailyInsightsCharts';
 import {
   formatDayLong,
@@ -157,19 +149,24 @@ function ClosingLandscape() {
 
 export function WeekView({
   days,
+  previousDays,
   people,
   modules,
   weeklyReview,
-}: ViewProps & { weeklyReview?: ReactNode }) {
+}: ViewProps & {
+  previousDays: readonly InsightDay[];
+  weeklyReview?: ReactNode;
+}) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<IsoDate | null>(null);
   const withValues = daysWithValues(days);
+  const latestDay = days.filter((day) => daysWithValues([day]) > 0).at(-1);
   const partnerName = partnerNameOf(
     people,
     t('dailyInsights.people.partnerFallback'),
   );
 
-  if (withValues === 0) {
+  if (!latestDay) {
     return (
       <>
         <EmptyCard />
@@ -178,85 +175,91 @@ export function WeekView({
     );
   }
 
+  const dimensions: ChartDimension[] = [
+    ...(modules.vibe ? (['vibe'] as const) : []),
+    ...(modules.energy ? (['energy'] as const) : []),
+  ];
+  const highlights = deriveHighlights(days, modules);
+  const highlightGroups = (['bothGood', 'bothEnergy'] as const).map((kind) => ({
+    kind,
+    dates: highlights
+      .filter((item) => item.kind === kind)
+      .map((item) => item.date),
+  }));
   const statements = compact([
-    deriveBothGood(days, modules),
+    deriveEnergyVersusPrevious(days, previousDays, modules),
     deriveWeekendEnergy(days, modules),
     deriveVibeEnergy(days, modules),
     deriveSharedDays(days),
   ]).map((insight) => describeInsight(t, insight, partnerName));
-  const hero = heroSentence(t, days, modules);
 
   return (
     <>
-      {modules.vibe ? (
-        <VibeWeekChart
-          days={days}
-          people={people}
-          selected={selected}
-          onSelect={setSelected}
-        />
-      ) : null}
-      {modules.energy ? (
-        <EnergyWeekChart
-          days={days}
-          people={people}
-          selected={selected}
-          onSelect={setSelected}
-        />
-      ) : null}
+      <WeekCharts
+        days={days}
+        people={people}
+        dimensions={dimensions}
+        selected={selected ?? latestDay.date}
+        onSelect={setSelected}
+        highlights={highlights}
+      />
+      <section
+        className="insight-card insight-week-recap"
+        id="wochenrueckblick"
+        aria-labelledby="insight-week-recap-title"
+        tabIndex={-1}
+      >
+        <h2 id="insight-week-recap-title">{t('dailyInsights.week.summary')}</h2>
+        {highlights.length > 0 ? (
+          <ul className="insight-week-highlights">
+            {highlightGroups.map(({ kind, dates }) =>
+              dates.length > 0 ? (
+                <li key={kind} data-highlight={kind}>
+                  <span>
+                    <InsightIcon name={kind === 'bothGood' ? 'sun' : 'bolt'} />
+                    {t(
+                      kind === 'bothGood'
+                        ? 'dailyInsights.recap.highlightBothGood'
+                        : 'dailyInsights.recap.highlightBothEnergy',
+                    )}
+                  </span>
+                  <span>
+                    {dates.map((date) => (
+                      <button
+                        type="button"
+                        key={date}
+                        aria-label={formatDayLong(date)}
+                        onClick={() => setSelected(date)}
+                      >
+                        {formatDayShort(date)}
+                      </button>
+                    ))}
+                  </span>
+                </li>
+              ) : null,
+            )}
+          </ul>
+        ) : (
+          <p>{t('dailyInsights.week.noHighlights')}</p>
+        )}
+        {statements.length > 0 ? (
+          <details className="insight-week-observations">
+            <summary>{t('dailyInsights.recap.noticedTitle')}</summary>
+            <ul className="insight-statements">
+              {statements.map((statement) => (
+                <InsightStatement key={statement.title} {...statement} />
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </section>
       <p className="insight-note">{t('dailyInsights.gapNote')}</p>
       {withValues < 3 ? (
         <p className="insight-note">{t('dailyInsights.sparse')}</p>
       ) : null}
-      {statements.length > 0 ? (
-        <ul
-          className="insight-statements insight-statements-grid"
-          aria-label={t('dailyInsights.week.insightsLabel')}
-        >
-          {statements.map((statement) => (
-            <InsightStatement key={statement.title} {...statement} />
-          ))}
-        </ul>
-      ) : null}
       {weeklyReview}
-      <section
-        className="insight-closing"
-        aria-label={t('dailyInsights.nav.recap')}
-      >
-        <ClosingLandscape />
-        <div className="insight-closing-copy">
-          <h2>{hero}</h2>
-          <p>{t('dailyInsights.week.closingBody')}</p>
-          <Link className="insight-cta" to={MORE_INSIGHTS_RECAP_ROUTE}>
-            {t('dailyInsights.week.closingCta')}
-          </Link>
-        </div>
-        <Handwriting>{t('dailyInsights.week.closingHandwriting')}</Handwriting>
-      </section>
     </>
   );
-}
-
-/** One data-derived sentence; never a claim the values cannot support. */
-export function heroSentence(
-  t: TFunction,
-  days: readonly InsightDay[],
-  modules: InsightModules,
-): string {
-  const both = deriveBothGood(days, modules);
-  if (both && Number(both.params.count) >= 2) {
-    return t('dailyInsights.recap.hero.bothGood', { count: both.params.count });
-  }
-  const weekend = deriveWeekendEnergy(days, modules);
-  if (weekend?.params.direction === 'higher') {
-    return t('dailyInsights.recap.hero.weekendEnergy_higher');
-  }
-  if (both) {
-    return t('dailyInsights.recap.hero.bothGood', { count: both.params.count });
-  }
-  if (deriveSharedDays(days)) return t('dailyInsights.recap.hero.sharedDays');
-  if (daysWithValues(days) > 0) return t('dailyInsights.recap.hero.fallback');
-  return t('dailyInsights.recap.hero.empty');
 }
 
 function EmptyCard() {
@@ -616,155 +619,3 @@ function emptyDay(date: IsoDate): InsightDay {
 }
 
 /* Recap — Pro Screen C --------------------------------------------------- */
-
-export function RecapView({
-  days,
-  previousDays,
-  people,
-  modules,
-}: ViewProps & { previousDays: readonly InsightDay[] }) {
-  const { t } = useTranslation();
-  const partnerName = partnerNameOf(
-    people,
-    t('dailyInsights.people.partnerFallback'),
-  );
-  if (daysWithValues(days) === 0) return <EmptyCard />;
-
-  const statements = compact([
-    deriveEnergyVersusPrevious(days, previousDays, modules),
-    deriveBothGood(days, modules),
-    deriveVibeEnergy(days, modules),
-    deriveWeekendEnergy(days, modules),
-    deriveSharedDays(days),
-  ])
-    .slice(0, 3)
-    .map((insight) => describeInsight(t, insight, partnerName));
-  const highlights = deriveHighlights(days, modules);
-  const own = people.find((person) => person.key === 'own');
-  const partner = people.find((person) => person.key === 'partner');
-
-  return (
-    <>
-      <section className="insight-hero" aria-labelledby="insight-hero-title">
-        <ClosingLandscape />
-        <p className="insight-eyebrow">{t('dailyInsights.recap.heroLabel')}</p>
-        <h2 id="insight-hero-title">{heroSentence(t, days, modules)}</h2>
-        <Handwriting>{t('dailyInsights.recap.heroHandwriting')}</Handwriting>
-      </section>
-
-      <section className="insight-card" aria-labelledby="insight-noticed-title">
-        <header className="insight-card-header">
-          <div className="insight-card-heading">
-            <h2 id="insight-noticed-title">
-              {t('dailyInsights.recap.noticedTitle')}
-            </h2>
-            <p>{t('dailyInsights.recap.noticedSubtitle')}</p>
-          </div>
-          <Handwriting>
-            {t('dailyInsights.recap.noticedHandwriting')}
-          </Handwriting>
-        </header>
-        {statements.length > 0 ? (
-          <ul className="insight-statements">
-            {statements.map((statement) => (
-              <InsightStatement key={statement.title} {...statement} />
-            ))}
-          </ul>
-        ) : (
-          <p className="insight-note">
-            {t('dailyInsights.recap.noticedEmpty')}
-          </p>
-        )}
-      </section>
-
-      <section
-        className="insight-card"
-        aria-labelledby="insight-highlights-title"
-      >
-        <header className="insight-card-header">
-          <div className="insight-card-heading">
-            <h2 id="insight-highlights-title">
-              {t('dailyInsights.recap.highlightsTitle')}
-            </h2>
-            <p>{t('dailyInsights.recap.highlightsSubtitle')}</p>
-          </div>
-          <Link className="insight-link" to={MORE_INSIGHTS_ROUTE}>
-            {t('dailyInsights.recap.highlightsAll')}
-          </Link>
-        </header>
-        {highlights.length > 0 ? (
-          <ul className="insight-highlights">
-            {highlights.map((highlight) => (
-              <li key={highlight.date} className="insight-highlight">
-                <time dateTime={highlight.date}>
-                  {formatDayShort(highlight.date)}
-                </time>
-                <span className="insight-highlight-moods">
-                  {[own, partner].map((person) => {
-                    if (!person) return null;
-                    const value = highlight[person.key];
-                    return (
-                      <span
-                        key={person.key}
-                        className={`insight-mood insight-series-${person.key}`}
-                        data-vibe={
-                          highlight.kind === 'bothGood'
-                            ? (value.vibe ?? undefined)
-                            : undefined
-                        }
-                        role="img"
-                        aria-label={`${person.name}: ${
-                          highlight.kind === 'bothGood'
-                            ? t(`dailyVibe.values.${value.vibe}`)
-                            : t('dailyInsights.percentage', {
-                                value: value.energy,
-                              })
-                        }`}
-                      >
-                        {highlight.kind === 'bothGood' && value.vibe
-                          ? VIBE_GLYPHS[value.vibe]
-                          : t('dailyInsights.percentage', {
-                              value: value.energy,
-                            })}
-                      </span>
-                    );
-                  })}
-                  <InsightIcon
-                    name="heart"
-                    className="insight-highlight-heart"
-                  />
-                </span>
-                <strong>
-                  {highlight.kind === 'bothGood'
-                    ? t('dailyInsights.recap.highlightBothGood')
-                    : t('dailyInsights.recap.highlightBothEnergy')}
-                </strong>
-                <span>
-                  {highlight.kind === 'bothGood'
-                    ? t('dailyInsights.recap.highlightBothGoodBody')
-                    : t('dailyInsights.recap.highlightBothEnergyBody')}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="insight-note">
-            {t('dailyInsights.recap.highlightsEmpty')}
-          </p>
-        )}
-      </section>
-
-      <section className="insight-closing insight-closing-discover">
-        <ClosingLandscape />
-        <div className="insight-closing-copy">
-          <InsightIcon name="bars" className="insight-title-icon" />
-          <h2>{t('dailyInsights.recap.discoverBody')}</h2>
-          <p>{t('dailyInsights.recap.discoverSubline')}</p>
-          <Link className="insight-cta" to={MORE_INSIGHTS_PATTERNS_ROUTE}>
-            {t('dailyInsights.recap.discoverCta')}
-          </Link>
-        </div>
-      </section>
-    </>
-  );
-}

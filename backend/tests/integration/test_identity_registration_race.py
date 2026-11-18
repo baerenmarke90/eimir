@@ -53,10 +53,13 @@ def test_concurrent_local_registration_for_the_same_email_is_a_conflict_not_a_cr
     # The savepoint rolled back the loser's Account/AuthIdentity along with its
     # AccountEmail insert -- only the winner's account and address remain.
     assert session.execute(select(func.count()).select_from(AccountEmail)).scalar_one() == 1
-    accounts_named_second = session.execute(
-        select(func.count()).select_from(Account).where(Account.display_name == "Second")
-    ).scalar_one()
-    assert accounts_named_second == 0
+    # The name is protected content, so it is compared after loading.
+    accounts_named_second = [
+        account
+        for account in session.execute(select(Account)).scalars()
+        if account.display_name == "Second"
+    ]
+    assert accounts_named_second == []
 
     remaining_email = session.execute(
         select(AccountEmail).where(AccountEmail.email == RACE_EMAIL)

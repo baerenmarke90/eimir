@@ -113,18 +113,25 @@ export function applyResolvedTheme(
   root.dataset.theme = theme;
   if (preference) root.dataset.themePreference = preference;
   root.style.colorScheme = theme;
+  syncDocumentThemeColor();
+  applyDocumentFavicon(theme);
+}
 
+/**
+ * Browser chrome follows the resolved page role. Call after anything that
+ * changes it on the root: the theme or the personal app design.
+ */
+export function syncDocumentThemeColor(): void {
   const themeColor = document.querySelector<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
   // Resolve the semantic CSS role after switching data-theme so the React
   // runtime does not own a duplicate raw browser-chrome palette.
   const resolvedBackground = window
-    .getComputedStyle(root)
+    .getComputedStyle(document.documentElement)
     .getPropertyValue('--color-background')
     .trim();
   if (themeColor && resolvedBackground) themeColor.content = resolvedBackground;
-  applyDocumentFavicon(theme);
 }
 
 export function initializeTheme(): ThemePreference {

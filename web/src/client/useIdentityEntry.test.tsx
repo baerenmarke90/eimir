@@ -96,6 +96,46 @@ describe('trusted external identity URLs', () => {
   });
 });
 
+describe('provider return delivered as an App Link', () => {
+  it('accepts the provider return with the parameters a provider adds', () => {
+    expect(
+      readIdentityEntryUrl(
+        `${ORIGIN}/auth/oidc/google?code=c&state=s&scope=openid&authuser=0&prompt=none`,
+        ORIGIN,
+        true,
+      ),
+    ).toEqual({
+      kind: 'oidc',
+      token: 's',
+      connectionId: 'google',
+      code: 'c',
+      providerError: false,
+    });
+  });
+  it('accepts a declined sign-in', () => {
+    expect(
+      readIdentityEntryUrl(
+        `${ORIGIN}/auth/oidc/google?error=access_denied&state=s`,
+        ORIGIN,
+        true,
+      ),
+    ).toMatchObject({ kind: 'oidc', providerError: true, code: null });
+  });
+  it.each([
+    'https://other.example/auth/oidc/google?code=c&state=s',
+    'http://instance.example/auth/oidc/google?code=c&state=s',
+    'https://user:pw@instance.example/auth/oidc/google?code=c&state=s',
+    'https://instance.example/auth/oidc/google?code=c&state=s#frag',
+    'https://instance.example/auth/oidc/google?code=c&state=s&returnTo=x',
+    'https://instance.example/auth/oidc/google?code=c&state=s&state=t',
+    'https://instance.example/auth/oidc/google?code=c&code=d&state=s',
+    'https://instance.example/auth/oidc/google?code=c',
+    'https://instance.example/auth/oidc/a/b?code=c&state=s',
+  ])('ignores an untrusted provider return: %s', (url) => {
+    expect(readIdentityEntryUrl(url, ORIGIN, true)).toBeNull();
+  });
+});
+
 describe('running identity entry lifecycle', () => {
   it('retains an external proof without interrupting drafts until every leave guard is released', async () => {
     vi.mocked(platform.isCapacitorNative).mockReturnValue(true);

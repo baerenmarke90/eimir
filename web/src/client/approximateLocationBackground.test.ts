@@ -113,7 +113,7 @@ describe('background sharing bridge', () => {
     expect(
       await syncBackgroundSharing({
         ...request,
-        settings: { state: 'ACTIVE' },
+        settings: { state: 'ACTIVE', precision: 'APPROXIMATE' },
       }),
     ).toBe('unchanged');
 
@@ -121,7 +121,7 @@ describe('background sharing bridge', () => {
     expect(
       await syncBackgroundSharing({
         ...request,
-        settings: { state: 'ACTIVE' },
+        settings: { state: 'ACTIVE', precision: 'APPROXIMATE' },
       }),
     ).toBe('enabled');
     expect(native.enableBackground).toHaveBeenCalledTimes(1);
@@ -129,7 +129,7 @@ describe('background sharing bridge', () => {
     expect(
       await syncBackgroundSharing({
         ...request,
-        settings: { state: 'EXPIRED' },
+        settings: { state: 'EXPIRED', precision: 'APPROXIMATE' },
       }),
     ).toBe('disabled');
     expect(native.disableBackground).toHaveBeenCalledTimes(1);

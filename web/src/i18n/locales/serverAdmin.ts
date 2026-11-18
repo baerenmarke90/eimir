@@ -233,7 +233,7 @@ const serverAdmin = {
     body: 'Verwalte Account- und Anmeldestatus, ohne auf private Beziehungsinhalte zuzugreifen.',
     totalSuffix: 'Accounts',
     search: 'Suchen',
-    searchPlaceholder: 'Name, E-Mail oder Account-ID',
+    searchPlaceholder: 'E-Mail oder Account-ID',
     loading: 'Accounts werden geladen …',
     error: 'Die Account-Liste konnte nicht geladen werden.',
     empty: 'Keine passenden Accounts gefunden.',

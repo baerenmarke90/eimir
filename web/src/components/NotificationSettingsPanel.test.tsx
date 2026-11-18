@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
@@ -221,6 +227,36 @@ describe('NotificationSettingsPanel', () => {
     expect(toggle.getAttribute('aria-checked')).toBe('false');
   });
 
+  it('shows each category channel as a chip with state beyond colour', async () => {
+    setup(view());
+    const inApp = await screen.findByRole('switch', {
+      name: 'Gemeinsame Aktivität: In-App',
+    });
+    const push = screen.getByRole('switch', {
+      name: 'Gemeinsame Aktivität: Push',
+    });
+    const email = screen.getByRole('switch', {
+      name: 'Gemeinsame Aktivität: E-Mail',
+    });
+
+    // On everywhere and deliverable: a plain "on" chip.
+    expect(inApp.className).toContain('is-on');
+    expect(inApp.className).not.toContain('is-pending');
+    // Differs between events and cannot deliver yet: mixed and dashed.
+    expect(push.className).toContain('is-mixed');
+    expect(push.className).toContain('is-pending');
+    expect(push.getAttribute('aria-checked')).toBe('false');
+    // Off and deliverable: neither on nor pending.
+    expect(email.className).not.toContain('is-on');
+    expect(email.className).not.toContain('is-pending');
+
+    // The reason and the legend are said once, not under every chip.
+    expect(
+      screen.getAllByText(notificationSettings.pendingLegend),
+    ).toHaveLength(1);
+    expect(screen.getByText(notificationSettings.mixed)).toBeDefined();
+  });
+
   it('preserves mixed event choices on opening and saves a group through its eligible events', async () => {
     const update = vi.fn().mockImplementation(async (request) => ({
       kind: request.kind,
@@ -325,6 +361,16 @@ describe('NotificationSettingsPanel', () => {
       expect(update).not.toHaveBeenCalled();
     },
   );
+
+  it('explains once, next to the device switch, why chosen push waits', () => {
+    const off = deviceController({ state: 'off', registered: false });
+    setup(view(), undefined, off);
+    expect(screen.getByText(notificationSettings.deviceHintOff)).toBeDefined();
+    cleanup();
+    const on = deviceController({ state: 'on', registered: true });
+    setup(view(), undefined, on);
+    expect(screen.queryByText(notificationSettings.deviceHintOff)).toBeNull();
+  });
 
   it('keeps activation pending until confirmation and allows cancellation', () => {
     const device = deviceController({ state: 'connecting', registered: true });

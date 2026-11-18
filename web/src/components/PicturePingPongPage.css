@@ -1,0 +1,417 @@
+.pingpong-page {
+  width: min(100%, 40rem);
+  margin-inline: auto;
+}
+
+.pingpong-heading {
+  margin-bottom: var(--space-4);
+}
+
+.pingpong-card,
+.pingpong-empty {
+  display: grid;
+  gap: var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.pingpong-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pingpong-status {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 5vw, 1.5rem);
+}
+
+.pingpong-strokes-used {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Stage: the two partners and the arc the picture travels along. */
+.pingpong-stage {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: var(--space-3);
+  direction: ltr;
+}
+
+.pingpong-avatar {
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--person-surface);
+}
+
+.pingpong-track {
+  position: relative;
+  height: 3.25rem;
+  min-width: 0;
+}
+
+.pingpong-arc-line {
+  position: absolute;
+  inset: 0.25rem 0.25rem 0.5rem;
+  border-top: 2px dotted var(--color-border-subtle);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.pingpong-distance {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.pingpong-flyer {
+  --pingpong-flight-duration: calc(
+    var(--duration-gesture-moment) *
+    var(--pingpong-flight-scale, 1)
+  );
+
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-start: 0;
+  width: 100%;
+  height: 0;
+  animation: pingpong-fly-x var(--pingpong-flight-duration)
+    var(--easing-playback) both;
+  pointer-events: none;
+}
+
+.pingpong-flyer.is-to-me {
+  animation-direction: reverse;
+}
+
+.pingpong-flyer-chip {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-start: -0.625rem;
+  border-radius: var(--radius-small);
+  background: var(--color-brand-surface);
+  border: 2px solid var(--color-brand);
+  animation: pingpong-fly-y var(--pingpong-flight-duration) var(--easing-travel)
+    both;
+  animation-direction: inherit;
+}
+
+.pingpong-flyer.is-to-me .pingpong-flyer-chip {
+  animation-direction: reverse;
+}
+
+@keyframes pingpong-fly-x {
+  from {
+    inset-inline-start: 0;
+  }
+
+  to {
+    inset-inline-start: 100%;
+  }
+}
+
+@keyframes pingpong-fly-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(calc(var(--pingpong-arc, 0.3) * -3rem));
+  }
+}
+
+/* Drawing surface */
+.pingpong-canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  touch-action: none;
+  user-select: none;
+}
+
+.pingpong-canvas.is-drawable {
+  cursor: crosshair;
+  border-color: var(--color-brand);
+}
+
+.pingpong-stroke {
+  stroke: var(--color-text);
+}
+
+.pingpong-stroke.is-own {
+  stroke: var(--person-own-accent);
+}
+
+.pingpong-stroke.is-partner {
+  stroke: var(--person-partner-accent);
+}
+
+.pingpong-stroke.is-ink {
+  stroke: var(--color-text);
+}
+
+.pingpong-stroke.is-sun {
+  stroke: var(--photo-mark-yellow);
+}
+
+/* Six turn dots in the person colours */
+.pingpong-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pingpong-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid var(--person-accent);
+  background: transparent;
+}
+
+.pingpong-dot.is-done {
+  background: var(--person-accent);
+}
+
+.pingpong-dot.is-current {
+  box-shadow: 0 0 0 3px var(--person-surface);
+}
+
+/* Tools */
+.pingpong-tools {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pingpong-colours {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.pingpong-colour {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  padding: 0;
+}
+
+.pingpong-colour.is-person {
+  background: var(--person-own-accent);
+}
+
+.pingpong-colour.is-ink {
+  background: var(--color-text);
+}
+
+.pingpong-colour.is-sun {
+  background: var(--photo-mark-yellow);
+}
+
+.pingpong-colour.is-selected {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-surface-raised) inset;
+}
+
+.pingpong-primary,
+.pingpong-secondary,
+.pingpong-quiet {
+  min-height: 2.75rem;
+}
+
+.pingpong-primary {
+  justify-self: stretch;
+}
+
+.pingpong-quiet {
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+}
+
+.pingpong-wait,
+.pingpong-note,
+.pingpong-confirm p,
+.pingpong-finish p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.pingpong-finish,
+.pingpong-confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pingpong-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.pingpong-titles legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.pingpong-title-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  border-radius: 999px;
+  background: var(--color-brand-surface);
+  cursor: pointer;
+}
+
+.pingpong-title-chip input {
+  position: absolute;
+  opacity: 0;
+}
+
+.pingpong-title-chip.is-selected {
+  background: var(--color-brand);
+  color: var(--color-on-accent);
+}
+
+.pingpong-title-chip:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Starting choice: the seed squiggle or a blank page, as two tap targets. */
+.pingpong-starters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.pingpong-starters legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.pingpong-starter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background-color var(--duration-feedback) var(--easing-standard);
+}
+
+.pingpong-starter input {
+  position: absolute;
+  opacity: 0;
+}
+
+.pingpong-starter.is-selected {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand) inset;
+  background: var(--color-brand-surface);
+}
+
+.pingpong-starter:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.pingpong-starter-preview {
+  display: inline-flex;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  /* A small sheet of paper on the tinted tile. */
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+}
+
+.pingpong-starter-preview svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.pingpong-starter-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pingpong-starter-title {
+  font-weight: 600;
+}
+
+.pingpong-starter-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.pingpong-restart {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The same hand-over without movement: the caption and status carry it. */
+  .pingpong-flyer {
+    display: none;
+  }
+
+  .pingpong-starter {
+    transition: none;
+  }
+}
+
+/* Bounded reading column on Expanded; the picture stays one square. */
+.page.pingpong-page {
+  width: min(100%, 36rem);
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.pingpong-secondary {
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  background: var(--color-surface);
+  color: var(--color-text);
+}

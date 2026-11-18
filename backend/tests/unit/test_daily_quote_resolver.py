@@ -73,7 +73,7 @@ def test_resolver_different_accounts_receive_personalized_selection() -> None:
         account_id=account_b,
         enabled=True,
         selected_source_ids=["stoic_philosophy"],
-        selected_category_ids=["philosophy"],
+        selected_category_ids=["life"],
         locale="de",
         version=1,
     )
@@ -96,7 +96,7 @@ def test_resolver_different_accounts_receive_personalized_selection() -> None:
     assert res_b.quote is not None
     assert "love" in res_a.quote.category_ids
 
-    assert "philosophy" in res_b.quote.category_ids
+    assert "life" in res_b.quote.category_ids
 
 
 def test_resolver_considers_matching_categories_across_legacy_sources() -> None:
@@ -122,7 +122,7 @@ def test_resolver_considers_matching_categories_across_legacy_sources() -> None:
         attribution_required=True,
     )
     poetry = replace(classic, id="02-poetic-love", source_id="poetic_wisdom")
-    unrelated = replace(classic, id="03-philosophy", category_ids=("philosophy",))
+    unrelated = replace(classic, id="03-philosophy", category_ids=("life",))
 
     result = resolver.resolve_daily_quote(
         _mock_session_with_preference(preference),

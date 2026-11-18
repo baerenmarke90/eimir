@@ -178,7 +178,9 @@ def get_daily_quote_preferences(
         account_id=authorization.account_id,
         enabled=preference.enabled,
         selected_source_ids=list(preference.selected_source_ids),
-        selected_category_ids=list(preference.selected_category_ids),
+        selected_category_ids=preference_service.current_category_ids(
+            preference.selected_category_ids
+        ),
         locale=preference.locale,
         version=preference.version,
     )
@@ -241,7 +243,9 @@ def update_daily_quote_preferences(
         account_id=updated.account_id,
         enabled=updated.enabled,
         selected_source_ids=list(updated.selected_source_ids),
-        selected_category_ids=list(updated.selected_category_ids),
+        selected_category_ids=preference_service.current_category_ids(
+            updated.selected_category_ids
+        ),
         locale=updated.locale,
         version=updated.version,
     )

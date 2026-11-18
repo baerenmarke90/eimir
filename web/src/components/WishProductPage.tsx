@@ -318,20 +318,30 @@ export function WishProductPage({
       });
   }, [wishStatus, continueOpen]);
 
-  // The continue dialog is modal, so the heading can take focus only once it
-  // has closed and the completed wish (which renders the heading) has arrived.
+  // A modal dialog can still be leaving (its exit animation) when the wish
+  // turns completed, and it hands focus back to its opener as it goes. The
+  // confirmed continuation takes focus once no dialog is open any more.
   useEffect(() => {
     if (!showCompletionContinuation || continueOpen) return;
     if (wishStatus !== 'COMPLETED') return;
-    const heading = completionHeadingRef.current;
-    heading?.focus();
-    heading?.scrollIntoView?.({ block: 'center' });
-    // The closing dialog may hand focus back to its opener a moment later (a
-    // keyboard close restores it); the confirmed continuation keeps it.
-    const frame = requestAnimationFrame(() => {
-      if (heading?.isConnected && document.activeElement !== heading)
-        heading.focus({ preventScroll: true });
-    });
+    let frame = 0;
+    let tries = 0;
+    const settle = () => {
+      const heading = completionHeadingRef.current;
+      if (!heading?.isConnected) return;
+      if (document.querySelector('dialog[open]') && tries < 120) {
+        tries += 1;
+        frame = requestAnimationFrame(settle);
+        return;
+      }
+      heading.focus();
+      heading.scrollIntoView?.({ block: 'center' });
+      frame = requestAnimationFrame(() => {
+        if (heading.isConnected && document.activeElement !== heading)
+          heading.focus({ preventScroll: true });
+      });
+    };
+    settle();
     return () => cancelAnimationFrame(frame);
   }, [showCompletionContinuation, continueOpen, wishStatus]);
 

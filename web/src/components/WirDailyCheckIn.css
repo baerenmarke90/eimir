@@ -87,9 +87,10 @@
 .wir-checkin-badge[data-empty] {
   opacity: 0;
   visibility: hidden;
+  /* Visibility stays visible for the whole fade and flips at its end. */
   transition:
     opacity var(--duration-context) var(--easing-standard),
-    visibility 0s var(--duration-context);
+    visibility var(--duration-context) var(--easing-standard);
 }
 
 .wir-checkin-lock {

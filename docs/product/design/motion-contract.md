@@ -220,7 +220,7 @@ Something already on screen changes or leaves: a value changes, an item is reord
 - *Replace in place* (a filter, a Space switch, a sign-in): no direction, `crossfade` only.
 - *Task return* restores the reading position first; it never animates scroll (Guideline section 7).
 - Duration `--duration-transition`, easing `--easing-standard`; navigation never waits for the animation (M10).
-- **Container transform** (a card growing into its detail) and **shared elements between list and detail** are not part of v1. They need a Product Owner decision. The technical candidate is React 19.3 `<ViewTransition>` on the Android WebView (Chromium 111 supports same-document View Transitions); Firefox 114 and Safari 16.4 would fall back to plain `navigate`. View Transitions block input while they run, so they fit only the short navigation handoff, never Flights or Ambient motion.
+- **No container transform.** A card does not grow into its detail, and list and detail share no flying element. The Product Owner decided this on 2026-11-19 after watching an interactive preview for Momente. Opening a detail uses the forward `navigate` transition above. This is a decision, not a deferral; reintroducing it needs a new Product Owner decision and a new version of this contract. React `<ViewTransition>` is therefore not adopted for navigation in v1.
 - Reduced motion: the new content is there at once; the restored position and focus are the same.
 
 **`disclose` (expand and collapse: accordion, "+N weitere", the check-in row).** M6 forbids layout animation in general. The sanctioned way, in order of preference:
@@ -411,7 +411,7 @@ How each known motion need is covered by v1:
 | --- | --- | --- |
 | Direct manipulation (swipe, drag, pinch, pull, reorder, sliders, carousels) | Gesture follow (4.6) | new primitive |
 | Navigation direction (forward, back, lateral, in place) | Replace `navigate` | variant with direction rules |
-| Container transform card to detail, list-to-detail shared element | — | out of scope for v1; needs a Product Owner decision; technical candidate React `<ViewTransition>` on Android |
+| Container transform card to detail, list-to-detail shared element | — | **decided out of scope:** the Product Owner rejected it on 2026-11-19 after an interactive Momente preview; navigation keeps the directional `navigate` transitions |
 | Scroll-linked headers, hide on scroll, status-bar scrim | Replace `scroll-state` | variant; scroll-driven timelines and parallax not used |
 | Expand and collapse, "+N weitere", the check-in row | Replace `disclose` | variant with one sanctioned layout transition |
 | Photo decode fade, skeleton to content | Enter `media` | variant with remount rules |
@@ -568,7 +568,7 @@ If the in-house settle needs clearly more than a small spring helper (roughly 15
 
 Kept as options, not part of v1:
 
-- **React `<ViewTransition>`** for route-level Replace on the Android app (WebView ≥ 111), as a progressive enhancement after a separate evaluation, because it blocks input during a transition and is unavailable on the Firefox and Safari floors.
+- **React `<ViewTransition>`** for route-level Replace on the Android app (WebView ≥ 111), as a progressive enhancement after a separate evaluation, because it blocks input during a transition and is unavailable on the Firefox and Safari floors. It would carry only the directional `navigate` transitions, never a container transform, which the Product Owner rejected (6.6).
 - **Switch to Motion** (`motion/react` with `LazyMotion`, `m`, lazy `domAnimation`) if later work needs general layout animation of arbitrary layout changes (`layout`/`layoutId`) or physics springs often enough that maintaining FLIP in the layer costs more than the dependency. The layer's API stays the same so that only its implementation would change.
 
 ### 6.6 Product Owner decisions and license conditions
@@ -580,7 +580,7 @@ Product Owner decisions of 2026-11-19:
 | 1 | In-house layer or Motion | **Deferred** until the gesture test results are in. Not approved. |
 | 2 | Motion for Gesture follow only, if the gesture test shows the need | **Approved, conditional** on the license conditions below. |
 | 3 | Haptics | **Approved**, with `@capacitor/haptics` ([4.10](#410-haptics)). |
-| 4 | Container transform and list-to-detail shared elements (Replace `navigate`) | **Open**, pending a Product Owner decision. |
+| 4 | Container transform and list-to-detail shared elements (Replace `navigate`) | **Rejected** after an interactive preview for Momente. Out of scope; navigation keeps the directional page transitions. |
 
 **License conditions for Motion** (checked 2026-11-19 against the published npm packages):
 

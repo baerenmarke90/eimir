@@ -1298,7 +1298,11 @@ export function useWirDailyCheckIn({
                 maxLength={DAILY_NOTE_MAX_LENGTH}
                 rows={2}
                 disabled={disabled || !ownVibe}
-                placeholder={t('wirCheckIn.notePlaceholder')}
+                placeholder={t(
+                  ownVibe
+                    ? 'wirCheckIn.notePlaceholder'
+                    : 'wirCheckIn.notePlaceholderLocked',
+                )}
                 aria-describedby={`${panelId}-note-hint`}
                 onChange={(event) => {
                   setUndoNote(null);

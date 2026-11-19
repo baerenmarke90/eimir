@@ -9,6 +9,7 @@ import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities'
 import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
 import type { SensitiveEntryToken } from '../client/entryToken';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import {
   ActiveAccountMismatchError,
   completePasswordRecovery,
@@ -1269,6 +1270,10 @@ function EmailField({
   inputRef?: React.Ref<HTMLInputElement>;
 } = {}) {
   const { t } = useTranslation();
+  const { error, errorId, fieldProps } = useInlineFieldError({
+    missing: t('login.emailMissing'),
+    mismatch: t('login.emailInvalid'),
+  });
   return (
     <div className="field-group">
       <label htmlFor="email">{t('login.email')}</label>
@@ -1281,7 +1286,13 @@ function EmailField({
         autoCapitalize="none"
         spellCheck={false}
         required
+        {...fieldProps}
       />
+      {error ? (
+        <p id={errorId} className="field-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -682,7 +682,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .click();
       await expect(title).toHaveValue('Unsaved private note');
       await back.click();
-      await discard.getByRole('button', { name: taskBoundary.discard }).click();
+      await discard
+        .getByRole('button', { name: taskBoundary.discardConfirm })
+        .click();
       await expect(page).toHaveURL(/\/more\/private\/notes$/);
       await expect(create).toBeVisible();
     }

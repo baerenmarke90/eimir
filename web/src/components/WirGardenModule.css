@@ -94,3 +94,40 @@
     transform: none;
   }
 }
+
+/* On Wir the preview's idle life settles after a few cycles (#2063): the
+   scene's ambient loops (`.garden-scene.is-lively … infinite` in the garden
+   stylesheets) kept an idle Wir page rendering every frame. Only those looping
+   parts are listed, so one-shot motion keeps its single run; the full garden
+   keeps its endless life. `!important` beats the more specific per-animal
+   rules, like the reduced-motion rule in GardenGamePage.css. */
+.wir-garden-frame
+  .garden-scene
+  :is(
+    .garden-note-paper,
+    .garden-particle,
+    .garden-together-heart,
+    .garden-butterfly-wobble,
+    .garden-flap,
+    .garden-flap-y,
+    .garden-drift,
+    .garden-star,
+    .garden-sway,
+    .garden-tuft,
+    .garden-deer-head,
+    .garden-duck,
+    .garden-hedgehog-face,
+    .garden-rabbit-ears,
+    .garden-rabbit-head,
+    .garden-snail-foot,
+    .garden-squirrel-tail,
+    .garden-blink,
+    .garden-firefly,
+    .garden-ripple,
+    .garden-stream-flow,
+    .garden-duckling,
+    .garden-owl-eyes,
+    .garden-flicker
+  ) {
+  animation-iteration-count: var(--motion-ambient-repeat) !important;
+}

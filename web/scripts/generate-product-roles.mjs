@@ -225,6 +225,9 @@ declare(
 // Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
 declare('duration-story-slide', value('motion.duration.storySlide'));
 declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
+// Ambient idle motion (ring breath, hanging sway) settles after this many
+// cycles instead of looping forever, so an idle page stops rendering frames.
+declare('motion-ambient-repeat', value('motion.repeat.ambient'));
 for (const role of [
   'standard',
   'enter',

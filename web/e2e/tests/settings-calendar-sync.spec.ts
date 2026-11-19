@@ -708,7 +708,14 @@ test('Google Calendar connects through consent, explicit account confirmation an
   await expect(
     card.getByRole('heading', { name: calendarSync.target.primaryCalendar }),
   ).toBeVisible();
-  await expect(card).toContainText('anna@gmail.example');
+  // The card names who connected it, not the account address (#2063).
+  await expect(card).toContainText(
+    calendarSync.target.viaYou.replace(
+      '{{provider}}',
+      calendarSync.providers.GOOGLE,
+    ),
+  );
+  await expect(card).not.toContainText('anna@gmail.example');
   expect(
     state.requests.find((entry) => entry.path === '/target')?.body,
   ).toEqual({

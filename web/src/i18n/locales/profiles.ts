@@ -2,6 +2,7 @@ const profiles = {
   partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
+  titleWithPartner: 'Du und {{name}}',
   intro:
     'Deine Identität, freigegebenen Vorlieben und das Profil deines Partners – klar getrennt von privaten Notizen.',
   settingsRailAria: 'Konto und Beziehung',

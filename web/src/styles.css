@@ -72,6 +72,14 @@
   --polaroid-width: 22rem;
   --topbar-height: 72px;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  /* Full-screen photo viewer: near-opaque, so nothing shows through. */
+  --color-media-viewer-backdrop: color-mix(in srgb, #000000 94%, transparent);
+  /* Backdrop behind the system status bar once the page scrolls (#2063). */
+  --color-status-bar-scrim: color-mix(
+    in srgb,
+    var(--color-background) 94%,
+    transparent
+  );
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -122,6 +130,27 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--color-background);
+}
+
+/* The native app draws edge to edge under the status bar (Capacitor
+   `insetsHandling: 'css'`). Without a backdrop, scrolled headings ran under the
+   clock and status icons (#2063). The strip is as tall as the top inset, so it
+   is absent in browsers, and only appears once the page has scrolled, leaving
+   the hero gradients untouched at the top. Sheets and dialogs stack above. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 52;
+  height: var(--safe-area-inset-top);
+  background: var(--color-status-bar-scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+:root[data-page-scrolled] body::after {
+  opacity: 1;
 }
 
 button,
@@ -843,6 +872,14 @@ code {
 .memory-form {
   display: grid;
   gap: 1.25rem;
+}
+
+/* Inline field problem in the app's own voice (#2063), shared by forms that
+   intercept the browser's native validation bubble. */
+.field-error {
+  margin: var(--space-1) 0 0;
+  color: var(--color-error);
+  font-weight: 700;
 }
 
 .login-card .form-grid {

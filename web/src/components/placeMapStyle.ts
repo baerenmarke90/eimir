@@ -108,3 +108,26 @@ export function googleLikeStyle(
     }) as StyleSpecification['layers'],
   };
 }
+
+/**
+ * Localizes the provider attribution's English connector ("Data from") while
+ * keeping every required source name and link (#2063). The attribution text
+ * itself comes from the remote OpenFreeMap style.
+ */
+export function withLocalizedAttribution(
+  style: StyleSpecification,
+  dataFrom: string,
+): StyleSpecification {
+  const sources = Object.fromEntries(
+    Object.entries(style.sources).map(([id, source]) => [
+      id,
+      'attribution' in source && typeof source.attribution === 'string'
+        ? {
+            ...source,
+            attribution: source.attribution.replace('Data from', dataFrom),
+          }
+        : source,
+    ]),
+  ) as StyleSpecification['sources'];
+  return { ...style, sources };
+}

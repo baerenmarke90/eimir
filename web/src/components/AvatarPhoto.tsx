@@ -60,7 +60,14 @@ export function AvatarPhoto({
     );
   return (
     <MediaGallery
-      items={[{ id: identity, mediaType: MediaType.IMAGE, isSensitive: false }]}
+      items={[
+        {
+          id: identity,
+          mediaType: MediaType.IMAGE,
+          isSensitive: false,
+          alt: t('people.avatarAlt', { name }),
+        },
+      ]}
       loadMedia={load}
       resourceScopeKey={identity}
       renderPreviews={(open) => (

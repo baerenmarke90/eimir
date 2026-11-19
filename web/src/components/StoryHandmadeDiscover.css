@@ -81,6 +81,8 @@
   animation: story-hang-swing-in var(--duration-gesture-sequence)
     var(--easing-standard) backwards;
 }
+/* The sway settles after a few cycles and holds its last pose (#2063): with
+   the lift filter, an endless sway repainted the Polaroid every frame. */
 @media (prefers-reduced-motion: no-preference) {
   .story-page-unified
     .momente-discover-page[data-diary-layout="album"]
@@ -90,7 +92,8 @@
       story-hang-swing-in var(--duration-gesture-sequence)
       var(--easing-standard) backwards,
       story-hang-sway var(--duration-connection-travel-far)
-      var(--duration-gesture-sequence) var(--easing-travel) infinite alternate;
+      var(--duration-gesture-sequence) var(--easing-travel)
+      var(--motion-ambient-repeat) alternate forwards;
   }
 }
 .story-page-unified

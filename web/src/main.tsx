@@ -13,6 +13,7 @@ import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
+import { useStatusBarScrim } from './client/useStatusBarScrim';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
 import { useTranslation } from './i18n';
@@ -99,6 +100,7 @@ function RootApp() {
   useCapacitorShell();
   useControlPressFeedback();
   useFloatingCreateScrollTuck();
+  useStatusBarScrim();
   // Startup placeholders hold the launch screen; anything else ends it.
   useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (

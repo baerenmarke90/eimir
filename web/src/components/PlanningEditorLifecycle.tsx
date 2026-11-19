@@ -110,29 +110,34 @@ export function PlanningDiscardSheet({
 }) {
   const { t } = useTranslation();
   const sheet = useRef<ShortTaskSheetHandle>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
   return (
     <ShortTaskSheet
       ref={sheet}
       open={open}
       role="alertdialog"
       title={t('taskBoundary.discardTitle')}
+      initialFocusRef={keepRef}
       onClose={onKeepEditing}
     >
       <p>{t('taskBoundary.discardBody')}</p>
+      {/* Discard first in source order: the phone layout reverses the column,
+          so the destructive action ends up last. */}
       <div className="form-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => sheet.current?.requestClose()}
-        >
-          {t('taskBoundary.keepEditing')}
-        </button>
         <button
           type="button"
           className="danger"
           onClick={() => sheet.current?.closeForNavigation(onDiscard)}
         >
-          {t('taskBoundary.discard')}
+          {t('taskBoundary.discardConfirm')}
+        </button>
+        <button
+          ref={keepRef}
+          type="button"
+          className="secondary"
+          onClick={() => sheet.current?.requestClose()}
+        >
+          {t('taskBoundary.keepEditing')}
         </button>
       </div>
     </ShortTaskSheet>

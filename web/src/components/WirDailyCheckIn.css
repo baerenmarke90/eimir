@@ -334,6 +334,20 @@
   background: var(--color-surface-subtle);
 }
 
+/* No value yet: no thumb either. A thumb resting at the middle read as a
+   chosen 50 % next to "not set" (#2063); tapping the scale sets the value. */
+.wir-checkin-energy-slider[data-unset="true"]::-webkit-slider-thumb {
+  opacity: 0;
+}
+
+.wir-checkin-energy-slider[data-unset="true"]::-moz-range-thumb {
+  opacity: 0;
+}
+
+.wir-checkin-energy-slider[data-unset="true"]::-moz-range-progress {
+  background: transparent;
+}
+
 .wir-checkin-energy-slider::-moz-range-track {
   height: 6px;
   border-radius: var(--radius-pill);
@@ -405,6 +419,8 @@
 
 .wir-checkin-note-field textarea:disabled {
   opacity: 0.64;
+  cursor: not-allowed;
+  resize: none;
 }
 
 .wir-checkin-note-delete {

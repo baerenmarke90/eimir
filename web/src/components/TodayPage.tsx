@@ -198,11 +198,22 @@ function WirIntroStage({ children }: { children: ReactNode }) {
           ? performance.now()
           : null;
     }
-    const intro =
-      wirHeroIntroStartedAt !== null &&
-      performance.now() - wirHeroIntroStartedAt < WIR_HERO_INTRO_WINDOW_MS;
+    const elapsed =
+      wirHeroIntroStartedAt === null
+        ? Number.POSITIVE_INFINITY
+        : performance.now() - wirHeroIntroStartedAt;
+    const intro = elapsed < WIR_HERO_INTRO_WINDOW_MS;
     stage.classList.toggle('wir-stage-intro', intro);
-    if (intro) alignWirIntroAnimations(stage, wirHeroIntroStartedAt);
+    if (!intro) return;
+    alignWirIntroAnimations(stage, wirHeroIntroStartedAt ?? null);
+    // The opening ends on its own clock, not at the next render: a class that
+    // outlived it kept the rings from breathing and replayed the whole
+    // opening when Wir was shown again, then cut it off at a later render.
+    const end = window.setTimeout(
+      () => stage.classList.remove('wir-stage-intro'),
+      WIR_HERO_INTRO_WINDOW_MS - elapsed,
+    );
+    return () => window.clearTimeout(end);
   });
   return (
     <div ref={stageRef} className="wir-stage">

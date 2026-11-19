@@ -9,6 +9,13 @@ import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
 
+/**
+ * Object URLs of avatar photos that already finished loading on this page.
+ * The URLs are revoked when their owner releases them; a stale entry only
+ * means one avatar skips its fade, it never shows a wrong photo.
+ */
+const shownAvatarUrls = new Set<string>();
+
 export interface PartnerAvatarPerson {
   displayName: string;
   imageUrl?: string | null;
@@ -64,7 +71,14 @@ export function SingleAvatar({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  // A photo this page already showed is in memory: an avatar that remounts
+  // (its slot becomes a button once its action is known) shows it at once
+  // instead of dropping back to the initials and fading the photo in again.
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(() =>
+    person.imageUrl && shownAvatarUrls.has(person.imageUrl)
+      ? person.imageUrl
+      : null,
+  );
   const initials = useMemo(
     () => personInitials(person.displayName),
     [person.displayName],
@@ -76,6 +90,7 @@ export function SingleAvatar({
   const detectCachedImage = useCallback(
     (image: HTMLImageElement | null) => {
       if (image?.complete && image.naturalWidth > 0 && imageUrl) {
+        shownAvatarUrls.add(imageUrl);
         setLoadedUrl(imageUrl);
       }
     },
@@ -96,7 +111,10 @@ export function SingleAvatar({
           src={imageUrl}
           alt={person.displayName}
           className={`partner-avatar-img${loaded ? ' is-loaded' : ''}`}
-          onLoad={() => setLoadedUrl(imageUrl)}
+          onLoad={() => {
+            shownAvatarUrls.add(imageUrl);
+            setLoadedUrl(imageUrl);
+          }}
           onError={() => setFailed(true)}
         />
       ) : null}

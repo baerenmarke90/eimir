@@ -13,8 +13,12 @@
  * 2. The modules: each arrives with a short rise and fade, once, as it is
  *    reached (useWirReveal). The ones already in view arrive together, in
  *    reading order.
- * 3. The rest: the rings around the portraits breathe very slowly, one after
- *    the other, and nothing else moves until you do.
+ * 3. The rest: the rings around the portraits breathe very slowly (opacity
+ *    only), one after the other, and nothing else moves until you do.
+ *
+ * A kept tab that is shown again does not replay any of this: un-hiding
+ * restarts CSS animations, so PrimaryTabPanels finishes those entrances at
+ * once (settleRestartedEntrances).
  *
  * Only `translate`, `scale` and `opacity` are animated, never on an element
  * that has its own `animation` (the hover lift), and never with a sideways move
@@ -216,16 +220,20 @@
 
   /* ---- 3. The rest: a slow breath --------------------------------------- */
 
-  /* Once the arrival has landed, the rings around the two portraits swell and
-     settle very slowly, one after the other. Opacity and scale on a decorative
-     pseudo-element only: it never changes a portrait's box, so tapping and the
-     flights keep their exact targets. The breath settles after a few cycles
-     (#2063): an endless loop kept an idle Wir page rendering every frame. */
+  /* Once the arrival has landed, the rings around the two portraits soften
+     and return very slowly, one after the other. Opacity only, on a decorative
+     pseudo-element with its own layer: a growing 2 px ring moved its edge by
+     a few pixels over seconds, which stepped visibly from pixel to pixel on
+     phones and read as a pulse at a few frames per second (Product Owner,
+     2026-11-19). It never changes a portrait's box, so tapping and the flights
+     keep their exact targets. The breath settles after a few cycles (#2063):
+     an endless loop kept an idle Wir page rendering every frame. */
   .today-page
     .wir-stage:not(.wir-stage-intro)
     .today-hero
     .partner-avatar-stack
     > *::before {
+    will-change: opacity;
     animation: wir-breathe var(--duration-connection-travel-far)
       var(--easing-travel) var(--duration-connection-beat)
       var(--motion-ambient-repeat);
@@ -400,11 +408,9 @@
   0%,
   100% {
     opacity: 1;
-    scale: 1;
   }
 
   50% {
-    opacity: 0.72;
-    scale: 1.035;
+    opacity: 0.55;
   }
 }

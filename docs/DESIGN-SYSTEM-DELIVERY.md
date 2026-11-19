@@ -85,6 +85,7 @@ For colors, the following also applies:
 - Browser `theme-color` and `color-scheme` follow the actually resolved theme.
 - Media queries/container queries are derived from breakpoint and motion tokens.
 - `prefers-reduced-motion` sets regular transitions to `instant` or a safe reduced variant.
+- Motion is delivered through the shared motion layer defined by the [Motion Contract](product/design/motion-contract.md#5-the-motion-layer): one token adapter, one reduced-motion source and the seven motion primitives, including Gesture follow for direct manipulation, where every gesture has a non-gesture alternative. Feature code does not add its own `@keyframes` or `Element.animate()` calls.
 
 ### Android output
 

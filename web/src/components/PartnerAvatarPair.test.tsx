@@ -164,6 +164,28 @@ describe('PartnerAvatarPair', () => {
     expect(img.className).toContain('is-loaded');
   });
 
+  it('shows a photo it already showed at once when the avatar remounts', () => {
+    const person = {
+      displayName: 'Philipp Meier',
+      imageUrl: '/photos/philipp-remount.jpg',
+    };
+    const first = render(
+      <PartnerAvatarPair primaryPerson={person} secondaryPerson={null} />,
+    );
+    fireEvent.load(screen.getByRole('img'));
+    first.unmount();
+
+    // The slot becomes a button once its action is known, which remounts it.
+    render(
+      <PartnerAvatarPair
+        primaryPerson={person}
+        secondaryPerson={null}
+        primaryAction={{ onActivate: () => {}, label: 'Dein Tag' }}
+      />,
+    );
+    expect(screen.getByRole('img').className).toContain('is-loaded');
+  });
+
   it('falls back to initials if an image fails to load', () => {
     render(
       <PartnerAvatarPair

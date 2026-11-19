@@ -137,8 +137,7 @@ export async function acquireMediaObjectUrlAsync(
   if (!creating) recentEvictions.length = 0;
   try {
     stillValid?.();
-    if (evicted)
-      throw new DOMException('Media context expired', 'AbortError');
+    if (evicted) throw new DOMException('Media context expired', 'AbortError');
   } catch (error) {
     resource.dispose();
     throw error;

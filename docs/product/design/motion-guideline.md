@@ -51,6 +51,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | one heartbeat of the nearby map connection (#1907 H1) | `motion.duration.connectionBeat` | 450 ms | `--duration-connection-beat` |
 | one round trip of the glow on a regional map connection (#1907 H1) | `motion.duration.connectionTravel` | 3200 ms | `--duration-connection-travel` |
 | one round trip of the glow on a far map connection (#1907 H1) | `motion.duration.connectionTravelFar` | 6000 ms | `--duration-connection-travel-far` |
+| total visible time a decorative scene's ambient motion plays before it rests in place; offscreen it rests at once (#2063) | `motion.duration.ambientRest` | 12000 ms | `--duration-ambient-rest` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |

@@ -533,235 +533,323 @@ export function GardenScene({
     }
   };
 
+  const sceneClass = `garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}${preview ? ' is-preview' : ''}`;
+  const viewBox = `0 0 ${width} ${GARDEN_HEIGHT}`;
+  const aspect = preview || cover ? 'xMidYMax slice' : undefined;
+  // Each depth band is its own SVG on its own compositor layer (#2063): a
+  // moving tuft or cloud then re-rasters only its band, never the sky and
+  // the hills underneath, which stay painted from the first frame.
+  const band = (name: string, content: ReactNode) => (
+    <SceneBand
+      name={name}
+      className={sceneClass}
+      viewBox={viewBox}
+      aspect={aspect}
+    >
+      {content}
+    </SceneBand>
+  );
+
   return (
-    <svg
-      ref={svg}
-      className={`garden-scene${lively ? ' is-lively' : ''}${gusting ? ' is-gusting' : ''}${celebrating ? ' is-celebrating' : ''}${preview ? ' is-preview' : ''}`}
-      viewBox={`0 0 ${width} ${GARDEN_HEIGHT}`}
-      preserveAspectRatio={preview || cover ? 'xMidYMax slice' : undefined}
+    <div
+      className={`garden-scene-stack${preview ? ' is-preview' : ''}`}
       style={
         preview ? undefined : { width: `${((width / 340) * 100).toFixed(1)}%` }
       }
-      aria-label={preview ? undefined : label}
-      aria-hidden={preview ? true : undefined}
-      focusable={preview ? 'false' : undefined}
-      data-testid={preview ? 'garden-scene-preview' : 'garden-scene'}
     >
-      <defs>
-        <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--garden-sky-top)" />
-          <stop offset="1" stopColor="var(--garden-sky-bottom)" />
-        </linearGradient>
-        <linearGradient id={hillBackId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--garden-hill-back)" />
-          <stop offset="1" stopColor="var(--garden-hill)" />
-        </linearGradient>
-        <linearGradient id={hillFrontId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--garden-hill)" />
-          <stop offset="1" stopColor="var(--garden-grass-mid)" />
-        </linearGradient>
-        <radialGradient id={haloId}>
-          <stop offset=".3" stopColor="var(--garden-sun)" stopOpacity=".5" />
-          <stop offset="1" stopColor="var(--garden-sun)" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: decoration only; the plant buttons follow outside this group */}
-      <g aria-hidden="true">
-        <rect width={width} height={GARDEN_HEIGHT} fill={`url(#${skyId})`} />
-        {stars.map((star) => (
-          <path
-            key={star.d}
-            className="garden-star"
-            style={{ '--garden-delay': `${star.delay}ms` } as Style}
-            d={star.d}
-            fill="var(--garden-star)"
-          />
-        ))}
-        {scene.sky}
-        <g className="garden-clouds">
-          {sceneClouds(width).map((cloud, index) => (
-            <Cloud
-              key={`${cloud.x}-${cloud.y}`}
-              x={cloud.x}
-              y={cloud.y}
-              scale={cloud.scale}
-              flip={cloud.flip}
-            >
-              {scene.shower(index)}
-            </Cloud>
-          ))}
-        </g>
-        <g
-          className="garden-sun-place"
-          style={{ transform: `translate(${sun.x}px, ${sun.y}px)` }}
-          data-testid="garden-sun"
-        >
-          <g className="garden-rays">
-            {rays.map((d) => (
-              <path
-                key={d}
-                d={d}
-                stroke="var(--garden-sun)"
-                strokeWidth={16}
-                strokeLinecap="round"
-                opacity={0.22}
+      {band(
+        'sky',
+        <>
+          <defs>
+            <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--garden-sky-top)" />
+              <stop offset="1" stopColor="var(--garden-sky-bottom)" />
+            </linearGradient>
+            <linearGradient id={hillBackId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--garden-hill-back)" />
+              <stop offset="1" stopColor="var(--garden-hill)" />
+            </linearGradient>
+            <linearGradient id={hillFrontId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--garden-hill)" />
+              <stop offset="1" stopColor="var(--garden-grass-mid)" />
+            </linearGradient>
+            <radialGradient id={haloId}>
+              <stop
+                offset=".3"
+                stopColor="var(--garden-sun)"
+                stopOpacity=".5"
               />
+              <stop offset="1" stopColor="var(--garden-sun)" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect width={width} height={GARDEN_HEIGHT} fill={`url(#${skyId})`} />
+        </>,
+      )}
+      {band(
+        'sky-life',
+        <>
+          {stars.map((star) => (
+            <path
+              key={star.d}
+              className="garden-star"
+              style={{ '--garden-delay': `${star.delay}ms` } as Style}
+              d={star.d}
+              fill="var(--garden-star)"
+            />
+          ))}
+          {scene.sky}
+          <g className="garden-clouds">
+            {sceneClouds(width).map((cloud, index) => (
+              <Cloud
+                key={`${cloud.x}-${cloud.y}`}
+                x={cloud.x}
+                y={cloud.y}
+                scale={cloud.scale}
+                flip={cloud.flip}
+              >
+                {scene.shower(index)}
+              </Cloud>
             ))}
           </g>
-          <SunAndMoon haloId={haloId} />
-        </g>
-        {layers?.sky}
-        <g data-testid="garden-sky-life">{life.sky}</g>
-        <path d={groundPath(groundBack, width)} fill={`url(#${hillBackId})`} />
-        <BackgroundTrees trees={trees} />
-        <GardenFeatures
-          layer="back"
-          unlocks={growth.unlocks}
-          width={width}
-          fresh={growth.fresh}
-          treeDecor={scene.treeDecor}
-        />
-        {scene.back}
-        {life.layer('back')}
-        {story?.back}
-        <Tufts
-          ground={groundBack}
-          count={Math.round((34 * width) / 340)}
-          seed={3}
-          minHeight={4}
-          maxHeight={8}
-          width={width}
-          fill="var(--garden-grass-back)"
-        />
-        <path
-          d={groundPath(groundFront, width)}
-          fill={`url(#${hillFrontId})`}
-        />
-        {layers?.ground}
-        <GardenFeatures
-          layer="ground"
-          unlocks={growth.unlocks}
-          width={width}
-          fresh={growth.fresh}
-        />
-        {pondPlants.map((plant) => (
-          <PlantArt key={plant.id} plant={plant} />
-        ))}
-        {life.layer('pond')}
-        {story?.pond}
-        <Tufts
-          ground={groundFront}
-          count={Math.round((40 * width) / 340)}
-          seed={11}
-          minHeight={6}
-          maxHeight={12}
-          width={width}
-          fill="var(--garden-grass-mid)"
-        />
-        {dots.map((dot) => (
-          <path
-            key={`${dot.x}-${dot.y}`}
-            d={`M${dot.x.toFixed(1)} ${(dot.y - dot.r).toFixed(1)} C${(dot.x + dot.r * 1.1).toFixed(1)} ${(dot.y - dot.r).toFixed(1)} ${(dot.x + dot.r * 1.1).toFixed(1)} ${(dot.y + dot.r).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y + dot.r).toFixed(1)} C${(dot.x - dot.r * 1.1).toFixed(1)} ${(dot.y + dot.r).toFixed(1)} ${(dot.x - dot.r * 1.1).toFixed(1)} ${(dot.y - dot.r).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y - dot.r).toFixed(1)}Z`}
-            fill={dot.sun ? 'var(--garden-sun)' : 'var(--garden-meadow-dot)'}
+          <g
+            className="garden-sun-place"
+            style={{ transform: `translate(${sun.x}px, ${sun.y}px)` }}
+            data-testid="garden-sun"
+          >
+            <g className="garden-rays">
+              {rays.map((d) => (
+                <path
+                  key={d}
+                  d={d}
+                  stroke="var(--garden-sun)"
+                  strokeWidth={16}
+                  strokeLinecap="round"
+                  opacity={0.22}
+                />
+              ))}
+            </g>
+            <SunAndMoon haloId={haloId} />
+          </g>
+          {layers?.sky}
+          <g data-testid="garden-sky-life">{life.sky}</g>
+        </>,
+      )}
+      {band(
+        'hill-back',
+        <path d={groundPath(groundBack, width)} fill={`url(#${hillBackId})`} />,
+      )}
+      {band(
+        'back',
+        <>
+          <BackgroundTrees trees={trees} />
+          <GardenFeatures
+            layer="back"
+            unlocks={growth.unlocks}
+            width={width}
+            fresh={growth.fresh}
+            treeDecor={scene.treeDecor}
           />
-        ))}
-        {layers?.meadow}
-        <GardenFeatures
-          layer="arch"
-          unlocks={growth.unlocks}
-          width={width}
-          fresh={growth.fresh}
-        />
-        {landPlants.map((plant) => (
-          <PlantArt key={plant.id} plant={plant} />
-        ))}
-        <Tufts
-          ground={() => 214}
-          count={Math.round((30 * width) / 340)}
-          seed={23}
-          minHeight={10}
-          maxHeight={22}
-          width={width}
-          fill="var(--garden-grass-front)"
-        />
-        {story?.meadow}
-        {life.layer('front')}
-        {story?.front}
-        {scene.tint}
-        {growth.unlocks.includes('STREAM') && growth.visitors ? (
-          <Fireflies width={width} />
-        ) : null}
-        {celebrating ? (
-          <g>
-            {pollen.map((dot) => (
-              <path
-                key={`${dot.x}`}
-                className="garden-pollen"
-                style={
-                  {
-                    '--garden-delay': `${dot.delay}ms`,
-                    '--garden-dx': `${dot.dx}px`,
-                  } as Style
-                }
-                d={`M${dot.x.toFixed(1)} ${(dot.y - 1.4).toFixed(1)} C${(dot.x + 1.5).toFixed(1)} ${(dot.y - 1.4).toFixed(1)} ${(dot.x + 1.5).toFixed(1)} ${(dot.y + 1.4).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y + 1.4).toFixed(1)} C${(dot.x - 1.5).toFixed(1)} ${(dot.y + 1.4).toFixed(1)} ${(dot.x - 1.5).toFixed(1)} ${(dot.y - 1.4).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y - 1.4).toFixed(1)}Z`}
-                fill="var(--garden-sun)"
-              />
-            ))}
-            <g
-              className="garden-butterfly"
-              style={{ '--garden-width': `${width + 32}px` } as Style}
-            >
-              <g className="garden-butterfly-wobble">
-                <Butterfly />
+          {scene.back}
+          {life.layer('back')}
+          {story?.back}
+          <Tufts
+            ground={groundBack}
+            count={Math.round((34 * width) / 340)}
+            seed={3}
+            minHeight={4}
+            maxHeight={8}
+            width={width}
+            fill="var(--garden-grass-back)"
+          />
+        </>,
+      )}
+      {band(
+        'hill-front',
+        <>
+          <path
+            d={groundPath(groundFront, width)}
+            fill={`url(#${hillFrontId})`}
+          />
+          {layers?.ground}
+        </>,
+      )}
+      {band(
+        'meadow',
+        <>
+          <GardenFeatures
+            layer="ground"
+            unlocks={growth.unlocks}
+            width={width}
+            fresh={growth.fresh}
+          />
+          {pondPlants.map((plant) => (
+            <PlantArt key={plant.id} plant={plant} />
+          ))}
+          {life.layer('pond')}
+          {story?.pond}
+          <Tufts
+            ground={groundFront}
+            count={Math.round((40 * width) / 340)}
+            seed={11}
+            minHeight={6}
+            maxHeight={12}
+            width={width}
+            fill="var(--garden-grass-mid)"
+          />
+          {dots.map((dot) => (
+            <path
+              key={`${dot.x}-${dot.y}`}
+              d={`M${dot.x.toFixed(1)} ${(dot.y - dot.r).toFixed(1)} C${(dot.x + dot.r * 1.1).toFixed(1)} ${(dot.y - dot.r).toFixed(1)} ${(dot.x + dot.r * 1.1).toFixed(1)} ${(dot.y + dot.r).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y + dot.r).toFixed(1)} C${(dot.x - dot.r * 1.1).toFixed(1)} ${(dot.y + dot.r).toFixed(1)} ${(dot.x - dot.r * 1.1).toFixed(1)} ${(dot.y - dot.r).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y - dot.r).toFixed(1)}Z`}
+              fill={dot.sun ? 'var(--garden-sun)' : 'var(--garden-meadow-dot)'}
+            />
+          ))}
+          {layers?.meadow}
+          <GardenFeatures
+            layer="arch"
+            unlocks={growth.unlocks}
+            width={width}
+            fresh={growth.fresh}
+          />
+          {landPlants.map((plant) => (
+            <PlantArt key={plant.id} plant={plant} />
+          ))}
+          <Tufts
+            ground={() => 214}
+            count={Math.round((30 * width) / 340)}
+            seed={23}
+            minHeight={10}
+            maxHeight={22}
+            width={width}
+            fill="var(--garden-grass-front)"
+          />
+          {story?.meadow}
+          {life.layer('front')}
+          {story?.front}
+        </>,
+      )}
+      {band('tint', scene.tint)}
+      {band(
+        'front',
+        <>
+          {growth.unlocks.includes('STREAM') && growth.visitors ? (
+            <Fireflies width={width} />
+          ) : null}
+          {celebrating ? (
+            <g>
+              {pollen.map((dot) => (
+                <path
+                  key={`${dot.x}`}
+                  className="garden-pollen"
+                  style={
+                    {
+                      '--garden-delay': `${dot.delay}ms`,
+                      '--garden-dx': `${dot.dx}px`,
+                    } as Style
+                  }
+                  d={`M${dot.x.toFixed(1)} ${(dot.y - 1.4).toFixed(1)} C${(dot.x + 1.5).toFixed(1)} ${(dot.y - 1.4).toFixed(1)} ${(dot.x + 1.5).toFixed(1)} ${(dot.y + 1.4).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y + 1.4).toFixed(1)} C${(dot.x - 1.5).toFixed(1)} ${(dot.y + 1.4).toFixed(1)} ${(dot.x - 1.5).toFixed(1)} ${(dot.y - 1.4).toFixed(1)} ${dot.x.toFixed(1)} ${(dot.y - 1.4).toFixed(1)}Z`}
+                  fill="var(--garden-sun)"
+                />
+              ))}
+              <g
+                className="garden-butterfly"
+                style={{ '--garden-width': `${width + 32}px` } as Style}
+              >
+                <g className="garden-butterfly-wobble">
+                  <Butterfly />
+                </g>
               </g>
             </g>
-          </g>
-        ) : null}
-        {scene.front}
-        {layers?.overlay}
-      </g>
-      {/* Tree, pond and clouds, then visitors, so a plant stays on top. */}
-      {preview ? null : scene.targets}
-      {preview ? null : life.tapTargets}
-      {preview ? null : story?.targets}
-      {(preview ? [] : plants).map((plant) => {
-        const { x, y } = plantPosition(plant);
-        const reach = plant.inPond ? 8 : plantHeight(plant.species);
-        const selected = plant.id === selectedId || plant.picked === true;
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: an SVG plant cannot be a native button
-          <g
-            key={plant.id}
-            className={`garden-plant-target${selected ? ' is-selected' : ''}`}
-            role="button"
-            tabIndex={0}
-            aria-pressed={watering ? undefined : selected}
-            data-in-pond={plant.inPond ? 'true' : undefined}
-            aria-label={plant.label}
-            onClick={() => onSelect(plant.id)}
-            onKeyDown={(event) => onKey(event, plant.id)}
-            data-testid={`garden-plant-${plant.slot}`}
-          >
-            <rect
-              x={x - 12}
-              y={y - (14 + reach)}
-              width={24}
-              height={20 + reach}
-              rx={8}
-              fill="transparent"
-            />
-            {selected ? (
-              <path
-                d={`M${x - 15} ${y + 3} C${x - 15} ${y - 3} ${x + 15} ${y - 3} ${x + 15} ${y + 3} C${x + 15} ${y + 9} ${x - 15} ${y + 9} ${x - 15} ${y + 3}Z`}
-                fill="none"
-                stroke="var(--color-focus)"
-                strokeWidth={1.6}
-                strokeDasharray="3 3"
+          ) : null}
+          {scene.front}
+          {layers?.overlay}
+        </>,
+      )}
+      {/* The top band carries the scene's name and every tap target; it is
+          the one in flow, so it sizes the stack the bands are laid over. */}
+      <svg
+        ref={svg}
+        className={`${sceneClass} garden-scene-targets`}
+        viewBox={viewBox}
+        preserveAspectRatio={aspect}
+        aria-label={preview ? undefined : label}
+        aria-hidden={preview ? true : undefined}
+        focusable={preview ? 'false' : undefined}
+        data-testid={preview ? 'garden-scene-preview' : 'garden-scene'}
+      >
+        {/* Tree, pond and clouds, then visitors, so a plant stays on top. */}
+        {preview ? null : scene.targets}
+        {preview ? null : life.tapTargets}
+        {preview ? null : story?.targets}
+        {(preview ? [] : plants).map((plant) => {
+          const { x, y } = plantPosition(plant);
+          const reach = plant.inPond ? 8 : plantHeight(plant.species);
+          const selected = plant.id === selectedId || plant.picked === true;
+          return (
+            // biome-ignore lint/a11y/useSemanticElements: an SVG plant cannot be a native button
+            <g
+              key={plant.id}
+              className={`garden-plant-target${selected ? ' is-selected' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={watering ? undefined : selected}
+              data-in-pond={plant.inPond ? 'true' : undefined}
+              aria-label={plant.label}
+              onClick={() => onSelect(plant.id)}
+              onKeyDown={(event) => onKey(event, plant.id)}
+              data-testid={`garden-plant-${plant.slot}`}
+            >
+              <rect
+                x={x - 12}
+                y={y - (14 + reach)}
+                width={24}
+                height={20 + reach}
+                rx={8}
+                fill="transparent"
               />
-            ) : null}
-          </g>
-        );
-      })}
+              {selected ? (
+                <path
+                  d={`M${x - 15} ${y + 3} C${x - 15} ${y - 3} ${x + 15} ${y - 3} ${x + 15} ${y + 3} C${x + 15} ${y + 9} ${x - 15} ${y + 9} ${x - 15} ${y + 3}Z`}
+                  fill="none"
+                  stroke="var(--color-focus)"
+                  strokeWidth={1.6}
+                  strokeDasharray="3 3"
+                />
+              ) : null}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * One depth band of the garden: decorative, laid exactly over the top band
+ * (same viewBox and box), and never a tap target itself.
+ */
+function SceneBand({
+  name,
+  className,
+  viewBox,
+  aspect,
+  children,
+}: {
+  name: string;
+  className: string;
+  viewBox: string;
+  aspect: string | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <svg
+      className={`${className} garden-scene-band`}
+      data-band={name}
+      viewBox={viewBox}
+      preserveAspectRatio={aspect}
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
     </svg>
   );
 }

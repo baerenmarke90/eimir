@@ -121,6 +121,39 @@
   max-width: none;
 }
 
+/* The scene is a stack of depth bands (#2063). The top band with the tap
+   targets stays in flow and sizes the stack exactly as the single scene did;
+   every other band is laid over its box. Each band gets its own compositor
+   layer, so a swaying tuft or a drifting cloud re-rasters only its band while
+   the sky and the hills stay painted. */
+.garden-scene-stack {
+  position: relative;
+  display: block;
+  max-width: none;
+}
+
+.garden-frame:not(.is-wide) .garden-scene-stack {
+  width: 100% !important;
+}
+
+.garden-scene-stack > .garden-scene {
+  will-change: transform;
+}
+
+.garden-scene-stack > .garden-scene-targets {
+  position: relative;
+  width: 100%;
+}
+
+.garden-scene-stack > svg.garden-scene.garden-scene-band {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  min-width: 0;
+  height: 100% !important;
+  pointer-events: none;
+}
+
 .garden-frame:not(.is-wide) .garden-scene {
   width: 100% !important;
 }

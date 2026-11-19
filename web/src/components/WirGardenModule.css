@@ -48,7 +48,8 @@
   box-shadow: none;
 }
 
-.wir-garden-frame .garden-scene.is-preview {
+.wir-garden-frame .garden-scene.is-preview,
+.wir-garden-frame .garden-scene-stack {
   width: 100%;
   height: 100%;
 }
@@ -130,4 +131,12 @@
     .garden-flicker
   ) {
   animation-iteration-count: var(--motion-ambient-repeat) !important;
+}
+
+/* Resting (#2063): offscreen, or after its short visible time, the preview
+   holds every part where it is instead of jumping back to a start pose, and
+   an idle Wir page renders nothing for it. */
+.wir-garden-frame[data-resting] .garden-scene,
+.wir-garden-frame[data-resting] .garden-scene * {
+  animation-play-state: paused !important;
 }

@@ -219,7 +219,7 @@ public final class NativePushBridge extends Plugin {
                 if (!result.isSuccessful() || result.getResult() == null || !result.getResult().matches("[A-Za-z0-9_-]{22}")) {
                     clearOwnership(selected);
                     retire(selected);
-                    call.reject("PUSH_REGISTRATION_FAILED"); return;
+                    call.reject(registrationFailure(result.getException())); return;
                 }
                 if (!saveFcmEndpoint(getContext(), selected, result.getResult())) {
                     call.reject("PUSH_DEVICE_STORAGE_UNAVAILABLE"); return;
@@ -233,6 +233,20 @@ public final class NativePushBridge extends Plugin {
                 } else call.resolve(new JSObject().put("enabled", true));
             }
         });
+    }
+
+    /**
+     * The stable code first, then the failure type and a short sanitized message.
+     * Only Test builds show the suffix, so a failed Firebase registration can be
+     * told apart without a device log. It never leaves the device.
+     */
+    static String registrationFailure(Exception cause) {
+        String code = "PUSH_REGISTRATION_FAILED";
+        if (cause == null) return code + " unexpected-installation-id";
+        String message = cause.getMessage() == null ? "" : cause.getMessage();
+        message = message.replaceAll("[^A-Za-z0-9 ._:-]", "");
+        if (message.length() > 80) message = message.substring(0, 80);
+        return code + " " + cause.getClass().getSimpleName() + (message.isEmpty() ? "" : ": " + message);
     }
 
     @PluginMethod public void refresh(PluginCall call) {

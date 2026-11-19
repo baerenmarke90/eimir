@@ -2460,6 +2460,7 @@
     "deviceDisconnecting": "Turning push off on this device …",
     "deviceOn": "Push is active on this device.",
     "deviceError": "The connection could not be set up. Try again.",
+    "deviceDiagnostic": "Test version: {{code}}",
     "deviceDisableFailed": "Turning off push failed. Try again.",
     "deviceNoDistributor": "No push service is installed or selected on this device yet.",
     "devicePermissionDenied": "Notifications for eimir. are not allowed on this device.",

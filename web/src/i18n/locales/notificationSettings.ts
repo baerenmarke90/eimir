@@ -77,6 +77,7 @@ const notificationSettings = {
   deviceError:
     'Die Verbindung konnte nicht eingerichtet werden. Versuche es erneut.',
   deviceDisableFailed: 'Ausschalten fehlgeschlagen. Versuche es erneut.',
+  deviceDiagnostic: 'Testversion: {{code}}',
   deviceNoDistributor:
     'Es ist noch kein Push-Dienst auf diesem Gerät installiert oder ausgewählt.',
   devicePermissionDenied:

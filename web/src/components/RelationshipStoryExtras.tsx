@@ -6,6 +6,7 @@ import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
 import { Configuration } from '../client/apiConfiguration';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
@@ -74,6 +75,8 @@ export interface StoryOccasion {
   label: string;
   date: Date;
   daysRemaining: number;
+  /** The account's own private date: shown only on a protected screen (#683). */
+  private?: boolean;
 }
 
 /** The couple's own upcoming occasions, nearest first. Holidays are not theirs. */
@@ -95,7 +98,13 @@ export function useStoryOccasions(
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const upcoming: StoryOccasion[] = [];
-    const add = (key: string, label: string, date: Date, annual: boolean) => {
+    const add = (
+      key: string,
+      label: string,
+      date: Date,
+      annual: boolean,
+      ownPrivate = false,
+    ) => {
       const next = annual
         ? calculateNextAnniversary(date, today)?.nextDate
         : date;
@@ -105,6 +114,7 @@ export function useStoryOccasions(
         label,
         date: next,
         daysRemaining: Math.round((next.getTime() - today.getTime()) / DAY_MS),
+        private: ownPrivate,
       });
     };
     for (const entry of dates.data ?? [])
@@ -113,6 +123,7 @@ export function useStoryOccasions(
         entry.label,
         entry.date,
         entry.repeats === DateRepeat.ANNUALLY,
+        entry.visibility !== ContentVisibility.SHARED,
       );
     if (partnerBirthday?.date)
       add(

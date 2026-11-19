@@ -45,6 +45,7 @@ import {
   passportDate,
   useWaymarkLabel,
 } from './RelationshipWaymarks';
+import { UNPAINTED, useSecureScreen } from './SecureSurface';
 import { SharedStorySummary } from './SharedStorySummary';
 import { StoryKindGlyph } from './StoryKindGlyph';
 import './RelationshipReflections.css';
@@ -460,6 +461,10 @@ function PassportLandmarks({
 }) {
   const { t } = useTranslation();
   const waymarkLabel = useWaymarkLabel();
+  // An own private date stays out of screenshots in the app (#683).
+  const secureScreen = useSecureScreen(
+    occasions.some((occasion) => occasion.private),
+  );
   const landmarks = passportLandmarks(duration);
   if (!landmarks) return null;
   const upcomingMilestone = nextMilestoneAnniversary(
@@ -523,6 +528,7 @@ function PassportLandmarks({
       date: occasion.date,
       daysRemaining: occasion.daysRemaining,
       progress: 1 - occasion.daysRemaining / 365,
+      private: occasion.private,
     })),
   ].sort((a, b) => a.daysRemaining - b.daysRemaining);
   return (
@@ -530,7 +536,14 @@ function PassportLandmarks({
       <h3>{t('relationshipReflections.passport.nextChapter')}</h3>
       <dl>
         {rows.map((row) => (
-          <div key={row.key}>
+          <div
+            key={row.key}
+            style={
+              'private' in row && row.private && !secureScreen.shown
+                ? UNPAINTED
+                : undefined
+            }
+          >
             <dt>{row.label}</dt>
             <dd>
               <time dateTime={row.date.toISOString().slice(0, 10)}>

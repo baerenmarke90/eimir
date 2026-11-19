@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import defer
 
 from eimir.api.authors import resolve_author_summary
-from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
+from eimir.api.deps import Authorization, CurrentSession, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
 from eimir.core.ids import parse_id
@@ -149,20 +149,24 @@ def get_status(session: DbSession, authorization: Authorization, response: Respo
     "/spaces/{spaceId}/once-messages/reception",
     response_model=OnceStatus,
     operation_id="setOnceMessageReception",
-    responses=problem_responses(401, 404, 409, 422),
+    responses=problem_responses(401, 403, 404, 409, 422),
 )
 def reception(
     session: DbSession,
     authorization: PhotoBindingAuthorization,
+    device_session: CurrentSession,
     response: Response,
     body: OnceReceptionUpdate,
 ) -> OnceStatus:
+    # Enabling registers this device's key and needs the eimir. app (#683);
+    # turning reception off works everywhere.
     service.set_reception(
         session,
         authorization,
         enable=body.enabled,
         device_id=body.device_id,
         public_jwk=body.public_jwk,
+        platform=device_session.platform,
         expected_version=body.expected_version,
     )
     no_store(response)
@@ -228,17 +232,23 @@ def get_message(
     "/spaces/{spaceId}/once-messages/{messageId}/open",
     response_model=OnceClaimedMessage,
     operation_id="openOnceMessage",
-    responses=problem_responses(401, 404, 409, 422),
+    responses=problem_responses(401, 403, 404, 409, 422),
 )
 def open_message(
     session: DbSession,
     authorization: PhotoBindingAuthorization,
+    device_session: CurrentSession,
     response: Response,
     message_id: MessageId,
     body: OnceClaim,
 ) -> OnceClaimedMessage:
     message = service.claim(
-        session, authorization, message_id, device_id=body.device_id, token=body.token
+        session,
+        authorization,
+        message_id,
+        device_id=body.device_id,
+        token=body.token,
+        platform=device_session.platform,
     )
     no_store(response)
     assert message.claim_until is not None

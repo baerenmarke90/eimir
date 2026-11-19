@@ -17,7 +17,10 @@ import {
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import {
+  installNativeAppLifecycle,
+  nativeSecureScreen,
+} from '../support/nativeAppLifecycle';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -652,6 +655,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       colorScheme,
     );
     await expectPrivateReferenceStructure(page);
+    // In the app the private area keeps screenshots and Recents out (#683).
+    if (colorScheme === 'dark')
+      await expect.poll(() => nativeSecureScreen(page)).toBe(true);
 
     await page.screenshot({
       path: testInfo.outputPath(`private-area-390-${colorScheme}.png`),

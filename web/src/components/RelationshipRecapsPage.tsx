@@ -74,6 +74,7 @@ import { ProMark } from './ProMark';
 import { RecapFilmScene } from './RecapFilmScene';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
+import { SecureSurface } from './SecureSurface';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
@@ -850,11 +851,14 @@ function RecapReader({
         </blockquote>
       ))}
       {value.ownDraft ? (
-        <div className="recap-private-draft">
-          <EimirIcon name="nurfuer" />
-          <strong>{t('recaps.privateDraft')}</strong>
-          <p>{value.ownDraft.text}</p>
-        </div>
+        // The own private draft stays out of screenshots in the app (#683).
+        <SecureSurface>
+          <div className="recap-private-draft">
+            <EimirIcon name="nurfuer" />
+            <strong>{t('recaps.privateDraft')}</strong>
+            <p>{value.ownDraft.text}</p>
+          </div>
+        </SecureSurface>
       ) : null}
       {capability.data || value.ownDraft ? (
         <button type="button" onClick={() => setTask('reflection')}>

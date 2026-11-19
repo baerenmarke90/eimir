@@ -2,6 +2,8 @@ const privateArea = {
   eyebrow: 'Nur für mich',
   intro: 'In eimir. nicht mit deinem Partner geteilt.',
   privacyLabel: 'Nur für mich',
+  secureScreenUnavailable:
+    'Privates lässt sich gerade nicht geschützt anzeigen. Starte die App neu.',
   backToMore: '← Zurück zu Mehr',
   backToHub: '← Zurück zu Nur für mich',
   backToSearch: '← Zurück zur Suche',

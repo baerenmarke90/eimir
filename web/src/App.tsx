@@ -410,6 +410,18 @@ function DeferredRoutes({ children }: { children: ReactNode }) {
   );
 }
 
+/** A kept panel whose page code loads on first visit. */
+function DeferredPanel({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      {children}
+    </Suspense>
+  );
+}
+
 function SpaceContextGate({
   loading,
   error,
@@ -787,6 +799,21 @@ function AuthenticatedApp({
       ),
     },
     {
+      // The Momente map stays mounted once visited (#2063): starting a map
+      // needs the GPU and its places' photos, so returning to it reuses the
+      // live map instead of building it again.
+      path: MEMORY_MAP_ROUTE,
+      element: (
+        <DeferredPanel>
+          <MemoryMapPage
+            {...planningProductProps}
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={memoryMapViewport.current}
+          />
+        </DeferredPanel>
+      ),
+    },
+    {
       path: appRoutePath('plan'),
       element: (
         <SharedPlanningOverviewPage
@@ -973,16 +1000,8 @@ function AuthenticatedApp({
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
             />
-            <Route
-              path={MEMORY_MAP_ROUTE}
-              element={
-                <MemoryMapPage
-                  {...planningProductProps}
-                  loadMemoryImage={loadMemoryImage}
-                  sessionViewport={memoryMapViewport.current}
-                />
-              }
-            />
+            {/* Kept like a primary tab (#2063); see primaryTabPanels. */}
+            <Route path={MEMORY_MAP_ROUTE} element={null} />
             <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}

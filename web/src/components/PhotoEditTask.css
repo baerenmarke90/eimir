@@ -33,7 +33,8 @@
 }
 
 /* The photo is the largest area; it never grows taller than about half the
-   viewport, so the tools and the footer stay reachable. */
+   viewport, so the tools and the footer stay reachable. Its height follows
+   the photo and eases when a turn or another tool changes the shape. */
 .photo-edit-area {
   min-width: 0;
   margin: 0;
@@ -44,6 +45,7 @@
   min-height: 12rem;
   touch-action: none;
   user-select: none;
+  transition: height var(--duration-transition) var(--easing-standard);
 }
 
 .photo-edit-view {
@@ -75,6 +77,9 @@
   background: var(--color-surface-subtle);
   touch-action: none;
   cursor: grab;
+  transition:
+    width var(--duration-transition) var(--easing-standard),
+    height var(--duration-transition) var(--easing-standard);
 }
 
 .photo-edit-stage[data-interacting] {
@@ -347,6 +352,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .photo-edit-area,
+  .photo-edit-stage,
   .photo-edit-layer,
   .photo-edit-frame {
     transition: none;

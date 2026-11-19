@@ -342,14 +342,38 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 
 | Aspect | Rule |
 | --- | --- |
-| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement) |
+| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement, the important-day Moment #2072) |
 | Duration | beats of `--duration-gesture-moment`, the whole of at most `--duration-gesture-sequence` |
 | Easing | `--easing-enter` for arrival, `--easing-settle` only for an approved landing |
-| Trigger | a confirmed result or a received event; never pending state, a refetch or a cache update |
+| Trigger | a confirmed result, a received event, or an approved occasion of the day (the important-day Moment); never pending state, a refetch or a cache update |
 | Budget | counts as the screen's one emphasized motion (M15); never two Moments at once; never during a gesture, typing or an open sheet unless the Moment is that sheet's content |
 | Replays | once per item (opaque in-memory key): a received gesture or message never plays again after it was seen, on any return or remount |
 | Content | the content (message text, gesture meaning) is readable from the first beat and stays after the Moment; motion never hides it or reveals it as the only way to see it (M13). A once message's privacy and screenshot-protection rules are unaffected |
 | Reduced motion | a static composition with the same content, focus and actions |
+
+**Approved instance: the important-day Moment on Wir** (Product Owner, 2026-11-20). The full specification is in [#2072](https://github.com/baerenmarke90/eimir/issues/2072); the rules below are its motion contract.
+
+- **Which days count:**
+  - the couple's anniversary;
+  - the partner's birthday;
+  - the viewer's own birthday;
+  - the couple's own important days, but only occasions that are visible to the viewer.
+
+  Private important dates and surprise or discreet plans never surface, neither in motion nor in copy.
+- **Choreography (M15):**
+  1. The usual Wir opening plays first and ends on its own clock.
+  2. Then the heart in the middle fills, and about six small hearts rise and fade, about 1.5 s in total.
+  3. There is one haptic tick on the first beat (4.10).
+  4. At the same time the middle line cross-fades to the occasion copy (Replace `crossfade`; the copy comes from i18n).
+- **Birthday accent:** on a birthday, that person's ring gets a warm accent: an opacity-only halo, never a scaled ring (M7), and a cake mark on the rim (Enter `fade`).
+- **Budget and scope:**
+  - It counts as the screen's one emphasized motion, and the ring breath starts only after it.
+  - It plays **once per local day per device**. Its play identity is the day and the occasion, kept on the device only.
+  - The static state (filled heart, occasion copy, birthday accent) stays for the rest of the day.
+  - Nothing replays on return to Wir, refetch, remount, resume or a kept-tab return (M3, M4, M5).
+- **Reduced motion:** the final state is shown at once: filled heart, occasion copy, and the accent and mark. There is no haptic tick.
+- **Never:** confetti, a loop, a repeat during the day, or a push or partner-visible signal created by the Moment itself.
+- **Rejected:** a "Gratulieren" action on this Moment is out of scope by Product Owner decision (2026-11-20).
 
 ### 4.8 Bounded domains: Loading, Playback, Scenes, Map
 
@@ -532,7 +556,7 @@ Legend:
 | Invitation, pairing and the partner joining the Space (`ConnectedMoment.tsx`) | Moment: the approved connected moment, once. Sending an invitation is Feedback `success` | covered |
 | Onboarding, move-in and first-run empty states (#1907 I1, #2048) | Enter once per identity. Empty states are static. The first item added is Enter `rise` plus Feedback `success` | covered |
 | Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
-| Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`) | Enter for the mark. No automatic celebration on the day | rule; a celebration Moment would be a **PO** decision |
+| Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`, Wir) | Enter for the mark. On Wir, the approved **important-day Moment** (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)) plays once per local day per device, after the opening. It never surfaces private or surprise dates. A "Gratulieren" action is out of scope by PO decision (2026-11-20) | covered |
 | Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film | covered |
 | Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
 | Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
@@ -695,7 +719,8 @@ Product Owner decisions of 2026-11-19:
 | 2 | Motion for Gesture follow only, if the gesture test shows the need | **Not taken.** The test did not show the need (6.5), and decision 1 settled it. The earlier conditional approval is void. |
 | 3 | Haptics | **Approved**, with `@capacitor/haptics` ([4.10](#410-haptics)). |
 | 4 | Container transform and list-to-detail shared elements (Replace `navigate`) | **Rejected** after an interactive preview for Momente. Out of scope; navigation keeps the directional page transitions. |
-| 5 | A celebration Moment on important days and birthdays (4.12) | **Open, optional.** Until it is decided, nothing celebrates on the day. |
+| 5 | A celebration Moment on important days and birthdays | **Approved (2026-11-20)** as the important-day Moment on Wir (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)). |
+| 6 | A "Gratulieren" action on the important-day Moment | **Rejected (2026-11-20).** Out of scope. |
 
 **Motion license check (record only).** The 2026-11-19 check, made while the conditional path was open:
 - `motion` 14.14.0, `framer-motion` 14.14.0, `motion-dom` 14.14.0 and `motion-utils` 14.7.0 are MIT; `tslib` 2.9.1 is 0BSD; the peers are optional.
@@ -814,7 +839,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
      - `linear()` easing may replace the sampled keyframes where supported (Chromium 113 and later), with the sampled spring as the fallback on the WebView floor.
    - Unit tests for own clock, play scopes, kept-view return, remount, interruption, choreography alignment, budget, attention rate limits, reduced motion and finite ambient.
 3. **Wir as the first complete reference.**
-   - Migrate everything on Wir to the layer: stage and modules as one choreography, check-in (including the `disclose` row), partner distance, moment gallery, flights, the avatar photos as Enter `media`, quiet hint, ring breath and arrivals under the attention rules.
+   - Migrate everything on Wir to the layer: stage and modules as one choreography, the important-day Moment from [#2072](https://github.com/baerenmarke90/eimir/issues/2072) (after the opening, once per local day per device, opacity-only birthday halo), check-in (including the `disclose` row), partner distance, moment gallery, flights, the avatar photos as Enter `media`, quiet hint, ring breath and arrivals under the attention rules.
    - Device acceptance on an Android test release: the opening plays once per app start, nothing replays on tab return, no avatar flash on remount, the ring breath is smooth, and "Wie geht's?" is visible.
    - Wir's files leave the allowlist.
 4. **Shell, overlays and navigation.** `ShortTaskSheet`, header notifications, profile/preference modals, quick-action popover, `layout.css` route entrances with `navigate` direction rules, `scroll-state` (floating create tuck, status-bar scrim), `appearance`, shared utilities in `styles.css`.
@@ -855,4 +880,4 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library decision: the in-house WAAPI and CSS layer for all primitives, Gesture follow included, approved by the Product Owner after the gesture test (#2071); Motion is not adopted;<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the inventory and the migration plan (nine steps, including a map step). |
+| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library decision: the in-house WAAPI and CSS layer for all primitives, Gesture follow included, approved by the Product Owner after the gesture test (#2071); Motion is not adopted;<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the approved important-day Moment on Wir (4.7, #2072; the "Gratulieren" action rejected);<br>• the inventory and the migration plan (nine steps, including a map step). |

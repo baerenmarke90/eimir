@@ -193,7 +193,7 @@ test('a dirty local capture keeps its draft before deliberate discard and return
   await expect(narrative).toHaveValue('A draft worth keeping');
   await page.locator('.task-back-control').click();
   await confirm
-    .getByRole('button', { name: taskCopy.discard, exact: true })
+    .getByRole('button', { name: taskCopy.discardConfirm, exact: true })
     .click();
   await expect(page).toHaveURL(ORIGIN);
   expect(created).toEqual([]);

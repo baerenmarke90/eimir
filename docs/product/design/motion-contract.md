@@ -1,7 +1,7 @@
 # eimir. Motion Contract
 
 **Version:** 1.0 (2026-11-19)<br>
-**Status:** Normative lower-level design-system contract under Product Reference v1 once merged. The library decision in [section 6](#6-library-decision) is **deferred by the Product Owner until the gesture test results are in** (2026-11-19). Haptics are approved ([4.10](#410-haptics)). Motion for gestures only is approved conditionally ([6.6](#66-product-owner-decisions-and-license-conditions)).<br>
+**Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
 **Baseline:** `main` at `915e97ec8`
@@ -588,7 +588,7 @@ They are generated into `product-roles.css` like the other motion roles, and the
 
 ## 6. Library decision
 
-**Status: recommendation. The Product Owner deferred the choice until the gesture test results are in (2026-11-19); it is not approved.** The reuse review follows `docs/REUSE-BEFORE-BUILD.md`.
+**Status: decided.** On 2026-11-19, after the gesture test, the Product Owner approved the in-house motion layer (WAAPI and CSS) for all primitives, Gesture follow included. Motion is not adopted. The reuse review follows `docs/REUSE-BEFORE-BUILD.md`.
 
 ### 6.1 Requirements
 
@@ -653,9 +653,9 @@ Motion's own documentation states smaller figures for its tree-shaken React path
 | Gesture follow (9) | tracking, thresholds and rubber-banding exist on `main` (pager, sheet, pull, reorder); a velocity-aware spring settle must be built: sampled spring keyframes, or `linear()` easing from Chromium 113 with `--easing-standard` as the fallback on 111 and 112 | strongest candidate: `drag` with velocity, inertia and springs, constraints with elastic edges, interruption built in; requires `domMax` (42.6 kB gzip); its drag values are independent transforms driven per frame on the main thread, which is fine while tracking but also applies to the settle | no | no | springs, no React gesture model | Draggable plugin, inertia | no |
 | Fallback without it | not applicable (platform APIs) | remove the dependency: the layer behind it would still be needed | not applicable | none needed (skips the animation) | — | — | — |
 
-### 6.5 Recommendation
+### 6.5 Decision and rationale
 
-**Recommended: an in-house motion layer on the Web Animations API and one shared CSS catalogue, with no new runtime dependency.** Motion is the documented alternative if the Product Owner prefers a ready-made third-party library.
+**Decided (Product Owner, 2026-11-19): an in-house motion layer on the Web Animations API and one shared CSS catalogue, with no new runtime dependency, for all seven primitives including Gesture follow.** Motion is not adopted.
 
 Rationale:
 
@@ -665,56 +665,43 @@ Rationale:
 4. **Cost and migration.** About 3 to 5 kB instead of about 35 to 47 kB gzip. The 37 existing `.animate()` calls and `flightKit.ts` already follow this approach, so migration consolidates rather than rewrites, and the app does not run two motion idioms side by side.
 5. **No license or supply-chain change.** GSAP is excluded on license grounds. anime.js and AutoAnimate cover only parts of the catalogue.
 
-**Gesture follow narrows the gap, and that should be stated plainly.** Velocity handoff, springs, elastic edges and interruption are Motion's strongest area. In the in-house layer they would be written and tested by the team. Three things still favour the in-house layer:
+**The gesture test settled the one open area.** Gesture follow was the area where Motion was strongest (velocity handoff, springs, elastic edges, interruption), so the choice was deferred to a gesture test. The test was draft PR #2071 (`tools/gesture-test/`). It built the sheet drag-to-dismiss with a thin WAAPI layer and with `motion` 14.14.0 (`LazyMotion`/`m`) and measured both in Chromium with 4x CPU throttling. The Product Owner then tried both on a Pixel 10 Pro Fold in a local test build.
 
-- the four gestures on `main` already have tuned thresholds, rubber-banding and WAAPI settles;
-- the hardest gestures (sortable photo arrangement, pinch and pan) are already handled by the adopted `@dnd-kit` and `@panzoom/panzoom`;
-- Motion's drag needs the 42.6 kB `domMax` bundle.
+| Criterion | In-house WAAPI | Motion |
+| --- | --- | --- |
+| Settle without extra load | equal | equal |
+| Settle while the main thread renders (24 ms per frame) | about 30 of 32 frames drawn | about 15 of 28 frames drawn |
+| Release velocity carried into the settle | yes | yes |
+| Velocity estimate vs measured finger | about 20 % high (needs tuning) | accurate |
+| Jump when grabbing the settling sheet | 0 px | 3 to 4.5 px |
+| Reduced motion | instant settle, drag still tracks | instant settle, drag still tracks |
+| Bundle delta, gzip | +1.2 kB | +55.1 kB |
+| Gesture code | 145 lines (spring helper 36) | 72 lines |
 
-The decision therefore rests on a **gesture test**, run as a separate draft pull request before the building-blocks step. It prototypes one representative gesture (the sheet drag-to-dismiss) twice: once with a thin WAAPI layer and a velocity-aware sampled spring, once with `motion` (`LazyMotion`/`m`). The two are compared on:
+The in-house settle needed only a small spring helper (36 lines, under the 150-line threshold), and Motion was not smoother; under render load it dropped about half the frames. The conditional "Motion for gestures only" path was therefore **not taken**. The in-house velocity estimator has to be tuned and tested; that work belongs to the Gesture follow building block (migration step 2).
 
-- smoothness under 4x CPU throttling (frame timings);
-- release velocity handoff;
-- interruption;
-- reduced motion;
-- bundle delta;
-- code size.
-
-If the in-house settle needs clearly more than a small spring helper (roughly 150 lines with tests), or Motion is measurably smoother, the recommendation switches to Motion for Gesture follow and its settles only (`domMax` loaded lazily with the first gesture surface). The other primitives stay in the layer. The Product Owner decides question 1 in [6.6](#66-product-owner-decisions-and-license-conditions) on the test results.
-
-Kept as options, not part of v1:
+Kept as future options, not part of v1 and not open decisions:
 
 - **React `<ViewTransition>`** for route-level Replace on the Android app (WebView ≥ 111), as a progressive enhancement after a separate evaluation, because it blocks input during a transition and is unavailable on the Firefox and Safari floors. It would carry only the directional `navigate` transitions, never a container transform, which the Product Owner rejected (6.6).
-- **Switch to Motion** (`motion/react` with `LazyMotion`, `m`, lazy `domAnimation`) if later work needs general layout animation of arbitrary layout changes (`layout`/`layoutId`) or physics springs often enough that maintaining FLIP in the layer costs more than the dependency. The layer's API stays the same so that only its implementation would change.
+- **Re-evaluation trigger:** a library such as Motion is reconsidered only through a new reuse review and a Product Owner decision. That happens if later work needs general layout animation of arbitrary layout changes, or physics springs, often enough that maintaining them in the layer clearly costs more than a dependency. The layer's API stays library-neutral, so only its implementation would change.
 
-### 6.6 Product Owner decisions and license conditions
+### 6.6 Product Owner decisions
 
 Product Owner decisions of 2026-11-19:
 
 | # | Question | Decision |
 | --- | --- | --- |
-| 1 | In-house layer or Motion | **Deferred** until the gesture test results are in. Not approved. |
-| 2 | Motion for Gesture follow only, if the gesture test shows the need | **Approved, conditional** on the license conditions below. |
+| 1 | In-house layer or Motion | **Approved: the in-house layer (WAAPI and CSS) for all primitives, Gesture follow included.** Motion is not adopted. Decided after the gesture test (#2071) and a hands-on comparison on the device. |
+| 2 | Motion for Gesture follow only, if the gesture test shows the need | **Not taken.** The test did not show the need (6.5), and decision 1 settled it. The earlier conditional approval is void. |
 | 3 | Haptics | **Approved**, with `@capacitor/haptics` ([4.10](#410-haptics)). |
 | 4 | Container transform and list-to-detail shared elements (Replace `navigate`) | **Rejected** after an interactive preview for Momente. Out of scope; navigation keeps the directional page transitions. |
+| 5 | A celebration Moment on important days and birthdays (4.12) | **Open, optional.** Until it is decided, nothing celebrates on the day. |
 
-**License conditions for Motion** (checked 2026-11-19 against the published npm packages):
+**Motion license check (record only).** The 2026-11-19 check, made while the conditional path was open:
+- `motion` 14.14.0, `framer-motion` 14.14.0, `motion-dom` 14.14.0 and `motion-utils` 14.7.0 are MIT; `tslib` 2.9.1 is 0BSD; the peers are optional.
+- Motion+ is a separate paid offering.
 
-| Package | Version | License | Role |
-| --- | --- | --- | --- |
-| `motion` | 14.14.0 | MIT (`LICENSE.md`, copyright Motion B.V.) | the only package the app may import |
-| `framer-motion` | 14.14.0 | MIT | dependency of `motion` |
-| `motion-dom` | 14.14.0 | MIT | dependency of `framer-motion` |
-| `motion-utils` | 14.7.0 | MIT | dependency of `framer-motion` and `motion-dom` |
-| `tslib` | 2.9.1 | 0BSD | dependency of `motion` and `framer-motion` |
-| `react`, `react-dom`, `remix` | — | — | optional peer dependencies; React is already in the app, `remix` is not used |
-
-Rules:
-
-- Only the MIT `motion` package from the public npm registry may be used, with the transitive set above. The adopting pull request lists the transitive dependency set and its licenses from `web/package-lock.json` in `docs/DEPENDENCIES.md`, and that list is re-checked on every Motion upgrade. A new transitive package with a license other than MIT, ISC, BSD or 0BSD blocks the upgrade.
-- **Motion+ is never used.** Motion+ is Motion's paid offering (example and Motion UI source, MotionScore audits, CSS spring generation, private `motion-plus` packages). No `motion-plus*` package, no Motion+ registry or token, and no code copied from Motion+ examples may enter the repository. The guard (migration step 9) rejects `motion-plus` in `package.json`, the lockfile and imports.
-- Features that once were Motion+ but now ship inside the MIT `motion` package (for example `motion/react-animate-view`) are covered by the MIT license, like any other part of that package.
-- Self-Hosted redistribution and eimir. Cloud use are covered by MIT. Attribution is kept through the package's `LICENSE.md` in the dependency inventory.
+It remains as input for a future re-evaluation (6.5) and is not an approval. The guard (migration step 9) rejects `motion`, `framer-motion` and any `motion-plus*` package in `web/package.json`, the lockfile and imports unless a new decision changes this contract.
 
 **License of `@capacitor/haptics`:** version 8.0.2, MIT (copyright Ionic), no runtime dependencies, peer `@capacitor/core >= 8.0.0`. It matches the app's Capacitor 8 line. The adopting pull request records it in `docs/DEPENDENCIES.md`.
 
@@ -816,13 +803,15 @@ The map step fixes both. Each animated camera call reads `--duration-map-camera`
 
 Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
 
-1. **Contract and library decision** (this document; #2067 step 1). Done when merged and the library decision is approved.
+1. **Contract and library decision** (this document; #2067 step 1). The library decision is approved (6.6); the step is done when this contract is merged.
 2. **Shared building blocks and guard.**
    - Create the motion layer: token adapter, reduced-motion source, play registry, visibility controller, choreography clock and budget (from `wirIntroClock.ts`), attention scheduler, media reveal registry, haptics adapter (budget, in-app switch, no-op on the Web), the clock primitives and the CSS catalogue.
    - Add the stagger tokens.
    - Move `flightKit.ts`, `useOverlayPresence.ts` and `useDepartingItems.ts` behind the layer without visible change.
    - Land the guard with a ratchet allowlist of today's files, so that no new ad-hoc motion is added during migration.
-   - Apply the Product Owner's decision on the gesture test ([6.5](#65-recommendation), [6.6](#66-product-owner-decisions-and-license-conditions)): Gesture follow uses either the layer or Motion.
+   - The **Gesture follow building block** in the layer: pointer tracking with slop and axis lock, rubber-banding, commit/cancel thresholds as tokens, the velocity tracker and the sampled spring from #2071, and interruption.
+     - **Tune the velocity estimator**: the gesture test read about 20 % high against the measured finger velocity. The acceptance is within ±5 % across slow, normal and fast flings, hold-then-flick, and coalesced or late pointer events, in unit tests with recorded pointer traces.
+     - `linear()` easing may replace the sampled keyframes where supported (Chromium 113 and later), with the sampled spring as the fallback on the WebView floor.
    - Unit tests for own clock, play scopes, kept-view return, remount, interruption, choreography alignment, budget, attention rate limits, reduced motion and finite ambient.
 3. **Wir as the first complete reference.**
    - Migrate everything on Wir to the layer: stage and modules as one choreography, check-in (including the `disclose` row), partner distance, moment gallery, flights, the avatar photos as Enter `media`, quiet hint, ring breath and arrivals under the attention rules.
@@ -830,7 +819,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Wir's files leave the allowlist.
 4. **Shell, overlays and navigation.** `ShortTaskSheet`, header notifications, profile/preference modals, quick-action popover, `layout.css` route entrances with `navigate` direction rules, `scroll-state` (floating create tuck, status-bar scrim), `appearance`, shared utilities in `styles.css`.
 5. **Gestures and haptics.**
-   - Move the tab pager, sheet dismissal, pull to refresh and list reorder onto Gesture follow, with one set of tokenized thresholds and the velocity handoff.
+   - Move the tab pager, sheet dismissal, pull to refresh and list reorder onto the Gesture follow building block from step 2, with one set of tokenized thresholds and the velocity handoff. No animation library is added (decision 6.6).
    - Wrap `@dnd-kit` and `@panzoom/panzoom`.
    - Check the non-gesture alternative of every gesture.
    - Haptics (approved 2026-11-19): adopt `@capacitor/haptics` 8.x (MIT), record it in `docs/DEPENDENCIES.md`, connect the haptics adapter to the triggers in [4.10](#410-haptics), add the in-app on/off switch (native app only, localized, device-local), and run device acceptance on an Android test release: system vibration settings, Do Not Disturb, and how the light impacts feel.
@@ -846,7 +835,8 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - layout properties in keyframes, and layout transitions outside the registered `disclose` uses;
    - `scale` keyframes on elements marked as thin strokes, where detectable;
    - `cubic-bezier(` and literal durations in animation declarations;
-   - `pointermove`/`touchmove` handlers outside the layer and the wrapped gesture components.
+   - `pointermove`/`touchmove` handlers outside the layer and the wrapped gesture components;
+   - an animation library dependency (`motion`, `framer-motion`, `motion-plus*`, `gsap`, `animejs`) without a new decision in this contract.
 
 ## 9. Review checklist addition
 
@@ -865,4 +855,4 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation; the choice was deferred by the Product Owner to a gesture test, with Motion for gestures approved conditionally on its MIT license (never Motion+);<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the inventory and the migration plan (nine steps, including a map step). |
+| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library decision: the in-house WAAPI and CSS layer for all primitives, Gesture follow included, approved by the Product Owner after the gesture test (#2071); Motion is not adopted;<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the inventory and the migration plan (nine steps, including a map step). |

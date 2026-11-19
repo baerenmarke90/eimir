@@ -5,7 +5,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import type { OnceMessageCreate } from '../api/generated/models/OnceMessageCreate';
 import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import { authorDisplayName } from '../client/authorPresentation';
-import { isCapacitorNativePlatform } from '../client/config';
+import { isAndroidApp, isCapacitorNativePlatform } from '../client/config';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
@@ -193,6 +193,9 @@ function OnceTask({
   // `capture` hint (phones and the Android app); a desktop browser would only
   // open the same file dialog a second time.
   const cameraPicker = useRef<HTMLInputElement>(null);
+  // Once messages are received and opened only in the app, where the screen
+  // is protected (#683). The server enforces the same rule.
+  const [receivingApp] = useState(isAndroidApp);
   const [canCapture] = useState(
     () =>
       isCapacitorNativePlatform() ||
@@ -289,11 +292,14 @@ function OnceTask({
     const problem = await normalizeClientError(cause);
     if (mounted.current)
       setError(
-        problem.code?.startsWith('ONCE_')
-          ? problem.code
-          : problem.kind === 'offline'
-            ? 'offline'
-            : 'failed',
+        problem.code === 'ONCE_APP_REQUIRED' && receivingApp
+          ? // The app's session predates the app-only rule (#683).
+            'ONCE_APP_SIGN_IN'
+          : problem.code?.startsWith('ONCE_')
+            ? problem.code
+            : problem.kind === 'offline'
+              ? 'offline'
+              : 'failed',
       );
   }
 
@@ -677,19 +683,27 @@ function OnceTask({
                     })}
                   </p>
                   <EnvelopeIcon />
-                  <p>{t('onceMessages.openConsequence')}</p>
-                  <p className="once-support">{t('onceMessages.copyLimit')}</p>
-                  {!receivingHere ? (
-                    <p>{t('onceMessages.originalDevice')}</p>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={busy || !receivingHere}
-                    onClick={() => void open()}
-                  >
-                    {t(busy ? 'onceMessages.opening' : 'onceMessages.open')}
-                  </button>
+                  {receivingApp ? (
+                    <>
+                      <p>{t('onceMessages.openConsequence')}</p>
+                      <p className="once-support">
+                        {t('onceMessages.copyLimit')}
+                      </p>
+                      {!receivingHere ? (
+                        <p>{t('onceMessages.originalDevice')}</p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={busy || !receivingHere}
+                        onClick={() => void open()}
+                      >
+                        {t(busy ? 'onceMessages.opening' : 'onceMessages.open')}
+                      </button>
+                    </>
+                  ) : (
+                    <p>{t('onceMessages.appOnly')}</p>
+                  )}
                   <button
                     type="button"
                     className="tertiary"
@@ -747,7 +761,28 @@ function OnceTask({
                   <h2 id="once-reception-title">
                     {t('onceMessages.reception')}
                   </h2>
-                  {!status.data.ownEnabled || !receivingHere ? (
+                  {!receivingApp ? (
+                    <>
+                      <p>
+                        {t(
+                          status.data.ownEnabled
+                            ? 'onceMessages.enabled'
+                            : 'onceMessages.consent',
+                        )}
+                      </p>
+                      <p>{t('onceMessages.appOnly')}</p>
+                      {status.data.ownEnabled ? (
+                        <button
+                          className="tertiary"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setConfirmOff(true)}
+                        >
+                          {t('onceMessages.disable')}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : !status.data.ownEnabled || !receivingHere ? (
                     <>
                       <p>{t('onceMessages.consent')}</p>
                       <button

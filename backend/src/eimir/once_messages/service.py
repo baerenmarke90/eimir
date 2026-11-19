@@ -18,6 +18,7 @@ from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core.errors import (
     ConflictError,
+    ForbiddenError,
     NotFoundError,
     PremiumEntitlementRequiredError,
     RateLimitedError,
@@ -38,7 +39,20 @@ CLAIM_LIFETIME = timedelta(minutes=5)
 MAX_ENVELOPE_BYTES = 8 * 1024 * 1024 - 4096
 MAX_SPACE_BYTES = 64 * 1024 * 1024
 MAX_DEVICES = 8
+# Once messages are received only in the eimir. app, where the screen is
+# protected against screenshots and the Recents preview (#683, PO decision
+# 2026-11-19). The platform is the one the device session declared at sign-in;
+# it keeps the ordinary browser out but is not a device attestation.
+RECEIVING_PLATFORMS = frozenset({"android"})
 CLEANUP_JOB = "once_message_expiry"
+
+
+def require_receiving_app(platform: str) -> None:
+    """Refuse receiving and opening outside the eimir. app."""
+    if platform not in RECEIVING_PLATFORMS:
+        raise ForbiddenError(
+            "Once messages can be received only in the eimir. app.", "ONCE_APP_REQUIRED"
+        )
 
 
 def absent() -> NotFoundError:
@@ -141,8 +155,11 @@ def set_reception(
     enable: bool,
     device_id: UUID | None,
     public_jwk: dict[str, Any] | None,
+    platform: str,
     expected_version: int | None = None,
 ) -> None:
+    if enable:
+        require_receiving_app(platform)
     current = members(session, context, lock=True)
     own = next(member for member in current if member.account_id == context.account_id)
     consent = session.get(OnceReception, (context.space_id, context.account_id))
@@ -405,6 +422,7 @@ def claim(
     *,
     device_id: UUID,
     token: UUID,
+    platform: str,
 ) -> OnceMessage:
     current = members(session, context, lock=True)
     own = next(member for member in current if member.account_id == context.account_id)
@@ -432,6 +450,9 @@ def claim(
         != {member.id for member in current}
     ):
         raise absent()
+    # After the absence checks, so a browser learns nothing the inbox does not
+    # already show, and before any claim, so the message is not used up.
+    require_receiving_app(platform)
     digest = hashlib.sha256(token.bytes).hexdigest()
     if message.claim_hash is not None:
         if (

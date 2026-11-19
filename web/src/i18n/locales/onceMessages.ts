@@ -27,7 +27,9 @@ const onceMessages = {
   openConsequence:
     'Nach dem Schließen oder Verlassen der App nicht erneut verfügbar. Die Ansicht endet spätestens nach fünf Minuten.',
   copyLimit:
-    'In der App sind Screenshots gesperrt. Ganz verhindern lassen sich Kopien nicht.',
+    'Screenshots sind hier gesperrt. Ganz verhindern lassen sich Kopien nicht.',
+  appOnly:
+    'Einmalnachrichten empfängst und öffnest du nur in der eimir. App. Dort sind Screenshots gesperrt.',
   originalDevice:
     'Öffne diese Nachricht auf einem Gerät, auf dem du den Empfang bereits vor dem Versand aktiviert hattest.',
   ended: 'Diese Nachricht ist nicht mehr verfügbar.',
@@ -49,9 +51,9 @@ const onceMessages = {
   discoverPro: 'Pro ansehen',
   noPartner: 'Verbinde dich zuerst mit deinem Partner.',
   partnerConsent:
-    'Dein Partner muss den Empfang auf seinem Gerät selbst aktivieren.',
+    'Dein Partner muss den Empfang selbst in der eimir. App einschalten.',
   sendConsequence:
-    'Nur für deinen Partner. Einmal öffnen, ungeöffnet 24 Stunden verfügbar. In der App sind Screenshots gesperrt. Ganz verhindern lassen sich Kopien nicht.',
+    'Nur für deinen Partner: einmal öffnen in der eimir. App, ungeöffnet 24 Stunden verfügbar. Screenshots sind dort gesperrt. Ganz verhindern lassen sich Kopien nicht.',
   withdraw: 'Zurückziehen',
   withdrawn: 'Nachricht zurückgezogen',
   removing: 'Wird entfernt …',
@@ -76,6 +78,9 @@ const onceMessages = {
     ONCE_RECEPTION_REQUIRED: 'Aktiviert zuerst beide den Empfang.',
     ONCE_KEY_CHANGED:
       'Die Empfangsgeräte haben sich geändert. Bitte versuche den Versand erneut.',
+    ONCE_APP_REQUIRED: 'Einmalnachrichten öffnest du nur in der eimir. App.',
+    ONCE_APP_SIGN_IN:
+      'Melde dich in der App einmal neu an, dann kannst du Einmalnachrichten empfangen.',
     ONCE_DEVICE_UNAVAILABLE:
       'Diese Nachricht lässt sich auf diesem Gerät nicht öffnen.',
     ONCE_MESSAGE_UNAVAILABLE: 'Diese Nachricht ist nicht mehr verfügbar.',

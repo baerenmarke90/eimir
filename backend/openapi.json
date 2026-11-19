@@ -40699,6 +40699,16 @@
             },
             "description": "Authentication is missing, invalid, or the session has expired."
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -41028,6 +41038,16 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
           },
           "404": {
             "content": {

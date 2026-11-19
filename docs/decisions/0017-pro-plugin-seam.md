@@ -1,13 +1,14 @@
 # Decision 0017: A Pro plugin seam inside the Core backend
 
 **Status:** Proposed; becomes accepted when the Product Owner merges the pull request  
-**Date:** November 18, 2026  
+**Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction  
 **Owning issue:** none yet. No issue owns this work; open one ("Pro plugin seam, Phase 1") before any
 implementation starts and link it here.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
-[`BUSINESS-MODEL.md`](../BUSINESS-MODEL.md), [`FREEMIUM-FEATURE-MATRIX.md`](../FREEMIUM-FEATURE-MATRIX.md) (Version 1.36),
+[`BUSINESS-MODEL.md`](../BUSINESS-MODEL.md), [`FREEMIUM-FEATURE-MATRIX.md`](../FREEMIUM-FEATURE-MATRIX.md) (Version 1.37),
 [`PREMIUM-BILLING-STRATEGY.md`](../PREMIUM-BILLING-STRATEGY.md) and [`SELF-HOSTING.md`](../SELF-HOSTING.md)  
-**Baseline:** `origin/main` at `10b42f9f5`; every file reference below was read at that revision.
+**Baseline:** `origin/main` at `d923c685b`; every file reference and figure below was re-read at that revision
+(the first draft used `10b42f9f5`; `couple_games` was added in between).
 
 ## Context
 
@@ -17,34 +18,43 @@ imports the Premium modules directly today, so no repository split is possible b
 Owner approved designing that seam first: this decision and its hook contracts. It moves no code and splits no
 repository.
 
+**Repository direction (Product Owner, November 19, 2026).** Before go-live the whole project becomes private.
+Afterwards the Core is published and Pro stays private. The cleanup path recorded with this decision's pull
+request keeps the current repository and its pull-request history as a private archive and publishes the Core
+from a vetted snapshot in a fresh public repository; affected release assets and images are retired only after
+clean replacements and an update path for Self-Hosted installations exist. This decision follows that direction:
+development continues in one private repository that holds Core and Pro, and the public Core repository is
+produced from it (decision 7).
+
 ### What is Premium-only server code today
 
-The backend has 98,946 lines in 444 Python files under `backend/src`. The standalone Premium surface is 10,830
+The backend has 101,328 lines in 453 Python files under `backend/src`. The standalone Premium surface is 12,771
 lines:
 
 | Module (`backend/src/eimir/`) | Lines | Tables | Matrix row and classification | Whole module Premium? |
 | --- | ---: | --- | --- | --- |
 | `garden` | 1,088 | 6 (`gardens`, `garden_*`) | Couple games, Premium (`games.couple`) | Yes |
 | `heart_hunt` | 540 | `heart_hunt_rounds` | Couple games, Premium | Yes |
-| `picture_ping_pong` | 370 | `picture_ping_pong` | Couple games, Premium | Yes |
+| `picture_ping_pong` | 399 | `picture_ping_pong` | Couple games, Premium | Yes |
+| `couple_games` | 1,102 | `couple_games` | Couple games, Premium (remote rounds, #2048) | Yes |
 | `once_messages` | 681 | `once_messages`, `once_devices`, `once_receptions` | Premium sending / non-paywallable reception and deletion | No: Mixed |
 | `calendar_sync` | 1,471 | 4 (`calendar_*`, `space_calendar_targets`, `plan_calendar_links`) | External Integrations, Premium (`integration.external_sync`) | Yes |
 | `photo_sources` | 1,374 | `photo_source_connections`, `photo_source_selections`, `google_account_hints` | External Integrations, Premium; disconnect stays available after downgrade | Yes, with a downgrade exit |
 | `date_ideas` | 505 | none (packaged catalog) | Date inspiration, Premium (`planning.date_inspiration`) | Yes, but Core consumes its catalog (see below) |
-| `quotes` | 532 | `daily_quote_preferences` | Daily Quote, Premium (`daily.quote`) | Yes |
+| `quotes` | 561 | `daily_quote_preferences` | Daily Quote, Premium (`daily.quote`) | Yes |
 | `presence` | 1,164 | `partner_location_consents`, `presence_snapshots`, `presence_device_credentials` | Partner location, Premium; reading one's own consent, Stop/`OFF`, lowering and deletion non-paywallable | No: Mixed |
-| 10 routers in `api/v1/` | 3,105 | | `garden`, `games`, `heart_hunt`, `once_messages`, `calendar_sync`, `photo_sources`, `date_ideas`, `daily_quote`, `picture_ping_pong`, `partner_location` | |
+| 11 routers in `api/v1/` | 3,886 | | `garden`, `games`, `heart_hunt`, `once_messages`, `calendar_sync`, `photo_sources`, `date_ideas`, `daily_quote`, `picture_ping_pong`, `partner_location`, `couple_games` | |
 
-The nine modules hold 22 tables. Their ORM models are 1,173 lines.
+The ten modules hold 23 tables. Their ORM models are 1,342 lines.
 
 Deliberately **not** part of the plugin, with the reason:
 
-- `recaps` (4,208 lines) stays Core. Its matrix row is "Premium composition / Free retained artifacts", retained
-  editions must stay readable without Pro, and `eimir.recaps.local_ai` is shared by `context_tags`,
-  `daily_checkins` and `config`.
+- `recaps` (3,881 lines) stays Core. Its matrix row is "Premium composition / Free retained artifacts" and
+  retained editions must stay readable without Pro. The local model helper now lives in the Core module
+  `eimir.local_ai`, used by `context_tags` and `daily_checkins`.
 - `wish_selections` (884 lines) stays Core. The matrix classifies it Free/Core; only the date-idea candidate
   branch checks `planning.date_inspiration` (`wish_selections/service.py`, `DATE_IDEAS_CAPABILITY`).
-- `eimir.games` (274 lines) is split: `games/questions.py` stays Core because the Free/Core Memory API validates
+- `eimir.games` (275 lines) is split: `games/questions.py` stays Core because the Free/Core Memory API validates
   guided-experience question IDs against it (`api/v1/memories.py`, `QUESTION_IDS`); `games/service.py` is the read
   model of the Premium games router and moves with it.
 - Four capabilities are plain gates inside shared Core code and stay there: `memories.map`
@@ -69,17 +79,17 @@ These are the call sites the seam replaces. They are the real work.
 
 | # | Core file and function | What it imports or calls today |
 | --- | --- | --- |
-| C1 | `api/v1/__init__.py` (module level) | Imports the 10 Pro routers and mounts them on `normal_router` |
-| C2 | `db/registry.py` `MODEL_MODULES` | 8 Pro model modules (all except `date_ideas`, which has no tables) |
-| C3 | `alembic/env.py` (module level) | 7 Pro model modules for autogenerate; `garden.models` is missing (see follow-ups) |
-| C4 | `security/lifecycle.py` `payload_tables()` | Discovers encrypted payload tables through `db/registry.load_all_models()`; 5 Pro modules have `ProtectedPayloadJSON` columns: `once_messages`, `calendar_sync`, `photo_sources`, `presence`, `picture_ping_pong` |
+| C1 | `api/v1/__init__.py` (module level) | Imports the 11 Pro routers and mounts them on `normal_router` |
+| C2 | `db/registry.py` `MODEL_MODULES` | 9 Pro model modules (all except `date_ideas`, which has no tables) |
+| C3 | `alembic/env.py` (module level) | 8 Pro model modules for autogenerate; `garden.models` is missing (see follow-ups) |
+| C4 | `security/lifecycle.py` `payload_tables()` | Discovers encrypted payload tables through `db/registry.load_all_models()`; 6 Pro modules have `ProtectedPayloadJSON` columns: `once_messages`, `calendar_sync`, `photo_sources`, `presence`, `picture_ping_pong`, `couple_games` |
 | C5 | `jobs/runner.py` `main()` | `register_handlers()` of `calendar_sync.jobs`, `heart_hunt.retention`, `once_messages.service`, `photo_sources.retention`, `presence.retention` |
 | C6 | `jobs/runner.py` `_ensure_maintenance()` | `ensure_scheduled(session)` of `heart_hunt.retention`, `presence.retention`, `photo_sources.retention` |
 | C7 | `jobs/maintenance.py` `run_security_retention()` | `once_messages.service.prune_expired` |
-| C8 | `engagement/service.py` `project_event()` | `calendar_sync.on_outbox_event`; projection branches for `ONCE_MESSAGE_SENT`, `HEART_HUNT_HIDDEN`/`HEART_HUNT_FOUND`, `GARDEN_SEED_ARRIVED`/`GARDEN_BOUQUET_GIVEN` (with `garden.notice_taken_today`) and `PICTURE_PING_PONG_TURN` |
-| C9 | `engagement/service.py` `_TARGET_MODELS`, `_target_is_projectable()`, `_projectable_predicate()`, `_picture_turn_exists()` | Target availability for `ONCE_MESSAGE` (`OnceMessage`, `once_messages.available_predicate`), `GARDEN_SEED` and `GARDEN_BOUQUET` (`garden.seed_is_waiting`, `garden.bouquet_is_open`), `PICTURE_GAME` (`PicturePingPong`) |
-| C10 | `relationship/service.py` `add_member()` | `picture_ping_pong.purge_space`, `garden.purge_space` |
-| C11 | `relationship/service.py` `end_membership()` | `once_messages.purge_space`, `heart_hunt.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
+| C8 | `engagement/service.py` `project_event()` | `calendar_sync.on_outbox_event`; projection branches for `ONCE_MESSAGE_SENT`, `HEART_HUNT_HIDDEN`/`HEART_HUNT_FOUND`, `GARDEN_SEED_ARRIVED`/`GARDEN_BOUQUET_GIVEN` (with `garden.notice_taken_today`), `PICTURE_PING_PONG_TURN` and `COUPLE_GAME_TURN` (module-level `couple_games` and `CoupleGameKind` imports, `_COUPLE_GAME_SUBJECTS`) |
+| C9 | `engagement/service.py` `_TARGET_MODELS`, `_COUPLE_GAME_TARGETS`, `_target_is_projectable()`, `_projectable_predicate()`, `_picture_turn_exists()` | Target availability for `ONCE_MESSAGE` (`OnceMessage`, `once_messages.available_predicate`), `GARDEN_SEED` and `GARDEN_BOUQUET` (`garden.seed_is_waiting`, `garden.bouquet_is_open`), `PICTURE_GAME` (`PicturePingPong`), `WHO_OF_US_GAME`, `WISH_DETECTIVE_GAME` and `OUR_MOMENTS_GAME` (`couple_games.notice_is_current`) |
+| C10 | `relationship/service.py` `add_member()` | `couple_games.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
+| C11 | `relationship/service.py` `end_membership()` | `couple_games.purge_space`, `once_messages.purge_space`, `heart_hunt.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
 | C12 | `relationship/offboarding.py` `leave_space()` | `calendar_sync.on_membership_ended` |
 | C13 | `identity/deletion.py` `apply_core_cleanup()` | Deletes `PhotoSelection`, `PhotoConnection`, `GoogleAccountHint`, `CalendarConnection`, `CalendarOAuthTransaction` rows |
 | C14 | `transfer/service.py` `build_export_archive()` | `PhotoConnection`, `GoogleAccountHint` into `personalPhotoSources` and `personalGoogleAccountHint` |
@@ -93,10 +103,10 @@ Two further facts shape the design:
 
 - **Shared closed vocabularies stay Core.** `EventType`, `NotificationKind`, `EngagementTarget`, the job kinds and
   the attachment parent type `HEART_HUNT_ROUND` (also listed in `api/v1/attachments.py`) are database check
-  constraints and client contract. Of the 160 Alembic migrations, 16 create or alter Pro tables and 6 more are
+  constraints and client contract. Of the 162 Alembic migrations, 17 create or alter Pro tables and 6 more are
   Core migrations that rewrite the shared notification-kind and target constraints and restate Pro values in them
-  (`0126`, `0139`, `0140`, `0143`, `0151`, `0159`): 22 in total. `backend/openapi.json` holds 408 operations, 67 of them
-  tagged with the Pro router tags; the generated Web client contains them as well.
+  (`0126`, `0139`, `0140`, `0143`, `0151`, `0159`): 23 in total. `backend/openapi.json` holds 426 operations, 81 of
+  them tagged with the Pro router tags; the generated Web client contains them as well.
 - **Space deletion is already plugin-independent.** Every Pro table references `spaces.id` or `accounts.id` with
   `ON DELETE CASCADE`. Account deletion is not: Account rows are pseudonymized, so their cascade never fires and
   `apply_core_cleanup()` deletes rows explicitly (C13).
@@ -106,8 +116,10 @@ Two further facts shape the design:
 The Product Owner's session measured the surface before this decision. These points were confirmed or corrected
 against the code:
 
-- Confirmed: total size, per-module sizes, the 3,105 router lines, 19 capabilities, the six unimplemented ones,
-  `recaps` and `wish_selections` staying Core.
+- Confirmed at `10b42f9f5`: total size, per-module sizes, the 3,105 router lines, 19 capabilities, the six
+  unimplemented ones, `recaps` and `wish_selections` staying Core. The figures in this document come from the
+  re-verification at `d923c685b`, after `couple_games` (remote couple-game rounds, #2048) joined the Pro surface
+  with its own router, table, encrypted payload, notification targets and lifecycle purges.
 - `authorization/retention.py` does **not** import Pro models. It scans `Base.metadata` for tables with both
   `owner_id` and `privacy_class`; no Pro table has both, so the generic `OWNER_ONLY` cleanup never covered them.
 - `jobs/runner.py` calls `ensure_scheduled` for three Pro modules only (`heart_hunt`, `presence`,
@@ -119,8 +131,8 @@ against the code:
   both move into the plugin together.
 - Missing from the initial list: C4 (encryption lifecycle), C7 (security retention), C18 (a Free/Core feature
   consumes the Pro catalog) and the `eimir.games` split.
-- The migration count is 22, not 21: 16 touch Pro tables and 6 shared Core migrations restate Pro values in
-  shared constraints.
+- The migration count was 22, not 21, at `10b42f9f5` (16 touch Pro tables, 6 shared Core migrations restate Pro
+  values in shared constraints); it is 23 at `d923c685b`.
 
 ## Reuse review (`docs/REUSE-BEFORE-BUILD.md`)
 
@@ -135,7 +147,8 @@ against the code:
 | `pluggy` 1.6.0 (MIT) | Rejected. It is present in `uv.lock` only as a `pytest` development dependency, so runtime use would be a new production dependency under the `docs/DEPENDENCIES.md` inventory gate. Its value is many independent plugins with ordered, multi-result hooks; this seam has at most one trusted plugin, and hook order and results must be explicit Core code (purge order, transaction boundaries). |
 | `stevedore` (Apache-2.0, OpenStack) | Rejected. A thin layer over the same entry points with driver/extension managers; it adds a dependency for about 30 lines of loader code and no isolation. |
 | Separate service or process for Pro (HTTP or queue) | Rejected for this phase. It would need its own authentication, authorization and transactions; lifecycle purges and target predicates run inside Core transactions and SQL queries today. |
-| Keep everything public (no seam) | Not a seam option; it remains the Product Owner's alternative to Variant 3A and is listed under open decisions. |
+| Keep everything public (no seam) | Superseded by the Product Owner's November 19 direction: Core public, Pro private. |
+| Repository-level filter instead of a seam (publish the Core by deleting Pro directories from a snapshot) | Not sufficient alone: the Core imports Pro modules directly (C1 to C19), so a filtered snapshot would not build or start. The seam is what makes a Core-only snapshot runnable; the export filter in decision 7 builds on it. |
 
 **Why custom code is still needed:** the loader (allow-list, version check, duplicate-route and capability
 validation) and the lifecycle manifest are product rules. They are small (estimate: loader 150 to 250 lines,
@@ -224,7 +237,7 @@ manifest of every plugin-owned table (`eimir.plugins.manifest`), one row per tab
   `mark_for_deletion` (replaces C15, C16 and the attachment part of `heart_hunt.purge_space`);
 - `protected_payload` with its crypto context, so `security/lifecycle.py` migrates, rotates and verifies these
   tables without importing the plugin (replaces C4). This is required by the at-rest encryption goal: without it a
-  Core-only key rotation would silently skip five Pro tables;
+  Core-only key rotation would silently skip six Pro tables;
 - `export`: the account-document keys and the columns or payload fields they contain (replaces C14 for the
   Core-only case);
 - `job_kinds`: the job kinds the plugin owns. A Core-only worker does not claim them, instead of failing them
@@ -246,8 +259,7 @@ revocation) happens on explicit disconnect, not on membership end or account del
 - with the plugin unloaded, partner join, membership end and account deletion remove the same rows as with the
   plugin loaded, and expired rows are purged.
 
-A new Pro table therefore needs a manifest row in Core in the same release. That is part of the two-PR reality
-in decision 7.
+A new Pro table therefore needs a manifest row in Core in the same change (decision 7).
 
 ### 5. Failure policy and capability visibility
 
@@ -271,7 +283,7 @@ in decision 7.
 
 ### 6. Migrations
 
-- The 22 existing migrations that touch Pro tables or Pro values stay in the Core chain. Rewriting the chain of
+- The 23 existing migrations that touch Pro tables or Pro values stay in the Core chain. Rewriting the chain of
   existing installations is not acceptable.
 - **Challenge to "a separate Alembic branch in `version_locations`":** a branch records its head in the same
   `alembic_version` table. A Core-only `migrate` that cannot locate that revision exits non-zero, which is exactly
@@ -281,19 +293,42 @@ in decision 7.
 - Plugin migrations may reference Core tables; Core migrations never reference plugin tables. Pro values in shared
   Core vocabularies (`EventType`, `NotificationKind`, `EngagementTarget`, job kinds, attachment parent types) stay
   Core migrations, because they are shared contract.
+- Consequence for the public Core: existing installations know these 23 revisions, so the published Core chain must
+  contain them unchanged. The public Core therefore shows the schema of the existing Pro tables (not their logic),
+  as does the manifest in decision 4. Tables of future Pro features live only in the private plugin environment.
 
-### 7. API contract
+### 7. Repository layout and API contract
 
-- The contract stays public in Core. Phase 1 and 2 change nothing: `backend/scripts/openapi_contract.py` builds
-  `backend/openapi.json` from `eimir.main.app` with the plugin loaded, and the Web client is generated from it.
-- After a repository split Core keeps the complete `openapi.json`. Core CI checks that its Core-only contract
-  equals the committed one minus the plugin's declared tags and paths; the private repository's CI generates its
-  fragment and checks it against the Core copy at the pinned Core revision.
-- The two-PR reality: a Pro API change is a Core PR (contract, Web client, manifest rows, shared vocabulary values)
-  merged first, then a Pro PR with the implementation pinned to that Core revision.
+Following the Product Owner's direction, there is **one private development repository** that holds Core and Pro,
+and the public Core repository is **produced from it**. This replaces the two-repository workflow the first draft
+assumed.
+
+- **One change, one PR.** A Pro feature that needs contract, Web client, manifest rows or shared vocabulary values
+  lands with its implementation in one pull request of the private repository. Lock-step versions (decision 1)
+  hold by construction, because Core and Pro are built from the same revision.
+- **Public Core export.** A publication step copies the Core from a reviewed private revision into the public
+  repository. Its input is an allow-list of Core paths, not a deny-list of Pro paths, so a new Pro directory is
+  private by default. The step fails when the exported tree imports a plugin package (the `ast` test of decision
+  1), when it does not build and start Core-only, or when it contains Pro-only package data (for example the
+  `date_ideas/data` catalog and images). Whether it publishes one snapshot per release or a continuous mirror is
+  an open decision.
+- **Community contributions.** `BUSINESS-MODEL.md` welcomes pull requests to the public Core. They are reviewed in
+  the public repository and applied to the private repository by a maintainer; the next export then carries them
+  back. The CLA continues to govern them.
+- **The OpenAPI contract.** Phase 1 and 2 change nothing: `backend/scripts/openapi_contract.py` builds
+  `backend/openapi.json` from `eimir.main.app` with the plugin loaded. The private repository keeps that complete
+  contract for the official Web and Android clients. The public Core export carries a Core-only `openapi.json`,
+  generated without the plugin; the export step checks that it equals the complete contract minus the plugin's
+  declared tags and paths, so the two can never drift apart.
+- **Clients are outside this seam.** The official Web and Android clients contain the Pro screens and the generated
+  Pro client code. Whether the public export contains client code, and with which Pro parts removed, is a separate
+  decision; this backend seam does not answer it.
 - Rejected alternative: keeping the Pro routers and DTOs in Core with plugin-provided services. It keeps one
-  OpenAPI source but leaves the full HTTP layer, its validation and its error mapping public, and it turns "route
+  OpenAPI source but publishes the full HTTP layer, its validation and its error mapping, and it turns "route
   absent" into "route present, returns an error" on Core-only.
+- Superseded alternative: two repositories (public Core, private Pro) with a Core PR merged before every Pro PR.
+  It remains possible later, but it is not needed for the chosen direction and costs a second CI and review cycle
+  per contract change.
 
 ### 8. Phasing
 
@@ -303,16 +338,16 @@ identical with the plugin loaded.
 
 Acceptance criteria for Phase 1:
 
-1. No Core module imports `garden`, `heart_hunt`, `picture_ping_pong`, `once_messages`, `calendar_sync`,
-   `photo_sources`, `date_ideas`, `quotes`, `presence`, `providers/caldav.py` or `games/service.py`; the `ast` test
-   enforces it.
+1. No Core module imports `garden`, `heart_hunt`, `picture_ping_pong`, `couple_games`, `once_messages`,
+   `calendar_sync`, `photo_sources`, `date_ideas`, `quotes`, `presence`, `providers/caldav.py` or
+   `games/service.py`; the `ast` test enforces it.
 2. `db/registry.py` and `alembic/env.py` list no Pro model module; the plugin contributes them.
-3. The manifest covers the 22 Pro tables; the manifest tests in decision 4 pass.
+3. The manifest covers the 23 Pro tables; the manifest tests in decision 4 pass.
 4. The backend test suite runs in two configurations in CI: plugin loaded (today's suite, unchanged results) and
    Core-only. Core-only asserts: every Pro path answers `404`; plugin-owned capabilities are absent from the
    effective entitlement even with an active `PREMIUM` grant; partner join, membership end and account deletion
    still purge the Pro rows; expired presence snapshots, once messages and photo selections are still purged; the
-   encryption verify command reports the five Pro payload tables; notifications for plugin targets are hidden.
+   encryption verify command reports the six Pro payload tables; notifications for plugin targets are hidden.
 5. A plugin named but missing, a seam mismatch, a revision mismatch and a route collision each refuse to start
    (unit tests on the loader).
 6. `backend/openapi.json` is byte-identical before and after.
@@ -323,17 +358,20 @@ Phase 1 can be cut into reviewable PRs: (a) loader, contract, manifest, registry
 configuration; (d) date ideas, `eimir.games` split and demo hooks.
 
 **Phase 2: relocation.** The modules move into a separate distribution (`eimir-pro`, for example
-`backend/pro/`) that is still in this repository and still in the public image, with its own tests. No behavior
-change.
+`backend/pro/`) inside the same repository, with its own tests. That directory is the boundary the public Core
+export leaves out. No behavior change.
 
-**Phase 3: delivery.** A private Pro image built `FROM` the Core image digest, a release identity for it, and
-the distribution channel the Product Owner selects (open decisions). Only here does the code stop being public in
-new releases.
+**Phase 3: publication and delivery.** The repository becomes private (the cleanup path in the Context section),
+the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the
+exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
+the distribution channel the Product Owner selects (open decisions). Before go-live, Phase 1 and 2 must be complete:
+otherwise the exported Core does not start without Pro.
 
 **Effort estimate (an estimate, not a commitment):** Phase 1 about 8 to 12 working days of agent-assisted work
 including review cycles, about 1,500 to 2,500 changed lines across the 19 call sites, the seam and the Core-only
-test configuration. Phase 2 about 4 to 6 days. Phase 3 depends on the distribution decision: about 5 to 10 days
-for image build, release identity, Self-Hosted documentation and license delivery.
+test configuration. Phase 2 about 4 to 6 days. Phase 3 about 6 to 12 days for the export step and its checks, both
+image builds, release identities, Self-Hosted documentation and license delivery; the repository visibility change
+and the retirement of old artifacts are operational work on top.
 
 ## Business/freemium consistency
 
@@ -352,6 +390,10 @@ for image build, release identity, Self-Hosted documentation and license deliver
   material without mandatory phone-home". A credentialed pull is a network dependency at install and update time,
   not at runtime, but it is a new obligation for paying Self-Hosted operators and must be decided explicitly
   before Phase 3.
+- **Existing Self-Hosted installations:** today's public images contain the Pro code. After Phase 3 the public
+  Core image does not; an operator with a Pro license switches to the Pro image, and an operator without one keeps
+  the complete Free/Core product on the Core image. The release notes and `SELF-HOSTING.md` must say so before the
+  first Core-only release.
 - **Interpretation to confirm:** "package absent" is an operating choice, not a commercial downgrade. The matrix
   promises, for example, that pending once messages stay openable and that photo integrations can be disconnected
   after a downgrade. With the package absent the manifest still enforces lifetimes and deletion, but the
@@ -363,7 +405,8 @@ for image build, release identity, Self-Hosted documentation and license deliver
 - **Security and supply chain:** the allow-list, the single-distribution check and the revision pin stop an
   unrelated installed package from claiming the plugin name. The plugin runs in-process with full Core privileges;
   the seam is a code-organization boundary, not a sandbox. The Pro image must carry the same digest, attestation
-  and immutable-release guarantees as the Core images. Fail-closed startup prevents a half-loaded Pro.
+  and immutable-release guarantees as the Core images. Fail-closed startup prevents a half-loaded Pro. The public
+  Core export is a publication path: allow-list input, the import check and a Core-only start are its gates.
 - **Privacy and data lifecycle:** decision 4. Plugin target predicates fail closed. Startup diagnostics contain
   table names and counts only.
 - **Concurrency and transactions:** hooks run in the caller's transaction and never commit; existing lock order
@@ -384,17 +427,25 @@ for image build, release identity, Self-Hosted documentation and license deliver
 
 ## What this does not protect
 
-- **Git history keeps today's Pro code public.** Every module listed above, the editorial date-idea catalog and
-  its 25 images (`date_ideas/data`) and the quote catalog are in the public history and in cached pull-request
-  refs. A split protects only code written after it. Rewriting public history would not remove existing clones.
+- **Copies that already left stay out there.** Making the repository private stops further downloads from
+  publisher-controlled locations, and a fresh public Core repository carries no Pro history. But every module
+  listed above, the editorial date-idea catalog and its 25 images (`date_ideas/data`) and the quote catalog were
+  public until then: existing forks stay public when the upstream becomes private, local clones and cached views
+  remain, and published release assets and public GHCR images contain the backend `src/` tree until they are
+  retired (the cleanup path in the Context section). What was published stays usable under the license it was
+  published with.
+- **The public Core shows the schema of existing Pro tables.** The 23 migrations and the manifest must stay in the
+  public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
 - **Gates in shared Core code stay patchable.** `memories.map`, `relationship.passport`,
   `partner.quick_actions.extended`, `theme.bespoke_packs`, `media.video_upload` and `daily.insights` are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
-- **Workflow cost.** After a split, every Pro change touching the contract needs two PRs, two CI runs and a
-  revision pin. Shared refactorings in Core can break the plugin, and the lock-step pin turns every Core release
-  into a Pro release.
+- **Workflow cost.** With one private development repository there is no second PR per change, but there is an
+  export step to maintain, a public repository whose contributions must be carried over by hand, and two images per
+  release. The lock-step pin turns every Core release into a Pro release.
+- **A wrong export publishes Pro again.** The allow-list input and the export checks in decision 7 reduce that
+  risk; they do not remove it. An export is a publication and needs the same review as a release.
 - **The seam itself is not secret.** The Protocol, the manifest and the vocabulary values describe what Pro does.
 
 ## Consequences
@@ -416,12 +467,17 @@ for image build, release identity, Self-Hosted documentation and license deliver
 
 ## Open decisions for the Product Owner
 
-1. **Repository split yes or no.** The seam is worth having either way (it removes 19 coupling sites and makes
-   Core-only testable); the split is a separate decision with the costs above.
-2. **Distribution channel for the Pro image:** a credentialed private registry, an image delivered with the
+Decided on November 19, 2026: the repository becomes private before go-live, the Core is published, Pro stays
+private. Still open:
+
+1. **How the public Core is produced:** one reviewed snapshot per release, or a continuous mirror of reviewed
+   revisions (decision 7).
+2. **Which clients the public export contains**, and how their Pro screens and generated Pro client code are
+   handled; this backend seam does not cover clients.
+3. **Distribution channel for the Pro image:** a credentialed private registry, an image delivered with the
    signed license, or another channel; and how that fits "offline-verifiable without mandatory phone-home".
-3. **Contract ownership after a split:** this decision proposes Core owns the full contract (decision 7).
 4. **Package absent versus downgrade:** confirm the interpretation in the business review.
-5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decide whether and when.
+5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decide whether and when. Their code
+   stays in the public Core until then.
 6. **License of the private package** for paying Self-Hosted operators (the public code is PolyForm
    Noncommercial 1.0.0).

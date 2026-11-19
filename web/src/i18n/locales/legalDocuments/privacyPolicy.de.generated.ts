@@ -595,12 +595,12 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: "Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren ",
+              text: 'Öffnest du eine Karte, lädt dein Gerät Kartenstil und Kartenbilder von tiles.openfreemap.org. Diesen öffentlichen Dienst betreibt Hyperknot Software Kft. in Ungarn unter dem Namen OpenFreeMap mit Kartendaten von OpenStreetMap. Dabei erhält der Dienst deine IP-Adresse, technische Verbindungsdaten und den angeforderten Kartenausschnitt. Daraus kann sich ungefähr ergeben, wo eure Orte liegen. Namen, Texte und Fotos aus eimir. werden dabei nicht übertragen. Der Betreiber beschreibt auch den möglichen Einsatz von Cloudflare zur Auslieferung, die regulären Zugriffsprotokolle sowie gesonderte Fehler- und Sicherheitsprotokolle in seinen ',
             },
             {
               kind: 'link',
               text: 'Datenschutzhinweisen',
-              href: 'https://osmfoundation.org/wiki/Privacy_Policy',
+              href: 'https://openfreemap.org/privacy/',
             },
             {
               kind: 'text',
@@ -919,7 +919,7 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'Fotos und Videos, die du zuletzt angesehen hast, höchstens sieben Tage lang,',
+                text: 'bereits geladene Bilddateien ohne feste Altersgrenze, bis zu 2.000 Medieneinträge. Bei knappem Speicher entfernt die App die am längsten ungenutzten Bilder. Im Browser und auf iOS werden dafür nur gemeinsame Bilder dauerhaft gespeichert. Private Bilder bleiben dort im Arbeitsspeicher. Android speichert gemeinsame und private Bilder verschlüsselt mit einem Schlüssel für deine aktuelle Anmeldung. Ob du ein Bild offline noch sehen kannst, hängt vom zugehörigen, höchstens sieben Tage gültigen Inhalt ab. Videos und Audiodateien werden nicht in diesem Bildspeicher abgelegt,',
               },
             ],
             [
@@ -952,7 +952,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Diese Daten liegen im Browser nicht zusätzlich verschlüsselt. Meldest du dich ab, löscht eimir. deine Anmeldung, zwischengespeicherte Inhalte, Fotos und Entwürfe. Du kannst sie außerdem jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Sicherungen deines Geräts aus.',
+              text: 'Im Browser liegen dauerhaft gespeicherte Bilder ohne zusätzliche Verschlüsselung durch eimir. vor. Beim Abmelden, bei ungültiger Sitzung und beim Wechsel von Konto oder Space verwirft die App den bisherigen Bildspeicher und räumt die Einträge auf. Auf Android löscht sie beim Abmelden zusätzlich den Bildschlüssel. Damit sind verschlüsselte Bilddaten bereits vor ihrer Entfernung unlesbar. Du kannst die lokalen Daten jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Gerätesicherungen aus.',
             },
           ],
           children: [],
@@ -1144,7 +1144,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),',
+              text: 'Hyperknot Software Kft. (OpenFreeMap, Ungarn), wenn du eine Karte öffnest (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1211,8 +1211,14 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die OpenStreetMap Foundation hat ihren Sitz im Vereinigten Königreich. Auch für das Vereinigte Königreich hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO).',
+              text: 'OpenFreeMap wird in Ungarn betrieben. Angaben zu den für die weltweite Auslieferung der Karten eingesetzten Diensten findest du in den ',
             },
+            {
+              kind: 'link',
+              text: 'Datenschutzhinweisen von OpenFreeMap',
+              href: 'https://openfreemap.org/privacy/',
+            },
+            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1347,11 +1353,13 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'strong',
-              text: 'Zwischengespeicherte Inhalte, Fotos und Entwürfe auf deinem Gerät:',
+              text: 'Lokale Kopien gemeinsamer Ansichten und Entwürfe:',
             },
+            { kind: 'text', text: ' höchstens sieben Tage. ' },
+            { kind: 'strong', text: 'Bilddateien:' },
             {
               kind: 'text',
-              text: ' höchstens sieben Tage, beim Abmelden sofort. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
+              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
             },
           ],
           children: [],

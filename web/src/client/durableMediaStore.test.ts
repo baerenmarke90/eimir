@@ -83,7 +83,7 @@ describe('App-owned media persistence', () => {
       expect(await readDurableMedia(type, epoch)).toBeUndefined();
     }
   });
-  it('reuses bytes through a fresh module instance without a network loader', async () => {
+  it('reuses authorized image bytes on day eight, scoped to the original account', async () => {
     const epoch = captureDurableMediaEpoch()!;
     await writeDurableMedia(
       'origin/account/space/photo',
@@ -91,6 +91,9 @@ describe('App-owned media persistence', () => {
       image(['photo']),
       () => true,
     );
+    const clock = vi
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.now() + 8 * 86_400_000);
     vi.resetModules();
     const restored = await import('./durableMediaStore');
     expect(
@@ -100,6 +103,7 @@ describe('App-owned media persistence', () => {
     expect(
       await restored.readDurableMedia('other-account/photo', epoch),
     ).toBeUndefined();
+    clock.mockRestore();
   });
   it('fences queued writes and old reads at logout', async () => {
     const epoch = captureDurableMediaEpoch()!;

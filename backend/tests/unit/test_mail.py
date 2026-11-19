@@ -105,6 +105,7 @@ class TestLogAdapter:
         ],
     )
     @pytest.mark.parametrize("log_format", [LogFormat.TEXT, LogFormat.JSON])
+    @pytest.mark.parametrize("separator", ["?", "#"])
     def test_auth_link_survives_configured_log_delivery(
         self,
         monkeypatch,  # type: ignore[no-untyped-def]
@@ -112,6 +113,7 @@ class TestLogAdapter:
         path: str,
         token: str,
         log_format: LogFormat,
+        separator: str,
     ) -> None:
         settings = get_settings().model_copy(
             update={
@@ -122,7 +124,7 @@ class TestLogAdapter:
         )
         monkeypatch.setattr("eimir.mail.log.get_settings", lambda: settings)
         stream = configured_log_stream(settings)
-        link = f"http://localhost:8080/{path}?token={token}"
+        link = f"http://localhost:8080/{path}{separator}token={token}"
 
         LoggingMailSender().send(
             MailMessage(to="operator@example.test", subject="Auth link", body=link)
@@ -132,9 +134,12 @@ class TestLogAdapter:
         assert link in output
         assert output.count(token) == 1
 
+    @pytest.mark.parametrize(("separator", "suffix"), [("?", "?token=[REDACTED]"), ("#", "")])
     def test_normal_application_log_still_redacts_action_token(
         self,
         configured_log_stream,  # type: ignore[no-untyped-def]
+        separator: str,
+        suffix: str,
     ) -> None:
         settings = get_settings().model_copy(
             update={
@@ -145,17 +150,20 @@ class TestLogAdapter:
         )
         stream = configured_log_stream(settings)
         token = "ordinary-log-token-123"
-        link = f"http://localhost:8080/auth/magic-link?token={token}"
+        link = f"http://localhost:8080/auth/magic-link{separator}token={token}"
 
         logging.getLogger("eimir.auth.test").info("received link %s", link)
 
         output = stream.getvalue()
         assert token not in output
-        assert "token=[REDACTED]" in output
+        assert output.rstrip().endswith(f"/auth/magic-link{suffix}")
 
+    @pytest.mark.parametrize(("separator", "suffix"), [("?", "?token=[REDACTED]"), ("#", "")])
     def test_mail_logger_is_redacted_when_transport_is_not_log(
         self,
         configured_log_stream,  # type: ignore[no-untyped-def]
+        separator: str,
+        suffix: str,
     ) -> None:
         settings = get_settings().model_copy(
             update={
@@ -166,13 +174,13 @@ class TestLogAdapter:
         )
         stream = configured_log_stream(settings)
         token = "smtp-context-token-456"
-        link = f"http://localhost:8080/auth/verify-email?token={token}"
+        link = f"http://localhost:8080/auth/verify-email{separator}token={token}"
 
         logging.getLogger("eimir.mail.log").info("mail body:\n%s", link)
 
         output = stream.getvalue()
         assert token not in output
-        assert "token=[REDACTED]" in output
+        assert output.rstrip().endswith(f"/auth/verify-email{suffix}")
 
 
 class TestSmtpAdapter:

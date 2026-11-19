@@ -90,7 +90,7 @@ def _link(path: str, token: str) -> str:
     and cause the recipient to hand over the token there.
     """
     base = get_settings().public_base_url.rstrip("/")
-    return f"{base}/{path.lstrip('/')}?token={quote(token)}"
+    return f"{base}/{path.lstrip('/')}#token={quote(token)}"
 
 
 def _deliver(mail: MailSender, message: MailMessage) -> None:

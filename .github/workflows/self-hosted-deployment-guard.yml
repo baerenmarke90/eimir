@@ -313,6 +313,13 @@ jobs:
       - name: Build local source images for integration checks
         run: python3 scripts/build_self_hosted_source.py --env-file .env
 
+      - name: Web request logs contain no sensitive values
+        run: |
+          set -euo pipefail
+          web_image=$(docker compose --profile self-hosted --env-file .env config --format json \
+            | jq -er '.services.web.image')
+          python3 web/scripts/test_request_log_privacy.py --image "$web_image"
+
       - name: Occupied API port fails clearly
         run: |
           cp .env .env-conflict

@@ -181,3 +181,19 @@ These tasks require external systems, operator access, or legal review and must 
 
 - [ ] **Public metadata finalization**
   - once the canonical public origin and share artwork are frozen, add absolute canonical/preview URLs where required by external crawlers.
+
+- [ ] **German privacy policy review before public availability**
+  - the Product Owner reads `legal/de/privacy-policy.md` in full; the 2026-11-19 audit remediation (F05, F06) added the local-cache description (browser, iOS, Android; see `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`) and the map tile provider (OpenFreeMap, operated by Hyperknot Software Kft., Hungary);
+  - rely on the text only after appropriate legal review, and record the date and reviewer;
+  - the build check `web/scripts/check-pwa-foundation.mjs` keeps the map hosts and the provider entry in step; a changed host requires a renewed review.
+
+- [ ] **Request-log exposure at the real ingress, CDN and log storage**
+  - applies to the first production environment; the repository configuration and the isolated acceptance runs say nothing about it;
+  - confirm that no layer in front of the web container writes full request lines or query strings again, and who can read and how long the log storage retains historical logs that were written before the entry-link change (the 2026-11-19 audit item F01);
+  - an environment that never ran the earlier web image has no historical logs; the check then reduces to the configuration of the layers in front of it;
+  - the procedure is in `docs/SECURITY.md`.
+
+- [ ] **Physical Android device acceptance of the audit remediation**
+  - startup size (F10): compare cold start, first interaction and a later route change of a build before and after the route-wise loading change on a representative device; the build budget of 800 kB gzip is already enforced by `web/scripts/check-entry-size.mjs`;
+  - real GPS delivery, late location responses after sign-out and re-activation, and OS suspend/resume (F03);
+  - the temporary voice-share deadline after OS suspend/resume and with real audio input (F17).

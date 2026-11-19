@@ -1,9 +1,9 @@
 # eimir. Motion Contract
 
-**Version:** 1.0 (2026-11-19)  
-**Status:** Normative lower-level design-system contract under Product Reference v1 once merged. The library decision in [section 6](#6-library-decision) is **pending Product Owner approval**.  
-**Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app  
-**Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)  
+**Version:** 1.0 (2026-11-19)<br>
+**Status:** Normative lower-level design-system contract under Product Reference v1 once merged. The library decision in [section 6](#6-library-decision) is **deferred by the Product Owner until the gesture test results are in** (2026-11-19). Haptics are approved ([4.10](#410-haptics)). Motion for gestures only is approved conditionally ([6.6](#66-product-owner-decisions-and-license-conditions)).<br>
+**Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
+**Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
 **Baseline:** `main` at `915e97ec8`
 
 This contract adds three things to the [Web Motion Guideline](motion-guideline.md) (#1204):
@@ -376,13 +376,32 @@ Motion that announces something the person did not trigger: partner arrivals, re
 
 ### 4.10 Haptics
 
-Haptics belong to Feedback and Gesture follow; they are never decorative and never the only signal (M13).
+**Approved by the Product Owner on 2026-11-19:** the app gets haptic feedback, through the official `@capacitor/haptics` plugin. `main` has no haptics yet. The gestures-and-haptics step adds them.
 
-- **Events:** a light tick when a gesture crosses its commit threshold (both directions); a confirmation on a gesture commit or a confirmed meaningful action (a send, a check-in, a gesture to the partner); a distinct pattern for a refusal of a direct action. No haptics for unprompted motion, Ambient, Enter, navigation by tap, or while tracking.
-- **Budget:** at most one haptic per direct action, plus the threshold tick of a gesture. No repeated haptics within `--duration-context`.
-- **Platform:** the Android app uses the native haptic feedback through a Capacitor plugin (candidate: the official `@capacitor/haptics`, MIT, a new dependency that needs its own reuse review in the gestures step). On the Web there are no haptics: iOS Safari has no Vibration API, and `navigator.vibrate` is not a reliable haptic on Android browsers. A Web build therefore simply has none.
-- **Settings:** haptics follow the system's touch-feedback setting. The building-blocks step verifies how the plugin honours it on Android. Reduced motion does not switch haptics off; it is a separate system preference.
-- **Today:** `main` has no haptics at all. Adding them is a product change and needs a Product Owner decision.
+Haptics belong to direct actions. They are never decorative and never the only signal (M13). All calls go through the layer's haptics adapter. Feature code never calls the plugin or `navigator.vibrate` itself.
+
+| Trigger | Primitive | Plugin call | Notes |
+| --- | --- | --- | --- |
+| Commit threshold crossed (either direction) | Gesture follow | `selectionChanged()` | at most once per crossing; none while tracking otherwise |
+| Gesture committed (sheet dismissed, tab changed by swipe, item dropped, refresh started) | Gesture follow | `impact({ style: Light })` | once per gesture |
+| Press of an emphasized action (send, check-in "Fertig", a gesture to the partner) | Feedback `press` | `impact({ style: Light })` | only these named actions; ordinary buttons, links and tabs get none |
+| Confirmed success of a meaningful action | Feedback `success` | `notification({ type: Success })` | only after the authoritative result; replaces the press haptic, never in addition |
+| Affectionate beat the person triggered (sending a heart or kiss) | Feedback `affection` | `impact({ style: Medium })` | one beat |
+| A Moment the person opens or receives while looking at it | Moment | one `impact({ style: Medium })` on its first beat | never for a Moment shown in its final state; never as a pattern of several pulses |
+| Refusal of a direct action (invalid input on submit, failed send returning) | Feedback `refuse`, Flight `return` | `notification({ type: Warning })` | not while typing |
+
+Rules:
+
+- **Budget:** at most one haptic per direct action plus the threshold tick of a gesture. No two haptics within `--duration-context`; the later one is dropped. No haptics for unprompted motion (arrivals, hints, realtime signals, received items the person is not looking at), Ambient, Enter, Replace, navigation by tap, Loading or Scenes' ambient life.
+- **User setting:** a visible on/off switch "Haptisches Feedback" (localized through i18n) in the app's settings, on by default, stored on the device only (not shared with the partner, not sent to the server). The switch is shown only in the native app (runtime platform check, AGENTS.md "Browser-only controls"), because the Web has no haptics.
+- **Reduced motion:** does not switch haptics off; they are a separate preference and also help people who reduce motion. A person who wants neither turns off the in-app switch.
+- **Android behaviour:** the plugin (version 8.0.2, MIT) vibrates through `Vibrator` with `VibrationEffect` one-shots and waveforms, and declares the normal-level `VIBRATE` permission (granted at install, no runtime prompt). It does **not** use `View.performHapticFeedback`, so it does not follow the system touch-feedback setting the way native controls do. The in-app switch is therefore required, and the gestures step verifies on a device:
+  - how Android 13+ "Vibration & haptics" settings and Do Not Disturb affect it;
+  - whether the light impacts feel like system ticks.
+
+  If they feel like buzzes instead of ticks, the step may propose a small project plugin on `performHapticFeedback` (`CONFIRM`, `REJECT`, `GESTURE_THRESHOLD_ACTIVATE`, `CLOCK_TICK`) through its own reuse review.
+- **Web fallback:** none. The adapter is a no-op outside the native app. The plugin's Web implementation calls `navigator.vibrate` directly, so the adapter never calls the plugin on the Web. Reasons: iOS Safari has no Vibration API; on Android browsers `navigator.vibrate` is a buzz that follows no system haptic setting; desktop has no vibration. A later Web use of `navigator.vibrate` would need its own decision.
+- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the plugin's Taptic Engine implementation when iOS ships.
 
 ### 4.11 Gap audit
 
@@ -400,7 +419,7 @@ How each known motion need is covered by v1:
 | Invalid input, failed send, conflict | Feedback `refuse`, Flight `return`, Replace `crossfade` | variants |
 | Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment |
 | Light/dark, token sets, app designs | Replace `appearance` | variant |
-| Haptics | 4.10 | cross-cutting rules; none on `main` yet |
+| Haptics | 4.10 | approved by the Product Owner (2026-11-19); `@capacitor/haptics`, in-app switch, budget |
 | Several components on one choreography, per-screen budget | M15 | invariant |
 | Love and once messages, celebrations, gesture receipt | Moment (4.7) | new primitive; `celebrate` moved out of Feedback |
 | Text input caret, native scrolling momentum, native controls | the platform | out of scope: the browser owns them |
@@ -429,7 +448,7 @@ The layer is the single implementation of the catalogue. The API below describes
 | Choreography clock and budget | one start time per choreography, late members align, per-screen budget (M15) | `wirIntroClock.ts`, the batch timing in `useWirReveal.ts` |
 | Attention scheduler | priority, rate limits, drop-not-queue for unprompted motion (4.9) | per-feature checks in `partnerArrival.ts`, `QuietHint.tsx` |
 | Media reveal | decoded-URL registry for the Enter `media` variant | per-component image fades |
-| Haptics adapter | one call per haptic event, routed to the Capacitor plugin in the Android app and a no-op on the Web (4.10) | none (no haptics on `main`) |
+| Haptics adapter | one call per haptic event with the budget and the in-app switch, routed to `@capacitor/haptics` in the native app and a no-op on the Web (4.10) | none (no haptics on `main`) |
 | CSS catalogue | one stylesheet with the shared keyframes per primitive variant, driven by data attributes and token roles | per-feature `@keyframes` |
 
 ### 5.2 Rules for feature code
@@ -453,7 +472,7 @@ They are generated into `product-roles.css` like the other motion roles, and the
 
 ## 6. Library decision
 
-**Status: recommendation, pending Product Owner approval.** The reuse review follows `docs/REUSE-BEFORE-BUILD.md`.
+**Status: recommendation. The Product Owner deferred the choice until the gesture test results are in (2026-11-19); it is not approved.** The reuse review follows `docs/REUSE-BEFORE-BUILD.md`.
 
 ### 6.1 Requirements
 
@@ -536,19 +555,52 @@ Rationale:
 - the hardest gestures (sortable photo arrangement, pinch and pan) are already handled by the adopted `@dnd-kit` and `@panzoom/panzoom`;
 - Motion's drag needs the 42.6 kB `domMax` bundle.
 
-The building-blocks step therefore starts with a **gesture spike**: the sheet dismissal and the pager settle with a velocity-aware sampled spring in the layer. If the spike shows that a natural settle needs clearly more than a small spring helper (roughly 150 lines with tests), the recommendation switches to Motion for Gesture follow and settles only (`domMax` loaded lazily with the first gesture surface). The other primitives stay in the layer.
+The decision therefore rests on a **gesture test**, run as a separate draft pull request before the building-blocks step. It prototypes one representative gesture (the sheet drag-to-dismiss) twice: once with a thin WAAPI layer and a velocity-aware sampled spring, once with `motion` (`LazyMotion`/`m`). The two are compared on:
+
+- smoothness under 4x CPU throttling (frame timings);
+- release velocity handoff;
+- interruption;
+- reduced motion;
+- bundle delta;
+- code size.
+
+If the in-house settle needs clearly more than a small spring helper (roughly 150 lines with tests), or Motion is measurably smoother, the recommendation switches to Motion for Gesture follow and its settles only (`domMax` loaded lazily with the first gesture surface). The other primitives stay in the layer. The Product Owner decides question 1 in [6.6](#66-product-owner-decisions-and-license-conditions) on the test results.
 
 Kept as options, not part of v1:
 
 - **React `<ViewTransition>`** for route-level Replace on the Android app (WebView ≥ 111), as a progressive enhancement after a separate evaluation, because it blocks input during a transition and is unavailable on the Firefox and Safari floors.
 - **Switch to Motion** (`motion/react` with `LazyMotion`, `m`, lazy `domAnimation`) if later work needs general layout animation of arbitrary layout changes (`layout`/`layoutId`) or physics springs often enough that maintaining FLIP in the layer costs more than the dependency. The layer's API stays the same so that only its implementation would change.
 
-**Product Owner decisions needed:**
+### 6.6 Product Owner decisions and license conditions
 
-1. Approve the in-house layer, or choose Motion instead.
-2. Agree to the gesture spike rule above: Motion for gestures only, if the spike shows the need.
-3. Decide whether to add haptics (4.10).
-4. Decide whether container transform and list-to-detail shared elements are wanted (Replace `navigate`).
+Product Owner decisions of 2026-11-19:
+
+| # | Question | Decision |
+| --- | --- | --- |
+| 1 | In-house layer or Motion | **Deferred** until the gesture test results are in. Not approved. |
+| 2 | Motion for Gesture follow only, if the gesture test shows the need | **Approved, conditional** on the license conditions below. |
+| 3 | Haptics | **Approved**, with `@capacitor/haptics` ([4.10](#410-haptics)). |
+| 4 | Container transform and list-to-detail shared elements (Replace `navigate`) | **Open**, pending a Product Owner decision. |
+
+**License conditions for Motion** (checked 2026-11-19 against the published npm packages):
+
+| Package | Version | License | Role |
+| --- | --- | --- | --- |
+| `motion` | 14.14.0 | MIT (`LICENSE.md`, copyright Motion B.V.) | the only package the app may import |
+| `framer-motion` | 14.14.0 | MIT | dependency of `motion` |
+| `motion-dom` | 14.14.0 | MIT | dependency of `framer-motion` |
+| `motion-utils` | 14.7.0 | MIT | dependency of `framer-motion` and `motion-dom` |
+| `tslib` | 2.9.1 | 0BSD | dependency of `motion` and `framer-motion` |
+| `react`, `react-dom`, `remix` | — | — | optional peer dependencies; React is already in the app, `remix` is not used |
+
+Rules:
+
+- Only the MIT `motion` package from the public npm registry may be used, with the transitive set above. The adopting pull request lists the transitive dependency set and its licenses from `web/package-lock.json` in `docs/DEPENDENCIES.md`, and that list is re-checked on every Motion upgrade. A new transitive package with a license other than MIT, ISC, BSD or 0BSD blocks the upgrade.
+- **Motion+ is never used.** Motion+ is Motion's paid offering (example and Motion UI source, MotionScore audits, CSS spring generation, private `motion-plus` packages). No `motion-plus*` package, no Motion+ registry or token, and no code copied from Motion+ examples may enter the repository. The guard (migration step 8) rejects `motion-plus` in `package.json`, the lockfile and imports.
+- Features that once were Motion+ but now ship inside the MIT `motion` package (for example `motion/react-animate-view`) are covered by the MIT license, like any other part of that package.
+- Self-Hosted redistribution and eimir. Cloud use are covered by MIT. Attribution is kept through the package's `LICENSE.md` in the dependency inventory.
+
+**License of `@capacitor/haptics`:** version 8.0.2, MIT (copyright Ionic), no runtime dependencies, peer `@capacitor/core >= 8.0.0`. It matches the app's Capacitor 8 line. The adopting pull request records it in `docs/DEPENDENCIES.md`.
 
 See the PR description for the German summary.
 
@@ -625,11 +677,11 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 7 
 
 1. **Contract and library decision** (this document; #2067 step 1). Done when merged and the library decision is approved.
 2. **Shared building blocks and guard.**
-   - Create the motion layer: token adapter, reduced-motion source, play registry, visibility controller, choreography clock and budget (from `wirIntroClock.ts`), attention scheduler, media reveal registry, haptics adapter interface (no-op until haptics are approved), the clock primitives and the CSS catalogue.
+   - Create the motion layer: token adapter, reduced-motion source, play registry, visibility controller, choreography clock and budget (from `wirIntroClock.ts`), attention scheduler, media reveal registry, haptics adapter (budget, in-app switch, no-op on the Web), the clock primitives and the CSS catalogue.
    - Add the stagger tokens.
    - Move `flightKit.ts`, `useOverlayPresence.ts` and `useDepartingItems.ts` behind the layer without visible change.
    - Land the guard with a ratchet allowlist of today's files, so that no new ad-hoc motion is added during migration.
-   - Run the **gesture spike** from [6.5](#65-recommendation), which decides whether Gesture follow uses the layer or Motion.
+   - Apply the Product Owner's decision on the gesture test ([6.5](#65-recommendation), [6.6](#66-product-owner-decisions-and-license-conditions)): Gesture follow uses either the layer or Motion.
    - Unit tests for own clock, play scopes, kept-view return, remount, interruption, choreography alignment, budget, attention rate limits, reduced motion and finite ambient.
 3. **Wir as the first complete reference.**
    - Migrate everything on Wir to the layer: stage and modules as one choreography, check-in (including the `disclose` row), partner distance, moment gallery, flights, the avatar photos as Enter `media`, quiet hint, ring breath and arrivals under the attention rules.
@@ -640,7 +692,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 7 
    - Move the tab pager, sheet dismissal, pull to refresh and list reorder onto Gesture follow, with one set of tokenized thresholds and the velocity handoff.
    - Wrap `@dnd-kit` and `@panzoom/panzoom`.
    - Check the non-gesture alternative of every gesture.
-   - If the Product Owner approves haptics: reuse review and adoption of the Capacitor haptics plugin, the haptics adapter, and device acceptance.
+   - Haptics (approved 2026-11-19): adopt `@capacitor/haptics` 8.x (MIT), record it in `docs/DEPENDENCIES.md`, connect the haptics adapter to the triggers in [4.10](#410-haptics), add the in-app on/off switch (native app only, localized, device-local), and run device acceptance on an Android test release: system vibration settings, Do Not Disturb, and how the light impacts feel.
 6. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection, the Moments (gesture receipt, connected moment, achievement, once messages), and the remaining `disclose` uses.
 7. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
 8. **Close the guard.** The allowlist is empty. The guard rejects:
@@ -668,4 +720,4 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation with a gesture spike, pending Product Owner approval;<br>• the inventory and the migration plan. |
+| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation; the choice was deferred by the Product Owner to a gesture test, with Motion for gestures approved conditionally on its MIT license (never Motion+);<br>• haptics, approved by the Product Owner;<br>• the inventory and the migration plan. |

@@ -89,7 +89,7 @@ The first open also waited on four provider round trips (style, TileJSON, sprite
 
 ## Grass in three groups per row (Product Owner, 2026-11-20)
 
-The Product Owner compared individual tufts, groups and whole rows in a side-by-side preview built from the same tuft geometry and timing. They chose three groups per row of a 340-wide garden.
+The Product Owner compared individual tufts, groups and whole rows in one comparison preview built from the same tuft geometry and timing. They chose three groups per row of a 340-wide garden.
 
 Each group leans from its roots with a skew, so roots stay on the ground; the gust uses the same skew. The meadow moves in a few offset waves.
 

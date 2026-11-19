@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import type { RecapView } from '../api/generated/models/RecapView';
@@ -11,8 +11,13 @@ import { RECAP_SELECTION_LIMIT, recapDate } from '../client/recaps';
 import { recapDetailPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { resolvedLocale, useTranslation } from '../i18n';
-import type { ProfilePageProps } from './ProfilePage';
 import { ProblemState } from './ProblemState';
+import type { ProfilePageProps } from './ProfilePage';
+import {
+  SecureScreenFailure,
+  UNPAINTED,
+  useSecureScreen,
+} from './SecureSurface';
 import { ShortTaskSheet } from './ShortTaskSheet';
 
 export function RecapTasks({
@@ -46,6 +51,8 @@ export function RecapTasks({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [discard, setDiscard] = useState(false);
+  // A reflection is private until shared: keep it out of screenshots (#683).
+  const secureScreen = useSecureScreen(task === 'reflection');
   const selection = useQuery({
     queryKey: ['recap-selection', props.account.id, props.spaceId, base.id],
     enabled: task === 'selection',
@@ -291,7 +298,11 @@ export function RecapTasks({
         ) : (
           <>
             <p id="recap-reflection-help">{t('recaps.reflectionHelp')}</p>
-            <label className="recap-reflection-field">
+            <SecureScreenFailure gate={secureScreen} />
+            <label
+              className="recap-reflection-field"
+              style={secureScreen.shown ? undefined : UNPAINTED}
+            >
               {t('recaps.reflectionLabel')}
               <textarea
                 rows={7}

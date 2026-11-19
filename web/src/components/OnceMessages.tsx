@@ -37,6 +37,7 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
+import { holdSecureScreen } from '../client/secureScreen';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
@@ -464,6 +465,18 @@ function OnceTask({
         setError('ONCE_DEVICE_UNAVAILABLE');
         return;
       }
+      // Opening uses the message up: confirm the app's screen protection
+      // first, and never open without it (#683, fail closed).
+      const protection = holdSecureScreen();
+      try {
+        await protection.ready;
+      } catch {
+        if (owner === generation.current && mounted.current) setError('failed');
+        return;
+      } finally {
+        protection.release();
+      }
+      if (owner !== generation.current || !mounted.current) return;
       const opened = await api.openOnceMessage(
         { spaceId, messageId, onceClaim: { deviceId: localKey.id, token } },
         { cache: 'no-store' },

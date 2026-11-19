@@ -26,7 +26,8 @@ const onceMessages = {
   opening: 'Wird geöffnet …',
   openConsequence:
     'Nach dem Schließen oder Verlassen der App nicht erneut verfügbar. Die Ansicht endet spätestens nach fünf Minuten.',
-  copyLimit: 'Kopien lassen sich nicht verhindern.',
+  copyLimit:
+    'In der App sind Screenshots gesperrt. Ganz verhindern lassen sich Kopien nicht.',
   originalDevice:
     'Öffne diese Nachricht auf einem Gerät, auf dem du den Empfang bereits vor dem Versand aktiviert hattest.',
   ended: 'Diese Nachricht ist nicht mehr verfügbar.',
@@ -50,7 +51,7 @@ const onceMessages = {
   partnerConsent:
     'Dein Partner muss den Empfang auf seinem Gerät selbst aktivieren.',
   sendConsequence:
-    'Nur für deinen Partner. Einmal öffnen, ungeöffnet 24 Stunden verfügbar. Kopien lassen sich nicht verhindern.',
+    'Nur für deinen Partner. Einmal öffnen, ungeöffnet 24 Stunden verfügbar. In der App sind Screenshots gesperrt. Ganz verhindern lassen sich Kopien nicht.',
   withdraw: 'Zurückziehen',
   withdrawn: 'Nachricht zurückgezogen',
   removing: 'Wird entfernt …',

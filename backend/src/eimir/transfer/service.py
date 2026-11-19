@@ -29,6 +29,7 @@ from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
 from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
+from eimir.db.session import schedule_after_rollback
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
@@ -37,9 +38,8 @@ from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
+    ExportWriter,
     TransferArchiveError,
-    add_bytes,
-    add_stream,
     json_bytes,
     manifest_bytes,
     parse_json_bytes,
@@ -595,13 +595,29 @@ def build_export_archive(
     scope: TransferScope,
 ) -> IO[bytes]:
     """Build one deterministic snapshot archive in an anonymous memory buffer."""
+    output = _new_plaintext_export_buffer()
+    try:
+        _write_export_archive(session, authorization, scope, output)
+        size = output.tell()
+        output.seek(0)
+        validate_zip(output, compressed_size=size)
+        output.seek(0)
+        return output
+    except BaseException:
+        output.close()
+        raise
+
+
+def _write_export_archive(
+    session: Session, authorization: AuthorizationContext, scope: TransferScope, output: IO[bytes]
+) -> None:
     rows = _portable_rows(session, authorization, scope)
     media = _media_rows(session, rows)
     accounts = _source_accounts(session, authorization.space_id)
-    output = _new_plaintext_export_buffer()
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
+        writer = ExportWriter(archive, output)
         account_document: dict[str, Any] = {"members": accounts}
         from eimir.wish_selections.service import portable_snapshot
 
@@ -670,7 +686,7 @@ def build_export_archive(
         # Connection credentials and transient selections are never portable.
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.
-        add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
+        writer.add_json("accounts.json", json_bytes(account_document), checksums)
         for file_name, table_names in FILE_TABLES.items():
             if scope is TransferScope.SHARED and file_name in PRIVATE_FILES:
                 continue
@@ -685,7 +701,7 @@ def build_export_archive(
                 ]
             }
             if document["tables"]:
-                add_bytes(archive, file_name, json_bytes(document), checksums)
+                writer.add_json(file_name, json_bytes(document), checksums)
 
         media_index: list[dict[str, Any]] = []
         for item in media:
@@ -704,13 +720,13 @@ def build_export_archive(
                     )
                 entry_name = f"media/{source_id}/{variant}"
                 with store.open(key) as source:
-                    add_stream(archive, entry_name, source, checksums)
+                    writer.add_media(entry_name, source, checksums)
                 stored_variants.append(variant)
             media_index.append({**item, "variants": stored_variants})
         if media_index:
-            add_bytes(archive, "media/index.json", json_bytes({"items": media_index}), checksums)
+            writer.add_json("media/index.json", json_bytes({"items": media_index}), checksums)
 
-        archive.writestr(
+        writer.add_json(
             "manifest.json",
             manifest_bytes(
                 exported_at=now().isoformat(),
@@ -723,10 +739,8 @@ def build_export_archive(
                     str(authorization.account_id) if scope is TransferScope.PERSONAL else None
                 ),
             ),
-            compress_type=ZIP_DEFLATED,
+            checksums,
         )
-    output.seek(0)
-    return output
 
 
 def create_export(
@@ -850,10 +864,20 @@ def create_import(
     )
     session.add(transfer)
     session.flush()
-    source.seek(0)
-    get_media_store().put(import_storage_key(transfer), source, "application/zip")
     job = enqueue(session, IMPORT_VALIDATE_JOB_KIND, {"importId": str(transfer.id)})
     transfer.validation_job_id = job.id
+    session.flush()
+    store = get_media_store()
+    key = import_storage_key(transfer)
+    # The object store is outside PostgreSQL. A failed final commit must also
+    # revoke a completed upload. Delete is idempotent for all store backends.
+    schedule_after_rollback(session, lambda _: store.delete(key))
+    source.seek(0)
+    try:
+        store.put(key, source, "application/zip")
+    except Exception:
+        store.delete(key)
+        raise
     return transfer
 
 

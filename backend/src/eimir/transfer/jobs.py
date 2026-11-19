@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
-from eimir.core.errors import BadRequestError, ErrorCode
+from eimir.core.errors import BadRequestError, ErrorCode, PayloadTooLargeError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity import effects as account_effects
 from eimir.jobs import queue
@@ -212,7 +212,7 @@ def handle_export(session: Session, payload: dict[str, Any]) -> None:
             stored = store.put(service.export_storage_key(transfer), archive, "application/zip")
         finally:
             archive.close()
-    except BadRequestError as error:
+    except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ExportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -267,7 +267,7 @@ def handle_validate_import(session: Session, payload: dict[str, Any]) -> None:
                 source,
                 compressed_size=transfer.artifact_size,
             )
-    except BadRequestError as error:
+    except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -325,7 +325,7 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
     try:
         with get_media_store().open(service.import_storage_key(transfer)) as source:
             service.apply_import_bundle(session, authorization, transfer, source)
-    except BadRequestError as error:
+    except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)

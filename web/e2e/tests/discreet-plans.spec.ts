@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import discreetPlans from '../../src/i18n/locales/discreetPlans';
 import copy from '../../src/i18n/locales/m5s3';
+import AxeBuilder from '../support/axe';
 import { editViaMenu } from '../support/itemMenu';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -224,9 +224,17 @@ for (const scenario of [
     ).toBeVisible();
     for (const hidden of [TITLE, 'sauna', PLACE_NAME, 'lakeside'])
       await expect(page.locator('main')).not.toContainText(hidden);
+    // The plan is still ahead, so its completion waits in the plan menu and
+    // stays available while the plan is concealed.
+    await expect(page.locator('.planen-complete-cta')).toHaveCount(0);
+    await page.getByRole('button', { name: copy.plan.menu }).click();
     await expect(
-      page.getByRole('button', { name: copy.plan.complete, exact: true }),
+      page
+        .locator('.item-menu')
+        .getByRole('button', { name: copy.plan.complete, exact: true }),
     ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.item-menu')).toHaveCount(0);
     const reveal = page.getByRole('button', {
       name: discreetPlans.detail.reveal,
       exact: true,

@@ -1301,6 +1301,13 @@ export function MemoryProductPage({
     currentAccountId,
     nicknameFor,
   );
+  // Who recorded it is background; it sits in the item menu, not the page.
+  const provenance = memory.experienceKind
+    ? null
+    : t('memoryProduct.provenance', {
+        author: provenanceAuthor,
+        createdAt: formatCreatedAt(memory.createdAt),
+      });
 
   const occasionMark = (
     <OccasionMark
@@ -1446,7 +1453,7 @@ export function MemoryProductPage({
         ) : undefined
       }
       titleAction={
-        mayEdit || mayDelete ? (
+        mayEdit || mayDelete || provenance ? (
           <ItemMenuTrigger
             triggerRef={menuTrigger}
             label={t('memoryProduct.menu')}
@@ -1605,23 +1612,13 @@ export function MemoryProductPage({
         offline={offline}
       />
 
-      {!memory.experienceKind ? (
-        <footer className="memory-provenance-footer">
-          <p>
-            {t('memoryProduct.provenance', {
-              author: provenanceAuthor,
-              createdAt: formatCreatedAt(memory.createdAt),
-            })}
-          </p>
-        </footer>
-      ) : null}
-
       <ItemMenuSheet
         open={sheets.menuOpen}
         title={t('memoryProduct.detailEyebrow')}
         restoreFocusRef={menuTrigger}
         sheetRef={menuSheet}
         onClose={() => sheets.close('menu')}
+        footnote={provenance}
       >
         {mayEdit ? (
           <ItemMenuOption

@@ -77,6 +77,8 @@
                 <data android:path="/auth/recovery" />
                 <!-- Return from an external sign-in provider (Google); the app finishes the sign-in. -->
                 <data android:pathPrefix="/auth/oidc/" />
+                <!-- Plan links in synced calendar events (#1895) open the plan in the app. -->
+                <data android:pathPrefix="/p/" />
             </intent-filter>
 
         </activity>

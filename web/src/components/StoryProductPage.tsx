@@ -3,14 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -40,6 +33,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { storyEntryTone } from '../client/entryTone';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
@@ -54,11 +48,10 @@ import {
   type ProductReadResult,
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import type { ReferenceApis } from '../client/referenceFlow';
-import { useFirstContentSettle } from '../client/firstContentSettle';
 import { useHideProFeatureMarks } from '../client/proPresentation';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { newNoteOpen, useQuietHint } from '../client/quietHints';
+import type { ReferenceApis } from '../client/referenceFlow';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   heartMomentDetailPath,
@@ -79,14 +72,13 @@ import {
   storyRequest,
 } from '../client/storyProduct';
 import type { StoryStartupReads } from '../client/storyStartup';
-import { useTaskOrigin } from '../client/taskOrigin';
+import { useOpenTaskLink, useTaskOrigin } from '../client/taskOrigin';
 import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
 import './FirstContentSettle.css';
-import { QuietHint } from './QuietHint';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
 import { MemoryPreview } from './MemoryPreview';
@@ -94,6 +86,7 @@ import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
+import { QuietHint } from './QuietHint';
 import { RecapDiscoverLead } from './RecapDiscoverLead';
 import {
   RediscoverySecondaryLine,
@@ -192,6 +185,16 @@ export function StoryProductPage({
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
+  /**
+   * Discover's featured highlight and tapestry links have no per-item
+   * loaded-range/scroll metadata to preserve (Discover is a single bounded
+   * fetch, not a paginated scope), but opening an item must still capture
+   * the exact tab+filter URL active at that moment. Without this, the
+   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
+   * on Back, which would silently discard a Timeline filter still parked
+   * in the URL while the user was merely looking at Discover.
+   */
+  const openDiscoverItem = useOpenTaskLink();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
@@ -582,30 +585,6 @@ export function StoryProductPage({
         ? heartMomentDetailPath(featuredItem.heartMoment.id)
         : milestoneDetailPath(featuredItem.milestone.id)
     : '';
-
-  /**
-   * Discover's featured highlight and tapestry links have no per-item
-   * loaded-range/scroll metadata to preserve (Discover is a single bounded
-   * fetch, not a paginated scope), but opening an item must still capture
-   * the exact tab+filter URL active at that moment. Without this, the
-   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
-   * on Back, which would silently discard a Timeline filter still parked
-   * in the URL while the user was merely looking at Discover.
-   */
-  function openDiscoverItem(event: MouseEvent<HTMLAnchorElement>, to: string) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
 
   async function renewSelection() {
     if (renewal.current) return;

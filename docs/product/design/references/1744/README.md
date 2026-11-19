@@ -3,7 +3,7 @@
 [Owning issue, findings and Mobile Interaction Contract](https://github.com/baerenmarke90/eimir/issues/1744).
 Product Owner review of 2026-11-11: the shipped monthly/yearly recaps (#1528, #1542)
 were too thin for a Pro capability. This slice covers content volume and the reader.
-The local model is unchanged; its editorial rework is Phase 2 of the issue.
+The original reader changes retained the wording model. The later film decisions below supersede that plan. New editions use localized wording in the overview and archive. Older wording stays readable while its shared sources remain valid.
 
 ## Design preflight
 

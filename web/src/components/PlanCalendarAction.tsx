@@ -3,16 +3,22 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { isAndroidApp } from '../client/config';
 import { openNativePlanCalendar } from '../client/nativePlanCalendar';
 import {
+  type PlanCalendarEvent,
   planCalendar,
   planCalendarEvent,
-  type PlanCalendarEvent,
 } from '../client/planCalendar';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import './PlanCalendarAction.css';
 
-function AndroidPlanCalendarAction({ event }: { event: PlanCalendarEvent }) {
+function AndroidPlanCalendarAction({
+  event,
+  label,
+}: {
+  event: PlanCalendarEvent;
+  label: string;
+}) {
   const { t } = useTranslation();
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -48,7 +54,7 @@ function AndroidPlanCalendarAction({ event }: { event: PlanCalendarEvent }) {
         onClick={() => void open()}
       >
         <EimirIcon name="kalender" />
-        {t('calendarPlan.add')}
+        <span>{label}</span>
       </button>
       {error ? <p role="status">{t(error)}</p> : null}
     </div>
@@ -58,9 +64,11 @@ function AndroidPlanCalendarAction({ event }: { event: PlanCalendarEvent }) {
 function BrowserPlanCalendarAction({
   plan,
   location,
+  label,
 }: {
   plan: PlanDetail;
   location?: string;
+  label: string;
 }) {
   const { t } = useTranslation();
   const [shareError, setShareError] = useState(false);
@@ -122,7 +130,7 @@ function BrowserPlanCalendarAction({
           }}
         >
           <EimirIcon name="kalender" />
-          <span>{t('calendarPlan.add')}</span>
+          <span>{label}</span>
         </a>
       ) : null}
       {shareError && resource.url ? (
@@ -140,21 +148,30 @@ function BrowserPlanCalendarAction({
   );
 }
 
-export function PlanCalendarAction(props: {
+export function PlanCalendarAction({
+  also = false,
+  ...props
+}: {
   plan: PlanDetail;
   location?: string;
+  /** The plan is already in the shared calendar; this adds a personal copy. */
+  also?: boolean;
 }) {
+  const { t } = useTranslation();
   const event = planCalendarEvent(props.plan, props.location);
   if (!event) return null;
+  const label = t(also ? 'calendarPlan.addAlso' : 'calendarPlan.add');
   return isAndroidApp() ? (
     <AndroidPlanCalendarAction
       key={`${props.plan.spaceId}:${props.plan.id}`}
       event={event}
+      label={label}
     />
   ) : (
     <BrowserPlanCalendarAction
       key={`${props.plan.spaceId}:${props.plan.id}`}
       {...props}
+      label={label}
     />
   );
 }

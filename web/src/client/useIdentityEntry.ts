@@ -86,20 +86,22 @@ export function readIdentityEntryUrl(
       expected.password ||
       url.username ||
       url.password ||
-      url.searchParams.size !== 1 ||
-      url.searchParams.getAll('token').length !== 1
+      [...url.searchParams.keys()].some((name) => name !== 'token')
     )
       return null;
     const entry = readSensitiveEntryToken(url.pathname, url.search, url.hash);
     if (!entry || entry.token.length > 4096) return null;
     if (url.hash) {
       const fragment = new URLSearchParams(url.hash.slice(1));
+      const allowed =
+        entry.kind === 'signup' ? ['token', 'invitationToken'] : ['token'];
       if (
-        entry.kind !== 'signup' ||
-        fragment.size !== 1 ||
-        fragment.getAll('invitationToken').length !== 1 ||
-        !entry.invitationToken ||
-        entry.invitationToken.length > 4096
+        [...fragment.keys()].some((key) => !allowed.includes(key)) ||
+        (fragment.has('invitationToken') &&
+          (entry.kind !== 'signup' ||
+            fragment.getAll('invitationToken').length !== 1 ||
+            !entry.invitationToken ||
+            entry.invitationToken.length > 4096))
       )
         return null;
     }

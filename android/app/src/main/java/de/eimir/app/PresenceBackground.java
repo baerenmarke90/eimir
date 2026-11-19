@@ -22,6 +22,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.UUID;
 import org.json.JSONObject;
 
 /**
@@ -108,18 +109,21 @@ final class PresenceBackground {
         return state.optBoolean("precise", false) && hasFinePermission(context);
     }
 
-    static void enable(Context context, String instance, String credential, String expiresAt, boolean precise) throws Exception {
+    static synchronized void enable(Context context, String instance, String credential, String expiresAt, boolean precise) throws Exception {
         if (credential == null || credential.length() < 20 || credential.length() > 256) throw new IOException("Invalid credential");
         Instant expiry = Instant.parse(expiresAt);
         if (!expiry.isAfter(Instant.now())) throw new IOException("Expired credential");
         JSONObject previous = read(context);
         JSONObject state = new JSONObject()
+            .put("activationId", UUID.randomUUID().toString())
             .put("instance", validInstance(instance))
             .put("credential", credential)
             .put("expiresAt", expiry.toString())
             .put("precise", precise);
-        // Keep the last upload so re-enabling with a fresh credential does not re-send unchanged positions.
-        if (previous != null && previous.has("lastPublishedAt")) {
+        // Reuse a position only within the same instance and credential.
+        if (previous != null && previous.has("lastPublishedAt")
+                && state.getString("instance").equals(previous.optString("instance"))
+                && credential.equals(previous.optString("credential"))) {
             state.put("lastLatitude", previous.getDouble("lastLatitude"))
                 .put("lastLongitude", previous.getDouble("lastLongitude"))
                 .put("lastPublishedAt", previous.getLong("lastPublishedAt"));
@@ -128,7 +132,7 @@ final class PresenceBackground {
         register(context);
     }
 
-    static void disable(Context context) {
+    static synchronized void disable(Context context) {
         try {
             LocationManager manager = context.getSystemService(LocationManager.class);
             if (manager != null) manager.removeUpdates(locationIntent(context));
@@ -139,7 +143,7 @@ final class PresenceBackground {
     }
 
     /** Sign-out of an instance ends background sharing for it. */
-    static void disableForInstance(Context context, String instance) {
+    static synchronized void disableForInstance(Context context, String instance) {
         JSONObject state = read(context);
         try {
             if (state != null && validInstance(instance).equals(state.optString("instance"))) disable(context);
@@ -149,7 +153,7 @@ final class PresenceBackground {
     static boolean isEnabled(Context context) { return read(context) != null; }
 
     /** (Re)registers passive updates and the heartbeat; called on enable, boot and app update. */
-    static void register(Context context) {
+    static synchronized void register(Context context) {
         if (read(context) == null) return;
         if (!hasPermissions(context)) { disable(context); return; }
         try {
@@ -178,7 +182,7 @@ final class PresenceBackground {
     }
 
     /** Stores a received passive fix and schedules a network-bound upload when it matters. */
-    static void onLocation(Context context, Location location) {
+    static synchronized void onLocation(Context context, Location location) {
         JSONObject state = read(context);
         if (state == null || location == null) return;
         try {
@@ -199,6 +203,7 @@ final class PresenceBackground {
 
     static boolean shouldUpload(JSONObject state, double latitude, double longitude, long capturedAt, long now,
             boolean precise) {
+        if (state.has("pendingCapturedAt") && capturedAt <= state.optLong("pendingCapturedAt")) return false;
         if (now - capturedAt > ApproximateLocationPlugin.MAX_ACCEPTED_AGE_MS || capturedAt - now > 2 * 60 * 1000L) return false;
         if (!state.has("lastPublishedAt")) return true;
         if (capturedAt <= state.optLong("lastPublishedAt")) {
@@ -218,7 +223,7 @@ final class PresenceBackground {
     }
 
     /** Heartbeat: reuse the freshest already-known position without measuring. */
-    static void heartbeat(Context context) {
+    static synchronized void heartbeat(Context context) {
         if (!hasPermissions(context)) { disable(context); return; }
         LocationManager manager = context.getSystemService(LocationManager.class);
         if (manager == null) return;
@@ -241,7 +246,7 @@ final class PresenceBackground {
         if (state == null) return UploadResult.STOPPED;
         if (!state.has("pendingCapturedAt")) return UploadResult.DONE;
         try {
-            if (!Instant.parse(state.getString("expiresAt")).isAfter(Instant.now())) { disable(context); return UploadResult.STOPPED; }
+            if (!Instant.parse(state.getString("expiresAt")).isAfter(Instant.now())) return finishUpload(context, state, false, true);
             URI endpoint = new URI(validInstance(state.getString("instance")) + "/api/v1/partner-location/device-snapshot");
             JSONObject body = new JSONObject()
                 .put("latitude", state.getDouble("pendingLatitude"))
@@ -260,18 +265,16 @@ final class PresenceBackground {
                 connection.setRequestProperty("Accept", "application/json");
                 try (OutputStream output = connection.getOutputStream()) { output.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
                 int status = connection.getResponseCode();
-                if (status == 401 || status == 403) { disable(context); return UploadResult.STOPPED; }
+                if (status == 401 || status == 403) return finishUpload(context, state, false, true);
                 if (status == 429 || status >= 500) return UploadResult.RETRY;
-                if (status != 200) { clearPending(context, state, false); return UploadResult.DONE; }
-                if (!readActive(connection)) { disable(context); return UploadResult.STOPPED; }
-                clearPending(context, state, true);
-                return UploadResult.DONE;
+                if (status != 200) return finishUpload(context, state, false, false);
+                boolean active = readActive(connection);
+                return finishUpload(context, state, active, !active);
             } finally { connection.disconnect(); }
         } catch (IOException offline) {
             return UploadResult.RETRY;
         } catch (Exception invalid) {
-            disable(context);
-            return UploadResult.STOPPED;
+            return finishUpload(context, state, false, true);
         }
     }
 
@@ -284,6 +287,31 @@ final class PresenceBackground {
             }
             return new JSONObject(bytes.toString(StandardCharsets.UTF_8.name())).optBoolean("active", false);
         }
+    }
+
+    static synchronized UploadResult finishUpload(Context context, JSONObject sent, boolean published, boolean stop) {
+        JSONObject state = read(context);
+        PresenceUploadTicket.Completion action = ticket(sent).completion(
+            state == null ? null : ticket(state), published, stop);
+        if (action == PresenceUploadTicket.Completion.STOPPED) return UploadResult.STOPPED;
+        if (action == PresenceUploadTicket.Completion.KEEP) return UploadResult.DONE;
+        if (action == PresenceUploadTicket.Completion.DISABLE) {
+            disable(context);
+            return UploadResult.STOPPED;
+        }
+        try {
+            clearPending(context, state, action == PresenceUploadTicket.Completion.PUBLISH);
+            return UploadResult.DONE;
+        } catch (Exception unavailable) {
+            return UploadResult.RETRY;
+        }
+    }
+
+    private static PresenceUploadTicket ticket(JSONObject state) {
+        // Older persisted activations have no activation ID. Re-enabling always
+        // supplies a new ID, including when an existing credential is reused.
+        return new PresenceUploadTicket(state.optString("activationId"),
+            state.optString("credential"), state.optLong("pendingCapturedAt", -1));
     }
 
     private static void clearPending(Context context, JSONObject state, boolean published) throws Exception {

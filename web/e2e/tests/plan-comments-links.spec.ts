@@ -1,19 +1,19 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import wishJourney from '../../src/i18n/locales/wishJourney';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import wishJourney from '../../src/i18n/locales/wishJourney';
+import AxeBuilder from '../support/axe';
 import { editViaMenu } from '../support/itemMenu';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   DETAIL_COMMENTS,
   installMocks,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 const PLAN_ID = 'plan-picnic';
@@ -304,7 +304,11 @@ for (const scenario of scenarios) {
       `plan-comment-result-${scenario.width}-${scenario.theme}.png`,
       { fullPage: true },
     );
-    await page.locator('.planen-completion-action').scrollIntoViewIfNeeded();
+    // The 2099 plan keeps its completion in the menu, so the discussion now
+    // ends the page; the viewport shot shows that end.
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
     await captureScreenshot(
       page,
       testInfo,

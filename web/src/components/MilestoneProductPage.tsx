@@ -613,6 +613,11 @@ export function MilestoneProductPage({
   const dateLine = happenedOn
     ? `${formatDateOnly(happenedOn)} · ${formatRelativeElapsed(happenedOn, resolvedLocale())}`
     : undefined;
+  // Who recorded it is background; it sits in the item menu, not the page.
+  const provenance = t('milestoneProduct.provenance', {
+    author: storyAuthorLabel(milestone.author, currentAccountId, nicknameFor),
+    createdAt: formatCreatedAt(milestone.createdAt),
+  });
 
   return (
     <StoryDetailPageShell
@@ -621,14 +626,12 @@ export function MilestoneProductPage({
       }
       title={t('milestoneProduct.detailEyebrow')}
       titleAction={
-        mayEdit || mayDelete ? (
-          <ItemMenuTrigger
-            triggerRef={menuTrigger}
-            label={t('milestoneProduct.menu')}
-            open={sheets.menuOpen}
-            onOpen={() => sheets.show('menu')}
-          />
-        ) : undefined
+        <ItemMenuTrigger
+          triggerRef={menuTrigger}
+          label={t('milestoneProduct.menu')}
+          open={sheets.menuOpen}
+          onOpen={() => sheets.show('menu')}
+        />
       }
       metadata={
         <div className="detail-headline">
@@ -704,25 +707,13 @@ export function MilestoneProductPage({
         offline={offline}
       />
 
-      <footer className="milestone-provenance-footer">
-        <p>
-          {t('milestoneProduct.provenance', {
-            author: storyAuthorLabel(
-              milestone.author,
-              currentAccountId,
-              nicknameFor,
-            ),
-            createdAt: formatCreatedAt(milestone.createdAt),
-          })}
-        </p>
-      </footer>
-
       <ItemMenuSheet
         open={sheets.menuOpen}
         title={t('milestoneProduct.detailEyebrow')}
         restoreFocusRef={menuTrigger}
         sheetRef={menuSheet}
         onClose={() => sheets.close('menu')}
+        footnote={provenance}
       >
         {mayEdit ? (
           <ItemMenuOption

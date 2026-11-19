@@ -35,6 +35,54 @@ def _base(space_id: object) -> str:
     return f"/api/v1/spaces/{space_id}/partner-location"
 
 
+def test_scheduled_reviews_drain_an_overdue_second_batch(session, monkeypatch, caplog) -> None:
+    import logging
+
+    from eimir.jobs.models import Job, JobStatus
+
+    at = now()
+    reviewed = []
+    for index in range(retention.BATCH_SIZE + 1):
+        owner = make_account(session, "Owner")
+        partner = make_account(session, "Partner")
+        space = make_space(session, owner)
+        relationship_service.add_member(session, space.id, partner)
+        if index < retention.BATCH_SIZE:
+            _grant(session, {"space": space, "sharer": owner})
+        consent = PartnerLocationConsent(
+            space_id=space.id,
+            account_id=owner.id,
+            recipient_account_id=partner.id,
+            level="DISTANCE",
+            indefinite=True,
+            next_review_at=at - timedelta(minutes=5) + timedelta(milliseconds=index),
+        )
+        session.add(consent)
+        reviewed.append(consent)
+    session.flush()
+    monkeypatch.setattr(retention, "now", lambda: at)
+    # In-process Alembic migrations can disable already registered application loggers.
+    monkeypatch.setattr(retention.log, "disabled", False)
+    with caplog.at_level(logging.INFO, logger=retention.__name__):
+        retention.handle_retention(session, {})
+    assert all(consent.next_review_at == at + retention.SCAN_INTERVAL for consent in reviewed[:-1])
+    assert reviewed[-1].suspended_at is None
+    metrics = [
+        record.oldest_due_seconds
+        for record in caplog.records
+        if record.name == retention.__name__
+        and record.getMessage() == "presence retention completed"
+    ]
+    assert len(metrics) == 1
+    assert 299 <= metrics[0] <= 300
+    job = session.scalars(select(Job).where(Job.kind == retention.JOB_KIND)).one()
+    assert job.run_after < now() + timedelta(seconds=2)
+    job.status = JobStatus.RUNNING.value
+    at += timedelta(seconds=1)
+    retention.handle_retention(session, {})
+    assert reviewed[-1].suspended_at == at
+
+
 def _grant(session: Session, couple: dict[str, Any]) -> Any:
     return entitlements.record_grant(
         session,

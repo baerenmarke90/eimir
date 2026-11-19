@@ -1,12 +1,11 @@
-import type { MouseEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { authorDisplayName } from '../client/authorPresentation';
 import { concealedTitle } from '../client/discreetPlans';
 import { engagementTargetPath } from '../client/m4Product';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { useTaskOrigin } from '../client/taskOrigin';
+import { useOpenTaskLink } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DiscreetLock } from './DiscreetPlan';
 import { AuthorAvatar } from './PersonIdentity';
@@ -33,8 +32,7 @@ export function ActivityCard({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
+  const openWithOrigin = useOpenTaskLink();
   const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
@@ -58,23 +56,6 @@ export function ActivityCard({
     : item.actor
       ? t(`m5s5.activityAction.${item.kind}`)
       : t(`m5s5.activityKind.${item.kind}`);
-
-  // Every surface opens the item with its task origin, so shell Back and
-  // system Back both return to the Activity page or Wir (#1907 A2).
-  function openWithOrigin(event: MouseEvent<HTMLAnchorElement>, to: string) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
 
   const inner = (
     <div

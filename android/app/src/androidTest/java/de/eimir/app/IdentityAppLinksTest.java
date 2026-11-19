@@ -33,6 +33,14 @@ public final class IdentityAppLinksTest {
         }
     }
 
+    @Test public void calendarPlanLinksReachTheRegularLauncher() {
+        for (String host : CLAIMED_HOSTS) {
+            ResolveInfo activity = resolve("https://" + host + "/p/AAAAAAAAAAAAAAAAAAAAAA");
+            assertNotNull(host, activity);
+            assertEquals(host, "de.eimir.app.LauncherActivity", activity.activityInfo.name);
+        }
+    }
+
     @Test public void unrelatedAndForeignUrlsAreNotClaimed() {
         for (String url : new String[] {
             "http://demo.eimir.ur-cloud.de/auth/magic-link?token=synthetic-proof",

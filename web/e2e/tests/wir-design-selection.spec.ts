@@ -322,17 +322,18 @@ async function expectSharedAlbumComposition(page: Page) {
 }
 
 async function alignedVisibilityControls(page: Page) {
-  const centers = await page
-    .locator('.dashboard-module-option input[type="checkbox"]')
-    .evaluateAll((inputs) =>
-      inputs.map((input) => {
-        const bounds = input.getBoundingClientRect();
-        return bounds.x + bounds.width / 2;
-      }),
-    );
+  const controls = page.locator(
+    '.dashboard-module-option input[type="checkbox"]',
+  );
   // Not listed: the fixed couple hero, and partner distance (#1792), which
   // this fixture's Space cannot use.
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
+  await expect(controls).toHaveCount(DASHBOARD_MODULE_KEYS.length - 2);
+  const centers = await controls.evaluateAll((inputs) =>
+    inputs.map((input) => {
+      const bounds = input.getBoundingClientRect();
+      return bounds.x + bounds.width / 2;
+    }),
+  );
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -855,9 +856,9 @@ test('quote and statistics order survives pointer release, keyboard movement and
   const orders = saved.writes;
   await signIn(page);
   await page.goto('/more/settings/today');
+  await alignedVisibilityControls(page);
   await expect(page.locator('.dashboard-module-configure')).toHaveCount(0);
   await expect(page.locator('#wir-statistics-setting')).toHaveCount(0);
-  await alignedVisibilityControls(page);
   const quote = page.locator('[data-sortable-item-id="daily_quote"]');
   const grip = quote.getByRole('button', {
     name: profileCopy.dashboardOrderHandle.replace('{{name}}', quoteCopy.title),

@@ -88,9 +88,9 @@ import {
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarSheet } from './PlanCalendarSheet';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
-import { PlanNoteLinks } from './PlanNoteLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
+import { PlanNoteLinks } from './PlanNoteLinks';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -150,7 +150,9 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReturn, setConfirmReturn] = useState(false);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const returnSheet = useRef<ShortTaskSheetHandle>(null);
   const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState<string[]>([]);
@@ -356,6 +358,8 @@ export function PlanProductPage({
         }),
       ),
     onSuccess: async () => {
+      // The server discards the plan and reopens its wish.
+      queryClient.removeQueries({ queryKey: key });
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['m5-s3', 'plans', spaceId],
@@ -365,7 +369,11 @@ export function PlanProductPage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+      const goToWishes = () =>
+        navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+      if (returnSheet.current)
+        returnSheet.current.closeForNavigation(goToWishes);
+      else goToWishes();
     },
   });
   const deleteMutation = useMutation({
@@ -515,7 +523,7 @@ export function PlanProductPage({
     completion.complete({ plan, experiencedOn });
   }
 
-  const lifecycleError = completion.error || returnMutation.error;
+  const lifecycleError = completion.error;
   // Discreet (#1790 F3): place, description, media, lists and comments stay
   // out of the DOM until this view is revealed; schedule actions remain.
   const concealed = discreetReveal.concealed;
@@ -534,6 +542,21 @@ export function PlanProductPage({
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
+  // Ticking a plan off is the next step once its day has come or when it has
+  // no day. Before that the action waits in the item menu, so a plan for next
+  // month does not ask to be marked as experienced.
+  const plannedDay = plan.plannedStart
+    ? localCalendarDateInput(plan.plannedStart)
+    : plan.plannedOn
+      ? plan.plannedOn.toISOString().slice(0, 10)
+      : null;
+  const completionDue = !plannedDay || plannedDay <= localCalendarDateInput();
+  // Dissolving the plan back into its wish is a rare correction, so it sits in
+  // the item menu behind a confirmation instead of in the edit form.
+  const canReturnToWish =
+    Boolean(plan.sourceWishId) &&
+    plan.capabilities.canEdit &&
+    plan.status !== 'COMPLETED';
   const completionScope = `${spaceId}:${plan.id}`;
   const completionOpen =
     completionTarget === completionScope &&
@@ -1195,21 +1218,7 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {isEditing && plan.sourceWishId ? (
-          <section className="planning-subsection">
-            <button
-              type="button"
-              className="tertiary"
-              onClick={() => {
-                if (!isPlanWritePending()) returnMutation.mutate(plan);
-              }}
-              disabled={writesPending}
-            >
-              {t('m5s3.plan.returnToWish')}
-            </button>
-          </section>
-        ) : null}
-        {!isEditing && showsLifecycle ? (
+        {!isEditing && showsLifecycle && completionDue ? (
           <section className="planen-completion-action">
             {lifecycleError && !completionOpen ? (
               <ProblemState
@@ -1237,7 +1246,7 @@ export function PlanProductPage({
           onPresenceChange={setCompletionSheetPresent}
           title={t('m5s3.plan.completeDateTitle')}
           className="planen-completion-sheet"
-          restoreFocusRef={completionTrigger}
+          restoreFocusRef={completionDue ? completionTrigger : menuTrigger}
           onClose={() => setCompletionTarget(null)}
           isCloseBlocked={writesPending}
           footer={
@@ -1364,6 +1373,31 @@ export function PlanProductPage({
             }
           />
         ) : null}
+        {canReturnToWish ? (
+          <ItemMenuOption
+            icon="wuensche"
+            title={t('m5s3.plan.returnToWish')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              returnMutation.reset();
+              setConfirmReturn(true);
+            }}
+          />
+        ) : null}
+        {showsLifecycle && !completionDue ? (
+          <ItemMenuOption
+            icon="check"
+            title={t('m5s3.plan.complete')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              setCompletionTarget(completionScope);
+            }}
+          />
+        ) : null}
         {plan.capabilities.canDelete ? (
           <ItemMenuOption
             icon="trash"
@@ -1379,6 +1413,21 @@ export function PlanProductPage({
           />
         ) : null}
       </ItemMenuSheet>
+      <ItemDeleteSheet
+        sheetRef={returnSheet}
+        open={confirmReturn && !isEditing}
+        title={t('m5s3.plan.returnToWishConfirmTitle')}
+        body={t('m5s3.plan.returnToWishConfirmBody')}
+        confirmLabel={t('m5s3.plan.returnToWish')}
+        pendingLabel={t('m5s3.plan.returning')}
+        pending={returnMutation.isPending}
+        error={returnMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => setConfirmReturn(false)}
+        onConfirm={() => {
+          if (!isPlanWritePending()) returnMutation.mutate(plan);
+        }}
+      />
       <ItemDeleteSheet
         sheetRef={deleteSheet}
         open={confirmDelete && !isEditing}

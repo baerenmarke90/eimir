@@ -42,3 +42,15 @@
   margin: 0;
   font: var(--font-supporting-copy);
 }
+
+/* A confirmed event in the shared calendar is a quiet success. */
+.plan-calendar-sync-line[data-synced] .eimir-icon {
+  color: var(--color-success);
+}
+
+/* In the sheet the hand-off is the one full-width action. */
+.plan-calendar-sheet-body .plan-calendar-action .button-link {
+  display: flex;
+  justify-content: center;
+  inline-size: 100%;
+}

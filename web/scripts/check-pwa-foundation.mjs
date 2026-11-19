@@ -16,6 +16,26 @@ function assert(condition, message) {
 }
 
 const manifest = JSON.parse(read('public/manifest.webmanifest'));
+const tileHost = new URL(
+  /const MAP_ORIGIN = '([^']+)'/.exec(
+    read('src/components/PlaceMapCanvas.tsx'),
+  )[1],
+);
+const privacy = read(
+  'src/i18n/locales/legalDocuments/privacyPolicy.de.generated.ts',
+);
+assert(
+  tileHost.hostname === 'tiles.openfreemap.org' &&
+    [read('public/service-worker.js'), read('nginx.conf')].every((text) =>
+      text.includes(tileHost.origin),
+    ) &&
+    [
+      tileHost.hostname,
+      'Hyperknot Software Kft.',
+      'https://openfreemap.org/privacy/',
+    ].every((text) => privacy.includes(text)),
+  'The map host, CSP, worker and disclosed tile provider must agree.',
+);
 assert(
   manifest.name === 'eimir.',
   'PWA manifest must use the canonical app name.',

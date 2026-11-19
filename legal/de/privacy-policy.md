@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-17.draft-4
+version: 2026-11-18.draft-6
 status: draft
 effective: null
 legal_review: pending
@@ -94,7 +94,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 1. Ihr könnt Orte speichern, auf einer Karte auswählen oder nach einer Adresse suchen. Gespeicherte Orte mit ihren Koordinaten gehören zu euren gemeinsamen Inhalten.
 2. Enthält ein Foto, das du einem gemeinsamen Moment hinzufügst, einen Aufnahmeort, ordnen wir den Moment beim Speichern diesem Ort zu. Das ist voreingestellt. Du kannst es in den Einstellungen unter „Orte aus Fotos“ jederzeit ausschalten; bereits gespeicherte Orte bleiben dann erhalten. Private Herzmomente erzeugen keine gemeinsamen Orte. Rechtsgrundlage ist unser und euer berechtigtes Interesse, Momente ohne zusätzlichen Aufwand ihrem Ort zuzuordnen (Art. 6 Abs. 1 lit. f DSGVO). In der Android-App erhält eimir. den Aufnahmeort eines Fotos nur, wenn du das erlaubst, je nach Android-Version über eine Berechtigung oder in der Fotoauswahl deines Geräts (§ 25 Abs. 1 TDDDG). Erlaubst du es nicht, erhält eimir. deine Fotos aus der Android-App ohne Aufnahmeort.
 3. Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Potsdam. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.
-4. Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren [Datenschutzhinweisen](https://osmfoundation.org/wiki/Privacy_Policy). Rechtsgrundlage ist unser berechtigtes Interesse, euch eure Orte auf einer Karte zu zeigen (Art. 6 Abs. 1 lit. f DSGVO).
+4. Öffnest du eine Karte, lädt dein Gerät Kartenstil und Kartenbilder von tiles.openfreemap.org. Diesen öffentlichen Dienst betreibt Hyperknot Software Kft. in Ungarn unter dem Namen OpenFreeMap mit Kartendaten von OpenStreetMap. Dabei erhält der Dienst deine IP-Adresse, technische Verbindungsdaten und den angeforderten Kartenausschnitt. Daraus kann sich ungefähr ergeben, wo eure Orte liegen. Namen, Texte und Fotos aus eimir. werden dabei nicht übertragen. Der Betreiber beschreibt auch den möglichen Einsatz von Cloudflare zur Auslieferung, die regulären Zugriffsprotokolle sowie gesonderte Fehler- und Sicherheitsprotokolle in seinen [Datenschutzhinweisen](https://openfreemap.org/privacy/). Rechtsgrundlage ist unser berechtigtes Interesse, euch eure Orte auf einer Karte zu zeigen (Art. 6 Abs. 1 lit. f DSGVO).
 5. Öffnest du einen Ort ausdrücklich in Google Maps, übergibt eimir. die Koordinaten an Google, aber keine Anmeldedaten. Ab dann gelten die Datenschutzhinweise von Google.
 6. Mit eimir. Pro kannst du deinem Partner zeigen, wie weit du entfernt bist, und auf Wunsch zusätzlich einen ungefähren Kartenbereich. Das ist freiwillig und nie voreingestellt. Du entscheidest, was dein Partner sieht und wie lange, und kannst es jederzeit beenden. Dein Partner entscheidet für sich allein.
 7. Du wählst auch, wie genau deine Position ist. Voreingestellt ist „ungefähr“: Dein Gerät rundet sie auf etwa einen Kilometer, bevor sie an uns geht. Wählst du „genau“, rundet dein Gerät auf etwa 100 Meter. Das stellst du beim ersten Start oder später in den Einstellungen ein. Genau teilen kannst du nur, wenn dein Gerät eine genaue Position hat; erlaubt Android nur den ungefähren Standort, bleibt es bei „ungefähr“ und wir sagen es dir in den Einstellungen. Deine genauen Koordinaten verlassen dein Gerät nicht. Dein Partner sieht eine Entfernungsstufe, bei „genau“ auf beiden Seiten auch eine feinere unter zwei Kilometern, und nie Koordinaten, eine Richtung oder einen Verlauf. Er erfährt nicht, welche Genauigkeit du gewählt hast.
@@ -112,7 +112,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 ## 11. Automatische Vorschläge und lokale KI
 
-1. Einige Funktionen formulieren Texte oder machen Vorschläge, zum Beispiel Titel und Einleitung eurer Rückblicke, Beobachtungen und Anregungen in „Eure Woche“ oder Schlagwörter für gemeinsame Erinnerungen. Soweit wir dafür ein KI-Sprachmodell einsetzen, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
+1. In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
 2. Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ berechnen wir aus euren Einträgen für „Gefühl für heute“ und Akku einfache Beobachtungen, zum Beispiel ob sich eure Energie verändert hat. Das Modell erhält dafür keine Texte, Fotos, Namen oder Orte, sondern nur diese Beobachtungen, und wählt dazu passende Anregungen aus.
 3. Wir trainieren keine KI-Modelle mit euren Inhalten und speichern Eingaben und Ergebnisse des Modells nicht in Protokollen. Vorschläge können trotzdem unzutreffend sein. Prüfe sie, bevor du sie übernimmst oder teilst.
 4. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Wir treffen keine Entscheidungen, die ausschließlich automatisiert zustande kommen und dir gegenüber rechtliche Wirkung entfalten oder dich in ähnlicher Weise erheblich beeinträchtigen (Art. 22 DSGVO).
@@ -141,12 +141,12 @@ Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Serve
 2. Im Einzelnen legt eimir. auf deinem Gerät ab:
    - deine Anmeldung, in der Web-App im Sitzungsspeicher des Browsers, bis du dich abmeldest oder den Tab schließt, und in der Android-App verschlüsselt mit einem Schlüssel aus dem Schlüsselspeicher deines Geräts,
    - gemeinsame Inhalte, die du zuletzt angesehen hast, höchstens sieben Tage lang, damit eimir. schnell lädt und sie kurz auch ohne Verbindung lesbar bleiben; „Nur für mich“-Inhalte legt eimir. dort nicht ab,
-   - Fotos und Videos, die du zuletzt angesehen hast, höchstens sieben Tage lang,
+   - bereits geladene Bilddateien ohne feste Altersgrenze, bis zu 2.000 Medieneinträge. Bei knappem Speicher entfernt die App die am längsten ungenutzten Bilder. Im Browser und auf iOS werden dafür nur gemeinsame Bilder dauerhaft gespeichert. Private Bilder bleiben dort im Arbeitsspeicher. Android speichert gemeinsame und private Bilder verschlüsselt mit einem Schlüssel für deine aktuelle Anmeldung. Ob du ein Bild offline noch sehen kannst, hängt vom zugehörigen, höchstens sieben Tage gültigen Inhalt ab. Videos und Audiodateien werden nicht in diesem Bildspeicher abgelegt,
    - Entwürfe, die du noch nicht gespeichert hast, einschließlich ausgewählter Fotos, höchstens sieben Tage lang, damit nichts verloren geht,
    - für Einmalnachrichten den privaten Schlüssel dieses Geräts, bis du den Empfang ausschaltest oder die Daten im Browser oder in der App löschst; geöffnete Einmalnachrichten hält eimir. nur im Arbeitsspeicher, solange du sie ansiehst,
    - Einstellungen wie das helle oder dunkle Design und kleine Merker, etwa dass du einen Hinweis ausgeblendet hast,
    - die Programmdateien der Web-App und eine Offline-Seite, damit eimir. wie eine App startet; persönliche Daten sind darin nicht enthalten.
-3. Diese Daten liegen im Browser nicht zusätzlich verschlüsselt. Meldest du dich ab, löscht eimir. deine Anmeldung, zwischengespeicherte Inhalte, Fotos und Entwürfe. Du kannst sie außerdem jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Sicherungen deines Geräts aus.
+3. Im Browser liegen dauerhaft gespeicherte Bilder ohne zusätzliche Verschlüsselung durch eimir. vor. Beim Abmelden, bei ungültiger Sitzung und beim Wechsel von Konto oder Space verwirft die App den bisherigen Bildspeicher und räumt die Einträge auf. Auf Android löscht sie beim Abmelden zusätzlich den Bildschlüssel. Damit sind verschlüsselte Bilddaten bereits vor ihrer Entfernung unlesbar. Du kannst die lokalen Daten jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Gerätesicherungen aus.
 
 ## 16. Protokolle, Missbrauchsschutz und Sicherungen
 
@@ -179,7 +179,7 @@ Deine Daten erhalten nur:
 - dein Partner, soweit ihr Inhalte teilt (Abschnitt 4) und soweit du deine Entfernung oder einen ungefähren Kartenbereich teilst (Abschnitt 9),
 - unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): die netcup GmbH, Karlsruhe, für Server, Datenbank, Speicher und Sicherungen sowie für den Mailserver, den wir dort selbst betreiben, und die Google Ireland Limited, Dublin (Irland), für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),
 - die komoot GmbH, Potsdam, für Adresssuche und Ortsnamen (Abschnitt 9),
-- die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),
+- Hyperknot Software Kft. (OpenFreeMap, Ungarn), wenn du eine Karte öffnest (Abschnitt 9),
 - Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, ein UnifiedPush-Dienst, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10, 12 und 13),
 - ein Zahlungsdienstleister, den wir hier nennen, sobald du eimir. Pro kaufen kannst (Abschnitt 18),
 - Behörden und Gerichte, wenn wir gesetzlich dazu verpflichtet sind (Art. 6 Abs. 1 lit. c DSGVO).
@@ -188,7 +188,7 @@ Deine Daten erhalten nur:
 
 1. Unsere Server stehen in Wien (Österreich).
 2. Google kann die Daten für Push-Benachrichtigungen auch in den USA verarbeiten. Für Unternehmen in den USA, die nach dem EU-U.S. Data Privacy Framework zertifiziert sind, hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO). Google LLC ist danach zertifiziert.
-3. Die OpenStreetMap Foundation hat ihren Sitz im Vereinigten Königreich. Auch für das Vereinigte Königreich hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO).
+3. OpenFreeMap wird in Ungarn betrieben. Angaben zu den für die weltweite Auslieferung der Karten eingesetzten Diensten findest du in den [Datenschutzhinweisen von OpenFreeMap](https://openfreemap.org/privacy/).
 4. Für Dienste, die du selbst verbindest oder aufrufst, etwa deinen Immich-Server, Google Fotos oder Google Maps, gelten deren Standorte und Datenschutzhinweise.
 
 ## 22. Wie lange wir Daten speichern
@@ -206,7 +206,7 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 - **Missbrauchsschutz:** ein Tag.
 - **Exportdateien:** 24 Stunden.
 - **Auswahl aus anderen Fotodiensten:** zehn Minuten.
-- **Zwischengespeicherte Inhalte, Fotos und Entwürfe auf deinem Gerät:** höchstens sieben Tage, beim Abmelden sofort. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.
+- **Lokale Kopien gemeinsamer Ansichten und Entwürfe:** höchstens sieben Tage. **Bilddateien:** bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.
 - **Protokolle:** 30 Tage.
 - **Sicherungen:** [[BACKUP_RETENTION]]; das Löschprotokoll so lange, wie ältere Sicherungen bestehen können.
 - **Rechnungsdaten für eimir. Pro:** so lange, wie gesetzliche Aufbewahrungspflichten bestehen.

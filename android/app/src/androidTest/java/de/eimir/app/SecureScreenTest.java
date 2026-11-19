@@ -6,6 +6,7 @@ import android.os.SystemClock;
 import android.view.WindowManager;
 import androidx.test.core.app.ActivityScenario;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -20,6 +21,12 @@ public class SecureScreenTest {
     @Test
     public void bridgeCallTogglesTheWindowFlagAndRecreationStartsUnprotected() {
         try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
+            // Below the WebView floor (the API 28 lane) only the static update
+            // notice loads (#1931): no Web layer exists to request protection
+            // and nothing private can render.
+            AtomicBoolean supported = new AtomicBoolean();
+            scenario.onActivity(activity -> supported.set(activity.getBridge().isMinimumWebViewInstalled()));
+            Assume.assumeTrue(supported.get());
             assertFalse("No private surface is open at launch", secure(scenario));
             request(scenario, true);
             assertTrue("The bridge request must protect the window", secure(scenario));

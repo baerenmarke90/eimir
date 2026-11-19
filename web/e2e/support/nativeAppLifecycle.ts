@@ -21,6 +21,7 @@ export async function installNativeAppLifecycle(
         | 'getAllResponseHeaders'
       >;
       openedPlanPdf?: string;
+      secureScreen?: boolean;
     };
     const callbacks = new Map<
       string,
@@ -47,6 +48,12 @@ export async function installNativeAppLifecycle(
             { name: 'removeListener', rtype: 'promise' },
             { name: 'getLaunchUrl', rtype: 'promise' },
           ],
+        },
+        {
+          // FLAG_SECURE for private surfaces (#683): private content stays
+          // unpainted until the window reports the flag.
+          name: 'SecureScreen',
+          methods: [{ name: 'setSecure', rtype: 'promise' }],
         },
         {
           name: 'NativeSessionStorage',
@@ -90,8 +97,13 @@ export async function installNativeAppLifecycle(
           authorization?: string;
           name?: string;
           fileId?: string;
+          secure?: boolean;
         },
       ) => {
+        if (plugin === 'SecureScreen' && method === 'setSecure') {
+          nativeWindow.secureScreen = options?.secure === true;
+          return { secure: nativeWindow.secureScreen };
+        }
         if (plugin === 'App' && method === 'getLaunchUrl') return {};
         if (plugin === 'App' && method === 'removeListener') {
           callbacks.delete(options?.callbackId ?? '');
@@ -144,6 +156,14 @@ export async function installNativeAppLifecycle(
     });
   };
   await page.addInitScript(install, planFiles);
+}
+
+/** Whether the synthetic app window currently holds FLAG_SECURE (#683). */
+export async function nativeSecureScreen(page: Page): Promise<boolean> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { secureScreen?: boolean }).secureScreen === true,
+  );
 }
 
 export async function nativeAppState(

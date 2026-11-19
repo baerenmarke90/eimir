@@ -778,6 +778,45 @@ test('reduced motion closes calmly: no flight layer is ever created', async ({
   await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
 });
 
+test('once the check-in prompt line is gone and nobody has a mark, the row it kept closes', async ({
+  page,
+}) => {
+  await installMocks(page);
+  // The row belongs to the Verbunden stage; this spec otherwise renders the
+  // Offen hero, which has no row that stays behind. Registered after the
+  // mocks so it answers first.
+  await page.route('**/api/v1/**/appearance/wir-design', (route) =>
+    route.fulfill({ json: { designId: 'connected', version: 1 } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  // The hint was seen on this device already, so its line never shows.
+  await page.addInitScript(
+    ([key, day]) => {
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          hints: { 'wir-checkin-prompt': { views: 3 } },
+          lastStartDay: day,
+        }),
+      );
+    },
+    [`eimir-quiet-hints-v1:${ACCOUNT_ID}:${SPACE_ID}`, '2000-01-01'] as const,
+  );
+  await signIn(page);
+
+  const badge = page.getByTestId('wir-checkin-own-badge');
+  await expect(badge).toHaveAttribute('data-empty', 'true');
+  // The row shows nothing, so it takes no room: the stage ends at the names
+  // instead of keeping a gap before the quote and the modules below.
+  await expect(badge).toHaveCSS('height', '0px');
+  const stage = await page.locator('.wir-stage').boundingBox();
+  const name = await page.locator('.wir-stage-name').first().boundingBox();
+  expect(stage && name).toBeTruthy();
+  if (stage && name)
+    expect(stage.y + stage.height - (name.y + name.height)).toBeLessThan(4);
+});
+
 test('Fertig without a change closes at once and flies nothing', async ({
   page,
 }) => {

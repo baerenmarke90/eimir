@@ -85,6 +85,7 @@ Allowed to animate:
 - for the Feedback primitive only: `color`, `background-color`, `border-color`, `box-shadow` on a single small element, for at most `--duration-transition`;
 - for line-draw variants only: `stroke-dashoffset` on an SVG path of bounded size;
 - for the Playback domain only: `filter` and `clip-path` on one layer at a time, with a recorded reason in its owning document;
+- for the Map domain only: the MapLibre camera (rendered in its own WebGL loop), and `offset-distance` for the approved partner-connection glow (one small element; see [4.8](#48-bounded-domains-loading-playback-scenes-map));
 - for Gesture follow only: the scroll position of a scroller (native scrolling, scroll snap, `scrollTo`);
 - for the Replace `disclose` variant only: the one sanctioned layout transition described there.
 
@@ -104,12 +105,12 @@ Do not use `scale` or `transform: scale(…)` on an element whose visible featur
 
 Ambient motion:
 
-- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose;
+- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose. A decorative scene may instead play for at most `--duration-ambient-rest` of visible time in total and then hold in place (`motion.duration.ambientRest`, 12 s, `useAmbientRest`; added by #2070, pending merge);
 - pauses while the page is hidden (`visibilitychange`), while its kept view is hidden and while it is off screen (`IntersectionObserver`), and continues where it paused;
 - is absent with reduced motion;
 - never moves a tap target, a portrait, text being read, or the source or target of a Flight.
 
-Two bounded domains may loop while visible; both still pause when hidden or off screen and stop with reduced motion: **Loading indicators** (until the status is known, Motion Guideline section 3) and **Scenes** (game playfields such as the garden, Heart Hunt and Picture Ping-Pong; see [4.8](#48-bounded-domains-loading-playback-scenes)).
+Two bounded domains may loop while visible; both still pause when hidden or off screen and stop with reduced motion: **Loading indicators** (until the status is known, Motion Guideline section 3) and **Scenes** (game playfields such as the garden, Heart Hunt and Picture Ping-Pong; see [4.8](#48-bounded-domains-loading-playback-scenes-map)). The Map domain has its own rules there.
 
 ### M9. Reduced motion is the same experience without movement
 
@@ -316,6 +317,7 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 - pull to refresh (`usePullToRefresh.ts`, `PullToRefreshIndicator.tsx`);
 - list reorder (`ListEntryActions.tsx`), photo arrangement with `@dnd-kit` (`PhotoArrangeTask.tsx`, `PhotoDraftSorting.tsx`);
 - pinch, zoom and pan with `@panzoom/panzoom` (`ZoomablePhoto.tsx`, `PhotoCropTask.tsx`);
+- map pinch, pan, inertia and double-tap with MapLibre's own handlers, and the map zoom buttons (see the Map domain in 4.8);
 - carousels with scroll snap (8 `scroll-snap-type` declarations);
 - range controls such as the energy battery (`WirDailyCheckIn.tsx`, `VoiceNotePlayer.tsx`, `PhotoCropTask.tsx` and three more).
 
@@ -349,13 +351,49 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 | Content | the content (message text, gesture meaning) is readable from the first beat and stays after the Moment; motion never hides it or reveals it as the only way to see it (M13). A once message's privacy and screenshot-protection rules are unaffected |
 | Reduced motion | a static composition with the same content, focus and actions |
 
-### 4.8 Bounded domains: Loading, Playback, Scenes
+### 4.8 Bounded domains: Loading, Playback, Scenes, Map
 
 These are not primitives. They are areas whose motion is defined by their own clock instead of a single change. They keep M1, M2, M6, M9, M10 and M13, and they run inside the motion layer's ambient controller for M8 pausing.
 
 - **Loading:** shimmer, spinner, progress pulse. Loops until the status is known; no interaction delay; reduced motion stops the movement and keeps text, shape and `aria-busy`/status.
 - **Playback:** the recap film (`RecapFilmScene.css`), story playback (`DiscoverStory.css`, `useStoryPlayback.ts`), garden playback. A playback engine composes Enter and Replace scenes on its own scene clock and may use the Playback property exception in M6. It pauses with the page and with an explicit pause control.
 - **Scenes:** interactive game playfields (garden, Heart Hunt, Picture Ping-Pong, remote games). The scene may loop ambient life while it is visible and in use; it pauses when hidden or off screen and is absent with reduced motion. Taps inside the scene are Feedback.
+- **Map:** MapLibre GL renders the map in its own WebGL loop. The canvas is `PlaceMapCanvas.tsx`, used by Momente › Karte (`MemoryMapPage.tsx`), the Place picker (`PlaceMapPicker.tsx`), the partner location map (`PartnerLocationMapPage.tsx`) and the story extras. CSS and WAAPI rules do not reach the canvas on their own, so the map has these rules:
+
+  **Open and first frame.**
+  - The map container shows its static placeholder until the style and the first tiles are rendered, then the canvas replaces it in one step. There is no camera journey on open: the first frame starts at the restored viewport (`jumpTo`) or at the overview (`fitBounds` without animation).
+  - Place thumbnails that are deferred below the viewport do not shimmer until they load (#2070, pending merge, `data-media-deferred`).
+  - **Return to the kept Momente › Karte tab:** the map keeps its camera, markers and selection. Nothing replays, the camera does not fly again, and the connection line does not draw in again (M3, M4). A resize on return (fold or unfold, rotation) keeps the center and zoom with `resize()` and `jumpTo`.
+
+  **Camera.**
+  - **The camera moves only when the person asks for it.** It never moves on a refetch, a cache update, a realtime change or a viewport resize.
+  - **An explicit journey** (selecting a Place, "show us", clearing the selection) uses `flyTo`/`fitBounds` with `--duration-map-camera` (1100 ms, Product Owner decision 2026-11-09) and `essential: true`.
+  - **A change of filters or data** that the person made while the map frames everything automatically (`autoFrame`) refits the overview **without animation** (`fitBounds`, `animate: false`). The same change after the person has moved the map does not move the camera at all.
+  - **With reduced motion,** every camera change is a `jumpTo` or an un-animated `fitBounds`.
+  - **The finger always wins.** A press, pinch, wheel or keyboard pan on the map stops a running camera move at once (`map.stop()`), and no later automatic framing takes the frame back until the person clears the selection.
+  - There is one camera transition at a time. A new request stops the running one first (today `map.stop()` before each transition).
+
+  **Pinch, pan, inertia, double-tap and zoom buttons** are Gesture follow (4.6), but they use MapLibre's own handlers, which already track 1:1 and carry inertia.
+  - The setup stays token-aware: rotation and pitch are off, and scroll zoom is off on embedded maps (both true on `main`).
+  - With reduced motion, pan inertia is off (`dragPan` without inertia), and a camera move that is running when the preference changes finishes at once. The second is on `main`; the map step adds the first.
+  - The zoom buttons animate with `--duration-transition` and jump with reduced motion. On `main` they use MapLibre's default `zoomIn`/`zoomOut` animation, which ignores reduced motion; the map step fixes this.
+  - The non-gesture alternatives are the zoom buttons and the keyboard (arrow keys pan; +/- zoom; the localized keyboard help that exists today).
+
+  **Markers.**
+  - **Clusters:** `main` does not cluster markers. If clustering is added, a cluster splitting or merging is a Replace `reorder` of the DOM markers with `translate` from the cluster position, `--duration-transition`, and at most 12 markers animated (M15); the rest appear in place.
+  - **A new Place appearing:** an Enter `fade` of its marker, only when the person created it in this view; markers that arrive through data loading appear without motion.
+  - **A selected marker:** a Feedback emphasis of the marker (the selected style, `--duration-feedback`), the camera journey above, and the Place sheet entering as Enter `surface`. These three form one choreography (M15): the sheet does not wait for the camera, and the camera does not wait for the sheet.
+  - **The photo stack** fans and settles with `transform` and `--duration-map-stack` (600 ms, `MemoryMapPage.css`); with reduced motion it is static.
+  - **The partner connection line** (approved #1907 H1) checked against M7:
+    - The line is not scaled: it draws in with `stroke-dashoffset` (Enter `draw`).
+    - The glow travels along it with `offset-distance` for three round trips and then rests (Ambient, finite).
+    - The heart, a filled 22 px glyph and not a thin stroke, appears with `scale` and beats twice.
+    - It complies with M7. It pauses when hidden (`.is-paused`) and is absent with reduced motion.
+
+  **Rest and theme.**
+  - An idle map renders nothing. No CSS animation loops over the map, deferred skeletons do not shimmer (#2070), the connection glow rests after three trips, and MapLibre renders only while the camera, tiles or markers change.
+  - Ambient motion on the map follows `--duration-ambient-rest` (#2070) like other decorative scenes.
+  - **Light/dark:** the dark style is a CSS filter on the canvas (`--map-dark-tile-filter`, `PlaceMapPicker.css`). A theme change swaps it at once with the rest of the appearance (Replace `appearance`); the style is not reloaded and the camera does not move. A change of locale recreates the map at the same viewport (`jumpTo`).
 
 ### 4.9 Attention (unprompted motion)
 
@@ -423,8 +461,86 @@ How each known motion need is covered by v1:
 | Several components on one choreography, per-screen budget | M15 | invariant |
 | Love and once messages, celebrations, gesture receipt | Moment (4.7) | new primitive; `celebrate` moved out of Feedback |
 | Text input caret, native scrolling momentum, native controls | the platform | out of scope: the browser owns them |
-| Maps (camera, photo stack, connection line) | Replace and Enter with the map roles (Guideline section 2), Ambient for the connection glow | covered; the map step checks M7 on the connection line |
+| Maps (open, camera, gestures, markers, photo stack, connection line, rest, theme) | Map domain (4.8) | bounded domain with its own rules; the connection line complies with M7 |
 | Video and audio playback controls | Feedback and Loading | covered |
+| Every app area | Coverage matrix (4.12) | audited |
+
+### 4.12 Coverage matrix by app area
+
+Audited on `main` at `915e97ec8` against the routes in `web/src/App.tsx` (70 `<Route>` entries: Wir, Momente, Planen, Mehr and their detail, create and edit pages, games, map, search, notifications, paywall) and the shared components.
+
+Legend:
+
+- **covered:** an existing primitive or domain applies as written;
+- **rule:** the rule is stated here;
+- **out:** out of scope, with the reason;
+- **PO:** needs a Product Owner decision.
+
+**Shell, navigation and platform**
+
+| Area | Primitive / rule | Status |
+| --- | --- | --- |
+| Primary tabs Wir, Momente, Planen (kept views) | Replace `navigate` (lateral); tab swipe is Gesture follow; nothing replays on return (M4) | covered |
+| Detail, create and edit pages; Mehr, settings and profile pages | Replace `navigate` forward/back | covered |
+| Startup splash to app handoff (`BrandedStartup.tsx`, native splash, `NativeSessionGate.tsx`) | On `main`, the system splash stays until the web shell reports its first paint (`LaunchScreenHold.java`). It then fades out over the platform's short animation time; this is a native duration, not a token, and it stays. The web start view continues the same tile and fades in only its wordmark and status (Enter `fade`, once per app start). The first app screen does not fade in again behind it (no double entrance), and the Wir opening starts after the handoff, on its own clock. With reduced motion the web part is instant | rule |
+| App resume from the background (`appStateChange` in `capacitorShell.ts`) | Not a new motion identity: no entrance, opening or Moment replays (M3). Ambient continues where it paused (M4). Refetched data appears without attention motion (4.9, #1212) | rule |
+| Deep link and notification-tap arrival (`routeEntryHandoff.ts`, `devicePush.ts`) | Replace `navigate` forward into the target. On a cold start the target shows without the Wir opening. The Wir opening keeps its scope "once per app start, the first time Wir is shown at its top" (Motion Guideline) | rule |
+| Android system back and predictive back (Android 14+) | In-app back (Capacitor `backButton`) runs Replace `navigate` back after the gesture is released. The system owns the back-to-home preview when back leaves the app. A progress-driven in-app back preview inside the WebView is not available through Capacitor and is not built. The gestures step verifies the platform behaviour on the device | out (platform) |
+| Status-bar scrim (`useStatusBarScrim.ts`), floating create tuck | Replace `scroll-state` | covered |
+| Safe areas, soft keyboard pushing content (`--composer-keyboard-inset`, `adjustResize`) | No own motion: inset changes apply at once, and the platform animates the keyboard. Content keeps the focused field in view without an animated scroll | rule |
+| Foldable unfold/fold, posture and orientation changes, the landscape garden (`landscapeView.ts`) | A viewport change is not a new identity. Nothing replays, and running Enter/Replace motion finishes in its final state. A running Flight is cancelled to its final state, because its geometry is no longer valid. Ambient continues. The map keeps its center and zoom. Layout reflows without animation | rule |
+| RTL and locale | `navigate` and Gesture follow directions follow inline start and end. Flights use measured geometry. Sway and breath are symmetric. Shipped locales are LTR today, and the rule applies when an RTL locale ships | rule |
+| Large text (200 %) and reflow | Motion distances stay in CSS px. Durations do not change with text size. Measured motion (FLIP, Flights, `disclose`) measures after reflow. No layout animation is added for reflow | rule |
+| Native permission and system dialogs, share sheet, system browser (`@capacitor/browser`) | Owned by Android, out of our control. The app does not animate around them and shows the resulting state at once when they close | out (platform) |
+| Focus indicators | Never animated in a way that delays their visibility; they appear at once | rule |
+| Hover feedback on Expanded (`.eimir-motion-lift`) | Feedback, only for fine pointers | covered |
+
+**Feedback, status and system notices**
+
+| Area | Primitive / rule | Status |
+| --- | --- | --- |
+| Snackbar with an optional reversible action (`Snackbar.tsx`) | Enter `rise` and Exit. The action is Feedback `press`. Undo restores the item in its place with Enter `fade` (the reverse of its exit), never as a new arrival elsewhere. The dismiss timer is not an animation duration | rule |
+| Offline, reconnect and cache notices (`OverviewCacheNotice.tsx`, `connectivity.ts`) | Enter `fade` once when the state starts. Reconnect replaces the text without motion (unprompted, lowest priority, 4.9). Never a looping or attention-seeking indicator | rule |
+| Sync states (`PlanCalendarSyncLine.tsx`, offline writes) | Loading while pending, Replace `value` for the result, and no success celebration for background sync | rule |
+| Photo upload and compression progress, background video uploads (`attachmentDraftState.ts`, `backgroundVideoUploads.ts`, `VideoUploadAction.tsx`) | Loading domain. A determinate progress bar is a filled bar at least 4 px high whose fill moves with `transform: scaleX`, updated per progress event within `--duration-transition`. It never animates `width` and is not a thin stroke. Completion is one Feedback `success`, failure Feedback `refuse` | rule |
+| Notification arrival feedback (`NotificationMotion.css`: download ready, transfer done or failed, reminders, recap ready) | Feedback beats under the attention rules (4.9) | covered |
+| In-app notifications sheet (`HeaderNotificationsMenu.tsx`) and unread count | The sheet is Enter `surface` and Exit `surface-exit`. The unread dot and count change without motion (4.9, #1212) | covered |
+| Tooltips and coach marks | `main` has none. A future one would be Enter `fade` under the attention rules | out (none exist) |
+| Quiet hints (`QuietHint.tsx`) | Enter `fade` once per its own limits, attention priority 4, and a `disclose` close | covered |
+| Countdowns (`AnticipationCard.tsx`, waymarks) | Replace `value` only when the shown unit changes (a day) while visible. No per-second ticking animation | rule |
+| Days together | Replace `value` | covered |
+
+**Content and tasks**
+
+| Area | Primitive / rule | Status |
+| --- | --- | --- |
+| Wir (stage, modules, check-in, flights, moment gallery, ring breath) | the reference surface (migration step 3) | covered |
+| Momente timeline, story, years, chapters, photos | Enter `stagger` on first reach (session scope), Enter `media` for photos, Playback for story playback | covered |
+| Momente › Karte, Place picker, partner location map | Map domain (4.8) | covered |
+| Planen, plans, schedule, segmented control, collapsible search | Enter/Exit `surface` for search, Feedback `toggle` for segments, Enter for schedule reveal | covered |
+| List cards with checkboxes and the cart (`ChecklistToggle.tsx`, `SharedListCartBar.tsx`) | Checkbox: Feedback `toggle` at once, then `success` after the authoritative result. The cart: a Flight (`cartFlight.ts`). With reduced motion the checked state shows at once | covered |
+| Reorder, photo arrangement (`ListEntryActions.tsx`, `@dnd-kit`) | Gesture follow into Replace `reorder` | covered |
+| Long-press and the detail-page actions menu | Long-press is Feedback `press` at once. At the hold threshold the menu opens as Enter `surface` with a haptic threshold tick (4.10); releasing earlier is an ordinary tap. The menu closes with `surface-exit`. A visible menu button is the non-gesture alternative | rule |
+| Composer and editor (`PageComposer.tsx`, chips, media, date context) | Inserted chips and attachments Enter `rise`; removed ones Exit. "Draft saved" is Replace `value` of the status text, never a toast animation | rule |
+| Calendar and date sheet (`PlanDateCalendar.tsx`, `ComposerDateContext.tsx`) | Enter `surface`. Month paging is Replace `navigate` lateral, or Gesture follow when swiped. A selected date is Feedback `toggle` | rule |
+| Search and filter results (`SearchPage`, filters, `CollapsibleSearch.tsx`) | A new result set is Replace `crossfade` as one bulk change, with no per-item stagger and no item animation past 12 (M15). An empty result is static | rule |
+| Media viewer, lightbox and video (`MediaGallery.tsx`, `VideoPlayer.tsx`) | Opening is Enter `surface` (fade; no container transform, PO decision). Swiping between items and pinch zoom are Gesture follow. Swipe-down to close is Gesture follow into `surface-exit`. Video buffering is Loading, controls are Feedback, and the Wir rotation is Replace `crossfade` (Guideline) | rule |
+| Discreet and locked content (`DiscreetPlan.tsx`) | Revealing on the person's action is Replace `crossfade`. **Hiding sensitive content is always instant** and never fades out. Nothing animates sensitive content into view before the person asks | rule |
+| Screenshot-protected surfaces (`SecureSurface.tsx`, `secureScreen.ts`) | Motion is unchanged. Protection switches on before protected content is shown and is never delayed by an animation | rule |
+| Once messages and love messages (`OnceMessages.tsx`) | Moment (4.7); privacy and screenshot rules are unaffected | covered |
+| Partner gestures and quick actions | Moment for the receipt; Enter `surface` for the popover | covered |
+| Invitation, pairing and the partner joining the Space (`ConnectedMoment.tsx`) | Moment: the approved connected moment, once. Sending an invitation is Feedback `success` | covered |
+| Onboarding, move-in and first-run empty states (#1907 I1, #2048) | Enter once per identity. Empty states are static. The first item added is Enter `rise` plus Feedback `success` | covered |
+| Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
+| Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`) | Enter for the mark. No automatic celebration on the day | rule; a celebration Moment would be a **PO** decision |
+| Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film | covered |
+| Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
+| Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
+| Voice notes and audio playback (`VoiceNotePlayer.tsx`) | The slider is Gesture follow. Playback progress updates the position directly, without per-tick animation | rule |
+| Pull to refresh (`usePullToRefresh.ts`) | Gesture follow plus Loading | covered |
+| Sign-in, passkeys, recovery (`LoginExperience.css`) | Enter once; errors are Feedback `refuse` | covered |
+| Error boundary and runtime recovery | No motion; the fallback appears at once | rule |
+| Server administration and diagnostics | No decorative motion; only Feedback and Loading | rule |
 
 ## 5. The motion layer
 
@@ -596,7 +712,7 @@ Product Owner decisions of 2026-11-19:
 Rules:
 
 - Only the MIT `motion` package from the public npm registry may be used, with the transitive set above. The adopting pull request lists the transitive dependency set and its licenses from `web/package-lock.json` in `docs/DEPENDENCIES.md`, and that list is re-checked on every Motion upgrade. A new transitive package with a license other than MIT, ISC, BSD or 0BSD blocks the upgrade.
-- **Motion+ is never used.** Motion+ is Motion's paid offering (example and Motion UI source, MotionScore audits, CSS spring generation, private `motion-plus` packages). No `motion-plus*` package, no Motion+ registry or token, and no code copied from Motion+ examples may enter the repository. The guard (migration step 8) rejects `motion-plus` in `package.json`, the lockfile and imports.
+- **Motion+ is never used.** Motion+ is Motion's paid offering (example and Motion UI source, MotionScore audits, CSS spring generation, private `motion-plus` packages). No `motion-plus*` package, no Motion+ registry or token, and no code copied from Motion+ examples may enter the repository. The guard (migration step 9) rejects `motion-plus` in `package.json`, the lockfile and imports.
 - Features that once were Motion+ but now ship inside the MIT `motion` package (for example `motion/react-animate-view`) are covered by the MIT license, like any other part of that package.
 - Self-Hosted redistribution and eimir. Cloud use are covered by MIT. Attribution is kept through the package's `LICENSE.md` in the dependency inventory.
 
@@ -670,10 +786,35 @@ Classified from keyframe names and their use with `infinite` or `--motion-ambien
 - **Layout transitions (Replace `disclose`):** seven layout transitions in five files; each must be checked against the preferred alternatives.
 - **Gestures (4.6):** thresholds, slop and rubber-banding are tuned separately per surface, with similar but different values. The settles do not keep the release velocity. Each surface needs the non-gesture alternative checked.
 - **Choreography (M15):** the Wir stage keeps its clock with a surface-specific helper (`wirIntroClock.ts`); there is no per-screen budget.
+- **Map (4.8):** the zoom buttons and pan inertia ignore reduced motion, and the connection glow animates `offset-distance`, which is now listed as a Map exception in M6.
+
+### 7.5 Map camera calls
+
+All in `PlaceMapCanvas.tsx` (10 calls; `ZoomablePhoto.tsx` `zoomToPoint` is a photo, not the map):
+
+| Line | Call | Trigger | Animated | Contract |
+| ---: | --- | --- | --- | --- |
+| 371 | `jumpTo` | restore the saved viewport on open | no | open: rule kept |
+| 385 | `jumpTo` | automatic framing of a focused Place after a resize | no | resize keeps the frame |
+| 390 | `fitBounds` (`animate: false`) | automatic framing of the overview after a resize or data change | no | data change: no animation |
+| 478 | `jumpTo` | the picker's selected value | no | explicit, instant (picker) |
+| 659 | `fitBounds` (`animate: false`) | "show us" with reduced motion or no duration | no | reduced motion |
+| 660 | `fitBounds` (`--duration-map-camera`) | "show us" | yes | explicit journey |
+| 683 | `jumpTo` | Place focus: snap (reduced motion, no size, or an interrupted flight) | no | reduced motion / finger wins |
+| 685 | `fitBounds` (`animate: false`) | clearing the focus: snap | no | reduced motion / finger wins |
+| 705 | `flyTo` (`--duration-map-camera`) | selecting a Place | yes | explicit journey |
+| 713 | `flyTo` via `cameraForBounds` | clearing the selection back to the overview | yes | explicit journey |
+
+Not in this list:
+
+- **Zoom buttons:** `map.zoomIn()`/`zoomOut()` in `ZoomControl` use MapLibre's default animation and ignore reduced motion.
+- **Inertia:** `dragPan` inertia is not switched off with reduced motion.
+
+The map step fixes both. Each animated camera call reads `--duration-map-camera` with its own `getComputedStyle` parser; these readers move to the token adapter (M1).
 
 ## 8. Migration plan
 
-Each step is its own issue and pull request. Draft issue texts for steps 2 to 7 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
+Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
 
 1. **Contract and library decision** (this document; #2067 step 1). Done when merged and the library decision is approved.
 2. **Shared building blocks and guard.**
@@ -694,8 +835,12 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 7 
    - Check the non-gesture alternative of every gesture.
    - Haptics (approved 2026-11-19): adopt `@capacitor/haptics` 8.x (MIT), record it in `docs/DEPENDENCIES.md`, connect the haptics adapter to the triggers in [4.10](#410-haptics), add the in-app on/off switch (native app only, localized, device-local), and run device acceptance on an Android test release: system vibration settings, Do Not Disturb, and how the light impacts feel.
 6. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection, the Moments (gesture receipt, connected moment, achievement, once messages), and the remaining `disclose` uses.
-7. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
-8. **Close the guard.** The allowlist is empty. The guard rejects:
+7. **Map.**
+   - Apply the Map domain rules (4.8) to `PlaceMapCanvas.tsx` and its users: camera reads through the token adapter, the zoom buttons with `--duration-transition` and a jump under reduced motion, no pan inertia under reduced motion, and the open, return and resize rules.
+   - Move the map keyframes (`PlaceMapPicker.css` connection, `MemoryMapPage.css` photo stack) into the catalogue's Map section.
+   - Device acceptance: Momente › Karte, opening, returning to the kept tab, selecting a Place, "show us", pinch, light/dark, and fold/unfold on the Pixel 10 Pro Fold.
+8. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
+9. **Close the guard.** The allowlist is empty. The guard rejects:
    - `@keyframes` and `.animate()` outside the motion layer;
    - `infinite` outside the registered domains;
    - layout properties in keyframes, and layout transitions outside the registered `disclose` uses;
@@ -720,4 +865,4 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation; the choice was deferred by the Product Owner to a gesture test, with Motion for gestures approved conditionally on its MIT license (never Motion+);<br>• haptics, approved by the Product Owner;<br>• the inventory and the migration plan. |
+| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation; the choice was deferred by the Product Owner to a gesture test, with Motion for gestures approved conditionally on its MIT license (never Motion+);<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the inventory and the migration plan (nine steps, including a map step). |

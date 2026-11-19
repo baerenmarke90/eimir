@@ -174,7 +174,9 @@ import { useWirReveal } from './useWirReveal';
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
 let wirHeroIntroStartedAt: number | null | undefined;
-const WIR_HERO_INTRO_WINDOW_MS = 1500;
+// At least as long as the opening itself (about 2.7 s at the 2.2x beat in
+// WirMotion.css), so a hero that remounts mid-opening keeps drawing in step.
+const WIR_HERO_INTRO_WINDOW_MS = 3000;
 
 function WirIntroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);

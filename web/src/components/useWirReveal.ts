@@ -20,8 +20,10 @@ import { useEffect, useRef, useState } from 'react';
  * only ever move things that are not shown yet.
  */
 const INITIAL_BATCH_WINDOW_MS = 1100;
-const INITIAL_BATCH_START_MS = 580;
-const INITIAL_BATCH_STEP_MS = 130;
+// The opening above them takes about 3 s now, so the first module starts once
+// the portraits and the heart line have landed instead of during their draw.
+const INITIAL_BATCH_START_MS = 1200;
+const INITIAL_BATCH_STEP_MS = 220;
 const INITIAL_BATCH_MAX_STEPS = 4;
 /** The hero and the quote count as settled after this long without a change. */
 const SETTLE_QUIET_MS = 300;

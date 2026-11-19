@@ -138,7 +138,7 @@ Motion supports orientation and feedback.
 - Animations use calm ease-out behavior without strong bouncing.
 - Success, synchronization, and state changes are confirmed subtly.
 - Decorative motion stops automatically and respects “Reduce Motion”.
-- Every animation belongs to one primitive of the [Motion Contract](product/design/motion-contract.md) (Enter, Replace / Exit, Feedback, Flight, Ambient): it ends on its own clock, does not replay when a kept view is shown again or remounted, and animates opacity and transform (with the narrow exceptions listed there).
+- Every animation belongs to one primitive of the [Motion Contract](product/design/motion-contract.md) (Enter, Replace / Exit, Feedback, Flight, Ambient, Gesture follow, Moment): it ends on its own clock, does not replay when a kept view is shown again or remounted, and animates opacity and transform (with the narrow exceptions listed there).
 
 ## 3. Visual language
 

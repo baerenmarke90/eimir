@@ -8,8 +8,8 @@
 
 This contract adds three things to the [Web Motion Guideline](motion-guideline.md) (#1204):
 
-1. a small, closed **catalogue of motion primitives** that every animation in the app must belong to;
-2. **lifecycle invariants** that each primitive must keep: how it ends, when it may replay, how it survives remounts and hidden tabs, which properties it may animate;
+1. a small, closed **catalogue of seven motion primitives** that every animation in the app must belong to: Enter, Replace / Exit, Feedback, Flight, Ambient, Gesture follow and Moment, plus three bounded domains;
+2. **lifecycle invariants** that each primitive must keep: how it ends, when it may replay, how it survives remounts and hidden tabs, which properties it may animate, how motion shares one clock and one budget per screen, and how unprompted motion is limited;
 3. the **motion layer**: one shared place in `web/src` that implements the primitives, plus the library decision and the migration plan to get there.
 
 The Motion Guideline stays the owner of the semantic roles (section 3 there), the token vocabulary (section 2 there), presence (section 5), reduced motion (section 6) and the Product Owner's approved motion decisions. This contract does not change any approved motion. It defines how motion is built so that the same experience looks the same everywhere and the same defects cannot return. If the two documents conflict, the Guideline's approved product decisions win on *what* moves. This contract wins on *how* it is built. A conflict is recorded and resolved in the next version of this contract.
@@ -25,13 +25,17 @@ The Product Owner reported on 2026-11-19 that the new Wir animations looked brok
 | Slow `scale` on a thin stroke steps from pixel to pixel | a 2 px ring breathing with `scale` on phones | [M7](#m7-no-scale-on-thin-strokes) |
 | A remount restarts or flashes motion and drops loaded media | span-to-button remount reset the avatar photo to initials and faded it in again | [M5](#m5-remount-safety) |
 | A one-shot rule retires content for good | a quiet-hint cap retired the "Wie geht's?" prompt | [M3](#m3-one-identity-one-play) (motion state never decides whether content exists) |
+| A photo fades in again over its placeholder | the avatar photo blinked after a remount | [M5](#m5-remount-safety) and the Enter `media` variant |
+| Components that should move together run on separate clocks | the Wir heart line restarted when the hero remounted (`wirIntroClock.ts` now re-aligns it) | [M15](#m15-one-choreography-clock-and-a-per-screen-budget) |
 
 The measured inventory ([section 7](#7-inventory-on-main-at-915e97ec8)) shows 257 `@keyframes` in 65 CSS files and 37 `.animate()` calls written by hand per feature, with three separate token readers and 22 separate reduced-motion checks in TypeScript.
 
 ## 2. Terms
 
 - **Motion layer:** the shared module that implements this contract (proposed path `web/src/motion/`, see [section 5](#5-the-motion-layer)). Feature code asks the layer for a primitive. It does not write `@keyframes` or call `Element.animate()` itself.
-- **Motion identity:** a stable string that names *what* plays, for example `wir.stage`, `wir.module.planning`, `today.quote`. It never contains personal content, ids of private items, or user input.
+- **Motion identity:** a stable string that names *what* plays, for example `wir.stage`, `wir.module.planning`, `today.quote`. It never contains personal content or user input, and is never persisted, logged or sent. Where one item needs its own identity (a received gesture, a photo URL for the `media` variant), the layer keys it by an opaque in-memory value that is dropped with the session.
+- **Prompted / unprompted:** prompted motion answers the person's own action. Unprompted motion announces something they did not trigger (a partner arrival, a received gesture, a hint).
+- **Choreography:** several motions on one screen that share one start time, for example the Wir stage and the modules that arrive after it.
 - **Play scope:** how long a played identity stays played: `app-start` (until the app is reloaded or restarted), `session` (the current app session in memory), or `surface` (as long as the owning surface stays mounted, including while it is hidden in a kept tab).
 - **Kept view:** a mounted view that is hidden and shown again without remounting. Today these are the primary tabs Wir, Momente and Planen in `web/src/components/PrimaryTabPanels.tsx`.
 - **Thin stroke:** a visible ring, border, hairline or line whose painted width is 3 CSS px or less.
@@ -80,9 +84,11 @@ Allowed to animate:
 - `transform` and the individual `translate`, `scale` and `rotate` properties (all supported from the Android WebView floor, Chromium 111);
 - for the Feedback primitive only: `color`, `background-color`, `border-color`, `box-shadow` on a single small element, for at most `--duration-transition`;
 - for line-draw variants only: `stroke-dashoffset` on an SVG path of bounded size;
-- for the Playback domain only: `filter` and `clip-path` on one layer at a time, with a recorded reason in its owning document.
+- for the Playback domain only: `filter` and `clip-path` on one layer at a time, with a recorded reason in its owning document;
+- for Gesture follow only: the scroll position of a scroller (native scrolling, scroll snap, `scrollTo`);
+- for the Replace `disclose` variant only: the one sanctioned layout transition described there.
 
-Never animated: layout properties (`width`, `height`, `max-height`, `top`, `left`, `right`, `bottom`, `inset`, `margin`, `padding`, `gap`, `font-size`, `line-height`, `border-width`, grid/flex tracks). Expand/collapse follows Motion Guideline section 3 ("Expand and collapse").
+Never animated otherwise: layout properties (`width`, `height`, `max-height`, `top`, `left`, `right`, `bottom`, `inset`, `margin`, `padding`, `gap`, `font-size`, `line-height`, `border-width`, grid/flex tracks). Expand/collapse follows Motion Guideline section 3 ("Expand and collapse").
 
 `will-change` is set only for the time a motion runs and removed when it ends (Motion Guideline section 7).
 
@@ -103,7 +109,7 @@ Ambient motion:
 - is absent with reduced motion;
 - never moves a tap target, a portrait, text being read, or the source or target of a Flight.
 
-Two bounded domains may loop while visible; both still pause when hidden or off screen and stop with reduced motion: **Loading indicators** (until the status is known, Motion Guideline section 3) and **Scenes** (game playfields such as the garden, Heart Hunt and Picture Ping-Pong; see [4.6](#46-bounded-domains-loading-playback-scenes)).
+Two bounded domains may loop while visible; both still pause when hidden or off screen and stop with reduced motion: **Loading indicators** (until the status is known, Motion Guideline section 3) and **Scenes** (game playfields such as the garden, Heart Hunt and Picture Ping-Pong; see [4.8](#48-bounded-domains-loading-playback-scenes)).
 
 ### M9. Reduced motion is the same experience without movement
 
@@ -132,21 +138,40 @@ Status, order, success, error and arrival are also expressed through content, se
 
 ### M14. One layer
 
-After migration, `@keyframes` and `Element.animate()` exist only inside the motion layer (and in the bounded domains' registered files during their migration, see [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere.
+After migration, `@keyframes` and `Element.animate()` exist only inside the motion layer (and in the bounded domains' registered files during their migration, see [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere. Pointer tracking for gestures also lives in the layer or in an adopted gesture component (`@dnd-kit`, `@panzoom/panzoom`) wrapped by it.
+
+### M15. One choreography clock and a per-screen budget
+
+Motions that belong together share one clock. A choreography has one start time. Members that mount late, or mount again, align to that time (the layer generalizes `wirIntroClock.ts`, which sets `Animation.startTime`). A member that mounts after its slot has passed shows its final state. Ambient motion on the screen starts only after the choreography finished.
+
+Per screen:
+
+- at most **one emphasized motion** at a time, meaning `--duration-context` or longer, a Flight or a Moment; a second one waits until the first finished, or shows its final state if it would wait longer than `--duration-context`;
+- at most **12 elements animating at once** (the same cap as `MAX_ANIMATED_DEPARTURES`); beyond that, the remaining elements show their final state;
+- nothing starts while the person is dragging or typing, except Gesture follow and the Feedback that answers it.
+
+### M16. Unprompted motion is rare and rate-limited
+
+Unprompted motion follows the [attention rules](#49-attention-unprompted-motion). It never interrupts a gesture, text input, an open sheet or a running Moment. It is rate-limited per kind, and it is dropped, not queued, when it cannot play.
 
 ## 4. Primitive catalogue
 
-The catalogue is closed. A motion that does not fit one of these five primitives, or one of the bounded domains in 4.6, needs a new version of this contract first.
+The catalogue is closed. A motion that does not fit one of these seven primitives, or one of the bounded domains in 4.8, needs a new version of this contract first. Sections 4.9 and 4.10 add cross-cutting rules (attention, haptics) that apply to several primitives. Section 4.11 records how each known motion need is covered.
+
+Five primitives run on a clock (Enter, Replace / Exit, Feedback, Flight, Ambient). Gesture follow runs on the person's finger or scroll and hands over to a clock primitive on release. Moment is a rare, multi-beat emotional choreography with its own budget.
 
 Mapping from the Guideline's roles:
 
 | Motion Guideline role (section 3) | Primitive |
 | --- | --- |
-| Reveal / progressive disclosure, Sheet / drawer (enter), Modal / dialog (enter), Overlay / backdrop (enter), Page / route transition | Enter |
-| List mutation, State transition, Page / route content handoff, Sheet / dialog / overlay (exit) | Replace / Exit |
-| Micro / press feedback, Completion / success, Celebration / emphasis | Feedback |
+| Reveal / progressive disclosure, Sheet / drawer (enter), Modal / dialog (enter), Overlay / backdrop (enter) | Enter |
+| Page / route transition | Replace `navigate` (a pure entrance without a previous view uses Enter) |
+| List mutation, State transition, Sheet / dialog / overlay (exit), Expand and collapse | Replace / Exit |
+| Micro / press feedback, Completion / success | Feedback |
+| Celebration / emphasis, partner gesture receipt, connected moment, once-message reveal | Moment |
 | Send flights, partner arrival, gesture flight (Guideline section 2) | Flight |
 | Wir ring breath, garden life, handmade sway | Ambient |
+| Drag dismissal, swipe between tabs, reorder, pull to refresh, pinch and pan, sliders, carousels | Gesture follow |
 | Loading / async state | Loading (bounded domain) |
 
 ### 4.1 Enter
@@ -155,7 +180,7 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 
 | Aspect | Rule |
 | --- | --- |
-| Variants | `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`) |
+| Variants | `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`), `media` (a photo or video still replacing its placeholder, see below) |
 | Duration | `--duration-context` for a single element; `--duration-transition` for a small popover; `--duration-sequence-beat` per beat of a `stage`; longer roles only where an approved decision names them (for example `--duration-gesture-moment` in the Wir stage) |
 | Easing | `--easing-enter` |
 | Stagger | proposed new tokens (see [5.3](#53-token-extensions-proposed)): `motion.stagger.item` per sibling and `motion.stagger.maxItems`; items after the cap arrive together with the last staggered one. A `stagger` never moves items sideways inside a horizontal scroller (it would widen the strip; Guideline Wir decision) |
@@ -165,13 +190,22 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 | Off screen | `on first reach` for module reveals, otherwise final state (M12) |
 | Reduced motion | final state at once; `surface` may keep a backdrop opacity change of at most `--duration-transition` |
 
+**`media` variant (photo decode, skeleton to content).** The avatar blink came from this case, so these rules are binding:
+
+- The placeholder (initials, colour field, skeleton) and the media share one box. The media is drawn above the placeholder only after `decode()` resolved, or after `load` for elements without `decode()`.
+- The media fades in with `--duration-transition` and `--easing-standard` only the **first time a URL is shown in this session**. The layer keeps the shown URLs in memory only (never persisted, logged or sent).
+- A URL that was already shown, or that is decoded within one frame (from the cache), appears at once with no fade.
+- A remount, a change of the element that holds the photo, or a refetch that returns the same URL never shows the placeholder again and never fades again (M5). A changed URL keeps the previous image until the new one is decoded, then cross-fades (Replace `crossfade`).
+- Skeleton to content: the skeleton is removed in the same frame in which the content is ready. Content may fade in for at most `--duration-transition`; the skeleton never fades out at the same time (no double fade, no blank frame).
+- Reduced motion: the media appears at once over the placeholder.
+
 ### 4.2 Replace / Exit
 
 Something already on screen changes or leaves: a value changes, an item is reordered or removed, a sheet closes, the content of a route is handed over, a picture is cross-faded.
 
 | Aspect | Rule |
 | --- | --- |
-| Variants | `crossfade` (old and new overlap with opacity), `reorder` (FLIP with `translate` from the measured old position), `exit` (opacity, optionally a small `translate`, then unmount), `collapse-gap` (remaining items close the gap with `translate`, never `height`), `surface-exit` (sheet/dialog/popover and backdrop leave as one) |
+| Variants | `crossfade` (old and new overlap with opacity), `reorder` (FLIP with `translate` from the measured old position), `exit` (opacity, optionally a small `translate`, then unmount), `collapse-gap` (remaining items close the gap with `translate`, never `height`), `surface-exit` (sheet/dialog/popover and backdrop leave as one), and the variants with their own rules below: `navigate`, `disclose`, `value`, `scroll-state`, `appearance` |
 | Duration | `--duration-transition` for values and reorder; `--duration-context` for exits and gaps; `--duration-feedback` for small value ticks |
 | Easing | `--easing-standard` for crossfade and reorder; `--easing-exit` for exit |
 | Presence | the authoritative state changes at once; the presentation node stays mounted only until the exit's own finished signal (Guideline section 5); a bulk change (filter swap, more than `MAX_ANIMATED_DEPARTURES`, today 12) is replaced without motion |
@@ -179,20 +213,68 @@ Something already on screen changes or leaves: a value changes, an item is reord
 | Replays | not applicable; a change is a new event, never replayed by a remount |
 | Reduced motion | immediate final state; a `crossfade` may stay as an opacity change of at most `--duration-transition` |
 
+**`navigate` (direction and spatial model).** Direction gets its own rules so that the same navigation always moves the same way:
+
+- *Forward* (opening a detail, a deeper step): the new content arrives from the inline end with a translate of at most 32 CSS px plus opacity. *Back* (System Back, the back control, a return to the task origin) reverses it. In right-to-left locales, inline end is mirrored.
+- *Lateral* (primary tabs): follows the tab order like a pager, and is the same movement as the swipe settle (Gesture follow), so tapping a tab and swiping look alike.
+- *Replace in place* (a filter, a Space switch, a sign-in): no direction, `crossfade` only.
+- *Task return* restores the reading position first; it never animates scroll (Guideline section 7).
+- Duration `--duration-transition`, easing `--easing-standard`; navigation never waits for the animation (M10).
+- **Container transform** (a card growing into its detail) and **shared elements between list and detail** are not part of v1. They need a Product Owner decision. The technical candidate is React 19.3 `<ViewTransition>` on the Android WebView (Chromium 111 supports same-document View Transitions); Firefox 114 and Safari 16.4 would fall back to plain `navigate`. View Transitions block input while they run, so they fit only the short navigation handoff, never Flights or Ambient motion.
+- Reduced motion: the new content is there at once; the restored position and focus are the same.
+
+**`disclose` (expand and collapse: accordion, "+N weitere", the check-in row).** M6 forbids layout animation in general. The sanctioned way, in order of preference:
+
+1. *No height animation.* The control changes state at once, revealed content uses Enter `fade`/`rise` (or `stagger` for "+N weitere" items, within the stagger cap), and content below moves to its new place at once. Use this whenever the content below is not being read.
+2. *Gap with translate.* When content below must visibly follow, the layer measures and moves it with `reorder`/`collapse-gap` (FLIP, `translate` only).
+3. *One bounded size transition.* Only where 1 and 2 cannot express it (the #2066 check-in row that closes under the names): a single `height`/`block-size` transition on **one** container per interaction, with `interpolate-size: allow-keywords` as a progressive enhancement. It lasts at most `--duration-context`, clips its content (`overflow: clip`), animates only in the direction that the decision names, is never used inside lists or on more than one element at once, and must not shift content the person is reading (scroll anchoring checked). Browsers without `interpolate-size` change in one step; this is acceptable by definition. Each use is listed in the owning document. On `main` today: `WirHeroStage.css` (check-in row), `QuietHint.css`, `RelationshipWaymarks.css`, the disclosure rule in `styles.css` (`grid-template-rows`) and three `height` transitions in `PhotoEditTask.css`. The migration checks each one against 1 and 2.
+- Reduced motion: final size at once.
+
+**`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
+
+- A changed number or short label cross-fades, optionally with a vertical translate of at most 8 CSS px in the direction of the change, using `--duration-feedback` or `--duration-transition`. Digits use `font-variant-numeric: tabular-nums` so the width stays stable.
+- Count-ups (rolling a number from 0) exist only inside Playback (the recap film) or a Moment, never on ordinary screens or on first render.
+- Running timers (recording, playback) change their digits without motion.
+- The days-together value ticks only when the day changes while the screen is visible. On a remount or a return it shows the current value.
+- Assistive technology gets the final value once; there is no live region per tick.
+- Reduced motion: the new value is there at once.
+
+**`scroll-state` (scroll-linked presentation).** Collapsing headers, a floating action that tucks away while scrolling (`useFloatingCreateScrollTuck.ts`), the status-bar scrim (`useStatusBarScrim.ts`):
+
+- Scroll sets a **state** with hysteresis (separate show and hide distances, like the 24/12 px of the floating create action), and the state change is a `crossfade` or a small `translate` with `--duration-transition`. There is no per-pixel scroll-linked transform.
+- Scroll-driven animation timelines (`animation-timeline: scroll()`/`view()`) are not used. They start at Chromium 115, above the Android WebView floor, and the approved Wir decision rules out scroll-driven drift. Layer code that inspects running animations (`getAnimations()`) must consider only animations on the document timeline.
+- Parallax is not used.
+- Reduced motion: the state changes at once.
+
+**`appearance` (light/dark, token sets, app designs).**
+
+- A theme change transitions only the root background and text colour (`theme.css`, `--duration-transition`). Components do not add their own theme transitions.
+- A change of the app design or token set re-renders at once. The token adapter re-reads the roles.
+- An appearance change is never a new motion identity: no entrance replays (M3).
+- Reduced motion: at once.
+
 ### 4.3 Feedback
 
-A direct response to a person's action or a confirmed result: press, toggle, selection, success tick, affectionate pulse, a small celebration.
+A direct response to a person's action or a confirmed result: press, toggle, selection, success tick, a single affectionate pulse, a refusal. Multi-beat emotional choreography is a [Moment](#47-moment).
 
 | Aspect | Rule |
 | --- | --- |
-| Variants | `press` (`--control-pressed-scale`, brightness), `toggle` (state change with transition), `success` (one short acknowledgement after a confirmed result), `affection` (heart pulse, bloom; one beat), `celebrate` (rare shared result; Guideline "Celebration / emphasis") |
-| Duration | `--duration-feedback` for press and toggle; `--duration-transition` for success; `--duration-context` up to `--duration-gesture-moment` for `affection` and `celebrate` only where a decision names it |
+| Variants | `press` (`--control-pressed-scale`, brightness), `toggle` (state change with transition), `success` (one short acknowledgement after a confirmed result), `affection` (heart pulse, bloom; exactly one beat), `refuse` (see below) |
+| Duration | `--duration-feedback` for press and toggle; `--duration-transition` for success; `--duration-context` for `affection` and `refuse` |
+| Haptics | optional per [4.10](#410-haptics) |
 | Easing | `--easing-standard`; `--easing-settle` only for an approved small settle |
 | Trigger | only a direct action or an authoritative result, never pending or optimistic state, never a refetch |
 | Ends | own clock; a second action interrupts and restarts the beat (M11) |
 | Replays | never on remount or return; each action is its own event |
 | Properties | M6, including the small color/shadow exception |
 | Reduced motion | the pressed or selected state is still visible; no scale or travel; the confirmed result appears at once |
+
+**`refuse` (errors and refusals).**
+
+- *Invalid input:* the field shows its error state and message, and focus moves to it (UX Patterns). Motion is optional: a single horizontal nudge of at most 4 CSS px, two half cycles, within `--duration-context`. It is never repeated while the person types, and it is absent with reduced motion.
+- *Failed send:* the Flight `return` variant brings the item back, and an inline message explains it.
+- *Conflict:* the authoritative value replaces the local one with Replace `crossfade` and a message. There is no attention motion.
+- Errors never use celebratory or affectionate motion, and never red flashing.
 
 ### 4.4 Flight (shared element)
 
@@ -203,6 +285,7 @@ An item travels from A to B to show where it went: the check-in values into the 
 | Mechanism | a decorative ghost in the shared top-layer flight layer (`FlightLayer.css`, today `flightKit.ts`) travels along an arc with `transform` only; source and target stay in the layout and never move for the flight; the target's landing beat is a Feedback |
 | Duration | `--duration-send-flight`; the gesture choreography uses `--duration-gesture-moment` and `--duration-gesture-sequence` as approved |
 | Easing | `--easing-standard` for travel; `--easing-settle` for an approved landing |
+| Variants | `send` (source to target), `arrive` (an incoming item to its place; unprompted, see 4.9), `return` (a failed send travels back to its source) |
 | Data | the flight never delays saving, closing or the next action; on failure the item visibly returns (Guideline section 2) |
 | Ends | own clock; the ghost is removed when it finishes or is cancelled; a source or target that disappears cancels the flight and shows the final state |
 | Replays | never; each send is one flight |
@@ -224,13 +307,105 @@ Quiet life on a surface that is otherwise still: the slow ring breath on Wir, ga
 | Targets | never a tap target, portrait, readable text, or a Flight source or target |
 | Reduced motion | absent |
 
-### 4.6 Bounded domains: Loading, Playback, Scenes
+### 4.6 Gesture follow (direct manipulation)
+
+Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `main` these are:
+
+- the primary-tab swipe and peek (`useNavigationMotion.ts`, `client/primaryTabPeek.ts`, `PrimaryTabPanels.tsx`);
+- sheet drag-to-dismiss (`ShortTaskSheet.tsx`);
+- pull to refresh (`usePullToRefresh.ts`, `PullToRefreshIndicator.tsx`);
+- list reorder (`ListEntryActions.tsx`), photo arrangement with `@dnd-kit` (`PhotoArrangeTask.tsx`, `PhotoDraftSorting.tsx`);
+- pinch, zoom and pan with `@panzoom/panzoom` (`ZoomablePhoto.tsx`, `PhotoCropTask.tsx`);
+- carousels with scroll snap (8 `scroll-snap-type` declarations);
+- range controls such as the energy battery (`WirDailyCheckIn.tsx`, `VoiceNotePlayer.tsx`, `PhotoCropTask.tsx` and three more).
+
+| Aspect | Rule |
+| --- | --- |
+| Tracking | while the pointer is down, the element follows it **1:1, without easing and without a duration**, updated once per frame (`pointermove` coalesced into `requestAnimationFrame`, `transform` set directly). Native scrolling and scroll snap stay native |
+| Start | a small slop and an axis lock decide who owns the gesture (today 4 to 10 px and an axis dominance of 1.15 to 1.25); vertical page scroll always wins over a horizontal pager on an ambiguous start; nested owners (`[data-gesture-owner]`-style exclusions in `ShortTaskSheet.tsx`) are respected |
+| Edges | beyond a limit the element gives way with **rubber-banding**: a resistance factor (today 0.25) and a maximum travel (today 48 px), never a hard stop and never a neighbour that does not exist |
+| Commit / cancel | on release, the gesture **commits** when the distance passes a threshold (today 18 % of the width capped at 48 to 80 px for the pager, 22 % of the sheet height capped at 120 to 180 px for dismissal, 72 px for pull to refresh) **or** the release velocity passes a fling threshold (today 0.5 px/ms after at least 32 px). Otherwise it **cancels**. A reversal of more than the reversal slop (today 24 px) before release cancels |
+| Release handoff | the element continues from its current position **with its release velocity** into the settle of a clock primitive: Replace `navigate` (pager), Exit `surface-exit` (sheet), Replace `reorder` (drop), or back to rest (cancel). The settle duration scales with the remaining distance, at most `--duration-context`, with `--easing-standard`, or a sampled spring once the token contract has a spring role (see [6.4](#64-evaluation)) |
+| Interruption | grabbing an element that is still settling stops the settle at its current position (`commitStyles`, then `cancel`) and continues tracking from there without a jump. A commit is decided only once per gesture |
+| Properties | `transform` only (translate, scale for pinch), and scroll position for scrollers; never layout properties; no `will-change` outside an active gesture |
+| Data | the commit triggers the domain action (navigation, close, reorder, refresh) at release, not after the settle; the settle never delays it (M10). A refresh shows its status in the Loading domain |
+| Haptics | a light tick when the commit threshold is crossed in either direction, and one confirmation on commit; none while tracking (see [4.10](#410-haptics)) |
+| Reduced motion | the gesture still works and still tracks the finger, because that is direct manipulation and not decorative motion. The settle after release is **instant**: the element jumps to its committed or resting state. Rubber-banding stays, because it is feedback under the finger |
+| Accessibility | **every gesture has a non-gesture alternative** with the same result: tabs in the tab bar, a visible close control and System Back for sheets, move-up/move-down actions or a reorder mode for lists, a refresh action or automatic refresh, zoom buttons or double-tap plus keyboard for photos, keyboard-operable sliders with step values. The alternative is reachable by keyboard and screen reader, and never hidden behind the gesture |
+| Off screen / hidden | a gesture that is interrupted by the page being hidden, a pointer cancel or a route change cancels and settles to rest at once |
+
+### 4.7 Moment
+
+A rare, multi-beat emotional choreography: a received partner gesture (`PartnerGestureReceipt.css`), the connected moment when a couple becomes two (`ConnectedMoment.css`), a shared achievement (`SharedAchievementCelebration.css`), the reveal of a love or once message (`OnceMessages.tsx`). Feedback `affection` stays a single beat; anything with several beats is a Moment.
+
+| Aspect | Rule |
+| --- | --- |
+| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement) |
+| Duration | beats of `--duration-gesture-moment`, the whole of at most `--duration-gesture-sequence` |
+| Easing | `--easing-enter` for arrival, `--easing-settle` only for an approved landing |
+| Trigger | a confirmed result or a received event; never pending state, a refetch or a cache update |
+| Budget | counts as the screen's one emphasized motion (M15); never two Moments at once; never during a gesture, typing or an open sheet unless the Moment is that sheet's content |
+| Replays | once per item (opaque in-memory key): a received gesture or message never plays again after it was seen, on any return or remount |
+| Content | the content (message text, gesture meaning) is readable from the first beat and stays after the Moment; motion never hides it or reveals it as the only way to see it (M13). A once message's privacy and screenshot-protection rules are unaffected |
+| Reduced motion | a static composition with the same content, focus and actions |
+
+### 4.8 Bounded domains: Loading, Playback, Scenes
 
 These are not primitives. They are areas whose motion is defined by their own clock instead of a single change. They keep M1, M2, M6, M9, M10 and M13, and they run inside the motion layer's ambient controller for M8 pausing.
 
 - **Loading:** shimmer, spinner, progress pulse. Loops until the status is known; no interaction delay; reduced motion stops the movement and keeps text, shape and `aria-busy`/status.
 - **Playback:** the recap film (`RecapFilmScene.css`), story playback (`DiscoverStory.css`, `useStoryPlayback.ts`), garden playback. A playback engine composes Enter and Replace scenes on its own scene clock and may use the Playback property exception in M6. It pauses with the page and with an explicit pause control.
 - **Scenes:** interactive game playfields (garden, Heart Hunt, Picture Ping-Pong, remote games). The scene may loop ambient life while it is visible and in use; it pauses when hidden or off screen and is absent with reduced motion. Taps inside the scene are Feedback.
+
+### 4.9 Attention (unprompted motion)
+
+Motion that announces something the person did not trigger: partner arrivals, received gestures, realtime signals, unread markers, badge counts, quiet hints. It uses the primitives above (Flight `arrive`, Enter, Feedback `affection`, Moment) and adds these rules. The [#1212 review](1212-event-driven-arrival-motion.md) remains the source for which events qualify.
+
+- **Only live, identifiable events animate.** Polling, cache reconciliation and unread-count changes have no live identity and never animate (#1212). An unread dot or a badge count appears or changes **without motion** (at most Replace `value` for a count that the person is looking at).
+- **Priority**, highest first:
+  1. a Moment for a received partner gesture or message;
+  2. a partner arrival Flight;
+  3. an Enter for new content in view;
+  4. a quiet hint.
+
+  A lower kind never interrupts a higher one. A lower kind that cannot play is dropped and its content is simply shown.
+- **Rate limits:** at most one unprompted motion at a time per screen. The same kind plays at most once per 30 seconds per screen (a proposed starting value, confirmed in the building-blocks step). Quiet hints keep their own limits (one per screen, one new per day, Freemium matrix "In-app guidance").
+- **Never queued.** Events that arrive while the page or the view is hidden, or while a higher motion plays, are shown in their final state when the person returns; they do not replay as a backlog.
+- **Never during input:** not while the person drags, types or has a sheet open (M16).
+- Reduced motion: the content appears at once; announcements for assistive technology are unchanged.
+
+### 4.10 Haptics
+
+Haptics belong to Feedback and Gesture follow; they are never decorative and never the only signal (M13).
+
+- **Events:** a light tick when a gesture crosses its commit threshold (both directions); a confirmation on a gesture commit or a confirmed meaningful action (a send, a check-in, a gesture to the partner); a distinct pattern for a refusal of a direct action. No haptics for unprompted motion, Ambient, Enter, navigation by tap, or while tracking.
+- **Budget:** at most one haptic per direct action, plus the threshold tick of a gesture. No repeated haptics within `--duration-context`.
+- **Platform:** the Android app uses the native haptic feedback through a Capacitor plugin (candidate: the official `@capacitor/haptics`, MIT, a new dependency that needs its own reuse review in the gestures step). On the Web there are no haptics: iOS Safari has no Vibration API, and `navigator.vibrate` is not a reliable haptic on Android browsers. A Web build therefore simply has none.
+- **Settings:** haptics follow the system's touch-feedback setting. The building-blocks step verifies how the plugin honours it on Android. Reduced motion does not switch haptics off; it is a separate system preference.
+- **Today:** `main` has no haptics at all. Adding them is a product change and needs a Product Owner decision.
+
+### 4.11 Gap audit
+
+How each known motion need is covered by v1:
+
+| Need | Covered by | Decision |
+| --- | --- | --- |
+| Direct manipulation (swipe, drag, pinch, pull, reorder, sliders, carousels) | Gesture follow (4.6) | new primitive |
+| Navigation direction (forward, back, lateral, in place) | Replace `navigate` | variant with direction rules |
+| Container transform card to detail, list-to-detail shared element | — | out of scope for v1; needs a Product Owner decision; technical candidate React `<ViewTransition>` on Android |
+| Scroll-linked headers, hide on scroll, status-bar scrim | Replace `scroll-state` | variant; scroll-driven timelines and parallax not used |
+| Expand and collapse, "+N weitere", the check-in row | Replace `disclose` | variant with one sanctioned layout transition |
+| Photo decode fade, skeleton to content | Enter `media` | variant with remount rules |
+| Partner arrivals, realtime signals, unread markers, badges, hints | Attention rules (4.9) over existing primitives | cross-cutting rules, priority and rate limits |
+| Invalid input, failed send, conflict | Feedback `refuse`, Flight `return`, Replace `crossfade` | variants |
+| Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment |
+| Light/dark, token sets, app designs | Replace `appearance` | variant |
+| Haptics | 4.10 | cross-cutting rules; none on `main` yet |
+| Several components on one choreography, per-screen budget | M15 | invariant |
+| Love and once messages, celebrations, gesture receipt | Moment (4.7) | new primitive; `celebrate` moved out of Feedback |
+| Text input caret, native scrolling momentum, native controls | the platform | out of scope: the browser owns them |
+| Maps (camera, photo stack, connection line) | Replace and Enter with the map roles (Guideline section 2), Ambient for the connection glow | covered; the map step checks M7 on the connection line |
+| Video and audio playback controls | Feedback and Loading | covered |
 
 ## 5. The motion layer
 
@@ -249,6 +424,12 @@ The layer is the single implementation of the catalogue. The API below describes
 | Feedback | `feedback(element, kind)` and the shared CSS utilities | `.eimir-motion-success`, `.eimir-motion-pulse`, `.eimir-motion-lift`, `ChecklistToggle`, per-feature pops |
 | Flight | arc flight, landing, return on failure | `flightKit.ts`, `sendFlight.ts`, `gestureFlight.ts`, `partnerArrival.ts`, `promptFlight.ts`, `cartFlight.ts` |
 | Ambient | `ambient(element, kind)` with finite repeat and visibility control | `wir-breathe`, garden and handmade sway keyframes |
+| Gesture follow | pointer tracking with slop and axis lock, rubber-banding, commit/cancel thresholds, velocity release handoff into a settle, interruption; wrappers for `@dnd-kit` and `@panzoom/panzoom` | the hand-written tracking in `useNavigationMotion.ts`, `ShortTaskSheet.tsx`, `usePullToRefresh.ts`, `ListEntryActions.tsx` |
+| Moment | approved multi-beat choreographies with the one-at-a-time budget | `PartnerGestureReceipt.css`, `ConnectedMoment.css`, `SharedAchievementCelebration.css` |
+| Choreography clock and budget | one start time per choreography, late members align, per-screen budget (M15) | `wirIntroClock.ts`, the batch timing in `useWirReveal.ts` |
+| Attention scheduler | priority, rate limits, drop-not-queue for unprompted motion (4.9) | per-feature checks in `partnerArrival.ts`, `QuietHint.tsx` |
+| Media reveal | decoded-URL registry for the Enter `media` variant | per-component image fades |
+| Haptics adapter | one call per haptic event, routed to the Capacitor plugin in the Android app and a no-op on the Web (4.10) | none (no haptics on `main`) |
 | CSS catalogue | one stylesheet with the shared keyframes per primitive variant, driven by data attributes and token roles | per-feature `@keyframes` |
 
 ### 5.2 Rules for feature code
@@ -285,7 +466,8 @@ From the catalogue and invariants:
 5. reduced motion from one source and token-driven values;
 6. works on the Android WebView floor (Chromium 111) and the Web floor (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4);
 7. license compatible with eimir. (PolyForm Noncommercial source, commercial eimir. Cloud, Self-Hosted redistribution);
-8. small runtime cost on mid-range Android, low migration cost for 257 keyframes and 37 WAAPI calls.
+8. small runtime cost on mid-range Android, low migration cost for 257 keyframes and 37 WAAPI calls;
+9. Gesture follow: 1:1 tracking, rubber-banding, a release handoff that keeps the velocity, ideally a spring-like settle, and interruption of a running settle.
 
 ### 6.2 Candidates
 
@@ -333,6 +515,7 @@ Motion's own documentation states smaller figures for its tree-shaken React path
 | Added size (8) | about 3 to 5 kB | 35 kB (lazy `domAnimation`) to 47 kB gzip | 0 | 0 | 13.5 kB | 26.9 kB | 3.3 kB |
 | Migration cost (8) | low: 37 WAAPI calls are already in this style; CSS keyframes move to the catalogue | medium to high: rewrite to `m.*` components or `useAnimate`; two idioms during migration | lowest, but leaves the defect classes open | partial only | medium | medium | partial only |
 | Maintenance | the team owns about 500 to 800 lines with unit tests; no upstream changes | active upstream (MIT, regular releases); major upgrades through Dependabot and this review | the team | browser vendors | active upstream | Webflow | small upstream |
+| Gesture follow (9) | tracking, thresholds and rubber-banding exist on `main` (pager, sheet, pull, reorder); a velocity-aware spring settle must be built: sampled spring keyframes, or `linear()` easing from Chromium 113 with `--easing-standard` as the fallback on 111 and 112 | strongest candidate: `drag` with velocity, inertia and springs, constraints with elastic edges, interruption built in; requires `domMax` (42.6 kB gzip); its drag values are independent transforms driven per frame on the main thread, which is fine while tracking but also applies to the settle | no | no | springs, no React gesture model | Draggable plugin, inertia | no |
 | Fallback without it | not applicable (platform APIs) | remove the dependency: the layer behind it would still be needed | not applicable | none needed (skips the animation) | — | — | — |
 
 ### 6.5 Recommendation
@@ -347,12 +530,27 @@ Rationale:
 4. **Cost and migration.** About 3 to 5 kB instead of about 35 to 47 kB gzip. The 37 existing `.animate()` calls and `flightKit.ts` already follow this approach, so migration consolidates rather than rewrites, and the app does not run two motion idioms side by side.
 5. **No license or supply-chain change.** GSAP is excluded on license grounds. anime.js and AutoAnimate cover only parts of the catalogue.
 
+**Gesture follow narrows the gap, and that should be stated plainly.** Velocity handoff, springs, elastic edges and interruption are Motion's strongest area. In the in-house layer they would be written and tested by the team. Three things still favour the in-house layer:
+
+- the four gestures on `main` already have tuned thresholds, rubber-banding and WAAPI settles;
+- the hardest gestures (sortable photo arrangement, pinch and pan) are already handled by the adopted `@dnd-kit` and `@panzoom/panzoom`;
+- Motion's drag needs the 42.6 kB `domMax` bundle.
+
+The building-blocks step therefore starts with a **gesture spike**: the sheet dismissal and the pager settle with a velocity-aware sampled spring in the layer. If the spike shows that a natural settle needs clearly more than a small spring helper (roughly 150 lines with tests), the recommendation switches to Motion for Gesture follow and settles only (`domMax` loaded lazily with the first gesture surface). The other primitives stay in the layer.
+
 Kept as options, not part of v1:
 
 - **React `<ViewTransition>`** for route-level Replace on the Android app (WebView ≥ 111), as a progressive enhancement after a separate evaluation, because it blocks input during a transition and is unavailable on the Firefox and Safari floors.
 - **Switch to Motion** (`motion/react` with `LazyMotion`, `m`, lazy `domAnimation`) if later work needs general layout animation of arbitrary layout changes (`layout`/`layoutId`) or physics springs often enough that maintaining FLIP in the layer costs more than the dependency. The layer's API stays the same so that only its implementation would change.
 
-**Product Owner decision needed:** approve the in-house layer, or choose Motion instead. See the PR description for the German summary.
+**Product Owner decisions needed:**
+
+1. Approve the in-house layer, or choose Motion instead.
+2. Agree to the gesture spike rule above: Motion for gestures only, if the spike shows the need.
+3. Decide whether to add haptics (4.10).
+4. Decide whether container transform and list-to-detail shared elements are wanted (Replace `navigate`).
+
+See the PR description for the German summary.
 
 ## 7. Inventory on `main` at `915e97ec8`
 
@@ -372,6 +570,12 @@ Measured on 2026-11-19 with `grep` over `web/src` (production files, tests exclu
 | TypeScript files reading motion tokens with their own parser | 9 |
 | `cubic-bezier(` literals outside the token file | 7 |
 | `@keyframes` animating layout properties | 0 |
+| Layout transitions (`height`, `grid-template-rows`, `interpolate-size`) | 7 in 5 files (Replace `disclose`) |
+| Hand-written gesture tracking (pointer or touch move) | 4 surfaces: tab pager, sheet dismissal, pull to refresh, list reorder |
+| Adopted gesture components | `@dnd-kit` in 2 files, `@panzoom/panzoom` in 2 files |
+| Range controls | 6 files |
+| `scroll-snap-type` declarations | 8 |
+| Haptics | none |
 
 ### 7.2 `@keyframes` by primitive
 
@@ -379,11 +583,13 @@ Classified from keyframe names and their use with `infinite` or `--motion-ambien
 
 | Primitive | Count | Typical members |
 | --- | ---: | --- |
-| Enter | 85 | `wir-intro-*`, `wir-reveal-*`, `today-module-reveal`, `short-task-sheet-enter*`, `preference-modal-*enter`, `header-notifications-*-enter`, `shared-story-lifeline-*`, `planen-panel-in`, `root-tab-intro`, `detail-page-open`, `eimir-disclosure-reveal` |
-| Replace / Exit | 19 | `short-task-sheet-exit*`, `preference-modal-*exit`, `partner-gesture-receipt-exit`, `media-overview-tile-depart`, `wir-moment-out`, `wir-distance-leave` |
-| Feedback | 47 | `notification-*` (9), `partner-gesture-*` beats, `garden-tap-*`, `eimir-success`, `eimir-affectionate-pulse`, `wir-checkin-vibe-pop`, `heart-hunt-pop` |
-| Flight | 14 | `wir-checkin-slot-land`, `wir-intro-pin-land`, `wish-journey-connect*`, `place-map-connection-*`, `pingpong-fly-*` (most flights are WAAPI, see 7.3) |
-| Ambient | 48 | `wir-breathe`, `story-hang-sway`, `today-retrospective-sway`, `partner-gesture-breathe`, about 40 garden life keyframes |
+| Enter | 80 | `wir-intro-*`, `wir-reveal-*`, `today-module-reveal`, `short-task-sheet-enter*`, `preference-modal-*enter`, `header-notifications-*-enter`, `shared-story-lifeline-*`, `planen-panel-in`, `root-tab-intro`, `detail-page-open`, `eimir-disclosure-reveal`, `date-idea-image-fade` (`media`) |
+| Replace / Exit | 17 | `short-task-sheet-exit*`, `preference-modal-*exit`, `media-overview-tile-depart`, `wir-moment-out`, `wir-distance-leave`, `planen-search-close` |
+| Feedback | 42 | `notification-*` (9), `garden-tap-*`, `eimir-success`, `eimir-affectionate-pulse`, `wir-checkin-vibe-pop`, `heart-hunt-pop`, `anticipation-tick` |
+| Flight | 13 | `wir-checkin-slot-land`, `wir-intro-pin-land`, `wish-journey-connect*`, `place-map-connection-*`, `pingpong-fly-*` (most flights are WAAPI, see 7.3) |
+| Ambient | 46 | `wir-breathe`, `story-hang-sway`, `today-retrospective-sway`, about 40 garden life keyframes |
+| Moment | 15 | `partner-gesture-*` (10), `connected-moment-*` (3), `shared-achievement-arrive`, `shared-achievement-leave` |
+| Gesture follow | 0 | gestures track the pointer in TypeScript and settle with WAAPI or transitions (7.1, 7.3) |
 | Loading (domain) | 8 | `story-shimmer`, `plan-cover-shimmer`, `gallery-pulse`, `app-pull-refresh-spin`, progress bars |
 | Playback (domain) | 36 | `recap-film-*` (32), `momente-story-slide-in`, `momente-story-ken-burns`, `garden-playback-in`, `recap-photo-drift` |
 
@@ -397,9 +603,9 @@ Classified from keyframe names and their use with `infinite` or `--motion-ambien
 | `flightKit.ts` | 2 | Flight (shared arc) |
 | `promptFlight.ts` | 2 | Flight |
 | `cartFlight.ts` | 1 | Flight |
-| `useNavigationMotion.ts` | 3 | Enter / Replace (route content) |
+| `useNavigationMotion.ts` | 3 | Gesture follow settle (pager) and Replace `navigate` |
 | `useDepartingItems.ts` | 1 | Exit (`collapse-gap`) |
-| `ListEntryActions.tsx` | 1 | Replace (`reorder`, FLIP) |
+| `ListEntryActions.tsx` | 1 | Gesture follow (reorder drop) into Replace `reorder` (FLIP) |
 | `HeartHuntGamePage.tsx` | 1 | Scene Feedback |
 
 ### 7.4 Risks found
@@ -409,18 +615,41 @@ Classified from keyframe names and their use with `infinite` or `--motion-ambien
 - **Thin strokes (M7):** ring and line keyframes on Wir and the map connection need a check against M7 in the Wir and map steps.
 - **Token readers (M1):** nine separate readers, one with a literal `180` fallback.
 - **Reduced motion (M9):** 22 separate checks that do not all follow a runtime preference change.
+- **Layout transitions (Replace `disclose`):** seven layout transitions in five files; each must be checked against the preferred alternatives.
+- **Gestures (4.6):** thresholds, slop and rubber-banding are tuned separately per surface, with similar but different values. The settles do not keep the release velocity. Each surface needs the non-gesture alternative checked.
+- **Choreography (M15):** the Wir stage keeps its clock with a surface-specific helper (`wirIntroClock.ts`); there is no per-screen budget.
 
 ## 8. Migration plan
 
 Each step is its own issue and pull request. Draft issue texts for steps 2 to 7 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
 
 1. **Contract and library decision** (this document; #2067 step 1). Done when merged and the library decision is approved.
-2. **Shared building blocks and guard.** Create the motion layer (token adapter, reduced-motion source, play registry, visibility controller, the five primitives, CSS catalogue), add the stagger tokens, move `flightKit.ts`, `useOverlayPresence.ts` and `useDepartingItems.ts` behind the layer without visible change, and land the guard with a ratchet allowlist of today's files so that no new ad-hoc motion is added during migration. Unit tests for own clock, play scopes, kept-view return, remount, interruption, reduced motion and finite ambient.
-3. **Wir as the first complete reference.** Migrate everything on Wir (stage, modules, check-in, partner distance, moment gallery, flights, quiet hint, ring breath) to the layer. Device acceptance on an Android test release: opening once per app start, no replay on tab return, no avatar flash on remount, smooth ring breath, "Wie geht's?" visible. Wir's files leave the allowlist.
-4. **Shell, overlays and navigation.** `ShortTaskSheet`, header notifications, profile/preference modals, quick-action popover, `layout.css` route entrances, `useNavigationMotion.ts`, shared utilities in `styles.css`.
-5. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection.
-6. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller; their keyframes move into the CSS catalogue's domain sections.
-7. **Close the guard.** The allowlist is empty; the guard rejects `@keyframes` and `.animate()` outside the motion layer, `infinite` outside the registered domains, layout properties in keyframes, `scale` keyframes on elements marked as thin strokes where detectable, `cubic-bezier(` and literal durations in animation declarations.
+2. **Shared building blocks and guard.**
+   - Create the motion layer: token adapter, reduced-motion source, play registry, visibility controller, choreography clock and budget (from `wirIntroClock.ts`), attention scheduler, media reveal registry, haptics adapter interface (no-op until haptics are approved), the clock primitives and the CSS catalogue.
+   - Add the stagger tokens.
+   - Move `flightKit.ts`, `useOverlayPresence.ts` and `useDepartingItems.ts` behind the layer without visible change.
+   - Land the guard with a ratchet allowlist of today's files, so that no new ad-hoc motion is added during migration.
+   - Run the **gesture spike** from [6.5](#65-recommendation), which decides whether Gesture follow uses the layer or Motion.
+   - Unit tests for own clock, play scopes, kept-view return, remount, interruption, choreography alignment, budget, attention rate limits, reduced motion and finite ambient.
+3. **Wir as the first complete reference.**
+   - Migrate everything on Wir to the layer: stage and modules as one choreography, check-in (including the `disclose` row), partner distance, moment gallery, flights, the avatar photos as Enter `media`, quiet hint, ring breath and arrivals under the attention rules.
+   - Device acceptance on an Android test release: the opening plays once per app start, nothing replays on tab return, no avatar flash on remount, the ring breath is smooth, and "Wie geht's?" is visible.
+   - Wir's files leave the allowlist.
+4. **Shell, overlays and navigation.** `ShortTaskSheet`, header notifications, profile/preference modals, quick-action popover, `layout.css` route entrances with `navigate` direction rules, `scroll-state` (floating create tuck, status-bar scrim), `appearance`, shared utilities in `styles.css`.
+5. **Gestures and haptics.**
+   - Move the tab pager, sheet dismissal, pull to refresh and list reorder onto Gesture follow, with one set of tokenized thresholds and the velocity handoff.
+   - Wrap `@dnd-kit` and `@panzoom/panzoom`.
+   - Check the non-gesture alternative of every gesture.
+   - If the Product Owner approves haptics: reuse review and adoption of the Capacitor haptics plugin, the haptics adapter, and device acceptance.
+6. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection, the Moments (gesture receipt, connected moment, achievement, once messages), and the remaining `disclose` uses.
+7. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
+8. **Close the guard.** The allowlist is empty. The guard rejects:
+   - `@keyframes` and `.animate()` outside the motion layer;
+   - `infinite` outside the registered domains;
+   - layout properties in keyframes, and layout transitions outside the registered `disclose` uses;
+   - `scale` keyframes on elements marked as thin strokes, where detectable;
+   - `cubic-bezier(` and literal durations in animation declarations;
+   - `pointermove`/`touchmove` handlers outside the layer and the wrapped gesture components.
 
 ## 9. Review checklist addition
 
@@ -430,10 +659,13 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 - the motion identity and play scope of each one-shot motion;
 - how it ends (M2) and that it was checked with a kept-tab return (M4) and a remount (M5) where the surface allows them;
 - that only allowed properties move (M6, M7);
-- for ambient motion: the finite repeat and the pause conditions (M8).
+- for ambient motion: the finite repeat and the pause conditions (M8);
+- for gestures: the commit/cancel thresholds, the release handoff, interruption, and the non-gesture alternative (4.6);
+- for unprompted motion: its priority and rate limit (4.9);
+- whether the screen's budget and choreography clock are kept (M15), and any haptics (4.10).
 
 ## 10. Changelog
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | 2026-11-19 | First version: primitive catalogue, invariants M1 to M14, motion layer, library recommendation pending Product Owner approval, inventory, migration plan (#2067). |
+| 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library recommendation with a gesture spike, pending Product Owner approval;<br>• the inventory and the migration plan. |

@@ -8,20 +8,23 @@ is the reference, and no screen, component, token, copy or motion changes.
 
 ## Defects corrected
 
-- The production CSP sent `manifest-src 'none'`, so browsers refused
-  `/manifest.webmanifest`. It now sends `manifest-src 'self'`. `worker-src 'self'` was
-  already present on `main` for the bundled video-compression module worker, and it also
-  admits the service worker.
 - The service worker precached `/offline.css` and `/offline-language.js` in the shell
   cache, but its static lookup only consulted the runtime cache. Offline, the
   worker-controlled fallback received errors for both and rendered unstyled and only
   in German. Static requests now fall back to the shell precache after a failed network
   fetch; online behavior is unchanged.
+- The production CSP originally sent `manifest-src 'none'` and `worker-src 'none'`, so
+  browsers refused the manifest and the service worker. `main` now admits both from
+  `'self'` (the worker since 05dc17ec8, the manifest since #2056). This delivery adds the
+  `check-pwa-foundation.mjs` guard that keeps both directives at exactly `'self'` and
+  corrects `docs/SECURITY.md`, which still documented `manifest-src 'none'`.
 
 ## Baseline and method
 
-- Before: `main` `aa62b721a`. After: the code commit `88529d01d`, which contains that
-  `main`.
+- Before: `main` `ebe9a451b`. After: merge `6f20a26e3`, which contains that `main` and
+  differs from it in the production bundle only by `service-worker.js`. The same capture
+  on `main` `aa62b721a` and code commit `88529d01d` (2026-11-06) produced byte-identical
+  images.
 - Runtime: the pinned `ghcr.io/nginx/nginx-unprivileged:1.31.7` image with the repository
   template, `NGINX_ENVSUBST_FILTER` and CSP-origin entrypoint, serving the production
   bundle from `npm run build`. Each CSP line was byte-identical to its revision.
@@ -42,9 +45,9 @@ is the reference, and no screen, component, token, copy or motion changes.
 
 ## Observed behavior
 
-- Before: the manifest is blocked by `manifest-src 'none'`. `/offline.css` and
-  `/offline-language.js` fail with `net::ERR_FAILED`, the fallback uses the browser
-  default serif font, and English browsers still see German copy.
+- Before: `/offline.css` and `/offline-language.js` fail with `net::ERR_FAILED`, the
+  fallback uses the browser default serif font, and English browsers still see German
+  copy. On `aa62b721a`, the manifest was additionally blocked by `manifest-src 'none'`.
 - After: no CSP violation and no console error. The manifest loads without manifest
   errors. The fallback uses the designed typography and colors in Light and Dark, and
   English browsers see "No connection right now." with `lang="en"`.

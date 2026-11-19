@@ -155,7 +155,9 @@ import {
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
+import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
+import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
@@ -172,6 +174,7 @@ import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
+import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import {
   ActivityProductPage,
@@ -927,6 +930,10 @@ function AuthenticatedApp({
               element={<PlanProductPage {...planningProductProps} />}
             />
             <Route
+              path={PLAN_SHORT_LINK_ROUTE_PATTERN}
+              element={<PlanShortLinkRedirect />}
+            />
+            <Route
               path={REMINDER_DETAIL_ROUTE_PATTERN}
               element={
                 <ReminderReadPage
@@ -1490,6 +1497,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
   useCalendarGoogleAppReturn();
+  usePlanShortLinkAppOpen(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

@@ -251,15 +251,16 @@ def make_space_without_daily_context(session: Session, founder):  # type: ignore
     return space
 
 
-def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]
+def sign_in(session: Session, account, platform: str = "") -> str:  # type: ignore[no-untyped-def]
     """Issue a real access token.
 
     Go through the regular service rather than around it; a forged token would
-    skip exactly the path that this helper is meant to exercise.
+    skip exactly the path that this helper is meant to exercise. ``platform``
+    is what the client declared at sign-in (``android`` for the app).
     """
     from eimir.auth.sessions import start_session
 
-    _, tokens = start_session(session, account)
+    _, tokens = start_session(session, account, platform=platform)
     session.flush()
     return tokens.access_token
 

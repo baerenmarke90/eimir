@@ -192,6 +192,7 @@ import {
 } from './components/PrimaryTabPanels';
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
+import { SecureSurface } from './components/SecureSurface';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
@@ -839,15 +840,27 @@ function AuthenticatedApp({
           <DeferredRoutes>
             <Route
               path={ONCE_ROUTE}
-              element={<OnceMessagesPage mode="inbox" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="inbox" />
+                </SecureSurface>
+              }
             />
             <Route
               path={ONCE_CREATE_ROUTE}
-              element={<OnceMessagesPage mode="compose" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="compose" />
+                </SecureSurface>
+              }
             />
             <Route
               path={`${ONCE_ROUTE}/:messageId`}
-              element={<OnceMessagesPage mode="read" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="read" />
+                </SecureSurface>
+              }
             />
             <Route
               path="/"
@@ -1044,7 +1057,11 @@ function AuthenticatedApp({
             />
             <Route
               path={SEARCH_ROUTE}
-              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+              element={
+                <SecureSurface announceFailure>
+                  <SearchProductPage apis={m4Apis} spaceId={spaceId} />
+                </SecureSurface>
+              }
             />
             {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
               ['', '/new'].map((suffix) => (
@@ -1225,12 +1242,14 @@ function AuthenticatedApp({
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
-                <ProfilePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  account={account}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <ProfilePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1283,13 +1302,15 @@ function AuthenticatedApp({
             <Route
               path="/more/private/*"
               element={
-                <PrivateAreaProductPage
-                  api={privateAreaApi}
-                  profilesApi={profilesApi}
-                  spacesApi={spacesApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <PrivateAreaProductPage
+                    api={privateAreaApi}
+                    profilesApi={profilesApi}
+                    spacesApi={spacesApi}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1328,19 +1349,23 @@ function AuthenticatedApp({
             <Route
               path={HEART_MOMENT_CREATE_ROUTE}
               element={
-                <HeartMomentProductPage
-                  mode="create"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="create"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
               path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
               element={
-                <HeartMomentProductPage
-                  mode="edit"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="edit"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route

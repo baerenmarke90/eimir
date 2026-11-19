@@ -118,6 +118,7 @@ import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
 import { SavedVoiceNote } from './SavedVoiceNote';
+import { SecureSurface } from './SecureSurface';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import {
   ComposerHeader,
@@ -1670,7 +1671,7 @@ export function HeartMomentProductPage({
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
   const mayEdit = heartMoment.capabilities.canEdit && !offline;
   const mayDelete = heartMoment.capabilities.canDelete && !offline;
-  return (
+  const page = (
     <HeartEmotionSurface
       emotion={heartMoment.emotion}
       className="heart-moment-read-page"
@@ -1946,6 +1947,16 @@ export function HeartMomentProductPage({
         />
       </div>
     </HeartEmotionSurface>
+  );
+  // A private Heart Moment stays out of screenshots, screen recordings and
+  // the Recents preview in the app (#683).
+  return (
+    <SecureSurface
+      active={heartMoment.visibility !== ContentVisibility.SHARED}
+      announceFailure
+    >
+      {page}
+    </SecureSurface>
   );
 }
 

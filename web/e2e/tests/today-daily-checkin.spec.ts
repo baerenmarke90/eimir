@@ -829,9 +829,7 @@ test('the Wir opening ends on its own and returning to Wir replays no entrance',
     );
     const animation = column
       ?.getAnimations({ subtree: true })
-      .find(
-        (item) => (item as CSSAnimation).animationName === 'wir-breathe',
-      );
+      .find((item) => (item as CSSAnimation).animationName === 'wir-breathe');
     const frames = (animation?.effect as KeyframeEffect | undefined)
       ?.getKeyframes()
       .flatMap((frame) => Object.keys(frame));

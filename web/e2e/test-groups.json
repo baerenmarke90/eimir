@@ -594,7 +594,7 @@
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,
-      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings with a loaded overview on return."
     },
     "heart-voice-notes.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -3,7 +3,7 @@ import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { GamesApi } from '../api/generated/apis/GamesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import type { PartnerView } from '../api/generated/models/PartnerView';
+import { orderParticipants } from '../client/gameParticipants';
 import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath } from '../client/routes';
@@ -67,25 +67,6 @@ function setWishDetectiveHiddenRoundMarker(
     // Storage may be unavailable in hardened browser contexts. The active
     // in-memory session still keeps the secret out of HANDOFF/GUESS snapshots.
   }
-}
-
-function orderParticipants(
-  partners: readonly PartnerView[],
-  currentAccountId: string,
-): [WishDetectiveParticipant, WishDetectiveParticipant] | null {
-  if (partners.length !== 2) return null;
-  const current = partners.find((partner) => partner.id === currentAccountId);
-  const other = partners.find((partner) => partner.id !== currentAccountId);
-  if (current && other) {
-    return [
-      { id: current.id, displayName: current.displayName },
-      { id: other.id, displayName: other.displayName },
-    ];
-  }
-  return [
-    { id: partners[0].id, displayName: partners[0].displayName },
-    { id: partners[1].id, displayName: partners[1].displayName },
-  ];
 }
 
 async function loadDefaultSetup({

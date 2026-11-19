@@ -9,6 +9,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { GardenSpecies } from '../api/generated/models/GardenSpecies';
 import { blob, type GardenMessenger, petalPath } from '../client/garden';
 import {
+  GardenPetalReveal,
   GrowthFlowerHead,
   isGrowthSpecies,
   SurpriseParcel,
@@ -39,29 +40,6 @@ function Petal({
   );
 }
 
-/** Petals pop in one after another when `opening` is set. */
-function Staggered({
-  opening,
-  delay,
-  index,
-  children,
-}: {
-  opening: boolean;
-  delay: number;
-  index: number;
-  children: ReactNode;
-}) {
-  if (!opening) return <>{children}</>;
-  return (
-    <g
-      className="garden-pop"
-      style={{ '--garden-delay': `${delay + index * 70}ms` } as Style}
-    >
-      {children}
-    </g>
-  );
-}
-
 export function FlowerHead({
   species,
   colour,
@@ -88,7 +66,7 @@ export function FlowerHead({
     return (
       <g>
         {[0, 1, 2, 3, 4].map((k) => (
-          <Staggered key={k} opening={opening} delay={delay} index={k}>
+          <GardenPetalReveal key={k} opening={opening} delay={delay} index={k}>
             <Petal length={10} width={7.6} rotate={k * 72 + 10} fill={colour} />
             <Petal
               length={7}
@@ -97,21 +75,21 @@ export function FlowerHead({
               fill="var(--garden-highlight)"
               opacity={0.16}
             />
-          </Staggered>
+          </GardenPetalReveal>
         ))}
-        <Staggered opening={opening} delay={delay} index={5}>
+        <GardenPetalReveal opening={opening} delay={delay} index={5}>
           <path
             d={blob(0, 0, 3.6, 3.4, 5, 0.12)}
             fill="var(--garden-ink)"
             opacity={0.72}
           />
-        </Staggered>
+        </GardenPetalReveal>
       </g>
     );
   }
   if (species === 'BELLFLOWER') {
     return (
-      <Staggered opening={opening} delay={delay} index={0}>
+      <GardenPetalReveal opening={opening} delay={delay} index={0}>
         <path
           d="M0 -12 C6 -12 7 -6 7 0 C7 3 8.5 5 9.5 7 C7.5 6 6 7.6 4.4 6.2 C3 8 1 8.2 0 6.6 C-1 8.2 -3 8 -4.4 6.2 C-6 7.6 -7.5 6 -9.5 7 C-8.5 5 -7 3 -7 0 C-7 -6 -6 -12 0 -12Z"
           fill={colour}
@@ -131,13 +109,13 @@ export function FlowerHead({
           strokeLinecap="round"
           fill="none"
         />
-      </Staggered>
+      </GardenPetalReveal>
     );
   }
   return (
     <g>
       {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
-        <Staggered key={k} opening={opening} delay={delay} index={k}>
+        <GardenPetalReveal key={k} opening={opening} delay={delay} index={k}>
           <Petal length={10.5} width={3.2} rotate={k * 45} fill={colour} />
           <Petal
             length={6}
@@ -146,11 +124,11 @@ export function FlowerHead({
             fill="var(--garden-highlight)"
             opacity={0.25}
           />
-        </Staggered>
+        </GardenPetalReveal>
       ))}
-      <Staggered opening={opening} delay={delay} index={8}>
+      <GardenPetalReveal opening={opening} delay={delay} index={8}>
         <path d={blob(0, 0, 3.8, 3.8, 6, 0.1)} fill="var(--garden-sun)" />
-      </Staggered>
+      </GardenPetalReveal>
     </g>
   );
 }

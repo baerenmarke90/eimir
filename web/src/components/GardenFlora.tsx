@@ -47,7 +47,8 @@ function Petal({
   );
 }
 
-function Pop({
+/** Shared bloom timing for all garden species. */
+export function GardenPetalReveal({
   opening,
   delay,
   index,
@@ -137,7 +138,7 @@ export function GrowthFlowerHead({
     return (
       <g>
         {Array.from({ length: 13 }, (_, k) => (
-          <Pop
+          <GardenPetalReveal
             // biome-ignore lint/suspicious/noArrayIndexKey: fixed petals
             key={k}
             opening={opening}
@@ -157,22 +158,22 @@ export function GrowthFlowerHead({
               fill="var(--garden-petal-shade)"
               opacity={0.35}
             />
-          </Pop>
+          </GardenPetalReveal>
         ))}
-        <Pop opening={opening} delay={delay} index={6}>
+        <GardenPetalReveal opening={opening} delay={delay} index={6}>
           <path d={blob(0, 0, 6.6, 6.6, 7, 0.06)} fill={colour} />
           <path
             d={blob(0, 0, 4, 4, 6, 0.1)}
             fill="var(--garden-soil)"
             opacity={0.55}
           />
-        </Pop>
+        </GardenPetalReveal>
       </g>
     );
   }
   if (species === 'TULIP') {
     return (
-      <Pop opening={opening} delay={delay} index={0}>
+      <GardenPetalReveal opening={opening} delay={delay} index={0}>
         <path
           d="M0 6 C-8 5.5 -9.5 -4 -6.5 -11 C-3.5 -7 -1 -2 0 6Z"
           fill={colour}
@@ -187,7 +188,7 @@ export function GrowthFlowerHead({
           fill="var(--garden-highlight)"
           opacity={0.16}
         />
-      </Pop>
+      </GardenPetalReveal>
     );
   }
   if (species === 'WATER_LILY') {
@@ -195,18 +196,23 @@ export function GrowthFlowerHead({
       <g>
         {Array.from({ length: 7 }, (_, k) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed petals
-          <Pop key={k} opening={opening} delay={delay} index={k}>
+          <GardenPetalReveal key={k} opening={opening} delay={delay} index={k}>
             <Petal
               length={10}
               width={3.4}
               rotate={-90 + (k - 3) * 25}
               fill={colour}
             />
-          </Pop>
+          </GardenPetalReveal>
         ))}
         {Array.from({ length: 5 }, (_, k) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed petals
-          <Pop key={`inner-${k}`} opening={opening} delay={delay} index={k + 2}>
+          <GardenPetalReveal
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed petals
+            key={`inner-${k}`}
+            opening={opening}
+            delay={delay}
+            index={k + 2}
+          >
             <Petal
               length={7.5}
               width={3}
@@ -214,11 +220,11 @@ export function GrowthFlowerHead({
               fill="var(--garden-highlight)"
               opacity={0.35}
             />
-          </Pop>
+          </GardenPetalReveal>
         ))}
-        <Pop opening={opening} delay={delay} index={7}>
+        <GardenPetalReveal opening={opening} delay={delay} index={7}>
           <path d={blob(0, -1, 2.6, 2, 5, 0.1)} fill="var(--garden-sun)" />
-        </Pop>
+        </GardenPetalReveal>
       </g>
     );
   }
@@ -231,7 +237,7 @@ export function GrowthFlowerHead({
       [-1.6, 2],
     ];
     return (
-      <Pop opening={opening} delay={delay} index={0}>
+      <GardenPetalReveal opening={opening} delay={delay} index={0}>
         <path
           d="M0 -4.6 C4.6 -4.8 4.8 1 2.6 4 C1.4 5.6 -1.4 5.6 -2.6 4 C-4.8 1 -4.6 -4.8 0 -4.6Z"
           fill="var(--garden-berry)"
@@ -255,7 +261,7 @@ export function GrowthFlowerHead({
           fill="none"
           opacity={0.6}
         />
-      </Pop>
+      </GardenPetalReveal>
     );
   }
   if (species === 'SURPRISE') {
@@ -275,7 +281,7 @@ export function GrowthFlowerHead({
       />
       {Array.from({ length: 6 }, (_, k) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: fixed petals
-        <Pop key={k} opening={opening} delay={delay} index={k}>
+        <GardenPetalReveal key={k} opening={opening} delay={delay} index={k}>
           <Petal
             length={12.5}
             width={4.4}
@@ -289,11 +295,11 @@ export function GrowthFlowerHead({
             fill={colour}
             opacity={0.25}
           />
-        </Pop>
+        </GardenPetalReveal>
       ))}
-      <Pop opening={opening} delay={delay} index={6}>
+      <GardenPetalReveal opening={opening} delay={delay} index={6}>
         <path d={blob(0, 0, 2.8, 2.8, 5, 0.1)} fill={colour} />
-      </Pop>
+      </GardenPetalReveal>
     </g>
   );
 }

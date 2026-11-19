@@ -1,5 +1,16 @@
+import { CollectionProductPage } from './components/CollectionProductPage';
+import { OnceMessagesPage } from './components/OnceMessages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   Navigate,
@@ -156,20 +167,9 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
 import { BrandedStartup } from './components/BrandedStartup';
-import { ChapterCreatePage } from './components/ChapterCreatePage';
-import { ChapterProductPage } from './components/ChapterProductPage';
-import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
-import { CollectionProductPage } from './components/CollectionProductPage';
-import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
-import { CoupleExperiencePage } from './components/CoupleExperiencePage';
-import { DailyInsightsPage } from './components/DailyInsightsPage';
-import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
-import { GardenGamePage } from './components/GardenGamePage';
-import { HeartHuntGamePage } from './components/HeartHuntGamePage';
-import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
@@ -178,45 +178,21 @@ import {
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
-import { MediaOverviewPage } from './components/MediaOverviewPage';
-import { MemoryCreatePage } from './components/MemoryCreatePage';
-import { MemoryMapPage } from './components/MemoryMapPage';
-import { MemoryProductPage } from './components/MemoryProductPage';
-import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
-import { OnceMessagesPage } from './components/OnceMessages';
-import { OurMomentsGamePage } from './components/OurMomentsGamePage';
-import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
-import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
-import { PicturePingPongPage } from './components/PicturePingPongPage';
 import type { MapViewport } from './components/PlaceMapCanvas';
-import { PlaceProductPage } from './components/PlaceProductPage';
-import { PlacesOverviewPage } from './components/PlacesOverviewPage';
-import { PlanningCreatePage } from './components/PlanningCreatePage';
-import { PlanProductPage } from './components/PlanProductPage';
 import {
   type PrimaryTabPanel,
   PrimaryTabPanels,
 } from './components/PrimaryTabPanels';
-import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
-import { ProfilePage } from './components/ProfilePage';
-import { ProPaywallPage } from './components/ProPaywallPage';
-import { RelatedPeoplePage } from './components/RelatedPeoplePage';
-import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
-import { ReminderReadPage } from './components/ReminderReadPage';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
 } from './components/ServerAdminPage';
-import { SettingsPage } from './components/SettingsPage';
-import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
-import { SharedNoteReadPage } from './components/SharedNoteReadPage';
-import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -227,12 +203,205 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
-import { WhoOfUsGamePage } from './components/WhoOfUsGamePage';
-import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
-import { WishProductPage } from './components/WishProductPage';
-import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+
+const ChapterCreatePage = lazy(() =>
+  import('./components/ChapterCreatePage').then((module) => ({
+    default: module.ChapterCreatePage,
+  })),
+);
+const ChapterProductPage = lazy(() =>
+  import('./components/ChapterProductPage').then((module) => ({
+    default: module.ChapterProductPage,
+  })),
+);
+const ChaptersOverviewPage = lazy(() =>
+  import('./components/ChaptersOverviewPage').then((module) => ({
+    default: module.ChaptersOverviewPage,
+  })),
+);
+const CollectionsOverviewPage = lazy(() =>
+  import('./components/CollectionsOverviewPage').then((module) => ({
+    default: module.CollectionsOverviewPage,
+  })),
+);
+const CoupleExperiencePage = lazy(() =>
+  import('./components/CoupleExperiencePage').then((module) => ({
+    default: module.CoupleExperiencePage,
+  })),
+);
+const DailyInsightsPage = lazy(() =>
+  import('./components/DailyInsightsPage').then((module) => ({
+    default: module.DailyInsightsPage,
+  })),
+);
+const DateIdeasPage = lazy(() =>
+  import('./components/DateIdeasPage').then((module) => ({
+    default: module.DateIdeasPage,
+  })),
+);
+const GardenGamePage = lazy(() =>
+  import('./components/GardenGamePage').then((module) => ({
+    default: module.GardenGamePage,
+  })),
+);
+const HeartHuntGamePage = lazy(() =>
+  import('./components/HeartHuntGamePage').then((module) => ({
+    default: module.HeartHuntGamePage,
+  })),
+);
+const HeartMomentProductPage = lazy(() =>
+  import('./components/HeartMomentProductPage').then((module) => ({
+    default: module.HeartMomentProductPage,
+  })),
+);
+const MediaOverviewPage = lazy(() =>
+  import('./components/MediaOverviewPage').then((module) => ({
+    default: module.MediaOverviewPage,
+  })),
+);
+const MemoryCreatePage = lazy(() =>
+  import('./components/MemoryCreatePage').then((module) => ({
+    default: module.MemoryCreatePage,
+  })),
+);
+const MemoryMapPage = lazy(() =>
+  import('./components/MemoryMapPage').then((module) => ({
+    default: module.MemoryMapPage,
+  })),
+);
+const MemoryProductPage = lazy(() =>
+  import('./components/MemoryProductPage').then((module) => ({
+    default: module.MemoryProductPage,
+  })),
+);
+const MilestoneProductPage = lazy(() =>
+  import('./components/MilestoneProductPage').then((module) => ({
+    default: module.MilestoneProductPage,
+  })),
+);
+const OurMomentsGamePage = lazy(() =>
+  import('./components/OurMomentsGamePage').then((module) => ({
+    default: module.OurMomentsGamePage,
+  })),
+);
+const PartnerLocationMapPage = lazy(() =>
+  import('./components/PartnerLocationMapPage').then((module) => ({
+    default: module.PartnerLocationMapPage,
+  })),
+);
+const PartnerLocationSettingsPage = lazy(() =>
+  import('./components/PartnerLocationSettingsPage').then((module) => ({
+    default: module.PartnerLocationSettingsPage,
+  })),
+);
+const PicturePingPongPage = lazy(() =>
+  import('./components/PicturePingPongPage').then((module) => ({
+    default: module.PicturePingPongPage,
+  })),
+);
+const PlaceProductPage = lazy(() =>
+  import('./components/PlaceProductPage').then((module) => ({
+    default: module.PlaceProductPage,
+  })),
+);
+const PlacesOverviewPage = lazy(() =>
+  import('./components/PlacesOverviewPage').then((module) => ({
+    default: module.PlacesOverviewPage,
+  })),
+);
+const PlanningCreatePage = lazy(() =>
+  import('./components/PlanningCreatePage').then((module) => ({
+    default: module.PlanningCreatePage,
+  })),
+);
+const PlanProductPage = lazy(() =>
+  import('./components/PlanProductPage').then((module) => ({
+    default: module.PlanProductPage,
+  })),
+);
+const PrivateAreaProductPage = lazy(() =>
+  import('./components/PrivateAreaProductPage').then((module) => ({
+    default: module.PrivateAreaProductPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import('./components/ProfilePage').then((module) => ({
+    default: module.ProfilePage,
+  })),
+);
+const ProPaywallPage = lazy(() =>
+  import('./components/ProPaywallPage').then((module) => ({
+    default: module.ProPaywallPage,
+  })),
+);
+const RelatedPeoplePage = lazy(() =>
+  import('./components/RelatedPeoplePage').then((module) => ({
+    default: module.RelatedPeoplePage,
+  })),
+);
+const RelationshipRecapsPage = lazy(() =>
+  import('./components/RelationshipRecapsPage').then((module) => ({
+    default: module.RelationshipRecapsPage,
+  })),
+);
+const ReminderReadPage = lazy(() =>
+  import('./components/ReminderReadPage').then((module) => ({
+    default: module.ReminderReadPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import('./components/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
+const SharedNoteEditorPage = lazy(() =>
+  import('./components/SharedNoteEditorPage').then((module) => ({
+    default: module.SharedNoteEditorPage,
+  })),
+);
+const SharedNoteReadPage = lazy(() =>
+  import('./components/SharedNoteReadPage').then((module) => ({
+    default: module.SharedNoteReadPage,
+  })),
+);
+const SharedNotesOverviewPage = lazy(() =>
+  import('./components/SharedNotesOverviewPage').then((module) => ({
+    default: module.SharedNotesOverviewPage,
+  })),
+);
+const WhoOfUsGamePage = lazy(() =>
+  import('./components/WhoOfUsGamePage').then((module) => ({
+    default: module.WhoOfUsGamePage,
+  })),
+);
+const WishDetectiveGamePage = lazy(() =>
+  import('./components/WishDetectiveGamePage').then((module) => ({
+    default: module.WishDetectiveGamePage,
+  })),
+);
+const WishProductPage = lazy(() =>
+  import('./components/WishProductPage').then((module) => ({
+    default: module.WishProductPage,
+  })),
+);
+const WishSelectionPage = lazy(() =>
+  import('./components/WishSelectionPage').then((module) => ({
+    default: module.WishSelectionPage,
+  })),
+);
+
+function DeferredRoutes({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      <Routes>{children}</Routes>
+    </Suspense>
+  );
+}
 
 function SpaceContextGate({
   loading,
@@ -661,7 +830,7 @@ function AuthenticatedApp({
           resetKey={location.pathname}
           fallback={routeErrorFallback}
         >
-          <Routes>
+          <DeferredRoutes>
             <Route
               path={ONCE_ROUTE}
               element={<OnceMessagesPage mode="inbox" />}
@@ -1230,7 +1399,7 @@ function AuthenticatedApp({
               path="*"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-          </Routes>
+          </DeferredRoutes>
         </AppErrorBoundary>
       </AppShell>
       <PersonalSettingsSyncRuntime

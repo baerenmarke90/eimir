@@ -404,17 +404,17 @@ describe('WirDailyCheckIn panel', () => {
     ).not.toBeNull();
 
     fireEvent(sheet, new Event('cancel', { cancelable: true }));
-    await waitFor(() =>
-      expect(trigger.getAttribute('aria-expanded')).toBe('false'),
-    );
-    expect(document.activeElement).toBe(trigger);
+    await waitFor(() => {
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(trigger);
+    });
 
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
-    await waitFor(() =>
-      expect(trigger.getAttribute('aria-expanded')).toBe('false'),
-    );
-    expect(document.activeElement).toBe(trigger);
+    await waitFor(() => {
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(trigger);
+    });
   });
 
   it('closes on a press on the backdrop but not inside the sheet', async () => {

@@ -131,6 +131,16 @@ member-count, JSON-entry, path, duplicate-entry, compression-ratio, encryption,
 symlink/device, checksum, and relation/privacy limits before Domain apply.
 These are abuse/safety controls, not commercial quotas.
 
+The API streams each import into a spool. Up to 16 MiB stays in process
+memory. Larger uploads roll into the API's private `/tmp` tmpfs in both
+Compose profiles. The same mount protects temporary files used by regular
+media uploads. Both the web proxy and the API allow transfer bodies up to
+512 MiB. The proxy forwards them without request-body buffering. Size
+`EIMIR_API_TMPFS_SIZE` (default 1 GiB) and container memory for the number
+of simultaneous uploads. Disable swap or use encrypted swap for plaintext
+memory pages. A full mount fails the upload. Request cleanup closes its spool
+on cancellation or failure.
+
 Operational logs contain technical state such as transfer ID, scope, size or
 media count and stable error codes. Bundle content, private titles, credentials,
 storage keys, and signed URLs must not be logged.

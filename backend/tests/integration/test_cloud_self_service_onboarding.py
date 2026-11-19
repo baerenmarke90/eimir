@@ -203,7 +203,7 @@ class TestLegacyCloudEntry:
         response = cloud_client.post("/api/v1/auth/magic-link/request", json={"email": BEN})
         assert response.status_code == 202
         assert [message.to for message in mailbox.messages] == [BEN]
-        assert f"{PUBLIC_BASE_URL}/auth/signup?token=" in mailbox.messages[0].body
+        assert f"{PUBLIC_BASE_URL}/auth/signup#token=" in mailbox.messages[0].body
         # The sign-in form carries no terms acceptance, so creation pauses.
         paused = consume(cloud_client, mailbox.token_for(BEN))
         assert paused.status_code == 409
@@ -329,7 +329,7 @@ class TestNewCloudUser:
         assert response.status_code == 202
         assert response.content == b""
         assert [message.to for message in mailbox.messages] == [ANNA]
-        assert f"{PUBLIC_BASE_URL}/auth/signup?token=" in mailbox.messages[0].body
+        assert f"{PUBLIC_BASE_URL}/auth/signup#token=" in mailbox.messages[0].body
 
     def test_proof_creates_exactly_one_verified_account_and_a_session(
         self, cloud_client, session, mailbox
@@ -873,10 +873,11 @@ class TestInvitedPartner:
         message = mailbox.messages[-1]
         link = next(line for line in message.body.splitlines() if line.startswith("https://"))
         callback = urlsplit(link)
-        token = parse_qs(callback.query)["token"][0]
+        assert not callback.query
+        token = parse_qs(callback.fragment)["token"][0]
 
-        # Follow only the ordinary proof. No fragment parser or separate
-        # accept request stands in for the persisted server Membership.
+        # Consuming the single mailed proof completes the stored invitation
+        # without a separate accept request or a second client-held secret.
         response = consume(cloud_client, token, displayName="Ben")
         assert response.status_code == 201, response.text
         ben = response.json()
@@ -891,7 +892,7 @@ class TestInvitedPartner:
         shared = cloud_client.get(f"/api/v1/spaces/{space['id']}", headers=headers)
         assert shared.status_code == 200
         assert {partner["displayName"] for partner in shared.json()["partners"]} == {"Anna", "Ben"}
-        assert callback.fragment == ""
+        assert set(parse_qs(callback.fragment)) == {"token"}
         assert invitation not in message.body
         proof = session.execute(
             select(SignupProof).where(SignupProof.token_hash == hash_token(token))
@@ -1207,7 +1208,7 @@ class TestLinkHostAndLogs:
 
         assert response.status_code == 202
         body = mailbox.messages[-1].body
-        assert f"{PUBLIC_BASE_URL}/auth/signup?token=" in body
+        assert f"{PUBLIC_BASE_URL}/auth/signup#token=" in body
         assert "attacker.example" not in body
 
     def test_proofs_and_addresses_do_not_reach_application_logs(

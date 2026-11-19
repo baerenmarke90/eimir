@@ -502,7 +502,8 @@ def test_server_admin_resends_normal_primary_email_verification(
     verification_url = next(
         line for line in mailbox.messages[0].body.splitlines() if line.startswith("http")
     )
-    token = parse_qs(urlsplit(verification_url).query)["token"][0]
+    assert not urlsplit(verification_url).query
+    token = parse_qs(urlsplit(verification_url).fragment)["token"][0]
     confirmed = client.post(
         "/api/v1/auth/email/verification/confirm",
         json={"token": token},
@@ -620,7 +621,8 @@ def test_operator_assisted_recovery_reuses_normal_one_time_recovery_flow(
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     recovery_url = response.json()["recoveryUrl"]
-    token = parse_qs(urlsplit(recovery_url).query)["token"][0]
+    assert not urlsplit(recovery_url).query
+    token = parse_qs(urlsplit(recovery_url).fragment)["token"][0]
     assert token
 
     consumed = client.post(

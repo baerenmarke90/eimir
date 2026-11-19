@@ -157,6 +157,16 @@ age is based on a server/client technical timestamp recorded when an authorized
 network response was received; changing device wall-clock time must not extend
 retention indefinitely where a monotonic/runtime-safe comparison is available.
 
+| Data on the device | Browser and iOS | Android | Expiry and removal |
+| --- | --- | --- | --- |
+| Authorized read views and eligible drafts | By the platform's allowed privacy class | Authorized rows sealed with the login key | Seven days for reads. Account or Space change clears the previous scope. |
+| Immutable attachment image bytes | Shared images only | Authorized shared and private images sealed with the login key | No age limit. LRU eviction at 2,000 media items or storage pressure. Logout clears scoped rows. Android also deletes the per-login key. |
+| Audio and video playback | No persistent attachment image-cache row | No persistent attachment image-cache row | Playback resources follow their own session lifecycle. |
+
+Removing a cache row is logical storage deletion. Android key destruction
+also makes surviving sealed bytes unreadable. Neither mechanism promises
+physical overwriting of flash storage.
+
 **Exception for authorized image bytes (Product Owner decision, 2026-11-16).**
 The client store of immutable attachment image bytes (`durableMediaStore`) has
 no maximum age. It is bounded by 2000 media items and the platform storage

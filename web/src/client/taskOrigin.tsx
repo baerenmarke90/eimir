@@ -1,5 +1,6 @@
 import {
   createContext,
+  type MouseEvent,
   type ReactNode,
   useCallback,
   useContext,
@@ -468,4 +469,31 @@ export function useTaskOrigin(): TaskOriginContract {
     [navigate],
   );
   return context ?? fallback;
+}
+
+export function useOpenTaskLink() {
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  return (
+    event: MouseEvent<HTMLAnchorElement>,
+    to: string,
+    selectedKey?: string,
+    onFollow?: () => void,
+  ) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const taskOriginKey = captureOrigin(
+      selectedKey ? { selectedKey } : undefined,
+    );
+    onFollow?.();
+    if (!taskOriginKey) return;
+    event.preventDefault();
+    void navigate(to, { state: { taskOriginKey } });
+  };
 }

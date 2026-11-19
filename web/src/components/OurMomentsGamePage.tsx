@@ -3,7 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { GamesApi } from '../api/generated/apis/GamesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import type { PartnerView } from '../api/generated/models/PartnerView';
+import { orderParticipants } from '../client/gameParticipants';
 import { Configuration } from '../client/apiConfiguration';
 import {
   adoptObjectUrl,
@@ -89,25 +89,6 @@ function ownPreparedSetup(
     .filter((moment) => moment.imageUrl.startsWith('blob:'))
     .map((moment) => adoptObjectUrl(moment.imageUrl));
   return ownedPreparedSetup(setup, resources);
-}
-
-function orderParticipants(
-  partners: readonly PartnerView[],
-  currentAccountId: string,
-): [OurMomentsParticipant, OurMomentsParticipant] | null {
-  if (partners.length !== 2) return null;
-  const current = partners.find((partner) => partner.id === currentAccountId);
-  const other = partners.find((partner) => partner.id !== currentAccountId);
-  if (current && other) {
-    return [
-      { id: current.id, displayName: current.displayName },
-      { id: other.id, displayName: other.displayName },
-    ];
-  }
-  return [
-    { id: partners[0].id, displayName: partners[0].displayName },
-    { id: partners[1].id, displayName: partners[1].displayName },
-  ];
 }
 
 function formatMomentDate(value: Date): string {

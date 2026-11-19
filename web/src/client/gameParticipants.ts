@@ -1,4 +1,5 @@
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
+import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from './apiConfiguration';
 import type { WhoOfUsParticipant } from './whoOfUsSession';
 
@@ -18,9 +19,21 @@ export async function loadGameParticipants({
     }),
   );
   const space = await spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId });
-  if (space.partners.length !== 2) return null;
+  return orderParticipants(space.partners);
+}
+
+type Participant = Pick<PartnerView, 'id' | 'displayName'>;
+
+export function orderParticipants(
+  partners: readonly Participant[],
+  currentAccountId?: string,
+): [Participant, Participant] | null {
+  if (partners.length !== 2) return null;
+  const [a, b] = partners;
+  const [first, second] =
+    b.id === currentAccountId && a.id !== currentAccountId ? [b, a] : [a, b];
   return [
-    { id: space.partners[0].id, displayName: space.partners[0].displayName },
-    { id: space.partners[1].id, displayName: space.partners[1].displayName },
+    { id: first.id, displayName: first.displayName },
+    { id: second.id, displayName: second.displayName },
   ];
 }

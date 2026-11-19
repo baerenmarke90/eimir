@@ -472,13 +472,15 @@
     var(--easing-travel) infinite alternate;
 }
 
+/* A whole group of tufts leans from its roots (#2063): a skew keeps every
+   root on the ground where a rotation of a wide group would lift its ends. */
 @keyframes garden-breeze {
   0%,
   100% {
-    transform: rotate(-1.5deg);
+    transform: skewX(1.5deg);
   }
   50% {
-    transform: rotate(2.5deg);
+    transform: skewX(-2.5deg);
   }
 }
 
@@ -497,13 +499,13 @@
     transform: none;
   }
   24% {
-    transform: rotate(9deg) skewX(-4deg);
+    transform: skewX(-12deg);
   }
   50% {
-    transform: rotate(-3deg);
+    transform: skewX(3deg);
   }
   74% {
-    transform: rotate(1.4deg);
+    transform: skewX(-1.4deg);
   }
   100% {
     transform: none;

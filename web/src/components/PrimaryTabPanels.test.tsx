@@ -37,13 +37,14 @@ function Navigator() {
   return null;
 }
 
-function Harness() {
+function Harness({ prewarm }: { prewarm?: readonly string[] }) {
   return (
     <MemoryRouter initialEntries={['/today']}>
       <TaskOriginProvider accountId="account" spaceId="space">
         <Navigator />
         <PrimaryTabPanels
           fallback={<p>failed</p>}
+          prewarm={prewarm}
           panels={[
             { path: '/today', element: <Page name="today" /> },
             { path: '/story', element: <Page name="story" /> },
@@ -275,4 +276,39 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   expect(panel('/today')?.hidden).toBe(true);
   // The peeked page becomes the active tab without being rebuilt.
   expect(mounts).toHaveLength(mountedForPeek);
+});
+
+it('prepares a panel once the app is quiet and keeps it out of sight until visited', async () => {
+  vi.useFakeTimers();
+  try {
+    render(<Harness prewarm={['/plan']} />);
+    expect(panel('/plan')).toBeNull();
+    // Input keeps resetting the quiet time.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_900);
+      window.dispatchEvent(new Event('scroll'));
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(panel('/plan')).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4_000);
+    });
+    const prepared = panel('/plan');
+    expect(prepared?.dataset.primaryTabPrewarm).toBe('true');
+    expect(prepared?.hidden).toBe(false);
+    expect(prepared?.getAttribute('aria-hidden')).toBe('true');
+    expect(prepared?.hasAttribute('inert')).toBe(true);
+    expect(mounts).toContain('plan');
+    const mountsBefore = mounts.filter((name) => name === 'plan').length;
+
+    act(() => navigate('/plan'));
+    const visited = panel('/plan');
+    expect(visited?.dataset.primaryTabPrewarm).toBeUndefined();
+    expect(visited?.hidden).toBe(false);
+    expect(visited?.hasAttribute('aria-hidden')).toBe(false);
+    // The prepared page is reused, not mounted again.
+    expect(mounts.filter((name) => name === 'plan').length).toBe(mountsBefore);
+  } finally {
+    vi.useRealTimers();
+  }
 });

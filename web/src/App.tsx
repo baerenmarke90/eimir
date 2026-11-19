@@ -209,6 +209,7 @@ import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+import { isCapacitorNative } from './pwa';
 
 const ChapterCreatePage = lazy(() =>
   import('./components/ChapterCreatePage').then((module) => ({
@@ -409,6 +410,15 @@ function DeferredRoutes({ children }: { children: ReactNode }) {
     </Suspense>
   );
 }
+
+/**
+ * Panels built in the background once the app is quiet (#2063). Only the
+ * phone app, where starting a map needs the GPU and its first data from the
+ * network; on the Web the map is built when it is opened.
+ */
+const PREWARMED_PANELS: readonly string[] = isCapacitorNative()
+  ? [MEMORY_MAP_ROUTE]
+  : [];
 
 /** A kept panel whose page code loads on first visit. */
 function DeferredPanel({ children }: { children: ReactNode }) {
@@ -857,6 +867,7 @@ function AuthenticatedApp({
           <PrimaryTabPanels
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
+            prewarm={PREWARMED_PANELS}
           />
         }
       >

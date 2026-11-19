@@ -86,3 +86,28 @@ Cold open measurements, from the tap on Karte:
 The single largest remaining block is starting the map's GPU surface (WebGL), about 190 ms. It happens once per app start.
 
 The first open also waited on four provider round trips (style, TileJSON, sprites, glyphs) before any tile. The style with its TileJSON is now kept on the device, and sprites and glyphs come from the native HTTP cache, so tiles load at once. A stored style older than a day is not used, and repeated missing tiles drop it.
+
+## Grass in three groups per row (Product Owner, 2026-11-20)
+
+The Product Owner compared individual tufts, groups and whole rows in a side-by-side preview built from the same tuft geometry and timing. They chose three groups per row of a 340-wide garden.
+
+Each group leans from its roots with a skew, so roots stay on the ground; the gust uses the same skew. The meadow moves in a few offset waves.
+
+Garden page, steady state, three 8 s windows on the Pixel:
+
+| | Depth bands only | Depth bands and grass groups |
+| --- | --- | --- |
+| Janky frames | mean 4.8 % | 1.04 %, 0.73 %, 0.83 % |
+| 99th percentile frame | 22–24 ms | 19–20 ms |
+| Running animations | 151 (104 of them tufts) | 54 (9 grass groups) |
+
+## Momente map prepared after start (Product Owner, 2026-11-20)
+
+In the phone app the kept Momente map is built in the background once the app is quiet:
+
+- about 4 s after start;
+- after 1.5 s without touch, scroll or keys;
+- in an idle period;
+- not while hidden, and not with Data Saver.
+
+The map is laid out at its real size but invisible and inert, outside the scrollable page. The first tap on Karte then shows it complete, as two cold starts on the Pixel confirmed. The Web builds the map when it is opened.

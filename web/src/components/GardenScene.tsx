@@ -41,6 +41,9 @@ import { type GardenLifeLabels, useGardenLife } from './GardenLife';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 
+/** Grass groups per row of a garden 340 wide (#2063). */
+const TUFT_GROUPS = 3;
+
 export interface ScenePlant {
   id: string;
   species: GardenSpecies;
@@ -118,25 +121,44 @@ function Tufts({
   width: number;
   fill: string;
 }) {
-  const tufts = useMemo(
-    () => grassTufts(ground, { count, seed, minHeight, maxHeight, width }),
-    [ground, count, seed, minHeight, maxHeight, width],
-  );
+  // A few wide groups sway, not every tuft (#2063, Product Owner
+  // 2026-11-20: three groups per row of a 340-wide garden). Each group is
+  // one animation, so the meadow moves in a few offset waves while the
+  // garden's per-frame work stays small.
+  const groups = useMemo(() => {
+    const tufts = grassTufts(ground, {
+      count,
+      seed,
+      minHeight,
+      maxHeight,
+      width,
+    });
+    const total = Math.max(1, Math.round((TUFT_GROUPS * width) / 340));
+    const span = width / total;
+    return Array.from({ length: total }, (_, index) => ({
+      index,
+      center: (index + 0.5) * span,
+      blades: tufts
+        .filter(
+          (tuft) => Math.min(total - 1, Math.floor(tuft.x / span)) === index,
+        )
+        .flatMap((tuft) => tuft.blades),
+    })).filter((group) => group.blades.length > 0);
+  }, [ground, count, seed, minHeight, maxHeight, width]);
   return (
     <g fill={fill}>
-      {tufts.map((tuft, index) => (
+      {groups.map((group) => (
         <g
-          // biome-ignore lint/suspicious/noArrayIndexKey: deterministic decoration
-          key={index}
+          key={group.index}
           className="garden-tuft"
           style={
             {
-              '--garden-wave': `${Math.round(tuft.x * 3.2)}ms`,
-              '--garden-breeze': `${Math.round(-((tuft.x * 37) % 5000))}ms`,
+              '--garden-wave': `${Math.round(group.center * 3.2)}ms`,
+              '--garden-breeze': `${-((group.index * 1600 + seed * 64) % 4800)}ms`,
             } as Style
           }
         >
-          {tuft.blades.map((blade) => (
+          {group.blades.map((blade) => (
             <path key={blade} d={blade} />
           ))}
         </g>

@@ -8,6 +8,7 @@
  */
 
 import { seededRandom } from './garden';
+import { flattenGardenScene } from './gardenSceneLayers';
 
 export type GardenSeason = 'spring' | 'summer' | 'autumn' | 'winter';
 
@@ -98,18 +99,20 @@ export async function gardenSceneImage(
   svg: SVGSVGElement,
   pixelWidth = 1080,
 ): Promise<Blob> {
-  const clone = svg.cloneNode(true) as SVGSVGElement;
-  const originals = [svg, ...Array.from(svg.querySelectorAll('*'))];
-  const copies = [clone, ...Array.from(clone.querySelectorAll('*'))];
-  originals.forEach((original, index) => {
-    const copy = copies[index];
-    if (!copy) return;
-    const computed = window.getComputedStyle(original);
-    const paint = PAINT_PROPERTIES.map(
-      (name) => `${name}:${computed.getPropertyValue(name)}`,
-    ).join(';');
-    copy.setAttribute('style', paint);
-    copy.removeAttribute('class');
+  // The scene is several stacked bands (#2063); the image joins them all.
+  const clone = flattenGardenScene(svg, (band, bandCopy) => {
+    const originals = [band, ...Array.from(band.querySelectorAll('*'))];
+    const copies = [bandCopy, ...Array.from(bandCopy.querySelectorAll('*'))];
+    originals.forEach((original, index) => {
+      const copy = copies[index];
+      if (!copy) return;
+      const computed = window.getComputedStyle(original);
+      const paint = PAINT_PROPERTIES.map(
+        (name) => `${name}:${computed.getPropertyValue(name)}`,
+      ).join(';');
+      copy.setAttribute('style', paint);
+      copy.removeAttribute('class');
+    });
   });
   const box = svg.viewBox.baseVal;
   const height = Math.round((pixelWidth * box.height) / box.width);

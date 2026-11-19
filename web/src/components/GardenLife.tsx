@@ -29,6 +29,7 @@ import {
 } from 'react';
 import type { GardenUnlock } from '../api/generated/models/GardenUnlock';
 import { blob, groundBack, groundFront } from '../client/garden';
+import { sceneElement } from '../client/gardenSceneLayers';
 import {
   ANIMAL_LAYER,
   type AnimalLayer,
@@ -933,9 +934,10 @@ export function useGardenLife({
 
   /** A short shake of the tree crown while the squirrel hides in it. */
   const rustle = useCallback((animal: Animal) => {
-    const crown = arts.current
-      .get(animal.id)
-      ?.ownerSVGElement?.querySelector('.garden-tree-crown');
+    const crown = sceneElement(
+      arts.current.get(animal.id)?.ownerSVGElement,
+      '.garden-tree-crown',
+    );
     if (!crown) return;
     crown.classList.remove('is-rustling');
     // Restart the one-shot animation on a repeated visit.

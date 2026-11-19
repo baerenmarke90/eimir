@@ -122,6 +122,24 @@ export function MemoryMapPage({
   });
   if (viewport.current.scope !== fullscreenScope)
     viewport.current = { scope: fullscreenScope };
+  // The map stays mounted between visits (#2063), so a later task return
+  // (Back from a memory) restores its context here instead of on mount.
+  const appliedReturn = useRef(returnKey);
+  useLayoutEffect(() => {
+    if (!returnContext || appliedReturn.current === returnKey) return;
+    appliedReturn.current = returnKey;
+    setFullscreen({
+      scope: fullscreenScope,
+      open: returnContext.fullscreen ?? false,
+      placeId: returnContext.placeId ?? placeParam,
+    });
+    setActiveMemory({
+      scope: fullscreenScope,
+      placeId: returnContext.placeId ?? placeParam,
+      memoryId: returnContext.memoryId,
+    });
+    if (returnContext.viewport) viewport.current.value = returnContext.viewport;
+  }, [returnKey, returnContext, fullscreenScope, placeParam]);
   const rememberViewport = useCallback(
     (value: MapViewport) => {
       if (viewport.current.scope === fullscreenScope)
@@ -532,6 +550,7 @@ export function MemoryMapPage({
                     ) : (
                       <MapCanvas
                         key={`${fullscreenScope}:inline`}
+                        revealWhenComplete
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
                         onUserMotionChange={setMapMoving}

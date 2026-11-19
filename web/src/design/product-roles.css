@@ -133,6 +133,7 @@
   --duration-story-slide: 5000ms;
   --duration-story-ken-burns: 9000ms;
   --motion-ambient-repeat: 4;
+  --duration-ambient-rest: 12000ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);

@@ -6,6 +6,8 @@
  * Nothing leaves the device until the person taps to save it in Momente.
  */
 
+import { flattenGardenScene } from './gardenSceneLayers';
+
 const PAINT = [
   'fill',
   'stroke',
@@ -29,20 +31,22 @@ export function inlineSvg(
   height: number,
   background?: string,
 ): string {
-  const copy = source.cloneNode(true) as SVGSVGElement;
-  const originals = [source, ...source.querySelectorAll('*')];
-  const copies = [copy, ...copy.querySelectorAll('*')];
-  originals.forEach((element, index) => {
-    const target = copies[index] as SVGElement;
-    const computed = window.getComputedStyle(element);
-    const declarations = PAINT.map((name) => {
-      const value = computed.getPropertyValue(name);
-      return value ? `${name}:${value}` : '';
-    })
-      .filter(Boolean)
-      .join(';');
-    target.setAttribute('style', declarations);
-    target.removeAttribute('class');
+  // The garden scene is several stacked bands; its image joins them all.
+  const copy = flattenGardenScene(source, (band, bandCopy) => {
+    const originals = [band, ...band.querySelectorAll('*')];
+    const copies = [bandCopy, ...bandCopy.querySelectorAll('*')];
+    originals.forEach((element, index) => {
+      const target = copies[index] as SVGElement;
+      const computed = window.getComputedStyle(element);
+      const declarations = PAINT.map((name) => {
+        const value = computed.getPropertyValue(name);
+        return value ? `${name}:${value}` : '';
+      })
+        .filter(Boolean)
+        .join(';');
+      target.setAttribute('style', declarations);
+      target.removeAttribute('class');
+    });
   });
   copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   copy.setAttribute('width', String(width));

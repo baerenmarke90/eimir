@@ -3,17 +3,26 @@ import type { Page } from '@playwright/test';
 /** Origin of the vector basemap; the production CSP allows exactly this host. */
 export const MAP_TILE_ORIGIN = 'https://tiles.openfreemap.org';
 
+/**
+ * Mirrors the provider's TileJSON: like OpenFreeMap's real style, the fixture
+ * style names its tiles by TileJSON URL, and the TileJSON carries the
+ * attribution (in English), which MapLibre displays.
+ */
+const FIXTURE_TILEJSON = {
+  tilejson: '3.0.0',
+  tiles: [`${MAP_TILE_ORIGIN}/fixture/{z}/{x}/{y}.pbf`],
+  minzoom: 0,
+  maxzoom: 14,
+  attribution:
+    '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+};
+
 const FIXTURE_STYLE = {
   version: 8,
   sources: {
     fixture: {
       type: 'vector',
-      tiles: [`${MAP_TILE_ORIGIN}/fixture/{z}/{x}/{y}.pbf`],
-      minzoom: 0,
-      maxzoom: 14,
-      // Mirrors the provider's TileJSON attribution, which MapLibre displays.
-      attribution:
-        '<a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
+      url: `${MAP_TILE_ORIGIN}/planet`,
     },
   },
   // MapLibre only requests tiles of a source that a layer draws. These flat
@@ -55,6 +64,8 @@ export async function mockMapTiles(
     const { pathname } = new URL(route.request().url());
     if (pathname.startsWith('/styles/'))
       return route.fulfill({ json: FIXTURE_STYLE });
+    if (pathname === '/planet')
+      return route.fulfill({ json: FIXTURE_TILEJSON });
     const tile = /^\/fixture\/(\d+)\//.exec(pathname);
     if (tile) zooms.push(Number(tile[1]));
     return route.fulfill({

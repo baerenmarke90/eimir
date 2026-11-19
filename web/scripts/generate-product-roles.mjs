@@ -228,6 +228,9 @@ declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
 // Ambient idle motion (ring breath, hanging sway) settles after this many
 // cycles instead of looping forever, so an idle page stops rendering frames.
 declare('motion-ambient-repeat', value('motion.repeat.ambient'));
+// A decorative scene (the Wir garden) plays its ambient motion only while on
+// screen and only this long in total, then rests in place (#2063).
+declare('duration-ambient-rest', value('motion.duration.ambientRest'));
 for (const role of [
   'standard',
   'enter',

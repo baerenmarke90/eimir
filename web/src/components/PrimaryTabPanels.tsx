@@ -1,4 +1,10 @@
-import { type ReactNode, useLayoutEffect, useRef } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   type Location,
   Route,
@@ -18,6 +24,63 @@ import { AppErrorBoundary } from './AppErrorBoundary';
 /** About half a second at 60 Hz for a revealed panel to finish settling. */
 const RESTORE_FRAMES = 30;
 const USER_SCROLL_INTENTS = ['wheel', 'touchstart', 'keydown'] as const;
+/** Preparing waits this long after the app shows its first tab. */
+const PREWARM_AFTER_MS = 4_000;
+/** ...and for this long without touch, scroll or keys. */
+const PREWARM_QUIET_MS = 1_500;
+const PREWARM_INPUT = [
+  'pointerdown',
+  'touchstart',
+  'wheel',
+  'keydown',
+  'scroll',
+] as const;
+
+/**
+ * Asks for `paths` to be prepared once the app is quiet (#2063): a few
+ * seconds after start, with no touch, scroll or keys for a moment, in an idle
+ * period, and not while the page is hidden or the person saves data.
+ */
+function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
+  const [prepared, setPrepared] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const key = paths.join('|');
+  useEffect(() => {
+    if (!key) return;
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    if (connection?.saveData) return;
+    let lastInput = performance.now();
+    const touched = () => {
+      lastInput = performance.now();
+    };
+    for (const type of PREWARM_INPUT)
+      window.addEventListener(type, touched, { passive: true, capture: true });
+    let timer: number | undefined;
+    let idle: number | undefined;
+    const prepare = () => setPrepared(new Set(key.split('|')));
+    const attempt = () => {
+      const quietFor = performance.now() - lastInput;
+      if (document.hidden || quietFor < PREWARM_QUIET_MS) {
+        timer = window.setTimeout(attempt, PREWARM_QUIET_MS);
+        return;
+      }
+      if (typeof window.requestIdleCallback === 'function')
+        idle = window.requestIdleCallback(prepare, { timeout: 2_000 });
+      else timer = window.setTimeout(prepare, 0);
+    };
+    timer = window.setTimeout(attempt, PREWARM_AFTER_MS);
+    return () => {
+      for (const type of PREWARM_INPUT)
+        window.removeEventListener(type, touched, { capture: true });
+      window.clearTimeout(timer);
+      if (idle !== undefined) window.cancelIdleCallback?.(idle);
+    };
+  }, [key]);
+  return prepared;
+}
 
 /**
  * A kept tab that is shown again is the same view, not a new arrival. Un-hiding
@@ -75,10 +138,18 @@ function resetHorizontalScroll(panel: Element | null) {
 export function PrimaryTabPanels({
   panels,
   fallback,
+  prewarm = [],
 }: {
   panels: readonly PrimaryTabPanel[];
   fallback: ReactNode;
+  /**
+   * Panels built in the background once the app is quiet, before their
+   * first visit, so they open complete (#2063: the Momente map). They are
+   * laid out invisibly, outside the reading flow, until visited.
+   */
+  prewarm?: readonly string[];
 }) {
+  const prepared = usePrewarm(prewarm);
   const location = useLocation();
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
@@ -203,16 +274,18 @@ export function PrimaryTabPanels({
     const peeking = peek === path && path !== active;
     // A tab that was never opened is shown from its root while it is peeked,
     // but is not kept (and unmounts again if the swipe is cancelled).
+    const visited = locations.current.get(path);
+    const preparing = !visited && !peeking && prepared.has(path);
     const kept =
-      locations.current.get(path) ??
-      (peeking
+      visited ??
+      (peeking || preparing
         ? {
             ...location,
             pathname: path,
             search: '',
             hash: '',
             state: null,
-            key: `peek-${path}`,
+            key: `${peeking ? 'peek' : 'prewarm'}-${path}`,
           }
         : undefined);
     if (!kept) return null;
@@ -224,9 +297,10 @@ export function PrimaryTabPanels({
         className="primary-tab-panel"
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
-        aria-hidden={peeking ? true : undefined}
-        inert={peeking}
-        hidden={!visible && !peeking}
+        data-primary-tab-prewarm={preparing ? 'true' : undefined}
+        aria-hidden={peeking || preparing ? true : undefined}
+        inert={peeking || preparing}
+        hidden={!visible && !peeking && !preparing}
       >
         <PrimaryTabTaskOriginScope active={visible}>
           <AppErrorBoundary resetKey={kept.key} fallback={fallback}>

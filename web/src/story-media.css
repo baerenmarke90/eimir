@@ -57,6 +57,14 @@
   animation: story-shimmer 1.6s linear infinite;
 }
 
+/* A deferred preview is not loading yet: it waits outside the viewport until
+   it comes near. It keeps the calm skeleton fill without the shimmer, which
+   otherwise kept an idle page (Momente › Karte) painting every frame for
+   previews nobody can see (#2063). The shimmer starts once loading does. */
+.story-media-skeleton[data-media-deferred] {
+  animation: none;
+}
+
 .story-media-placeholder {
   display: grid;
   place-items: center;

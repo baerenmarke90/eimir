@@ -209,6 +209,7 @@ import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+import { isCapacitorNative } from './pwa';
 
 const ChapterCreatePage = lazy(() =>
   import('./components/ChapterCreatePage').then((module) => ({
@@ -406,6 +407,27 @@ function DeferredRoutes({ children }: { children: ReactNode }) {
       fallback={<UiState kind="loading" title={t('states.loading.title')} />}
     >
       <Routes>{children}</Routes>
+    </Suspense>
+  );
+}
+
+/**
+ * Panels built in the background once the app is quiet (#2063). Only the
+ * phone app, where starting a map needs the GPU and its first data from the
+ * network; on the Web the map is built when it is opened.
+ */
+const PREWARMED_PANELS: readonly string[] = isCapacitorNative()
+  ? [MEMORY_MAP_ROUTE]
+  : [];
+
+/** A kept panel whose page code loads on first visit. */
+function DeferredPanel({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      {children}
     </Suspense>
   );
 }
@@ -787,6 +809,21 @@ function AuthenticatedApp({
       ),
     },
     {
+      // The Momente map stays mounted once visited (#2063): starting a map
+      // needs the GPU and its places' photos, so returning to it reuses the
+      // live map instead of building it again.
+      path: MEMORY_MAP_ROUTE,
+      element: (
+        <DeferredPanel>
+          <MemoryMapPage
+            {...planningProductProps}
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={memoryMapViewport.current}
+          />
+        </DeferredPanel>
+      ),
+    },
+    {
       path: appRoutePath('plan'),
       element: (
         <SharedPlanningOverviewPage
@@ -830,6 +867,7 @@ function AuthenticatedApp({
           <PrimaryTabPanels
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
+            prewarm={PREWARMED_PANELS}
           />
         }
       >
@@ -973,16 +1011,8 @@ function AuthenticatedApp({
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
             />
-            <Route
-              path={MEMORY_MAP_ROUTE}
-              element={
-                <MemoryMapPage
-                  {...planningProductProps}
-                  loadMemoryImage={loadMemoryImage}
-                  sessionViewport={memoryMapViewport.current}
-                />
-              }
-            />
+            {/* Kept like a primary tab (#2063); see primaryTabPanels. */}
+            <Route path={MEMORY_MAP_ROUTE} element={null} />
             <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}

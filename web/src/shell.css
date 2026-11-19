@@ -496,6 +496,27 @@
   display: none;
 }
 
+/* A panel prepared before its first visit (#2063) is laid out like the
+   current page, so a map inside it draws at its real size, but invisibly,
+   behind everything and outside the scrollable page. */
+.product-main > .primary-tab-panel[data-primary-tab-prewarm] {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.product-main > .primary-tab-panel[data-primary-tab-prewarm] > .page {
+  width: calc(100% - 2 * var(--page-gutter));
+  margin-inline: auto;
+}
+
 /* Resolve the shell's width before descendants introduce their own containers. */
 @property --shell-inline-size {
   syntax: "<length>";

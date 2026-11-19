@@ -11,7 +11,7 @@ import type { OwnedObjectUrl } from './objectUrlResource';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
 import type { ReferenceApis } from './referenceFlow';
 import {
-  acquireMediaObjectUrl,
+  acquireMediaObjectUrlAsync,
   offerSynchronousMediaObjectUrl,
   reacquireMediaObjectUrl,
 } from './sharedMediaObjectUrls';
@@ -241,9 +241,13 @@ export function loadAuthorizedStoryImageResource(
     attachmentId,
     options,
   ).then(({ blob, variant }) => {
-    options.signal?.throwIfAborted();
-    assertMediaCacheLease(lease);
-    return acquireMediaObjectUrl(
+    const stillValid = () => {
+      options.signal?.throwIfAborted();
+      assertMediaCacheLease(lease);
+    };
+    stillValid();
+    // Created off the main thread (#2063); the lease is checked again after.
+    return acquireMediaObjectUrlAsync(
       mediaObjectUrlKey(
         lease.scope.id,
         spaceId,
@@ -254,6 +258,7 @@ export function loadAuthorizedStoryImageResource(
       ),
       blob,
       variant === 'thumbnail' ? 'preview' : 'original',
+      stillValid,
     );
   });
 }

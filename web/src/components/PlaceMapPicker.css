@@ -392,3 +392,39 @@
     scale: 1.14;
   }
 }
+
+/* A map shown in one piece (#2063): the calm map surface waits, then the
+   basemap and its marker photos fade in together. */
+.place-map-canvas[data-reveal] {
+  position: relative;
+}
+
+.place-map-canvas[data-reveal="waiting"] {
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+/* The same calm loading surface the page showed while the map code loaded. */
+.place-map-waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.place-map-canvas[data-reveal] .place-map-viewport {
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+.place-map-canvas[data-reveal="waiting"] .place-map-viewport {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-map-canvas[data-reveal] .place-map-viewport {
+    transition: none;
+  }
+}
